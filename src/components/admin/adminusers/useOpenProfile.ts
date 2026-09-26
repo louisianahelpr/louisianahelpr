@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import type { Profile } from "../adminUserHelpers";
 import type { Tables } from "@/integrations/supabase/types";
+import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
 
 /**
  * One row of the admin Jobs tab: exactly the columns `openProfile` selects.
@@ -31,7 +32,7 @@ interface OpenProfileDeps {
   setEmailTracking: (rows: { event_type: string; email_type: string; created_at: string }[]) => void;
   setEmailSendStats: (rows: { template_name: string; count: number; last_sent: string }[]) => void;
   setProfileJobs: (jobs: AdminProfileJob[]) => void;
-  setProfileReviews: (reviews: { rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[]) => void;
+  setProfileReviews: (reviews: { rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string; counts_toward_rating?: boolean }[]) => void;
   setProfileReviewsLeft: (reviews: { rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[]) => void;
   setProfileViolations: (violations: AdminProfileViolation[]) => void;
   setProfileBans: (bans: AdminProfileBan[]) => void;
@@ -56,7 +57,7 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
     setProfileJobs([]);
 
     const [reviewsRes, reviewsLeftRes, violationsRes, bansRes, trackingRes, sendLogRes, jobsRes] = await Promise.all([
-      supabase.from("reviews").select("rating, feedback, reviewer_id, created_at, job_id").eq("reviewee_id", profile.user_id).order("created_at", { ascending: false }),
+      supabase.from("reviews").select(`feedback, reviewer_id, created_at, job_id, ${REVIEW_COUNT_COLUMNS}`).eq("reviewee_id", profile.user_id).order("created_at", { ascending: false }),
       supabase.from("reviews").select("rating, feedback, reviewee_id, created_at, job_id").eq("reviewer_id", profile.user_id).order("created_at", { ascending: false }),
       supabase.from("user_violations").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       supabase.from("user_bans").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
@@ -125,6 +126,8 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
       reviewer_name: nameMap.get(r.reviewer_id) || "User",
       created_at: r.created_at,
       job_title: r.job_id ? jobMap.get(r.job_id) : undefined,
+      // Q321: admin reads every row; say which ones the public count includes.
+      counts_toward_rating: countsTowardRating(r),
     })));
     setProfileReviewsLeft((reviewsLeftRes.data || []).map((r) => ({
       rating: r.rating,

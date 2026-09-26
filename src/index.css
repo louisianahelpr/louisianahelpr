@@ -273,6 +273,70 @@
   line-gap-override: 0%;
   unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
 }
+/* Q371 — the same Bodoni metrics matched to Liberation Serif, for devices
+   with no Georgia (Linux; the CI runner is one). There "Bodoni Moda Fallback"
+   resolves to nothing, the H1 fell through to the generic serif (DejaVu Serif,
+   unmatched), and the swap to Bodoni moved the hero: CLS 0.0315 at 1440 in CI,
+   reproduced exactly on a Linux Chromium. Same method as the block above
+   (frequency-weighted advance ratio per weight instance; hhea ascent/descent
+   divided by it), measured 2026-09-26 against LiberationSerif-{Regular,Bold,
+   BoldItalic}.ttf. Listed AFTER the Georgia family in every stack, so a device
+   that has Georgia never reaches it. */
+@font-face {
+  font-family: "Bodoni Moda Fallback Liberation";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Liberation Serif"), local("LiberationSerif");
+  size-adjust: 114.06%;
+  ascent-override: 98.63%;
+  descent-override: 35.07%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Bodoni Moda Fallback Liberation";
+  font-style: normal;
+  font-weight: 500;
+  src: local("Liberation Serif"), local("LiberationSerif");
+  size-adjust: 115.79%;
+  ascent-override: 97.16%;
+  descent-override: 34.55%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Bodoni Moda Fallback Liberation";
+  font-style: normal;
+  font-weight: 700;
+  src: local("Liberation Serif Bold"), local("LiberationSerif-Bold");
+  size-adjust: 113.17%;
+  ascent-override: 99.41%;
+  descent-override: 35.34%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Bodoni Moda Fallback Liberation";
+  font-style: normal;
+  font-weight: 900;
+  src: local("Liberation Serif Bold"), local("LiberationSerif-Bold");
+  size-adjust: 118.96%;
+  ascent-override: 94.57%;
+  descent-override: 33.62%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
+@font-face {
+  font-family: "Bodoni Moda Fallback Liberation";
+  font-style: italic;
+  font-weight: 700;
+  src: local("Liberation Serif Bold Italic"), local("LiberationSerif-BoldItalic");
+  size-adjust: 111.03%;
+  ascent-override: 101.33%;
+  descent-override: 36.03%;
+  line-gap-override: 0%;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026;
+}
 @font-face {
   font-family: "Montserrat Fallback";
   font-style: normal;
@@ -1914,6 +1978,18 @@ body[data-scroll-locked] .strike-banner {
   z-index: 49;
 }
 
+/* Q313: OfflineBanner (z-[60]) had the same stacking, and worse: with an
+   iPhone notch inset (--safe-area-top ~47px) the banner's bottom edge is ~79px,
+   below a tall dialog's top edge (7vh = 57px at 812), so the sienna strip
+   painted over the dialog and took the upper part of its Close button's tap
+   target (measured 2026-09-25, ~/.lh-shots/q313/). Dimmed with the page like
+   StrikeBanner: the modal owns the screen while it is open, Radix already marks
+   the banner aria-hidden then (hideOthers), and a failed submit inside the
+   dialog reports itself. The banner comes back on top the moment it closes. */
+body[data-scroll-locked] .offline-banner {
+  z-index: 49;
+}
+
 /* ── PAGE-SHELL RHYTHM (Q176, owner 2026-09-23) ─────────────────────────────
    "Too much space above and below for phone width … make the page shells for
    public and authed all consistent." ONE phone gap, read by every shell:
@@ -2082,7 +2158,7 @@ body[data-scroll-locked] .strike-banner {
 }
 
 .text-page-title {
-  font-family: "Bodoni Moda", "Bodoni Moda Fallback", Georgia, serif !important;
+  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
   font-style: italic !important;
   font-weight: 700 !important;
   font-size: var(--headline-hero) !important;

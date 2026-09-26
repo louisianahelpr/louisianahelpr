@@ -18,6 +18,7 @@ import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { userFacingError } from "@/lib/userFacingError";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -56,7 +57,7 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Action failed");
+      toast.error(userFacingError(err, "Couldn't verify that account — try again."));
     } finally {
       inFlight.current = false;
       setBusy(false);

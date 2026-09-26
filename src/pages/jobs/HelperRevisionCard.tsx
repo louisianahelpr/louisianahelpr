@@ -172,8 +172,11 @@ export function HelperRevisionCard({
         }
       }
 
-      // Notify the poster
-      if (posterId) {
+      // Notify the poster — only when a job_revisions row was acknowledged
+      // above. The server proves the notice against that row (Q307); the
+      // legacy revision_note fallback records nothing, so there is no event
+      // to announce and the send would only come back 409.
+      if (posterId && revision?.id && revision.id !== "legacy") {
         // Server-built copy (Q223).
         await notifyJobParty({ user_id: posterId, job_id: jobId, template: "revision_acknowledged" });
       }

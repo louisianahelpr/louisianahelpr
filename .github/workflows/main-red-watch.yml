@@ -36,6 +36,7 @@ on:
       - Prod freshness
       - Race Runner
       - Secret Scan
+      - Sensitive review record
       - Sentry Release
       - Sitemap drift
       - Staleness watch

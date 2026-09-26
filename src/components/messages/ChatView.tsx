@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { isThreadClosed, serverNow } from "@/lib/messagingLockout";
 import { useRecipientRestricted } from "@/lib/recipientGate";
+import { useOffJobState } from "@/lib/offJobGate";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { MessageActionSheet } from "./MessageActionSheet";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -291,17 +292,18 @@ export function ChatView({
   // a job thread is the poster, so any message we didn't send is theirs.
   //
   // "Applicant" must mean *applicant*, not merely "not the poster". This
-  // deliberately mirrors `public.can_message_in_job`, the WITH CHECK on the
-  // `Users can send messages` INSERT policy, which permits three classes:
-  // the poster, the assigned/offered helper, and anyone the poster messaged
-  // first. Case 2 was previously missing here, so the lock survived
-  // acceptance and silenced the hired helper for the rest of the job — while
-  // the server would happily have accepted the insert. Keep these in step:
-  // the client may never be STRICTER than the RLS policy.
+  // mirrors `public.can_message_in_job`, which (with
+  // `can_send_message_to_in_job`) is the WITH CHECK on the `Users can send
+  // messages` INSERT policy. It admits: the poster; the hired Helpr, or the
+  // offered Helpr while the offer is pending; a current crew member; and an
+  // applicant the poster messaged first, only while their application is
+  // still pending or accepted (20260925175953, 20260925230845). Someone who is
+  // no longer on the job is refused in BOTH directions (owner, 2026-09-25):
+  // that case is `offJobState` below, asked of the server, not derived here.
+  // Keep these in step: the client may never be STRICTER than the RLS policy.
   const isApplicant =
     !activeConvo.viewerIsPoster && !activeConvo.viewerIsAssignedHelper;
   const posterHasMessaged = messages.some((m) => m.sender_id !== userId);
-  const composerLocked = isApplicant && !posterHasMessaged;
 
   // 24h post-completion lockout, for everyone on the job. The closing instant
   // comes from the server (same expression as the INSERT gate), so the
@@ -324,15 +326,24 @@ export function ChatView({
   // Q262: null when the other party deleted their account.
   const otherUserId = activeConvo.otherUserId;
 
+  // Off the job (owner, 2026-09-25): once either person in this thread is no
+  // longer on the job (rejected, removed from the crew, offer declined or
+  // expired), neither may start a new message here. Asked of the server's
+  // own read, so the composer is replaced by a read-only notice instead of a
+  // send RLS refuses. Checked before the poster-first lock: someone off the
+  // job is not waiting to be contacted. See src/lib/offJobGate.ts.
+  const offJobState = useOffJobState({ activeConvo, userId, skip: threadClosed });
+  const composerLocked = isApplicant && !posterHasMessaged && !offJobState;
+
   // Receiver gate (only the poster may message applicants and an offered
   // Helpr): asked of the server for the open thread, so an existing thread
   // the viewer can no longer send in shows a read-only notice instead of a
-  // composer whose sends bounce. Not asked while the closed or poster-first
-  // notice already owns the dock. See src/lib/recipientGate.ts.
+  // composer whose sends bounce. Not asked while the closed, off-the-job or
+  // poster-first notice already owns the dock. See src/lib/recipientGate.ts.
   const recipientRestricted = useRecipientRestricted({
     activeConvo,
     userId,
-    skip: threadClosed || composerLocked,
+    skip: threadClosed || !!offJobState || composerLocked,
   });
 
   // iMessage-style read receipt: only the CURRENT USER's most recent
@@ -502,6 +513,7 @@ export function ChatView({
           <ChatComposer
             composerLocked={composerLocked}
             threadClosed={threadClosed}
+            offJobState={offJobState}
             recipientRestricted={recipientRestricted}
             chatLoadError={chatLoadError}
             keyboardInset={keyboardInset}

@@ -13,6 +13,7 @@ import {
   TAB_ICONS,
 } from "@/pages/info/legal/legalSections";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
 
 // THIS TAB STATES NO POLICY OF ITS OWN. It composes the three policy
 // documents (the GDPR/CCPA data export lives inside the Privacy one).
@@ -185,7 +186,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
                     together, and a shared id across routes is how a pill flies in
                     from an unrelated screen. */}
                 {isActive && (
-                  <motion.span
+                  <SharedLayoutPill
                     layoutId="legalDirectoryTabPill"
                     transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                     className="absolute inset-0 rounded-ds-md btn-grad-primary"

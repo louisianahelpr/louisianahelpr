@@ -130,9 +130,10 @@ serve(async (req) => {
        */
       const tipDollars = tipCents / 100;
 
-      // Claim the job FIRST. The unique partial index on (job_id) WHERE
-      // source='auto' means a concurrent tick loses this insert and skips the
-      // job entirely — the charge below can only ever run once.
+      // Claim the job FIRST. The unique partial index on (job_id, helper_id)
+      // WHERE source='auto' (tips_one_auto_per_job_member, 20260925154606: a
+      // crew's auto-tip is one claim per member) means a concurrent tick loses
+      // this insert and skips it — each charge below can only ever run once.
       const { data: tipRow, error: claimErr } = await supabase
         .from("tips")
         .insert({
@@ -216,8 +217,9 @@ serve(async (req) => {
       //     every path calling it `continue`s without reaching here.
       //   • Nothing else in the repo updates or deletes `tips` at all (grepped
       //     across src/ and supabase/functions/), so no concurrent writer exists.
-      //   • A concurrent tick cannot have claimed the same job — the unique
-      //     partial index on (job_id) WHERE source='auto' guarantees it.
+      //   • A concurrent tick cannot have claimed the same (job, member) — the
+      //     unique partial index on (job_id, helper_id) WHERE source='auto'
+      //     guarantees it.
       //   • An UPDATE returns its matched rows even when the values are
       //     unchanged, so a repeat write still matches 1 row rather than 0.
       // So zero rows means the write did not happen. And because

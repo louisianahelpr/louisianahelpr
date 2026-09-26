@@ -103,7 +103,7 @@ stories go in the lessons file, never here.
 ## Process
 - **Commit directly to `main`**, no branch/PR. Locally run `npm run typecheck` (+ `npx vitest run` for tested code); CI runs lint/build/full suite. Re-run the full local gate only with specific reason to distrust CI. [L](docs/lessons/CLAUDE-lessons.md#commit-main)
 - If commits start reaching prod red, check `gh workflow list --all` for `disabled_manually` before assuming the local gate is the only option.
-- **Review money/auth/data-model diffs before committing** with `lh-silent-failure`, `lh-authz-rls`, `lh-money-escrow` (tell them REVIEW ONLY, ignore their fleet preamble), or `/code-review` / `/security-review`. `code-reviewer`, `silent-failure-hunter`, `security-auditor` do NOT exist. [L](docs/lessons/CLAUDE-lessons.md#commit-main)
+- **Review money/auth/data-model diffs before committing** with `lh-silent-failure`, `lh-authz-rls`, `lh-money-escrow` (tell them REVIEW ONLY, ignore their fleet preamble), or `/code-review` / `/security-review`. `code-reviewer`, `silent-failure-hunter`, `security-auditor` do NOT exist. Record it: a `Sensitive-Review: <reviewer>: <verdict>` commit trailer, or `node scripts/check-sensitive-review.mjs record <sha> <reviewer> <verdict>`; main goes red on an unrecorded one (Q9). [L](docs/lessons/CLAUDE-lessons.md#commit-main)
 - `/code-review ultra` is user-triggered and billed: recommend it, never attempt it.
 - End every commit message with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
 - **Never idle on a blocked git operation.** Apply the documented fallback (commit direct to main) at once; if still stuck after a couple of attempts, stop the run cleanly. [L](docs/lessons/CLAUDE-lessons.md#git-idle)

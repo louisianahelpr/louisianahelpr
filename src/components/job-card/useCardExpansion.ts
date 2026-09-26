@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Job } from "@/components/job-card/activityConstants";
 
-export type CompletedJobMeta = Record<string, { tipped: boolean; reviewed: boolean }>;
+export type CompletedJobMeta = Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
 
 /** sessionStorage key for the default-open cards the user collapsed by hand. */
 export const COLLAPSED_AWAITING_KEY = "activity:collapsed-awaiting-tip-review";

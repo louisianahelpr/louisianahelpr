@@ -79,7 +79,7 @@ export const IDENTITY_BUCKETS = ["avatars", "user-documents", "application-attac
 
 /**
  * Top-level sections of the "Download My Data" JSON: the keys export_my_data()
- * returns (supabase/migrations/20260925232153_export_my_data.sql) plus the
+ * returns (newest definition: supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql) plus the
  * `storage_objects` the export-my-data edge function adds. Kept equal to them by
  * src/test/dataExportCoversEveryUserTable.test.ts.
  */
@@ -87,16 +87,18 @@ export const EXPORT_SECTIONS = [
   "exported_at", "user_id", "email", "profile", "jobs", "applications", "reviews", "messages",
   "message_reactions", "notifications", "notification_preferences", "notification_logs",
   "notification_dedupe_suppressions", "push_tokens", "saved_jobs", "saved_searches",
-  "saved_search_alert_queue", "match_digest_queue", "favorite_helpers", "helper_availability",
+  "saved_search_alert_queue", "match_digest_queue", "parish_match_alert_queue", "ops_alert_admin_subjects",
+  "favorite_helpers", "helper_availability",
   "helper_credentials", "helper_verifications", "verification_checks", "verification_exceptions",
-  "helper_w9_records", "instant_payouts", "payout_transfers", "payment_refunds",
+  "helper_w9_records", "instant_payouts", "payout_transfers", "crew_cancellation_fee_shares", "payment_refunds",
   "chargeback_clawbacks", "tips", "gift_cards", "referral_codes", "referral_credits", "referrals",
   "reports", "user_blocks", "user_bans", "user_strikes", "user_violations", "user_roles",
   "legal_acceptances", "login_history", "email_tracking", "email_send_log", "suppressed_emails",
   "job_checkins", "job_tracking", "group_job_helpers", "recurring_visit_releases", "job_revisions",
   "job_completion_nudges", "disputes", "job_views", "profile_views", "pet_profiles",
   "str_calendar_connections", "thread_archives", "thread_mutes", "thread_pins", "nps_responses",
-  "analytics_events", "error_logs", "application_rate_log", "profile_search_rate_log",
+  "analytics_events", "error_logs", "admin_user_notes", "fraud_flags", "helper_shadowbans",
+  "application_rate_log", "profile_search_rate_log",
   "storage_objects",
 ];
 

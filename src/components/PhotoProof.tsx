@@ -14,6 +14,7 @@ import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative, pickerFailure } from "@/lib/nativeCamera";
@@ -46,9 +47,49 @@ type PhotoProofProps = {
    * button. The DIALOG is unchanged — this is only where the tap comes from.
    */
   chip?: boolean;
+  /**
+   * A GROUP job: the photos are the caller's OWN crew-member proof
+   * (group_job_helpers.proof_before_urls / proof_after_urls), written through
+   * `rpc_group_member_set_proof`. A crew has no lead (Q407), so nobody on a
+   * crew writes `jobs.proof_*_urls`: each member's Working step and completion
+   * gate read that member's own roster photos (20260925140148).
+   * `existingUrls` must then be the member's own roster photos.
+   */
+  crew?: boolean;
 };
 
-const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip }: PhotoProofProps) => {
+/**
+ * Attach uploaded proof paths: the job's own columns on a single-helper job,
+ * the caller's roster row on a crew. Throws on a refusal, so the dialog never
+ * closes as if photos were attached when nothing was.
+ */
+async function saveProofPaths(jobId: string, type: "before" | "after", urls: string[], crew: boolean): Promise<void> {
+  if (crew) {
+    const { data, error } = await supabase.rpc(
+      "rpc_group_member_set_proof",
+      type === "before" ? { _job_id: jobId, _before: urls } : { _job_id: jobId, _after: urls },
+    );
+    if (error) throw error;
+    if ((data as { ok?: boolean } | null)?.ok !== true) {
+      throw new Error("Photos uploaded, but they couldn't be attached to your part of this job.");
+    }
+    return;
+  }
+  const updateField = type === "before" ? { proof_before_urls: urls } : { proof_after_urls: urls };
+  // .select("id"): without it a jobs update that matches zero rows (RLS, a
+  // job that already moved on) returns error === null, and the dialog closed
+  // as if the proof photos were attached.
+  unwrapMutation(
+    await supabase.from("jobs").update(updateField).eq("id", jobId).select("id"),
+    {
+      action: "attach these photos to the job",
+      rejectedMessage: "Photos uploaded, but they couldn't be attached to this job — it may have already been closed.",
+      context: { jobId, proofType: type },
+    },
+  );
+}
+
+const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip, crew = false }: PhotoProofProps) => {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -144,25 +185,15 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
       );
     }
 
-    const updateField = type === "before" ? { proof_before_urls: urls } : { proof_after_urls: urls };
-    // .select("id"): without it a jobs update that matches zero rows (RLS, a
-    // job that already moved on) returns error === null, and the dialog closed
-    // as if the proof photos were attached.
     try {
-      unwrapMutation(
-        await supabase.from("jobs").update(updateField).eq("id", jobId).select("id"),
-        {
-          action: "attach these photos to the job",
-          rejectedMessage: "Photos uploaded, but they couldn't be attached to this job — it may have already been closed.",
-          context: { jobId, proofType: type },
-        },
-      );
+      await saveProofPaths(jobId, type, urls, crew);
     } catch (updateError) {
       if (!isWriteRejected(updateError)) {
-        report(updateError, { tags: { source: "PhotoProof.save" } });
+        report(updateError, { tags: { source: crew ? "PhotoProof.saveCrew" : "PhotoProof.save" } });
       }
       toast.error(
-        mutationErrorMessage(updateError, "Photos uploaded but couldn't be saved to the job. Please try again."),
+        (crew ? rpcErrorMessage("rpc_group_member_set_proof", updateError) : null) ??
+          mutationErrorMessage(updateError, "Photos uploaded but couldn't be saved to the job. Please try again."),
       );
       setUploading(false);
       return;
@@ -292,7 +323,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
                     onClick={handleNativeAdd}
                     className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
                     style={{
-                      background: "hsla(0, 0%, 100%, 0.4)",
+                      background: "hsl(var(--card) / 0.4)",
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
                     }}
                   >
@@ -308,7 +339,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip 
                   <label
                     className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
                     style={{
-                      background: "hsla(0, 0%, 100%, 0.4)",
+                      background: "hsl(var(--card) / 0.4)",
                       border: "1.5px dashed hsl(var(--bark) / 0.30)",
                     }}
                   >
@@ -638,12 +669,15 @@ export const PhotoProofCaptureChip = ({
   existingUrls,
   onUploaded = () => {},
   label,
+  crew = false,
 }: {
   jobId: string;
   type: "before" | "after";
   existingUrls: string[];
   onUploaded?: () => void;
   label: string;
+  /** A group job: the caller's own crew-member photos. See PhotoProof `crew`. */
+  crew?: boolean;
 }) => (
   <PhotoProof
     jobId={jobId}
@@ -652,5 +686,6 @@ export const PhotoProofCaptureChip = ({
     onUploaded={onUploaded}
     triggerLabel={label}
     chip
+    crew={crew}
   />
 );

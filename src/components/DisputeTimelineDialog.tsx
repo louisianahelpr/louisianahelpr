@@ -36,6 +36,7 @@ import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvi
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { formatDistanceToNow } from "date-fns";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface DisputeRow {
   id: string;
@@ -53,6 +54,8 @@ interface DisputeRow {
   execution_status: string | null;
   execution_helper_cents: number | null;
   execution_refund_cents: number | null;
+  /** Why a settlement closed without moving money (e.g. a lost card chargeback, Q342). */
+  execution_error?: string | null;
 }
 
 interface DisputeTimelineDialogProps {
@@ -98,7 +101,7 @@ export const DisputeTimelineDialog = ({
     (async () => {
       setLoading(true);
       const { data, error } = await supabase.from("disputes")
-        .select("id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split, execution_status, execution_helper_cents, execution_refund_cents")
+        .select("id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split, execution_status, execution_helper_cents, execution_refund_cents, execution_error")
         .eq("job_id", jobId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -243,8 +246,23 @@ export const DisputeTimelineDialog = ({
         );
         setDispute({ ...dispute, evidence_urls: merged });
       } else {
-        // Legacy path — append onto jobs.dispute_evidence_urls.
-        const existing = legacy?.evidence_urls || [];
+        // Legacy path — append onto jobs.dispute_evidence_urls. The server
+        // holds this column append-only for the parties, and every element
+        // added must be the caller's own `<uid>/disputes/<job>/…` upload
+        // (trg_jobs_dispute_evidence_append_only, 20260925154842, Q398). The
+        // UPDATE sends the WHOLE array, so re-read it first, as the disputes
+        // branch above does: merging onto the copy loaded with the card would
+        // drop anything the other party added since, which the server now
+        // refuses as a removal.
+        const { data: freshJob, error: freshJobErr } = await supabase.from("jobs")
+          .select("dispute_evidence_urls")
+          .eq("id", jobId)
+          .maybeSingle();
+        if (freshJobErr) {
+          report(freshJobErr, { tags: { source: "DisputeTimelineDialog.reReadLegacyEvidence" } });
+          throw new Error("Couldn't attach your evidence — try again?");
+        }
+        const existing: string[] = (freshJob?.dispute_evidence_urls as string[] | null) ?? legacy?.evidence_urls ?? [];
         const merged = [...existing, ...newUrls];
         unwrapMutation(
           await supabase
@@ -268,7 +286,7 @@ export const DisputeTimelineDialog = ({
       onUpdated();
     } catch (err: unknown) {
       hapticError();
-      toast.error(mutationErrorMessage(err, err instanceof Error ? err.message : "Couldn't upload your evidence — try again?"));
+      toast.error(mutationErrorMessage(err, userFacingError(err, "Couldn't upload your evidence — try again?")));
     } finally {
       setSubmitting(false);
     }
@@ -290,6 +308,9 @@ export const DisputeTimelineDialog = ({
   const decidedAt = dispute?.decided_at ?? legacy?.dispute_resolved_at ?? null;
   const decisionText = dispute?.decision_text ?? null;
   const payoutSplit = dispute?.payout_split ?? null;
+  // Written by settle_dispute_by_chargeback (20260926034237).
+  const closedByChargeback =
+    dispute?.execution_status === "executed" && (dispute.execution_error ?? "").startsWith("closed by a lost card chargeback");
   const isOpener = openerId === userId;
   // Who may actually attach evidence, per the ONLY UPDATE policy on
   // `disputes`: `USING (auth.uid() = opener_id AND status = 'open')`
@@ -421,7 +442,23 @@ export const DisputeTimelineDialog = ({
                     is shown anywhere on this dialog. These are the settled
                     figures execute-dispute-split stamped, so they are what
                     moved, not a recomputation. */}
-                {dispute?.execution_status === "executed" &&
+                {/* Q344: decided is not settled. Until execute-dispute-split
+                    stamps 'executed', nothing has moved yet; say so rather than
+                    let "Decided" read as paid. */}
+                {dispute?.status === "decided" && dispute.execution_status !== "executed" && (
+                  <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                    Payment processing — the job shows as settled once the money has moved.
+                  </p>
+                )}
+                {/* Q342 (review M2): the card holder's bank took the whole
+                    charge back before the split ran, so the record reads $0
+                    each. Say what happened instead of "Settled: $0 · $0". */}
+                {closedByChargeback && (
+                  <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                    Closed by the card holder's bank: the payment went back to the card, so nothing was split here.
+                  </p>
+                )}
+                {dispute?.execution_status === "executed" && !closedByChargeback &&
                   (dispute.execution_helper_cents != null || dispute.execution_refund_cents != null) && (
                     <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
                       Settled: who posted it{" "}

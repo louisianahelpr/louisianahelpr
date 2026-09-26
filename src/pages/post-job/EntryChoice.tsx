@@ -236,7 +236,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               {fundingJobId === draft.id ? "Opening checkout…" : "Finish Paying"}
             </span>
-            <span className="block font-sans mt-0.5 text-ds-11 truncate" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <span
+              title={`“${draft.title}” isn’t posted yet — nobody can see it until it’s paid.`}
+              className="block font-sans mt-0.5 text-ds-11 truncate"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            >
               “{draft.title}” isn’t posted yet — nobody can see it until it’s paid.
             </span>
           </span>

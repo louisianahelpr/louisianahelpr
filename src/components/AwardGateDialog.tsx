@@ -18,6 +18,7 @@ import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { track, AhaEvent } from "@/lib/analytics";
 import { awardBlockCopy, isIdentityVerified, type AwardBlockReason } from "@/lib/awardGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * The blocked state for a helper who cannot yet be awarded a job.
@@ -90,7 +91,7 @@ export function AwardGateDialog({
       await openExternalUrl(data.url);
     } catch (e: unknown) {
       hapticError();
-      toast.error(e instanceof Error ? e.message : "Couldn't open Stripe — try again in a moment.");
+      toast.error(userFacingError(e, "Couldn't open Stripe — try again in a moment."));
     } finally {
       setLoading(false);
     }

@@ -27,6 +27,8 @@ import { posterOwesConfirmation } from "./postedJobCard/steps/posterStepContract
    ones, because the collapsed card's compact rail (owner, 2026-09-19) computes
    its dots from them. A mock that dropped them made every card throw, which is
    a truthful failure: the card genuinely needs that derivation now. */
+// Q344: the cards read unsettled decided disputes through React Query; none here.
+vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 vi.mock("@/components/JobTracking", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/JobTracking")>()), JobTracking: () => <div data-testid="tracker" /> }));
 vi.mock("@/components/JobConfirmation", () => ({ JobConfirmation: () => null }));

@@ -139,7 +139,7 @@ async function ensureSeedLicenseDocument(helperId) {
   const name = SEED_LICENSE_DOC_NAME(helperId);
   const up = await fetch(`${BASE}/storage/v1/object/user-documents/${name}`, {
     method: "POST",
-    headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "true" },
+    headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "true", "cache-control": "max-age=3600" },
     body: Buffer.from(PIXEL.split(",")[1], "base64"),
     signal: AbortSignal.timeout(30_000),
   });
@@ -242,6 +242,7 @@ async function ensureOwnedAccount(key, spec) {
     const existing = await profileByEmail(spec.email);
     if (existing && !existing.is_seed) throw new Error(`REFUSED: ${spec.email} exists and is not is_seed`);
   } else {
+    // seed-policy: patched — the profile PATCH below sets is_seed: true (the admin account is @louisianahelpr.com, which trg_profiles_seed_from_fixture_email does not match)
     const r = await fetch(`${BASE}/auth/v1/admin/users`, {
       method: "POST",
       headers: SRH,
@@ -479,7 +480,7 @@ async function ensureHelperAvatar(helperId) {
   if (!confirmed) {
     const up = await fetch(`${BASE}/storage/v1/object/avatars/${helperId}/avatar.png`, {
       method: "POST",
-      headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "false", "cache-control": "3600" },
+      headers: { apikey: SR, Authorization: `Bearer ${SR}`, "Content-Type": "image/png", "x-upsert": "false", "cache-control": "max-age=3600" },
       body: helperAvatarPng(),
       signal: AbortSignal.timeout(30_000),
     });

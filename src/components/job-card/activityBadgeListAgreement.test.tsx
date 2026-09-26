@@ -32,6 +32,8 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
  * this file renders at all rather than staying purely functional.
  */
 
+// Q344: the cards read unsettled decided disputes through React Query; none here.
+vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ profile: { subscription_tier: "free", subscription_expires_at: null } }),
 }));

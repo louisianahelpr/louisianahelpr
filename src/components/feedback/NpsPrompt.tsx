@@ -19,6 +19,7 @@ import {
   setNpsLocalCooldown,
   type NpsRole,
 } from "@/lib/nps";
+import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * NpsPrompt — bottom-sheet Net Promoter Score survey.
@@ -129,7 +130,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
       onClose?.();
     } catch (err) {
       hapticError();
-      const message = err instanceof Error ? err.message : "Couldn't send your feedback — try again?";
+      const message = userFacingError(err, "Couldn't send your feedback — try again?");
       toast.error(message);
     } finally {
       setSubmitting(false);

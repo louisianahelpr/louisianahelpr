@@ -662,6 +662,20 @@
     "nargs": 2
    }
   ],
+  "deliver_saved_search_alert": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_job_id",
+     "p_search_name",
+     "p_search_ids"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 4
+   }
+  ],
   "derive_profile_parish": [
    {
     "anon": false,
@@ -718,6 +732,29 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "early_access_delay_minutes": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "early_access_visible_at": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_created_at"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "enforce_application_credential_tier": [
@@ -1162,6 +1199,15 @@
     "nargs": 0
    }
   ],
+  "export_my_data": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "extend_boosts_with_no_applications": [
    {
     "anon": false,
@@ -1424,6 +1470,18 @@
     "nargs": 2
    }
   ],
+  "get_off_job_thread_state": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id",
+     "_other"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "get_open_jobs_for_map": [
    {
     "anon": true,
@@ -1582,6 +1640,18 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "get_thread_counterparty_deleted": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id",
+     "_other"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "get_user_credential_tier": [
@@ -2620,6 +2690,15 @@
     "nargs": 0
    }
   ],
+  "profiles_stamp_auto_tip_enabled_at": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "prune_cron_http_requests": [
    {
     "anon": false,
@@ -2639,6 +2718,15 @@
    }
   ],
   "prune_edge_rate_limit_log": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "prune_retention_tables": [
    {
     "anon": false,
     "args": [],
@@ -3599,6 +3687,15 @@
    }
   ],
   "sweep_release_last_chance": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sweep_saved_search_alert_queue": [
    {
     "anon": false,
     "args": [],
@@ -6173,7 +6270,10 @@
    "triggers": []
   },
   "group_job_helpers": {
-   "checks": [],
+   "checks": [
+    "CHECK (((share_cents IS NULL) OR (share_cents >= 0)))",
+    "CHECK (((slot_no IS NULL) OR (slot_no >= 0)))"
+   ],
    "columnGrants": {},
    "columns": {
     "helper_arrival_near_miss_at": {
@@ -6294,6 +6394,20 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text[]"
+    },
+    "share_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "slot_no": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
     },
     "status": {
      "enum": null,
@@ -9938,8 +10052,6 @@
    },
    "grants": {
     "anon": [
-     "DELETE",
-     "INSERT",
      "REFERENCES",
      "SELECT"
     ],
@@ -12209,7 +12321,7 @@
   },
   "profiles": {
    "checks": [
-    "CHECK ((((auto_tip_mode = 'off'::auto_tip_mode) AND (auto_tip_value IS NULL)) OR ((auto_tip_mode = 'percent'::auto_tip_mode) AND ((auto_tip_value >= (1)::numeric) AND (auto_tip_value <= (50)::numeric)) AND ((auto_tip_cap IS NULL) OR ((auto_tip_cap >= (1)::numeric) AND (auto_tip_cap <= (500)::numeric)))) OR ((auto_tip_mode = 'fixed'::auto_tip_mode) AND ((auto_tip_value >= (1)::numeric) AND (auto_tip_value <= (500)::numeric)) AND (auto_tip_cap IS NULL))))",
+    "CHECK ((((auto_tip_mode = 'off'::auto_tip_mode) AND (auto_tip_value IS NULL)) OR ((auto_tip_mode = 'percent'::auto_tip_mode) AND (auto_tip_value >= (1)::numeric) AND (auto_tip_value <= (50)::numeric) AND ((auto_tip_cap IS NULL) OR ((auto_tip_cap >= (3)::numeric) AND (auto_tip_cap <= (500)::numeric)))) OR ((auto_tip_mode = 'fixed'::auto_tip_mode) AND (auto_tip_value >= (3)::numeric) AND (auto_tip_value <= (500)::numeric) AND (auto_tip_cap IS NULL))))",
     "CHECK (is_safe_media_url(avatar_url))",
     "CHECK ((background_check_status = ANY (ARRAY['none'::text, 'pending'::text, 'verified'::text, 'failed'::text])))",
     "CHECK (((business_name IS NULL) OR (char_length(business_name) <= 80)))",
@@ -12229,6 +12341,7 @@
       "approval_email_count",
       "auto_release_on_complete",
       "auto_tip_cap",
+      "auto_tip_enabled_at",
       "auto_tip_mode",
       "auto_tip_value",
       "availability",
@@ -12369,6 +12482,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "numeric"
+    },
+    "auto_tip_enabled_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "auto_tip_mode": {
      "enum": [
@@ -13986,6 +14106,66 @@
     "before:insert"
    ]
   },
+  "saved_search_alert_queue": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "matched_search_ids": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid[]"
+    },
+    "notify_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "search_name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": []
+  },
   "saved_searches": {
    "checks": [
     "CHECK (((radius_miles IS NULL) OR (radius_miles > (0)::numeric)))"
@@ -14505,6 +14685,13 @@
      "notNull": true,
      "type": "timestamp with time zone"
     },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
     "job_id": {
      "enum": null,
      "generated": false,
@@ -14516,7 +14703,7 @@
      "enum": null,
      "generated": false,
      "hasDefault": false,
-     "notNull": true,
+     "notNull": false,
      "type": "uuid"
     },
     "user_id": {

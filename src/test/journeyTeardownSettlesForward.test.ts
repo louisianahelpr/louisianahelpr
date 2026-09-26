@@ -30,11 +30,15 @@
  * silent.
  *
  * @mutate e2e/journeys/02-marketplace.spec.ts | if (!cancelled.ok()) { | if (false) {
+ * @mutate scripts/e2e/settleForward.mjs | if (typeof job?.title === "string" && job.title.includes(E2E_HOLD_MARKER)) return | if (false) return
+ * @mutate scripts/e2e/settleForward.mjs | !job.stripe_session_id.startsWith("cs_test_") | !job.stripe_session_id.startsWith("cs_")
+ * @mutate scripts/e2e/settleForward.mjs | if (lifecycleId && job?.id === lifecycleId) return | if (false) return
+ * @mutate scripts/e2e/settleForward.mjs |   if (job.stripe_session_id == null) return NO_CHECKOUT_SESSION;\n |
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isSettleForwardRefusal, settleRefusalReason } from "../../scripts/e2e/settleForward.mjs";
+import { isSettleForwardRefusal, settleRefusalReason, heldReason, NO_CHECKOUT_SESSION } from "../../scripts/e2e/settleForward.mjs";
 
 const SPEC = resolve(process.cwd(), "e2e/journeys/02-marketplace.spec.ts");
 const source = readFileSync(SPEC, "utf8");
@@ -122,6 +126,8 @@ describe("settleRefusalReason", () => {
     status: "accepted",
     disputed_at: null,
     has_active_dispute: false,
+    title: "[E2E DO NOT ACCEPT] J 1",
+    stripe_session_id: "cs_test_a1B2c3",
   };
 
   it("admits a hired, funded, seeded leftover on the calling pair", () => {
@@ -140,6 +146,37 @@ describe("settleRefusalReason", () => {
   it("refuses a disputed job — that escrow is an admin's to place", () => {
     expect(settleRefusalReason({ ...hiredAndFunded, disputed_at: "2026-09-19T14:12:12Z" }, seats)).toMatch(/dispute/);
     expect(settleRefusalReason({ ...hiredAndFunded, has_active_dispute: true }, seats)).toMatch(/dispute/);
+  });
+
+  it("refuses a row held on purpose (review M3)", () => {
+    expect(settleRefusalReason({ ...hiredAndFunded, title: "[E2E DO NOT ACCEPT] [E2E HOLD] two-role" }, seats)).toMatch(/held on purpose/);
+  });
+
+  it("refuses a row not funded through a test-mode Checkout Session (review L2)", () => {
+    expect(settleRefusalReason({ ...hiredAndFunded, stripe_session_id: "cs_live_a1B2c3" }, seats)).toMatch(/test-mode/);
+  });
+
+  it("refuses a funded row with NO Checkout Session (gift card) as its own reason, not as a mode failure", () => {
+    expect(settleRefusalReason({ ...hiredAndFunded, stripe_session_id: null }, seats)).toBe(NO_CHECKOUT_SESSION);
+    expect(settleRefusalReason({ ...hiredAndFunded, stripe_session_id: undefined }, seats)).toBe(NO_CHECKOUT_SESSION);
+  });
+
+  it("holds the two-role fixture BY ID, whatever its title (re-review of 5a22b3e10)", () => {
+    const id = "33333333-3333-4333-8333-333333333333";
+    const env = { PLAYWRIGHT_LIFECYCLE_JOB_ID: id };
+    expect(heldReason({ id, title: "[E2E DO NOT ACCEPT] no hold marker" }, env)).toMatch(/PLAYWRIGHT_LIFECYCLE_JOB_ID/);
+    expect(heldReason({ id: "other", title: "[E2E DO NOT ACCEPT] x" }, env)).toBeNull();
+    // Unset or blank holds nothing extra.
+    expect(heldReason({ id, title: "[E2E DO NOT ACCEPT] x" }, {})).toBeNull();
+    expect(heldReason({ id: "", title: "x" }, { PLAYWRIGHT_LIFECYCLE_JOB_ID: "  " })).toBeNull();
+    const prev = process.env.PLAYWRIGHT_LIFECYCLE_JOB_ID;
+    process.env.PLAYWRIGHT_LIFECYCLE_JOB_ID = id;
+    try {
+      expect(settleRefusalReason({ ...hiredAndFunded, id }, seats)).toMatch(/held on purpose/);
+    } finally {
+      if (prev === undefined) delete process.env.PLAYWRIGHT_LIFECYCLE_JOB_ID;
+      else process.env.PLAYWRIGHT_LIFECYCLE_JOB_ID = prev;
+    }
   });
 
   it("treats an already-settled row as nothing to do, not as an error", () => {

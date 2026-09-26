@@ -42,7 +42,7 @@ vi.mock("@/lib/threadMutes", () => ({
 vi.mock("sonner", () => ({ toast: { warning: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
-import { fetchConversations } from "./loadConversations";
+import { fetchConversations, buildDeepLinkPlaceholder } from "./loadConversations";
 import { ConversationRow } from "@/components/messages/ConversationRow";
 import { avatarInitials } from "@/lib/avatarImage";
 
@@ -337,3 +337,58 @@ describe("fetchConversations — viewerIsAssignedHelper mirrors can_message_in_j
 // The composer lock must release for a helper the job is merely OFFERED to,
 // exactly as can_message_in_job does.
 // @mutate src/pages/messages/messagesData/loadConversations.ts | jobMap.get(v.jobId)?.offered_to_helper_id === uid), | false),
+
+// docs/OPEN.md Q333: a stale `?jobId=&userId=<deleted id>` link opened an empty
+// thread with a LIVE composer addressed to the deleted id. With no profile but
+// the job still there, the server is asked whether the person deleted their
+// account; if so the placeholder is the job's deleted-account thread
+// (otherUserId null, read-only notice). A missing profile alone is not
+// "deleted" (banned and unverified people look the same), so the person is
+// kept when the server says no.
+// @mutate src/pages/messages/messagesData/loadConversations.ts | otherUserId: counterpartyDeleted ? null : deepLinkUserId, | otherUserId: deepLinkUserId,
+// @mutate src/pages/messages/messagesData/loadConversations.ts | !profileFound && (await fetchCounterpartyDeleted(deepLinkJobId, deepLinkUserId)) === true; | false;
+describe("buildDeepLinkPlaceholder — a link to a deleted account (Q333)", () => {
+  const GONE = "22222222-2222-2222-2222-222222222299";
+  function setup(deleted: boolean) {
+    fromMock.mockImplementation((table: string) =>
+      table === "jobs"
+        ? makeBuilder({ data: { id: "job-1", title: "Fix the fence", status: "open", customer_id: ME, helper_id: null }, error: null })
+        : makeBuilder({ data: [], error: null }),
+    );
+    rpcMock.mockImplementation(async (fn: string) => {
+      if (fn === "get_safe_profiles") return { data: [], error: null };
+      if (fn === "get_thread_counterparty_deleted") return { data: deleted, error: null };
+      return { data: [], error: null };
+    });
+  }
+
+  it("opens the job's deleted-account thread, never a sendable one, when the server says the account was deleted", async () => {
+    setup(true);
+    const convo = await buildDeepLinkPlaceholder(ME, "job-1", GONE);
+    expect("problem" in convo).toBe(false);
+    if ("problem" in convo) return;
+    expect(convo.otherUserId).toBeNull();
+    expect(convo.otherUserName).toBe("Former member");
+    expect(rpcMock).toHaveBeenCalledWith("get_thread_counterparty_deleted", { _job_id: "job-1", _other: GONE });
+  });
+
+  it("keeps the person when the profile is hidden but the account still exists (banned, unverified)", async () => {
+    setup(false);
+    const convo = await buildDeepLinkPlaceholder(ME, "job-1", GONE);
+    if ("problem" in convo) throw new Error(convo.problem);
+    expect(convo.otherUserId).toBe(GONE);
+  });
+
+  it("never asks when the profile resolved", async () => {
+    setup(true);
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_safe_profiles"
+        ? { data: [PROFILE_ROWS[0]], error: null }
+        : { data: fn === "get_thread_counterparty_deleted" ? true : [], error: null },
+    );
+    const convo = await buildDeepLinkPlaceholder(ME, "job-1", CAMILLE_AUTH);
+    if ("problem" in convo) throw new Error(convo.problem);
+    expect(convo.otherUserId).toBe(CAMILLE_AUTH);
+    expect(rpcMock).not.toHaveBeenCalledWith("get_thread_counterparty_deleted", expect.anything());
+  });
+});

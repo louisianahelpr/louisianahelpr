@@ -5,6 +5,7 @@ import { formatName } from "@/lib/utils";
 import { payoutStatusLabel } from "@/lib/statusLabels";
 import { LEDGER_TONE } from "./adminPayoutBatchesHelpers";
 import type { PayoutLedgerRow } from "./types";
+import { TestTag } from "@/components/admin/TestTag";
 
 interface LedgerListProps {
   ledger: PayoutLedgerRow[];
@@ -37,6 +38,7 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-ds-13 text-foreground truncate">{helperName}</span>
+                  {t.profiles?.is_seed && <TestTag />}
                   <Badge className={`${tone} text-ds-10`}>{payoutStatusLabel(t.status)}</Badge>
                   {t.initiated_by && t.initiated_by !== "system" && (
                     <Badge variant="outline" className="text-ds-10 capitalize">{t.initiated_by}</Badge>

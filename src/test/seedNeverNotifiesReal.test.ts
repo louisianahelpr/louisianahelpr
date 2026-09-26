@@ -60,7 +60,7 @@ import { walkSource } from "./helpers/walkSource";
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN |   IF false THEN
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql | admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC, anon; | admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC;
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |      AND l.error_message LIKE 'seed boundary check failed%';\n\n  IF v_24h = 0 THEN |      AND l.error_message LIKE 'seed_boundary_check_failed%';\n\n  IF v_24h = 0 THEN
-// @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |   ELSIF p_source = 'seed-boundary-check-failed' THEN |   ELSIF p_source = 'seed-boundary-check-failed-x' THEN
+// @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql |   ELSIF p_source = 'seed-boundary-check-failed' THEN |   ELSIF p_source = 'seed-boundary-check-failed-x' THEN
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |     PERFORM cron.schedule('seed-boundary-failures', '41 * * * *', |     PERFORM cron.schedule('seed-boundary-failures', '41 3 1 1 *',
 // @mutate .github/workflows/functions-deploy.yml |         run: node scripts/check-edge-rpcs-live.mjs --wait 300\n |         run: echo skipped\n
 // @mutate supabase/functions/create-notification/index.ts |         p_actor: user.id, |         p_actor: null,
@@ -356,7 +356,8 @@ describe("Q137: a seed subject never notifies a real person", () => {
 
   it("every SQL email producer also writes the notifications row (the email sender re-checks)", () => {
     const emailers = sqlCalling("send-notification-email");
-    expect(emailers).toEqual(["deliver_saved_search_alert", "notify_helpers_on_job_post", "notify_on_application"]);
+    // Q225 (2026-09-26): the parish fan-out queues; deliver_parish_match_alert sends.
+    expect(emailers).toEqual(["deliver_parish_match_alert", "deliver_saved_search_alert", "notify_on_application"]);
     for (const fn of emailers) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b/i.test(liveDef(fn)!.body), fn).toBe(true);
   });
 

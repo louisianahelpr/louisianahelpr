@@ -1,0 +1,62 @@
+name: App Store reviews
+
+# docs/OPEN.md Q289: an App Store review that reports a bug reached nobody —
+# nothing read the App Store Connect customer-reviews API. This pulls the
+# newest reviews daily and records every review rated 3 stars or fewer as a
+# `user-report` ops alert ledger item (source app-store-review, verify manual:
+# a person closes it after answering it in App Store Connect). Review text
+# is never printed here (the repo is public). Google Play has no ingester yet:
+# no Play Console credential exists in CI.
+
+on:
+  schedule:
+    - cron: "47 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A monitor, not a suite: exempt from prod-load spacing by name in
+# src/test/prodWorkflowSpacing.test.ts EXEMPT (its own group, never prod-load).
+concurrency:
+  group: app-store-reviews
+  cancel-in-progress: false
+
+jobs:
+  reviews:
+    name: Low App Store reviews reach the ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Read reviews and record the low ones
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/app-store-reviews.mjs
+
+  notify:
+    name: Report nightly result
+    needs: [reviews]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: app-store-reviews
+          status: ${{ needs.reviews.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

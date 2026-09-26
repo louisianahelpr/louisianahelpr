@@ -49,7 +49,7 @@ retry. There is no PITR, so nothing between two backups can be recovered.
 | How far back | 7 days | 14 days (repo artifact retention; see §0) |
 | Restores into | the same project, in place (the project is down while it runs); Supabase documents a separate restore-to-new-project flow, not tried here | any Postgres, e.g. a **new** project |
 | Scope | the whole database, including `supabase_migrations`, vault, storage and cron catalogs | see §2 |
-| Storage files | **not included** (Supabase docs: storage objects are not in database backups) | not included |
+| Storage files | **not included** (Supabase docs: storage objects are not in database backups) | included since Q147: `storage/` in the archive (§4) |
 | Proven here | **never exercised** (you cannot rehearse an in-place restore on the only database) | **weekly drill** |
 | Needs | dashboard access (owner) | `BACKUP_PASSPHRASE`, `gh` access |
 
@@ -154,7 +154,7 @@ SELECT (SELECT count(*) FROM auth.users) users, (SELECT count(*) FROM public.job
 
 | Gap | Size (2026-09-23) | What to do |
 |---|---|---|
-| **Storage files** | 152 objects, about 10 MB, in 8 buckets: proof-photos 64, job-photos 61, message-attachments 18, avatars 4, user-documents 4 (8.9 MB), id-documents 1 | **Nothing backs these up** (docs/OPEN.md Q147 would). The rows restore and point at files that may not exist. Run §4.1 to list every one. The platform backup does not include them either. |
+| **Storage files** | IN THE BACKUP since Q147 (2026-09-26): `storage/<bucket>/<name>` + `storage/manifest.json` (size + sha256 each), every bucket except `id-documents` (owner decision; that bucket was dropped by Q196). Measured 2026-09-26: 230 objects, ~9.3 MB in 7 buckets. Was: 152 objects in 8 buckets, nothing backed them up. | Re-upload them with the service key into the new project (one `storage.from(bucket).upload(name, bytes, { upsert: true })` per manifest entry), then run `node scripts/storage-backup.mjs verify <dir> <rows.tsv>` with `psql -XAt -F $'\t' -c 'select bucket_id, name from storage.objects'` from the new project. The weekly drill runs that verify step on every restore. |
 | **Vault secrets** | 4: `supabase_url`, `service_role_key`, `legacy_service_role_key`, `ban_fingerprint_salt` | Re-create in the new project. The first three are the NEW project's URL and keys. **`ban_fingerprint_salt` cannot be re-derived**: without the original, stored ban fingerprints can no longer match, so banned devices get back in. It is in no backup. |
 | **Cron schedules** | 55, loaded switched off (step 7); 26 call edge functions through the vault secrets | Switch them on (`cron.alter_job(jobid, active := true)`) only after the vault secrets exist and §5 is done. |
 | **Edge-function secrets** | 41 names (`supabase secrets list`) | Re-set from their sources (Stripe, Resend, Meta, ...). Edge-function code is in git: deploy it with `functions-deploy.yml`. |

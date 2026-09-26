@@ -8,6 +8,7 @@ type ReviewReceived = {
   reviewer_name: string;
   created_at?: string;
   job_title?: string;
+  counts_toward_rating?: boolean;
 };
 
 type ReviewLeft = {
@@ -29,7 +30,10 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
       {/* Reviews Received */}
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-          <Star className="w-4 h-4" /> Reviews Received ({profileReviews.length})
+          <Star className="w-4 h-4" /> Reviews Received ({profileReviews.length}
+          {/* Q321: the public rating counts only published reviews past the
+              blind period on jobs that were not cancelled; admin sees all rows. */}
+          {profileReviews.length > 0 && ` · ${profileReviews.filter((r) => r.counts_toward_rating).length} public`})
         </h4>
         {profileReviews.length === 0 ? (
           <p className="text-ds-11 text-muted-foreground">No reviews received yet.</p>

@@ -20,7 +20,6 @@
  * @mutate supabase/functions/_shared/escrowTiming.ts | export const STANDARD_PAYOUT_DAYS_AFTER_DONE = 3; | export const STANDARD_PAYOUT_DAYS_AFTER_DONE = 2;
  * @mutate supabase/functions/auto-release-payment/index.ts | const payoutTime = standardPayoutAtIso(job.helper_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/create-payment/index.ts | const payoutTime = standardPayoutAtIso(isHelper ? null : job.helper_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
- * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | updateData.payout_scheduled_at = standardPayoutAtIso(null); | updateData.payout_scheduled_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/auto-release-payment/index.ts | will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`\n            : `"${job.title}" was auto-completed | will be transferred to your account in 24 hours.`\n            : `"${job.title}" was auto-completed
  * @mutate src/components/profile/earningsTab/EarningsSummaryCard.tsx | `Approved — sent ${STANDARD_PAYOUT_PHRASE}` | `Approved — releases 24 hours after approval`
  */
@@ -96,7 +95,8 @@ describe("standard pay: 3 days after the job is done (Q202)", () => {
         writes.push({ file: rel, value });
       }
     }
-    expect(writes.length, "inventory of payout_scheduled_at writers").toBeGreaterThanOrEqual(4);
+    // 3 since Q343 removed checkoutSessionCompleted's dead `repay` writer (2026-09-26).
+    expect(writes.length, "inventory of payout_scheduled_at writers").toBeGreaterThanOrEqual(3);
     const bad = writes.filter((w) => !/^standardPayoutAtIso\(/.test(w.value) && ALLOWED[w.file] !== w.value);
     expect(bad, JSON.stringify(bad, null, 2)).toEqual([]);
     // Two-way: an ALLOWED entry whose write no longer exists is stale.
@@ -106,8 +106,10 @@ describe("standard pay: 3 days after the job is done (Q202)", () => {
     for (const f of [
       "supabase/functions/auto-release-payment/index.ts",
       "supabase/functions/create-payment/index.ts",
-      "supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts",
     ]) expect(files.has(f), f).toBe(true);
+    // Q343: the webhook's only writer was the dead `repay` branch; a webhook
+    // must not schedule a payout on its own (checkoutMetadataKeysAreWritten).
+    expect(files.has("supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts")).toBe(false);
   });
 
   it("no edge notification promises a payout 'in 24 hours'", () => {

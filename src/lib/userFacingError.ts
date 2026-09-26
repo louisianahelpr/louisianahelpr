@@ -103,10 +103,28 @@ const INTERNAL_PATTERNS: RegExp[] = [
   // shown to a person mid-signup as if they were advice.
   /^HTTP \d{3}$/i,
   /^(Bad Request|Unauthorized|Forbidden|Not Found|Request Timeout|Too Many Requests|Internal Server Error|Bad Gateway|Service Unavailable|Gateway Timeout)$/i,
+  // An RPC's own raise text, not copy. postgrest-js hands `error` back as a
+  // plain object, so a rethrown rpcError's `.message` reaches here verbatim:
+  // bare codes (`not_cancellable`) and lower-case guard phrases with no
+  // sentence punctuation ("not authorized for this job", "job not found",
+  // from open_dispute_as). Our copy starts with a capital or ends a sentence,
+  // so one shape covers both (a bare code has no capital and no full stop).
+  // Found by the lh-silent-failure review of the Q228 toast sweep, 2026-09-26.
+  /^[a-z][^.!?]*$/,
 ];
 
-/** A sentence a person can read: starts like prose and is not enormous. */
-const MAX_SHOWABLE = 160;
+/**
+ * A sentence a person can read: starts like prose and is not enormous.
+ * 280, not 160 (2026-09-26, lh-silent-failure review of Q228): deliberate
+ * edge-function refusals run up to ~240 characters, e.g. stripe-connect's
+ * 181-char "We couldn't reset your payout account — Stripe still has activity
+ * on it … Contact support and we'll sort it out." and create-payment's
+ * 181-char "This job is under dispute. Use Quick Refund on the dispute
+ * instead …". At 160 they were swapped for a "try again" fallback that sends
+ * the person to retry a refusal that can never clear. Pinned by
+ * src/lib/userFacingError.test.ts.
+ */
+const MAX_SHOWABLE = 280;
 
 /**
  * The message to show a person for `err`, falling back to `fallback` whenever
@@ -124,6 +142,15 @@ export function userFacingError(err: unknown, fallback: string): string {
      
     console.error("[userFacingError]", err);
   }
+
+  // src/lib/mutationResult.ts errors, matched by name (importing that module
+  // here would pull errorLogger into every caller). A zero-row write carries
+  // its own plain-language copy; a missing row count is a developer message.
+  const named = err && typeof err === "object" ? (err as { name?: unknown; userMessage?: unknown }) : null;
+  if (named?.name === "WriteRejectedError" && typeof named.userMessage === "string" && named.userMessage.trim()) {
+    return named.userMessage;
+  }
+  if (named?.name === "MissingRowCountError") return fallback;
 
   const raw =
     typeof err === "string"

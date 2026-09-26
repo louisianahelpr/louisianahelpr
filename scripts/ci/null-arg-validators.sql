@@ -51,6 +51,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('identity_is_verified',          'allow',    'identity badge / hire gate verdict'),
   ('is_party_to_job',               'allow',    'user is a party to the job'),
   ('is_party_to_job_folder',        'allow',    'caller is a party to the job owning this storage folder'),
+  ('is_crew_member_of_job_folder',  'allow',    'caller is on the crew of the job owning this storage folder (Q407)'),
   ('job_is_funded',                 'allow',    'job escrow is funded (applications WITH CHECK)'),
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
   ('user_has_pending_application',  'allow',    'user applied to the job'),
@@ -61,6 +62,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),
   ('is_submitted_credential_object','deny',     'TRUE freezes the object (storage UPDATE/DELETE policies use NOT)'),
   ('is_thread_muted',               'deny',     'TRUE suppresses the notification'),
+  ('is_off_job',                    'deny',     'TRUE: the person is off the job, so messaging on it closes both ways (can_message_in_job / can_send_message_to_in_job use NOT; Q419/Q420)'),
   ('admin_notification_crosses_seed_boundary','deny', 'TRUE: the admin client skips the notification (Q157)'),
   ('notification_crosses_seed_boundary','deny', 'TRUE suppresses the notification'),
   ('error_log_is_seed',             'classify', 'labels an error_logs row as seed traffic'),
@@ -68,16 +70,23 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_late_cancellation',          'classify', 'labels a cancellation late (fee ladder)'),
   ('is_seed_email',                 'classify', 'labels an address as a seed account'),
   ('is_user_error_screen_row',      'classify', 'labels an error_logs row as a user-facing error screen'),
+  ('get_thread_counterparty_deleted', 'classify', 'labels a thread''s other party as a deleted account (read-only notice); grants no access (it discloses one bit, account gone vs exists, see its migration), and a NULL argument returns false (threadCounterpartyDeleted.pglite.mjs)'),
   ('user_error_screen_is_real',     'classify', 'labels an error screen as real-user (ops alert counting)'),
   ('user_report_is_open',           'classify', 'labels a reports row still to-do in its admin queue (ledger close rule, Q64); NULL status = pending'),
+  ('cron_silent_still_failing',     'classify', 'answers whether a cron-silent ledger item is still failing (ledger close rule, CJ-007); no access decision, and NULL means unknown, which keeps the item open'),
+  ('is_fixture_email',              'classify', 'labels an address as a test fixture (is_seed derived at birth, Q65)'),
   ('user_report_is_real',           'classify', 'labels a reporter as real (ledger routing, Q64); NULL reporter = a deleted account = real'),
   ('admin_queue_still_pending',     'classify', 'labels an admin-queue ledger item still pending (close rule, Q355); NULL rule = cannot tell'),
+  ('admin_alert_manual_close',      'classify', 'labels an admin alert title as closed only by a person (Q355 part 2); NULL title = not manual'),
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),
   ('seed_jobs_hidden_publicly',     'noarg',    'reads the launch switch only'),
+  ('crew_fee_pays_unconfirmed',     'noarg',    'owner rule constant (Q407): unconfirmed crew members share the late fee'),
+  ('crew_completes_when_hired_done','noarg',    'owner rule constant (Q407): an under-filled crew completes when every hired member is done'),
   ('clear_thread_mute',             'action',   'RPC'),
   ('delete_email',                  'action',   'pgmq wrapper'),
   ('deliver_saved_search_alert',    'action',   'saved-search send (writes; true = sent)'),
+  ('deliver_parish_match_alert',    'action',   'parish-match alert send (writes; true = sent)'),
   ('ops_alert_close',               'action',   'RPC'),
   ('ops_alert_condition',           'action',   'ops ledger probe (writes)'),
   ('ops_alert_mark_fixed',          'action',   'RPC'),
@@ -111,6 +120,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('identity_is_verified',          NULL, ARRAY['''unverified''', 'true'], ARRAY[2]),
   ('is_party_to_job',               NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   ('is_party_to_job_folder',        '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101/x.png'''], ARRAY[1]),
+  -- B is on J's crew (the 'roster' fixture step), so the non-NULL call is TRUE.
+  ('is_crew_member_of_job_folder',  '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-000000000101/x.png'''], ARRAY[1]),
   ('job_is_funded',                 NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('job_payment_is_funded',         NULL, ARRAY['''escrow'''], ARRAY[1]),
   ('user_has_pending_application',  NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
@@ -137,14 +148,14 @@ BEGIN
   -- the ROLLBACK at the end restores them). Measured in db-smoke 35862895416:
   -- with triggers on, the admin-role guard refuses a non-service_role grant and
   -- the application notifier's pg_net call dies on a NULL url.
-  FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications'] LOOP
+  FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers'] LOOP
     BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', step);
     EXCEPTION WHEN OTHERS THEN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'bucket', 'objects']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'bucket', 'objects']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -167,6 +178,8 @@ BEGIN
                 A, B, 'completed', 'released', now(), now(), '00:00');
       WHEN 'application' THEN
         INSERT INTO public.applications (job_id, helper_id) VALUES (J, B);
+      WHEN 'roster' THEN
+        INSERT INTO public.group_job_helpers (job_id, helper_id) VALUES (J, B);
       WHEN 'bucket' THEN
         INSERT INTO storage.buckets (id, name) VALUES ('user-documents', 'user-documents') ON CONFLICT (id) DO NOTHING;
       WHEN 'objects' THEN

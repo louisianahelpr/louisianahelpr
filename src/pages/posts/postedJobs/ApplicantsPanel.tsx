@@ -461,7 +461,13 @@ export function ApplicantsPanel({
                               <CredentialBadge credentials={app.profiles ?? {}} size="sm" />
                               {/* Inline rating — compact ★ 4.9 (23) */}
                               {(app.reviewCount ?? 0) > 0 && (
-                                <span className="flex items-center gap-0.5 shrink-0">
+                                /* Q321: the count is get_public_profile_stats — published reviews
+                                   past the blind period on jobs not cancelled — so it is lower than
+                                   the raw reviews table while reviews wait to be revealed. Say so. */
+                                <span
+                                  className="flex items-center gap-0.5 shrink-0"
+                                  title={`${(app.avgRating ?? 0).toFixed(1)} from ${app.reviewCount} public review${app.reviewCount === 1 ? "" : "s"}. A new review shows once both sides have reviewed, or after 14 days.`}
+                                >
                                   <Star
                                     className="w-3 h-3"
                                     style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }}

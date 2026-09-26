@@ -163,7 +163,7 @@ describe("a reversed gift-card charge revokes the credit", () => {
     });
     // The RPC's answer for "this PaymentIntent is not a gift".
     scenario.rpc.revoke_gift_card_for_refund = { outcome: "no_gift" };
-    scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }] };
+    scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "escrow" }] };
 
     await fn.fetch(webhookRequest(fn, "{}"));
 
@@ -436,6 +436,88 @@ describe("an inquiry does not destroy the gift", () => {
     expect(revokeCalls()).toHaveLength(1);
   });
 });
+
+/**
+ * Q210(a): an inquiry the bank ESCALATES reaches us only as
+ * charge.dispute.funds_withdrawn (its charge.dispute.created arrived while it
+ * was still a warning_* inquiry and correctly left the gift alone). The old
+ * handler revoked only on created, so the escalated gift stayed spendable
+ * after Stripe had withdrawn the money. An ordinary chargeback sends BOTH
+ * events: the second must not revoke or page again.
+ */
+describe("an escalated inquiry revokes on funds_withdrawn, once (Q210a)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  function withdrawnEvent(id: string) {
+    return {
+      id,
+      type: "charge.dispute.funds_withdrawn",
+      data: {
+        object: {
+          id: "dp_esc",
+          charge: "ch_g",
+          payment_intent: "pi_gift_esc",
+          amount: 7500,
+          reason: "fraudulent",
+          status: "needs_response",
+        },
+      },
+    };
+  }
+
+  it("revokes a still-live gift when the escalated chargeback's funds are withdrawn", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(withdrawnEvent("evt_esc_1"));
+    scenario.reads.gift_cards = { rows: [{ id: "gc-1", payment_status: "paid" }] };
+    scenario.rpc.revoke_gift_card_for_refund = PARTLY_SPENT;
+    scenario.reads.jobs = { rows: [] };
+
+    await fn.fetch(webhookRequest(fn, "{}"));
+
+    const calls = revokeCalls();
+    expect(calls).toHaveLength(1);
+    expect((calls[0].args as Record<string, unknown>).p_payment_intent_id).toBe("pi_gift_esc");
+    expect(criticalAlerts().length).toBeGreaterThan(0);
+  });
+
+  it("does not revoke or page again when created already reversed it", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(withdrawnEvent("evt_esc_2"));
+    scenario.reads.gift_cards = { rows: [{ id: "gc-1", payment_status: "refunded" }] };
+    scenario.rpc.revoke_gift_card_for_refund = PARTLY_SPENT;
+    scenario.reads.jobs = { rows: [] };
+
+    await fn.fetch(webhookRequest(fn, "{}"));
+
+    expect(revokeCalls()).toHaveLength(0);
+    expect(
+      (slackAlerts as Array<{ title: string }>).filter((a) => /Gift card charge reversed/.test(a.title)),
+    ).toHaveLength(0);
+  });
+
+  it("500s (Stripe retries) when the gift lookup itself fails, never guessing", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(withdrawnEvent("evt_esc_3"));
+    scenario.reads.gift_cards = { error: { message: "db down" } };
+    scenario.rpc.revoke_gift_card_for_refund = PARTLY_SPENT;
+    scenario.reads.jobs = { rows: [] };
+
+    const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+    expect(res.status).toBe(500);
+    expect(revokeCalls()).toHaveLength(0);
+  });
+});
+
+// Q210(a): revoke only on created again — an escalated inquiry keeps its gift.
+// @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |   } else if (await giftDonationAlreadyReversed(supabase, disputePiId)) { |   } else if (mode !== "created" \|\| await giftDonationAlreadyReversed(supabase, disputePiId)) {
+// Q210(a): never skip on an already-reversed donation — the pair re-pages.
+// @mutate supabase/functions/stripe-webhook/handlers/_giftCardRefund.ts |   return (data as { payment_status?: string } \| null)?.payment_status === "refunded"; |   return false;
 
 // 5: revoke on an inquiry — the pre-fix code, which permanently destroyed a
 //    live gift over a bank question that withdrew nothing.

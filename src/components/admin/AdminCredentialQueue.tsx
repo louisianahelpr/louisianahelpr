@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isStorageObjectPath, safeDocumentUrl } from "@/lib/storagePath";
+import { openSignedDocument } from "@/lib/openSignedDocument";
 import { report } from "@/lib/errorLogger";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
+import { TestTag } from "@/components/admin/TestTag";
+import { fetchSeedUserIds } from "@/components/admin/seedRows";
 
 interface PendingRow {
   user_id: string;
@@ -40,6 +43,8 @@ interface PendingRow {
   /** Claimed company name — check it against the name printed on the doc. */
   business_name: string | null;
   submitted_at: string;
+  /** Q233: resolved client-side; get_pending_credentials does not return it. */
+  is_seed?: boolean;
 }
 
 const AdminCredentialQueue = () => {
@@ -97,7 +102,11 @@ const AdminCredentialQueue = () => {
   const { data: rows, isInitialLoading, isError, refetch } = useInstantQuery<PendingRow[]>({
     key: queryKey,
     fallback: [],
-    fetcher: async () => (unwrap(await supabase.rpc("get_pending_credentials")) ?? []) as PendingRow[],
+    fetcher: async () => {
+      const rows = (unwrap(await supabase.rpc("get_pending_credentials")) ?? []) as PendingRow[];
+      const seedIds = await fetchSeedUserIds(rows.map((r) => r.user_id));
+      return rows.map((r) => ({ ...r, is_seed: seedIds.has(r.user_id) }));
+    },
   });
 
   const decide = async (
@@ -119,7 +128,7 @@ const AdminCredentialQueue = () => {
     setBusy(null);
     if (error) {
       report(error, { tags: { source: "AdminCredentialQueue.decide", decision, credential } });
-      toast.error(userFacingError(error, "Couldn't update that credential — try again"));
+      toast.error(userFacingError(error, "Couldn't update that credential — try again."));
       return;
     }
     qc.invalidateQueries({ queryKey });
@@ -261,7 +270,10 @@ const AdminCredentialQueue = () => {
                   fallbackClassName="text-ds-13 ring-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-ds-13 text-foreground truncate">{r.full_name || "Unnamed"}</p>
+                  <p className="font-semibold text-ds-13 text-foreground flex items-center gap-2 min-w-0">
+                    <span className="truncate">{r.full_name || "Unnamed"}</span>
+                    {r.is_seed && <TestTag />}
+                  </p>
                   <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>
                 </div>
                 {/* The claimed business name is part of what's being reviewed:
@@ -490,16 +502,22 @@ function SignedOpenLink({ path }: { path: string }) {
       else toast.error("This document link isn't one we can open.");
       return;
     }
+    // Q295: the tab opens inside the click (before any await), or WebKit
+    // blocks it silently; openSignedDocument then points it at the URL.
     setBusy(true);
-    const { data, error } = await supabase.storage
-      .from("user-documents")
-      .createSignedUrl(path, 300);
+    await openSignedDocument({
+      open: (url, target) => window.open(url, target),
+      sign: async () => {
+        if (!isStorageObjectPath(path)) return null;
+        const { data, error } = await supabase.storage
+          .from("user-documents")
+          .createSignedUrl(path, 300);
+        if (error) report(error, { tags: { source: "AdminCredentialQueue.SignedOpenLink" } });
+        return error || !data ? null : data.signedUrl;
+      },
+      toastError: (msg) => toast.error(msg),
+    });
     setBusy(false);
-    if (error || !data) {
-      toast.error("Couldn't generate a view link.");
-      return;
-    }
-    window.open(data.signedUrl, "_blank", "noopener");
   };
   return (
     <button

@@ -13,7 +13,14 @@
  *      provably a live user (KNOWN_EQ, exact both ways); a conversation's
  *      other party goes through threadPairFilter, which uses `is.null`;
  *   4. no null other party is coalesced to "" outside the exact KNOWN list;
- *   5. the composer and the send path refuse a thread with nobody to receive.
+ *   5. the composer and the send path refuse a thread with nobody to receive;
+ *   6. a thread addressed to an id from OUTSIDE the inbox (a deep link, or an
+ *      open thread whose person deletes mid-conversation) asks the server
+ *      whether that account was deleted and becomes the deleted-account
+ *      thread (Q333/Q334), never a live composer to a missing id;
+ *   7. that thread can be archived and restored like any other (owner,
+ *      2026-09-26, Q335: thread_archives.other_user_id NULL, one per job), and
+ *      still never pinned or muted.
  *
  * Proof of the DB behaviour: src/test/pglite/messagesReceiverSetNull.pglite.mjs.
  *
@@ -22,6 +29,18 @@
  * @mutate src/pages/messages/messagesData/sendHandlers.ts | if (receiverId === null) { | if (false) {
  * @mutate supabase/migrations/20260924013306_messages_receiver_set_null.sql | REFERENCES auth.users(id) ON DELETE SET NULL; | REFERENCES auth.users(id) ON DELETE CASCADE;
  * @mutate src/pages/messages/useMessagesData.ts | .or(threadPairFilter(resolvedUserId, convo.otherUserId)) | .or(`and(sender_id.eq.${resolvedUserId},receiver_id.eq.${convo.otherUserId})`)
+ * @mutate src/pages/messages/messagesData/loadConversations.ts | otherUserId: counterpartyDeleted ? null : deepLinkUserId, | otherUserId: deepLinkUserId,
+ * @mutate src/pages/messages/messagesData/sendHandlers.ts | (await fetchCounterpartyDeleted(optimistic.job_id, receiverId)) === true | false
+ * @mutate supabase/migrations/20260926015040_thread_counterparty_deleted.sql | FROM PUBLIC, anon; | FROM PUBLIC;
+ * @mutate supabase/migrations/20260926041106_thread_archives_deleted_party.sql | ALTER TABLE public.thread_archives ALTER COLUMN other_user_id DROP NOT NULL; | SELECT 1;
+ * @mutate src/lib/archivedConversations.ts |       ? base.is("other_user_id", null) |       ? base.eq("other_user_id", otherUserId)
+ * @mutate src/lib/archivedConversations.ts | return `${jobId}_${otherUserId === null ? DELETED_PARTY_KEY : otherUserId}`; | return `${jobId}_${otherUserId}`;
+ * @mutate src/lib/archivedConversations.ts | if (other === DELETED_PARTY_KEY \|\| other === "null") return { jobId, otherUserId: null }; | if (other === DELETED_PARTY_KEY) return { jobId, otherUserId: null };
+ * @mutate src/lib/archivedConversations.ts | return UUID_RE.test(other) ? { jobId, otherUserId: other } : null; | return { jobId, otherUserId: other };
+ * @mutate src/lib/archivedConversations.ts | if (cannotExist(error)) { | if (false) {
+ * @mutate src/pages/messages/useMessagesData.ts |       (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt), |       (c) => c.otherUserId === null \|\| !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
+ * @mutate src/components/messages/ConversationList.tsx |                       return selectMode \|\| isRecentlyDeletedView ? row : ( |                       return selectMode \|\| isRecentlyDeletedView \|\| c.otherUserId === null ? row : (
+ * @mutate src/components/messages/ConversationList.tsx | onTogglePin={c.otherUserId === null ? undefined : () => handleTogglePin(c)} | onTogglePin={() => handleTogglePin(c)}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -139,5 +158,129 @@ describe("messages.receiver_id may be a deleted account (Q262)", () => {
     const send = blankComments(read("src/pages/messages/messagesData/sendHandlers.ts"));
     expect(send).toMatch(/if \(receiverId === null\) \{[\s\S]{0,400}sendStatus: "refused"[\s\S]{0,200}return;/);
     expect(send).toMatch(/if \(activeConvo\.otherUserId === null\) return false;/);
+  });
+});
+
+describe("a thread addressed to a deleted account becomes the deleted-account thread (Q333/Q334)", () => {
+  it("the newest get_thread_counterparty_deleted is defined, reads auth.users, and is revoked from PUBLIC and anon", () => {
+    const dir = join(ROOT, "supabase", "migrations");
+    const defs = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => blankSqlComments(readFileSync(join(dir, f), "utf8")))
+      .filter((sql) => /FUNCTION\s+public\.get_thread_counterparty_deleted\s*\(/i.test(sql));
+    expect(defs.length).toBeGreaterThanOrEqual(1);
+    const newest = defs[defs.length - 1];
+    expect(newest).toMatch(/NOT EXISTS\s*\(\s*SELECT 1 FROM auth\.users/i);
+    expect(newest).toMatch(/REVOKE ALL ON FUNCTION public\.get_thread_counterparty_deleted\(uuid, uuid\) FROM PUBLIC, anon;/);
+  });
+
+  it("the deep-link fallback routes a missing profile to the deleted-account thread (Q333)", () => {
+    const src = blankComments(read("src/pages/messages/messagesData/loadConversations.ts"));
+    const body = src.slice(src.indexOf("export async function buildDeepLinkPlaceholder"));
+    expect(body).toMatch(/!profileFound && \(await fetchCounterpartyDeleted\(deepLinkJobId, deepLinkUserId\)\) === true/);
+    expect(body).toMatch(/otherUserId: counterpartyDeleted \? null : deepLinkUserId,/);
+    const hook = blankComments(read("src/pages/messages/useMessagesData.ts"));
+    expect(hook).toMatch(/placeholder\.otherUserId === null[\s\S]{0,300}c\.otherUserId === null/);
+  });
+
+  it("a refused send asks the server and flips the open thread to otherUserId null (Q334)", () => {
+    const send = blankComments(read("src/pages/messages/messagesData/sendHandlers.ts"));
+    expect(send).toMatch(/\(await fetchCounterpartyDeleted\(optimistic\.job_id, receiverId\)\) === true[\s\S]{0,600}otherUserId: null,[\s\S]{0,600}sendStatus: "refused"/);
+  });
+});
+
+describe("a deleted-account thread can be archived, never pinned (Q335, owner 2026-09-26)", () => {
+  const migrations = () => {
+    const dir = join(ROOT, "supabase", "migrations");
+    return readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => blankSqlComments(readFileSync(join(dir, f), "utf8")));
+  };
+
+  it("thread_archives.other_user_id ends nullable, under a NULLS NOT DISTINCT key, and no later migration re-tightens it", () => {
+    let nullable = false;
+    let key = false;
+    for (const sql of migrations()) {
+      if (/ALTER TABLE public\.thread_archives ALTER COLUMN other_user_id DROP NOT NULL/i.test(sql)) nullable = true;
+      if (/ALTER TABLE (public\.)?thread_archives ALTER COLUMN other_user_id SET NOT NULL/i.test(sql)) nullable = false;
+      if (/UNIQUE NULLS NOT DISTINCT \(user_id, job_id, other_user_id\)/i.test(sql)) key = true;
+    }
+    expect(nullable).toBe(true);
+    expect(key).toBe(true);
+  });
+
+  it("the archive store keys the null party with a token no uuid can equal, and restores it with IS NULL", () => {
+    const src = blankComments(read("src/lib/archivedConversations.ts"));
+    expect(src).toMatch(/otherUserId === null \? DELETED_PARTY_KEY : otherUserId/);
+    expect(src).toMatch(/if \(other === DELETED_PARTY_KEY \|\| other === "null"\) return \{ jobId, otherUserId: null \};/);
+    expect(src).toMatch(/\? base\.is\("other_user_id", null\)/);
+    // Every exported archive entry point takes a null other party.
+    const sigs = [...src.matchAll(/export function (archiveConversation|unarchiveConversation|isArchived)\(([^)]*)\)/g)];
+    expect(sigs.length).toBe(3);
+    for (const [, name, params] of sigs) expect(params, name).toMatch(/otherUserId: string \| null/);
+  });
+
+  it("no archive path skips a deleted-account thread", () => {
+    const hook = blankComments(read("src/pages/messages/useMessagesData.ts"));
+    expect(hook).toMatch(/\(c\) => !isArchived\(resolvedUserId, c\.jobId, c\.otherUserId, c\.lastAt\)/);
+    const page = blankComments(read("src/pages/messages/Messages.tsx"));
+    const archiveFn = page.slice(page.indexOf("const archiveConversationLocal"), page.indexOf("const confirmBatchArchive"));
+    const batchFn = page.slice(page.indexOf("const confirmBatchArchive"), page.indexOf("useThreadMuteActions({"));
+    expect(archiveFn.length).toBeGreaterThan(50);
+    expect(batchFn.length).toBeGreaterThan(50);
+    expect(archiveFn).not.toMatch(/otherUserId === null/);
+    expect(batchFn).not.toMatch(/otherUserId === null/);
+    const list = blankComments(read("src/components/messages/ConversationList.tsx"));
+    const toggle = list.slice(list.indexOf("const toggleSelect"), list.indexOf("const handleBatchDelete"));
+    expect(toggle.length).toBeGreaterThan(50);
+    expect(toggle).not.toMatch(/otherUserId === null/);
+    expect(list).toMatch(/return selectMode \|\| isRecentlyDeletedView \? row : \(/);
+    expect(list).toMatch(/\.filter\(\(c\) => isConvoArchived\(userId, c\.jobId, c\.otherUserId, c\.lastAt\)\)/);
+  });
+
+  it("behaviour: an archived deleted-account thread reads as archived, and resurfaces never on its own", async () => {
+    const { safeStorage } = await import("@/lib/safeStorage");
+    const { isArchived } = await import("@/lib/archivedConversations");
+    const uid = "q335-viewer";
+    // The mirror shape loadArchives writes: conversationKey -> archived_at.
+    safeStorage.setItem(
+      `helpr_archived_conversations_${uid}`,
+      JSON.stringify({ "job-9_deleted-account": "2026-09-26T00:00:00.000Z" }),
+    );
+    expect(isArchived(uid, "job-9", null, "2026-09-25T00:00:00.000Z")).toBe(true);
+    // Not confused with a live person on the same job.
+    expect(isArchived(uid, "job-9", "someone-live", "2026-09-25T00:00:00.000Z")).toBe(false);
+    // Nor with the deleted-account thread of another job.
+    expect(isArchived(uid, "job-8", null, "2026-09-25T00:00:00.000Z")).toBe(false);
+  });
+
+  it("the merge-up never re-pushes a key the server cannot take (lh-authz-rls review D1/D2)", async () => {
+    const { parseConversationKey } = await import("@/lib/archivedConversations");
+    const J = "11111111-1111-4111-8111-111111111111";
+    const X = "22222222-2222-4222-8222-222222222222";
+    expect(parseConversationKey(`${J}_${X}`)).toEqual({ jobId: J, otherUserId: X });
+    expect(parseConversationKey(`${J}_deleted-account`)).toEqual({ jobId: J, otherUserId: null });
+    // A pre-Q335 build wrote `${job}_null` for a server NULL row.
+    expect(parseConversationKey(`${J}_null`)).toEqual({ jobId: J, otherUserId: null });
+    // Anything else can never be a row: dropped, not retried on every load.
+    expect(parseConversationKey(`${J}_undefined`)).toBeNull();
+    expect(parseConversationKey(`job-1_${X}`)).toBeNull();
+    expect(parseConversationKey("garbage")).toBeNull();
+    // A batch that fails is retried row by row, and rows whose person or job
+    // is gone (23503) or whose id is malformed (22P02) leave the mirror.
+    const src = blankComments(read("src/lib/archivedConversations.ts"));
+    // isGoneReference (src/lib/goneReference.ts) is exactly 23503.
+    expect(src).toMatch(/const cannotExist = \(e: \{ code\?: string \}\) => isGoneReference\(e\) \|\| code\(e\) === "22P02";/);
+    expect(src).toMatch(/if \(cannotExist\(error\)\) \{\s*localOnly\.delete\(k\);/);
+  });
+
+  it("pin stays off for it: the swipe row gets no pin action", () => {
+    const list = blankComments(read("src/components/messages/ConversationList.tsx"));
+    expect(list).toMatch(/onTogglePin=\{c\.otherUserId === null \? undefined : \(\) => handleTogglePin\(c\)\}/);
+    const row = blankComments(read("src/components/messages/SwipeableConversationRow.tsx"));
+    expect(row).toMatch(/offset > SWIPE_THRESHOLD && onTogglePin/);
+    expect(row).toMatch(/right: onTogglePin \? 180 : 0/);
   });
 });

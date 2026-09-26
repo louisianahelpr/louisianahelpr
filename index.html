@@ -39,6 +39,9 @@
          agreement that did not exist.) -->
     <meta name="theme-color" content="#F1F2F4" />
     <meta name="application-name" content="Helpr" />
+    <!-- Read by the inline boot watchdog (Q229), which runs before the bundle and so cannot see import.meta.env. Public values: the same URL and publishable key ship in every bundle. -->
+    <meta name="lh-supabase-url" content="%VITE_SUPABASE_URL%" />
+    <meta name="lh-supabase-key" content="%VITE_SUPABASE_PUBLISHABLE_KEY%" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -73,7 +76,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-zTk4iqglI+32PtdbMgt33TG0vwS0AA1+w9f/RvYuClY=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-c/0573eAhTzoxAXtXa+Y4HKO8Q4ZDJCpicZsCBlny5M=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -92,10 +95,10 @@
          all three were arguments about how to lose that race gracefully. The
          race is gone; the woff2 ships with the binary.
 
-         Two preloads only, both for the LCP path: the Bodoni Moda latin
-         face (the hero H1) and the Montserrat latin face (everything else
-         above the fold). The remaining faces — latin-ext for both, Bodoni
-         italic, Beth Ellen — are left to the @font-face fetch; preloading
+         Three preloads only, all on the LCP path: the Bodoni Moda latin
+         faces, normal and italic (the hero H1 and its <em>, Q371), and the
+         Montserrat latin face (everything else above the fold). The
+         remaining faces — latin-ext, Beth Ellen — are left to the @font-face fetch; preloading
          them competes with the LCP for bandwidth and none of them is on the
          first paint. `crossorigin` is REQUIRED on a font preload even
          same-origin: fonts are fetched in CORS mode, and a preload without it
@@ -112,6 +115,20 @@
       as="font"
       type="font/woff2"
       href="/fonts/montserrat-normal-latin.woff2"
+      crossorigin
+    />
+    <!-- Q371: the hero H1's italic <em> ("Local Job Partner") is set in the
+         Bodoni ITALIC face, so it is on the LCP path too. Left to the
+         @font-face fetch it swapped in ~300ms after first paint, and on a
+         device without Georgia (Linux, Android: the size-matched
+         "Bodoni Moda Fallback" resolves via local("Georgia")) the swap moved
+         the em 26px: CLS 0.0315 at 1440, the exact CI number. Font, colour
+         and copy are unchanged; only when the file arrives. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/bodoni-moda-italic-latin.woff2"
       crossorigin
     />
     <!-- Preconnect to Supabase to shorten the longest network dependency chain (LCP/data fetches) -->
@@ -385,9 +402,10 @@
       staying up while a retry waits; offline never reloads. Q199: this used
       to show the error screen for any failure within 10s of a reload, so a
       reload that landed mid-deploy on the old HTML ended there. Only when
-      the attempts are spent does it say so plainly, and leave a record that
-      main.tsx reports on the next boot that succeeds (report() is inside the
-      bundle, which is exactly what is missing right now).
+      the attempts are spent does it say so plainly, post the failure to
+      error_logs at once (Q229: beacon() below, not report(), which is inside
+      the missing bundle), and leave a record that main.tsx reports on the next
+      boot that succeeds if that post did not land.
     -->
     <script>
       (function () {
@@ -451,12 +469,44 @@
           } catch (e) { /* proceed to reload */ }
           Promise.all(tasks).then(go, go);
         }
-        function showFailure(src, offline) {
+        // Q229: the failure is sent NOW, straight to error_logs (the anon
+        // insert policy anyone_can_insert_errors; same request errorLogger's
+        // postRows makes), so it reaches the owner even when this device
+        // never boots again. The localStorage record stays as the fallback:
+        // main.tsx reports it on the next good boot unless `sent` is true.
+        // Local hosts never post (errorLogger skips them too), so e2e runs
+        // against a local build do not write to prod.
+        function saveRecord(rec) {
+          try { localStorage.setItem("helpr_boot_failure", JSON.stringify(rec)); } catch (e) { /* storage blocked */ }
+        }
+        function beacon(rec) {
+          var h = location.hostname;
+          if (h === "localhost" || h === "127.0.0.1" || /\.local$/.test(h)) return;
+          var m = function (n) { var el = document.querySelector('meta[name="' + n + '"]'); return el ? el.getAttribute("content") || "" : ""; };
+          var base = m("lh-supabase-url"), key = m("lh-supabase-key");
+          if (!/^https:\/\//.test(base) || !key || key.charAt(0) === "%" || typeof fetch !== "function") return;
+          var screen = String(rec.url || "").split("?")[0];
           try {
-            localStorage.setItem("helpr_boot_failure", JSON.stringify({
-              at: Date.now(), src: src, offline: offline, url: location.pathname
-            }));
-          } catch (e) { /* storage blocked — the message still shows */ }
+            fetch(base.replace(/\/$/, "") + "/rest/v1/error_logs", {
+              method: "POST",
+              keepalive: true,
+              headers: { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json", "Content-Profile": "public", Prefer: "return=minimal" },
+              body: JSON.stringify({
+                user_id: null, severity: "error",
+                message: "Boot failed: entry module graph did not load (" + rec.src + ")",
+                stack: null, url: rec.url, user_agent: navigator.userAgent,
+                tags: { source: "BootWatchdog", kind: "user-error-screen", route: rec.url, screen: screen, via: "inline-beacon" },
+                context: { failedAt: rec.at }
+              })
+            }).then(function (r) {
+              if (r && r.status >= 200 && r.status < 300) { rec.sent = true; saveRecord(rec); }
+            }, function () { /* network down: the record is reported on the next boot */ });
+          } catch (e) { /* the record is reported on the next boot */ }
+        }
+        function showFailure(src, offline) {
+          var rec = { at: Date.now(), src: src, offline: offline, url: location.pathname };
+          saveRecord(rec);
+          if (!offline) beacon(rec);
           var paint = function () {
             var el = document.getElementById("boot-loader");
             if (!el) return;

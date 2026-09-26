@@ -108,6 +108,10 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // EXPECTED_REFUSALS below.
   dispute_settlement_in_progress:
     "An admin is settling this dispute's payment right now, so it can't be changed. Refresh in a few minutes to see the result.",
+  // rpc_decide_dispute, 20260926034348 (Q342 review M1): the card holder's bank
+  // holds this job's payment in a card dispute, so no split could move it.
+  dispute_job_charged_back:
+    "The card holder's bank is holding this job's payment in a card dispute, so a decision here couldn't move any money. Settle it by hand once the bank rules.",
   // open_dispute_as refuses a job whose escrow cancel_escrow is refunding
   // (payment_status 'cancelling'), 20260915034822.
   dispute_payment_being_cancelled:
@@ -157,6 +161,13 @@ export const RPC_ERROR_COPY = {
     not_a_group_job: "This job isn't set up as a group job any more. Refresh and try again.",
     invalid_helpers_needed:
       "This job doesn't say how many people it needs. Edit the job to set that, then try again.",
+  },
+  // PhotoProof — a crew member's OWN before/after photos (Q407: a crew has no
+  // lead, so each member's proof lives on their own roster row).
+  rpc_group_member_set_proof: {
+    not_authenticated: "Sign in again to add your photos.",
+    not_on_this_crew: "You're not on this job's crew any more, so you can't add photos to it.",
+    part_already_done: "You already marked your part done, so its photos are part of the record now.",
   },
   // useOfferHandlers — responding to a direct offer.
   respond_to_direct_offer: {

@@ -312,7 +312,7 @@ function EnrollDialog({
                 }}
                 className="inline-flex items-center gap-1.5 text-ds-11 font-mono tracking-wider px-2.5 py-1 rounded-ds-sm"
                 style={{
-                  background: "hsla(0, 0%, 100%, 0.55)",
+                  background: "hsl(var(--card) / 0.55)",
                   border: "0.5px solid hsl(var(--olivewood) / 0.16)",
                   color: "hsl(var(--ink-deep))",
                 }}

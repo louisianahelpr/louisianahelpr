@@ -417,6 +417,30 @@ describe("create-boost-payment — the PAID Stripe Checkout path", () => {
     });
   });
 
+  // ME-043: automatic_tax needs a tax location. An existing addressless
+  // customer made Stripe refuse the session until the collected address was
+  // saved; customer_update is invalid without a customer, so only then.
+  it("saves the Checkout address for an existing customer, and never sends customer_update without one", async () => {
+    stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_addr" });
+    seed("free");
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_boost" }] });
+    let fn = await load();
+    await fn.fetch(call(fn));
+    let params = stripeMock.checkout.sessions.create.mock.calls[0][0] as Record<string, any>;
+    expect(params.automatic_tax).toEqual({ enabled: true });
+    expect(params.customer_update).toEqual({ address: "auto" });
+    expect(params.line_items[0].price_data.tax_behavior).toBe("exclusive");
+
+    resetSupabaseMock();
+    seed("free");
+    stripeMock.customers.list.mockResolvedValue({ data: [] });
+    fn = await load();
+    await fn.fetch(call(fn));
+    params = stripeMock.checkout.sessions.create.mock.calls[1][0] as Record<string, any>;
+    expect(params.customer).toBeUndefined();
+    expect(params.customer_update).toBeUndefined();
+  });
+
   it("same request = same key; a changed plan gets a new key instead of Stripe's mismatch error (ME-017 #8)", async () => {
     stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_boost" }] });
     stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_x" });

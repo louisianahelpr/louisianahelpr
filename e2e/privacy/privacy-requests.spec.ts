@@ -182,6 +182,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
   test.setTimeout(10 * 60_000);
 
   await test.step("create the disposable seed account", async () => {
+    // seed-policy: derived by trg_profiles_seed_from_fixture_email (a @mailinator.com inbox is seed from its first row); patched below as well
     const r = await request.post(`${SUPABASE_URL}/auth/v1/admin/users`, {
       headers: SR,
       data: { email: EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "SEED Privacy Journey" } },
@@ -224,7 +225,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     // Storage through the user's own session: the bucket policies are part of what is exercised.
     const avatarPath = `${userId}/privacy-journey.png`;
     const up = await request.post(`${SUPABASE_URL}/storage/v1/object/avatars/${avatarPath}`, {
-      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/png", "x-upsert": "true" },
+      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/png", "x-upsert": "true", "cache-control": "max-age=3600" },
       data: PNG_1PX,
     });
     expect(up.ok(), `avatar upload: ${up.status()} ${await up.text()}`).toBe(true);
@@ -412,6 +413,7 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
   };
   try {
     await test.step("create a disposable account that never completed its profile (no avatar)", async () => {
+      // seed-policy: derived by trg_profiles_seed_from_fixture_email (a @mailinator.com inbox is seed from its first row); patched below as well
       const r = await request.post(`${SUPABASE_URL}/auth/v1/admin/users`, {
         headers: SR,
         data: { email: INCOMPLETE_EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "SEED Privacy Incomplete" } },

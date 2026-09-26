@@ -11,21 +11,26 @@
  * says are stripped really are, that anon cannot execute it, and that the
  * client, the edge function and the privacy journey all agree on the sections.
  *
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC;
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
- * @mutate src/test/helpers/dataExportInventory.ts |   "fraud_flags.user_id": { reason: | "fraud_flagz.user_id": { reason:
+ * @mutate src/test/helpers/dataExportInventory.ts |   "retained_bans.email_sha256": { reason: | "retained_banz.email_sha256": { reason:
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | to_jsonb(t) - 'created_by' | to_jsonb(t)
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
  * @mutate scripts/lib/privacyJourney.mjs | KNOWN_NOT_EXPORTED = []; | KNOWN_NOT_EXPORTED = ["reports"];
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { anonExecuteRevoked, latestFunctionDefs } from "./helpers/rpcErrorInventory";
 import {
   EXEMPT,
@@ -113,12 +118,14 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
         .replace(/\(SELECT[^()]*WHERE[^()]*v_uid[^()]*\)/gi, "")
         .replace(/(?:lower\()?\bt\.\w+\)?\s*=\s*v_(?:uid|email)\b/g, "")
         .replace(/NOT coalesce\(t\.flagged_hidden, false\)/g, "")
+        .replace(/AND t\.created_at >= v_created/g, "")
+        .replace(/AND t\.(?:user_id|recipient_id) IS NULL/g, "")
         .replace(/AND t\.status = 'published'\s+AND t\.feedback_visible_at IS NOT NULL AND t\.feedback_visible_at <= now\(\)/g, "")
         .replace(/\bt\.id IN\b|\bt\.job_id IN\b/g, "");
       return /\bt\.\w+|\btrue\b/i.test(residue.replace(/^WHERE/i, ""));
     });
     expect(unscoped.map((s) => s.name)).toEqual([]);
-    expect(body).toMatch(/v_uid\s+uuid\s*:=\s*auth\.uid\(\)/);
+    expect(body).toMatch(/v_uid\s+uuid\s*:=\s*p_user_id;/);
     expect(body).toMatch(/IF v_uid IS NULL THEN\s*RAISE EXCEPTION/);
   });
 
@@ -151,6 +158,33 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     );
   });
 
+  it("Q408: only service_role can execute it, and the no-argument door is dropped", () => {
+    const file = defs.get("export_my_data")?.file ?? "";
+    const mig = blankSqlComments(read(`supabase/migrations/${file}`)).replace(/\s+/g, " ");
+    expect(mig).toMatch(/DROP FUNCTION IF EXISTS public\.export_my_data\(\);/);
+    expect(mig).toContain("REVOKE ALL ON FUNCTION public.export_my_data(uuid) FROM PUBLIC, anon, authenticated;");
+    expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role;");
+    // Nothing after it grants the function back to a signed-in or anonymous role.
+    const later = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql") && f > file);
+    for (const f of later) {
+      expect(blankSqlComments(read(`supabase/migrations/${f}`)), f).not.toMatch(/GRANT[^;]*export_my_data[^;]*\b(authenticated|anon|PUBLIC)\b/i);
+    }
+  });
+
+  it("Q409: rows matched by email count only from this account's creation on (gift cards excepted)", () => {
+    expect(body).toMatch(/SELECT lower\(u\.email\), u\.created_at INTO v_email, v_created FROM auth\.users u/);
+    for (const name of ["email_send_log", "suppressed_emails", "notification_logs"]) {
+      const text = (sections.find((x) => x.name === name)?.text ?? "").replace(/\s+/g, " ");
+      expect(text, name).toMatch(/\(?lower\(t\.\w+\) = v_email (?:AND t\.user_id IS NULL )?AND t\.created_at >= v_created\)?/);
+    }
+    // A gift is sent to an address before its owner has an account.
+    expect((sections.find((x) => x.name === "gift_cards")?.text ?? "")).not.toMatch(/v_created/);
+    // An address match never exports a row another account owns (#1838 review).
+    const flat = (name: string) => (sections.find((x) => x.name === name)?.text ?? "").replace(/\s+/g, " ");
+    expect(flat("notification_logs")).toContain("(lower(t.recipient_email) = v_email AND t.user_id IS NULL AND t.created_at >= v_created)");
+    expect(flat("gift_cards")).toContain("(lower(t.recipient_email) = v_email AND t.recipient_id IS NULL)");
+  });
+
   it("anon cannot execute it", () => {
     expect(anonExecuteRevoked("export_my_data", MIGRATIONS)).toBe(true);
   });
@@ -166,7 +200,8 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
 
   it("the edge function, the card and the privacy journey agree on the sections", () => {
     const fn = blankComments(read("supabase/functions/export-my-data/index.ts"));
-    expect(fn).toMatch(/\.rpc\("export_my_data"\)/);
+    // Q408: the service-role client, with the id getUser() verified.
+    expect(fn).toMatch(/await admin\.rpc\("export_my_data", \{ p_user_id: user\.id \}\)/);
     expect(fn).toMatch(/storage_objects: storageObjects,/);
     const card = blankComments(read("src/pages/info/legal/DataExportCard.tsx"));
     expect(card).toMatch(/functions\.invoke\("export-my-data"/);

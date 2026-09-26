@@ -1,0 +1,44 @@
+name: Sensitive review record
+
+# docs/OPEN.md Q9. CLAUDE.md requires a review-only pass (lh-authz-rls,
+# lh-money-escrow, lh-silent-failure, /code-review, /security-review) before a
+# money / authz / data-model diff is committed. Agents skipped it; that is how
+# the javascript: href reached main. This REPORTS a sensitive commit that
+# landed with no recorded review (a `Sensitive-Review:` trailer or a line in
+# docs/reviews/sensitive-reviews.jsonl). It never blocks: it is not a required
+# check, a PR run only annotates, and the push-to-main run goes red so
+# main-red-watch files the nightly-red issue + ops-alert ledger item, which
+# closes on the first green run after the review is recorded.
+# Rules: scripts/lib/sensitiveReview.mjs. Guard: src/test/sensitiveReview.test.ts.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sensitive-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Money/authz/data-model commits carry a recorded review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Report (PR, annotate only)
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-sensitive-review.mjs --range "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
+      - name: Report (main, red while any review is missing)
+        if: github.event_name != 'pull_request'
+        run: node scripts/check-sensitive-review.mjs --range origin/main --strict

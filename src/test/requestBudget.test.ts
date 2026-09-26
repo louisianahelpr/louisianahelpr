@@ -19,6 +19,8 @@
  * @mutate e2e/prod-audit/page-settle.spec.ts | import { test, expect } from "../prodTest"; | import { test, expect } from "@playwright/test";
  * @mutate .github/workflows/prod-audit.yml | run: node scripts/e2e/request-budget.mjs --label prod-audit | run: echo skipped
  * @mutate scripts/e2e/request-budget.mjs | else if (measured < b * STALE_FRACTION) | else if (false)
+ * @mutate scripts/e2e/request-budget.mjs |     if (ceilingOnly) { |     if (true) {
+ * @mutate .github/workflows/prod-audit.yml | --label prod-audit ${GREP:+--ceiling-only} | --label prod-audit --ceiling-only
  * @mutate e2e/prodTest.ts | meter.attachBrowser(browser); | void browser;
  * @mutate scripts/e2e/request-budget.mjs | if (agg.tests > 0 && agg.total === 0) { | if (false) {
  * @mutate scripts/e2e/request-budget.mjs | (allowEmpty ? notes : failures).push( | notes.push(
@@ -55,7 +57,7 @@ const PROD_PROJECTS = configProjects.filter((p) => !MOCKED_PROJECTS.has(p));
 
 /** Node scripts that drive a browser against prod from a workflow, and the label each meters under. */
 const METERED_SCRIPTS: Record<string, { invoke: RegExp; file: string; label: string }> = {
-  press: { invoke: /run: node scripts\/audit\/press-every-control\.mjs\s*$/m, file: "scripts/audit/press-every-control.mjs", label: "press-every-control" },
+  press: { invoke: /run: (node scripts\/audit\/press-every-control\.mjs|bash scripts\/audit\/press-wave\.sh [\d ]+)\s*$/m, file: "scripts/audit/press-every-control.mjs", label: "press-every-control" },
   loading: { invoke: /run: npm run loading-states:measure\s*$/m, file: "scripts/audit/measure-loading-states.mjs", label: "loading-states" },
 };
 
@@ -85,7 +87,7 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
       for (const s of Object.values(METERED_SCRIPTS)) if (s.invoke.test(code)) labels.add(s.label);
       for (const label of labels) {
         const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}\\s*$`, "m").test(code) });
+        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)?(?: \\$\\{GREP:\\+--ceiling-only\\})?\\s*$`, "m").test(code) });
       }
     }
   }
@@ -199,6 +201,20 @@ describe("backend request budgets (Q104)", () => {
     // Q104 review: tests ran, meter saw nothing -> red, never a quiet note.
     const hollow = { ...agg, total: 0, peakPerMinute: 0, perTest: 0, tests: 3 };
     expect(judge(hollow, { ceilingPerMinute: 400, perTest: null, signIns: null }).failures.join()).toMatch(/meter is not attached/);
+    // A SUBSET run (grep dispatch) is not held to the suite's per-test numbers,
+    // but its load ceiling and the meter check still apply.
+    const subset = judge(agg, { ceilingPerMinute: 250, perTest: 1000, signIns: 9 }, { ceilingOnly: true });
+    expect(subset.failures).toEqual([]);
+    expect(subset.notes.join()).toMatch(/subset run, perTest not judged/);
+    expect(judge(agg, { ceilingPerMinute: 249, perTest: 1000 }, { ceilingOnly: true }).failures.join()).toMatch(/over the 249\/min ceiling/);
+    expect(judge(hollow, { ceilingPerMinute: 400 }, { ceilingOnly: true }).failures.join()).toMatch(/meter is not attached/);
+  });
+
+  it("prod-audit passes --ceiling-only ONLY on a grep dispatch, never on a full run", () => {
+    const wf = readFileSync(resolve(__dirname, "../../.github/workflows/prod-audit.yml"), "utf8");
+    const line = wf.split("\n").find((l) => l.includes("request-budget.mjs --label prod-audit")) ?? "";
+    expect(line).toMatch(/--label prod-audit \$\{GREP:\+--ceiling-only\}\s*$/);
+    expect(wf).toMatch(/GREP: \$\{\{ inputs\.grep \}\}\n\s*run: node scripts\/e2e\/request-budget\.mjs/);
   });
 
   it("the meter classifies backend requests and ignores everything else", () => {

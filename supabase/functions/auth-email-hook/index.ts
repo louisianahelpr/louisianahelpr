@@ -11,6 +11,7 @@ import { ReauthenticationEmail } from '../_shared/email-templates/reauthenticati
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { FROM_DEFAULT, SENDER_DOMAIN } from '../_shared/resend.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { kickEmailQueue } from '../_shared/kick-email-queue.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
 // ED-002: every failure branch here blocks a signup confirmation, password
@@ -278,6 +279,8 @@ async function handleWebhook(req: Request): Promise<Response> {
   }
 
   console.log('Auth email enqueued', { emailType, email: user.email })
+  // Q258: someone is waiting on this email; drain now instead of on the next 5-minute cron tick.
+  kickEmailQueue(`auth:${emailType}`)
 
   return new Response(
     JSON.stringify({ success: true, queued: true }),

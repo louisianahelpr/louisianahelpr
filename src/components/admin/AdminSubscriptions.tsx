@@ -11,6 +11,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { TestTag } from "@/components/admin/TestTag";
+import { withTestCount } from "@/components/admin/dashboard/types";
 
 interface SubscribedProfile {
   user_id: string;
@@ -18,6 +20,7 @@ interface SubscribedProfile {
   email: string | null;
   subscription_tier: string | null;
   subscription_expires_at: string | null;
+  is_seed: boolean | null;
 }
 
 const AdminSubscriptions = () => {
@@ -30,13 +33,13 @@ const AdminSubscriptions = () => {
     fetcher: async () => {
       const data = unwrap(await supabase
         .from("profiles")
-        .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
+        .select("user_id, full_name, email, subscription_tier, subscription_expires_at, is_seed")
         .not("subscription_tier", "is", null)
         .order("subscription_expires_at", { ascending: false, nullsFirst: false }));
 
       const expiredData = unwrap(await supabase
         .from("profiles")
-        .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
+        .select("user_id, full_name, email, subscription_tier, subscription_expires_at, is_seed")
         .is("subscription_tier", null)
         .not("subscription_expires_at", "is", null));
 
@@ -65,13 +68,25 @@ const AdminSubscriptions = () => {
     return true;
   });
 
-  const activeCount = allProfiles.filter(p => getStatus(p) === "active").length;
-  const expiredCount = allProfiles.filter(p => getStatus(p) === "expired").length;
-  const tierCounts: Record<string, number> = {};
+  // Q233: the stat tiles count real subscribers and name the seed ones beside
+  // them, the same "N (+M test)" the admin home uses (Q368); the list below
+  // keeps every row and tags the seed ones.
+  const countOf = (status: "active" | "expired") => {
+    const rows = allProfiles.filter(p => getStatus(p) === status);
+    const test = rows.filter(p => p.is_seed).length;
+    return withTestCount(rows.length - test, test);
+  };
+  const activeCount = countOf("active");
+  const expiredCount = countOf("expired");
+  const tierTally: Record<string, { real: number; test: number }> = {};
   allProfiles.filter(p => getStatus(p) === "active").forEach(p => {
     const t = p.subscription_tier || "unknown";
-    tierCounts[t] = (tierCounts[t] || 0) + 1;
+    tierTally[t] ??= { real: 0, test: 0 };
+    tierTally[t][p.is_seed ? "test" : "real"] += 1;
   });
+  const tierCounts: Record<string, string> = Object.fromEntries(
+    Object.entries(tierTally).map(([t, c]) => [t, withTestCount(c.real, c.test)]),
+  );
 
   if (isInitialLoading) {
     return <div className="text-center py-12 text-ds-11 text-muted-foreground">Loading subscription data…</div>;
@@ -169,7 +184,7 @@ const AdminSubscriptions = () => {
           return (
             <div key={p.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-ds-13 font-medium text-foreground">{p.full_name || "No name"}</p>
+                <p className="text-ds-13 font-medium text-foreground flex items-center gap-2">{p.full_name || "No name"}{p.is_seed && <TestTag />}</p>
                 <p className="text-ds-11 text-muted-foreground">{p.email}</p>
               </div>
               <div className="flex items-center gap-2">

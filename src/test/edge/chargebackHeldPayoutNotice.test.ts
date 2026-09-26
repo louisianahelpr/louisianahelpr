@@ -13,7 +13,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           blockedNow = true; |           void 0;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | if (holdNotice && (clawback?.reversedTotalCents ?? 0) === 0) { | if (holdNotice) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | message: isInquiry | message: false
- * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | if (lost.rows === 0 && closedJob.helper_id | if (false && closedJob.helper_id
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | if (decidedClose !== "closed" && lost.rows === 0 && closedJob.helper_id | if (decidedClose !== "closed" && false && closedJob.helper_id
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | admins are asked to.\n        if (closedJob.helper_id | admins are asked to.\n        if (false
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | say how it ended.\n          if (closedJob.helper_id | say how it ended.\n          if (false
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | return !error && (data?.length ?? 0) > 0; | return true;
@@ -105,6 +105,10 @@ describe("held payout: the Helpr is told (ME-009)", () => {
   it("LOST with nothing clawed back tells them the payout stays on hold", async () => {
     const fn = await load();
     event("evt_h5", "charge.dispute.closed", dispute("lost"));
+    // Q342: a lost dispute first asks settle_dispute_by_chargeback to close a
+    // decided internal dispute; this job has none.
+    stripeMock.charges.retrieve.mockResolvedValue({ id: "ch_job", amount: 10000, amount_captured: 10000 });
+    scenario.rpc.settle_dispute_by_chargeback = { outcome: "no_unsettled_dispute" };
     scenario.reads.jobs = { rows: [job({ payment_status: "chargeback", dispute_status: "stripe_chargeback", disputed_at: "2026-09-20T00:00:00.000Z" })] };
     scenario.reads.notifications = { rows: [{ id: "n-hold" }] };
     scenario.reads.chargeback_clawbacks = { rows: [] };

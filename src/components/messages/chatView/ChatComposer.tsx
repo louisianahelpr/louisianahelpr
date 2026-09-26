@@ -5,6 +5,7 @@ import { RichMessageInput } from "@/components/RichMessageInput";
 import { assertWritable } from "@/hooks/useImpersonation";
 import { threadClosedCopy } from "@/lib/messagingLockout";
 import { RECIPIENT_RESTRICTED_NOTICE } from "@/lib/recipientGate";
+import { offJobNotice, type OffJobState } from "@/lib/offJobGate";
 import { DELETED_ACCOUNT_NOTICE } from "@/lib/deletedCounterparty";
 import type { Conversation, Message } from "../types";
 
@@ -68,12 +69,49 @@ const CHAT_GUTTER_BLEED = {
 } as const;
 
 /**
+ * The draft that was mid-sentence when a thread closed under an open keyboard
+ * (see the thread-closed notice below). Rendered, selectable, beside a
+ * read-only notice; nothing when the draft is empty.
+ */
+function UnsentDraft({ draft }: { draft: string }) {
+  if (draft.trim().length === 0) return null;
+  return (
+    <div
+      className="mt-2 rounded-ds-md px-3.5 py-2.5"
+      style={{
+        background: "hsl(var(--olivewood) / 0.04)",
+        border: "0.5px dashed hsl(var(--olivewood) / 0.22)",
+      }}
+      data-testid="thread-closed-unsent-draft"
+    >
+      {/* 0.7, was 0.6 (3.70:1 against a 4.5:1 AA floor); 0.7 is the
+          lowest alpha on this token that clears (4.90:1). Still clearly
+          the label rather than the content: the draft body below it is
+          0.85 at ds-13, this is 0.7 at ds-11 uppercase. */}
+      <p
+        className="font-sans text-ds-11 uppercase tracking-wide mb-1"
+        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+      >
+        Not sent
+      </p>
+      <p
+        className="font-sans text-ds-13 leading-relaxed whitespace-pre-wrap break-words select-text"
+        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+      >
+        {draft}
+      </p>
+    </div>
+  );
+}
+
+/**
  * The composer dock — the poster-first lock card, the status-aware quick
  * replies, and the rich message input.
  */
 export function ChatComposer({
   composerLocked,
   threadClosed = false,
+  offJobState = null,
   recipientRestricted = false,
   chatLoadError,
   keyboardInset,
@@ -93,6 +131,11 @@ export function ChatComposer({
       20260919220233). Replaces the composer with a read-only notice, whose
       wording follows which of the two it was. See lib/messagingLockout.ts. */
   threadClosed?: boolean;
+  /** Set when someone in this thread is no longer on the job ('self' = the
+      viewer, 'other' = the person they are talking to): owner decision
+      2026-09-25, messaging closes both ways. Replaces the composer with a
+      read-only notice. See lib/offJobGate.ts. */
+  offJobState?: OffJobState | null;
   /** True when the server's receiver gate refuses this recipient for this
       viewer (src/lib/recipientGate.ts). Replaces the composer with a notice. */
   recipientRestricted?: boolean;
@@ -190,33 +233,39 @@ export function ChatComposer({
             re-read it, or paste it somewhere that is still open.
 
             Only when there IS one: an empty draft gets no empty box. */}
-        {draft.trim().length > 0 && (
-          <div
-            className="mt-2 rounded-ds-md px-3.5 py-2.5"
-            style={{
-              background: "hsl(var(--olivewood) / 0.04)",
-              border: "0.5px dashed hsl(var(--olivewood) / 0.22)",
-            }}
-            data-testid="thread-closed-unsent-draft"
-          >
-            {/* 0.7, was 0.6 (3.70:1 against a 4.5:1 AA floor); 0.7 is the
-                lowest alpha on this token that clears (4.90:1). Still clearly
-                the label rather than the content: the draft body below it is
-                0.85 at ds-13, this is 0.7 at ds-11 uppercase. */}
-            <p
-              className="font-sans text-ds-11 uppercase tracking-wide mb-1"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-            >
-              Not sent
-            </p>
-            <p
-              className="font-sans text-ds-13 leading-relaxed whitespace-pre-wrap break-words select-text"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-            >
-              {draft}
-            </p>
-          </div>
-        )}
+        <UnsentDraft draft={draft} />
+      </div>
+    );
+  }
+  if (offJobState) {
+    /* Off the job — owner decision 2026-09-25: once either person in this
+       thread is no longer on the job (rejected, removed from the crew, offer
+       declined or expired), neither may start a new message here. The server
+       refuses both directions (can_message_in_job + can_send_message_to_in_job,
+       20260925175953 + 20260925230845); this is its read-only face, asked of
+       the server (get_off_job_thread_state), never derived on the client.
+       Before the poster-first lock: someone off the job is not waiting to be
+       contacted. Copy names what happened, not a role. */
+    return (
+      <div
+        className="pt-2 pb-3 glass-dock sticky bottom-0"
+        style={{ ...CHAT_GUTTER_BLEED, paddingBottom: dockPaddingBottom(keyboardInset) }}
+        data-testid="thread-off-job-notice"
+      >
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
+          style={{
+            background: "hsl(var(--olivewood) / 0.06)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+          }}
+        >
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
+          <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            {offJobNotice(offJobState)}
+          </p>
+        </div>
+        <UnsentDraft draft={draft} />
       </div>
     );
   }

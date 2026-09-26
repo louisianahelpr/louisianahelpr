@@ -74,10 +74,7 @@ function openStore(userId: string): UnreadStore {
       // the newest UNREAD_ROW_CAP rows are all either can use.
       .order("created_at", { ascending: false })
       .limit(UNREAD_ROW_CAP); // PD-012 bounded
-    // `is_system` is a real column but missing from the generated types,
-    // so the dynamic .not() filters need an untyped handle.
-    let query: any = base;
-    query = query.not("is_system", "is", true);
+    let query = base.not("is_system", "is", true);
     if (blockedSet.size > 0) {
       query = query.not("sender_id", "in", `(${[...blockedSet].join(",")})`);
     }

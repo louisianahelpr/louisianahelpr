@@ -7,6 +7,7 @@ import {
   assertHealthy,
   getSession,
   newUserContext,
+  payCheckoutUrlInChromium,
   rest,
   sessionsAvailable,
   skipUncovered,
@@ -247,6 +248,9 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
           payment_status: "unpaid",
           pricing_mode: "set_price",
           parish: null,
+          // Intent only: enforce_jobs_insert_column_lock derives is_seed from
+          // the poster's profiles.is_seed on a signed-in insert (Q46).
+          is_seed: true,
         },
       });
       expect(r.ok(), `job insert failed: ${r.status()} ${await r.text()}`).toBe(true);
@@ -284,7 +288,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
      * 8fdee80ca): "a job can never be posted if it was enver paid for … It
      * would be in post a job, drafts."
      *
-     * This is the same fixture the countdown leg below is UNCOVERED for, and
+     * This is the same unfunded fixture the countdown leg below had to stop using, and
      * it is asserted here rather than left implicit, because the rule is what
      * takes that leg away. `jobIsUnfundedDraft` (src/components/job-card/
      * activityFilters.ts) drops payment_status unpaid/abandoned/failed on an
@@ -333,51 +337,134 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
   });
 
   /*
-   * The countdown chip under a moved clock — "21 hours left" / "1 minute left"
-   * / "Expired" on the poster's own card, in Central and from Pacific — ran
-   * here until 2026-09-22 and is now UNCOVERED, for a reason that is about the
-   * fixture and not about the clock.
+   * THE COUNTDOWN CHIP UNDER A MOVED CLOCK, on a FUNDED job. "21 hours left" /
+   * "1 minute left" / "Expired" on the poster's own card, in Central and from
+   * Pacific. It ran on an unfunded job until 2026-09-22, when
+   * `jobIsUnfundedDraft` (owner: an unpaid job is a draft, not a post) took
+   * every unfunded job off My Posts, and it then sat here as an unconditional
+   * UNCOVERED skip that turned e2e-journeys red every night (#1719).
    *
-   * `JobCardMetaRow` renders the chip only through `PostedJobCard` (My Posts),
-   * `AppliedJobCard` (My Jobs) and the Browse card, and all three now need a
-   * job that is NOT an unfunded draft. This spec's jobs cannot be anything
-   * else: the poster INSERT lock forces open+unpaid, the money lock forbids
-   * moving `payment_status`, and `enforce_job_status_transition` has no
-   * `open -> pending_approval` edge — so the only way out of the draft state
-   * is a real Stripe Checkout, which is `e2e/prod-lifecycle.spec.ts`'s and
-   * `02-marketplace`'s leg, not this one's. Funding a job here would also add
-   * an escrow row per run to the `[E2E DO NOT ACCEPT]` pile that already does
-   * not settle forward (issue #1595).
-   *
-   * What is NOT lost: `formatTimeLeft` is pure instant arithmetic with no zone
-   * in it (src/lib/dateUtils.ts), covered by unit tests; the zone-and-DST half
-   * of this leg is the stored `expires_at`, still asserted above on all three
-   * dates. What is lost is the end-to-end proof that a moved browser clock
-   * re-renders that chip, and it stays lost until a journey owns a funded job.
+   * So this leg funds its own job the way a poster does — create-payment
+   * `escrow` mints the Checkout Session, Stripe TEST mode takes 4242, the
+   * webhook (never this file) moves payment_status to escrow — and hands it
+   * back through the app's own door afterwards: `cancel_escrow` refunds an
+   * open, unhired job and cancels it. The title carries E2E_TITLE_MARKER, so
+   * scripts/e2e/prod-lifecycle-sweeper.mjs unwinds it the same way if a run
+   * dies first. The Checkout page is paid in Chromium from either engine
+   * (payCheckoutUrlInChromium: the app never shows Stripe in its WKWebView).
    */
-  test("UNCOVERED: expiry countdown chip under a moved clock", async () => {
-    skipUncovered(
-      "Time travel: expiry countdown chip",
-      "needs a FUNDED job on the E2E poster: every job this suite can create is forced to open+unpaid by " +
-        "enforce_jobs_insert_column_lock, and jobIsUnfundedDraft now keeps open+unpaid rows off My Posts, " +
-        "My Jobs and every browse feed — the only three surfaces that render the chip. Funding means a real " +
-        "Stripe Checkout (prod-lifecycle / 02-marketplace own that leg). The stored expiry instant, which is " +
-        "where the zone and DST arithmetic lives, is still asserted on all three dates above.",
-    );
+  test("a funded job's countdown chip: day before, minute before, at start, overdue — Central and Pacific", async ({
+    browser,
+    request,
+    journey,
+  }) => {
+    test.setTimeout(10 * 60_000);
+    const poster = await getSession(request, "poster");
+    const runId = `f${Date.now().toString(36)}`;
+    const D = centralDate(3);
+    const start = ct(D, "09:00");
+    const title = `${E2E_TITLE_MARKER} time travel funded ${runId}`;
+    const ins = await request.post(`${SUPABASE_URL}/rest/v1/jobs?select=id,title,expires_at`, {
+      headers: { ...rest(poster), Prefer: "return=representation" },
+      data: {
+        customer_id: poster.user.id,
+        title,
+        description: "Automated time-travel test row. Not a real job; refunded and cancelled when the run ends.",
+        category: "cleaning",
+        budget: 25,
+        location: "Baton Rouge, LA",
+        date_needed: D,
+        start_time: "09:00",
+        expires_at: start.toISOString(),
+        status: "open",
+        payment_status: "unpaid",
+        pricing_mode: "set_price",
+        parish: null,
+      },
+    });
+    expect(ins.ok(), `job insert failed: ${ins.status()} ${await ins.text()}`).toBe(true);
+    const [job] = (await ins.json()) as Array<{ id: string; title: string; expires_at: string }>;
+    expect(Date.parse(job.expires_at), "stored expires_at").toBe(start.getTime());
+    const read = async () => {
+      const r = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=status,payment_status`, { headers: rest(poster) });
+      expect(r.ok(), `reading ${job.id}: ${r.status()}`).toBe(true);
+      const rows = (await r.json()) as Array<{ status: string; payment_status: string }>;
+      expect(rows, `${job.id} is not readable by its poster`).toHaveLength(1);
+      return rows[0];
+    };
+    journey.cleanup("refund and cancel the funded job", async () => {
+      const now = await read();
+      if (now.payment_status === "unpaid") {
+        const d = await request.delete(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
+          headers: { ...rest(poster), Prefer: "return=representation" },
+        });
+        expect(await d.json(), "cleanup: the unfunded job was not deleted").toHaveLength(1);
+        return;
+      }
+      const c = await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
+        headers: rest(poster),
+        data: { action: "cancel_escrow", jobId: job.id },
+      });
+      expect(c.ok(), `cleanup: cancel_escrow ${c.status()} ${(await c.text()).slice(0, 200)}`).toBe(true);
+      // A 200 is a claim; the row is the fact.
+      expect((await read()).status, "cleanup: cancel_escrow answered but the job is not cancelled").toBe("cancelled");
+    });
+
+    await test.step("fund it on Stripe TEST mode", async () => {
+      const esc = await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
+        headers: rest(poster),
+        data: { action: "escrow", jobId: job.id },
+        timeout: 60_000,
+      });
+      const body = (await esc.json().catch(() => ({}))) as { url?: string };
+      expect(esc.ok() && typeof body.url === "string", `create-payment escrow refused: ${esc.status()}`).toBe(true);
+      await payCheckoutUrlInChromium(body.url!);
+      await expect
+        .poll(async () => (await read()).payment_status, { timeout: 90_000, message: "the webhook never funded the job" })
+        .toBe("escrow");
+    });
+
+    async function chipAt(tz: string, at: Date, want: RegExp, name: string) {
+      const { ctx, page } = await openAt(browser, request, tz, at);
+      try {
+        // `?job=` is the app's own "take me to this job" link: it opens the
+        // job's bucket, so the card is on screen whichever tab it is filed in.
+        await page.goto(`/posts?job=${job.id}`);
+        // The smallest element holding BOTH this job's title and the chip:
+        // the card's own row, never a neighbour's chip (the list holds others).
+        const card = page.locator("div").filter({ hasText: job.title }).filter({ has: page.getByText(want) }).last();
+        await expect(card, `${name}: at ${at.toISOString()} from ${tz}`).toBeVisible({ timeout: 45_000 });
+        await step(journey, page, `funded-${name}`);
+      } finally {
+        await ctx.close();
+      }
+    }
+
+    const H = 3_600_000;
+    await chipAt(CT, new Date(start.getTime() - 21 * H), /(^|\s)21 hours left$/, "day-before");
+    await chipAt(CT, new Date(start.getTime() - 60_000), /(^|\s)1 minute left$/, "minute-before");
+    await chipAt(CT, start, /(^|\s)Expired$/, "at-start");
+    await chipAt(CT, ct(centralDate(4), "00:00"), /(^|\s)Expired$/, "overdue-next-day");
+    // Same instants from Los Angeles: a countdown is an instant, not a wall clock.
+    await chipAt(PT, new Date(start.getTime() - 60_000), /(^|\s)1 minute left$/, "pt-minute-before");
+    await chipAt(PT, start, /(^|\s)Expired$/, "pt-at-start");
   });
 
   /*
-   * The boundaries below need a job in a FUNDED, HIRED state — accepted with a
-   * response deadline, confirmed, or marked done by the helper — or a paid
-   * membership. The E2E accounts hold none, and getting there means the whole
-   * money loop (fund on Stripe test, apply, hire, complete), which
-   * e2e/prod-lifecycle.spec.ts owns. They are declared here so the gap is a
-   * visible UNCOVERED line on every run rather than an absence.
+   * "Offer expiring" and "Review window open → auto-release" are no longer
+   * declared here: they run in e2e/journeys/02-marketplace.spec.ts ("time
+   * travel: …" steps), at the moments that chain holds exactly the funded,
+   * offered and marked-done job they need.
+   *
+   * The two below still need a state no journey makes: an accepted job the
+   * Helpr has not confirmed (the accept must land more than a day before the
+   * start, and a hired, funded job days out cannot be unwound without a
+   * cancellation strike on a shared account), and a paid membership (a
+   * test-mode subscription the harness would then have to cancel through
+   * Stripe's billing portal). docs/OPEN.md carries both.
    */
   for (const [title, detail] of [
-    ["Offer expiring", "needs an accepted offer with response_deadline on the E2E helper (hire leg of prod-lifecycle)"],
     ["Confirm window (day before / day of)", "needs an accepted job the E2E helper has not confirmed"],
-    ["Review window open → auto-release", "needs an in_progress escrow job with helper_completed_at (complete leg)"],
     ["Subscription expiring", "neither E2E account holds a paid tier; buying one is a Stripe checkout"],
   ] as const) {
     test(`UNCOVERED: ${title}`, async () => {

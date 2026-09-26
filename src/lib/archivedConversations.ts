@@ -40,6 +40,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { isGoneReference } from "@/lib/goneReference";
 
 const STORAGE_KEY = "helpr_archived_conversations";
 
@@ -59,21 +60,40 @@ function emitArchiveChanged(): void {
   }
 }
 
+/**
+ * Q335 (owner, 2026-09-26): a job's deleted-account thread (otherUserId null,
+ * the other party deleted their account) can be archived too. Server-side it
+ * is the row with other_user_id NULL (20260926041106, one per user per job);
+ * in the key it is this token, which no uuid can equal.
+ */
+const DELETED_PARTY_KEY = "deleted-account";
+
 /** Stable key for one conversation — a job + the other participant. */
-function conversationKey(jobId: string, otherUserId: string): string {
-  return `${jobId}_${otherUserId}`;
+function conversationKey(jobId: string, otherUserId: string | null): string {
+  return `${jobId}_${otherUserId === null ? DELETED_PARTY_KEY : otherUserId}`;
 }
+
+const UUID_RE = new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", "i");
 
 /**
  * Inverse of `conversationKey`, for the local→server merge-up in
  * `loadArchives`. Safe to split on the first `_`: both halves are
  * Postgres uuids (hex digits and hyphens only — never an underscore), so
  * a job/user id pair can't itself contain the separator.
+ *
+ * Returns null for a key the server could never take, so the merge-up drops
+ * it instead of failing the batch on every load. `${job}_null` is the key an
+ * app build from before Q335 wrote for a server NULL row (a template literal
+ * over null); it means the deleted-account thread.
  */
-function parseConversationKey(key: string): { jobId: string; otherUserId: string } | null {
+export function parseConversationKey(key: string): { jobId: string; otherUserId: string | null } | null {
   const i = key.indexOf("_");
   if (i === -1) return null;
-  return { jobId: key.slice(0, i), otherUserId: key.slice(i + 1) };
+  const jobId = key.slice(0, i);
+  const other = key.slice(i + 1);
+  if (!UUID_RE.test(jobId)) return null;
+  if (other === DELETED_PARTY_KEY || other === "null") return { jobId, otherUserId: null };
+  return UUID_RE.test(other) ? { jobId, otherUserId: other } : null;
 }
 
 /** Per-user map of conversationKey -> ISO timestamp the thread was archived. */
@@ -85,6 +105,75 @@ function userScopedKey(userId: string): string {
 
 /** In-memory cache, keyed by user id. */
 const cache = new Map<string, ArchiveMap>();
+
+/**
+ * Q511: the keys THIS device archived whose server write is not yet
+ * confirmed (offline, a failed write, or the pre-deploy windows above).
+ *
+ * The merge-up used to push EVERY key the device held that the server did
+ * not, so a thread restored on another device (server row deleted) was
+ * archived again by the first device's stale mirror on its next load, and
+ * hidden everywhere. The server is the source of truth for everything it
+ * has confirmed; only a pending key is this device's news to push. A
+ * local-only key that is not pending was confirmed once and has since left
+ * the server (restored elsewhere, or cascaded away), so it is dropped.
+ */
+function pendingStorageKey(userId: string): string {
+  return `${STORAGE_KEY}_pending_${userId}`;
+}
+
+function readPending(userId: string): Set<string> {
+  try {
+    const raw = safeStorage.getItem(pendingStorageKey(userId));
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === "string") : []);
+  } catch {
+    // Corrupt / unparseable: nothing pending. The worst case is one
+    // unconfirmed archive that has to be made again, never a resurrection.
+    return new Set();
+  }
+}
+
+function writePending(userId: string, pending: Set<string>): void {
+  try {
+    safeStorage.setItem(pendingStorageKey(userId), JSON.stringify([...pending]));
+  } catch {
+    /* ignore quota / private-mode failures — archiving is best-effort UX */
+  }
+}
+
+function setPending(userId: string, key: string, on: boolean): void {
+  const pending = readPending(userId);
+  if (on === pending.has(key)) return;
+  if (on) pending.add(key);
+  else pending.delete(key);
+  writePending(userId, pending);
+}
+
+/**
+ * Q511: what the merge-up does with each canonical mirror key the server did
+ * NOT return. Pure, so the rule is testable without a network.
+ *   push: archived here and never confirmed; send it up.
+ *   drop: confirmed once, now gone from the server (restored on another
+ *         device, or its person/job was deleted); never re-push it.
+ * `confirmed` lists pending keys the server already has (the write landed,
+ * only its response was lost); they stop being pending.
+ */
+export function planMergeUp(
+  localKeys: Iterable<string>,
+  serverKeys: ReadonlySet<string>,
+  pending: ReadonlySet<string>,
+): { push: string[]; drop: string[]; confirmed: string[] } {
+  const push: string[] = [];
+  const drop: string[] = [];
+  for (const k of localKeys) {
+    if (serverKeys.has(k)) continue;
+    if (pending.has(k)) push.push(k);
+    else drop.push(k);
+  }
+  const confirmed = [...pending].filter((k) => serverKeys.has(k));
+  return { push, drop, confirmed };
+}
 
 /**
  * True when the table isn't deployed yet.
@@ -136,11 +225,10 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   const local = readLocal(userId);
   cache.set(userId, local);
 
-  // `thread_archives` isn't in the generated Supabase types yet (migration
-  // lag — see supabase/migrations/20260831011232_add_thread_archives.sql),
-  // same `as any` pattern pinnedConversations.ts used for thread_pins
-  // before types were regenerated.
-  const { data, error } = await (supabase.from("thread_archives" as any) as any)
+  // `thread_archives` (20260831011232_add_thread_archives.sql) is in the
+  // generated Supabase types, so these reads and writes are fully typed.
+  const { data, error } = await supabase
+    .from("thread_archives")
     .select("job_id, other_user_id, archived_at")
     .eq("user_id", userId);
 
@@ -155,7 +243,7 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   }
 
   const server: ArchiveMap = {};
-  for (const r of (data ?? []) as { job_id: string; other_user_id: string; archived_at: string }[]) {
+  for (const r of (data ?? []) as { job_id: string; other_user_id: string | null; archived_at: string }[]) {
     server[conversationKey(r.job_id, r.other_user_id)] = r.archived_at;
   }
 
@@ -167,31 +255,73 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   // the mirror, best-effort (a failed push just means it retries next
   // load — the entry stays in the merged result either way so this
   // session never loses it).
-  const localOnlyKeys = Object.keys(local).filter((k) => !(k in server));
-  if (localOnlyKeys.length > 0) {
-    const rows = localOnlyKeys
-      .map((k) => {
-        const parsed = parseConversationKey(k);
-        if (!parsed) return null;
-        return {
-          user_id: userId,
-          job_id: parsed.jobId,
-          other_user_id: parsed.otherUserId,
-          archived_at: local[k],
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
-    if (rows.length > 0) {
-      const { error: mergeError } = await (supabase.from("thread_archives" as any) as any).upsert(
-        rows,
-        { onConflict: "user_id,job_id,other_user_id" },
-      );
-      if (mergeError && !isMissingTable(mergeError)) {
-        report(mergeError, { severity: "warning", tags: { source: "archivedConversations.mergeLocalArchives" } });
+  //
+  // Keys are canonicalised first (a pre-Q335 `${job}_null` becomes the
+  // deleted-account key) and a key the server could never take is dropped,
+  // never re-pushed on every load.
+  //
+  // Q511: only keys this device archived and never saw confirmed are
+  // pushed; a key the server confirmed once and no longer has was restored
+  // elsewhere (or cascaded away) and is dropped, so a restore sticks.
+  const canonicalLocal = new Map<string, { jobId: string; otherUserId: string | null; archivedAt: string }>();
+  for (const [k, archivedAt] of Object.entries(local)) {
+    const parsed = parseConversationKey(k);
+    if (!parsed) continue;
+    canonicalLocal.set(conversationKey(parsed.jobId, parsed.otherUserId), { ...parsed, archivedAt });
+  }
+  const pending = readPending(userId);
+  const plan = planMergeUp(canonicalLocal.keys(), new Set(Object.keys(server)), pending);
+  for (const k of plan.confirmed) pending.delete(k);
+  // A pending key with no mirror entry was restored here before its write
+  // was confirmed; nothing to push.
+  for (const k of [...pending]) if (!canonicalLocal.has(k)) pending.delete(k);
+  const localOnly = new Map<string, { jobId: string; otherUserId: string | null; archivedAt: string }>();
+  for (const k of plan.push) localOnly.set(k, canonicalLocal.get(k)!);
+  if (localOnly.size > 0) {
+    const toRow = (e: { jobId: string; otherUserId: string | null; archivedAt: string }) => ({
+      user_id: userId,
+      job_id: e.jobId,
+      other_user_id: e.otherUserId,
+      archived_at: e.archivedAt,
+    });
+    const upsert = async (rows: ReturnType<typeof toRow>[]) => {
+      const { error } = await supabase.from("thread_archives").upsert(rows, {
+        onConflict: "user_id,job_id,other_user_id",
+      });
+      return { error };
+    };
+    const code = (e: { code?: string } | null) => e?.code;
+    // Rows the server can never accept: the person (or job) no longer exists
+    // (23503, isGoneReference — an archive of someone who then deleted their
+    // account, or of a deleted job), or a malformed id (22P02).
+    const cannotExist = (e: { code?: string }) => isGoneReference(e) || code(e) === "22P02";
+    const { error: batchError } = await upsert([...localOnly.values()].map(toRow));
+    if (!batchError) for (const k of localOnly.keys()) pending.delete(k);
+    // 23502: a deleted-account row (Q335) before 20260926041106 made
+    // other_user_id nullable. Deploy lag; the batch retries on the next load.
+    if (batchError && !isMissingTable(batchError) && code(batchError) !== "23502") {
+      // One bad row fails the whole batch, so the good ones would never
+      // sync. Retry row by row and drop only the rows that cannot exist.
+      let unexpected: { code?: string } | null = null;
+      for (const [k, e] of [...localOnly]) {
+        const { error } = await upsert([toRow(e)]);
+        if (!error) {
+          pending.delete(k);
+          continue;
+        }
+        if (cannotExist(error)) {
+          localOnly.delete(k);
+          pending.delete(k);
+        }
+        else if (code(error) !== "23502" && !isMissingTable(error)) unexpected = error;
+      }
+      if (unexpected) {
+        report(unexpected, { severity: "warning", tags: { source: "archivedConversations.mergeLocalArchives" } });
       }
     }
-    for (const k of localOnlyKeys) server[k] = local[k];
+    for (const [k, e] of localOnly) server[k] = e.archivedAt;
   }
+  writePending(userId, pending);
 
   cache.set(userId, server);
   writeLocal(userId, server);
@@ -221,7 +351,7 @@ function getArchiveMap(userId: string): ArchiveMap {
 export function archiveConversation(
   userId: string,
   jobId: string,
-  otherUserId: string,
+  otherUserId: string | null,
 ): void {
   if (!userId) return;
   const key = conversationKey(jobId, otherUserId);
@@ -229,20 +359,33 @@ export function archiveConversation(
   const map = { ...getArchiveMap(userId), [key]: archivedAt };
   cache.set(userId, map);
   writeLocal(userId, map);
+  // Q511: pending until the server confirms it; only a pending key is pushed
+  // by loadArchives' merge-up.
+  setPending(userId, key, true);
   emitArchiveChanged();
 
   void (async () => {
-    const { error } = await (supabase.from("thread_archives" as any) as any).upsert(
+    const { error } = await supabase.from("thread_archives").upsert(
       { user_id: userId, job_id: jobId, other_user_id: otherUserId, archived_at: archivedAt },
       { onConflict: "user_id,job_id,other_user_id" },
     );
+    if (!error) setPending(userId, key, false);
     if (error) {
       if (isMissingTable(error)) return; // pre-deploy — the mirror still holds it
+      // Q335 deploy lag: before 20260926041106 other_user_id is NOT NULL
+      // (23502). Same self-healing state as a missing table: keep the mirror,
+      // and loadArchives' merge-up writes it once the column is nullable.
+      if (otherUserId === null && (error as { code?: string }).code === "23502") return;
       const rollback = { ...getArchiveMap(userId) };
       delete rollback[key];
       cache.set(userId, rollback);
       writeLocal(userId, rollback);
+      setPending(userId, key, false);
       emitArchiveChanged();
+      // The thread's job (or person) was deleted while the inbox was open:
+      // it can never be archived and the rollback above already dropped it,
+      // so this is not a fault. Any other error still reports.
+      if (isGoneReference(error)) return;
       report(error, { severity: "warning", tags: { source: "archivedConversations.archiveConversation" } });
     }
   })();
@@ -252,7 +395,7 @@ export function archiveConversation(
 export function unarchiveConversation(
   userId: string,
   jobId: string,
-  otherUserId: string,
+  otherUserId: string | null,
 ): void {
   if (!userId) return;
   const key = conversationKey(jobId, otherUserId);
@@ -261,14 +404,20 @@ export function unarchiveConversation(
   delete map[key];
   cache.set(userId, map);
   writeLocal(userId, map);
+  // Q511: a restore cancels any unconfirmed archive of the same thread.
+  setPending(userId, key, false);
   emitArchiveChanged();
 
   void (async () => {
-    const { error } = await (supabase.from("thread_archives" as any) as any)
+    const base = supabase.from("thread_archives")
       .delete()
       .eq("user_id", userId)
-      .eq("job_id", jobId)
-      .eq("other_user_id", otherUserId);
+      .eq("job_id", jobId);
+    // Q335: the deleted-account row is other_user_id IS NULL; `.eq(col, null)`
+    // would match nothing.
+    const { error } = await (otherUserId === null
+      ? base.is("other_user_id", null)
+      : base.eq("other_user_id", otherUserId));
     if (error) {
       if (isMissingTable(error)) return; // pre-deploy — the mirror still holds it
       if (previous) {
@@ -291,7 +440,7 @@ export function unarchiveConversation(
 export function isArchived(
   userId: string,
   jobId: string,
-  otherUserId: string,
+  otherUserId: string | null,
   lastAt: string,
 ): boolean {
   if (!userId) return false;

@@ -16,6 +16,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { TIER_PERKS, toSubscriptionTier, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { TestTag } from "@/components/admin/TestTag";
+import { fetchSeedUserIds } from "@/components/admin/seedRows";
 
 type Ticket = {
   id: string;
@@ -32,6 +34,8 @@ type Ticket = {
   reporter_email?: string;
   /** Effective tier NOW, expiry folded in — never the raw column. */
   support_tier: SubscriptionTier;
+  /** Q233: resolved client-side; neither the RPC nor `reports` returns it. */
+  is_seed?: boolean;
 };
 
 /* ───────────────────────── Priority Support ─────────────────────────────
@@ -249,6 +253,7 @@ const AdminSupport = () => {
         // Throwing flips React Query's isError, which the ErrorState branch
         // below renders.
         const rows = unwrap(rpc) ?? [];
+        const seedIds = await fetchSeedUserIds(rows.map(row => row.reporter_id));
         return rows.map(row => ({
           id: row.id,
           reporter_id: row.reporter_id,
@@ -259,6 +264,7 @@ const AdminSupport = () => {
           reporter_name: formatName(row.reporter_name, "Unknown"),
           reporter_email: row.reporter_email || "",
           support_tier: toSubscriptionTier(row.support_tier),
+          is_seed: !!row.reporter_id && seedIds.has(row.reporter_id),
         }));
       }
 
@@ -303,6 +309,8 @@ const AdminSupport = () => {
         profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
       }
 
+      const seedIds = await fetchSeedUserIds(userIds);
+
       return sortSupportQueue(data.map(r => {
         const p = r.reporter_id ? profileMap.get(r.reporter_id) : undefined;
         return {
@@ -310,6 +318,7 @@ const AdminSupport = () => {
           reporter_name: formatName(p?.full_name, "Unknown"),
           reporter_email: p?.email || "",
           support_tier: resolveSupportTier(p?.subscription_tier, p?.subscription_expires_at),
+          is_seed: !!r.reporter_id && seedIds.has(r.reporter_id),
         };
       }));
     },
@@ -438,6 +447,7 @@ const AdminSupport = () => {
                       </div>
                       <p className="text-ds-11 text-muted-foreground break-words">
                         {ticket.reporter_name}
+                        {ticket.is_seed && <> <TestTag /></>}
                         {ticket.reporter_email && <span className="text-muted-foreground"> · {ticket.reporter_email}</span>}
                         {" · "}
                         {formatShortDate(ticket.created_at)}

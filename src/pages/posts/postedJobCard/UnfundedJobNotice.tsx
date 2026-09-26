@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { EyeOff, Loader2 } from "lucide-react";
 import { type Job } from "../../../components/job-card/activityConstants";
+import { PAYMENT_PROBLEM_COPY, jobPaymentProblem } from "@/lib/jobPaymentCardState";
 
 /**
  * "No Helpr can see this yet — here is the button that fixes it."
@@ -96,8 +97,16 @@ export function UnfundedJobNotice({ job, onFund, funding }: Props) {
   // button that fixes it. They differ on the half the poster does not know:
   // where the job came from, or that their own checkout never finished.
   const abandoned = cause === "abandoned-checkout";
-  const heading = abandoned ? "Payment not finished" : "Not posted yet";
-  const body = abandoned
+  // Q360: a DECLINED card is not an unfinished checkout. Saying "wasn't
+  // completed" to someone whose bank refused the charge sends them back to the
+  // same card; the heading is the one PAYMENT_PROBLEM_COPY gives both tabs.
+  const declined = abandoned && jobPaymentProblem(job.payment_status) === "failed";
+  const heading = declined
+    ? PAYMENT_PROBLEM_COPY.failed.title
+    : abandoned ? "Payment not finished" : "Not posted yet";
+  const body = declined
+    ? "The card was declined, so this job is still private — no Helpr can see it or apply. Finish paying with another card to publish it."
+    : abandoned
     ? "Your checkout wasn't completed, so this job is still private — no Helpr can see it or apply. Finish paying to publish it."
     : "We created this from your calendar, but no Helpr can see it until it's funded. Fund it to publish and start getting applicants.";
   const cta = abandoned ? "Finish Paying" : "Fund & Publish";

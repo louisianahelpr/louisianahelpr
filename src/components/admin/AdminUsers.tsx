@@ -61,7 +61,7 @@ const AdminUsers = () => {
 
   // Profile detail view
   const [viewProfile, setViewProfile] = useState<Profile | null>(null);
-  const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[]>([]);
+  const [profileReviews, setProfileReviews] = useState<{ rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string; counts_toward_rating?: boolean }[]>([]);
   const [profileReviewsLeft, setProfileReviewsLeft] = useState<{ rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[]>([]);
   const [profileViolations, setProfileViolations] = useState<AdminProfileViolation[]>([]);
   const [, setProfileBans] = useState<AdminProfileBan[]>([]);
@@ -100,6 +100,7 @@ const AdminUsers = () => {
     ratingSummary,
     jobsCompletedSummary,
     openReportsSummary,
+    summariesSettled,
     loadSummaries,
   } = useAdminUserSummaries();
 
@@ -144,11 +145,29 @@ const AdminUsers = () => {
     });
   };
 
+  // Paged (2026-09-25): PostgREST caps a response at 1000 rows without saying so, and the
+  // tab counts are computed from this array, so an unpaged read stopped
+  // counting at the thousandth user (Q232). `id` last keeps the order total
+  // so no row shifts between pages. adminUsersProfilesPaging.test.ts guards it.
   const loadProfiles = async () => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const PAGE_SIZE = 1000;
+    let data: Profile[] | null = [];
+    let error: unknown = null;
+    for (let page = 0; ; page++) {
+      const res = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .order("id")
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      if (res.error) {
+        error = res.error;
+        data = null;
+        break;
+      }
+      data.push(...res.data);
+      if (res.data.length < PAGE_SIZE) break;
+    }
     if (error) {
       console.error("[AdminUsers] loadProfiles:", error);
       toast.error("Couldn't load users — refresh to retry.");
@@ -400,6 +419,9 @@ const AdminUsers = () => {
           body={`Nothing is ${tabCountLabel[tab]} right now. Try another tab above.`}
         />
       ) : (
+        // aria-busy until every per-row summary has settled: a row read before
+        // then is not the row (#1582, run 36069319716; useAdminUserSummaries).
+        <div aria-busy={!summariesSettled}>
         <VirtualList
           items={filtered}
           getKey={(p) => p.id}
@@ -421,6 +443,7 @@ const AdminUsers = () => {
             />
           )}
         />
+        </div>
       )}
 
 

@@ -130,3 +130,17 @@ export function railStepPaint(args: Parameters<typeof railStepTone>[0]): RailSte
    a SENTENCE (src/components/job-card/jobStatusLine.ts) and no second rail.
    This module is back to what it was for — ONE colour rule, read by the one
    remaining rail in JobTracking.tsx. */
+
+/**
+ * Does this rail dot wear the live pulse (`step-current-pulse`, an infinite
+ * scale animation)? Only the CURRENT step of a job that is still moving: not
+ * once the rail has reached Done (nothing is waiting on anyone), and not on
+ * the step a dispute stopped at (that one wears the alarm instead).
+ *
+ * #1582, press-every-control run 36208184593: on completed jobs the Done dot
+ * pulsed forever, reading as "still in progress", and six "Done — <date>"
+ * buttons were NOT CLICKABLE, "still moving (not stable)" (Q294).
+ */
+export function railStepPulses({ isCurrent, allDone, disputed }: { isCurrent: boolean; allDone: boolean; disputed: boolean }): boolean {
+  return isCurrent && !allDone && !disputed;
+}

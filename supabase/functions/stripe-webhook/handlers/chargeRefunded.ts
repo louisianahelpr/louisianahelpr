@@ -9,6 +9,16 @@ import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 
+/**
+ * The payment states a FULL refund may move to 'refunded' (Q343): every state
+ * in which the charge's money is still the platform's to return. NOT
+ * 'released' (the Helpr was paid), 'chargeback' (the card network holds it) or
+ * 'refunded' (already closed).
+ */
+const REFUND_CLOSABLE_PAYMENT_STATES = [
+  "escrow", "payout_pending", "cancelling", "unpaid", "abandoned", "failed", "cancelled",
+] as const;
+
 export async function handleChargeRefunded(
   event: Stripe.Event,
   { supabase, logStep }: WebhookContext,
@@ -55,7 +65,7 @@ export async function handleChargeRefunded(
   if (refundPiId && isFullRefund && !isOnboardingFeeCorrection) {
     const { data: refundedJob, error: jobLookupErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, title")
+      .select("id, customer_id, title, payment_status")
       .eq("stripe_payment_intent_id", refundPiId)
       .maybeSingle();
 
@@ -68,10 +78,57 @@ export async function handleChargeRefunded(
     }
 
     if (refundedJob) {
-      const { error: updateErr } = await supabase
-        .from("jobs")
-        .update({ payment_status: "refunded" })
-        .eq("id", refundedJob.id);
+      // Q343: a COMPARE-AND-SET on the states a full refund may close. It was
+      // matched on id alone, so it overwrote whatever the job said:
+      //   - 'released': the Helpr was already paid. Writing 'refunded' hides
+      //     that the platform paid twice (Helpr + card holder) from every
+      //     reader, and the clawback/won paths key on 'released';
+      //   - 'chargeback': the card network holds this money, not a refund;
+      //     overwriting it lifts the chargeback's own payout block.
+      // Neither is ever overwritten now: ops is paged instead. 'refunded'
+      // already is a redelivery or another path's own write (no-op). Zero
+      // rows on a closable state means another writer moved it since the
+      // read: paged, never silent. The ledger row and the card holder's notice
+      // below still run, because the refund did happen in Stripe.
+      const priorStatus = (refundedJob as { payment_status?: string | null }).payment_status ?? null;
+      const closable = (REFUND_CLOSABLE_PAYMENT_STATES as readonly string[]).includes(priorStatus ?? "");
+      let updateErr: { message: string } | null = null;
+      if (closable) {
+        const { data: flipped, error: flipErr } = await supabase
+          .from("jobs")
+          .update({ payment_status: "refunded" })
+          .eq("id", refundedJob.id)
+          .in("payment_status", [...REFUND_CLOSABLE_PAYMENT_STATES])
+          .select("id");
+        updateErr = flipErr;
+        // Zero rows: re-read. The refund path's OWN flip to 'refunded'
+        // (cancel_escrow, a 100/0 split) can land between the read and this
+        // write; that is the same answer, not an alarm (money review L2).
+        let nowStatus: string | null = null;
+        if (!flipErr && (!flipped || flipped.length === 0)) {
+          const { data: again, error: againErr } = await supabase
+            .from("jobs").select("payment_status").eq("id", refundedJob.id).maybeSingle();
+          if (againErr) throw new Error(`Re-read of job ${refundedJob.id} after a zero-row refund flip failed: ${againErr.message}`);
+          nowStatus = (again as { payment_status?: string | null } | null)?.payment_status ?? null;
+        }
+        if (!flipErr && (!flipped || flipped.length === 0) && nowStatus !== "refunded") {
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Full refund — job not marked refunded (payment state changed underneath)",
+            message: `Charge ${charge.id} was fully refunded, but job ${refundedJob.id} left '${priorStatus}' before it could be marked refunded. Check its payment_status against Stripe by hand.`,
+            fields: { "Job ID": String(refundedJob.id), "Read payment_status": priorStatus ?? "—", "Payment Intent": refundPiId },
+          });
+        }
+      } else if (priorStatus !== "refunded") {
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: `Full refund on a job in '${priorStatus ?? "null"}' — payment_status left as is`,
+          message: `Charge ${charge.id} was fully refunded in Stripe, but job ${refundedJob.id} is payment_status='${priorStatus ?? "null"}', which a refund must not overwrite${priorStatus === "released" ? " (the Helpr was already paid: the platform has now paid twice)" : ""}. Reconcile it by hand.`,
+          fields: { "Job ID": String(refundedJob.id), "payment_status": priorStatus ?? "—", "Payment Intent": refundPiId },
+        });
+      }
       if (updateErr) {
         // Same fail-closed contract as the lookup: a dropped update here would
         // leave the job in its pre-refund state (e.g. "escrow") while Stripe

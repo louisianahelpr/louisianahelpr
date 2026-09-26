@@ -37,6 +37,12 @@ const WIDTHS = [375, 1440] as const;
 /** `${width} ${url}` → what it measured when this landed. Exact, two-way. */
 // @two-way e2e/prod-audit/page-settle.spec.ts:KNOWN entries now within budget: delete them
 const KNOWN: Record<string, string> = {
+  // A device's FIRST inbox visit: the hidden-unread bar sits on top of the rows
+  // (owner, 2026-09-26, MQ28: "back on top, space held") and its space is held
+  // from the count the device saw last, so with nothing seen yet it lands once
+  // above the list. Return visits measure 0 (docs/OPEN.md MQ28).
+  "375 /messages": "cls=0.0589 (Chromium, 2026-09-26; CI 0.0558)",
+  "1440 /messages": "cls=0.0216 (Chromium, 2026-09-26)",
 };
 
 interface RouteRow { url: string; personas: string[]; redirect: boolean }

@@ -11,9 +11,9 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
-import { TIP_MAX_CENTS, TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
+import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
-import { isLaborTaxable } from "../_shared/salesTax.ts";
+import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -426,7 +426,7 @@ serve(async (req) => {
               product_data: {
                 name: `Helpr Job: ${job.title}`,
                 description: "Remaining balance after applying your gift card. Funds release once both parties confirm completion.",
-                tax_code: "txcd_00000000",
+                tax_code: NONTAXABLE_TAX_CODE,
               },
               unit_amount: differenceCents,
             },
@@ -609,7 +609,7 @@ serve(async (req) => {
                 : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,
               // Assembly/installation of tangible personal property: LA repair/install code.
               // All other categories: pass-through (no LA state tax on the labor).
-              tax_code: laborTaxable ? "txcd_20030000" : "txcd_00000000",
+              tax_code: laborTaxCode(job.category),
             },
             unit_amount: Math.round(job.budget * 100),
           },
@@ -629,7 +629,7 @@ serve(async (req) => {
             product_data: {
               name: "Service fee",
               description: `${customerFeePercent}% platform service fee`,
-              tax_code: "txcd_00000000", // Non-taxable until LDR clarifies
+              tax_code: NONTAXABLE_TAX_CODE, // Non-taxable until LDR clarifies
             },
             unit_amount: customerFeeCents,
           },
@@ -648,7 +648,7 @@ serve(async (req) => {
             product_data: {
               name: "Urgent tip",
               description: "Urgent tip — goes directly to the helpr",
-              tax_code: "txcd_00000000", // Non-taxable: passes through to helper
+              tax_code: NONTAXABLE_TAX_CODE, // Non-taxable: passes through to helper
             },
             unit_amount: urgentFeeCents,
           },
@@ -666,7 +666,7 @@ serve(async (req) => {
             product_data: {
               name: "One-time account setup",
               description: "One-time identity verification & account setup fee. Charged once per account.",
-              tax_code: "txcd_00000000",
+              tax_code: NONTAXABLE_TAX_CODE,
             },
             unit_amount: onboardingFeeCents,
           },
@@ -1189,9 +1189,32 @@ serve(async (req) => {
       if (jobError || !job) throw new PublicError("Job not found");
       if (job.status !== "completed") throw new PublicError("Job must be completed to tip");
       if (user.id !== job.customer_id) throw new PublicError("Only the person who posted this job can tip the Helpr");
-      if (!job.helper_id) throw new PublicError("No Helpr assigned to this job");
 
-      const helperId = job.helper_id;
+      // A crew has no lead (Q407): the poster tips a MEMBER, named in the
+      // request, who must be on this job's roster. A single-helper job tips its
+      // hired Helpr exactly as before (a named helper is ignored there).
+      let helperId: string;
+      if (job.is_group_job) {
+        const named = (body as { helperId?: unknown }).helperId;
+        if (typeof named !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(named)) {
+          throw new PublicError("Choose which Helpr on the crew to tip");
+        }
+        const { data: slot, error: slotErr } = await supabaseAdmin
+          .from("group_job_helpers")
+          .select("id")
+          .eq("job_id", jobId)
+          .eq("helper_id", named)
+          .limit(1);
+        if (slotErr) {
+          console.error(`[create-payment] tip — crew roster read failed for job ${jobId}:`, slotErr);
+          throw new PublicError("Could not verify who worked this job — please try again");
+        }
+        if ((slot?.length ?? 0) === 0) throw new PublicError("That Helpr didn't work this job");
+        helperId = named;
+      } else {
+        if (!job.helper_id) throw new PublicError("No Helpr assigned to this job");
+        helperId = job.helper_id;
+      }
 
       // Check if helper has a connected Stripe account for direct tip transfer.
       // A read ERROR must fail the request — treating it as "no Connect account"
@@ -1229,7 +1252,7 @@ serve(async (req) => {
             price_data: {
               currency: "usd",
               tax_behavior: TAX_BEHAVIOR,
-              product_data: { name: `Tip — ${job.title}`, description: "100% of your tip goes to your Helpr." },
+              product_data: { name: `Tip — ${job.title}`, description: "100% of your tip goes to your Helpr.", tax_code: NONTAXABLE_TAX_CODE },
               unit_amount: tipQuote.tipCents,
             },
             quantity: 1,
@@ -1238,13 +1261,17 @@ serve(async (req) => {
             price_data: {
               currency: "usd",
               tax_behavior: TAX_BEHAVIOR,
-              product_data: { name: "Card processing", description: "Added so your Helpr receives the full tip." },
+              product_data: { name: "Card processing", description: "Added so your Helpr receives the full tip.", tax_code: NONTAXABLE_TAX_CODE },
               unit_amount: tipQuote.feeCents,
             },
             quantity: 1,
           },
         ],
         mode: "payment",
+        // Card (incl. Apple/Google Pay) and Link only: the fee line recovers
+        // the CARD rate, so a Klarna/Affirm tip would cost the platform the
+        // difference (Q383).
+        payment_method_types: TIP_PAYMENT_METHOD_TYPES,
         // 3D Secure from $300 (Q202), same rule as the job charge, measured on
         // what the card is actually charged.
         payment_method_options: threeDSecureOptions(tipQuote.chargeCents),
@@ -1279,9 +1306,11 @@ serve(async (req) => {
         // field, so an older app build still gets partial protection.
         // The key names the charged total as well as the tip, so a retry can
         // only replay a session whose money fields are identical.
+        // A crew tip names its member too, so tipping two members the same
+        // amount in one attempt window is two sessions, not one replayed.
         idempotencyKey: tipAttemptId
-          ? `tip-${jobId}-${user.id}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
-          : `tip-${jobId}-${user.id}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
+          ? `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
+          : `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
       });
 
       // Ledger row for the webhook to reconcile against. The idempotency key
@@ -1327,6 +1356,31 @@ serve(async (req) => {
       if (job.customer_id !== user.id) throw new PublicError("Not authorized");
 
       // ── Only an unhired, undisputed job is the poster's to refund here ──
+      // A group job's crew is its roster (group_job_helpers); jobs.helper_id is
+      // only the lead, and is NULL on a crew whose lead left or was removed
+      // (20260925140148). A crew with hired members is a hired job: it goes
+      // through Cancel job like any other. Fail-closed on a read error.
+      const { data: crew, error: crewErr } = await supabaseAdmin
+        .from("group_job_helpers")
+        .select("id")
+        .eq("job_id", jobId)
+        .limit(1);
+      if (crewErr) {
+        console.error(`[create-payment] cancel_escrow roster check failed for job ${jobId}: ${crewErr.message}`);
+        return new Response(JSON.stringify({
+          error: "Couldn't check who is hired on this job. No money was moved — try again.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+      }
+      if ((crew?.length ?? 0) > 0) {
+        console.error(
+          `[create-payment] cancel_escrow REFUSED on job ${jobId} (caller ${user.id}): group job with hired crew members, helper=${job.helper_id ?? "none"}`,
+        );
+        return new Response(JSON.stringify({
+          error: "This job has a Helpr or has already started, so it has to be cancelled with Cancel job — that applies the cancellation rules and refunds you. No money was moved.",
+          useCancelJob: true,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+
       // This door checked `payment_status` alone, and it is reachable by any
       // poster with a JWT (no UI calls it; the prod test sweepers do). So:
       //   * on a DISPUTED job the poster — the side that filed, or the side
@@ -1398,6 +1452,58 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
       }
 
+      // ── A crew is hired through its roster, never through helper_id ──
+      // The claim's `helper_id IS NULL` stands for "nobody is hired", which is
+      // not true of a group job: a crew has no lead and jobs.helper_id is NULL
+      // on every group job (20260925154606). The roster read above can be
+      // overtaken by a hire that commits before this claim, so read it again
+      // NOW. It is final: the claimed job reads payment_status 'cancelling',
+      // and enforce_group_roster_award_gate refuses to add a crew member to an
+      // unfunded job, so no hire can land after this line. Anyone hired puts
+      // the claim back and sends the poster to Cancel job; a read error does
+      // the same and moves no money (fail closed).
+      if (job.is_group_job) {
+        const { data: crewNow, error: crewNowErr } = await supabaseAdmin
+          .from("group_job_helpers")
+          .select("id, helper_id")
+          .eq("job_id", jobId)
+          .limit(1);
+        if (crewNowErr || (crewNow?.length ?? 0) > 0) {
+          const { data: restored, error: restoreErr } = await supabaseAdmin
+            .from("jobs")
+            .update({ payment_status: job.payment_status })
+            .eq("id", jobId)
+            .eq("status", job.status)
+            .eq("payment_status", "cancelling")
+            .select("id");
+          if (restoreErr || !restored || restored.length === 0) {
+            console.error(
+              `CRITICAL: [create-payment] cancel_escrow on crew job ${jobId} could not put its claim back (payment_status stays 'cancelling'; no money moved): ${restoreErr?.message ?? "zero rows"}`,
+            );
+            // A job stuck in 'cancelling' blocks every payout and hire on it
+            // (money review LOW-12): page, do not only log.
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Crew job stuck in 'cancelling' — claim could not be put back",
+              message: `cancel_escrow claimed crew job ${jobId} (payment_status -> 'cancelling'), found a hired member, and could not restore payment_status. No money moved. Set payment_status back to '${job.payment_status}' by hand.`,
+              fields: { job_id: jobId, restore_to: String(job.payment_status), db_error: (restoreErr?.message ?? "zero rows").slice(0, 200) },
+            });
+          }
+          if (crewNowErr) {
+            console.error(`[create-payment] cancel_escrow post-claim roster check failed for job ${jobId}: ${crewNowErr.message}`);
+            return new Response(JSON.stringify({
+              error: "Couldn't check who is hired on this job. No money was moved — try again.",
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+          }
+          console.error(`[create-payment] cancel_escrow REFUSED after claim on job ${jobId} (caller ${user.id}): crew member ${crewNow?.[0]?.helper_id ?? "(anonymised)"} was hired`);
+          return new Response(JSON.stringify({
+            error: "This job has a Helpr or has already started, so it has to be cancelled with Cancel job — that applies the cancellation rules and refunds you. No money was moved.",
+            useCancelJob: true,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+        }
+      }
+
       // With immediate capture, we need to refund instead of cancel.
       // Errors propagate to the outer catch so the job is NOT silently
       // marked "cancelled" when the refund fails — the customer would
@@ -1456,7 +1562,22 @@ serve(async (req) => {
           // the payment_status flip below makes the second 409 out.
           // Skip the refund entirely if the withholding consumes the whole
           // capture (Stripe rejects a $0 refund); the job still flips cancelled.
-          if (refundAmount > 0) {
+          // A retry of a cancel that already refunded (the job is left
+          // 'cancelling' when the gift restore below fails) must not refund
+          // again: the idempotency key only dedupes for ~24h, and past that a
+          // second refunds.create either errors (stranding the job) or, when
+          // the withholding is at least half the capture, pays out twice.
+          // The charge's own amount_refunded is the authority.
+          const alreadyRefundedCents = Number(
+            (pi.latest_charge && typeof pi.latest_charge === "object"
+              ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
+              : 0) ?? 0,
+          );
+          if (refundAmount > 0 && alreadyRefundedCents >= refundAmount) {
+            console.log(
+              `[create-payment] cancel_escrow: charge for job ${jobId} already refunded ${alreadyRefundedCents}¢ (>= ${refundAmount}¢) — not refunding again`,
+            );
+          } else if (refundAmount > 0) {
             const refund = await stripe.refunds.create(
               { payment_intent: cancelPaymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-escrow-${jobId}` },
@@ -1503,6 +1624,45 @@ serve(async (req) => {
             });
           }
         }
+      }
+
+      // ── Give the gift card back (SC-005) ──
+      // A job funded by a gift card has no charge for the refund above to
+      // reverse — or only the shortfall — because the gift IS the money
+      // (redeem_gift_card consumed it against this job). This door flipped the
+      // job to cancelled and stopped, so the recipient's gift stayed 'redeemed'
+      // on a dead job and was simply gone; every other cancel/refund exit
+      // (void-cancelled-payments, release-payout, execute-dispute-split,
+      // process-scheduled-payouts) calls restore_gift_card_for_job. Found by
+      // e2e/prod-gift-card.spec.ts; the class is pinned by
+      // src/test/cancelPathsRestoreGift.test.ts.
+      //
+      // After the refund, before the flip, and FAIL CLOSED: if the gift cannot
+      // be given back the job stays 'cancelling', which the claim above
+      // re-admits, so a retry re-runs this (the refund is skipped once the
+      // charge shows it, and the restore dedupes on restored_from_job_id).
+      // Flipping anyway would make the loss permanent. Nothing sweeps
+      // 'cancelling' (docs/OPEN.md Q456), so the alert asks for a hand. The caller is the
+      // recipient themself (poster == gift recipient), so the answer below is
+      // their notice; no separate notification is sent.
+      const giftBack = await restoreGiftForCancelledJob(supabaseAdmin, jobId);
+      if (!giftBack.ok) {
+        console.error(`CRITICAL: [create-payment] cancel_escrow could not restore the gift card on job ${jobId}: ${giftBack.reason}`);
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: "Cancelled gift-funded job could not have its gift returned",
+          message:
+            `cancel_escrow on job ${jobId} could not give the recipient's gift card back, so the job was left 'cancelling' ` +
+            "instead of cancelled. Any shortfall refund above has been issued. MANUAL ACTION: nothing retries this " +
+            "automatically and the job is still open and hireable; re-run cancel_escrow for it (a repeat call does not " +
+            "refund twice and the restore is idempotent) or restore the gift by hand before anyone is hired.",
+          fields: { job_id: jobId, reason: giftBack.reason.slice(0, 200) },
+          seed: job.is_seed === true,
+        });
+        return new Response(JSON.stringify({
+          error: "We couldn't return your gift card yet, so this job wasn't cancelled. Please try again in a moment.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
       }
 
       // The job's pending applications are closed in the same UPDATE by
@@ -3403,6 +3563,47 @@ async function transferToHelper(
     // the job stays disputed and an admin can retry once the cause is fixed.
     throw e;
   }
+}
+
+/**
+ * Give back the gift card that funded a job being cancelled, via
+ * restore_gift_card_for_job (idempotent: a second call answers
+ * `already_restored`). Mirrors void-cancelled-payments' restorePifGift outcome
+ * handling: a null `error` is not proof, only the outcomes the function
+ * defines count, and an error is only survivable when no gift is at stake.
+ */
+async function restoreGiftForCancelledJob(
+  supabaseAdmin: any,
+  jobId: string,
+): Promise<{ ok: true; outcome: string | null } | { ok: false; reason: string }> {
+  const { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", { p_job_id: jobId });
+  const outcome = rpcErr ? null : ((data as { outcome?: string } | null)?.outcome ?? null);
+  if (
+    outcome === "restored" ||
+    outcome === "unreserved" ||
+    outcome === "already_restored" ||
+    outcome === "no_credit" ||
+    outcome === "nothing_to_restore" ||
+    outcome === "job_not_found"
+  ) {
+    return { ok: true, outcome };
+  }
+  const reason = rpcErr
+    ? `${rpcErr.message}${rpcErr.code ? ` (${rpcErr.code})` : ""}`
+    : `unrecognised outcome ${JSON.stringify(data)}`;
+  // Was a gift at stake at all? If not (the ordinary card-funded job), an
+  // unavailable RPC must not hold every cancellation hostage.
+  const { data: giftRows, error: giftErr } = await supabaseAdmin
+    .from("gift_cards")
+    .select("id")
+    .eq("job_id", jobId)
+    .in("status", ["redeemed", "reserved"])
+    .limit(1);
+  if (!giftErr && (giftRows ?? []).length === 0) {
+    console.warn(`[create-payment] restore_gift_card_for_job unavailable for job ${jobId}: ${reason}. No gift on this job — cancelling anyway.`);
+    return { ok: true, outcome: null };
+  }
+  return { ok: false, reason: giftErr ? `${reason}; gift lookup failed: ${giftErr.message}` : reason };
 }
 
 /**

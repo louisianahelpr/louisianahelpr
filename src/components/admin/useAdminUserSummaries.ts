@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
+import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
+import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
 import type { Profile } from "./adminUserHelpers";
 
 /**
@@ -19,11 +21,21 @@ export function useAdminUserSummaries() {
   // Per-user admin notes summary: { [user_id]: { count, recent: [{note, created_at, category}] } }
   const [notesSummary, setNotesSummary] = useState<Record<string, { count: number; recent: { note: string; created_at: string; category: string }[] }>>({});
   // Per-user strike counts (from user_violations)
-  const [strikesSummary, setStrikesSummary] = useState<Record<string, number>>({});
+  // `null` = NOT KNOWN (still loading, or the read failed), never "no strikes".
+  // Run 36069319716 (#1582): the rows rendered "Good" standing for every
+  // account before this map arrived. The type makes each reader decide what an
+  // unknown means instead of reading it as zero.
+  const [strikesSummary, setStrikesSummary] = useState<Record<string, number> | null>(null);
   // Per-user last activity { [user_id]: { label, at } } — write-only feed
   const [, setActivitySummary] = useState<Record<string, { label: string; at: string }>>({});
   // Per-user last login time
-  const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string>>({});
+  // `null` = NOT KNOWN, never "never logged in"; see strikesSummary. Every row
+  // said "Never logged in" in red until this landed, and for good if the
+  // login_history read failed (that error was only logged).
+  const [lastLoginSummary, setLastLoginSummary] = useState<Record<string, string> | null>(null);
+  // True once every loader below has settled (succeeded or failed). The list
+  // is aria-busy until then, so nothing reads a half-filled row as final.
+  const [summariesSettled, setSummariesSettled] = useState(false);
   // Per-user pay totals: earned (as helper) + spent (as poster)
   const [paySummary, setPaySummary] = useState<Record<string, number>>({});
   // Per-user rating summary: { avg, count }
@@ -35,14 +47,19 @@ export function useAdminUserSummaries() {
 
   const loadRatingSummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
+    // Q321: the rating an admin sees beside a user is the rating everyone else
+    // sees. Admin RLS reads every review, including ones still in the blind
+    // period, so this used to show 39 where the public profile showed 24.
     const { data, error } = await supabase
       .from("reviews")
-      .select("reviewee_id, rating")
+      .select(`reviewee_id, ${REVIEW_COUNT_COLUMNS}`)
       .in("reviewee_id", userIds);
     if (error) { console.error("[useAdminUserSummaries] loadRatingSummary:", error); return; }
     if (!data) return;
     const agg: Record<string, { sum: number; count: number }> = {};
-    for (const r of data) {
+    const now = Date.now();
+    for (const r of data as unknown as ({ reviewee_id: string; rating: number } & Parameters<typeof countsTowardRating>[0])[]) {
+      if (!countsTowardRating(r, now)) continue;
       if (!agg[r.reviewee_id]) agg[r.reviewee_id] = { sum: 0, count: 0 };
       agg[r.reviewee_id].sum += Number(r.rating) || 0;
       agg[r.reviewee_id].count += 1;
@@ -116,7 +133,9 @@ export function useAdminUserSummaries() {
       .from("jobs")
       .select("helper_id, customer_id, budget, helper_fee_percent, customer_fee_amount, sales_tax_amount, status, payment_status")
       .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
-      .in("payment_status", ["escrow", "payout_pending", "released"]);
+      // Q233: a held status without a PaymentIntent is a row nobody charged.
+      .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
+      .not("stripe_payment_intent_id", "is", null);
     if (error) { console.error("[useAdminUserSummaries] loadPaySummary:", error); return; }
     if (!data) return;
     const totals: Record<string, number> = {};
@@ -137,7 +156,7 @@ export function useAdminUserSummaries() {
   };
 
   const loadStrikesSummary = async (userIds: string[]) => {
-    if (userIds.length === 0) return;
+    if (userIds.length === 0) { setStrikesSummary({}); return; }
     const { data, error } = await supabase.from("user_violations")
       .select("user_id")
       .in("user_id", userIds);
@@ -151,7 +170,7 @@ export function useAdminUserSummaries() {
   };
 
   const loadActivitySummary = async (userIds: string[], profiles: Profile[]) => {
-    if (userIds.length === 0) return;
+    if (userIds.length === 0) { setLastLoginSummary({}); return; }
     const summary: Record<string, { label: string; at: string }> = {};
     // Fetch recent jobs (posted), applications (helper), and login history in parallel
     const [jobsRes, appsRes, loginRes] = await Promise.all([
@@ -183,7 +202,9 @@ export function useAdminUserSummaries() {
         logins[l.user_id] = l.created_at;
       }
     });
-    setLastLoginSummary(logins);
+    // A failed read leaves it unknown (null), not empty: empty would say
+    // "Never logged in" about every account.
+    setLastLoginSummary(loginRes.error ? null : logins);
     // Also surface failed ID upload from profiles
     profiles.forEach((p) => {
       if (p.idv_status === "failed" && p.idv_attempted_at) {
@@ -213,18 +234,22 @@ export function useAdminUserSummaries() {
   };
 
   /**
-   * Kick off all the supplemental fetches for the given users. Fire-and-
-   * forget, in parallel — matches the previous inline behaviour. `profiles`
-   * is what loadActivitySummary reads for failed-ID detection.
+   * Kick off all the supplemental fetches for the given users, in parallel.
+   * The caller does not wait; `summariesSettled` turns true once every one has
+   * settled. `profiles` is what loadActivitySummary reads for failed-ID
+   * detection.
    */
   const loadSummaries = (userIds: string[], profiles: Profile[]) => {
-    loadNotesSummary(userIds);
-    loadStrikesSummary(userIds);
-    loadActivitySummary(userIds, profiles);
-    loadPaySummary(userIds);
-    loadRatingSummary(userIds);
-    loadJobsCompletedSummary(userIds);
-    loadOpenReportsSummary(userIds);
+    setSummariesSettled(false);
+    void Promise.allSettled([
+      loadNotesSummary(userIds),
+      loadStrikesSummary(userIds),
+      loadActivitySummary(userIds, profiles),
+      loadPaySummary(userIds),
+      loadRatingSummary(userIds),
+      loadJobsCompletedSummary(userIds),
+      loadOpenReportsSummary(userIds),
+    ]).then(() => setSummariesSettled(true));
   };
 
   return {
@@ -235,6 +260,7 @@ export function useAdminUserSummaries() {
     ratingSummary,
     jobsCompletedSummary,
     openReportsSummary,
+    summariesSettled,
     loadSummaries,
   };
 }

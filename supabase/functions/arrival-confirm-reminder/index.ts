@@ -37,6 +37,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { arrivalNudgeStage, NEAR_MISS_ESCALATE_AFTER_HOURS, type NudgeLedger } from "../_shared/arrivalNudge.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
@@ -75,7 +76,10 @@ serve(async (req) => {
     return new Response("Unauthorized", { status: 401, headers: corsHeaders });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  // Reads are bounded and retried: on 2026-09-25 17:34Z one stalled read kept
+  // this run for 42.8s, past pg_net's 30s, while the query itself took 59ms
+  // (see _shared/boundedFetch.ts for the measurements).
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
   const defects = defectTracker();
   const now = new Date();
 

@@ -77,6 +77,10 @@ on:
         description: "Run the two-role lifecycle spec (needs seeded sessions + job id)"
         type: boolean
         default: false
+      gift_card_only:
+        description: "Run only the gift card journey (SC-005): skip the full money loop"
+        type: boolean
+        default: false
 
 concurrency:
   # A push-triggered run shares one group per ref, so pushes queue behind each
@@ -155,14 +159,20 @@ jobs:
     name: Anon surface contract (real prod, read-only, no credentials)
     runs-on: ubuntu-latest
     # 15, not 5: the page leg now builds this commit instead of asking Vercel.
-    timeout-minutes: 15
+    # 20 since 2026-09-26: plus a Chromium install and the PD-009 route walk.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # Same reason as the authenticated leg: `playwright install --with-deps`
+        # runs `apt-get update`, and Google's repo is only a source of outages.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -194,6 +204,26 @@ jobs:
           SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
         run: node scripts/ci/guest-listing-horizon.mjs
+      - name: Route changes keep no old page alive (PD-009) + shell-spacing probe (Q411)
+        # 40 guest route changes on this commit's build, then CDP detached-DOM
+        # and node/listener budgets after forced GC. Needs no credentials, so it
+        # lives in the leg that runs on every PR and push (the authenticated
+        # leg is schedule/dispatch only). Chromium only (it needs CDP); ~30 s.
+        # `always()` so a red contract step above cannot hide a leak, and
+        # probes/shell-spacing-probe (Q411) rides the same step: setContent
+        # pages, no backend, ~2 s; it proves the shell-spacing probe cannot
+        # swallow the gap it measures.
+        # ONE line: e2eSpecsReachableInCi reads workflow files line by line.
+        if: always()
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: npx playwright test --project=chromium e2e/memory/route-retention.spec.ts e2e/probes/shell-spacing-probe.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. `always()`: this leg allows
+        # only always-run conditions (e2eSpecsReachableInCi).
+        if: always()
+        run: node scripts/e2e/request-budget.mjs --label chromium
 
   # ---------------------------------------------------------------------
   # Leg 2 — a real account against the deployed site.
@@ -291,6 +321,12 @@ jobs:
       inputs.run_two_role
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # It signs in as the shared poster AND helper seats and walks a job
+    # through its lifecycle, so it holds the account lock every such job
+    # holds (docs/OPEN.md Q326; src/test/sharedAccountJobsHoldOneLock.test.ts).
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -365,7 +401,7 @@ jobs:
     # the trigger stays; this gate is how the money loop comes off it.
     if: >-
       needs.preflight.outputs.have_lifecycle == 'true' &&
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.gift_card_only))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     concurrency:
@@ -400,6 +436,11 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: pre
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
@@ -413,7 +454,7 @@ jobs:
           # see the header of the script for why the old inline form misled.
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token — the warnings above give the HTTP status and auth's reason"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
       - name: post → fund → apply → hire → complete → release → review
         env:
@@ -466,13 +507,18 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: teardown  # lifecycle-teardown-anchor
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green) — rows may be stranded for the next run's pre-sweep"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
       - name: Upload report on failure
         if: failure()
@@ -484,12 +530,124 @@ jobs:
           retention-days: 14
 
   # ---------------------------------------------------------------------
+  # The gift card journey (SC-005): buy (Stripe test mode, 4242) → deliver →
+  # claim on the second account → spend on two jobs (settled, and a shortfall
+  # paid on Stripe) → cancel → the gift comes back. Until this ran, no gift card
+  # had ever been bought, claimed or redeemed anywhere (0 gift_card_purchase
+  # PaymentIntents in the Stripe test account, 2026-09-25).
+  #
+  # Same accounts, same money, same rules as the loop above, so the same
+  # ref-independent, never-cancelled concurrency group. It also runs AFTER the
+  # loop in the same run (`needs`) rather than beside it: with
+  # cancel-in-progress false GitHub still keeps only one PENDING job per group,
+  # so two jobs of one run queued on it could cancel each other's slot.
+  # `always()` so a red loop does not hide the gift card's result.
+  # ---------------------------------------------------------------------
+  gift-card-journey:
+    name: Gift card journey (production, Stripe test mode)
+    needs: [preflight, prod-lifecycle]
+    if: >-
+      always() &&
+      needs.preflight.outputs.have_lifecycle == 'true' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # Same reason as the money loop: dl.google.com's index outages fail `--with-deps`.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      # The journey's jobs are the POSTER's (the gift's recipient funds them),
+      # carry the E2E title marker, and are what the sweeper unwinds.
+      - name: Sweep anything a previous run stranded
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: pre
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token — the warnings above give the HTTP status and auth's reason"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            bash scripts/e2e/sweep-both-seats.sh
+
+      - name: buy → deliver → claim → spend → cancel → restore
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+          PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          # Optional and used READ-ONLY (two Checkout Session GETs): what the
+          # card was actually charged. The spec announces the gap without it.
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+        run: npx playwright test --project=chromium e2e/prod-gift-card.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts --trace=on
+      - name: Backend request budget (Q104)
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label chromium
+
+      - name: Keep the trace and screenshots when the journey fails
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gift-card-journey-trace
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Unwind this run's rows even on failure
+        if: always()
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: teardown
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green) — rows may be stranded for the next run's pre-sweep"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            bash scripts/e2e/sweep-both-seats.sh
+
+  # ---------------------------------------------------------------------
   # The loud part. Always runs, never fails the build, and states plainly
   # which real-backend surfaces went unchecked and what is missing.
   # ---------------------------------------------------------------------
   boundary-report:
     name: Uncovered real-backend surfaces
-    needs: [preflight, anon-surface, authenticated, two-role, prod-lifecycle]
+    needs: [preflight, anon-surface, authenticated, two-role, prod-lifecycle, gift-card-journey]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -500,6 +658,7 @@ jobs:
           AUTHED: ${{ needs.authenticated.result }}
           TWO_ROLE: ${{ needs.two-role.result }}
           LIFECYCLE: ${{ needs.prod-lifecycle.result }}
+          GIFT_CARD: ${{ needs.gift-card-journey.result }}
           HAVE_CREDS: ${{ needs.preflight.outputs.have_user_creds }}
           HAVE_TWO_ROLE: ${{ needs.preflight.outputs.have_two_role }}
           HAVE_LIFECYCLE: ${{ needs.preflight.outputs.have_lifecycle }}
@@ -515,6 +674,7 @@ jobs:
             echo "| Two-role lifecycle | \`$TWO_ROLE\` | PLAYWRIGHT_POSTER_SESSION + PLAYWRIGHT_HELPER_SESSION + PLAYWRIGHT_LIFECYCLE_JOB_ID |"
             echo "| Full money loop (prod) | \`$LIFECYCLE\` | PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD |"
             echo "| ↳ payout (helper's transfer) | \`$LIFECYCLE\` | PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD |"
+            echo "| Gift card journey (prod) | \`$GIFT_CARD\` | PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD |"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -558,7 +718,7 @@ jobs:
   # the schedule/dispatch/push-to-main runs nobody is watching.
   notify:
     name: Report nightly result
-    needs: [preflight, anon-surface, authenticated, two-role, prod-lifecycle, boundary-report]
+    needs: [preflight, anon-surface, authenticated, two-role, prod-lifecycle, gift-card-journey, boundary-report]
     # A PUSH MUST NOT REPORT ON A MONEY LOOP IT DID NOT RUN (2026-09-22).
     #
     # `prod-lifecycle` is deliberately off the push trigger (see its own gate
@@ -602,6 +762,6 @@ jobs:
           # runs on every schedule (success on run 35629812383): a red
           # authenticated leg closed the nightly-red issue. Enforced by
           # src/test/workflowFalseGreenShapes.test.ts (every `needs` is in status).
-          status: ${{ (needs.anon-surface.result == 'success' && needs.authenticated.result == 'success' && needs.prod-lifecycle.result == 'success') && 'success' || 'failure' }}
+          status: ${{ (needs.anon-surface.result == 'success' && needs.authenticated.result == 'success' && needs.prod-lifecycle.result == 'success' && needs.gift-card-journey.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -65,9 +65,10 @@
 // the 8px budget.
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" | className="h-[96px] w-16 rounded-ds-md shrink-0 ml-3"
 // @mutate src/components/ActivityPageSkeleton.tsx | {!isWebDesktop && tabRowOpens && ( | {false && (
-// The pitch assertion, shown able to fail. `space-y-8` and not the real
+// The gap assertion, shown able to fail (it was the pitch assertion until
+// 2026-09-26; see "THE GAP WITHIN A LIST" below). `space-y-8` and not the real
 // regression it guards (`space-y-2.5`, the 10px gap this fix replaced with the
-// lists' own 12px): 10 vs 12 is a 2px pitch error, INSIDE the 8px budget by
+// lists' own 12px): 10 vs 12 is a 2px gap error, INSIDE the 8px budget by
 // design — a gap that close is not a visible step on its own, it is an error
 // that compounds, and the row-height and first-y assertions are what hold the
 // surface. The mutation therefore proves the assertion is live, at a size that
@@ -138,6 +139,13 @@ interface Surface {
   /** Why the first row legitimately starts somewhere else. */
   offsetNote?: string;
   offsetBudget?: number;
+  /**
+   * The phone status-tab row is OPEN on this URL (a non-default `?filter=`),
+   * so the loaded header draws it and ActivityPageSkeleton must reserve it
+   * (`tabRowOpens`). Asserted on the loaded page, so the surface cannot go
+   * quietly vacuous if the header stops opening the row.
+   */
+  tabRowOpen?: boolean;
 }
 
 const SURFACES: Surface[] = [
@@ -146,6 +154,22 @@ const SURFACES: Surface[] = [
     url: "/jobs",
     as: "helper",
     hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
+  },
+  /* THE TAB-ROW RESERVATION (2026-09-26). The two surfaces above open on the
+     DEFAULT filter, where the phone tab row starts folded (owner, 2026-09-25)
+     and `tabRowOpens` is false in the skeleton — so removing the reservation
+     (`{false && (`, the @mutate above) changed nothing either surface draws,
+     and PR #1797's vacuity run (job 108326395029) reported it SURVIVED. A
+     non-default filter is the state in which the loaded header shows the row
+     and the skeleton must reserve it; without the reservation the placeholder
+     list starts one tab line higher than the real one, and first-y holds it to
+     OFFSET_BUDGET. */
+  {
+    name: "jobs-done",
+    url: "/jobs?filter=done",
+    as: "helper",
+    hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
+    tabRowOpen: true,
   },
   {
     name: "posts",
@@ -185,9 +209,17 @@ const SURFACES: Surface[] = [
  */
 async function rows(page: Page) {
   return page.evaluate(() => {
+    // `list`: which LIST the row sits in — its nearest `space-y-*` ancestor,
+    // numbered in document order. The grouped view (ActivitySectionedView,
+    // /jobs' default "All" and the poster's buckets) is several lists, one per
+    // section, with the section's heading button between them; see `gaps`.
+    const lists: Element[] = [];
     const box = (e: Element) => {
       const r = e.getBoundingClientRect();
-      return { h: Math.round(r.height), y: Math.round(r.top) };
+      const l = e.parentElement?.closest('[class*="space-y-"]') ?? null;
+      let list = l ? lists.indexOf(l) : -1;
+      if (l && list < 0) list = lists.push(l) - 1;
+      return { h: Math.round(r.height), y: Math.round(r.top), list };
     };
     const cardSized = (e: Element) => {
       const r = e.getBoundingClientRect();
@@ -305,6 +337,14 @@ for (const surface of SURFACES) {
       const loaded = await rows(page);
       await info.attach(`${surface.name}-loaded.png`, { body: await page.screenshot(), contentType: "image/png" });
 
+      if (surface.tabRowOpen) {
+        await expect(
+          page.getByRole("button", { name: "Hide status filters" }).first(),
+          `${surface.name}: the loaded header did not open the phone status-tab row on ${surface.url} — ` +
+            `this surface exists to measure that row's reservation, and measured nothing`,
+        ).toBeVisible();
+      }
+
       // VACUITY FLOOR, both frames. An empty set passes every comparison
       // below, and a capture window that closed too early looks exactly like
       // a clean result.
@@ -319,17 +359,67 @@ for (const surface of SURFACES) {
          placeholder reserves the row a list of cards mostly IS, so that is
          what it is judged against. */
       const heights = (r: { h: number }[]) => median(r.map((x) => x.h));
-      const pitch = (r: { y: number }[]) =>
-        r.length < 2 ? 0 : median(r.slice(1).map((x, i) => x.y - r[i].y));
+      /* THE GAP WITHIN A LIST, not the pitch (2026-09-26).
+         Pitch is row height + gap. Comparing pitches judged the ROW HEIGHT a
+         second time, over a different subset of rows than the height check
+         (adjacent same-list pairs drop each list's last row), and on a list
+         of two card shapes its median is a coin flip. Measured in prod-audit
+         36211342059 (this spec, helper /jobs at 375): 17 real rows, 9 at 131px
+         and 8 at 151px, interleaved; same-list pitches 8x143 and 8x162/163,
+         so the "real pitch" printed 162 while the height median read 131 —
+         and the vacuity run of PR #1797 (job 108310368705) was red on PITCH
+         the day the mix fell the other way. The GAP (next row's top minus
+         this row's bottom) is 12px on every one of those pairs, placeholder
+         and real, which is what this assertion was written to hold ("the
+         lists use space-y-3"). Only same-list pairs count: the grouped view
+         is one list per section with a heading between them. */
+      const gaps = (r: { h: number; y: number; list: number }[]) =>
+        r.slice(1).flatMap((x, i) => (x.list === r[i].list ? [x.y - (r[i].y + r[i].h)] : []));
+      const gap = (r: { h: number; y: number; list: number }[]) => (gaps(r).length ? median(gaps(r)) : 0);
+      /* THE SHAPES THE LIST ACTUALLY HAS. A collapsed card is one of TWO
+         heights by design, not by accident: JobCardMetaRow gives a street
+         address a line of its own (`basis-full`, `flex-wrap gap-y-1`), so a
+         card whose reader may see the street is one 16px line + 4px taller
+         than a card that prints a city. Measured 36211342059: /jobs 131px x9
+         and 151px x8, /posts 131px x10 and 151px x10, one list each. The two
+         shapes are 20px apart, so NO static placeholder is within the 8px
+         ROW_BUDGET of both; which one the median lands on is decided by
+         whatever the shared accounts hold that hour (the location string's
+         street part, and for the Helpr, the application's state). The
+         placeholder is therefore held to the shape it is nearest to, and
+         that shape must be one the list really contains (held by at least
+         two rows) — a placeholder of neither shape (the six-bone 220px card
+         this replaced, or the 96px-bone mutation below) is still red. The
+         residual jump for the OTHER shape is real and printed; it is a
+         product question (docs/OPEN.md Q700), not something a budget hides. */
+      const shapes = (r: { h: number }[]) => {
+        const counts = new Map<number, number>();
+        for (const x of r) counts.set(x.h, (counts.get(x.h) ?? 0) + 1);
+        return [...counts.entries()].filter(([, n]) => n >= 2).map(([h]) => h);
+      };
       const loadingH = heights(loading);
       const loadedH = heights(loaded);
+      const realShapes = shapes(loaded);
+      const nearest = realShapes.length
+        ? realShapes.reduce((a, b) => (Math.abs(b - loadingH) < Math.abs(a - loadingH) ? b : a))
+        : loadedH;
+      const trail = (r: { h: number; y: number; list: number }[]) => r.map((x) => `${x.y}+${x.h}@L${x.list}`).join(" ");
+      const shapeMix = realShapes
+        .map((h) => `${h}px x${loaded.filter((x) => x.h === h).length}`)
+        .join(", ");
       note(
         info,
         surface.name,
-        `placeholder row ${loadingH}px pitch ${pitch(loading)}px first-y ${loading[0].y} (${loading.length} rows) · ` +
-          `real row ${loadedH}px pitch ${pitch(loaded)}px first-y ${loaded[0].y} (${loaded.length} rows)` +
-          (surface.pinnedRow ? ` · PINNED at ${surface.pinnedRow}px (see POSTED_ROW_PIN)` : ""),
+        `placeholder row ${loadingH}px gap ${gap(loading)}px first-y ${loading[0].y} (${loading.length} rows) · ` +
+          `real row median ${loadedH}px, shapes [${shapeMix}], nearest ${nearest}px, gap ${gap(loaded)}px first-y ${loaded[0].y} (${loaded.length} rows)` +
+          (surface.pinnedRow ? ` · PINNED at ${surface.pinnedRow}px (see POSTED_ROW_PIN)` : "") +
+          ` · rows y+h@list: placeholder [${trail(loading)}] real [${trail(loaded)}]`,
       );
+      expect(gaps(loading).length, `${surface.name}: no two placeholder rows share a list — no gap to compare`).toBeGreaterThanOrEqual(1);
+      expect(gaps(loaded).length, `${surface.name}: no two real rows share a list — no gap to compare`).toBeGreaterThanOrEqual(1);
+      // VACUITY FLOOR for the shape set: a list of all-different heights (every
+      // card expanded) has no shape to judge against, and must not pass.
+      expect(realShapes.length, `${surface.name}: no row height is held by two real rows — no card shape to compare`).toBeGreaterThanOrEqual(1);
 
       if (surface.pinnedRow !== undefined) {
         // A pin records the measurement, so it can only be held or improved.
@@ -340,14 +430,14 @@ for (const surface of SURFACES) {
         ).toBeLessThanOrEqual(surface.pinnedRow);
       } else {
         expect(
-          Math.abs(loadingH - loadedH),
-          `${surface.name}: the placeholder reserves ${loadingH}px for a row that arrives at ` +
-            `${loadedH}px — every card below the first one moves by the difference, compounding down the ` +
-            `list. Budget ${ROW_BUDGET}px.`,
+          Math.abs(loadingH - nearest),
+          `${surface.name}: the placeholder reserves ${loadingH}px, and the nearest card shape the list ` +
+            `actually has is ${nearest}px (shapes: ${shapeMix}) — every card below the first one moves by the ` +
+            `difference, compounding down the list. Budget ${ROW_BUDGET}px.`,
         ).toBeLessThanOrEqual(ROW_BUDGET);
         expect(
-          Math.abs(pitch(loading) - pitch(loaded)),
-          `${surface.name}: placeholder row PITCH ${pitch(loading)}px vs real ${pitch(loaded)}px. The gap ` +
+          Math.abs(gap(loading) - gap(loaded)),
+          `${surface.name}: placeholder rows are ${gap(loading)}px apart, real rows ${gap(loaded)}px. The gap ` +
             `between rows is part of the reservation — the lists use \`space-y-3\`.`,
         ).toBeLessThanOrEqual(ROW_BUDGET);
       }

@@ -73,7 +73,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         }
 
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
-        setReviews(data.map((r: any) => ({ ...r, reviewerName: r.reviewer_id ? profileMap.get(r.reviewer_id) : FORMER_MEMBER_LABEL })));
+        setReviews(data.map((r) => ({ ...r, reviewerName: r.reviewer_id ? profileMap.get(r.reviewer_id) : FORMER_MEMBER_LABEL })));
       }
       setLoaded(true);
     };

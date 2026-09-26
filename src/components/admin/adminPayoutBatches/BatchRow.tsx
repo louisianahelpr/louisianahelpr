@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import type { PayoutBatch } from "./types";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
+import { TestTag } from "@/components/admin/TestTag";
 
 interface BatchRowProps {
   batch: PayoutBatch;
@@ -60,6 +61,7 @@ export const BatchRow = ({
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-ds-13 text-foreground truncate">{batch.helper_name}</span>
+          {batch.is_seed && <TestTag />}
           <Badge variant="sienna" className="text-ds-10">
             {batch.job_count} job{batch.job_count !== 1 ? "s" : ""}
           </Badge>

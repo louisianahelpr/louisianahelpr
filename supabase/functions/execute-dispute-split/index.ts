@@ -960,13 +960,15 @@ serve(async (req) => {
   // Step 6 above is a real claim and it is enough for split-vs-split: exactly
   // one caller flips `execution_status` to 'executing'. What it cannot see is
   // `create-payment`'s admin path. Quick Release checks `jobs.status ===
-  // 'disputed'` and nothing else, and `rpc_decide_dispute` leaves the job
-  // disputed until this function flips it — so an admin clicking Quick Release
-  // while this tick runs passes its gate, and its `dispute-release-<job>` key
-  // is disjoint from this function's `dispute-split-*` keys. The Helpr receives
-  // BOTH transfers, and the poster receives this split's refund leg on top.
-  // `payout_transfers` does not stop it: that guard is a read-then-write with
-  // no lock, and it says nothing about the refund leg at all.
+  // 'disputed'`. Q344: this comment used to say rpc_decide_dispute leaves the
+  // job disputed until this function flips it, so a Quick Release could run
+  // beside this tick and pay the Helpr twice (its `dispute-release-<job>` key is
+  // disjoint from this function's `dispute-split-*` keys, and the
+  // `payout_transfers` read-then-write says nothing about the refund leg). That
+  // premise is false: the decision moves the job to completed/cancelled at once,
+  // so Quick Release's own gate refuses a decided job, and what this function
+  // flips is the job's PAYMENT state. The shared claim below stays as the one
+  // lock every settlement path takes, whatever the job status reads.
   //
   // `claim_dispute_settlement` is the one lock both functions share
   // (20260915034822). Action 'split' is neither 'release' nor 'refund', so

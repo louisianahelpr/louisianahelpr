@@ -20,9 +20,11 @@ name: Loading states refresh
 # a nightly-red issue. scripts/check-staleness.mjs binds measurements.json's
 # currency to this workflow's last scheduled success (WORKFLOW_BOUND).
 #
-# LANDING (Q57): when the fresh measurement re-proves the baseline, the `land`
-# job copies measurements.json onto latest main and lands it through
-# .github/actions/refresh-pr (one bot branch, one PR, auto-merge on green).
+# LANDING (Q57, Q411): whenever a fresh measurement was produced, green or red,
+# the `land` job copies measurements.json onto latest main and lands it through
+# .github/actions/refresh-pr (one bot branch, one PR, auto-merge on green). A
+# red one cannot auto-merge (loadingStateShape.test.ts grades it against
+# main's baseline); it waits on bot/refresh/loading-states for the baseline fix.
 # Only measurements.json: the screenshots are re-taken every run and stay in
 # the artifact, and baseline.json is a two-way ratchet a person lowers.
 
@@ -58,6 +60,10 @@ jobs:
     concurrency:
       group: prod-lifecycle-shared-accounts
       cancel-in-progress: false
+    # Whether a fresh measurement EXISTS, separate from whether it passed: the
+    # land job ships it either way (see LANDING above).
+    outputs:
+      measured: ${{ steps.measure.outcome }}
     steps:
       - uses: actions/checkout@v7
 
@@ -161,7 +167,11 @@ jobs:
     # it would put a branch's measurement on main (refresh-pr rebuilds from
     # latest main and copies the file in). #1773: branch dispatches are how a
     # fix to this workflow is proven, so they must not land or sync issues.
-    if: needs.measure.result == 'success' && github.ref == 'refs/heads/main'
+    # Whenever a measurement was PRODUCED on main, green or red (Q411): a red
+    # one is the evidence a person needs for the baseline fix, and it waits on
+    # bot/refresh/loading-states (loadingStateShape.test.ts grades it against
+    # main's baseline) until that fix joins it.
+    if: always() && needs.measure.outputs.measured == 'success' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The ONLY write grant in this workflow (Q57): push the bot branch, open or
@@ -182,6 +192,9 @@ jobs:
           title: "chore(refresh): loading-state measurements re-measured on prod"
           paths: docs/audit/loading-states/measurements.json
           measured-dir: ${{ runner.temp }}/measured
+          body: |
+            Measured from `${{ github.ref_name }}` at ${{ github.sha }}; the measure job ended `${{ needs.measure.result }}`.
+            If that is not `success`, this file is the evidence for the baseline fix: fetch `bot/refresh/loading-states`, delete the stale entries and fix the new breaches it shows, and land them with it. If it was measured from a branch other than main, it describes that branch's code: merge the branch first.
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
           check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
 

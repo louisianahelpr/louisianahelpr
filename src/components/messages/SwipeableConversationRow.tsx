@@ -12,8 +12,10 @@ interface SwipeableConversationRowProps {
   isPinned: boolean;
   /** Fires when the user completes a left-swipe past the threshold. */
   onArchive: () => void;
-  /** Fires when the user completes a right-swipe past the threshold. */
-  onTogglePin: () => void;
+  /** Fires when the user completes a right-swipe past the threshold.
+   *  Omitted = the row cannot be pinned (a deleted-account thread, Q335):
+   *  no pin trail, and the row only drags left. */
+  onTogglePin?: () => void;
 }
 
 // Pull distance at which an action fires. Past the threshold the row
@@ -56,7 +58,7 @@ function SwipeableConversationRowBase({
     if (offset < -SWIPE_THRESHOLD) {
       hapticHeavy();
       onArchive();
-    } else if (offset > SWIPE_THRESHOLD) {
+    } else if (offset > SWIPE_THRESHOLD && onTogglePin) {
       hapticHeavy();
       onTogglePin();
     }
@@ -104,6 +106,7 @@ function SwipeableConversationRowBase({
       </motion.div>
 
       {/* Pin trail (revealed by a right swipe). */}
+      {onTogglePin && (
       <motion.div
         className="absolute inset-y-0 left-0 flex items-center justify-start pl-5 rounded-2xl"
         style={{ opacity: pinOpacity }}
@@ -130,12 +133,13 @@ function SwipeableConversationRowBase({
           </span>
         </motion.div>
       </motion.div>
+      )}
 
       <motion.div
         style={{ x }}
         drag="x"
         dragDirectionLock
-        dragConstraints={{ left: -180, right: 180 }}
+        dragConstraints={{ left: -180, right: onTogglePin ? 180 : 0 }}
         dragElastic={0.18}
         onDragStart={() => {
           hapticLight();

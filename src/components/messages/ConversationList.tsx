@@ -29,6 +29,7 @@ import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSk
 import { VirtualList, type VirtualListHandle } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
+import { HiddenUnreadBar, readCachedHiddenUnread, writeCachedHiddenUnread } from "./HiddenUnreadBar";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
 import {
   ARCHIVE_CHANGED_EVENT,
@@ -516,11 +517,7 @@ export function ConversationList({
                   // directly rather than filtering the byTab source above.
                   if (!userId || !allConversations) return [];
                   return [...allConversations]
-                    .filter(
-                      (c) =>
-                        c.otherUserId !== null &&
-                        isConvoArchived(userId, c.jobId, c.otherUserId, c.lastAt),
-                    )
+                    .filter((c) => isConvoArchived(userId, c.jobId, c.otherUserId, c.lastAt))
                     .sort(byLastAtDesc);
                 })()
               : /* ALL — the only tab the age rule trims, and only at rest. */
@@ -609,12 +606,6 @@ export function ConversationList({
   // the cap check stays out of the state updater (no double toast under
   // StrictMode's double-invoked reducers).
   const toggleSelect = (c: Conversation) => {
-    // Q262: selection only feeds batch archive, which a deleted-account
-    // thread cannot take (thread_archives.other_user_id NOT NULL).
-    if (c.otherUserId === null) {
-      toast("Conversations with a deleted account can't be hidden.");
-      return;
-    }
     const key = convoKey(c);
     const already = selectedKeys.has(key);
     if (!already && selectedKeys.size >= MAX_SELECT) {
@@ -742,6 +733,15 @@ export function ConversationList({
   const hiddenUnreadCount = conversations.filter(
     (c) => c.unread > 0 && !(c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus)),
   ).length;
+
+  // Last count this device saw, read once, so the loading frame can hold the
+  // bar's space (MQ28). Written back only from a settled, unsearched Active
+  // view: the same conditions under which the real bar renders.
+  const cachedHiddenUnread = useMemo(() => readCachedHiddenUnread(userId), [userId]);
+  useEffect(() => {
+    if (loading || !userId || inboxTab !== "active" || searchQuery.trim()) return;
+    writeCachedHiddenUnread(userId, hiddenUnreadCount);
+  }, [loading, userId, inboxTab, searchQuery, hiddenUnreadCount]);
 
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
@@ -1401,50 +1401,6 @@ export function ConversationList({
             }}
           >
           <div className="space-y-2">
-          {/* ── THE HIDDEN-UNREAD BANNER ────────────────────────────────────
-              The price of landing on Active (owner, 2026-09-19), paid openly.
-
-              Active is `LIVE_JOB_STATUSES`, which does NOT include `open` —
-              so an applicant's unread question about a posting you have not
-              awarded yet, the single most common unread thread a poster gets,
-              is NOT in the tab the inbox now opens on. "Opens to Active" must
-              never mean "hides something you have not read".
-
-              This is the only place that can say so, and it matters most on
-              PHONE: the tab strip lives behind a disclosure that starts
-              collapsed, so the "All N" count is not even on screen. There is
-              no Unread tab to fall back on any more either — it was removed
-              the same day.
-
-              Shown only when there is genuinely something concealed: on
-              Active, not searching, with at least one unread thread outside
-              the live slice. It sends the reader to All (the widest view),
-              not to a filter, because the point is to stop hiding. */}
-          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
-            <button
-              type="button"
-              onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}
-              className="w-full flex items-center gap-2 rounded-ds-md px-3 py-2.5 btn-press transition-colors text-left"
-              style={{
-                background: "hsl(var(--amber-tint) / 0.10)",
-                border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
-              }}
-            >
-              <span
-                className="shrink-0 w-2 h-2 rounded-full"
-                style={{ background: "hsl(var(--burnt-sienna))" }}
-                aria-hidden="true"
-              />
-              <span
-                className="font-sans text-ds-13 leading-snug"
-                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-              >
-                {hiddenUnreadCount === 1
-                  ? "1 unread conversation isn't in Active — show all"
-                  : `${hiddenUnreadCount} unread conversations aren't in Active — show all`}
-              </span>
-            </button>
-          )}
           {/* ── THE AGED-OUT NOTE ───────────────────────────────────────────
               "Keep them, auto-hide after a while. Never delete" (owner,
               2026-09-19). Hiding silently is how "hidden" becomes "I lost my
@@ -1463,6 +1419,35 @@ export function ConversationList({
                 ? `1 finished conversation is older than ${THREAD_AGE_OUT_DAYS} days and is tucked away. It's still here — search for the person or the job to open it.`
                 : `${agedOutCount} finished conversations are older than ${THREAD_AGE_OUT_DAYS} days and are tucked away. They're still here — search for the person or the job to open one.`}
             </p>
+          )}
+          {/* ── THE HIDDEN-UNREAD BANNER ────────────────────────────────────
+              The price of landing on Active (owner, 2026-09-19), paid openly.
+
+              Active is `LIVE_JOB_STATUSES`, which does NOT include `open` —
+              so an applicant's unread question about a posting you have not
+              awarded yet, the single most common unread thread a poster gets,
+              is NOT in the tab the inbox now opens on. "Opens to Active" must
+              never mean "hides something you have not read".
+
+              This is the only place that can say so, and it matters most on
+              PHONE: the tab strip lives behind a disclosure that starts
+              collapsed, so the "All N" count is not even on screen. There is
+              no Unread tab to fall back on any more either — it was removed
+              the same day.
+
+              Shown only when there is genuinely something concealed: on
+              Active, not searching, with at least one unread thread outside
+              the live slice. It sends the reader to All (the widest view),
+              not to a filter, because the point is to stop hiding.
+              On top, space held while loading (MQ28): see ./HiddenUnreadBar. */}
+          {loading && inboxTab === "active" && !searchQuery.trim() && cachedHiddenUnread > 0 && (
+            <HiddenUnreadBar held count={cachedHiddenUnread} />
+          )}
+          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
+            <HiddenUnreadBar
+              count={hiddenUnreadCount}
+              onShowAll={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}
+            />
           )}
           {loading ? (
             /* No `space-y` here on purpose. The real list stacks
@@ -1655,7 +1640,7 @@ export function ConversationList({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!userId || c.otherUserId === null) return;
+                                if (!userId) return;
                                 unarchiveConversation(userId, c.jobId, c.otherUserId);
                                 // Archive has an explicit confirm dialog
                                 // ("Hide 1 conversation?"); Restore was the
@@ -1694,14 +1679,14 @@ export function ConversationList({
                       // (Restore replaces them there) — render the bare row
                       // so a drag can't fire an archive mid-selection or
                       // re-archive an already-archived thread.
-                      // Q262: nor for a deleted-account thread — pin and
-                      // archive persist keyed on the other party
-                      // (thread_pins / thread_archives.other_user_id NOT NULL).
-                      return selectMode || isRecentlyDeletedView || c.otherUserId === null ? row : (
+                      // Q335: a deleted-account thread swipes to archive
+                      // only; pin stays off (thread_pins.other_user_id is
+                      // NOT NULL, owner 2026-09-26: no pin or mute).
+                      return selectMode || isRecentlyDeletedView ? row : (
                         <SwipeableConversationRow
                           isPinned={pinned}
                           onArchive={() => handleArchive(c)}
-                          onTogglePin={() => handleTogglePin(c)}
+                          onTogglePin={c.otherUserId === null ? undefined : () => handleTogglePin(c)}
                         >
                           {row}
                         </SwipeableConversationRow>

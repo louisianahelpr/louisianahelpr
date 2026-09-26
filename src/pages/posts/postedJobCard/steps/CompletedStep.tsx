@@ -39,6 +39,11 @@ export function CompletedStep({
   // Q369: a completed job always had a Helpr; a NULL helper_id is one who
   // deleted their account (jobs_helper_id_fkey ON DELETE SET NULL).
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : FORMER_MEMBER_LABEL;
+  // A crew has no lead (Q407): the poster reviews each member, one at a time,
+  // and the chip names the next one. `reviewed` means every member is done.
+  const crew = job.is_group_job === true;
+  const nextCrewMember = crew ? meta?.crewToReview?.[0] : undefined;
+  const reviewName = crew ? nextCrewMember?.name ?? "your crew" : helperName;
   const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
 
   // Approving completion leaves the job at 'payout_pending' until the transfer
@@ -50,7 +55,7 @@ export function CompletedStep({
   // openReviewForPosted returns silently on a NULL helper, so the chip would
   // be a dead control. The helper side gates on posterId the same way.
   const canReview =
-    !!job.helper_id &&
+    (crew ? !!hasReviewed || !!nextCrewMember : !!job.helper_id) &&
     (job.payment_status === "released" || job.payment_status === "payout_pending") &&
     (!!hasReviewed || reviewWindowOpen(job));
 
@@ -78,7 +83,10 @@ export function CompletedStep({
            helper has no `profiles.stripe_account_id`, and nothing in scope here
            carries that fact. Gating it needs a `helperPayoutReady` map built
            beside `helperNames`. Not guessed at here. */
-        !hasTipped ? (
+        /* A crew (Q407) is tipped member by member, from each member's review
+           (ReviewForm's tip prompt names the member). This chip has no member
+           to name, so it is not drawn on a crew. */
+        crew ? null : !hasTipped ? (
           <JobActionChip
             key="tip"
             icon={DollarSign}
@@ -105,7 +113,7 @@ export function CompletedStep({
                 key="review"
                 icon={Star}
                 label="Review"
-                ariaLabel={`Review — leave a review for ${helperName}`}
+                ariaLabel={`Review — leave a review for ${reviewName}`}
                 tone="edit"
                 onClick={() => onReview(job)}
               />
@@ -115,7 +123,7 @@ export function CompletedStep({
                 key="review"
                 icon={CheckCircle2}
                 label="Reviewed"
-                ariaLabel={`Reviewed — you already reviewed ${helperName}`}
+                ariaLabel={`Reviewed — you already reviewed ${reviewName}`}
                 tone="done"
                 disabled
                 onClick={() => {}}

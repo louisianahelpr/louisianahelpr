@@ -33,6 +33,7 @@
  * any crash), or it is in NOT_HERMETIC with a reason. Both lists are two-way.
  */
 
+// @mutate scripts/check-identity-linking.mjs | if (!usePsql && verdict.identities_table !== true) { | if (false) {
 // @mutate scripts/check-unvalidated-constraints.mjs | if (n === 0) { | if (n === -1) {
 // @mutate scripts/check-unvalidated-constraints.mjs | failed = true; // stale entry | // stale entry
 // @mutate scripts/check-anon-table-grants.mjs | if (!tablesChecked \|\| !Array.isArray(offenders)) { | if (false) {
@@ -44,6 +45,7 @@
 // @mutate scripts/audit/function-body-drift.mjs | if (!Array.isArray(rows) \|\| rows.length < 50 \|\| typeof rows[0].prosrc !== "string") throw | if (false) throw
 // @mutate scripts/audit/cross-account-authz.mjs | if (leaks) process.exit(1); |
 // @mutate scripts/check-migration-provenance.mjs |   if (!state) { |   if (false) {
+// @mutate scripts/check-deployed-functions.mjs |   if (!deployed.length) { |   if (false) {
 // @mutate scripts/check-migration-provenance.mjs | could not check migration provenance: ${e.message}`);\n  process.exit(2); | could not check migration provenance: ${e.message}`);\n  process.exit(0);
 // @mutate scripts/check-storage-refs.mjs | if (refs.length === 0) { | if (false) {
 // @mutate scripts/check-stripe-restore-drift.mjs | if (!isStripeList(body)) unmeasured( | if (false) unmeasured(
@@ -216,6 +218,12 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", args: ["check"], env: MGMT("fail"), says: /could not check migration provenance: Management API query failed: 500/ },
     { label: "Management API []", args: ["check"], env: MGMT("empty"), says: /schema_migrations read returned no rows — refusing to report clean/ },
   ],
+  // Q164 (db-drift-detect.yml): GET /v1/projects/{ref}/functions (LH_SUPABASE_API_BASE).
+  "scripts/check-deployed-functions.mjs": [
+    { label: "no credentials", says: /could not list the deployed edge functions: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not list the deployed edge functions: Management API GET \/functions 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /the deployed function list is empty — refusing to report clean/ },
+  ],
   // Q63 / Q72 (quota-monitor.yml). Both read prod through the Management API
   // (LH_SUPABASE_API_BASE); their ledger writes land on the same stub.
   "scripts/check-quota-usage.mjs": [
@@ -241,6 +249,18 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "no credentials", says: /could not read analytics_events: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
     { label: "Management API 500", env: MGMT("fail"), says: /could not read analytics_events: Management API SQL 500/ },
     { label: "Management API []", env: MGMT("empty"), says: /expected \d+ rows, got 0 — refusing to report clean/ },
+  ],
+  // OA-018 (db-drift-detect.yml nightly; db-smoke.yml with --psql): reads
+  // /config/auth and runs a rolled-back scenario block through the Management
+  // API. The block ALWAYS raises, so a 2xx or a reply without its verdict is
+  // "could not run", never clean.
+  "scripts/check-identity-linking.mjs": [
+    { label: "no credentials", says: /could not run the identity-linking scenarios: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not run the identity-linking scenarios: auth config: Management API 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /could not run the identity-linking scenarios: query: Management API 200/ },
+    // Every check passes but auth.identities never resolved: the identity
+    // writes the live run exists for were all skipped (lh-silent-failure, #1806).
+    { label: "identity writes skipped", env: MGMT("noident"), says: /auth\.identities did not resolve for this role, so the identity writes were skipped — refusing to report clean/ },
   ],
   // BR-024 (functions-deploy.yml): the build-stamp probe of every function.
   // A 500 or a bare 200 carries no x-lh-build header, so every function is a
@@ -326,6 +346,19 @@ beforeAll(async () => {
         res.end(JSON.stringify([{ public_constraints: 300, unvalidated }]));
       });
       return;
+    }
+    // check-identity-linking: a clean auth config, and a scenario verdict whose
+    // checks all pass with identities_table false.
+    if (mode === "noident") {
+      if (req.url?.endsWith("/config/auth")) {
+        return void res.end(JSON.stringify({
+          mailer_autoconfirm: false, external_email_enabled: true, external_apple_enabled: true, external_google_enabled: true,
+          external_phone_enabled: false, external_anonymous_users_enabled: false, external_github_enabled: false,
+        }));
+      }
+      const checks = ["A", "A", "A", "A", "B", "B", "B", "B", "C", "C", "C", "D"].map((c, i) => ({ case: c, check: `c${i}`, ok: true, got: 1 }));
+      res.statusCode = 400;
+      return void res.end(JSON.stringify({ message: `Failed to run sql query: ERROR:  P0001: OA018_RESULT:${JSON.stringify({ identities_table: false, checks })}\nCONTEXT:  PL/pgSQL function inline_code_block line 131 at RAISE` }));
     }
     if (mode === "one" && req.url?.includes("/rest/v1/profiles")) {
       return void res.end(JSON.stringify([{ user_id: "00000000-0000-0000-0000-000000000001", email: "helpr-e2e-poster-0902@mailinator.com", ban_status: "active" }]));

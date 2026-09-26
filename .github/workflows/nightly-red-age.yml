@@ -83,6 +83,11 @@ jobs:
       # decision nobody made.
       MAX_AGE_HOURS: "24"
       ACK_LABEL: nightly-red-ack
+      # This gate's OWN issue (opened by the notify job below when it is red)
+      # never blocks it: counting it made the gate a deadlock (2026-09-26,
+      # #1657 open 65h) — the issue closes only on a green run, and a green run
+      # needed the issue closed. It is still listed in the summary.
+      SELF_TITLE: "nightly-red: nightly-red-age"
     steps:
       - name: Read the nightly-red list
         run: |
@@ -107,16 +112,17 @@ jobs:
           NOW=$(date -u +%s)
           MAX=$(( MAX_AGE_HOURS * 3600 ))
 
-          BLOCKING=$(jq -r --argjson now "$NOW" --argjson max "$MAX" --arg ack "$ACK_LABEL" '
-            map(. + { age: ($now - (.createdAt | fromdateiso8601)) })
+          BLOCKING=$(jq -r --argjson now "$NOW" --argjson max "$MAX" --arg ack "$ACK_LABEL" --arg self "$SELF_TITLE" '
+            map(select(.title != $self))
+            | map(. + { age: ($now - (.createdAt | fromdateiso8601)) })
             | map(select(.age > $max or ([.labels[].name] | index("nightly-red-stale") != null)))
             | map(select([.labels[].name] | index($ack) | not))
             | .[] | "#\(.number) \(.title) — open \((.age / 3600) | floor)h — \(.url)"
           ' /tmp/issues.json)
 
-          ACKED=$(jq -r --arg ack "$ACK_LABEL" '
-            map(select([.labels[].name] | index($ack)))
-            | .[] | "#\(.number) \(.title) — acknowledged"
+          ACKED=$(jq -r --arg ack "$ACK_LABEL" --arg self "$SELF_TITLE" '
+            map(select(([.labels[].name] | index($ack)) or .title == $self))
+            | .[] | "#\(.number) \(.title) — \(if .title == $self then "own issue of this gate, never blocking" else "acknowledged" end)"
           ' /tmp/issues.json)
 
           {

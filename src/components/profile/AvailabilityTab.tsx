@@ -117,14 +117,13 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   const [todaysHours, setTodaysHours] = useState<TodaysHours>({ kind: "unknown" });
 
   // Load current availability status from profiles.
-  // `available_until` is a column added by migration; the `any` cast is
-  // carried over verbatim because the generated types don't include it yet.
   useEffect(() => {
-    (supabase.from("profiles") as any)
+    supabase
+      .from("profiles")
       .select("available_until")
       .eq("user_id", userId)
       .single()
-      .then(({ data, error }: { data: any; error: unknown }) => {
+      .then(({ data, error }) => {
         // Degrade to "not available now" (the safe default for a status
         // toggle), but never silently — CLAUDE.md: never drop the error.
         if (error) {

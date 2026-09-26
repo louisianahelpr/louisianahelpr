@@ -2,6 +2,7 @@ import {
   jobLocalStartMs,
   cancellationFeePercent as sharedCancellationFeePercent,
 } from "../../supabase/functions/_shared/cancellationFee";
+import { crewCancellationFeeQuote } from "../../supabase/functions/_shared/crewShares";
 import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +36,7 @@ import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits
 // formatPriceExact, not formatPrice: this block shows the fee arithmetic,
 // and whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
+import { userFacingError } from "@/lib/userFacingError";
 
 type CancellationDialogProps = {
   jobId: string;
@@ -54,12 +56,21 @@ type CancellationDialogProps = {
   wasFunded: boolean;
   helperId?: string | null;
   helperName?: string;
+  /**
+   * A GROUP job (Q407: a crew has no lead). `members` are the hired members,
+   * each with their frozen share of the budget (cents) and whether they
+   * confirmed; `needed` is helpers_needed. The quote is
+   * crewCancellationFeeQuote(), the same pricing poster_cancel_job charges,
+   * under the same owner rule for unconfirmed members. `hasHelper` must be
+   * true when any member counts.
+   */
+  crew?: { needed: number; members: Array<{ share_cents: number | null; confirmed: boolean }> };
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, wasFunded, helperId: _helperId, helperName, crew, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Is this a recurring PARENT? Fetched on open so the dialog can say the
   // one thing the card no longer says (owner: card = less hectic; the
   // cancel-scope warning belongs at the moment of cancelling).
@@ -115,7 +126,12 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
     : cancellationFeePercent === 25
     ? "Less than 24 hours before job"
     : "24+ hours before job";
-  const cancellationFee = Math.round(jobBudget * cancellationFeePercent) / 100;
+  // A crew's fee is one equal share per member who confirmed (Q407); the
+  // helper-share lines below then describe ONE member's share.
+  const crewQuote = crew ? crewCancellationFeeQuote(crew.members, jobBudget, crew.needed, hoursUntilJob) : null;
+  const cancellationFee = crewQuote ? crewQuote.total : Math.round(jobBudget * cancellationFeePercent) / 100;
+  // One member's share: the smallest, so "at least" below stays a floor.
+  const payeeFee = crewQuote ? Math.min(...crewQuote.perMember.filter((f) => f > 0), cancellationFee) : cancellationFee;
   // The helper's share of the cancellation fee, from the POSTER's side.
   //
   // This used to read `jobs.helper_fee_percent`, on the belief that the column
@@ -133,8 +149,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // number shown to a helper may never exceed what they are paid; the same
   // discipline applies to a number shown ABOUT a helper.
   const commissionPercent = MAX_HELPER_FEE_PERCENT;
-  const platformCut = Math.round(cancellationFee * commissionPercent) / 100;
-  const helperPayout = Math.max(0, Math.round((cancellationFee - platformCut) * 100) / 100);
+  const platformCut = Math.round(payeeFee * commissionPercent) / 100;
+  const helperPayout = Math.max(0, Math.round((payeeFee - platformCut) * 100) / 100);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -260,9 +276,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
     } catch (err) {
       const message = isWriteRejected(err)
         ? err.userMessage
-        : err instanceof Error
-          ? err.message
-          : "Couldn't cancel — please try again";
+        : userFacingError(err, "Couldn't cancel — please try again.");
       hapticError();
       toast.error(message);
     } finally {
@@ -343,7 +357,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 <div className="rounded-ds-sm bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
                   <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
                   <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${formatPrice(jobBudget)})</span>
+                    <span className="text-muted-foreground">
+                      {crewQuote
+                        ? `Cancellation fee (${cancellationFeePercent}% of each hired Helpr's share, ${crewQuote.counted} of ${crew?.needed ?? crewQuote.counted})`
+                        : `Cancellation fee (${cancellationFeePercent}% of $${formatPrice(jobBudget)})`}
+                    </span>
                     <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
                   </div>
                   <div className="flex justify-between text-ds-11">
@@ -351,7 +369,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
                   </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">{helperName || "Helpr"} receives</span>
+                    <span className="text-muted-foreground">{crewQuote ? "Each hired Helpr receives" : `${helperName || "Helpr"} receives`}</span>
                     <span className="font-semibold text-primary">at least ${formatPrice(helperPayout)}</span>
                   </div>
                 </div>
@@ -425,7 +443,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                   A cancellation fee of ${formatPrice(cancellationFee)} applies
                 </p>
                 <p className="text-ds-11 text-muted-foreground mt-0.5">
-                  {cancellationFeePercent}% of the ${formatPrice(jobBudget)} budget · {feeTier.toLowerCase()}
+                  {crewQuote
+                    ? `${cancellationFeePercent}% of each hired Helpr's share of the $${formatPrice(jobBudget)} budget`
+                    : `${cancellationFeePercent}% of the $${formatPrice(jobBudget)} budget`} · {feeTier.toLowerCase()}
                 </p>
               </div>
             </div>

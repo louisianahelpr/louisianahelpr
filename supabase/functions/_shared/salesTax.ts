@@ -47,6 +47,37 @@ export function isLaborTaxable(category: string | null | undefined): boolean {
   return TAXABLE_CATEGORIES.has(category ?? "");
 }
 
+// ─── Stripe tax codes: the ONE place each is written (ME-043) ───
+//
+// Every Stripe line item and tax calculation in supabase/functions takes its
+// `tax_code` from here; src/test/stripeTaxCodes.test.ts fails the build on a
+// line that carries none or writes a `txcd_` literal anywhere else. Before
+// this, the taxable-labor code was typed out in create-payment,
+// calculate-tax and charge-recurring-visits separately, so the CPA answer on
+// docs/OPEN.md Q374 would have had to be found and changed in three places.
+
+/** Stripe "Nontaxable": fees, tips, boosts, gift cards, exempt labor. */
+export const NONTAXABLE_TAX_CODE = "txcd_00000000";
+
+/**
+ * The code on a TAXABLE labor line. Stripe's "General - Services".
+ *
+ * OPEN QUESTION, not a settled answer (ME-043, docs/OPEN.md Q374): on the test
+ * account an assembly job at a Baton Rouge address came back Tax $0.00 with
+ * this code. Two causes fit and neither was measurable from code: no Louisiana
+ * registration under Stripe Tax in that mode, or Stripe treating "General -
+ * Services" as untaxed in Louisiana (an enumerated-services state) where a
+ * repair/maintenance-of-tangible-property code would tax it. Changing the
+ * value is a classification decision for the CPA review; when it is made, it
+ * is this one line.
+ */
+export const TAXABLE_LABOR_TAX_CODE = "txcd_20030000";
+
+/** The Stripe tax code for a job's labor line, from the category rule above. */
+export function laborTaxCode(category: string | null | undefined): string {
+  return isLaborTaxable(category) ? TAXABLE_LABOR_TAX_CODE : NONTAXABLE_TAX_CODE;
+}
+
 /**
  * Whether ANY line on the checkout is taxable.
  *
@@ -83,4 +114,22 @@ export function salesTaxCents(
   const base = taxableBaseCents(budgetCents, category);
   if (base <= 0 || !(totalRatePercent > 0)) return 0;
   return Math.round((base * totalRatePercent) / 100);
+}
+
+/**
+ * True when Stripe charged $0 tax on a labor line our own rule says is taxable,
+ * billed to a Louisiana address: the one $0 that is NOT the normal exempt
+ * outcome (ME-043). A non-LA address can legitimately be $0 (no registration
+ * there), and an exempt category is always $0, so neither counts.
+ */
+export function taxedZeroOnTaxableLouisianaLabor(
+  taxCents: number,
+  budgetCents: number,
+  category: string | null | undefined,
+  billingState: string | null | undefined,
+): boolean {
+  return taxCents === 0
+    && budgetCents > 0
+    && isLaborTaxable(category)
+    && (billingState ?? "").trim().toUpperCase() === "LA";
 }

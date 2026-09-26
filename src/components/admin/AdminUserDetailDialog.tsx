@@ -25,14 +25,14 @@ interface AdminUserDetailDialogProps {
   viewProfile: Profile | null;
   setViewProfile: (profile: Profile | null) => void;
   /** Supplemental detail the parent loads when a profile is opened. */
-  profileReviews: { rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string }[];
+  profileReviews: { rating: number; feedback: string | null; reviewer_name: string; created_at?: string; job_title?: string; counts_toward_rating?: boolean }[];
   profileReviewsLeft: { rating: number; feedback: string | null; reviewee_name: string; created_at?: string; job_title?: string }[];
   profileViolations: AdminProfileViolation[];
   profileJobs: AdminProfileJob[];
   emailTracking: { event_type: string; email_type: string; created_at: string }[];
   emailSendStats: { template_name: string; count: number; last_sent: string }[];
   /** Per-user last-login map — tells whether an approved user is active yet. */
-  lastLoginSummary: Record<string, string>;
+  lastLoginSummary: Record<string, string> | null;
   /** Profile id currently mid-resend, or null — drives the email spinners. */
   resending: string | null;
   /** Account lifecycle + support actions, all owned by the parent. */

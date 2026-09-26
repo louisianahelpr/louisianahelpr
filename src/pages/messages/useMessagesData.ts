@@ -196,8 +196,8 @@ export function useMessagesData({
     if (!allConversations) return NO_CONVERSATIONS;
     if (!resolvedUserId) return allConversations;
     return allConversations.filter(
-      // Q262: a deleted-account thread (otherUserId null) cannot be archived.
-      (c) => c.otherUserId === null || !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
+      // Q335: a deleted-account thread (otherUserId null) archives too.
+      (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
     );
     // archiveNonce is a dependency even though it's not read in the body —
     // bumping it forces a re-read of the archive map.
@@ -548,6 +548,19 @@ export function useMessagesData({
       if ("problem" in placeholder) {
         toast.error(placeholder.problem);
         return;
+      }
+      // Q333: the person behind the link deleted their account. Their
+      // messages to me went with them and mine now have no receiver, so the
+      // thread lives under this job's deleted-account row. Open that when the
+      // inbox has one; otherwise the read-only placeholder below.
+      if (placeholder.otherUserId === null) {
+        const deletedThread = (refreshed ?? []).find(
+          (c) => c.jobId === deepLinkJobId && c.otherUserId === null,
+        );
+        if (deletedThread) {
+          void openConvo(deletedThread);
+          return;
+        }
       }
       setConversations((prev) => [placeholder, ...prev]);
       void openConvo(placeholder);

@@ -323,7 +323,14 @@ const DialogContent = React.forwardRef<
       // since ("all these need to share the same shell"). Content still
       // controls HEIGHT, which is what makes a short confirm feel short; only
       // the measure is shared. Change one primitive, change both.
-        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-full sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        // `grid-cols-[minmax(0,1fr)]` (Q273, 2026-09-26): the implicit grid
+        // column is `auto`, whose floor is its widest child's min-content. A
+        // title of one unbroken 200-char word (the messy-input sweep's value,
+        // shown by EditJobDialog as its DialogHero) raised that floor to
+        // 2202px inside a 341px card: every field ran off the right edge and
+        // the card scrolled sideways, while documentElement stayed 375 wide.
+        // A 0 floor keeps every child inside the card.
+        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid grid-cols-[minmax(0,1fr)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-full sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         // See `stepped` above. Placed AFTER the base string and BEFORE
         // `className` so tailwind-merge resolves `top-*` and the arbitrary
         // `translate` against the base, and a caller can still override both.
@@ -664,7 +671,7 @@ const DialogHero = ({ title }: {
     <DialogTitle
       // TIGHTENED (owner, 2026-08-29): was `pt-2`, matched to AlertDialogHero
       // — see the note there. Change one, change both.
-      className="font-display italic font-bold leading-tight"
+      className="font-display italic font-bold leading-tight [overflow-wrap:anywhere]"
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}

@@ -41,7 +41,7 @@ export const makeAdminUserActions = ({
       if (data?.error) throw new Error(data.error);
       loadProfiles();
     } catch (err) {
-      toast.error(userFacingError(err, "Couldn't resend the verification email — try again"));
+      toast.error(userFacingError(err, "Couldn't resend the verification email — try again."));
       report(err, { tags: { source: "AdminUsers.resendVerificationEmail" } });
     } finally {
       setResending(null);
@@ -64,7 +64,7 @@ export const makeAdminUserActions = ({
       .select("id");
     if (banErr) {
       report(banErr, { tags: { source: "AdminUsers.unbanUser.userBans" } });
-      toast.error(userFacingError(banErr, "Couldn't lift the ban — try again"));
+      toast.error(userFacingError(banErr, "Couldn't lift the ban — try again."));
       return;
     }
     // Zero rows here is genuinely ambiguous, which is why this write could not

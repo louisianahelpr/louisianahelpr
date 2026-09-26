@@ -283,6 +283,70 @@ export type Database = {
           },
         ]
       }
+      crew_cancellation_fee_shares: {
+        Row: {
+          committed: boolean
+          created_at: string
+          fee_percent: number
+          helper_id: string | null
+          id: string
+          job_id: string
+          paid_at: string | null
+          share_amount: number
+          share_basis_cents: number
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          committed: boolean
+          created_at?: string
+          fee_percent: number
+          helper_id?: string | null
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          share_amount: number
+          share_basis_cents: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          committed?: boolean
+          created_at?: string
+          fee_percent?: number
+          helper_id?: string | null
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          share_amount?: number
+          share_basis_cents?: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_cancellation_fee_shares_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_cancellation_fee_shares_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_cancellation_fee_shares_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cron_catchup_policy: {
         Row: {
           catch_up: boolean
@@ -389,7 +453,7 @@ export type Database = {
           id: number
           jobname: string
           occurred_at: string
-          response_id: number
+          response_id: number | null
           status_code: number | null
         }
         Insert: {
@@ -398,7 +462,7 @@ export type Database = {
           id?: never
           jobname: string
           occurred_at: string
-          response_id: number
+          response_id?: number | null
           status_code?: number | null
         }
         Update: {
@@ -407,7 +471,7 @@ export type Database = {
           id?: never
           jobname?: string
           occurred_at?: string
-          response_id?: number
+          response_id?: number | null
           status_code?: number | null
         }
         Relationships: []
@@ -418,27 +482,39 @@ export type Database = {
           disposition_keys: string[] | null
           expected_max_gap: string | null
           jobname: string
+          max_idle: string | null
           min_streak: number
           note: string
           registered_at: string
+          work_exempt_reason: string | null
+          work_keys: string[] | null
+          work_visibility: string | null
         }
         Insert: {
           candidate_key?: string | null
           disposition_keys?: string[] | null
           expected_max_gap?: string | null
           jobname: string
+          max_idle?: string | null
           min_streak?: number
           note?: string
           registered_at?: string
+          work_exempt_reason?: string | null
+          work_keys?: string[] | null
+          work_visibility?: string | null
         }
         Update: {
           candidate_key?: string | null
           disposition_keys?: string[] | null
           expected_max_gap?: string | null
           jobname?: string
+          max_idle?: string | null
           min_streak?: number
           note?: string
           registered_at?: string
+          work_exempt_reason?: string | null
+          work_keys?: string[] | null
+          work_visibility?: string | null
         }
         Relationships: []
       }
@@ -1087,6 +1163,8 @@ export type Database = {
           poster_confirmed_working_at: string | null
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
+          share_cents: number | null
+          slot_no: number | null
           status: string
         }
         Insert: {
@@ -1107,6 +1185,8 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
+          share_cents?: number | null
+          slot_no?: number | null
           status?: string
         }
         Update: {
@@ -1127,6 +1207,8 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
+          share_cents?: number | null
+          slot_no?: number | null
           status?: string
         }
         Relationships: [
@@ -2802,6 +2884,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_alert_admin_subjects: {
+        Row: {
+          alerted_at: string
+          job_id: string | null
+          rule: string
+          subject_key: string
+          user_id: string | null
+        }
+        Insert: {
+          alerted_at: string
+          job_id?: string | null
+          rule: string
+          subject_key: string
+          user_id?: string | null
+        }
+        Update: {
+          alerted_at?: string
+          job_id?: string | null
+          rule?: string
+          subject_key?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ops_alert_ledger: {
         Row: {
           closed_at: string | null
@@ -2930,6 +3036,52 @@ export type Database = {
           run_ref?: string | null
         }
         Relationships: []
+      }
+      parish_match_alert_queue: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          notify_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          notify_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          notify_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parish_match_alert_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parish_match_alert_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parish_match_alert_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_refunds: {
         Row: {
@@ -3820,6 +3972,30 @@ export type Database = {
         }
         Relationships: []
       }
+      retired_client_relations: {
+        Row: {
+          first_stale_read_at: string | null
+          last_stale_read_at: string | null
+          relation: string
+          retired_by: string
+          stale_reads: number
+        }
+        Insert: {
+          first_stale_read_at?: string | null
+          last_stale_read_at?: string | null
+          relation: string
+          retired_by: string
+          stale_reads?: number
+        }
+        Update: {
+          first_stale_read_at?: string | null
+          last_stale_read_at?: string | null
+          relation?: string
+          retired_by?: string
+          stale_reads?: number
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           created_at: string
@@ -4030,6 +4206,27 @@ export type Database = {
         }
         Relationships: []
       }
+      seed_purge_runs: {
+        Row: {
+          dry_run: boolean
+          id: number
+          ran_at: string
+          result: Json
+        }
+        Insert: {
+          dry_run: boolean
+          id?: number
+          ran_at?: string
+          result: Json
+        }
+        Update: {
+          dry_run?: boolean
+          id?: number
+          ran_at?: string
+          result?: Json
+        }
+        Relationships: []
+      }
       str_calendar_connections: {
         Row: {
           auto_create_cleaning: boolean
@@ -4182,20 +4379,23 @@ export type Database = {
       thread_archives: {
         Row: {
           archived_at: string
+          id: string
           job_id: string
-          other_user_id: string
+          other_user_id: string | null
           user_id: string
         }
         Insert: {
           archived_at?: string
+          id?: string
           job_id: string
-          other_user_id: string
+          other_user_id?: string | null
           user_id: string
         }
         Update: {
           archived_at?: string
+          id?: string
           job_id?: string
-          other_user_id?: string
+          other_user_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -5060,7 +5260,16 @@ export type Database = {
         }[]
       }
       admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
+      admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
       admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }
+      admin_alert_subjects: {
+        Args: { p_ref: Json; p_rule: string; p_since: string }
+        Returns: {
+          alerted_at: string
+          job_id: string
+          user_id: string
+        }[]
+      }
       admin_delete_review: {
         Args: { _reason: string; _review_id: string }
         Returns: undefined
@@ -5204,6 +5413,7 @@ export type Database = {
       }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
       check_error_log_throttle: { Args: never; Returns: Json }
+      check_ops_alert_pending: { Args: never; Returns: Json }
       check_ops_digest_delivery: { Args: never; Returns: Json }
       check_push_token_health: { Args: never; Returns: Json }
       check_seed_boundary_failures: { Args: never; Returns: Json }
@@ -5259,8 +5469,8 @@ export type Database = {
           credits_used: number
         }[]
       }
-      cleanup_observability_tables: { Args: never; Returns: undefined }
-      cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
+      cleanup_observability_tables: { Args: never; Returns: Json }
+      cleanup_stripe_webhook_events: { Args: never; Returns: number }
       clear_available_now: { Args: never; Returns: undefined }
       clear_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
@@ -5270,6 +5480,12 @@ export type Database = {
       credential_document_path_ok: {
         Args: { p_kind: string; p_path: string; p_user_id: string }
         Returns: boolean
+      }
+      crew_completes_when_hired_done: { Args: never; Returns: boolean }
+      crew_fee_pays_unconfirmed: { Args: never; Returns: boolean }
+      crew_slot_share_cents: {
+        Args: { p_needed: number; p_slot: number; p_total_cents: number }
+        Returns: number
       }
       cron_catchup_last_slot: {
         Args: { p_at: string; p_schedule: string }
@@ -5298,11 +5514,24 @@ export type Database = {
         Args: { p_jobname: string; p_request_id: number }
         Returns: number
       }
+      cron_record_work: {
+        Args: { p_job: string; p_result: Json }
+        Returns: Json
+      }
+      cron_silent_rule: { Args: { p_sample_ref: Json }; Returns: string }
+      cron_silent_still_failing: {
+        Args: { p_job: string; p_rule: string; p_since: string }
+        Returns: boolean
+      }
       db_saturation_problems: { Args: { p: Json }; Returns: string[] }
       db_saturation_thresholds: { Args: never; Returns: Json }
       decline_job_offer: { Args: { p_application_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
+        Returns: boolean
+      }
+      deliver_parish_match_alert: {
+        Args: { p_job_id: string; p_user_id: string }
         Returns: boolean
       }
       deliver_saved_search_alert: {
@@ -5314,7 +5543,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      detect_stuck_payments: { Args: never; Returns: number }
+      detect_stuck_payments: { Args: never; Returns: Json }
       detect_suspicious_user_patterns: { Args: never; Returns: number }
       dispute_evidence_url_ok: {
         Args: { _job_id: string; _uploader: string; _url: string }
@@ -5346,7 +5575,7 @@ export type Database = {
       error_log_is_seed: { Args: { p_tags: Json }; Returns: boolean }
       expire_pending_direct_offers: { Args: never; Returns: number }
       expire_unanswered_offers: { Args: never; Returns: number }
-      export_my_data: { Args: never; Returns: Json }
+      export_my_data: { Args: { p_user_id: string }; Returns: Json }
       extend_boosts_with_no_applications: {
         Args: never
         Returns: {
@@ -5761,6 +5990,10 @@ export type Database = {
         Args: { p_helper_id: string; p_job_id: string }
         Returns: number
       }
+      get_off_job_thread_state: {
+        Args: { _job_id: string; _other: string }
+        Returns: string
+      }
       get_open_jobs_for_map: {
         Args: never
         Returns: {
@@ -5961,6 +6194,10 @@ export type Database = {
       }
       get_service_role_key: { Args: never; Returns: string }
       get_supabase_url: { Args: never; Returns: string }
+      get_thread_counterparty_deleted: {
+        Args: { _job_id: string; _other: string }
+        Returns: boolean
+      }
       get_user_credential_tier: { Args: { p_user_id: string }; Returns: number }
       get_user_last_active: {
         Args: { user_ids: string[] }
@@ -6023,11 +6260,17 @@ export type Database = {
         Args: { _category: Database["public"]["Enums"]["job_category"] }
         Returns: boolean
       }
+      is_crew_member_of_job_folder: {
+        Args: { object_name: string }
+        Returns: boolean
+      }
+      is_fixture_email: { Args: { p_email: string }; Returns: boolean }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_late_cancellation: {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: boolean
       }
+      is_off_job: { Args: { _job_id: string; _user: string }; Returns: boolean }
       is_party_to_job: {
         Args: { _job_id: string; _user_id: string }
         Returns: boolean
@@ -6249,10 +6492,15 @@ export type Database = {
         Returns: boolean
       }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
-      prune_cron_http_requests: { Args: never; Returns: undefined }
-      prune_cron_run_log: { Args: never; Returns: undefined }
+      prune_cron_http_requests: { Args: never; Returns: number }
+      prune_cron_run_details: { Args: never; Returns: number }
+      prune_cron_run_log: { Args: never; Returns: number }
       prune_edge_rate_limit_log: { Args: never; Returns: Json }
       prune_retention_tables: { Args: never; Returns: Json }
+      purge_old_seed_data: {
+        Args: { p_batch?: number; p_dry_run?: boolean; p_older_than?: string }
+        Returns: Json
+      }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }
       rate_limit_hit: {
         Args: {
@@ -6416,6 +6664,7 @@ export type Database = {
       }
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
       run_missed_cron_catch_up: { Args: never; Returns: Json }
+      run_seed_purge: { Args: never; Returns: Json }
       save_weekly_availability: { Args: { p_slots: Json }; Returns: number }
       search_profiles_by_name: {
         Args: { query: string }
@@ -6431,6 +6680,15 @@ export type Database = {
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }
         Returns: string
+      }
+      settle_dispute_by_chargeback: {
+        Args: {
+          _charge_cents: number
+          _disputed_cents: number
+          _job_id: string
+          _stripe_dispute_id: string
+        }
+        Returns: Json
       }
       settle_dispute_record: {
         Args: {
@@ -6467,7 +6725,7 @@ export type Database = {
       sweep_old_email_send_log: { Args: never; Returns: number }
       sweep_old_error_logs: { Args: never; Returns: number }
       sweep_old_notifications: { Args: never; Returns: number }
-      sweep_release_last_chance: { Args: never; Returns: number }
+      sweep_release_last_chance: { Args: never; Returns: Json }
       sweep_saved_search_alert_queue: { Args: never; Returns: number }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
       sync_jobs_select_grants: { Args: never; Returns: Json }

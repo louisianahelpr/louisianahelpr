@@ -676,6 +676,12 @@ serve(async (req) => {
         `${repairs.length} repairs exceeded MAX_REPAIRS (${MAX_REPAIRS}) — NOTHING was repaired; drift this wide is systemic and needs a human`,
       );
     } else {
+      // A failed repair WRITE on a seed profile stays a defect (lead decision,
+      // docs/OPEN.md Q93): it is the same write path real profiles use, so
+      // muting it could hide a real write breakage. Its text says it is seed
+      // context, so it does not read as an unexplained member failure.
+      const seedProfile = new Set(profiles.filter((p) => p.is_seed === true).map((p) => p.user_id));
+      const who = (id: string) => (seedProfile.has(id) ? `${id} (seed profile)` : id);
       for (const r of repairs) {
         const { data, error } = await admin
           .from("profiles")
@@ -686,9 +692,9 @@ serve(async (req) => {
           // null}` and would otherwise be counted as a successful repair.
           .select("user_id");
         if (error) {
-          repairFailures.push(`${r.user_id}: ${error.message}`);
+          repairFailures.push(`${who(r.user_id)}: ${error.message}`);
         } else if (!data || data.length === 0) {
-          repairFailures.push(`${r.user_id}: repair matched 0 rows`);
+          repairFailures.push(`${who(r.user_id)}: repair matched 0 rows`);
         } else {
           repaired += 1;
         }

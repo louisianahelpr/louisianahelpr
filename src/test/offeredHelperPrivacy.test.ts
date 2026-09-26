@@ -206,14 +206,22 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:can_send_message_to_in_job": "no-return",
     // V-008: re-checks the job is not under a live direct offer; returns boolean.
     "function:deliver_saved_search_alert": "no-return",
+    // Q225: same re-check for the queued parish alert; returns boolean.
+    "function:deliver_parish_match_alert": "no-return",
     "function:enforce_application_job_state": "no-return",
     "function:enforce_hire_columns_rpc_only": "no-return",
     "function:enforce_jobs_insert_column_lock": "no-return",
     "function:get_messaging_closes_at": "no-return",
+    // Q333/Q334: reads the column only to decide whether the caller has a
+    // thread on the job; returns a boolean about the OTHER party, never the offeree.
+    "function:get_thread_counterparty_deleted": "no-return",
     "function:get_open_jobs_for_map": "no-return",
     "function:get_public_open_jobs": "no-return",
     "function:get_ranked_open_jobs": "no-return",
     "function:instant_book_claim": "no-return",
+    // Owner decision 2026-09-25 (Q407 addendum 14): is the user off the job
+    // (e.g. a declined/expired offeree)? Internal, service_role only; returns boolean.
+    "function:is_off_job": "no-return",
     "function:is_party_to_job": "no-return",
     "function:jobs_private_select_columns": "no-return",
     "function:notify_helper_on_direct_offer": "no-return",
@@ -285,7 +293,11 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     expect(text).toContain(
       "CASE WHEN t.customer_id = v_uid OR t.offered_to_helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'offered_to_helper_id' END",
     );
-    expect(text, "it must never take the caller's identity as an argument").not.toMatch(/p_user_id|p_uid|p_caller/);
+    // Q408: it takes the id as p_user_id, so nobody but the export-my-data edge
+    // function (which passes the JWT-verified id) may call it: service_role only.
+    const mig = maskComments(readSource(`supabase/migrations/${def!.file}`)!).replace(/\s+/g, " ");
+    expect(mig).toContain("REVOKE ALL ON FUNCTION public.export_my_data(uuid) FROM PUBLIC, anon, authenticated;");
+    expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role;");
   });
 
   it("open_jobs_browse nulls the offeree for everyone but the poster and the offeree", () => {

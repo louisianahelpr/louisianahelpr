@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Clock } from "lucide-react";
+import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import AuthShell from "@/components/auth/AuthShell";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
+import { isExpectedSocialRefusal, takeOAuthRedirectError } from "@/lib/oauthRedirectError";
+import { report } from "@/lib/errorLogger";
 import {
   setLastAuthMethod,
 } from "@/lib/lastAuthMethod";
@@ -185,8 +187,26 @@ const Login = () => {
   })();
   // ONE notice slot, highest-priority reason first — three independent banners
   // could otherwise stack into a wall of yellow above the form.
+  // OA-018: a web Apple/Google sign-in the auth server refused (unverified
+  // provider email, two accounts on one address, a banned account). Captured
+  // at boot by oauthRedirectError.ts; read-and-clear, so it shows once.
+  const [oauthError] = useState(() => takeOAuthRedirectError());
+  // Reported here, not at capture: oauthRedirectError.ts runs before the
+  // Supabase client and must not import errorLogger. A refusal that is the
+  // person's own outcome stays quiet; anything else (a server_error from a
+  // failing auth trigger, a disabled provider, two accounts on one address)
+  // was showing copy while ops heard nothing (lh-silent-failure review, #1806).
+  useEffect(() => {
+    if (!oauthError || isExpectedSocialRefusal(oauthError.code)) return;
+    report(new Error(`web social sign-in refused: ${oauthError.code}`), {
+      severity: "error",
+      tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider, code: oauthError.code },
+    });
+  }, [oauthError]);
   const notice =
-    signedOutForInactivity
+    oauthError
+      ? oauthError.message
+      : signedOutForInactivity
       ? "You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off."
       : arrivedFromSignup
         ? "If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in."
@@ -394,7 +414,11 @@ const Login = () => {
           style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
           role="status"
         >
-          <Clock className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          {oauthError ? (
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          ) : (
+            <Clock className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          )}
           <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
             {notice}
           </p>

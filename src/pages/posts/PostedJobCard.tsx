@@ -8,7 +8,8 @@ import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { JobStatusStrip } from "../../components/job-card/JobStatusStrip";
-import { posterStatusLine } from "../../components/job-card/jobStatusLine";
+import { posterStatusLine, withDisputeSettling } from "../../components/job-card/jobStatusLine";
+import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
@@ -22,6 +23,8 @@ import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { UnfundedJobNotice, shouldShowUnfundedNotice } from "./postedJobCard/UnfundedJobNotice";
+import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
+import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { useFundExistingJob } from "@/hooks/useFundExistingJob";
 
 /**
@@ -91,6 +94,8 @@ function PostedJobCardInner({
   // until it does — so "archived completed" is no longer a special layout.
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
   const { fundJob, fundingJobId } = useFundExistingJob();
+  // Q344: a decided dispute whose money has not moved is not "Done · paid".
+  const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
   const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
@@ -719,6 +724,15 @@ function PostedJobCardInner({
                 on arrival. No action was removed — they all live one tap in. */}
             {isExpanded && (
             <div>
+              {/* Q360: the money problem jobs.status cannot show (bank took the
+                  payment back / card declined), first thing in the open card.
+                  A declined card on an open job is already said, with its
+                  Finish Paying button, by UnfundedJobNotice below. */}
+              {!shouldShowUnfundedNotice(job) && cardPaymentProblem(job) && (
+                <div className="px-4 pt-3 pb-3 border-t border-border/30">
+                  <PaymentProblemNotice job={job} />
+                </div>
+              )}
               {(job.photos || []).length > 0 && (
                 <div className="px-4 py-3 space-y-3 border-t border-border/30">
                   <div>
@@ -858,7 +872,7 @@ function PostedJobCardInner({
                    (owner, 2026-09-21: "it should also only have 1 check at the
                    bottom"). */
                 line={posterStatusLine(
-                  job,
+                  withDisputeSettling(job, unsettledDisputeJobIds),
                   pendingApplicantCounts?.[job.id] ?? 0,
                   undefined,
                   completedJobMeta[job.id],

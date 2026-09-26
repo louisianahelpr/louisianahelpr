@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankSqlComments } from "./helpers/blankNonCode";
 
 /**
  * Parity + shape guard for the excess-anon-grant class (H-004 + AUTHZ-02,
@@ -36,6 +37,9 @@ function sensitiveFromCheck(): string[] {
 // @mutate supabase/migrations/20260925144708_revoke_anon_writes_on_messages.sql | REVOKE INSERT, UPDATE, DELETE ON public.messages FROM PUBLIC, anon; | REVOKE UPDATE, DELETE ON public.messages FROM PUBLIC, anon;
 // @mutate scripts/ci/sensitive-anon-grants.sql | unnest(ARRAY['anon', 'authenticated']) AS r(role) | unnest(ARRAY['anon']) AS r(role)
 // @mutate scripts/ci/sensitive-anon-grants.sql | COALESCE(pc.n, 0) = 0 | COALESCE(pc.n, 0) >= 0
+// @mutate scripts/ci/sensitive-anon-grants.sql | FROM anon_policy_offenders\nUNION ALL | FROM write_offenders\nUNION ALL
+// @mutate scripts/ci/sensitive-anon-grants.sql |   VALUES ('messages')\n),\nanon_policy_offenders |   VALUES ('zz_none')\n),\nanon_policy_offenders
+// @mutate supabase/migrations/20260925175559_messages_mark_read_policy_to_authenticated.sql |     TO authenticated\n | \n
 
 describe("excess-anon-grant class check ↔ migration parity", () => {
   const sensitive = sensitiveFromCheck();
@@ -79,6 +83,41 @@ describe("excess-anon-grant class check ↔ migration parity", () => {
       .map((f) => readFileSync(resolve(MIGRATIONS, f), "utf8"))
       .some((sql) => /REVOKE[^;]*\bINSERT\b[^;]*ON public\.messages FROM PUBLIC, anon\s*;/.test(sql));
     expect(revoke, "no migration revokes INSERT on public.messages FROM PUBLIC, anon").toBe(true);
+  });
+
+  it("no write policy on messages names anon or public, and the check reports one if it does (Q399)", () => {
+    // Q399, 2026-09-25: "Users can mark messages as read" was FOR UPDATE TO
+    // public, so the WRITE rule exempted UPDATE on messages and an anon UPDATE
+    // re-grant would not have gone red. The ANON-POLICY rule reports such a
+    // policy directly; the red/green proof in real Postgres is the probe.
+    const forbidden = CHECK_SQL.match(/anon_write_forbidden\(tbl\) AS \(([\s\S]*?)\n\),/)?.[1] ?? "";
+    expect(forbidden).toContain("VALUES ('messages')");
+    const rule = CHECK_SQL.slice(CHECK_SQL.indexOf("anon_policy_offenders AS ("), CHECK_SQL.indexOf("policy_counts AS ("));
+    expect(rule).toContain("JOIN anon_write_forbidden f ON f.tbl = pol.tablename");
+    expect(rule).toMatch(/pol\.cmd IN \('INSERT', 'UPDATE', 'DELETE', 'ALL'\)/);
+    expect(rule).toMatch(/'anon' = ANY\(pol\.roles\) OR 'public' = ANY\(pol\.roles\)/);
+    expect(CHECK_SQL).toMatch(/FROM anon_policy_offenders\s*\nUNION ALL/);
+    expect(PROBE).toContain("write:anon-policy");
+    expect(RUNNER).toContain('rule: "write:anon-policy"');
+
+    // Every messages write policy, at its NEWEST definition in the migrations,
+    // names a role and never anon/public. A CREATE POLICY with no TO clause is
+    // TO public.
+    const newest = new Map<string, { file: string; stmt: string }>();
+    const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
+    for (const f of files) {
+      const sql = blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8"));
+      for (const m of sql.matchAll(/\bCREATE\s+POLICY\s+"([^"]+)"\s+ON\s+(?:public\.)?messages\b[^;]*;/gi)) {
+        newest.set(m[1], { file: f, stmt: m[0].replace(/\s+/g, " ") });
+      }
+    }
+    const writes = [...newest].filter(([, d]) => /\bFOR (INSERT|UPDATE|DELETE|ALL)\b/i.test(d.stmt));
+    expect(writes.length, "messages write-policy inventory is empty: the scan read nothing").toBeGreaterThan(3);
+    const toPublic = writes
+      .filter(([, d]) => !/\bTO\s+authenticated\b/i.test(d.stmt) || /\bTO\b[^()]*\b(anon|public)\b/i.test(d.stmt))
+      .map(([name, d]) => `${name} (${d.file})`);
+    expect(toPublic, "a messages write policy is TO public/anon at its newest definition").toEqual([]);
+    expect(newest.get("Users can mark messages as read")?.stmt).toMatch(/FOR UPDATE TO authenticated/i);
   });
 
   it("the write rule is scoped to jobs + the sensitive set, and reads the policy table", () => {

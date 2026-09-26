@@ -1,7 +1,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
+import type { APIRequestContext, Browser, BrowserContext, Page } from "@playwright/test";
 import {
   test,
   expect,
@@ -9,7 +9,7 @@ import {
   announceUncovered,
   getSession,
   newUserContext,
-  payOnStripeCheckout,
+  payCheckoutSession,
   rest,
   sessionsAvailable,
   stripeModeFromCheckoutUrl,
@@ -156,7 +156,7 @@ async function appears(locator: ReturnType<Page["locator"]>, ms: number) {
 
 async function readJob(api: APIRequestContext, session: Session, id: string) {
   const r = await api.get(
-    `${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=id,title,status,payment_status,helper_id,parish,is_seed,created_at,stripe_session_id,helper_completed_at`,
+    `${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=id,title,status,payment_status,helper_id,parish,is_seed,created_at,stripe_session_id,helper_completed_at,response_deadline,customer_id`,
     { headers: rest(session) },
   );
   expect(r.ok(), `reading job ${id}: ${r.status()}`).toBe(true);
@@ -340,7 +340,7 @@ test.describe.serial("marketplace chain", () => {
       }
       await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
       await journey.milestone(page, "stripe-checkout");
-      await payOnStripeCheckout(page);
+      await payCheckoutSession(page);
       await expect
         .poll(async () => (await readJob(request, S.poster, S.jobId!)).payment_status, { timeout: 90_000, message: "the webhook never funded the job" })
         .toBe("escrow");
@@ -460,7 +460,7 @@ test.describe.serial("marketplace chain", () => {
   });
 
   const j4 = title("hire-and-message", "smooth");
-  test(j4, async ({ request, journey }) => {
+  test(j4, async ({ browser, request, journey }) => {
     test.skip(filteredOut(j4), "SCENARIO pins another scenario");
     test.skip(!S.jobId || !S.funded, "needs J2's funded job and J3's application");
     const hp = journey.track("helper", S.helperPage);
@@ -483,6 +483,35 @@ test.describe.serial("marketplace chain", () => {
       await expect(pp.getByRole("heading", { name: "Set a Response Deadline" })).toBeHidden({ timeout: 20_000 });
       await assertHealthy(pp, "offer sent");
       await journey.milestone(pp, "offer-sent");
+    });
+
+    /*
+     * TIME TRAVEL: THE OFFER'S DEADLINE (was time-travel.spec.ts's
+     * "UNCOVERED: Offer expiring" placeholder, which could never run: it needs
+     * an offer on a funded job, and this is the one moment the suite has one).
+     * `accept_application` stamps jobs.response_deadline; OfferedActions counts
+     * down to it and, once it passes, takes Accept and Decline away and says the
+     * job went back out (`expire_unanswered_offers` acts on the same instant).
+     */
+    await test.step("time travel: the offer counts down to its deadline, then is gone", async () => {
+      const job = await readJob(request, S.poster, S.jobId!);
+      expect(job.response_deadline, "the offer carries no response_deadline; accept_application stamps one").toBeTruthy();
+      const deadline = Date.parse(job.response_deadline);
+      await atClock(browser, S.helper, new Date(deadline - 90_000), async (page) => {
+        const c = await card(page, "/jobs", "Needs You");
+        await expect(c.getByText("1m remaining").first(), "90s before the deadline the offer does not read 1m remaining").toBeVisible({ timeout: 45_000 });
+        await expect(c.getByText(/No answer counts the same as declining/).first(), "the offer does not say what silence costs").toBeVisible();
+        expect(await findChip(page, c, /^Accept\b/, 20_000), "Accept is not offered before the deadline").not.toBeNull();
+        await assertHealthy(page, "offer 90s before its deadline");
+        await journey.milestone(page, "tt-offer-1m-left");
+      });
+      await atClock(browser, S.helper, new Date(deadline + 60_000), async (page) => {
+        const c = await card(page, "/jobs", "Needs You");
+        await expect(c.getByText("This offer has expired").first(), "a minute past the deadline the offer does not say it expired").toBeVisible({ timeout: 45_000 });
+        expect(await findChip(page, c, /^Accept\b/, 5_000), "Accept is still offered after the deadline, where respond refuses it").toBeNull();
+        await assertHealthy(page, "offer a minute past its deadline");
+        await journey.milestone(page, "tt-offer-expired");
+      });
     });
 
     await test.step("helper accepts the offer", async () => {
@@ -643,9 +672,68 @@ test.describe.serial("marketplace chain", () => {
     return c;
   }
 
+  /**
+   * A card control by name, ON THE ROW OR IN ITS "More" OVERFLOW.
+   *
+   * A step whose action row cannot hold every chip parks the rest behind
+   * JobActionRow's overflow chip (`data-job-step-overflow`), whose panel
+   * (`data-job-step-overflow-panel`) is a Radix popover PORTALED to <body> —
+   * so a locator scoped to the card cannot see a chip in it, open or shut.
+   * Measured 2026-09-26 (e2e-journeys probe runs 36212737517 / 36213134702,
+   * wip/vac1797-probe-journeys): the poster's Done card of this very journey
+   * (it carries proof photos, so its row is Photos · More · Hire Again) had
+   * its review row in `reviews` (02:34:06Z), and its "Reviewed" chip was in
+   * the More panel next to "Tip" — `card.getByRole("button", { name:
+   * /^Reviewed\b/ })` counted 0 while the page had it. That, not the cache,
+   * is what 120s of reloads could not find in e2e-journeys 36211846948.
+   * Guarded by src/test/journeyChipsReachOverflow.test.ts.
+   */
+  async function findChip(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, timeout: number) {
+    const deadline = Date.now() + timeout;
+    const panel = page.locator("[data-job-step-overflow-panel]").filter({ visible: true });
+    for (;;) {
+      const inOpenPanel = panel.getByRole("button", { name }).first();
+      if (await inOpenPanel.isVisible().catch(() => false)) return inOpenPanel;
+      const onRow = scope.getByRole("button", { name }).filter({ visible: true }).first();
+      if (await onRow.isVisible().catch(() => false)) return onRow;
+      const more = scope.locator("[data-job-step-overflow]").filter({ visible: true }).first();
+      if (await more.isVisible().catch(() => false)) {
+        await more.click();
+        const inPanel = panel.getByRole("button", { name }).first();
+        if (await inPanel.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) return inPanel;
+        await page.keyboard.press("Escape");
+      }
+      if (Date.now() >= deadline) return null;
+      await page.waitForTimeout(1_000);
+    }
+  }
+
+  /**
+   * TIME TRAVEL ON THIS CHAIN'S OWN STATE. The same account in a SEPARATE
+   * context whose browser clock is fixed at `at` (page.clock), for the
+   * boundaries that need a funded, hired job — e2e/journeys/time-travel.spec.ts
+   * cannot make one, and this chain has one at exactly the right moments. The
+   * chain's own pages are never moved. Read-only: nothing is pressed.
+   *
+   * The stored session expiry is restated against the moved clock, as
+   * time-travel.spec.ts's openAt does: with the clock hours ahead supabase-js
+   * would refresh on load, and a refresh rotates the token under the chain's
+   * own contexts. The server still validates the JWT's real `exp`.
+   */
+  async function atClock(browser: Browser, who: Session, at: Date, fn: (page: Page) => Promise<void>) {
+    const session = { ...who, expires_at: Math.floor(at.getTime() / 1000) + 3600 };
+    const ctx = await newUserContext(browser, session, { timezoneId: ZONE });
+    try {
+      await ctx.clock.setFixedTime(at);
+      await fn(await ctx.newPage());
+    } finally {
+      await ctx.close();
+    }
+  }
+
   /** Press a visible control by name, then prove the screen is not an error. */
   async function press(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, where: string) {
-    const btn = scope.getByRole("button", { name }).first();
+    const btn = (await findChip(page, scope, name, 45_000)) ?? scope.getByRole("button", { name }).first();
     await expect(btn, `${where}: no "${name}" control`).toBeVisible({ timeout: 45_000 });
     /* VISIBLE IS NOT PRESSABLE, and on this card the difference is a whole
        product rule. Every step of the helper's ladder renders DISABLED until
@@ -663,7 +751,7 @@ test.describe.serial("marketplace chain", () => {
   }
 
   const j5 = title("do-the-job", "revision");
-  test(j5, async ({ request, journey }) => {
+  test(j5, async ({ browser, request, journey }) => {
     test.setTimeout(12 * 60_000);
     test.skip(filteredOut(j5), "SCENARIO pins another scenario");
     test.skip(!S.jobId || !S.funded, "needs J4's hired, funded job");
@@ -884,6 +972,50 @@ test.describe.serial("marketplace chain", () => {
       await journey.milestone(hp, "submitted");
     });
 
+    /*
+     * TIME TRAVEL: THE REVIEW WINDOW (was time-travel.spec.ts's "UNCOVERED:
+     * Review window open → auto-release" placeholder, which could never run:
+     * it needs an escrow job the Helpr has marked done, and this is that job,
+     * at that moment). SubmittedStep counts 24h down from helper_completed_at
+     * and then says the job is completing automatically, unless the poster
+     * releases instantly (profiles.auto_release_on_complete), when a 24h clock
+     * would be a lie and none is drawn. The flag is read the way the card
+     * reads it, as the Helpr; the expectation follows it both ways.
+     */
+    await test.step("time travel: the Helpr's review window runs out into automatic completion", async () => {
+      const job = await readJob(request, S.poster, S.jobId!);
+      const end = Date.parse(job.helper_completed_at) + 24 * 3_600_000;
+      const flag = await request.get(
+        `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${S.poster.user.id}&select=auto_release_on_complete`,
+        { headers: rest(S.helper) },
+      );
+      const instant = flag.ok() && Boolean(((await flag.json()) as Array<{ auto_release_on_complete?: boolean }>)[0]?.auto_release_on_complete);
+      test.info().annotations.push({ type: "poster-instant-release", description: String(instant) });
+      await atClock(browser, S.helper, new Date(end - 90_000), async (page) => {
+        const c = await card(page, "/jobs", "Waiting");
+        if (instant) {
+          await expect(c.getByText(/They approve instantly/).first()).toBeVisible({ timeout: 45_000 });
+          await expect(c.getByText(/remaining$/), "an instant-release poster's card draws a 24h countdown").toHaveCount(0);
+        } else {
+          await expect(c.getByText("1m remaining").first(), "90s before the 24h mark the card does not read 1m remaining").toBeVisible({ timeout: 45_000 });
+          await expect(c.getByText(/The job completes automatically when this timer expires/).first()).toBeVisible();
+        }
+        await assertHealthy(page, "review window 90s before it closes");
+        await journey.milestone(page, "tt-review-window-1m-left");
+      });
+      await atClock(browser, S.helper, new Date(end + 60_000), async (page) => {
+        const c = await card(page, "/jobs", "Waiting");
+        if (instant) {
+          await expect(c.getByText(/They approve instantly/).first()).toBeVisible({ timeout: 45_000 });
+          await expect(c.getByText(/completing automatically/), "an instant-release poster's card says it is completing automatically").toHaveCount(0);
+        } else {
+          await expect(c.getByText(/24 hours passed — completing automatically/).first(), "past the 24h mark the card does not say the job is completing automatically").toBeVisible({ timeout: 45_000 });
+        }
+        await assertHealthy(page, "review window a minute after it closed");
+        await journey.milestone(page, "tt-review-window-closed");
+      });
+    });
+
     await test.step("poster requests a revision", async () => {
       /* THE REVISION ASK LIVES BEHIND APPROVE, NOT BESIDE IT.
          The poster's in-progress card offers one completion control, the
@@ -964,11 +1096,22 @@ test.describe.serial("marketplace chain", () => {
          2026-09-22 on a real released job: the row was in `reviews` at
          05:02:40 and one reload still drew "Review"; the next reload drew
          "Reviewed". Polling the reload asserts the same fact without asserting
-         a refresh speed nobody promised. */
+         a refresh speed nobody promised.
+         EACH RELOAD WAITS for the chip; it does not take one instant count().
+         The badge is drawn by the DETAIL query, which is issued only after the
+         core list lands, and card() returns as soon as the heading is on
+         screen. An instant count therefore sampled the pre-detail "Review" on
+         a slow (drops-profile) reload: nightly-red #1719, run 36164148002,
+         90s of reloads, 0 every time. The app half of that failure (the
+         review write never told the persisted cache, so a reload could
+         repaint "Review" for up to 60s) is fixed in
+         src/lib/reviewActivityCache.ts, guarded by
+         src/test/reviewWritesUpdateActivityCache.test.ts. */
       await expect
         .poll(
-          async () => (await card(pp, "/posts", "Done")).getByRole("button", { name: /^Reviewed\b/ }).count(),
-          { timeout: 90_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
+          async () =>
+            (await findChip(pp, await card(pp, "/posts", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0,
+          { timeout: 120_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
         )
         .toBeGreaterThan(0);
       const c2 = await card(pp, "/posts", "Done", false);

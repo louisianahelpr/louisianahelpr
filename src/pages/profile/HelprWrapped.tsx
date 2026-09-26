@@ -97,6 +97,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
       .from("reviews")
       .select("id, rating, jobs!inner(status)")
       .eq("reviewee_id", userId)
+      .eq("status", "published")
       .lte("feedback_visible_at", new Date().toISOString())
       .neq("jobs.status", "cancelled")
       .gte("created_at", yearStart)
@@ -505,7 +506,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                   <div
                     key={i}
                     className="rounded-ds-md p-4 h-20 motion-safe:animate-pulse"
-                    style={{ background: "rgba(255,255,255,0.20)" }}
+                    style={{ background: "hsl(var(--parchment) / 0.20)" }}
                   />
                 ))}
               </div>

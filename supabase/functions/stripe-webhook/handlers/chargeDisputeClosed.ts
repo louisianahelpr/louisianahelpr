@@ -229,10 +229,20 @@ export async function handleChargeDisputeClosed(
           }
         }
       } else if (outcome === "lost") {
+        // Q342: a decided dispute whose split never ran can never run now (the
+        // job is 'chargeback' and the bank kept the money), so it is closed
+        // here or handed to a human, never left pending. First, before any
+        // other lost-branch write, so a throw retries it with nothing done.
+        const decidedClose = await closeDecidedDisputeOnLostChargeback(
+          { stripe, supabase, logStep },
+          closedDispute,
+          { id: closedJob.id, title: closedJob.title, customer_id: closedJob.customer_id, helper_id: closedJob.helper_id },
+        );
         const lost = await finalizeLostClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title });
         // ME-009: a payout that was held (never paid, so nothing to claw back)
         // used to end in silence. finalizeLostClawback tells a clawed-back payee.
-        if (lost.rows === 0 && closedJob.helper_id && await wasToldOnHold(supabase, closedJob.helper_id, String(closedJob.id))) {
+        // Not when the decided-dispute close already told the Helpr how it ended.
+        if (decidedClose !== "closed" && lost.rows === 0 && closedJob.helper_id && await wasToldOnHold(supabase, closedJob.helper_id, String(closedJob.id))) {
           await notifyPayee(
             supabase, closedJob.helper_id, String(closedJob.id),
             "Card dispute closed",
@@ -502,6 +512,144 @@ export async function handleChargeDisputeClosed(
     },
     link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
   });
+}
+
+/**
+ * Q342: a LOST chargeback settles a decided-but-unexecuted internal dispute.
+ *
+ * rpc_decide_dispute leaves execution_status='pending' until
+ * execute-dispute-split moves the money, and the split refuses a job in
+ * 'chargeback'. Once the bank rules for the card holder the charge is gone, so
+ * nothing could ever settle that record and it paged the unsettled detectors
+ * forever. settle_dispute_by_chargeback closes it as executed with 0/0 and the
+ * reason, but only when the bank took the WHOLE charge and nothing else is owed
+ * or in flight; otherwise it answers 'needs_human' and ops is paged with the
+ * decided split. A DB error throws so Stripe redelivers.
+ */
+async function closeDecidedDisputeOnLostChargeback(
+  { stripe, supabase, logStep }: Pick<WebhookContext, "stripe" | "supabase" | "logStep">,
+  dispute: Stripe.Dispute,
+  job: { id: string; title: string | null; customer_id: string | null; helper_id: string | null },
+): Promise<string> {
+  // The charge's captured amount, from Stripe: the dispute object does not
+  // carry it, and a partial chargeback leaves the rest of the escrow owed.
+  let chargeCents: number | null = null;
+  const chargeId = typeof dispute.charge === "string" ? dispute.charge : (dispute.charge as { id?: string } | null)?.id;
+  if (chargeId) {
+    try {
+      const charge = await stripe.charges.retrieve(chargeId);
+      chargeCents = charge.amount_captured ?? charge.amount ?? null;
+    } catch (e) {
+      // Throw, never guess (lh-money-escrow review L1): a null amount makes the
+      // close answer needs_human, and this webhook would then ACK and never be
+      // redelivered, leaving the dispute pending over a transient Stripe error.
+      throw new Error(`Could not retrieve charge ${chargeId} for lost dispute ${dispute.id}: ${String(e)}`);
+    }
+  }
+  const { data, error } = await supabase.rpc("settle_dispute_by_chargeback", {
+    _job_id: job.id,
+    _stripe_dispute_id: dispute.id,
+    _disputed_cents: dispute.amount,
+    _charge_cents: chargeCents,
+  });
+  if (error?.code === "PGRST202") {
+    // The migration has not deployed yet: the old behaviour (left pending),
+    // but said out loud instead of retried for days.
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Chargeback LOST — decided-dispute close not deployed yet",
+      message: `Dispute ${dispute.id} was lost. settle_dispute_by_chargeback is not deployed, so if this job has a decided dispute whose split never ran, close it by hand.`,
+      fields: { "Dispute ID": dispute.id, "Job ID": String(job.id) },
+      link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+    });
+    return "not_deployed";
+  }
+  if (error) {
+    await postSlackOpsAlert({
+      kind: "dispute_lost",
+      severity: "critical",
+      title: "Chargeback LOST — decided dispute NOT closed (DB error)",
+      message: `Dispute ${dispute.id} was lost, but closing the job's decided-but-unexecuted dispute failed. Stripe will retry this webhook.`,
+      fields: { "Dispute ID": dispute.id, "Job ID": String(job.id), "DB error": error.message.slice(0, 200) },
+      link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+      oncePerDayKey: `dispute-lost-close-failed:${job.id}`,
+    });
+    throw new Error(`settle_dispute_by_chargeback failed for job ${job.id}: ${error.message}`);
+  }
+  const res = (data ?? null) as
+    | { outcome?: string; dispute_id?: string; reason?: string; payout_split?: { poster?: number; helper?: number } | null }
+    | null;
+  const outcome = res?.outcome;
+  if (outcome === "no_unsettled_dispute") return outcome;
+  const split = res?.payout_split
+    ? `poster ${Math.round((res.payout_split.poster ?? 0) * 100)}% / Helpr ${Math.round((res.payout_split.helper ?? 0) * 100)}%`
+    : "—";
+  // A Slack post scrolls away; after the close the dispute reads 'executed'
+  // and leaves every unsettled surface. So what a human still owes goes into
+  // the admins' in-app notices too (lh-money-escrow review M2).
+  const helperShare = res?.payout_split?.helper ?? 0;
+  const noticeAdmins = async (title: string, message: string) => {
+    const { ids } = await loadAdminIds(supabase, "stripe-webhook.chargeDisputeClosed.decidedDispute");
+    for (const adminId of ids) {
+      const { error: noticeErr } = await supabase.from("notifications").insert({
+        user_id: adminId, job_id: job.id, title, message, type: "warning",
+        link: `/admin?view=jobs&job=${job.id}`,
+      });
+      if (noticeErr) logStep("Decided-dispute admin notice failed", { adminId, error: noticeErr.message });
+    }
+  };
+  if (outcome === "closed") {
+    logStep("Lost chargeback closed a decided, unexecuted dispute", { jobId: job.id, disputeId: res?.dispute_id });
+    if (helperShare > 0) {
+      await noticeAdmins(
+        "Chargeback lost — decided Helpr share unpaid",
+        `The bank returned the whole charge for "${job.title ?? "a job"}" to the card holder, so its decided split (${split}) was closed with $0 moved. The decision gave the Helpr a share the platform no longer holds: decide whether to pay it.`,
+      );
+    }
+    // Both parties were last told "the payment is still being processed".
+    if (job.customer_id) {
+      const { error: posterErr } = await supabase.from("notifications").insert({
+        user_id: job.customer_id, job_id: job.id, type: "payment",
+        title: "Dispute closed by your bank",
+        message: `Your bank decided the card dispute on "${job.title ?? "your job"}" in your favor and returned the payment to your card, so this job's dispute is closed. Nothing else will be refunded here.`,
+        link: `/posts?job=${job.id}`,
+      });
+      if (posterErr) logStep("Decided-dispute poster notice failed", { error: posterErr.message });
+    }
+    if (job.helper_id) {
+      await notifyPayee(
+        supabase, job.helper_id, String(job.id),
+        "Dispute closed by the card holder's bank",
+        `The card holder's bank returned the payment for "${job.title ?? "a job"}" to their card, so the decided split could not be paid and no payout was made for this job. Contact support about next steps.`,
+        dispute.id,
+      );
+    }
+    await postSlackOpsAlert({
+      kind: "dispute_lost",
+      severity: "warning",
+      title: "Chargeback LOST on a decided dispute — dispute closed, nothing left to split",
+      message: `Dispute ${dispute.id} was lost, so the card holder's bank returned the whole charge. The job's decided split (${split}) had not run and now never will: it is recorded as settled with $0 moved.${(res?.payout_split?.helper ?? 0) > 0 ? " The decision gave the Helpr a share that the platform no longer holds; decide by hand whether to pay it." : ""}`,
+      fields: { "Dispute ID": dispute.id, "Job ID": String(job.id), "Internal dispute": res?.dispute_id ?? "—", "Decided split": split },
+      link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+    });
+    return "closed";
+  }
+  // 'needs_human', or an answer this code does not know: page, never guess.
+  await noticeAdmins(
+    "Chargeback lost — settle the dispute by hand",
+    `The bank ruled for the card holder on "${job.title ?? "a job"}", but its internal dispute could not be closed automatically: ${res?.reason ?? "unexpected answer"}.`,
+  );
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "critical",
+    title: "Chargeback LOST on a decided dispute — settle it by hand",
+    message: `Dispute ${dispute.id} was lost on a job whose decided split (${split}) has not run, and it could not be closed automatically: ${res?.reason ?? `unexpected answer ${JSON.stringify(res)}`}. The split cannot run on a 'chargeback' job; reconcile against Stripe and close the dispute by hand.`,
+    fields: { "Dispute ID": dispute.id, "Job ID": String(job.id), "Internal dispute": res?.dispute_id ?? "—", "Decided split": split },
+    link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+    oncePerDayKey: `dispute-lost-needs-human:${job.id}`,
+  });
+  return "needs_human";
 }
 
 /**

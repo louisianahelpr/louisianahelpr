@@ -118,6 +118,19 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
   { file: "e2e/auth.spec.ts", match: "!haveCreds", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/payment-lifecycle.spec.ts", match: "!haveCreds", verdict: "failure", why: MISSING_CREDS },
   { file: "e2e/prod-lifecycle.spec.ts", match: "!READY", verdict: "failure", why: MISSING_CREDS },
+  { file: "e2e/prod-gift-card.spec.ts", match: "!READY", verdict: "failure", why: MISSING_CREDS },
+  {
+    file: "e2e/prod-gift-card.spec.ts",
+    match: "Stripe is not in test mode",
+    verdict: "failure",
+    why: "create-gift-card-checkout returned a non-test Checkout Session, so no gift could be bought safely — the whole journey went untested",
+  },
+  {
+    file: "e2e/prod-gift-card.spec.ts",
+    match: "the spend test did not get far enough",
+    verdict: "failure",
+    why: "the cancel→restore check depends on the spend test's two funded jobs; skipping it means the restore was never checked",
+  },
   {
     file: "e2e/two-role-lifecycle.spec.ts",
     match: "!RUN",
@@ -129,6 +142,8 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "keyed to a fixture id", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "no is_seed job in status", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "no is_seed group job", verdict: "failure", why: MISSING_FIXTURE },
+  { file: "e2e/a11y-prod/reduced-motion.spec.ts", match: "no poster session", verdict: "failure", why: MISSING_CREDS },
+  { file: "e2e/a11y-prod/reduced-motion.spec.ts", match: "keyed to a fixture id", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/prod-audit/", match: "GAP:", verdict: "failure", why: MISSING_FIXTURE },
   {
     file: "e2e/prod-audit/messy-input.spec.ts",

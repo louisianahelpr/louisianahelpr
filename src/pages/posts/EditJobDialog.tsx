@@ -3,6 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database, TablesUpdate } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,8 +90,10 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     setSaving(true);
     const scheduleChanged =
       dateNeeded !== (job.date_needed || "") || startTime !== (job.start_time || "");
-    const updateData: any = {
-      title: title.trim(), description: description.trim(), category,
+    const updateData: TablesUpdate<"jobs"> = {
+      title: title.trim(), description: description.trim(),
+      // The Select below offers only `categories` values (the job_category enum).
+      category: category as Database["public"]["Enums"]["job_category"],
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
       special_requirements: specialReq.trim() || null,
       require_photo_proof: requirePhotoProof,

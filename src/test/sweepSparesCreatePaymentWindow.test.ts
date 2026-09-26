@@ -23,6 +23,7 @@
  * @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | const windowWait = createPaymentWindowWaitMs(lastCreatePaymentAt); | const windowWait = 0;
  * @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | lastCreatePaymentAt = Date.now(); // before the call | void 0; // before the call
  * @mutate scripts/e2e/sweepSummary.mjs | export const CREATE_PAYMENT_WINDOW_MS = 60_000; | export const CREATE_PAYMENT_WINDOW_MS = 30_000;
+ * @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | } finally {\n          // The forward walk ends on create-payment's release, in the same window.\n          if (!refusedUnwalked) lastCreatePaymentAt = Date.now();\n        } | }\n        if (!refusedUnwalked) lastCreatePaymentAt = Date.now();
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -85,7 +86,11 @@ describe("the pre-run sweep leaves the money loop its create-payment window", ()
   it("the sweeper consults the columns before it calls, and records every call", () => {
     expect(sweeper).toMatch(/const known = cancelEscrowAnswerFromColumns\(job\);\s*let r = known \? null : await cancelEscrow\(job\.id\);/);
     expect(sweeper).toMatch(/async function cancelEscrow\(jobId\) \{\s*lastCreatePaymentAt = Date\.now\(\);/);
-    expect(sweeper).toMatch(/const out = await settleJobForward\(\{[\s\S]*?\}\);\s*lastCreatePaymentAt = Date\.now\(\);/);
+    // In a `finally` (lh-money-escrow review L1): a walk that throws or is
+    // refused after spending create-payment calls must stamp the window too.
+    expect(sweeper).toMatch(
+      /const out = await settleJobForward\(\{[\s\S]*?\}\);[\s\S]*?\}\s*finally\s*\{[^}]*lastCreatePaymentAt = Date\.now\(\);/,
+    );
   });
 
   it("the sweep waits out its last call's window before it ends", () => {

@@ -104,6 +104,10 @@ jobs:
       PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
       PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
       PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # trailing-icon's /complete-profile leg signs this seed account in
+      # (optionalSession); without it that leg skipped UNJUSTIFIED (#1719).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
       SCENARIO: ${{ inputs.scenario }}
       # J8 presses Log Out, which today signs the account out on every device
       # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
@@ -131,13 +135,18 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: pre
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the journeys
         run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
@@ -165,13 +174,18 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: teardown
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green)"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
   journeys-webkit:
     name: Journeys (journeys-webkit)
@@ -196,6 +210,9 @@ jobs:
       PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
       PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
       PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # Same as the journeys job: trailing-icon's incomplete-e2e leg (#1719).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
       SCENARIO: ${{ inputs.scenario }}
       # J8 presses Log Out, which today signs the account out on every device
       # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
@@ -210,7 +227,9 @@ jobs:
       - name: Drop the Google Chrome apt source
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps webkit
+      # chromium too: payCheckoutSession pays Stripe's hosted page in Chromium
+      # (e2e/journeys/fixtures.ts). The app never shows Stripe in its WKWebView.
+      - run: npx playwright install --with-deps webkit chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -223,13 +242,18 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: pre
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
       - name: Run the journeys
         run: npx playwright test --project=journeys-webkit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
@@ -257,13 +281,18 @@ jobs:
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
           POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: teardown
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |
           set -euo pipefail
           URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
           TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green)"; exit 1; }
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
-            node scripts/e2e/prod-lifecycle-sweeper.mjs
+            bash scripts/e2e/sweep-both-seats.sh
 
   # A red nightly used to land nowhere; this opens/updates ONE nightly-red issue
   # and closes it on the next green run (.github/actions/nightly-issue-sync).
@@ -285,8 +314,14 @@ jobs:
     # reports only when it is empty — a whole-suite run, exactly what the
     # schedule fires. Anything narrower stays silent rather than closing an
     # issue it has not earned.
+    #
+    # And only from main (2026-09-26, #1719). The issue is main's state: a
+    # dispatch on a fix branch that goes green has proved the BRANCH, and
+    # closing the issue from it announced a green main that was still red
+    # until the branch merged; a red branch run added "Still red" to main's
+    # issue for a tree main never ran. Scheduled runs are always on main.
     if: >-
-      always() && (github.event_name == 'schedule'
+      always() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule'
       || (github.event_name == 'workflow_dispatch' && inputs.scenario == ''))
     runs-on: ubuntu-latest
     timeout-minutes: 5

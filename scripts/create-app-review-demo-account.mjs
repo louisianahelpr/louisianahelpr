@@ -69,6 +69,7 @@ async function findExistingUser(email) {
 }
 
 async function createUser(email, password) {
+  // seed-policy: patched — profilePayload below carries is_seed: true (apple-reviewer is is_seed on prod, measured 2026-09-26)
   const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
     method: "POST",
     headers: adminHeaders,

@@ -37,7 +37,11 @@ vi.mock("@/integrations/supabase/client", () => ({
     rpc: (...args: unknown[]) => rpcMock(...args),
     from: () => ({
       select: () => ({
-        in: async () => ({ data: profilesRows.value, error: null }),
+        // Thenable for the name read; `.eq("is_seed", true)` for the Q233 seed read.
+        in: () =>
+          Object.assign(Promise.resolve({ data: profilesRows.value, error: null }), {
+            eq: async () => ({ data: [], error: null }),
+          }),
       }),
     }),
     auth: { getUser: async () => ({ data: { user: { id: "admin-1" } } }) },

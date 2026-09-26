@@ -5,6 +5,7 @@ import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { SUB_PRICE, type Job, type Profile, type Tip } from "./types";
 import { TIER_ORDER, normalizeTier, type TierId } from "@/lib/subscriptionTiers";
 import { formatCategory } from "@/lib/format";
+import { isCapturedPayment } from "@/lib/capturedPayment";
 
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
 // from AdminAnalytics.tsx — no hooks, no state, no side effects. Given the raw
@@ -138,9 +139,9 @@ export const computeMetrics = (
   }
   const cohortRetention = [...cohortMap.values()].sort((a, b) => a.date.getTime() - b.date.getTime());
   const completedJobs = allJobs.filter(j => j.status === "completed");
-  // Jobs where money is actually held or paid out (NOT refunded/cancelled)
-  const capturedPaymentStatuses = ["escrow", "payout_pending", "released"];
-  const capturedJobs = allJobs.filter(j => capturedPaymentStatuses.includes(j.payment_status || ""));
+  // Jobs where money is actually held or paid out (NOT refunded/cancelled),
+  // AND a Stripe PaymentIntent proves it was charged (Q233: see capturedPayment.ts).
+  const capturedJobs = allJobs.filter(isCapturedPayment);
   // Refunded jobs — money was returned, platform does NOT keep fees
   const refundedJobs = allJobs.filter(j => ["refunded"].includes(j.payment_status || ""));
   const openJobs = allJobs.filter(j => j.status === "open");
@@ -148,7 +149,7 @@ export const computeMetrics = (
   const cancelledJobs = allJobs.filter(j => j.status === "cancelled");
   const disputedJobs = allJobs.filter(j => j.status === "disputed");
   // Late cancellations where payment is still captured (not refunded)
-  const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && capturedPaymentStatuses.includes(j.payment_status || ""));
+  const lateCancelledPaidJobs = allJobs.filter(j => j.status === "cancelled" && j.late_cancellation && isCapturedPayment(j));
 
   // Gross Revenue = total amount collected via Stripe (budget + customer fee) for jobs with captured payments
   const totalRevenue = capturedJobs.reduce((s, j) => s + Number(j.budget || 0) + Number(j.customer_fee_amount || 0), 0);

@@ -96,4 +96,12 @@ if [ "$REMAINING" != "1" ]; then
 fi
 
 supabase secrets set STRIPE_SECRET_KEY="$SK" STRIPE_WEBHOOK_SECRET="$WHSEC" --project-ref $REF
+# Record the mode where CI can read it WITHOUT a Stripe key: the prod lifecycle
+# sweeper settles hired+funded test jobs forward (a real `release`) only while
+# the repo variable E2E_STRIPE_MODE is "test" (lh-money-escrow review L2,
+# 2026-09-25). Set AFTER the key, so it never says test before test is live.
+if ! (cd "$REPO_ROOT" && gh variable set E2E_STRIPE_MODE --body test); then
+  echo "WARNING: could not set the repo variable E2E_STRIPE_MODE=test (gh auth?). CI sweeps will defer, not settle forward, until it is:" >&2
+  echo "         gh variable set E2E_STRIPE_MODE --body test" >&2
+fi
 echo "SANDBOX ON. Restore with scripts/e2e/stripe-sandbox-off.sh (needs your sk_live + live whsec)."

@@ -197,6 +197,22 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-live-privileges.mjs
 
+      # OA-018 (docs/OPEN.md Q446): an existing email account signing in with
+      # Apple/Google. Performs GoTrue's own row writes for the four linking
+      # cases on PROD inside one transaction that always rolls back, and checks
+      # no second profile / no lost signup data / no 500 on an email-less user,
+      # plus the auth config linking rests on (mailer_autoconfirm off, both
+      # providers on). LIVE, because a trigger added by a dashboard edit or an
+      # MCP apply would change it without a migration. Same shape as above.
+      - name: Identity linking keeps one account and its data
+        id: identity_linking
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-identity-linking.mjs
+
       # The TABLE half of the excess-anon-grant class (updatable_views is the
       # view half). anon held UPDATE/INSERT/DELETE on public.jobs (H-004) and
       # SELECT on admin/money/trust tables (AUTHZ-02) — RLS the only gate. Prod's
@@ -273,6 +289,18 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/check-migration-provenance.mjs check
+
+      # Q164. A function on prod that is not in the repo (a lane's temporary
+      # function left behind) or a repo function prod no longer has (vanished).
+      # Same continue-on-error + fail-at-the-end shape.
+      - name: The deployed edge functions are exactly the repo's
+        id: deployed_functions
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-deployed-functions.mjs
 
       - name: Compute drift
         id: drift
@@ -494,11 +522,13 @@ jobs:
           UPDATABLE_VIEWS: ${{ steps.updatable_views.outcome }}
           JOBS_DYNAMIC_WRITERS: ${{ steps.jobs_dynamic_writers.outcome }}
           LIVE_PRIVILEGES: ${{ steps.live_privileges.outcome }}
+          IDENTITY_LINKING: ${{ steps.identity_linking.outcome }}
           ANON_TABLE_GRANTS: ${{ steps.anon_table_grants.outcome }}
           BAN_GATE_COVERAGE: ${{ steps.ban_gate_coverage.outcome }}
           FUNCTION_BODY_DRIFT: ${{ steps.function_body_drift.outcome }}
           UNVALIDATED_CONSTRAINTS: ${{ steps.unvalidated_constraints.outcome }}
           MIGRATION_PROVENANCE: ${{ steps.migration_provenance.outcome }}
+          DEPLOYED_FUNCTIONS: ${{ steps.deployed_functions.outcome }}
         run: |
           set -euo pipefail
           if [ "${TYPES_FRESH:-success}" = "failure" ]; then
@@ -519,6 +549,10 @@ jobs:
             echo "::error::Prod's default privileges grant clients new relations in public, or a function trusts a bare NULL auth.uid() as the service role (or the live read failed) — see 'No client default privileges and no NULL-uid trust' above."
             failed=1
           fi
+          if [ "${IDENTITY_LINKING:-success}" = "failure" ]; then
+            echo "::error::Signing an existing email account in with Apple/Google would duplicate the account, lose its data or 500 — or the auth config it rests on drifted, or the live run failed. See 'Identity linking keeps one account and its data' above (OA-018)."
+            failed=1
+          fi
           if [ "${ANON_TABLE_GRANTS:-success}" = "failure" ]; then
             echo "::error::An exposed-schema table carries an excess anon grant — an anon write no policy backs, or an anon SELECT on a sensitive table. See 'No exposed-schema table carries an excess anon grant' above."
             echo "::error::FIX: in the migration that owns the table, REVOKE ALL ON <table> FROM anon, PUBLIC (or REVOKE SELECT for a read-only offender), keeping authenticated's explicit grants. A CREATE TABLE re-opens it via default privileges."
@@ -531,6 +565,10 @@ jobs:
           fi
           if [ "${UNVALIDATED_CONSTRAINTS:-success}" = "failure" ]; then
             echo "::error::A public constraint is NOT VALID (a row violates it; its next UPDATE will fail) — or the live read failed. See 'Every public constraint is validated' above."
+            failed=1
+          fi
+          if [ "${DEPLOYED_FUNCTIONS:-success}" = "failure" ]; then
+            echo "::error::The deployed edge functions differ from supabase/functions/ (a leftover or out-of-band function, or one prod no longer has) — or the list could not be read. See 'The deployed edge functions are exactly the repo's' above."
             failed=1
           fi
           if [ "${MIGRATION_PROVENANCE:-success}" = "failure" ]; then

@@ -27,6 +27,7 @@
  *
  * @mutate src/lib/inboxDefault.ts | return "active"; | return "all";
  * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > 0 && ( | false && (
+ * @mutate src/components/messages/ConversationList.tsx | cachedHiddenUnread > 0 && ( | false && (
  * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show All | setInboxFilter(DEFAULT_INBOX_TAB); }}>\n                  Show All
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
@@ -34,6 +35,17 @@ import { render, screen, cleanup, fireEvent, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// jsdom has no layout, so the real virtualizer renders zero rows. Render them
+// all, flat, so row ORDER against the banner can be asserted (MQ28).
+vi.mock("@/components/VirtualList", () => ({
+  VirtualList: <T,>({ items, getKey, renderItem }: {
+    items: T[];
+    getKey: (item: T, i: number) => string;
+    renderItem: (item: T, i: number) => import("react").ReactNode;
+  }) => (
+    <div>{items.map((it, i) => <div key={getKey(it, i)}>{renderItem(it, i)}</div>)}</div>
+  ),
+}));
 // No network (Q55a): ConversationList's mount-time pin/archive loads read
 // thread_pins / thread_archives from Supabase. See the helper.
 vi.mock("@/lib/pinnedConversations", async (io) =>
@@ -95,15 +107,15 @@ const ALL_FINISHED: Conversation[] = [
   convo({ jobId: "done-2", jobStatus: "cancelled", unread: 0 }),
 ];
 
-function renderInbox(conversations: Conversation[]) {
+function renderInbox(conversations: Conversation[], loading = false, userId: string | null = "user-1") {
   return render(
     <MemoryRouter>
       <ConversationList
         conversations={conversations}
-        loading={false}
+        loading={loading}
         loadError={false}
         retryInbox={vi.fn()}
-        userId="user-1"
+        userId={userId}
         loadConversations={vi.fn(async () => {})}
         openConvo={vi.fn()}
         setDeleteConvoConfirm={vi.fn()}
@@ -201,11 +213,46 @@ describe("Messages opens on Active, and says what Active is hiding", () => {
     });
     expect(banner).toBeTruthy();
 
+    // ON TOP of the rows (owner, 2026-09-26, MQ28: "back on top, space
+    // held"). The banner must come before the first row in the document.
+    const liveRow = screen.getAllByTestId("row-name")[0];
+    expect(
+      liveRow.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
+
     fireEvent.click(banner);
     openPhoneDisclosure();
     expect(selectedTabLabel()).toBe("All");
     // ...and the banner is gone, because All is not hiding them any more.
     expect(screen.queryByText(/aren't in Active/i)).toBeNull();
+  });
+
+  it("while loading, holds the bar's space with the last count this device saw (MQ28)", () => {
+    setWebDesktop(false);
+    localStorage.clear();
+    // A settled visit writes the count for this account...
+    renderInbox(MIXED);
+    expect(localStorage.getItem("helpr_inbox_hidden_unread")).toBe("user-1:2");
+    cleanup();
+    // ...and the next visit's loading frame reserves the bar above the
+    // skeleton: invisible, out of the accessibility tree, same text (so the
+    // same height) as the bar that will land in its place.
+    const { container } = renderInbox([], true);
+    const held = Array.from(container.querySelectorAll<HTMLElement>('[aria-hidden="true"]'))
+      .find((el) => /2 unread conversations aren't in Active/.test(el.textContent ?? ""));
+    expect(held).toBeTruthy();
+    expect(held!.style.visibility).toBe("hidden");
+    expect(screen.queryByRole("button", { name: /aren't in Active/i })).toBeNull();
+    cleanup();
+    // The first skeleton frame renders before userId resolves; the space must
+    // already be held then, or it lands a frame late and shifts the skeleton.
+    const early = renderInbox([], true, null);
+    expect(early.container.textContent).toMatch(/2 unread conversations aren't in Active/);
+    cleanup();
+    // A count another account left on this device is not held for this one.
+    const other = renderInbox([], true, "user-2");
+    expect(other.container.textContent).not.toMatch(/aren't in Active/);
+    localStorage.clear();
   });
 
   it("stays quiet when Active is hiding nothing unread", () => {

@@ -149,6 +149,13 @@ const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
       "PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD (preflight FAILS without them; " +
       "only the admin screens self-skip, on PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD).",
   },
+  "prod-gift-card.spec.ts": {
+    runner: "e2e-real-backend.yml",
+    needs:
+      "PLAYWRIGHT_POSTER_EMAIL + PLAYWRIGHT_POSTER_PASSWORD + PLAYWRIGHT_HELPER_EMAIL + " +
+      "PLAYWRIGHT_HELPER_PASSWORD (the two dedicated prod accounts; the helper seat donates, the poster seat " +
+      "receives and spends). Buys a gift card on Stripe test mode, so it runs only on schedule/dispatch (SC-005).",
+  },
   "prod-lifecycle.spec.ts": {
     runner: "e2e-real-backend.yml",
     needs:
@@ -390,7 +397,7 @@ describe("Playwright project resolution", () => {
     // happy-path-webkit opens with a comment before `name:` and is not parsed,
     // which is fine — it collects the same files as happy-path.
     expect(projects.map((p) => p.name).sort()).toEqual([
-      "a11y-prod", "a11y-prod-webkit", "canary", "chromium", "happy-path", "journeys", "journeys-webkit", "privacy", "prod-audit", "slow-network",
+      "a11y-prod", "a11y-prod-webkit", "canary", "chromium", "happy-path", "job-status-fixtures", "journeys", "journeys-webkit", "privacy", "prod-audit", "slow-network",
     ]);
     const chromium = specsInProject(projects.find((p) => p.name === "chromium")!, specs);
     const happy = specsInProject(projects.find((p) => p.name === "happy-path")!, specs);

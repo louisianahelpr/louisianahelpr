@@ -240,7 +240,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     submitInFlight.current = true;
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("You must be logged in."); submitInFlight.current = false; setSubmitting(false); return; }
+    if (!user) { toast.error("Sign in to continue."); submitInFlight.current = false; setSubmitting(false); return; }
 
     const { data, error } = await supabase
       .from("reports")

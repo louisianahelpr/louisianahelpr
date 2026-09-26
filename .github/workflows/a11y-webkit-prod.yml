@@ -23,9 +23,11 @@ permissions:
 # exist, the sweep generates it from this run's findings and fails with
 # "axe baseline missing" — see the "Surface a missing axe baseline" step below.
 #
-# Read-only against prod: the accounts are signed in and looked at, nothing is
-# written, so the two engines run in parallel and this does not take the
-# shared-account concurrency group.
+# The SWEEP is read-only against prod: the accounts are signed in and looked
+# at, nothing is written, so the two engines run in parallel and this does not
+# take the shared-account concurrency group. The one writer is the `fixtures`
+# job before them (nightly-red #1794): it keeps the job-status fixtures the
+# sweep renders alive — today the `accepted` job — through the app's own path.
 #
 # It is a REQUIRED release check: scripts/release-gate.mjs keys on this
 # workflow's name and on the "WebKit-only violations" job.
@@ -40,23 +42,23 @@ on:
         description: "SWEEP_ROUTES: comma-separated App.tsx route patterns to narrow the sweep (blank = every screen)"
         required: false
         default: ""
+      variants:
+        description: "SWEEP_VARIANTS for a dispatch (comma list of sweepCore.ts ALL_VARIANTS tags, or all). Blank = today's weekday rotation"
+        required: false
+        default: ""
 
 concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
   # >= 2h apart, and share the prod-load concurrency group; see
   # src/test/prodWorkflowSpacing.test.ts before moving this.
   #
-  # THE EXCEPTION to the dispatch split, by name in
-  # src/test/prodWorkflowSpacing.test.ts's DISPATCH_SHARES_GROUP (2026-09-22).
-  # This workflow signs in as the shared prod test accounts and has no
-  # job-level `prod-lifecycle-shared-accounts` lock, because its matrix would
-  # be serialised against itself by one. prod-load IS its account lock. Giving
-  # its dispatch a private group — as e2e-journeys and prod-audit now do, since
-  # their JOBS hold that lock — would let a dispatched run drive poster-e2e
-  # beside another suite already driving it, and two runs signed in as the same
-  # account corrupt each other's fixtures. Losing a queued dispatch is
-  # recoverable and loud; corrupted prod fixtures are neither.
-  group: prod-load
+  # A SCHEDULED run joins prod-load; a workflow_dispatch gets its OWN group
+  # (the split e2e-journeys.yml documents: GitHub keeps one pending run per
+  # group, so a dispatch in prod-load can be cancelled by an unrelated one).
+  # This was the one exception until the `fixtures` job took the shared-account
+  # lock (Q326): that job is the only writer, the sweep legs only read, so the
+  # accounts stay serialised without prod-load.
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('a11y-webkit-prod-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
@@ -83,11 +85,73 @@ jobs:
             exit 1
           fi
 
-  sweep:
-    name: Sweep prod (${{ matrix.engine }})
+  fixtures:
+    # The job-status fixtures the sweep renders and nothing else keeps alive
+    # (nightly-red #1794, run 36148473443: no is_seed `accepted` job, an
+    # unjustified skip on both engines). The ONE job here that writes to prod:
+    # it reuses the accepted fixture, or mints one through the app's own path
+    # (Stripe TEST checkout, apply, hire). It runs once, before both sweep
+    # legs, because the legs run in parallel and must stay read-only. It
+    # writes to the shared E2E accounts, so besides prod-load it holds their
+    # one lock (Q326).
+    name: Job-status fixtures
     needs: preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 80
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    # A mint is bounded by the 22-minute early-access wait (fundedOpenJob.ts).
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        # The mint only drives Stripe's hosted page today, but any relative
+        # goto a fixture adds must land here, never on the deployed site.
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+      - name: Ensure the job-status fixtures
+        run: npx playwright test --project=job-status-fixtures --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label job-status-fixtures
+      - name: Keep the fixture log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: job-status-fixtures
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  sweep:
+    name: Sweep prod (${{ matrix.engine }})
+    # After the fixtures, whatever they did: a red fixtures job is its own
+    # failure (notify below counts it), and the sweep's evidence of every
+    # other screen is still worth having.
+    needs: [preflight, fixtures]
+    if: ${{ !cancelled() && needs.preflight.result == 'success' }}
+    runs-on: ubuntu-latest
+    # 80 -> 60 (2026-09-26) to fit the fixtures job in front of it inside the
+    # 120-minute prod-load slot (prodWorkflowSpacing rule 5). The full sweep
+    # measured 9.0 min (chromium) and 16.1 min (webkit) in run 36148473443.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -126,6 +190,27 @@ jobs:
         with:
           supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      - name: Pick this run's viewports and themes (Q71)
+        # Q71: axe on every route at 375 AND 1440, light AND dark. Before this
+        # step the sweep ran phone-light only (sweepCore.ts VARIANTS default),
+        # so dark mode and the 1440 layout were never axe-scanned on prod.
+        # Two variants per run keeps each leg ~20 min; the Mon+Wed pair covers
+        # all four combinations every week, Fri repeats the phone pair.
+        # Guard: src/test/a11yProdCoversBothThemesAndWidths.test.ts.
+        env:
+          PICKED: ${{ inputs.variants }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PICKED:-}" ]; then
+            case "$(date -u +%u)" in
+              1) PICKED="phone-light,desktop-dark" ;;
+              3) PICKED="phone-dark,desktop-light" ;;
+              *) PICKED="phone-light,phone-dark" ;;
+            esac
+          fi
+          echo "SWEEP_VARIANTS=$PICKED" >> "$GITHUB_ENV"
+          echo "axe sweep variants this run: $PICKED" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run the prod sweep
         # The serial describe ignores --workers; kept on one line for
@@ -220,7 +305,7 @@ jobs:
 
   notify:
     name: Report nightly result
-    needs: [sweep, diff]
+    needs: [fixtures, sweep, diff]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -231,6 +316,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: a11y-webkit-prod
-          status: ${{ needs.sweep.result == 'success' && needs.diff.result == 'success' && 'success' || 'failure' }}
+          status: ${{ needs.fixtures.result == 'success' && needs.sweep.result == 'success' && needs.diff.result == 'success' && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

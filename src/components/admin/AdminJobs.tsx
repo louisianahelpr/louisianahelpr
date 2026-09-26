@@ -22,6 +22,7 @@ import { requireBiometric } from "@/lib/biometricGate";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
+import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * Where an admin notification about a job should land, per RECIPIENT.
@@ -102,7 +103,7 @@ const notifyJobParty = async (
       });
     } else if (crossesSeed === true) {
       toast.message(
-        `That change is saved. ${who === "the poster" ? "The poster" : "The helpr"} was not notified: this is a test job and they are a real account, and test jobs never notify real people.`,
+        `That change is saved. ${who === "the poster" ? "The poster" : "The Helpr"} was not notified: this is a test job and they are a real account, and test jobs never notify real people.`,
       );
       return;
     }
@@ -349,7 +350,7 @@ const AdminJobs = () => {
       setDeleteReason("");
       setDetailJob(null);
     } catch (err: unknown) {
-      toast.error(mutationErrorMessage(err, "Couldn't remove that job: " + (err as Error).message));
+      toast.error(mutationErrorMessage(err, userFacingError(err, "Couldn't remove that job — try again.")));
     } finally {
       setDeleting(false);
     }
@@ -365,7 +366,7 @@ const AdminJobs = () => {
       ? Math.round(parsedDollars * 100)
       : null;
     if (partialCents !== null && partialCents > totalCents) {
-      toast.error(`Partial amount $${parsedDollars.toFixed(2)} exceeds job total $${Number(detailJob.budget).toFixed(2)}`);
+      toast.error(`Partial amount $${parsedDollars.toFixed(2)} exceeds job total $${Number(detailJob.budget).toFixed(2)}.`);
       return;
     }
     const isPartial = partialCents !== null && partialCents < totalCents;
@@ -405,7 +406,7 @@ const AdminJobs = () => {
       setRefundAmount("");
       setDetailJob(null);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Couldn't issue that refund — try again";
+      const msg = userFacingError(err, "Couldn't issue that refund — try again.");
       report(err, { tags: { source: "money.adminRefund", action: "admin_refund_general", screen: "/admin" }, context: { jobId: detailJob.id, partial: isPartial } });
       toast.error(msg);
     } finally {
@@ -489,7 +490,7 @@ const AdminJobs = () => {
       // is the engineering explanation ("affected 0 rows, expected 1"), and
       // `instanceof Error` is true of it — so the raw read showed that string
       // to an admin. This picks the userMessage when there is one.
-      toast.error(mutationErrorMessage(err, "Couldn't override status — try again"));
+      toast.error(mutationErrorMessage(err, "Couldn't override status — try again."));
     } finally {
       setOverriding(false);
     }

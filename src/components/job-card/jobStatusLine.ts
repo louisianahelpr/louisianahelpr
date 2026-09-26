@@ -12,6 +12,7 @@ import { assertNever } from "@/lib/assertNever";
 import type { AppliedApp, Job } from "./activityConstants";
 import { shouldShowUnfundedNotice } from "../../pages/posts/postedJobCard/UnfundedJobNotice";
 import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/postedJobCard/steps/posterStepContract";
+import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -48,6 +49,9 @@ import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/post
  *             the job's own stamps.
  *
  * ── WHERE THE TWO DISAGREE, THE DETAIL WINS AND SAYS SO ───────────────────
+ * (Money problems, Q360, are a fifth kind of override, and not a bucket
+ * disagreement: see `problemWait` — a chargeback or a declined card is
+ * invisible in `jobs.status`, so no bucket could ever name it.)
  * The eyebrow is overridden in exactly four places, each one a case where the
  * BUCKET files a job under "Needs you" while nothing whatsoever is owed by the
  * reader. Every override is marked `eyebrow:` in the tables below with a note.
@@ -100,6 +104,30 @@ interface WaitCopy {
   tone?: JobStatusTone;
 }
 
+/** The two money-problem lines, identical on both tabs (never role-based). */
+const PROBLEM_WAIT: Record<JobPaymentProblem, "bank_dispute" | "payment_failed"> = {
+  chargeback: "bank_dispute",
+  failed: "payment_failed",
+};
+function problemCopy(): Record<"bank_dispute" | "payment_failed", WaitCopy> {
+  const line = (p: JobPaymentProblem): WaitCopy => ({
+    detail: PAYMENT_PROBLEM_COPY[p].detail,
+    eyebrow: PAYMENT_PROBLEM_COPY[p].eyebrow,
+    tone: "alarm",
+  });
+  return { bank_dispute: line("chargeback"), payment_failed: line("failed") };
+}
+
+/**
+ * The money problem that outranks what `jobs.status` says, or null. The
+ * precedence (a chargeback outranks everything, a declined card everything but
+ * a cancelled job) lives in `cardPaymentProblem`, shared with the notice.
+ */
+function problemWait(job: Job): "bank_dispute" | "payment_failed" | null {
+  const problem = cardPaymentProblem(job);
+  return problem ? PROBLEM_WAIT[problem] : null;
+}
+
 const BUCKET_TONE: Record<ActivityBucket, JobStatusTone> = {
   needs_you: "you",
   waiting: "them",
@@ -130,6 +158,9 @@ export type PosterWait =
   | "overdue"
   | "dispute"
   | "dispute_escalated"
+  | "bank_dispute"
+  | "payment_failed"
+  | "dispute_settling"
   | "done_paid"
   | "done_tip_open"
   | "done_review_open"
@@ -193,6 +224,17 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      loses the one word that matters. */
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
   dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
+  /* MONEY PROBLEMS (Q360). jobs.status cannot show them: a chargeback leaves
+     the job 'completed' (or wherever it was) and a declined card leaves it
+     'open'. Same words on both tabs — see PAYMENT_PROBLEM_COPY. */
+  ...problemCopy(),
+  /* DECIDED IS NOT PAID (Q344). rpc_decide_dispute moves the job to completed
+     or cancelled the moment an admin rules, and execute-dispute-split moves
+     the money later. Until the dispute row reads execution_status='executed'
+     this card said "Done · paid and closed" (poster) / "Paid out" (Helpr) over
+     money that had not moved. The flag comes from the dispute row, not the
+     job: a withdrawn dispute writes the same job columns. */
+  dispute_settling: { detail: "Decided — payment processing", eyebrow: "Dispute decided", tone: "them" },
   /* DONE MEANS BOTH (owner, 2026-09-21): "it shouldnt say done if tip is not
      complete… it shouldnt say done if reviewed and tip have not both been done.
      it should also only have 1 check at the bottom. it cant be both done and
@@ -209,6 +251,27 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   done_both_open: { detail: "Review and tip still open", tone: "them" },
   cancelled: { detail: "This job didn't happen" },
 };
+
+/**
+ * Q344: the job carries a decided dispute whose money has not moved yet.
+ *
+ * Not on the jobs row (a withdrawn dispute writes the same status and
+ * dispute_status as a decided one): the card attaches it from the dispute row
+ * with `withDisputeSettling` (useUnsettledDisputeJobIds).
+ */
+export type DisputeSettlingFlag = { dispute_settling?: boolean };
+
+function disputeSettling(job: object): boolean {
+  return (job as DisputeSettlingFlag).dispute_settling === true;
+}
+
+/** The job, flagged when its dispute is decided but not yet executed. */
+export function withDisputeSettling<J extends { id: string }>(
+  job: J,
+  unsettledJobIds: ReadonlySet<string> | undefined,
+): J & DisputeSettlingFlag {
+  return unsettledJobIds?.has(job.id) ? { ...job, dispute_settling: true } : job;
+}
 
 /**
  * Which sentence a job I POSTED is owed.
@@ -238,10 +301,15 @@ export function derivePosterWait(
    */
   completion?: { tipped: boolean; reviewed: boolean },
 ): PosterWait {
+  // Money first (Q360): a chargeback or a declined card is invisible in
+  // `jobs.status`, so the switch below would call the job healthy.
+  const problem = problemWait(job);
+  if (problem) return problem;
   switch (job.status) {
     case "cancelled":
-      return "cancelled";
+      return disputeSettling(job) ? "dispute_settling" : "cancelled";
     case "completed":
+      if (disputeSettling(job)) return "dispute_settling";
       /* Which finish it is depends on the loose ends, not on the row. */
       if (completion && !(completion.tipped && completion.reviewed)) {
         if (completion.reviewed) return "done_tip_open";
@@ -349,6 +417,9 @@ export type HelperWait =
   | "overdue"
   | "dispute"
   | "dispute_escalated"
+  | "bank_dispute"
+  | "payment_failed"
+  | "dispute_settling"
   | "done_paid";
 
 /**
@@ -391,6 +462,9 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   overdue: { detail: "Day passed — mark it done or cancel" },
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
   dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
+  ...problemCopy(),
+  /* Q344, the Helpr's half: see POSTER_WAIT.dispute_settling. */
+  dispute_settling: { detail: "Decided — payment processing", eyebrow: "Dispute decided", tone: "them" },
   done_paid: { detail: "Paid out" },
 };
 
@@ -406,12 +480,18 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
   // A job-cancel close (Q274) is 'rejected' too, but nobody passed on this
   // applicant: let the job's own status speak.
   if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected";
+  // Money first (Q360), for everyone still on the job: a passed-over applicant
+  // (any rejection, a job-cancel close included) is not told about someone
+  // else's payment. appliedActivityBucket and AppliedJobCard's notice use the
+  // same `app.status !== "rejected"` gate.
+  const problem = app.status === "rejected" ? null : problemWait(job);
+  if (problem) return problem;
 
   switch (job.status) {
     case "cancelled":
-      return "cancelled";
+      return disputeSettling(job) ? "dispute_settling" : "cancelled";
     case "completed":
-      return "done_paid";
+      return disputeSettling(job) ? "dispute_settling" : "done_paid";
     case "disputed":
       return (job as { dispute_status?: string | null }).dispute_status === "escalated"
         ? "dispute_escalated"

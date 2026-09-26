@@ -18,7 +18,7 @@
  * (adminJobsHelpers.ts:105 `job.budget > 5000`; CollapsedPolicy.tsx "$5,000").
  *
  * @mutate src/components/admin/adminJobs/adminJobsHelpers.ts | if (job.budget > MAX_JOB_BUDGET_DOLLARS) { | if (job.budget > 5000) {
- * @mutate src/components/policy/CollapsedPolicy.tsx | $10 minimum, MAX_JOB_BUDGET_DOLLARS maximum") | $10 minimum, $5,000 maximum")
+ * @mutate src/components/policy/CollapsedPolicy.tsx | minimum, $1,000 maximum" and | minimum, $5,000 maximum" and
  * @mutate src/components/postjob/BudgetSection.tsx | const overBudgetCap = (parseFloat(budget) \|\| 0) > MAX_JOB_BUDGET_DOLLARS; | const overBudgetCap = (parseFloat(budget) \|\| 0) > 5000;
  */
 import { describe, it, expect } from "vitest";

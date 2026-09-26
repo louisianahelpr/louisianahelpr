@@ -55,7 +55,9 @@ describe("discarded-builder guard — red on origin/main (d492446), green on the
     const source = live(ADMIN);
     expect(guard.hitsInSource(ADMIN, source)).toEqual([]);
     // The fix is the reassignment, not a reworded comment.
-    expect(source).toMatch(/query = query\.in\("payment_status", \["escrow", "payout_pending", "released"\]\)/);
+    // (Q233: the status list is now the shared CAPTURED_PAYMENT_STATUSES, and
+    // a PaymentIntent is required too — still one reassigned chain.)
+    expect(source).toMatch(/query = query\.in\("payment_status", \[\.\.\.CAPTURED_PAYMENT_STATUSES\]\)\.not\("stripe_payment_intent_id", "is", null\);/);
   });
 
   it("flags the pre-fix en-route position write that never fired", () => {

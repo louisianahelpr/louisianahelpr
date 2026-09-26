@@ -48,9 +48,11 @@ vi.mock("@/lib/errorLogger", () => ({
   report: (...args: unknown[]) => reportMock(...args),
 }));
 
-import { getBlockedUserIds, areUsersBlocked, blockUser, unblockUser } from "./userBlocks";
+import { getBlockedUserIds, areUsersBlocked, blockUser, unblockUser, __resetBlockReadsForTests } from "./userBlocks";
 
 beforeEach(() => {
+  // Q330: a successful block-list read is held for 2 s; each test starts clean.
+  __resetBlockReadsForTests();
   fromMock.mockReset();
   insertMock.mockReset();
   updateEqMock.mockReset();

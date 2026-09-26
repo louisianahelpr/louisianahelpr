@@ -31,6 +31,7 @@ export const DB_ID_COLUMNS = {
     { table: "payout_transfers", column: "stripe_transfer_id" },
     { table: "disputes", column: "execution_transfer_id" },
     { table: "referral_credits", column: "stripe_transfer_id" },
+    { table: "crew_cancellation_fee_shares", column: "stripe_transfer_id" },
     { table: "chargeback_clawbacks", column: "original_transfer_id" },
     { table: "chargeback_clawbacks", column: "repay_transfer_id" },
   ],

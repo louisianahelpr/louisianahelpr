@@ -109,18 +109,18 @@ describe("ResetPasswordDialog — the send failed", () => {
   });
 
   it("surfaces the failure and does NOT close the dialog", async () => {
-    invokeMock.mockResolvedValue({ data: null, error: new Error("smtp is down") });
+    invokeMock.mockResolvedValue({ data: null, error: new Error("The mail service is down right now.") });
     const onClose = vi.fn();
     const onSuccess = vi.fn();
     render(<ResetPasswordDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);
     screen.getByRole("button", { name: /Send Reset Link/ }).click();
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith("smtp is down"));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("The mail service is down right now."));
     expect(onSuccess).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it("RELEASES the in-flight latch, so the admin can send again", async () => {
-    invokeMock.mockResolvedValueOnce({ data: null, error: new Error("smtp is down") });
+    invokeMock.mockResolvedValueOnce({ data: null, error: new Error("The mail service is down right now.") });
     const onClose = vi.fn();
     const onSuccess = vi.fn();
     render(<ResetPasswordDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);

@@ -18,6 +18,7 @@
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { inventory as toastInventoryOf } from "./toast-inventory.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
@@ -171,18 +172,15 @@ overlays.sort((a, b) => a.file.localeCompare(b.file));
 const overlayCount = overlays.reduce((a, o) => a + o.count, 0);
 
 // --- toasts -----------------------------------------------------------------
-// 516 call sites across 138 files (sonner). Each is a distinct message a user
-// reads, with its own copy and tone, and collectively they are the app's largest
-// body of user-facing text. An overlay enumeration reported these as "1
-// mechanism, 21 files" and undercounted by an order of magnitude.
-let toastSites = 0;
-const toastFiles = new Set();
-for (const f of files) {
-  if (rel(f).startsWith("src/components/ui/")) continue;
-  const src = readFileSync(f, "utf8");
-  const n = [...src.matchAll(/\btoast\s*(?:\.\s*(?:success|error|info|warning|loading|message|custom)\s*)?\(/g)].length;
-  if (n) { toastSites += n; toastFiles.add(rel(f)); }
-}
+// Each toast is a distinct message a user reads, with its own copy and tone,
+// and collectively they are the app's largest body of user-facing text. An
+// overlay enumeration once reported them as a single mechanism and
+// undercounted them by an order of magnitude. Counted from the ONE toast inventory
+// (scripts/toast-inventory.mjs, TypeScript AST, Q228) rather than a second
+// regex here, so SURFACE.md and docs/audit/toast-inventory.json cannot disagree.
+const toastInventory = toastInventoryOf(ROOT);
+const toastSites = toastInventory.summary.calls;
+const toastFiles = new Set(toastInventory.toasts.map((t) => t.file));
 
 // --- multi-step flows ------------------------------------------------------
 // A flow is any surface a user moves THROUGH, so every intermediate state can
@@ -375,7 +373,7 @@ L.push(`| Overlay surfaces | **instance** | ${surface.overlayCount} |`);
 // another; the generator was doing it too.
 const handRolledInstances = surface.overlays.reduce((n, o) => n + (o.kinds["hand-rolled"] ?? 0), 0);
 L.push(`| — of which hand-rolled, no dialog primitive | instance | ${handRolledInstances} (across ${surface.overlays.filter((o) => o.handRolled).length} files) |`);
-L.push(`| Toast messages | **call site** | ${surface.toastSites} (across ${surface.toastFiles.length} files) |`);
+L.push(`| Toast messages | **call site** | ${surface.toastSites} (across ${surface.toastFiles.length} files; itemised with their copy in \`docs/audit/toast-inventory.json\`) |`);
 L.push(`| Multi-step flows — confirmed | flow | ${surface.flowsConfirmed.length} |`);
 L.push(`| Multi-step flows — probable | flow | ${surface.flowsProbable.length} |`);
 L.push(`| Back/next navigation only | flow | ${surface.flowsNavOnly.length} |`);

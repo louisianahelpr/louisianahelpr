@@ -53,11 +53,14 @@
     "e2e/slow-network/steps.ts",
     // src/test/proofPhotoTeardownDetaches.test.ts imports the teardown helpers.
     "e2e/proofPhotoTeardown.ts",
+    // src/test/giftCardJourneyLedger.test.ts (SC-005) imports the journey's ledger checks.
+    "e2e/giftCardLedger.ts",
     // src/test/stateMatrixPendingApprovalUnreachable.test.ts (Q251) imports the
     // manifest enumerator to assert pending_approval cells are unreachable.
     "e2e/happy-path/state-matrix/stateMatrix.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/forEachBounded.ts",
+    "supabase/functions/_shared/boundedFetch.ts",
     "supabase/functions/_shared/reservedRecipient.ts",
     "supabase/functions/_shared/disputePayoutStamp.ts",
     "supabase/functions/_shared/marketing/secretGap.ts",
@@ -83,6 +86,7 @@
     "supabase/functions/_shared/helperEarnings.ts",
     "supabase/functions/_shared/seatTierGrant.ts",
     "supabase/functions/_shared/cancellationFee.ts",
+    "supabase/functions/_shared/crewShares.ts",
     "supabase/functions/_shared/confirmDeadline.ts",
     "supabase/functions/_shared/stripeIdentity.ts",
     "supabase/functions/_shared/instantPayoutFee.ts",

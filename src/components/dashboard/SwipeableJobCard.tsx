@@ -69,7 +69,7 @@ const SwipeableJobCard = ({
   // different times. this should not be happening"). A fixed duration
   // makes every card settle in exactly 220ms regardless of drag distance.
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (info.offset.x < DISMISS_THRESHOLD) {
       // Hold in swiped position — the dismiss is immediate (toast+Undo, no
       // confirm dialog), so the card just stays swiped-out until the parent

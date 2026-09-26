@@ -64,6 +64,9 @@ const UNREACHABLE: Allowlist = {
     admin_is_party: {
       reason: "Admin-only guard: AdminDisputes gates the decide controls for an admin who is a party, and renders any raised code in its own admin dispute UI.",
     },
+    dispute_job_charged_back: {
+      reason: "Admin console: AdminDisputes' decide handler toasts lifecycleErrorMessage(err), whose table carries this code's sentence (Q342 review M1), not rpcErrorMessage.",
+    },
   },
   rpc_helper_mark_done: {
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },

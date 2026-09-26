@@ -5,7 +5,6 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
@@ -29,6 +28,7 @@ import {
   noNavPages,
   tabStacks,
 } from "@/components/mobileNav/mobileNavHelpers";
+import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -493,7 +493,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             recognizable brand green. Was also a bark-green glass lens with a
             layered drop shadow that rivalled the FAB — that broke hierarchy.) */}
         {isActive && (
-          <motion.span
+          <SharedLayoutPill
             layoutId="mobile-nav-pill"
             // ROUND, deliberately — reversing the squircle note that used to
             // live here. That note argued `rounded-full` on a near-square box
@@ -581,7 +581,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             below the active label. Only renders for active so the
             non-active tabs stay clean. */}
         {isActive && (
-          <motion.span
+          <SharedLayoutPill
             layoutId="mobile-nav-underline"
             className="absolute bottom-0.5 w-6 h-[3px] rounded-full pointer-events-none"
             style={{

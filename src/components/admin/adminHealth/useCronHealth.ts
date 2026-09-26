@@ -24,10 +24,12 @@ import type { ConfigCheck } from "./useConfigChecks";
  *   LIVENESS  — did the job FIRE. Comes from `sweep_dead_crons()`, which reads
  *               `cron.job_run_details`. This is the only trustworthy source,
  *               because it sees SQL-only crons and jobs that have never run.
- *   ANSWERS   — what a run REPORTED. Comes from `cron_run_log`, which only
- *               holds runs that returned a JSON body inside pg_net's 5-second
- *               timeout. A cron that is healthy but slow is missing from it, so
- *               it is shown here as context and never as a liveness verdict.
+ *   ANSWERS   — what a run REPORTED. Comes from `cron_run_log`. Its HTTP
+ *               rows (response_id set) are runs that returned a JSON body
+ *               inside pg_net's 5-second timeout; a cron that is healthy but
+ *               slow is missing from them, so they are shown here as context
+ *               and never as a liveness verdict. SQL crons record their own
+ *               rows (response_id NULL, CJ-007) and are not counted here.
  *
  * Conflating the two is exactly how a monitor reports an outage as an all-clear,
  * so "jobs reporting" below is deliberately phrased as an observation rather
@@ -186,28 +188,43 @@ export const useCronHealth = () => {
       // ── 4. Context, deliberately not a verdict. See the header: cron_run_log
       // holds ANSWERS, not firings, so a low number here can mean "slow" as
       // easily as "stopped". The liveness row above is the one that judges.
-      const { data: logRows } = await supabase
+      // HTTP answers only: SQL crons record every run here since CJ-007
+      // (20260925231818), thousands a day, and would crowd daily jobs out of
+      // the 1000-row page.
+      const { data: logRows, error: logError } = await supabase
         .from("cron_run_log")
         .select("jobname")
+        .not("response_id", "is", null)
         .gte("occurred_at", since)
         .limit(1000);
       const reporting = new Set((logRows ?? []).map((r) => (r as { jobname: string }).jobname));
 
-      const { data: expectRows } = await supabase
+      const { data: expectRows, error: expectError } = await supabase
         .from("cron_work_expectations")
         .select("jobname")
         .limit(100);
       const registered = (expectRows ?? []).length;
 
       // Stated as two independent facts, not as a ratio. The sets genuinely
-      // differ — cron_run_log can only ever contain HTTP crons that answered,
+      // differ — the HTTP rows counted here are only the crons that answered,
       // while the tolerance list covers the SQL-only sweeps too — so "N of M"
       // would invite a comparison that is meaningless in both directions.
+      // A failed read is "unknown", never "0 jobs reporting" in an ok tone.
+      const readError = logError ?? expectError;
+      if (readError) {
+        checks.push({
+          id: "cron-reporting",
+          label: "Jobs reporting",
+          tone: "unknown",
+          detail: `Could not read ${logError ? "cron_run_log" : "cron_work_expectations"}: ${readError.message}`,
+        });
+        return checks;
+      }
       checks.push({
         id: "cron-reporting",
         label: "Jobs reporting",
         tone: "ok",
-        detail: `${reporting.size} job(s) returned a readable result in the last 24h. ${registered} job(s) have a registered liveness tolerance; the SQL-only sweeps among them never answer over HTTP, so they are judged by the liveness row above rather than counted here.`,
+        detail: `${reporting.size} job(s) returned a readable result in the last 24h. ${registered} job(s) have a registered liveness tolerance; the SQL sweeps among them record their results without an HTTP answer, so they are judged by the liveness row above rather than counted here.`,
       });
 
       return checks;

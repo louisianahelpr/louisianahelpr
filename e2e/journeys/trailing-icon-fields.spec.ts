@@ -1,9 +1,5 @@
-import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import type { Page } from "@playwright/test";
-import { test, expect, assertHealthy, newUserContext } from "./fixtures";
-import type { Session } from "./fixtures";
+import { test, expect, assertHealthy, newUserContext, optionalSession } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 
 /**
@@ -110,19 +106,19 @@ test(guestTitle, async ({ browser, journey }) => {
   await ctx.close();
 });
 
-/** The incomplete-profile seed account, minted locally (service role in .env); CI has no secret for it yet. */
-function incompleteSession(): Session | null {
-  if (!existsSync(join(process.cwd(), ".env"))) return null;
-  const out = execFileSync("node", ["scripts/test-signin-link.mjs", "incomplete-e2e", "--session", "--json"], { encoding: "utf8", maxBuffer: 1 << 24 });
-  const raw = JSON.parse(out) as { value: string };
-  return JSON.parse(raw.value) as Session;
-}
+/* The incomplete-profile seed account comes through the SAME door as every
+   other journey account: `optionalSession` (fixtures.ts) password-grants
+   PLAYWRIGHT_INCOMPLETE_EMAIL/_PASSWORD — the secrets press-every-control,
+   loading-states-refresh and a11y-prod already use — and falls back to the
+   local .env mint off CI. This used to mint through the service role only, so
+   CI (no .env) skipped the leg every night as UNJUSTIFIED (nightly-red #1719,
+   run 36164148002) while the secret it needed sat unused. */
 
 const incompleteTitle = scenarioTitle({ journey: "trailing-icon", persona: "new", state: "pending", rotation, outcome: "smooth" });
-test(incompleteTitle, async ({ browser, journey }) => {
+test(incompleteTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(incompleteTitle), "SCENARIO pins another scenario");
-  const session = incompleteSession();
-  test.skip(!session, "needs .env (service role) to mint the incomplete-e2e account");
+  const session = await optionalSession(request, "incomplete");
+  test.skip(!session, "PLAYWRIGHT_INCOMPLETE_EMAIL/_PASSWORD not set (or no local .env) — the incomplete-e2e account cannot be signed in");
   const ctx = await newUserContext(browser, session, { rotation });
   const page = journey.track("incomplete", await ctx.newPage());
   await test.step("/complete-profile: every ✓-bearing field shows its value", async () => {

@@ -20,23 +20,33 @@
  *               (user_id: adminId / admin.user_id / a.user_id), notifyUser(
  *               a.user_id, <title>, …, "admin_alert"), and remindAdmins(ids,
  *               <title>, …); a const title is resolved in its file or _shared.
- *   2. Each title starts with exactly one prefix in the NEWEST
- *      admin_alert_close_rule() table, or is in EXEMPT_NOT_A_QUEUE with the
- *      reason it names no admin queue. Never both.
- *   3. Two-way: every prefix and every exemption still matches a live title;
- *      every rule the table names has a branch in the newest
- *      admin_queue_still_pending(), and every branch is named by the table.
+ *   2. Each title starts with exactly one prefix: in the NEWEST
+ *      admin_alert_close_rule() table (a condition re-asks it), or in the
+ *      NEWEST admin_alert_manual_close() table (no table can answer; the
+ *      ledger labels it 'manual' and a person closes it with evidence).
+ *      Nothing is left on 'companions' (Q355 part 2, 20260926035647).
+ *   3. Two-way: every prefix still matches a live title; every rule the table
+ *      names has a branch in the newest admin_queue_still_pending(), and every
+ *      branch is named by the table.
  *   4. The newest ops_alert_condition dispatches 'ops-alert:custom' through
  *      them, and the SQL reads the title/link out of the mirror's own
  *      oncePerDayKey (adminPushEventKey) — checked against the real function.
  * Behaviour (a ban-review item stays open while pending_ban_review, closes
  * once it leaves it; every other rule re-asks its queue) is proven in
  * src/test/pglite/adminQueueAlertsClose.pglite.mjs (ALL PASS on the fix; 44
- * FAIL with NEW_MIGRATION=skip).
+ * FAIL with NEW_MIGRATION=skip); the part-2 rules (money held, arrival,
+ * violation reviews, notices, manual) in
+ * src/test/pglite/adminNoticeAlertsClose.pglite.mjs (70 PASS; 47 FAIL with
+ * NEW_MIGRATION=skip; 6 planted defects each caught).
  *
- * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql | ('ban review needed', | ('ban review wanted',
- * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |   ELSIF p_rule = 'stalled-job' THEN |   ELSIF p_rule = 'stalled-jobs' THEN
- * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
+ * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql | ('ban review needed', | ('ban review wanted',
+ * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   ELSIF p_rule = 'stalled-job' THEN |   ELSIF p_rule = 'stalled-jobs' THEN
+ * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |       ('repeat offender: ', | 
+ * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   ELSIF p_rule = 'notice' THEN |   ELSIF p_rule = 'notices' THEN
+ * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
+ * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
+ * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   AFTER INSERT ON public.notifications |   AFTER UPDATE ON public.notifications
+ * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | title: "Identity verification needs review", | title: "Identity check needs review",
  * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql |          'Low rating alert', |          'Low rating warning',
  * @mutate supabase/functions/_shared/alertPolicy.ts | return `admin-push:${ | return `admin-mirror:${
@@ -53,26 +63,6 @@ const MIGRATIONS = join(ROOT, "supabase", "migrations");
 const FUNCTIONS = join(ROOT, "supabase", "functions");
 const OPERATOR = new Set(["admin_alert", "system_alert"]);
 
-/**
- * Admin fan-out titles that name NO admin queue, each with its reason. They
- * are not admin-queue posts, so Q355 gives them no queue rule; they stay
- * 'companions' (see docs/OPEN.md Q355 for what is still open about them).
- * Keyed by lower-cased title prefix.
- */
-// @two-way src/test/adminQueueAlertsClose.test.ts:"stale exemption"
-const EXEMPT_NOT_A_QUEUE: Record<string, string> = {
-  "repeat offender: ": "violation notice; /admin?view=people has no pending state to re-ask",
-  "auto-restricted (": "violation notice (7d / 30d auto-suspension); no pending state",
-  "low rating alert": "violation notice (user_violations 'low_ratings', action 'warning'); no pending state",
-  "payout blocked — ": "one Stripe payout attempt; no admin queue holds it",
-  "scheduled payout failed": "one Stripe payout attempt; no admin queue holds it",
-  "transfer failed": "one Stripe transfer attempt; no admin queue holds it",
-  "cancellation fee transfer failed": "one Stripe transfer attempt; no admin queue holds it",
-  "arrival not confirmed in ": "the code says it: 'There is no arrival queue' (arrival-confirm-reminder)",
-  "arrival near a wrong pin not confirmed": "same: no arrival queue",
-  "new member joined": "informational (adminPushSeverity 'info'); nothing to do",
-  "dispute auto-resolved": "informational (adminPushSeverity 'info'); the dispute is already settled",
-};
 
 // ── small parsers ─────────────────────────────────────────────────────────
 /** Split on top-level commas, respecting (), [], {} and quoted strings. */
@@ -238,9 +228,16 @@ const condDef = defs.get("ops_alert_condition");
 const RULES: { prefix: string; rule: string }[] = ruleDef
   ? [...blankSqlComments(ruleDef.stmt).matchAll(/\(\s*'([^']+)'\s*,\s*'([\w-]+)'\s*\)/g)].map((m) => ({ prefix: m[1], rule: m[2] }))
   : [];
-const BRANCHES = pendingDef
-  ? new Set([...blankSqlComments(pendingDef.stmt).matchAll(/p_rule\s*=\s*'([\w-]+)'/g)].map((m) => m[1]))
-  : new Set<string>();
+// Branches: `p_rule = 'x'` and `p_rule IN ('x', 'y')`.
+const BRANCHES = new Set<string>();
+for (const m of blankSqlComments(pendingDef?.stmt ?? "").matchAll(/p_rule\s*(?:=\s*'([\w-]+)'|IN\s*\(([^)]*)\))/g)) {
+  if (m[1]) BRANCHES.add(m[1]);
+  else for (const x of m[2].matchAll(/'([\w-]+)'/g)) BRANCHES.add(x[1]);
+}
+const manualDef = defs.get("admin_alert_manual_close");
+const MANUAL: string[] = manualDef
+  ? [...blankSqlComments(manualDef.stmt).matchAll(/\(\s*'([^']+)'\s*,\s*'manual'\s*\)/g)].map((m) => m[1])
+  : [];
 
 const sql = sqlFanOuts();
 const edge = edgeFanOuts();
@@ -256,38 +253,86 @@ describe("every admin fan-out title has a close rule (Q355)", () => {
   });
 
   it("found the rule table and its branches", () => {
-    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_queue_alerts_close_themselves/);
-    expect(RULES.length).toBeGreaterThan(5);
-    expect(BRANCHES.size).toBeGreaterThan(5);
+    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves/);
+    // Floors, 2026-09-26: 19 rule rows, 13 branches, 1 manual row.
+    expect(RULES.length).toBeGreaterThanOrEqual(19);
+    expect(BRANCHES.size).toBeGreaterThanOrEqual(13);
+    expect(MANUAL.length).toBeGreaterThanOrEqual(1);
   });
 
   it("prefixes are LIKE-safe and survive ops_alert_normalise unchanged", () => {
     // No digits (normalise turns them into '#'), no uppercase, no LIKE wildcards.
-    const bad = RULES.filter((r) => /[0-9A-Z%_@]/.test(r.prefix)).map((r) => r.prefix);
+    const bad = [...RULES.map((r) => r.prefix), ...MANUAL].filter((p) => /[0-9A-Z%_@]/.test(p));
     expect(bad).toEqual([]);
   });
 
-  it("each title has exactly one queue rule, or an exact exemption — never both", () => {
+  it("each title has exactly one close rule, or is manual — never both, never neither", () => {
     const problems: string[] = [];
     for (const f of ALL) {
       const rules = RULES.filter((r) => f.key.startsWith(r.prefix));
-      const exempt = Object.keys(EXEMPT_NOT_A_QUEUE).filter((p) => f.key.startsWith(p));
-      if (rules.length + exempt.length !== 1) {
-        problems.push(`${f.site}: "${f.title}" rules=${rules.map((r) => r.prefix)} exempt=${exempt}`);
+      const manual = MANUAL.filter((p) => f.key.startsWith(p));
+      if (rules.length + manual.length !== 1) {
+        problems.push(`${f.site}: "${f.title}" rules=${rules.map((r) => r.prefix)} manual=${manual}`);
       }
     }
     expect(problems).toEqual([]);
   });
 
-  it("two-way: no stale prefix, no stale exemption", () => {
+  it("two-way: no stale rule prefix, no stale manual prefix", () => {
     expect(RULES.filter((r) => !ALL.some((f) => f.key.startsWith(r.prefix))).map((r) => r.prefix), "stale rule").toEqual([]);
-    expect(Object.keys(EXEMPT_NOT_A_QUEUE).filter((p) => !ALL.some((f) => f.key.startsWith(p))), "stale exemption").toEqual([]);
+    expect(MANUAL.filter((p) => !ALL.some((f) => f.key.startsWith(p))), "stale manual").toEqual([]);
+  });
+
+  it("a manual title is labelled 'manual' when it reaches the ledger", () => {
+    // The BEFORE INSERT trigger turns the default 'companions' into 'manual'.
+    const trg = blankSqlComments(defs.get("ops_alert_ledger_admin_manual")?.stmt ?? "");
+    expect(trg).toMatch(/admin_alert_manual_close\(/);
+    expect(trg).toMatch(/NEW\.verify_kind\s*:=\s*'manual'/);
+    const wired = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).some((f) =>
+      /CREATE\s+TRIGGER\s+trg_ops_alert_ledger_admin_manual\s+BEFORE\s+INSERT\s+ON\s+public\.ops_alert_ledger[\s\S]{0,120}ops_alert_ledger_admin_manual\(\)/i
+        .test(blankSqlComments(readFileSync(join(MIGRATIONS, f), "utf8"))));
+    expect(wired, "trigger created on ops_alert_ledger").toBe(true);
   });
 
   it("every rule the table names has a branch, and every branch is named", () => {
     const named = new Set(RULES.map((r) => r.rule));
     expect([...named].filter((r) => !BRANCHES.has(r)), "rule with no branch").toEqual([]);
     expect([...BRANCHES].filter((b) => !named.has(b)), "branch no title reaches").toEqual([]);
+  });
+
+  it("every moderation decision the review rules accept is an action the code writes", () => {
+    // Two-way against source: a renamed action would silently make a review
+    // rule unclosable (or, the other way, a guessed name would never match).
+    const body = blankSqlComments(pendingDef?.stmt ?? "");
+    // The review rules' list (the one naming set_ban_status; the IDV rule has its own).
+    const list = [...body.matchAll(/a\.action\s+IN\s*\(([^)]*)\)/g)].map((m) => m[1]).find((l) => l.includes("'set_ban_status'")) ?? "";
+    const actions = [...list.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
+    expect(actions.length, "decision list, 2026-09-26: 11").toBeGreaterThanOrEqual(11);
+    const walkCode = (dir: string): string[] =>
+      readdirSync(dir).flatMap((n) => {
+        const p = join(dir, n);
+        return statSync(p).isDirectory() ? walkCode(p) : /\.tsx?$/.test(n) && !/\.test\.tsx?$/.test(n) ? [p] : [];
+      });
+    const code = [
+      ...walkCode(join(ROOT, "src")).filter((f) => !f.includes(join("src", "test"))),
+      ...walkCode(FUNCTIONS),
+    ].map((f) => blankComments(readFileSync(f, "utf8"))).join("\n")
+      + readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql"))
+        .map((f) => blankSqlComments(readFileSync(join(MIGRATIONS, f), "utf8"))).join("\n");
+    const unwritten = actions.filter((a) => !new RegExp(`["'\`]${a}["'\`]`).test(code.replace(body, "")));
+    expect(unwritten, "decision actions nothing writes").toEqual([]);
+  });
+
+  it("every admin operator notification is remembered as a subject", () => {
+    const trg = blankSqlComments(defs.get("ops_alert_note_admin_subject")?.stmt ?? "");
+    expect(trg).toMatch(/admin_alert_close_rule\(NEW\.title\)/);
+    expect(trg).toMatch(/INSERT\s+INTO\s+public\.ops_alert_admin_subjects/);
+    const wired = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).some((f) =>
+      /CREATE\s+TRIGGER\s+trg_notifications_zz_admin_alert_subject\s+AFTER\s+INSERT\s+ON\s+public\.notifications[\s\S]{0,200}ops_alert_note_admin_subject\(\)/i
+        .test(blankSqlComments(readFileSync(join(MIGRATIONS, f), "utf8"))));
+    expect(wired, "trigger created on notifications").toBe(true);
+    // The subjects the rules read come from that table, not the bell rows.
+    expect(blankSqlComments(defs.get("admin_alert_subjects")?.stmt ?? "")).toMatch(/FROM\s+public\.ops_alert_admin_subjects/);
   });
 
   it("the newest ops_alert_condition routes 'ops-alert:custom' through them", () => {

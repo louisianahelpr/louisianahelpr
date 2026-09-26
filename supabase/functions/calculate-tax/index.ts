@@ -3,7 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { isLaborTaxable } from "../_shared/salesTax.ts";
+import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 
 /**
  * The sales tax the poster will ACTUALLY be charged — from Stripe, not from us.
@@ -109,7 +109,7 @@ serve(async (req: Request) => {
           tax_behavior: TAX_BEHAVIOR,
           // Same code create-payment assigns the labor line, so the preview and
           // the charge are computed from identical inputs.
-          tax_code: "txcd_20030000",
+          tax_code: TAXABLE_LABOR_TAX_CODE,
         },
       ],
       customer_details: {

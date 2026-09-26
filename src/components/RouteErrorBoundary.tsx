@@ -10,6 +10,7 @@ import {
   recoverFromChunkError,
   isRecoveryReloadInFlight,
 } from "@/lib/chunkReload";
+import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
 
 // Inline SVGs instead of lucide-react so these class components (statically
 // imported in App.tsx) don't pull the entire lucide chunk onto the critical
@@ -87,7 +88,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     // Stale-chunk crashes (a deploy changed the chunk hashes mid-session)
     // aren't real route bugs — they reach this boundary when the user
     // navigates to a lazy route whose chunk 404s. Auto-recover with a
-    // one-shot hard reload and skip the Sentry noise. Without this, the
+    // bounded hard-reload schedule and skip the Sentry noise. Without this, the
     // user lands on the generic "This page hit a problem" fallback and is
     // stuck until they manually refresh.
     if (isChunkLoadError(error)) {
@@ -146,18 +147,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     // Reload already scheduled — say so plainly and get out of the way. Not
     // gated on `chunkError`: while a recovery reload is in flight the error
     // caught can be the TypeError a prevented preload leaves behind.
-    if (this.state.recovering) {
-      return (
-        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 p-8 text-center" role="status">
-          <span style={{ color: "hsl(var(--bark))" }}>
-            <RefreshCw className="h-6 w-6 motion-safe:animate-spin" strokeWidth={1.75} />
-          </span>
-          <p className="font-sans text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Loading…
-          </p>
-        </div>
-      );
-    }
+    if (this.state.recovering) return <ChunkRecoveringState />;
 
     // No "Update ready" state. A chunk that still fails after the automatic
     // reload is an error like any other, and gets the same card; the only

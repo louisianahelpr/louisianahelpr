@@ -49,9 +49,13 @@
  *   PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit \
  *     card-maps-hit-area
  */
-// SHOWN ABLE TO FAIL: dropping the prop restores the original defect verbatim
-// — the location slot goes back to being the full-width anchor, and /jobs
-// measures 15% again at 375.
+// SHOWN ABLE TO FAIL: dropping the prop puts the plain maps anchor back in
+// every AppliedJobCard's location slot. The full-address band (15% at 375)
+// only appears on cards in a confirmed state, and the vacuity run of PR #1797
+// (job 108310368705) SURVIVED on a day prod held none in view — the city-sized
+// anchor fits the 4% chip budget. The collapsed-card assertion (zero maps hit
+// on a card with no action row) is what goes red now, whatever state the
+// shared accounts' jobs are in.
 // @mutate src/pages/jobs/AppliedJobCard.tsx | locationPressToMap | locationPressToMap={false}
 
 import { mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -153,7 +157,24 @@ async function probeCards(page: Page) {
           return a.classList.contains("sr-only") ? 0 : ar.width;
         }),
       );
+      /* COLLAPSED, read from JobCardShell's own sr-only toggle
+         (`button[aria-expanded]`, a direct child of the frame). A collapsed
+         card has no action row, so none of the legitimate maps controls the
+         4% budget exists for is on it: DirectionsButton renders only in an
+         expanded card's actions, and the focus-only address anchor is a
+         clipped 1x1 box that elementFromPoint cannot hit until it is focused.
+         On a collapsed card, then, ANY maps hit is the card tap leaving the
+         app. */
+      const toggle = card.querySelector(':scope > button[aria-expanded]');
+      const collapsed = toggle?.getAttribute("aria-expanded") === "false";
+      /* The location slot is actually drawn — either JobCardMetaRow branch:
+         the press-to-map button or the plain maps anchor. A card with no
+         address has no slot, and zero hits there proves nothing. */
+      const row = card.querySelector(".job-meta-row");
+      const hasLocation = !!row?.querySelector('button[aria-label$="tap to expand this job"], ' + mapsSel);
       return {
+        collapsed,
+        hasLocation,
         title: (card.querySelector("h2")?.textContent ?? "?").trim().slice(0, 44),
         box: `${Math.round(r.width)}x${Math.round(r.height)}`,
         sampled,
@@ -253,8 +274,34 @@ for (const vw of [375, 1440] as const) {
           `${surface.name}@${vw}`,
           `${probed.length} card(s) probed; worst maps tap area ${worstArea.toFixed(1)}% ` +
             `(budget ${MAX_MAPS_AREA_PCT}%); widest visible maps anchor ${worstWidth.toFixed(0)}% of card width; ` +
-            `boxes ${[...new Set(probed.map((c) => c.box))].join(",")}`,
+            `boxes ${[...new Set(probed.map((c) => c.box))].join(",")}; ` +
+            `${probed.filter((c) => c.collapsed && c.hasLocation).length} collapsed with a location slot, ` +
+            `worst collapsed maps area ${Math.max(0, ...probed.filter((c) => c.collapsed && c.hasLocation).map((c) => c.areaPct)).toFixed(1)}%`,
         );
+
+        /* THE COLLAPSED CARD, at ZERO. The 4% budget below admits a chip the
+           user aimed at, and a city-sized anchor fits inside it: the vacuity
+           run of PR #1797 (job 108310368705) put AppliedJobCard back on the
+           plain anchor (`locationPressToMap={false}`) and this spec stayed
+           GREEN, because on the cards prod held that day the anchor was the
+           CITY (not the full-address `basis-full` band of the original
+           report) and the meta row's `overflow-hidden` clips its `-my-2`
+           overhang to the 16px line — a few percent of a 151px card. That is
+           still the owner's defect ("tapping the location here shouldn't open
+           the map… I keep tapping it on accident", /posts 2026-09-14, the
+           report the prop was made for). So a collapsed card, which carries
+           none of the legitimate maps controls, may own no maps hit at all. */
+        const collapsedWithLocation = probed.filter((c) => c.collapsed && c.hasLocation);
+        expect(
+          collapsedWithLocation.length,
+          `${surface.name}@${vw}: no collapsed card with a location slot was probed — the zero-budget half measured nothing`,
+        ).toBeGreaterThan(0);
+        const collapsedOffenders = collapsedWithLocation.filter((c) => c.areaPct > 0);
+        expect(
+          collapsedOffenders.map((c) => `"${c.title}" ${c.box}: ${c.areaPct.toFixed(1)}% → ${c.hits.join(" | ")}`),
+          `${surface.name}@${vw}: a COLLAPSED card's tap lands on a maps link. Drawn by ${surface.drawnBy}; ` +
+            `the location slot must be JobCardMetaRow's \`locationPressToMap\` button (tap expands, hold opens the map).`,
+        ).toEqual([]);
 
         const offenders = probed.filter((c) => c.areaPct > MAX_MAPS_AREA_PCT);
         expect(

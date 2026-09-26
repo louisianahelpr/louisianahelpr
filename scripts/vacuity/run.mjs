@@ -116,6 +116,43 @@ export function timedOut(r) {
   return r.error?.code === "ETIMEDOUT" || r.signal === "SIGTERM" || r.signal === "SIGKILL";
 }
 
+/**
+ * The last `n` lines that can say WHY a run was red.
+ *
+ * `runPlaywright` returns stdout + stderr, and with PLAYWRIGHT_WEB_SERVER=1 the
+ * webServer's build warnings arrive on stderr, AFTER the reporter's output. A
+ * plain `.slice(-25)` therefore kept 25 lines of `[WebServer]` Tailwind/Vite
+ * warnings and dropped the failing test's error: measured on PR #1809
+ * (2026-09-26), where e2e/prod-audit/shell-spacing.spec.ts came back
+ * "RED before any mutation" three runs in a row with no reason printed (OPEN.md
+ * Q438; also Q432, run 36215687625). Server chatter is dropped first, so the
+ * reason is what is kept.
+ */
+export function failureTail(out, n = 25) {
+  const lines = String(out ?? "")
+    .trim()
+    .split("\n")
+    .filter((l) => !/^\s*\[WebServer\]/.test(l));
+  const tail = lines.slice(-n);
+  // A Playwright failure prints its assertion first and then a long list of
+  // attachment paths, so the last n lines can still be all paths (measured on
+  // the next PR #1809 run: "2 failed" and screenshots, no Expected/Received).
+  // Keep the first failure's own block too: from its "  1) [project] ›" header
+  // up to the attachments.
+  // Every failure's own block, not only the first: PR #1809's gate printed
+  // shell-spacing.spec.ts:148's assertion and nothing at all for :297.
+  const starts = lines.flatMap((l, i) => (/^\s*\d+\) \[[^\]]+\] ›/.test(l) ? [i] : []));
+  if (!starts.length || lines.length - starts[0] <= n) return tail.join("\n");
+  const blocks = [];
+  for (const start of starts.slice(0, 4)) {
+    for (const l of lines.slice(start, start + 40)) {
+      if (/^\s*attachment #\d+:/.test(l)) break;
+      blocks.push(l);
+    }
+  }
+  return [...blocks, "      …", ...tail].join("\n");
+}
+
 function runVitest(guards, extraEnv = {}) {
   const list = Array.isArray(guards) ? guards : [guards];
   const r = spawnSync(
@@ -336,7 +373,11 @@ function runPlaywright(guard, { rebuild = false } = {}) {
       },
     },
   );
-  const out = (r.stdout || "") + (r.stderr || "");
+  // stderr FIRST: the webServer's build log arrives on stderr after the
+  // reporter's lines, and every reader of `out` keeps only its tail, so the
+  // other order reported 25 lines of vite warnings and not the failed
+  // assertion (activity-loading-reserve.spec.ts, PR #1797, 2026-09-25).
+  const out = (r.stderr || "") + (r.stdout || "");
 
   if (timedOut(r)) {
     return {
@@ -492,7 +533,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const r = runVitest([g]);
     if (r.green) continue;
     baselineRed.add(g);
-    baselineWhy.set(g, r.out.trim().split("\n").slice(-25).join("\n"));
+    baselineWhy.set(g, failureTail(r.out));
   }
   /*
    * A guard red ALONE but green TOGETHER is its own finding, not just a skip:
@@ -540,12 +581,12 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
           `  Read the tail below before blaming the spec: a failed rebuild or a webServer that did\n` +
           `  not come up looks identical here to a genuinely flaky test. If it IS the spec, that is a\n` +
           `  finding — a guard that needs a retry gets ignored, and a real failure ignored with it.\n` +
-          `  First run's tail:\n${c.dim(r.out.trim().split("\n").slice(-25).join("\n"))}\n`,
+          `  First run's tail:\n${c.dim(failureTail(r.out))}\n`,
       );
       continue;
     }
     baselineRed.add(g);
-    baselineWhy.set(g, again.out.trim().split("\n").slice(-25).join("\n"));
+    baselineWhy.set(g, failureTail(again.out));
   }
 
   for (const m of mutations) {

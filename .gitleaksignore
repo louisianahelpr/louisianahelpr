@@ -46,6 +46,7 @@ b794db9973958b4794ea79cd7e9cd0cc5905953a:public/tools/apple-jwt.html:private-key
 774b15c2e08fa3fcaa02a7dcf9352dc6e8bc5af6:src/lib/errorLogger.test.ts:generic-api-key:194
 acae4c06f9e7f37ba4df533467290b45f452679c:src/lib/errorLogger.test.ts:generic-api-key:12
 acae4c06f9e7f37ba4df533467290b45f452679c:src/lib/errorLogger.test.ts:generic-api-key:19
+7a774563278ee16514fdc67b5a5489711015760d:src/lib/errorLogger.test.ts:generic-api-key:191
 
 # src/lib/hibpCheck.test.ts: SHA-1 of the word "password" (HIBP test vector).
 b7ed6e10ef1f4d4e3d950e8b1955b446ef8245ec:src/lib/hibpCheck.test.ts:generic-api-key:23

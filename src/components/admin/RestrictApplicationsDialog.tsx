@@ -144,7 +144,7 @@ export function RestrictApplicationsDialog({
       onSuccess?.();
       handleClose();
     } catch (err) {
-      toast.error(mutationErrorMessage(err, "Couldn't apply that restriction — try again"));
+      toast.error(mutationErrorMessage(err, "Couldn't apply that restriction — try again."));
     } finally {
       inFlight.current = false;
       setSaving(false);

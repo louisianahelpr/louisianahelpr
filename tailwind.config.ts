@@ -79,7 +79,7 @@ export default {
         //              `serif` token on purpose — do not add one back.
         //   - Script:  Beth Ellen (personal authentic — micro-accents / signatures)
         sans: ["Montserrat", "\"Montserrat Fallback\"", "system-ui", "-apple-system", "sans-serif"],
-        display: ["\"Bodoni Moda\"", "\"Bodoni Moda Fallback\"", "Georgia", "serif"],
+        display: ["\"Bodoni Moda\"", "\"Bodoni Moda Fallback\"", "\"Bodoni Moda Fallback Liberation\"", "Georgia", "serif"],
         script: ["\"Beth Ellen\"", "cursive"],
       },
       colors: {

@@ -28,6 +28,8 @@ import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
 import { UnsettledSettlements } from "./UnsettledSettlements";
+import { TestTag } from "@/components/admin/TestTag";
+import { fetchSeedUserIds } from "@/components/admin/seedRows";
 
 // Maps DB exception_type values to human-readable labels
 const EXCEPTION_TYPE_LABELS: Record<string, string> = {
@@ -54,6 +56,8 @@ interface ExceptionRow {
   full_name?: string | null;
   email?: string | null;
   credential_type?: string | null;
+  /** Q233: resolved client-side; verification_exceptions carries no such column. */
+  is_seed?: boolean;
 }
 
 const ExceptionQueueInner = () => {
@@ -119,11 +123,14 @@ const ExceptionQueueInner = () => {
         );
       }
 
+      const seedIds = await fetchSeedUserIds(userIds);
+
       return baseRows.map((r) => ({
         ...r,
         full_name: nameById.get(r.user_id)?.full_name ?? null,
         email: nameById.get(r.user_id)?.email ?? null,
         credential_type: r.helper_credentials?.credential_type ?? null,
+        is_seed: seedIds.has(r.user_id),
       }));
     },
   });
@@ -185,7 +192,7 @@ const ExceptionQueueInner = () => {
     qc.invalidateQueries({ queryKey });
     if (failures.length === 0) toast.success(`Resolved ${ok}`);
     else if (ok === 0) toast.error(`Could not resolve ${failures.length} — you may not have permission to write to this queue.`);
-    else toast.warning(`Resolved ${ok}, ${failures.length} failed — ${failures.join(", ")}`);
+    else toast.warning(`Resolved ${ok}, ${failures.length} failed — ${failures.join(", ")}.`);
   };
 
   const resolve = async (row: ExceptionRow, res: string) => {
@@ -205,7 +212,7 @@ const ExceptionQueueInner = () => {
       .select("id");
     setBusy(null);
     if (error) {
-      toast.error(userFacingError(error, "Couldn't action that exception — try again"));
+      toast.error(userFacingError(error, "Couldn't action that exception — try again."));
       return;
     }
     if (!updated || updated.length === 0) {
@@ -308,6 +315,7 @@ const ExceptionQueueInner = () => {
                     <p className="font-semibold text-ds-13 text-foreground truncate">
                       {r.full_name || "Unnamed user"}
                     </p>
+                    {r.is_seed && <TestTag />}
                     <span className={cn("inline-flex items-center rounded-full text-ds-10 font-semibold px-2 py-0.5", toneBadgeClasses.warning)}>
                       {EXCEPTION_TYPE_LABELS[r.exception_type] ?? r.exception_type}
                     </span>

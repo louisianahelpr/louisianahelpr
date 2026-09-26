@@ -116,6 +116,8 @@ and 3) does reach native users, because the app calls the same Supabase project.
 
 | Date | Path | Who | Dry-run total | Live total | Notes |
 |---|---|---|---|---|---|
-| (first drill pending: the lead) | | | | | |
+| 2026-09-26 | plan (all three) | cloud session (cloud/open-audits) | 29 ms (vercel/supabase CLIs absent: reads fell back to placeholders, as designed) | — | `node scripts/rollback/rollback.mjs plan`: 16 steps printed, 0 mutating calls. |
+| 2026-09-26 | migration | cloud session (cloud/open-audits) | — | PGlite 11.9 s wall (15 ms of SQL) | Drilled on the newest migration, 20260925155322 (run_missed_cron_catch_up): down SQL = 20260923172145's body + its REVOKE/GRANT; bad x1 then revert x3, all applied. Not pushed (a drill, not an incident). |
+| (web + function live drills pending: they move PRODUCTION traffic / code, so the owner or lead runs them in a quiet hour) | | | | | |
 
 Re-drill quarterly (docs/OPEN.md Q69).

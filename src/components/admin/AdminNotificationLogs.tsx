@@ -17,6 +17,8 @@ import { queryKeys } from "@/lib/queryKeys";
 import { toneTextClasses } from "@/components/admin/tones";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { TestTag } from "@/components/admin/TestTag";
+import { fetchSeedUserIds } from "@/components/admin/seedRows";
 
 interface LogRow {
   id: string;
@@ -30,6 +32,8 @@ interface LogRow {
   error_message: string | null;
   message_id: string | null;
   created_at: string;
+  /** Q233: the recipient is a seed account (resolved client-side). */
+  is_seed?: boolean;
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -184,7 +188,9 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
 
       // unwrap() surfaces a failed select as isError so the page shows a
       // recoverable retry instead of silently rendering an empty table.
-      return (unwrap(await q) as LogRow[]) ?? [];
+      const logRows = (unwrap(await q) as LogRow[]) ?? [];
+      const seedIds = await fetchSeedUserIds(logRows.map((r) => r.user_id));
+      return logRows.map((r) => ({ ...r, is_seed: seedIds.has(r.user_id) }));
     },
   });
 
@@ -346,6 +352,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   </td>
                   <td className="px-4 py-2.5 max-w-[200px] truncate">
                     {row.recipient_email || <span className="text-muted-foreground">—</span>}
+                    {row.is_seed && <> <TestTag /></>}
                   </td>
                   <td className="px-4 py-2.5 max-w-[280px] truncate">
                     <div className="truncate">{row.subject || <span className="text-muted-foreground">—</span>}</div>
@@ -404,6 +411,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   <div className="flex items-center justify-between gap-2 text-ds-13">
                     <span className="truncate text-foreground">
                       {row.recipient_email || <span className="text-muted-foreground">No recipient</span>}
+                      {row.is_seed && <> <TestTag /></>}
                     </span>
                     <span className="text-ds-11 text-muted-foreground flex-shrink-0">
                       {CATEGORY_LABEL[row.category] ?? row.category}

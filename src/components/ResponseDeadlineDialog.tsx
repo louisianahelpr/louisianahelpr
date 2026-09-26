@@ -15,6 +15,7 @@ import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { MessageSquare, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
+import { userFacingError } from "@/lib/userFacingError";
 
 type Props = {
   open: boolean;
@@ -77,11 +78,11 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
       // posterAwardBlockMessage, RPC guard copy); anything without one gets
       // the generic backstop so a failure never dies silently with the
       // dialog stuck open and no explanation.
-      const msg = err instanceof Error && err.message.trim() ? err.message : null;
-      setErrorMessage(msg ?? "Couldn't send the offer — please try again.");
+      const msg = userFacingError(err, "Couldn't send the offer — please try again.");
+      setErrorMessage(msg);
       // Toast kept as a secondary signal (e.g. screen-reader/haptic parity
       // with other flows); the inline block above is the primary surface.
-      toast.error(msg ?? "Couldn't send the offer — please try again.");
+      toast.error(msg);
     } finally {
       sendingRef.current = false;
       setSubmitting(false);

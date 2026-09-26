@@ -251,9 +251,10 @@ serve(async (req) => {
       const { data: job, error: jobErr } = await adminClient
         .from("jobs")
         // The state columns are what the templates check the event against (Q307).
+        // ONE literal: supabase-js types the row by parsing this string, and a
+        // concatenation widens it to `string` (every column then fails to type).
         .select(
-          "id, title, customer_id, helper_id, response_deadline, dispute_status, status, dispute_helper_response, " +
-            "poster_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_arrival_at, poster_confirmed_working_at, payment_status",
+          "id, title, customer_id, helper_id, response_deadline, dispute_status, status, dispute_helper_response, poster_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_arrival_at, poster_confirmed_working_at, payment_status",
         )
         .eq("id", jobId)
         .maybeSingle();

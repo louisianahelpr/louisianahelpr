@@ -20,3 +20,4 @@ export function removePrefixes(args: Conn & { prefixes: StoragePrefix[] }): Prom
 export function removeMessageAttachmentsRest(args: Conn & { attachmentUrls: string[] }): Promise<RemovalResult>;
 export function removeJobMediaRest(args: Conn & { jobs: JobMediaOwner[] }): Promise<RemovalResult>;
 export function removeUserStorageRest(args: Conn & { userIds: string[] }): Promise<RemovalResult>;
+export function callerReadsBuckets(headers: Record<string, string> | Headers | undefined | null): boolean;

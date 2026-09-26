@@ -81,8 +81,36 @@ async function listUnder(base, headers, bucket, prefix) {
   return found;
 }
 
+/**
+ * CAN THIS CALLER READ BUCKET METADATA? Only the service role can: Storage
+ * answers `GET /bucket/<id>` with 400 "Bucket not found" to a user or anon
+ * token for EVERY bucket, real or not (measured 2026-09-25 as anon: avatars,
+ * proof-photos, job-photos and no-such-bucket-xyz all answer the identical
+ * NoSuchBucket). So for a user caller the Q219 probe is not evidence of
+ * anything, and treating it as a missing bucket failed every prefix: #1582,
+ * press-every-control run 36069319716 shard 4, "[press cleanup] storage
+ * removal incomplete (0 removed)" for all four fixture jobs, each with
+ * "GET /bucket/job-photos -> HTTP 400 Bucket not found". The press cleanup and
+ * scripts/e2e/prod-lifecycle-sweeper.mjs both run as the test poster, so
+ * neither has ever removed a file this way.
+ */
+export function callerReadsBuckets(headers) {
+  const h = new Headers(headers ?? {});
+  const bearer = (h.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (bearer.startsWith("sb_secret_")) return true;
+  const payload = bearer.split(".")[1];
+  if (!payload) return false;
+  try {
+    return JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8")).role === "service_role";
+  } catch {
+    // Not a JWT we can read: not provably the service role, so no probe.
+    return false;
+  }
+}
+
 /** Remove every object under the given prefixes. Never throws. */
 export async function removePrefixes({ base, headers, prefixes, source = "storage-cleanup" }) {
+  const probeBuckets = callerReadsBuckets(headers);
   let removed = 0;
   const failures = [];
   // Prod load: list each bucket's top level ONCE and skip every prefix whose
@@ -99,7 +127,8 @@ export async function removePrefixes({ base, headers, prefixes, source = "storag
           // 200, so a dropped or misspelled bucket read as "nothing to
           // remove". Ask for the bucket itself first; its absence is a
           // failure, never a skip.
-          await call(base, headers, "GET", `/bucket/${encodeURIComponent(bucket)}`);
+          // Only where the answer means something; see callerReadsBuckets.
+          if (probeBuckets) await call(base, headers, "GET", `/bucket/${encodeURIComponent(bucket)}`);
           const names = new Set();
           for (let offset = 0; ; offset += 100) {
             const rows = await call(base, headers, "POST", `/object/list/${bucket}`, { prefix: "", limit: 100, offset });

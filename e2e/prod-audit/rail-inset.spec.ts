@@ -35,7 +35,7 @@ import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 import { spacingScreens } from "./shellSpacing";
 
-// @mutate src/index.css | right: var(--desktop-sidebar-w); | right: 0;
+// @mutate src/index.css | right edge now (owner). No max-width cap, no centered phone frame. */\n    right: var(--desktop-sidebar-w); | right edge now (owner). No max-width cap, no centered phone frame. */\n    right: 0;
 // @mutate src/index.css | padding-right: var(--desktop-sidebar-w); | padding-right: 0;
 
 const RAIL = 248;

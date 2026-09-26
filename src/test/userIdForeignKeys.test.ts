@@ -23,7 +23,7 @@
  * NO_FK_BY_DESIGN is exact in both directions: adding a FK to a listed column
  * fails until it is removed from the list.
  *
- * @mutate supabase/migrations/20260926034714_user_fks_q331_deletion_backstop.sql | FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE NOT VALID; | NOT VALID;
+ * @mutate supabase/migrations/20260926034714_user_fks_q331_deletion_backstop.sql | ADD CONSTRAINT admin_user_notes_user_id_fkey\n      FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE NOT VALID; | ADD CONSTRAINT admin_user_notes_user_id_fkey\n      NOT VALID;
  * @mutate supabase/migrations/20260926034714_user_fks_q331_deletion_backstop.sql | FOREIGN KEY (cancelled_by) REFERENCES auth.users(id) ON DELETE SET NULL NOT VALID; | NOT VALID;
  * @mutate supabase/migrations/20260924010547_user_fks_prefs_and_message_sender.sql | FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE; | NULL;
  */
@@ -132,10 +132,11 @@ describe("every person-id column (*user_id, *_by) has a foreign key or a stated 
   // Inventory, EXACT: the scanner must still see every public BASE TABLE uuid
   // column named *user_id or *_by. Live information_schema agreed on
   // 2026-09-26 (58); Q355 part 2 adds ops_alert_admin_subjects.user_id (FK to
+  // auth.users); Q225 adds parish_match_alert_queue.user_id (FK to
   // auth.users). A new person column moves this; so does a scanner that
   // stops reading a file.
   it("scans the whole person-column inventory", () => {
-    expect(all.size).toBe(59);
+    expect(all.size).toBe(60);
   });
   it("sees the columns this class is about (parser sanity)", () => {
     for (const k of ["notification_logs.user_id", "jobs.cancelled_by", "profiles.license_reviewed_by", "payment_refunds.initiated_by_user_id", "notifications.user_id"]) {

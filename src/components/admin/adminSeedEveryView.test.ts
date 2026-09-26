@@ -1,10 +1,10 @@
-// @mutate src/components/admin/AdminSubscriptions.tsx | {p.full_name || "No name"}{p.is_seed && <TestTag />} | {p.full_name || "No name"}
+// @mutate src/components/admin/AdminSubscriptions.tsx | {p.full_name \|\| "No name"}{p.is_seed && <TestTag />} | {p.full_name \|\| "No name"}
 // @mutate src/components/admin/adminPayoutBatches/BatchRow.tsx | {batch.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/AdminHelperTiers.tsx | {helper.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/AdminHelperTiers.tsx | const seed = await fetchSeedUserIds(rows.map((r) => r.user_id)); | const seed = new Set<string>();
 // @mutate src/components/admin/adminJobs/JobListItem.tsx | {job.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/AdminNotificationLogs.tsx | const seedIds = await fetchSeedUserIds(logRows.map((r) => r.user_id)); | const seedIds = new Set<string>();
-// @mutate src/components/admin/AdminAnalytics.tsx | .select("*").eq("is_seed", false).order("created_at", { ascending: false }); | .select("*").order("created_at", { ascending: false });
+// @mutate src/components/admin/AdminAnalytics.tsx | .select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false }); | .select(JOB_READABLE_COLUMNS).order("created_at", { ascending: false });
 // @mutate src/lib/capturedPayment.ts | !!job.stripe_payment_intent_id | true
 // @mutate src/pages/admin/Admin.tsx | select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null) | select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
 /*
@@ -105,7 +105,9 @@ describe("Q233: every admin view filters or tags seed rows", () => {
       it(`${view}: every profiles/jobs read excludes seed rows`, () => {
         const src = code(rule.file);
         const reads = [...src.matchAll(/from\("(profiles|jobs)"\)[^;]*/g)].map((m) => m[0]);
-        expect(reads.length).toBeGreaterThan(3);
+        // Exact: AdminAnalytics reads profiles once and jobs twice (2026-09-25). A new
+        // read must raise this, which puts its is_seed filter in front of a reviewer.
+        expect(reads.length).toBe(3);
         for (const r of reads) expect(r, r.slice(0, 120)).toMatch(/\.eq\("is_seed", false\)/);
       });
     } else if (rule.kind === "export") {
@@ -125,7 +127,7 @@ describe("Q233: every admin view filters or tags seed rows", () => {
     const statsBody = admin.slice(start, admin.indexOf("setStats(", start));
     // One query = from `supabase.from("jobs"|"profiles")` up to the next `supabase.`.
     const reads = statsBody.split("supabase.").filter((q) => /^from\("(profiles|jobs)"\)/.test(q));
-    expect(reads.length).toBeGreaterThan(10);
+    expect(reads.length).toBe(18); // exact (2026-09-25): a new stat read raises this
     for (const r of reads) expect(r, r.slice(0, 120)).toMatch(/\.eq\("is_seed", (false|true)\)/);
   });
 });

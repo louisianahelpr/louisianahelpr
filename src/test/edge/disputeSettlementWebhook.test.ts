@@ -15,7 +15,7 @@
  * REFUND_CLOSABLE_PAYMENT_STATES now; anything else pages and is left alone.
  *
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await closeDecidedDisputeOnLostChargeback( | void (
- * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | if (outcome === "no_unsettled_dispute") return; | if (outcome !== "closed") return;
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | if (outcome === "no_unsettled_dispute") return outcome; | if (outcome !== "closed") return outcome;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | _disputed_cents: dispute.amount, | _disputed_cents: chargeCents,
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | .in("payment_status", [...REFUND_CLOSABLE_PAYMENT_STATES]) | .neq("id", "")
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | "escrow", "payout_pending", "cancelling", | "escrow", "payout_pending", "cancelling", "released", "chargeback",

@@ -4,11 +4,11 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: node scripts/audit-coverage.mjs -->
 
-Generated from findings.jsonl as of its newest entry: 2026-09-26T04:30:29.111Z
+Generated from findings.jsonl as of its newest entry: 2026-09-26T05:06:07.000Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 21 open (2 open launch blockers), 340 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
-- **Surface:** 1035 auditable surfaces (446 navigable, 589 copy) per SURFACE.md
+- **Findings:** 18 open (2 open launch blockers), 343 fixed, 1 wontfix, 22 obsolete, 14 retracted, 31 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Surface:** 1036 auditable surfaces (448 navigable, 588 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
 very different.** `RAN — no report` means findings exist in the bus with no
@@ -25,7 +25,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 2 | `lh-design-holes` | REPORTED | 0 | – | 8 |
 | 2 | `lh-edge-functions` | REPORTED | 0 | – | 15 |
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
-| 3 | `lh-cron-jobs` | REPORTED | 1 | – | 10 |
+| 3 | `lh-cron-jobs` | REPORTED | 0 | – | 11 |
 | 3 | `lh-money-escrow` | REPORTED | 6 | – | 18 |
 | 3 | `lh-native-bridge` | REPORTED | 1 | **1** | 19 |
 | 4 | `lh-build-release` | REPORTED | 0 | – | 15 |
@@ -40,7 +40,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 6 | `lh-notifications` | REPORTED | 1 | – | 9 |
 | 7 | `lh-input-boundary` | REPORTED | 0 | – | 3 |
 | 7 | `lh-scheduling-time` | REPORTED | 0 | – | 8 |
-| 7 | `lh-subscriptions-credits` | REPORTED | 2 | – | 9 |
+| 7 | `lh-subscriptions-credits` | REPORTED | 1 | – | 10 |
 | 8 | `lh-a11y-sensory` | REPORTED | 0 | – | 6 |
 | 8 | `lh-browse-discovery` | REPORTED | 0 | – | 5 |
 | 8 | `lh-visual-critic` | REPORTED | 0 | – | 9 |
@@ -49,7 +49,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 9 | `lh-long-tail-features` | REPORTED | 0 | – | 2 |
 | 10 | `lh-compliance-store` | REPORTED | 0 | – | 7 |
 | 10 | `lh-observability` | REPORTED | 1 | **1** | 2 |
-| 10 | `lh-perf-deps` | REPORTED | 1 | – | 14 |
+| 10 | `lh-perf-deps` | REPORTED | 0 | – | 15 |
 | 10 | `lh-seo-web` | REPORTED | 0 | – | 5 |
 | 11 | `lh-data-recovery` | REPORTED | 2 | – | 4 |
 | 11 | `lh-suggester` | REPORTED | 1 | – | 5 |
@@ -63,7 +63,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | — | `lh-mkt-instagram` | NOT STARTED | – | – | – |
 | — | `lh-mkt-orchestrator` | NOT STARTED | – | – | – |
 
-## Surface coverage — 1035 auditable surfaces, not 46 lanes
+## Surface coverage — 1036 auditable surfaces, not 46 lanes
 
 Routes are 3% of the surface. Coverage is measured against SURFACE.md classes,
 each naming the lane accountable for it.
@@ -75,12 +75,12 @@ each naming the lane accountable for it.
 | `?tab=` variants | 29 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | `?view=` variants | 25 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | Overlay surfaces | 149 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
-| Toast messages | 552 | `lh-copy-content` | COVERED |
-| Multi-step flows — confirmed | 16 | `lh-e2e-journeys` | COVERED |
+| Toast messages | 551 | `lh-copy-content` | COVERED |
+| Multi-step flows — confirmed | 17 | `lh-e2e-journeys` | COVERED |
 | Multi-step flows — probable | 15 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 40 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |
 | Forms (submittable) | 41 | `lh-input-boundary` | COVERED |
-| Admin components (components/admin + pages/admin/Admin*) | 105 | `lh-admin-moderation` | COVERED |
+| Admin components (components/admin + pages/admin/Admin*) | 106 | `lh-admin-moderation` | COVERED |
 | Email templates | 19 | `lh-email-delivery` | COVERED |
 | Notification types (defined in notification_type_pref_map) | 18 | `lh-notifications` | COVERED |
 

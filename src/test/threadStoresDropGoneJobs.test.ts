@@ -22,7 +22,7 @@
  *
  * @mutate src/lib/goneReference.ts | return (error as { code?: string }).code === "23503"; | return (error as { code?: string }).code === "never";
  * @mutate src/lib/goneReference.ts | return (error as { code?: string }).code === "23503"; | return true;
- * @mutate src/lib/archivedConversations.ts | for (const k of localOnlyKeys) if (!gone.has(k)) server[k] = local[k]; | for (const k of localOnlyKeys) server[k] = local[k];
+ * @mutate src/lib/archivedConversations.ts | const cannotExist = (e: { code?: string }) => isGoneReference(e) \|\| code(e) === "22P02"; | const cannotExist = (e: { code?: string }) => code(e) === "22P02";
  * @mutate src/lib/archivedConversations.ts | if (isGoneReference(error)) return; | if (false) return;
  * @mutate src/lib/pinnedConversations.ts | if (isGoneReference(error)) return; | if (false) return;
  */
@@ -157,6 +157,11 @@ describe("thread stores: a gone job is dropped, anything else still reports", ()
       `helpr_archived_conversations_${ME}`,
       JSON.stringify({ [`${LIVE_JOB}_${OTHER}`]: at, [`${GONE_JOB}_${OTHER}`]: at }),
     );
+    // Q511: only keys this device archived and never saw confirmed are pushed.
+    localStorage.setItem(
+      `helpr_archived_conversations_pending_${ME}`,
+      JSON.stringify([`${LIVE_JOB}_${OTHER}`, `${GONE_JOB}_${OTHER}`]),
+    );
     const map = await loadArchives(ME);
     expect(Object.keys(map)).toEqual([`${LIVE_JOB}_${OTHER}`]);
     expect(upserts.some((u) => u.rows.length === 1 && u.rows[0].job_id === LIVE_JOB)).toBe(true);
@@ -167,6 +172,7 @@ describe("thread stores: a gone job is dropped, anything else still reports", ()
     failWith = RLS_ERROR;
     const { loadArchives } = await import("@/lib/archivedConversations");
     localStorage.setItem(`helpr_archived_conversations_${ME}`, JSON.stringify({ [`${GONE_JOB}_${OTHER}`]: "2026-09-25T00:00:00.000Z" }));
+    localStorage.setItem(`helpr_archived_conversations_pending_${ME}`, JSON.stringify([`${GONE_JOB}_${OTHER}`]));
     const map = await loadArchives(ME);
     expect(Object.keys(map)).toEqual([`${GONE_JOB}_${OTHER}`]);
     expect(reportMock).toHaveBeenCalledTimes(1);

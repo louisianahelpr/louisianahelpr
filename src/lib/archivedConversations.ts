@@ -40,6 +40,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
+import { isGoneReference } from "@/lib/goneReference";
 
 const STORAGE_KEY = "helpr_archived_conversations";
 
@@ -291,9 +292,9 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
     };
     const code = (e: { code?: string } | null) => e?.code;
     // Rows the server can never accept: the person (or job) no longer exists
-    // (23503 — an archive of someone who then deleted their account; their
-    // thread is now the deleted-account thread), or a malformed id (22P02).
-    const GONE = new Set(["23503", "22P02"]);
+    // (23503, isGoneReference — an archive of someone who then deleted their
+    // account, or of a deleted job), or a malformed id (22P02).
+    const cannotExist = (e: { code?: string }) => isGoneReference(e) || code(e) === "22P02";
     const { error: batchError } = await upsert([...localOnly.values()].map(toRow));
     if (!batchError) for (const k of localOnly.keys()) pending.delete(k);
     // 23502: a deleted-account row (Q335) before 20260926041106 made
@@ -308,7 +309,7 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
           pending.delete(k);
           continue;
         }
-        if (GONE.has(code(error) ?? "")) {
+        if (cannotExist(error)) {
           localOnly.delete(k);
           pending.delete(k);
         }
@@ -381,6 +382,10 @@ export function archiveConversation(
       writeLocal(userId, rollback);
       setPending(userId, key, false);
       emitArchiveChanged();
+      // The thread's job (or person) was deleted while the inbox was open:
+      // it can never be archived and the rollback above already dropped it,
+      // so this is not a fault. Any other error still reports.
+      if (isGoneReference(error)) return;
       report(error, { severity: "warning", tags: { source: "archivedConversations.archiveConversation" } });
     }
   })();

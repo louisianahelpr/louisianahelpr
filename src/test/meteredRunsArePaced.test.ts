@@ -28,7 +28,7 @@
  * @mutate scripts/audit/measure-loading-states.mjs | requestMeter.paceTo(ceilingFor("loading-states", resolve(REPO, "e2e", "request-budgets.json")), { workers: CONCURRENCY }); | void CONCURRENCY;
  * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers }); | void ceilingFor;
  * @mutate e2e/requestMeter.mjs | context.on("page", (page) => this.pacePage(page)); | void 0;
- * @mutate scripts/audit/press-every-control.mjs | const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: LOAD_CEILING, burst: cycleBurst }); | const wait = 0;
+ * @mutate scripts/audit/press-every-control.mjs | const wait = ceilingWaitMs({ | const wait = 0 && ceilingWaitMs({
  * @mutate e2e/request-budgets.json | "a11y-prod-webkit": { | "a11y-prod-webkit-retired": {
  */
 import { describe, it, expect } from "vitest";
@@ -64,7 +64,7 @@ function budgetedRuns(): Run[] {
   for (const file of files) {
     const text = read(`.github/workflows/${file}`);
     for (const [job, code] of jobs(text)) {
-      const budget = [...code.matchAll(/run: node scripts\/e2e\/request-budget\.mjs --label (.+?)\s*$/gm)];
+      const budget = [...code.matchAll(/run: node scripts\/e2e\/request-budget\.mjs --label (\$\{\{[^}]*\}\}|\S+)[^\n]*$/gm)];
       if (!budget.length) continue;
       const drivers: Driver[] = [];
       if (/npx playwright test\b[^\n]*--project=/.test(code)) drivers.push({ kind: "playwright" });
@@ -74,9 +74,16 @@ function budgetedRuns(): Run[] {
         if (f) scripts.push(f[1]);
       }
       for (const m of code.matchAll(/run: node (scripts\/\S+\.mjs)\s*$/gm)) scripts.push(m[1]);
+      // A wrapper shell script (press-wave.sh runs the sharded press waves)
+      // drives whatever node scripts it launches.
+      for (const m of code.matchAll(/run: bash (scripts\/\S+\.sh)\b/gm)) {
+        for (const n of read(m[1]).matchAll(/\bnode (scripts\/\S+\.mjs)/g)) scripts.push(n[1]);
+      }
       // Only a script that LAUNCHES a browser sends the metered load; the
       // budget checker itself and the loading-state verdict do not.
       for (const f of scripts) if (launchesBrowser(f)) drivers.push({ kind: "script", file: f });
+      // The label is the flag's own value; anything after it (--dir <shard>,
+      // --ceiling-only) is an option of the checker, not part of the label.
       for (const b of budget) {
         const raw = b[1];
         const labels = raw.startsWith("${{")
@@ -108,7 +115,7 @@ function unpaced(d: Driver, label: string): string | null {
   // per press cycle, with the ceiling read for its own label.
   const def = /const paceToCeiling = async \(page\) => \{([\s\S]*?)\n {2}\};/.exec(src);
   if (
-    def && /ceilingWaitMs\(/.test(def[1]) && /await paceToCeiling\(page\);/.test(src) &&
+    def && /const wait = ceilingWaitMs\(\{/.test(def[1]) && /if \(wait > 0\) await page\.waitForTimeout\(wait\);/.test(def[1]) && /await paceToCeiling\(page\);/.test(src) &&
     new RegExp(`"${esc(label)}"\\)\\.ceilingPerMinute`).test(src)
   ) return null;
   return `${d.file} runs label "${label}" with no pacing gate (e2e/requestMeter.mjs paceTo(ceilingFor("${label}")))`;

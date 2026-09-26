@@ -11,7 +11,7 @@
  *
  * @mutate .github/workflows/nightly-red-age.yml | map(select(.title != $self)) | map(select(.title != "x"))
  * @mutate .github/workflows/nightly-red-age.yml | SELF_TITLE: "nightly-red: nightly-red-age" | SELF_TITLE: "nightly-red: other"
- * @mutate .github/workflows/nightly-red-age.yml | | map(select([.labels[].name] \| index($ack) \| not)) | | map(.)
+ * @mutate .github/workflows/nightly-red-age.yml | \| map(select([.labels[].name] \| index($ack) \| not)) | \| map(.)
  */
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";

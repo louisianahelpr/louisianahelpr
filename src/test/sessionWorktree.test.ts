@@ -122,6 +122,8 @@ describe("session start: a local session in the shared checkout gets its own wor
   it("is wired as a SessionStart hook", () => {
     const s = JSON.parse(readFileSync(join(ROOT, ".claude", "settings.json"), "utf8"));
     const cmds: string[] = s.hooks.SessionStart.flatMap((g: { hooks: { command: string }[] }) => g.hooks.map((h) => h.command));
+    // 4 SessionStart hooks on 2026-09-26; an unreadable hooks block must not pass as "wired".
+    expect(cmds.length).toBeGreaterThanOrEqual(4);
     expect(cmds).toContain('node "$CLAUDE_PROJECT_DIR/scripts/session-worktree.mjs" start');
   });
 });

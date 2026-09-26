@@ -112,22 +112,6 @@ process.on("uncaughtException", (e) => { restoreAll(); throw e; });
  * A timeout is `inconclusive`, which is already a hard failure. The honest
  * answer when nothing was observed.
  */
-/*
- * THE TAIL OF A RED RUN MUST CARRY ITS FAILURE (Q432). A Playwright run's
- * last lines are the webServer's `[WebServer]` build warnings, so a plain
- * `.slice(-25)` kept Tailwind/Vite noise and dropped the failing assertion
- * (run 36215687625: #1819's privacy-requests.spec.ts entries showed only
- * warnings). Drop those lines before taking the tail.
- */
-export function failureTail(out, n = 25) {
-  return String(out ?? "")
-    .trim()
-    .split("\n")
-    .filter((l) => !/^\s*\[WebServer\]/.test(l))
-    .slice(-n)
-    .join("\n");
-}
-
 export function timedOut(r) {
   return r.error?.code === "ETIMEDOUT" || r.signal === "SIGTERM" || r.signal === "SIGKILL";
 }
@@ -141,7 +125,8 @@ export function timedOut(r) {
  * warnings and dropped the failing test's error: measured on PR #1809
  * (2026-09-26), where e2e/prod-audit/shell-spacing.spec.ts came back
  * "RED before any mutation" three runs in a row with no reason printed (OPEN.md
- * Q438). Server chatter is dropped first, so the reason is what is kept.
+ * Q438; also Q432, run 36215687625). Server chatter is dropped first, so the
+ * reason is what is kept.
  */
 export function failureTail(out, n = 25) {
   const lines = String(out ?? "")

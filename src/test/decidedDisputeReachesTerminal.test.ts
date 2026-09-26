@@ -36,7 +36,7 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
  *
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await closeDecidedDisputeOnLostChargeback( | void (
  * @mutate supabase/migrations/20260926034237_chargeback_lost_closes_decided_dispute.sql | OR _disputed_cents < _charge_cents THEN | THEN
- * @mutate supabase/migrations/20260926034348_decided_dispute_says_payment_processing.sql | 'Dispute decided', | 'Dispute resolved',
+ * @mutate supabase/migrations/20260926034348_decided_dispute_says_payment_processing.sql | _customer_id,\n      'info',\n      'Dispute decided', | _customer_id,\n      'info',\n      'Dispute resolved',
  * @mutate src/components/job-card/jobStatusLine.ts | return disputeSettling(job) ? "dispute_settling" : "done_paid"; | return "done_paid";
  * @mutate supabase/migrations/20260926034348_decided_dispute_says_payment_processing.sql | IF _payment_status = 'chargeback' THEN | IF false THEN
  */

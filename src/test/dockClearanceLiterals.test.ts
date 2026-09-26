@@ -21,7 +21,7 @@ import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 // @mutate src/components/ui/sonner.tsx | bottom: "calc(var(--safe-area-bottom, 0px) + 96px)", | bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",
-// @mutate src/components/ui/PageScaffold.tsx | import | const __q265 = "calc(var(--safe-area-bottom, 0px) + 96px)"; import
+// @mutate src/components/ui/PageScaffold.tsx | import type { CSSProperties, ReactNode } from "react"; | const __q265 = "calc(var(--safe-area-bottom, 0px) + 96px)"; import type { CSSProperties, ReactNode } from "react";
 
 const ROOT = resolve(__dirname, "..", "..");
 const FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })

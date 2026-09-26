@@ -249,6 +249,66 @@ function useSearchOnOwnLine(): boolean {
   return on;
 }
 
+/** The hidden-unread bar. One definition so the invisible loading-frame copy
+    and the real bar cannot differ in height. */
+function HiddenUnreadBar({ count, onShowAll }: { count: number; onShowAll: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onShowAll}
+      className="w-full flex items-center gap-2 rounded-ds-md px-3 py-2.5 btn-press transition-colors text-left"
+      style={{
+        background: "hsl(var(--amber-tint) / 0.10)",
+        border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
+      }}
+    >
+      <span
+        className="shrink-0 w-2 h-2 rounded-full"
+        style={{ background: "hsl(var(--burnt-sienna))" }}
+        aria-hidden="true"
+      />
+      <span
+        className="font-sans text-ds-13 leading-snug"
+        style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+      >
+        {count === 1
+          ? "1 unread conversation isn't in Active — show all"
+          : `${count} unread conversations aren't in Active — show all`}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The last hidden-unread count this device saw (MQ28), stored as
+ * "<userId>:<count>". One device-level key, not one per account, because
+ * the inbox's first skeleton frame renders BEFORE `userId` resolves: a
+ * per-account read waited for it and the held space arrived ~15ms after
+ * the skeleton, shifting it (measured, 2026-09-26). While `userId` is
+ * still null the stored count is trusted; once it resolves, a count
+ * stored by a different account is dropped.
+ */
+const HIDDEN_UNREAD_CACHE_KEY = "helpr_inbox_hidden_unread";
+
+function readCachedHiddenUnread(userId: string | null): number {
+  try {
+    const [owner, raw] = (localStorage.getItem(HIDDEN_UNREAD_CACHE_KEY) ?? "").split(":");
+    if (userId && owner !== userId) return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0; // storage blocked: first-visit behaviour, nothing held
+  }
+}
+
+function writeCachedHiddenUnread(userId: string, count: number) {
+  try {
+    localStorage.setItem(HIDDEN_UNREAD_CACHE_KEY, `${userId}:${count}`);
+  } catch {
+    // storage blocked: the next visit behaves like a first one
+  }
+}
+
 /**
  * ConversationList — the inbox surface of the Messages page: the
  * Messages title card, the "All threads" header, and the pull-to-
@@ -732,6 +792,15 @@ export function ConversationList({
   const hiddenUnreadCount = conversations.filter(
     (c) => c.unread > 0 && !(c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus)),
   ).length;
+
+  // Last count this device saw, read once, so the loading frame can hold the
+  // bar's space (MQ28). Written back only from a settled, unsearched Active
+  // view: the same conditions under which the real bar renders.
+  const cachedHiddenUnread = useMemo(() => readCachedHiddenUnread(userId), [userId]);
+  useEffect(() => {
+    if (loading || !userId || inboxTab !== "active" || searchQuery.trim()) return;
+    writeCachedHiddenUnread(userId, hiddenUnreadCount);
+  }, [loading, userId, inboxTab, searchQuery, hiddenUnreadCount]);
 
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
@@ -1410,6 +1479,45 @@ export function ConversationList({
                 : `${agedOutCount} finished conversations are older than ${THREAD_AGE_OUT_DAYS} days and are tucked away. They're still here — search for the person or the job to open one.`}
             </p>
           )}
+          {/* ── THE HIDDEN-UNREAD BANNER ────────────────────────────────────
+              The price of landing on Active (owner, 2026-09-19), paid openly.
+
+              Active is `LIVE_JOB_STATUSES`, which does NOT include `open` —
+              so an applicant's unread question about a posting you have not
+              awarded yet, the single most common unread thread a poster gets,
+              is NOT in the tab the inbox now opens on. "Opens to Active" must
+              never mean "hides something you have not read".
+
+              This is the only place that can say so, and it matters most on
+              PHONE: the tab strip lives behind a disclosure that starts
+              collapsed, so the "All N" count is not even on screen. There is
+              no Unread tab to fall back on any more either — it was removed
+              the same day.
+
+              Shown only when there is genuinely something concealed: on
+              Active, not searching, with at least one unread thread outside
+              the live slice. It sends the reader to All (the widest view),
+              not to a filter, because the point is to stop hiding.
+
+              ON TOP, WITH ITS SPACE HELD (owner, 2026-09-26, MQ28: "back on
+              top, space held"). The count only exists once the inbox lands, so
+              a bar that simply appeared then pushed every row down (CLS 0.059
+              at 375). The last count this device saw for this account is kept
+              (`hiddenUnreadCacheKey`), and while the list loads an invisible
+              copy of the bar with that text holds its height above the
+              skeleton. A device's very first visit has nothing cached and can
+              still shift once. */}
+          {loading && inboxTab === "active" && !searchQuery.trim() && cachedHiddenUnread > 0 && (
+            <div aria-hidden="true" style={{ visibility: "hidden" }}>
+              <HiddenUnreadBar count={cachedHiddenUnread} onShowAll={() => {}} />
+            </div>
+          )}
+          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
+            <HiddenUnreadBar
+              count={hiddenUnreadCount}
+              onShowAll={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}
+            />
+          )}
           {loading ? (
             /* No `space-y` here on purpose. The real list stacks
                ConversationRows flush and divides them with each row's own
@@ -1675,53 +1783,6 @@ export function ConversationList({
                 </div>
               )}
             </div>
-          )}
-          {/* Below the rows, not above them (owner, 2026-09-26, MQ28): the
-              banner arrives with the unread counts, and above the list it
-              pushed every row down when it did. Below, it displaces nothing. */}
-          {/* ── THE HIDDEN-UNREAD BANNER ────────────────────────────────────
-              The price of landing on Active (owner, 2026-09-19), paid openly.
-
-              Active is `LIVE_JOB_STATUSES`, which does NOT include `open` —
-              so an applicant's unread question about a posting you have not
-              awarded yet, the single most common unread thread a poster gets,
-              is NOT in the tab the inbox now opens on. "Opens to Active" must
-              never mean "hides something you have not read".
-
-              This is the only place that can say so, and it matters most on
-              PHONE: the tab strip lives behind a disclosure that starts
-              collapsed, so the "All N" count is not even on screen. There is
-              no Unread tab to fall back on any more either — it was removed
-              the same day.
-
-              Shown only when there is genuinely something concealed: on
-              Active, not searching, with at least one unread thread outside
-              the live slice. It sends the reader to All (the widest view),
-              not to a filter, because the point is to stop hiding. */}
-          {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
-            <button
-              type="button"
-              onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}
-              className="w-full flex items-center gap-2 rounded-ds-md px-3 py-2.5 btn-press transition-colors text-left"
-              style={{
-                background: "hsl(var(--amber-tint) / 0.10)",
-                border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
-              }}
-            >
-              <span
-                className="shrink-0 w-2 h-2 rounded-full"
-                style={{ background: "hsl(var(--burnt-sienna))" }}
-                aria-hidden="true"
-              />
-              <span
-                className="font-sans text-ds-13 leading-snug"
-                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-              >
-                {hiddenUnreadCount === 1
-                  ? "1 unread conversation isn't in Active — show all"
-                  : `${hiddenUnreadCount} unread conversations aren't in Active — show all`}
-              </span>
-            </button>
           )}
           </div>
           </PullToRefreshWrapper>

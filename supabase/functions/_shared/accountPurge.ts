@@ -349,7 +349,7 @@ async function cancelStripeSubscription(
  * WERE deleted first, so every retry left the account further half-purged
  * while still telling the user to try again. Recursing fixes both halves.
  */
-async function listAllObjects(
+export async function listAllObjects(
   admin: PurgeCapableClient,
   bucket: string,
   prefix: string,

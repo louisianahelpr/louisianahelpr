@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -556,7 +556,9 @@ const AdminDisputes = () => {
       setHelperShare(50);
       loadDisputes();
     } catch (err: unknown) {
-      toast.error(userFacingError(err, "Couldn't record that decision — try again"));
+      // lifecycleErrorMessage first: a designed refusal (e.g. Q342's
+      // dispute_job_charged_back) says why, instead of "try again".
+      toast.error(lifecycleErrorMessage(err) ?? userFacingError(err, "Couldn't record that decision — try again"));
     } finally {
       setSubmittingDecision(false);
     }

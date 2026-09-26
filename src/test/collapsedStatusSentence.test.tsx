@@ -278,6 +278,12 @@ const POSTER_FIXTURES: Record<
   },
   dispute: { job: job({ status: "disputed", helper_id: HELPER, dispute_status: "open" }) },
   dispute_escalated: { job: job({ status: "disputed", helper_id: HELPER, dispute_status: "escalated" }) },
+  /* Q344: decided (job completed, dispute_status 'resolved') but the split has
+     not moved the money. The flag is what the card attaches from the dispute row. */
+  dispute_settling: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "escrow", dispute_status: "resolved", dispute_settling: true }),
+    completion: { tipped: true, reviewed: true },
+  },
   done_paid: {
     job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
     completion: { tipped: true, reviewed: true },
@@ -340,6 +346,7 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   overdue: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY }),
   dispute: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "open" }),
   dispute_escalated: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "escalated" }),
+  dispute_settling: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "escrow", dispute_status: "resolved", dispute_settling: true }),
   done_paid: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "released" }),
 };
 

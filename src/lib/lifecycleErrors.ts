@@ -108,6 +108,10 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // EXPECTED_REFUSALS below.
   dispute_settlement_in_progress:
     "An admin is settling this dispute's payment right now, so it can't be changed. Refresh in a few minutes to see the result.",
+  // rpc_decide_dispute, 20260926034348 (Q342 review M1): the card holder's bank
+  // holds this job's payment in a card dispute, so no split could move it.
+  dispute_job_charged_back:
+    "The card holder's bank is holding this job's payment in a card dispute, so a decision here couldn't move any money. Settle it by hand once the bank rules.",
   // open_dispute_as refuses a job whose escrow cancel_escrow is refunding
   // (payment_status 'cancelling'), 20260915034822.
   dispute_payment_being_cancelled:

@@ -13,7 +13,6 @@ import { ONE_TIME_PASS_DAYS } from "../../_shared/proTiers.ts";
 import { sendGiftCardEmail } from "../../_shared/giftCardEmail.ts";
 import { giftEmailCrossesSeedBoundary } from "../../_shared/seedBoundary.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
-import { standardPayoutAtIso } from "../../_shared/escrowTiming.ts";
 import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
 import {
   type SubscriptionLinkage,
@@ -802,21 +801,16 @@ export async function handleCheckoutSessionCompleted(
     : (session.payment_intent as any)?.id;
 
   if (jobId && piId && sessionType !== "tip" && kind !== "job_boost") {
-    const isRepay = (session.metadata as any)?.repay === "true";
     const updateData: any = {
       stripe_payment_intent_id: piId,
       payment_status: "escrow", // Mark as escrow only after confirmed checkout
     };
-
-    if (isRepay) {
-      updateData.payment_status = "payout_pending";
-      // STANDARD PAY (Q202, _shared/escrowTiming.ts), anchored on NOW: a re-pay
-      // is a brand-new card charge, and the 3-day wait is its card-dispute
-      // buffer. Anchoring on the old done stamp would pay it out at once
-      // (money-escrow review 2026-09-23).
-      updateData.payout_scheduled_at = standardPayoutAtIso(null);
-      logStep("Re-payment completed, scheduling payout", { jobId, pi: piId });
-    }
+    // Q343: a `metadata.repay === "true"` branch used to flip the job straight
+    // to payout_pending here. No checkout creator ever wrote that key (0 of the
+    // 8 checkout.sessions.create calls in supabase/functions), so it was dead;
+    // and a live one would schedule a payout from a webhook alone. Removed;
+    // src/test/checkoutMetadataKeysAreWritten.test.ts fails if this handler
+    // branches on a metadata key no creator writes.
 
     // Race-safe tax recording: the payment_intent.succeeded handler also writes
     // sales_tax_amount, but Stripe does not guarantee delivery order — if
@@ -916,13 +910,12 @@ export async function handleCheckoutSessionCompleted(
           ? "Escrow funding — job not marked funded after capture"
           : "Escrow funding — THE JOB IS GONE and the payment was captured",
         message: jobError
-          ? "A checkout was captured but the jobs UPDATE (payment_status→escrow/payout_pending) failed. Stripe will retry once the DB recovers."
+          ? "A checkout was captured but the jobs UPDATE (payment_status→escrow) failed. Stripe will retry once the DB recovers."
           : "A checkout was captured and the job row no longer exists — deleted while its checkout was open. Stripe holds the money and nothing local references it. This will NOT self-heal: paymentIntentSucceeded looks the job up by stripe_payment_intent_id, which this write is what sets, and money-reconciliation makes no Stripe calls. Refund from the Stripe dashboard using the session id below.",
         fields: {
           session_id: session.id,
           job_id: jobId,
           payment_intent: piId,
-          repay: String(isRepay),
           db_error: jobError?.message ?? "matched 0 rows — job deleted mid-checkout",
         },
       });
@@ -932,7 +925,7 @@ export async function handleCheckoutSessionCompleted(
         }`,
       );
     } else {
-      logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
+      logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId });
 
       // Fan out the helper match — HERE, and only here, because this is the
       // first moment the job is actually funded.
@@ -948,13 +941,10 @@ export async function handleCheckoutSessionCompleted(
       // the pre-funding call could only ever no-op — the trigger had to move to
       // the point where the predicate becomes true.
       //
-      // Skipped for `repay`: that path settles an EXISTING job that already has
-      // its helper, so there is nobody to match.
-      //
       // Best-effort by design. A match fan-out must never fail a captured
       // payment — the job is funded and discoverable through browse regardless,
       // so a failure here costs reach, not correctness. Logged, never thrown.
-      if (!isRepay) {
+      {
         try {
           const { error: matchError } = await supabase.functions.invoke("instant-job-match", {
             body: { jobId },

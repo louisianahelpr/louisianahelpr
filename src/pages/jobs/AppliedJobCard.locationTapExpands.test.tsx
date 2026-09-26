@@ -48,6 +48,8 @@ import type { AppliedApp, Job } from "../../components/job-card/activityConstant
 /* The tracker opens a realtime channel; its pure derivations are kept because
    the collapsed card computes from them. Same partial mock as
    AppliedJobCard.posterTile.test.tsx. */
+// Q344: the cards read unsettled decided disputes through React Query; none here.
+vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 vi.mock("@/components/JobTracking", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/JobTracking")>()),
   JobTracking: () => <div data-testid="tracker" />,

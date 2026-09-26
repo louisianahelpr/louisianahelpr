@@ -139,6 +139,13 @@ interface Surface {
   /** Why the first row legitimately starts somewhere else. */
   offsetNote?: string;
   offsetBudget?: number;
+  /**
+   * The phone status-tab row is OPEN on this URL (a non-default `?filter=`),
+   * so the loaded header draws it and ActivityPageSkeleton must reserve it
+   * (`tabRowOpens`). Asserted on the loaded page, so the surface cannot go
+   * quietly vacuous if the header stops opening the row.
+   */
+  tabRowOpen?: boolean;
 }
 
 const SURFACES: Surface[] = [
@@ -147,6 +154,22 @@ const SURFACES: Surface[] = [
     url: "/jobs",
     as: "helper",
     hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
+  },
+  /* THE TAB-ROW RESERVATION (2026-09-26). The two surfaces above open on the
+     DEFAULT filter, where the phone tab row starts folded (owner, 2026-09-25)
+     and `tabRowOpens` is false in the skeleton — so removing the reservation
+     (`{false && (`, the @mutate above) changed nothing either surface draws,
+     and PR #1797's vacuity run (job 108326395029) reported it SURVIVED. A
+     non-default filter is the state in which the loaded header shows the row
+     and the skeleton must reserve it; without the reservation the placeholder
+     list starts one tab line higher than the real one, and first-y holds it to
+     OFFSET_BUDGET. */
+  {
+    name: "jobs-done",
+    url: "/jobs?filter=done",
+    as: "helper",
+    hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
+    tabRowOpen: true,
   },
   {
     name: "posts",
@@ -313,6 +336,14 @@ for (const surface of SURFACES) {
       await page.waitForTimeout(2_000);
       const loaded = await rows(page);
       await info.attach(`${surface.name}-loaded.png`, { body: await page.screenshot(), contentType: "image/png" });
+
+      if (surface.tabRowOpen) {
+        await expect(
+          page.getByRole("button", { name: "Hide status filters" }).first(),
+          `${surface.name}: the loaded header did not open the phone status-tab row on ${surface.url} — ` +
+            `this surface exists to measure that row's reservation, and measured nothing`,
+        ).toBeVisible();
+      }
 
       // VACUITY FLOOR, both frames. An empty set passes every comparison
       // below, and a capture window that closed too early looks exactly like

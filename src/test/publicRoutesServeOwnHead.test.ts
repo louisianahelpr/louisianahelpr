@@ -35,6 +35,12 @@
  * its page's usePageMeta also reads. Two-way against the generator's NOINDEX
  * list (minus the routes behind <ProtectedRoute>, which no anonymous crawler
  * reaches) and against the `_og=noindex` rewrites.
+ *
+ * Q401(b) (owner 2026-09-26: the "Hire a Helpr…" copy wins): the landing page
+ * `/` is the static shell, so its pre-JS title, description, og:* and
+ * twitter:* must equal LANDING_PAGE_META, the entry Index.tsx's usePageMeta
+ * spreads. Before this, index.html said "Helpr connects you with trusted
+ * neighbors…" until JavaScript swapped in "Hire a Helpr…".
  */
 // @mutate vercel.json | "source": "/help", | "source": "/help-moved",
 // @mutate api/share.ts | if (route.kind === "page") { | if (route.kind === "page" && url.hostname === "never") {
@@ -47,6 +53,9 @@
 // @mutate src/lib/publicPageMeta.mjs | export const NOINDEX_ROBOTS = "noindex, follow"; | export const NOINDEX_ROBOTS = "index, follow";
 // @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/signup-pending`, | canonical: SITE_ORIGIN,
 // @mutate api/share.ts |     robots: signup.robots,\n |
+// @mutate index.html | <meta property="og:description" content="Hire a Helpr or find local work. | <meta property="og:description" content="Helpr connects you with trusted neighbors.
+// @mutate index.html | <meta name="description" content="Hire a Helpr or find local work in Louisiana. | <meta name="description" content="Helpr connects you with trusted neighbors across Louisiana.
+// @mutate src/pages/info/Index.tsx |     ...LANDING_PAGE_META,\n |     ...LANDING_PAGE_META,\n    description: "Helpr connects you with trusted neighbors.",\n
 // @mutate src/pages/auth/AccountBanned.tsx | usePageMeta(NOINDEX_PAGE_META["/account-banned"]); | usePageMeta({ ...NOINDEX_PAGE_META["/account-banned"], robots: "index, follow" });
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
@@ -55,6 +64,7 @@ import { blankComments } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 import {
+  LANDING_PAGE_META,
   LEGAL_PAGE_META,
   LEGAL_PATH_TAB,
   NOINDEX_PAGE_META,
@@ -293,5 +303,29 @@ describe("Q401a: every public noindex page serves noindex, its own title and a s
       if (!code.includes(`usePageMeta(NOINDEX_PAGE_META["${p}"]);`)) missing.push(`${file.slice(ROOT.length + 1)} (${p})`);
     }
     expect(missing).toEqual([]);
+  });
+});
+
+/* ── Q401(b): the landing page's pre-JS head is its post-JS head ──────── */
+
+describe("Q401(b): / serves the same title, description and share card before and after JavaScript", () => {
+  it("the static shell's head equals LANDING_PAGE_META", () => {
+    const html = SHELL;
+    const one = (re: RegExp) => decode(html.match(re)?.[1] ?? null);
+    expect(one(/<title>([\s\S]*?)<\/title>/)).toBe(LANDING_PAGE_META.title);
+    expect(one(/<meta name="description" content="([^"]*)"/)).toBe(LANDING_PAGE_META.description);
+    expect(norm(one(/<link rel="canonical" href="([^"]*)"/)!)).toBe(norm(LANDING_PAGE_META.canonical));
+    expect(one(/<meta property="og:title" content="([^"]*)"/)).toBe(LANDING_PAGE_META.ogTitle);
+    expect(one(/<meta property="og:description" content="([^"]*)"/)).toBe(LANDING_PAGE_META.ogDescription);
+    expect(one(/<meta name="twitter:title" content="([^"]*)"/)).toBe(LANDING_PAGE_META.ogTitle);
+    expect(one(/<meta name="twitter:description" content="([^"]*)"/)).toBe(LANDING_PAGE_META.ogDescription);
+  });
+
+  it("Index.tsx spreads LANDING_PAGE_META and overrides none of its fields", () => {
+    const code = blankComments(readFileSync(resolve(ROOT, "src/pages/info/Index.tsx"), "utf8"));
+    const call = code.slice(code.indexOf("usePageMeta({"), code.indexOf("});", code.indexOf("usePageMeta({")));
+    expect(call).toContain("...LANDING_PAGE_META,");
+    const overridden = Object.keys(LANDING_PAGE_META).filter((k) => new RegExp(`\\b${k}\\s*:`).test(call));
+    expect(overridden).toEqual([]);
   });
 });

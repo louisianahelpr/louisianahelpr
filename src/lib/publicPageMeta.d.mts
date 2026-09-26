@@ -16,6 +16,7 @@ export function resolveLegalTab(pathname: string, tabParam: string | null | unde
 export const LEGAL_PAGE_META: Readonly<
   Record<LegalTab, { title: string; description: string; canonical: string }>
 >;
+export const LANDING_PAGE_META: PublicPageMeta;
 export const PUBLIC_PAGE_META: Readonly<Record<"/browse" | "/help" | "/support", PublicPageMeta>>;
 export function legalPageMeta(tab: LegalTab): PublicPageMeta;
 export type NoindexPath =

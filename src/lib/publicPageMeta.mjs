@@ -165,6 +165,26 @@ export function noindexPageMetaFor(pathname) {
   return Object.prototype.hasOwnProperty.call(NOINDEX_PAGE_META, path) ? NOINDEX_PAGE_META[path] : null;
 }
 
+/**
+ * The landing page (`/`). Unlike every other page here it is NOT rewritten by
+ * api/share.ts: it is served as the static index.html, so these values must
+ * also be written verbatim in index.html's <title>, description, og:* and
+ * twitter:* tags (HTML-escaped). Index.tsx's usePageMeta reads this entry.
+ * Q401(b), owner 2026-09-26: the "Hire a Helpr…" copy wins, matching the
+ * hero subhead and footer; index.html used to say "Helpr connects you with
+ * trusted neighbors…" until JavaScript replaced it.
+ * Pinned by src/test/publicRoutesServeOwnHead.test.ts.
+ */
+export const LANDING_PAGE_META = {
+  title: "Helpr — Louisiana's Local Job Partner | Hire or Find Work",
+  description:
+    "Hire a Helpr or find local work in Louisiana. For everyday jobs, big and small — post or apply in minutes across New Orleans, Baton Rouge & beyond.",
+  canonical: SITE_ORIGIN,
+  ogTitle: "Helpr — Louisiana's Local Job Partner",
+  ogDescription:
+    "Hire a Helpr or find local work. For everyday jobs, big and small — Louisiana's trusted marketplace.",
+};
+
 /** Legal tab meta in the same full shape as PUBLIC_PAGE_META's entries. */
 export function legalPageMeta(tab) {
   const m = LEGAL_PAGE_META[tab];

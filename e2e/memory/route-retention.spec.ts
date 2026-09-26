@@ -1,4 +1,5 @@
-import { test, expect, type CDPSession, type Page } from "../prodTest";
+import { test, expect } from "../prodTest";
+import { sampleRetention, spaNavigate, type RetentionSample } from "./retention";
 
 /**
  * PD-009: SPA route changes must not keep the previous page alive.
@@ -43,54 +44,6 @@ const NODE_GROWTH_BUDGET = 60;
 /** JSEventListeners growth from the first measured lap to the last. */
 const LISTENER_GROWTH_BUDGET = 10;
 
-type Sample = { lap: number; nodes: number; live: number; listeners: number; detachedRoots: number; detachedNodes: number; heapMB: number };
-
-async function spaNavigate(page: Page, path: string) {
-  // The router's own popstate listener handles it: no reload, exactly an in-app navigation.
-  await page.evaluate((p) => {
-    history.pushState({}, "", p);
-    dispatchEvent(new PopStateEvent("popstate", { state: {} }));
-  }, path);
-  // Guest-gated routes (/jobs) redirect to /login; that is still a route change.
-  await expect.poll(() => page.evaluate(() => location.pathname)).not.toBe("");
-  // Enter animation (220 ms) and lazy chunks settle.
-  await page.waitForTimeout(700);
-}
-
-async function sample(page: Page, cdp: CDPSession, lap: number): Promise<Sample> {
-  for (let i = 0; i < 3; i++) await cdp.send("HeapProfiler.collectGarbage");
-  const { metrics } = await cdp.send("Performance.getMetrics");
-  const m = Object.fromEntries(metrics.map((x) => [x.name, x.value]));
-  const live = await page.evaluate(() => {
-    let n = 1; // the document itself
-    const walk = (root: Node) => {
-      const w = document.createTreeWalker(root, NodeFilter.SHOW_ALL);
-      while (w.nextNode()) {
-        n++;
-        const sr = (w.currentNode as Element).shadowRoot;
-        if (sr) {
-          n++;
-          walk(sr);
-        }
-      }
-    };
-    walk(document);
-    return n;
-  });
-  await cdp.send("DOM.enable");
-  const { detachedNodes } = await cdp.send("DOM.getDetachedDomNodes");
-  await cdp.send("DOM.disable");
-  return {
-    lap,
-    nodes: m.Nodes,
-    live,
-    listeners: m.JSEventListeners,
-    detachedRoots: detachedNodes.length,
-    detachedNodes: detachedNodes.reduce((s, d) => s + d.retainedNodeIds.length, 0),
-    heapMB: +(m.JSHeapUsedSize / 1e6).toFixed(2),
-  };
-}
-
 test.describe("PD-009 route retention", () => {
   test.use({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
 
@@ -108,10 +61,10 @@ test.describe("PD-009 route retention", () => {
     // Warm lap: first-load chunks, fonts, analytics and caches are not retention.
     for (const r of ROUTES) await spaNavigate(page, r);
 
-    const samples: Sample[] = [];
+    const samples: RetentionSample[] = [];
     for (let lap = 1; lap <= LAPS; lap++) {
       for (const r of ROUTES) await spaNavigate(page, r);
-      samples.push(await sample(page, cdp, lap));
+      samples.push(await sampleRetention(page, cdp, lap));
     }
     console.log(`[PD-009] ${JSON.stringify(samples)}`);
     await test.info().attach("route-retention.json", { body: JSON.stringify(samples, null, 2), contentType: "application/json" });

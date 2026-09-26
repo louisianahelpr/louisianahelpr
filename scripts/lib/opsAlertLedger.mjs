@@ -83,6 +83,29 @@ export async function recordOpsAlert(o) {
   }
 }
 
+// Occurrences ops_alert_record queued because the ledger row was busy (Q1e).
+// They are NOT in the ledger until ops_alert_fold_pending() runs, so a listing
+// that ignores them undercounts during a storm.
+export const PENDING_SQL = `
+SELECT count(*)::int AS n, min(queued_at) AS oldest
+  FROM public.ops_alert_pending`;
+
+/**
+ * Why the ledger could not be read, in words a session can act on (Q43). A
+ * cloud session has neither the linked Supabase CLI nor a Management API
+ * token, and "spawnSync supabase ENOENT" says neither of those things.
+ */
+export function unreadableReason(err, env = process.env) {
+  const msg = String(err?.message ?? err).split("\n")[0].slice(0, 160);
+  if (/ENOENT/.test(msg) && !(env.SUPABASE_ACCESS_TOKEN && env.SUPABASE_PROJECT_REF)) {
+    return (
+      "no transport here: no SUPABASE_ACCESS_TOKEN+SUPABASE_PROJECT_REF and no supabase CLI on PATH. " +
+      "The count is NOT known; read public.ops_alert_ledger another way (e.g. the Supabase MCP, read-only)"
+    );
+  }
+  return msg;
+}
+
 // A user-report title is text a person (or a guest) typed. The repo is PUBLIC
 // and prod-errors.yml prints this listing into Actions logs and the job
 // summary, so the title is redacted HERE, at the one query every printer

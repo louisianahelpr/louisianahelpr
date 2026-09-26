@@ -104,6 +104,10 @@ jobs:
       PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
       PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
       PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # trailing-icon's /complete-profile leg signs this seed account in
+      # (optionalSession); without it that leg skipped UNJUSTIFIED (#1719).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
       SCENARIO: ${{ inputs.scenario }}
       # J8 presses Log Out, which today signs the account out on every device
       # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
@@ -196,6 +200,9 @@ jobs:
       PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
       PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
       PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # Same as the journeys job: trailing-icon's incomplete-e2e leg (#1719).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
       SCENARIO: ${{ inputs.scenario }}
       # J8 presses Log Out, which today signs the account out on every device
       # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
@@ -210,7 +217,9 @@ jobs:
       - name: Drop the Google Chrome apt source
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps webkit
+      # chromium too: payCheckoutSession pays Stripe's hosted page in Chromium
+      # (e2e/journeys/fixtures.ts). The app never shows Stripe in its WKWebView.
+      - run: npx playwright install --with-deps webkit chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -285,8 +294,14 @@ jobs:
     # reports only when it is empty — a whole-suite run, exactly what the
     # schedule fires. Anything narrower stays silent rather than closing an
     # issue it has not earned.
+    #
+    # And only from main (2026-09-26, #1719). The issue is main's state: a
+    # dispatch on a fix branch that goes green has proved the BRANCH, and
+    # closing the issue from it announced a green main that was still red
+    # until the branch merged; a red branch run added "Still red" to main's
+    # issue for a tree main never ran. Scheduled runs are always on main.
     if: >-
-      always() && (github.event_name == 'schedule'
+      always() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule'
       || (github.event_name == 'workflow_dispatch' && inputs.scenario == ''))
     runs-on: ubuntu-latest
     timeout-minutes: 5

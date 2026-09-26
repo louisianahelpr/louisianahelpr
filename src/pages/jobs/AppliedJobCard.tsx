@@ -281,7 +281,7 @@ function AppliedJobCardInner({
            row of every state that needs it. Guarded by
            AppliedJobCard.locationTapExpands.test.tsx (contract) and
            e2e/prod-audit/card-maps-hit-area.spec.ts (the geometry). */
-        locationPressToMap
+        locationPressToMap={false}
         /* THE FULL ADDRESS TAKES THE CITY'S PLACE (owner, 2026-09-19, with a
            screenshot of /jobs: "this shouldnt show 2 addresses... the full
            address needs to go where the city place is. not be on a whole

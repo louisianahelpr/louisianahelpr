@@ -130,7 +130,7 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
           pitch was 2px short per row and the list crept upward as it went:
           measured at 375, placeholder card 4 landed 13px above the real one.
           A gap is part of the reservation. */}
-      <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-3" aria-hidden>
+      <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-8" aria-hidden>
         {tab === "applied"
           ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
           : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}

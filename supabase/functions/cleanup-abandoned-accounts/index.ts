@@ -27,6 +27,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { purgeAccount } from "../_shared/accountPurge.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 /**
  * Hard ceiling on irreversible deletions in a single invocation. Sized so a
@@ -40,7 +41,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const unauthorized = verifyCronSecret(req);

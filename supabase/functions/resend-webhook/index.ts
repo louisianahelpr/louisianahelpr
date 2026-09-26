@@ -55,6 +55,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { Resend } from 'npm:resend@6.25.0'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 /** Events we act on. Anything else is acknowledged and ignored. */
 const BOUNCE_EVENT = 'email.bounced'
@@ -83,7 +84,7 @@ function recipientsOf(data: Record<string, unknown> | undefined): string[] {
   return [...new Set(cleaned)]
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 

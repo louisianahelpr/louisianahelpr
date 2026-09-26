@@ -1,6 +1,6 @@
 # Launch audit — findings rollup
 
-_Generated from findings.jsonl as of its newest entry (2026-09-26T03:46:23.108Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
+_Generated from findings.jsonl as of its newest entry (2026-09-26T04:05:14.169Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
 
 **22 open findings** · 2 open launch blockers · 339 fixed · 1 wontfix · 22 obsolete · 14 retracted · 31 duplicate · 429 filed all time
 

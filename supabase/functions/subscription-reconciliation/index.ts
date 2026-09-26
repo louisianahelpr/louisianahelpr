@@ -69,7 +69,7 @@
  * ours; and tiers that expired within the grace window below, which are
  * `expire-subscriptions`' business and not yet late.
  */
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";

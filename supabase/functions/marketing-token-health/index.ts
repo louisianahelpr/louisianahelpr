@@ -39,6 +39,7 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { inspectPageToken, readMetaEnv, type TokenHealth } from "../_shared/marketing/meta.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const FN = "marketing-token-health";
 
@@ -73,7 +74,7 @@ const STALL_HOURS = 24;
  */
 const STRANDED_MINUTES = 45;
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

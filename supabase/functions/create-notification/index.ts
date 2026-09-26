@@ -250,7 +250,12 @@ serve(async (req) => {
       }
       const { data: job, error: jobErr } = await adminClient
         .from("jobs")
-        .select("id, title, customer_id, helper_id, response_deadline, dispute_status")
+        // The state columns are what the templates check the event against (Q307).
+        // ONE literal: supabase-js types the row by parsing this string, and a
+        // concatenation widens it to `string` (every column then fails to type).
+        .select(
+          "id, title, customer_id, helper_id, response_deadline, dispute_status, status, dispute_helper_response, poster_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_arrival_at, poster_confirmed_working_at, payment_status",
+        )
         .eq("id", jobId)
         .maybeSingle();
       if (jobErr) {
@@ -297,37 +302,45 @@ serve(async (req) => {
         });
       }
 
-      const facts: TemplateFacts = { job, senderRole: senderRole!, now: new Date() };
+      const facts: TemplateFacts = { job, senderRole: senderRole!, senderId: user.id, now: new Date() };
       const needs = tpl.needs ?? [];
+      // A failed read is not "the event did not happen": it answers 500, not
+      // a 409 that would tell the client the event is unrecorded.
+      let factReadError: unknown = null;
       if (needs.includes("revision")) {
-        const { data: rev } = await adminClient
+        const { data: rev, error: e1 } = await adminClient
           .from("job_revisions")
-          .select("description")
+          .select("description, status, requested_by")
           .eq("job_id", job.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+        factReadError ??= e1;
         facts.revisionDescription = rev?.description ?? null;
+        facts.revisionStatus = rev?.status ?? null;
+        facts.revisionRequestedBy = rev?.requested_by ?? null;
       }
       if (needs.includes("application")) {
-        const { data: app } = await adminClient
+        const { data: app, error: e2 } = await adminClient
           .from("applications")
           .select("status, decline_reason")
           .eq("job_id", job.id)
           .eq("helper_id", user_id)
           .maybeSingle();
+        factReadError ??= e2;
         facts.application = app ?? null;
       }
       if (needs.includes("posterName")) {
-        const { data: prof } = await adminClient
+        const { data: prof, error: e3 } = await adminClient
           .from("profiles")
           .select("full_name")
           .eq("user_id", user.id)
           .maybeSingle();
+        factReadError ??= e3;
         facts.posterFirstName = (prof?.full_name ?? "").split(" ")[0] || null;
       }
       if (needs.includes("noShow")) {
-        const { data: v } = await adminClient
+        const { data: v, error: e4 } = await adminClient
           .from("user_violations")
           .select("action_taken")
           .eq("user_id", user_id)
@@ -336,7 +349,38 @@ serve(async (req) => {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+        factReadError ??= e4;
         facts.noShowAction = v?.action_taken ?? null;
+      }
+      if (needs.includes("dispute")) {
+        const { data: d, error: e5 } = await adminClient
+          .from("disputes")
+          .select("status, opener_id")
+          .eq("job_id", job.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        factReadError ??= e5;
+        facts.dispute = d ?? null;
+      }
+      if (needs.includes("tracking")) {
+        const { data: t, error: e6 } = await adminClient
+          .from("job_tracking")
+          .select("status")
+          .eq("job_id", job.id)
+          .eq("helper_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        factReadError ??= e6;
+        facts.trackingStatus = t?.status ?? null;
+      }
+      if (factReadError) {
+        console.error("template fact read failed:", factReadError);
+        return new Response(JSON.stringify({ error: "Failed to create notification" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const out = tpl.build(facts);
       if (!out) {

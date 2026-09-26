@@ -4,8 +4,8 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 251 done, 39 partly done (fixed, protection pending), 117 open. Source of truth for work.
-- **Audit bus:** 22 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Queue (this file):** 258 done, 57 partly done (fixed, protection pending), 122 open. Source of truth for work.
+- **Audit bus:** 21 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 15 open (14 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-25T22:28Z)_
 - **nightly-red issues:** 10 open — `gh issue list -l nightly-red`. _(2026-09-25T22:26Z)_

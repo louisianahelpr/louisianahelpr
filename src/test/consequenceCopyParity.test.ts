@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-// @mutate supabase/migrations/20260831183302_no_show_ladder_uses_shared_review_rung.sql | p_permanent_requires_review => true,\n    p_suspension_days | p_permanent_requires_review => false,\n    p_suspension_days
+// @mutate supabase/migrations/20260924060512_report_no_show_per_helper.sql | p_permanent_requires_review => true,\n    p_suspension_days | p_permanent_requires_review => false,\n    p_suspension_days
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -11,6 +11,7 @@ import { REVIEW_SLA } from "@/lib/reviewSla";
 import { URGENT_FEE_FLOOR_DOLLARS, URGENT_FEE_PRESETS } from "@/lib/moneyLimits";
 import { BOOST_DURATION_HOURS } from "@/lib/productPrices";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 /**
  * CONSEQUENCE COPY ↔ BACKEND PARITY — the general case.
@@ -100,6 +101,8 @@ const stripComments = (t: string) =>
 // also shifted every later offset. blankSqlComments does all of that and
 // blanks in place. (2026-09-21)
 const sqlBody = (sql: string) => blankSqlComments(sql);
+/** report_helper_no_show as the migrations leave it in the database. */
+const NO_SHOW_SQL = effectiveDefs(resolve(ROOT, "supabase/migrations")).get("report_helper_no_show")?.stmt ?? "";
 
 // ===========================================================================
 // 1 — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (SQL)
@@ -110,14 +113,12 @@ const sqlBody = (sql: string) => blankSqlComments(sql);
 
 describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (SQL)", () => {
   /**
-   * The migration that holds the LIVE definition. If a later migration
-   * redefines `report_helper_no_show`, point this at it — otherwise this whole
-   * block goes quietly blind, asserting against a superseded file. (Same
-   * caveat, same wording, as reliabilityLadder.parity.test.ts's LADDER_SQL.)
+   * The LIVE definition, resolved by replaying every migration (Q406). This
+   * used to pin 20260831183302 by name, which 20260924060512 redefined, so the
+   * block was asserting against a superseded body and its @mutate on the live
+   * one survived.
    */
-  const SQL = repoFile(
-    "supabase/migrations/20260831183302_no_show_ladder_uses_shared_review_rung.sql",
-  );
+  const SQL = NO_SHOW_SQL;
 
   it("the RPC still delegates to the shared reviewable core", () => {
     expect(
@@ -335,11 +336,7 @@ describe("the strike ladder is stated ONCE", () => {
       "apply_consequence_ladder's callers no longer pass p_permanent_requires_review — " +
         "re-derive every ban claim in the app before trusting this assertion",
     ).toBeGreaterThan(0);
-    const noShowReview = sqlBody(
-      repoFile(
-        "supabase/migrations/20260831183302_no_show_ladder_uses_shared_review_rung.sql",
-      ),
-    ).match(/p_permanent_requires_review\s*=>\s*(true|false)/g) ?? [];
+    const noShowReview = sqlBody(NO_SHOW_SQL).match(/p_permanent_requires_review\s*=>\s*(true|false)/g) ?? [];
     expect(
       [...requiresReview, ...noShowReview].every((m) => /true/.test(m)),
       "a ladder now bans WITHOUT admin review (" + requiresReview.join(", ") + "). Every " +

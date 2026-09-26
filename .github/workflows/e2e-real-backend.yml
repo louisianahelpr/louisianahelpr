@@ -155,14 +155,20 @@ jobs:
     name: Anon surface contract (real prod, read-only, no credentials)
     runs-on: ubuntu-latest
     # 15, not 5: the page leg now builds this commit instead of asking Vercel.
-    timeout-minutes: 15
+    # 20 since 2026-09-26: plus a Chromium install and the PD-009 route walk.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "npm"
+      - name: Drop the Google Chrome apt source
+        # Same reason as the authenticated leg: `playwright install --with-deps`
+        # runs `apt-get update`, and Google's repo is only a source of outages.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -194,6 +200,23 @@ jobs:
           SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
         run: node scripts/ci/guest-listing-horizon.mjs
+      - name: Route changes keep no old page alive (PD-009, guest, read-only)
+        # 40 guest route changes on this commit's build, then CDP detached-DOM
+        # and node/listener budgets after forced GC. Needs no credentials, so it
+        # lives in the leg that runs on every PR and push (the authenticated
+        # leg is schedule/dispatch only). Chromium only (it needs CDP); ~30 s.
+        # `always()` so a red contract step above cannot hide a leak, and
+        # ONE line: e2eSpecsReachableInCi reads workflow files line by line.
+        if: always()
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: npx playwright test --project=chromium e2e/memory/route-retention.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. `always()`: this leg allows
+        # only always-run conditions (e2eSpecsReachableInCi).
+        if: always()
+        run: node scripts/e2e/request-budget.mjs --label chromium
 
   # ---------------------------------------------------------------------
   # Leg 2 — a real account against the deployed site.
@@ -257,10 +280,6 @@ jobs:
         # the layout: the spec was reading a heading inside a card, while the
         # feed grid measured 1344px (93%). The route now declares its own
         # content container and the suite is 16/16.
-        #
-        # memory/route-retention joined 2026-09-25 (PD-009): 40 guest route
-        # changes, then CDP detached-DOM and node/listener budgets after forced
-        # GC. Chromium only (it needs CDP); about 30 s.
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
@@ -268,7 +287,7 @@ jobs:
         # ONE line, for the same reason as the step above: the reachability
         # guard reads workflow files line by line, and a `\` continuation would
         # hide these spec names from it.
-        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts e2e/visual-audit/desktop-fill.spec.ts e2e/memory/route-retention.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
+        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts e2e/visual-audit/desktop-fill.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.

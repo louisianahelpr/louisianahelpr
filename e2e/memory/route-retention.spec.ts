@@ -23,7 +23,8 @@ import { test, expect, type CDPSession, type Page } from "../prodTest";
  * detached nodes between runs (scratch runs and this spec) and never grew across laps. A retained PAGE is
  * 239+ nodes and a per-navigation leak grows every lap; both fail.
  *
- * Signed-in routes are NOT walked here: this job signs in only for auth.spec.
+ * Signed-in routes are NOT walked here: it runs in e2e-real-backend.yml's
+ * anon-surface leg (every PR and push), which has no account.
  * Their `layoutId` pills go through the same primitive, which
  * src/test/sharedLayoutIdGoesThroughPill.test.ts enforces for every file.
  *

@@ -89,6 +89,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('deliver_job_match',             'action',   'job_match_queue send (writes; true = sent)'),
   ('deliver_saved_search_alert',    'action',   'saved-search send (writes; true = sent)'),
   ('deliver_parish_match_alert',    'action',   'parish-match alert send (writes; true = sent)'),
+  ('mark_crew_dispute_executed',    'action',   'service-only crew dispute close (writes; true = closed a crew_fanout decision, Q409)'),
   ('ops_alert_close',               'action',   'RPC'),
   ('ops_alert_condition',           'action',   'ops ledger probe (writes)'),
   ('ops_alert_mark_fixed',          'action',   'RPC'),

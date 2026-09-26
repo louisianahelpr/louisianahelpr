@@ -37,7 +37,7 @@ async function call(method, url, tok, body, headers = {}) {
 }
 const PNG = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082", "hex");
 const json = { "Content-Type": "application/json" };
-const upload = (tok, p, type, body = PNG) => call("POST", `/storage/v1/object/message-attachments/${p}`, tok, body, { "Content-Type": type, "x-upsert": "false" });
+const upload = (tok, p, type, body = PNG) => call("POST", `/storage/v1/object/message-attachments/${p}`, tok, body, { "Content-Type": type, "x-upsert": "false", "cache-control": "max-age=3600" });
 const sign = (tok, p) => call("POST", `/storage/v1/object/sign/message-attachments/${p}`, tok, JSON.stringify({ expiresIn: 60 }), json);
 const removeObj = (tok, p) => call("DELETE", `/storage/v1/object/message-attachments`, tok, JSON.stringify({ prefixes: [p] }), json);
 const insertMsg = (tok, row) => call("POST", `/rest/v1/messages?select=id`, tok, JSON.stringify({ attachment_mime: "image/png", attachment_size: PNG.length, ...row }), { ...json, Prefer: "return=representation" });

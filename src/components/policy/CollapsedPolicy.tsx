@@ -142,10 +142,12 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
           >
             <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
           </span>
-          {/* Two-line clamp so long item labels ("Job budget limits —
-              $10 minimum, MAX_JOB_BUDGET_DOLLARS maximum") read in full instead
-              of truncating mid-figure. */}
-          <span className="text-ds-13 font-semibold text-foreground line-clamp-2 leading-snug">
+          {/* No clamp: an item title is policy copy and is read in full. The
+              two-line clamp that was here still cut "Job budget limits — $10
+              minimum, $1,000 maximum" and "No-show — final warning, then admin
+              review" to "…$1,000…" at 320 (sh 54 > ch 36, measured on /rules
+              2026-09-26, Q119); the title now wraps to a third line instead. */}
+          <span className="text-ds-13 font-semibold text-foreground leading-snug">
             {isSearching ? highlight(title, query) : title}
           </span>
         </span>

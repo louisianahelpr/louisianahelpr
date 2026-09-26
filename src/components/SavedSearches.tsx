@@ -100,6 +100,25 @@ interface Props {
   onOpenChange?: (open: boolean) => void;
 }
 
+/** The one-line description of a saved search, shown under its name. Also its
+ *  `title`, so the full text is reachable when the line truncates (Q119). */
+function savedSearchSummary(s: SavedSearch): string {
+  return (
+    [
+      s.query && `“${s.query}”`,
+      s.category && `Category: ${categoryLabels[s.category] ?? s.category}`,
+      // Describes the real range. Was `Max $X`, which printed
+      // nothing at all for a min-only search ("$300+") and
+      // understated a banded one.
+      describeBudget(s.min_budget, s.max_budget),
+      describeRadius(s.radius_miles),
+      s.location_keyword && `Loc: ${s.location_keyword}`,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Any Job"
+  );
+}
+
 export function SavedSearches({
   currentFilters,
   userId,
@@ -498,21 +517,11 @@ export function SavedSearches({
                     {s.name}
                   </p>
                   <p
+                    title={savedSearchSummary(s)}
                     className="text-ds-11 font-sans truncate mt-0.5"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
-                    {[
-                      s.query && `“${s.query}”`,
-                      s.category && `Category: ${categoryLabels[s.category] ?? s.category}`,
-                      // Describes the real range. Was `Max $X`, which printed
-                      // nothing at all for a min-only search ("$300+") and
-                      // understated a banded one.
-                      describeBudget(s.min_budget, s.max_budget),
-                      describeRadius(s.radius_miles),
-                      s.location_keyword && `Loc: ${s.location_keyword}`,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "Any Job"}
+                    {savedSearchSummary(s)}
                   </p>
                 </button>
                 <button

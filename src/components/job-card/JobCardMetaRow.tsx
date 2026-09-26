@@ -465,7 +465,7 @@ export function JobCardMetaRow({
         >
           <MapPin className="w-3 h-3 shrink-0" />
           {fullAddress && <span className="sr-only">Job address: </span>}
-          <span className={fullAddress ? "whitespace-normal break-words" : "truncate"}>{city}</span>
+          <span title={city} className={fullAddress ? "whitespace-normal break-words" : "truncate"}>{city}</span>
         </a>
       ))}
       <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">

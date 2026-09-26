@@ -26,6 +26,52 @@
     "nargs": 3
    }
   ],
+  "admin_alert_close_rule": [
+   {
+    "anon": false,
+    "args": [
+     "p_title"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "admin_alert_manual_close": [
+   {
+    "anon": false,
+    "args": [
+     "p_title"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "admin_alert_ref": [
+   {
+    "anon": false,
+    "args": [
+     "p_sample_ref"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "admin_alert_subjects": [
+   {
+    "anon": false,
+    "args": [
+     "p_rule",
+     "p_ref",
+     "p_since"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "admin_delete_review": [
    {
     "anon": false,
@@ -47,6 +93,19 @@
      "p_link"
     ],
     "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
+  "admin_queue_still_pending": [
+   {
+    "anon": false,
+    "args": [
+     "p_rule",
+     "p_ref",
+     "p_since"
+    ],
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 3
    }
@@ -420,6 +479,15 @@
     "nargs": 0
    }
   ],
+  "check_ops_alert_pending": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "check_ops_digest_delivery": [
    {
     "anon": false,
@@ -586,6 +654,37 @@
     "nargs": 3
    }
   ],
+  "crew_completes_when_hired_done": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "crew_fee_pays_unconfirmed": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "crew_slot_share_cents": [
+   {
+    "anon": false,
+    "args": [
+     "p_total_cents",
+     "p_needed",
+     "p_slot"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "cron_catchup_last_slot": [
    {
     "anon": false,
@@ -617,6 +716,42 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "cron_record_work": [
+   {
+    "anon": false,
+    "args": [
+     "p_job",
+     "p_result"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "cron_silent_rule": [
+   {
+    "anon": false,
+    "args": [
+     "p_sample_ref"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "cron_silent_still_failing": [
+   {
+    "anon": false,
+    "args": [
+     "p_rule",
+     "p_job",
+     "p_since"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
    }
   ],
   "db_saturation_problems": [
@@ -656,6 +791,18 @@
     "args": [
      "queue_name",
      "message_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "deliver_parish_match_alert": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_job_id"
     ],
     "authenticated": false,
     "nargdefaults": 0,
@@ -717,6 +864,15 @@
    }
   ],
   "dispute_settlement_claim_ttl": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "drop_retired_relation_error_log": [
    {
     "anon": false,
     "args": [],
@@ -901,6 +1057,15 @@
     "nargs": 0
    }
   ],
+  "enforce_group_job_has_no_lead": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enforce_group_member_completion_gates": [
    {
     "anon": false,
@@ -1028,6 +1193,15 @@
    }
   ],
   "enforce_jobs_arrival_integrity": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "enforce_jobs_dispute_evidence_append_only": [
    {
     "anon": false,
     "args": [],
@@ -1202,10 +1376,12 @@
   "export_my_data": [
    {
     "anon": false,
-    "args": [],
-    "authenticated": true,
+    "args": [
+     "p_user_id"
+    ],
+    "authenticated": false,
     "nargdefaults": 0,
-    "nargs": 0
+    "nargs": 1
    }
   ],
   "extend_boosts_with_no_applications": [
@@ -1236,6 +1412,15 @@
    }
   ],
   "flag_suspicious_review": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "freeze_crew_member_share": [
    {
     "anon": false,
     "args": [],
@@ -1846,6 +2031,28 @@
     "nargs": 1
    }
   ],
+  "is_crew_member_of_job_folder": [
+   {
+    "anon": false,
+    "args": [
+     "object_name"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "is_fixture_email": [
+   {
+    "anon": false,
+    "args": [
+     "p_email"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "is_helper_shadowbanned": [
    {
     "anon": false,
@@ -1865,6 +2072,18 @@
      "p_hours_until"
     ],
     "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "is_off_job": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id",
+     "_user"
+    ],
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 2
    }
@@ -2031,6 +2250,15 @@
    }
   ],
   "jobs_private_select_columns": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "jobs_seed_from_poster": [
    {
     "anon": false,
     "args": [],
@@ -2506,6 +2734,15 @@
     "nargs": 0
    }
   ],
+  "ops_alert_ledger_admin_manual": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "ops_alert_ledger_from_error_log": [
    {
     "anon": false,
@@ -2554,6 +2791,15 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "ops_alert_note_admin_subject": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "ops_alert_record": [
@@ -2690,6 +2936,15 @@
     "nargs": 0
    }
   ],
+  "profiles_seed_from_fixture_email": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "profiles_stamp_auto_tip_enabled_at": [
    {
     "anon": false,
@@ -2700,6 +2955,15 @@
    }
   ],
   "prune_cron_http_requests": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "prune_cron_run_details": [
    {
     "anon": false,
     "args": [],
@@ -2733,6 +2997,19 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "purge_old_seed_data": [
+   {
+    "anon": false,
+    "args": [
+     "p_dry_run",
+     "p_older_than",
+     "p_batch"
+    ],
+    "authenticated": false,
+    "nargdefaults": 3,
+    "nargs": 3
    }
   ],
   "purge_user_data": [
@@ -2851,6 +3128,33 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "redact_error_log_on_user_null": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "redact_legal_acceptance_on_user_null": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "redact_referral_code_on_owner_null": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "redeem_gift_card": [
@@ -3311,6 +3615,15 @@
     "nargs": 0
    }
   ],
+  "run_seed_purge": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "save_weekly_availability": [
    {
     "anon": false,
@@ -3436,6 +3749,20 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 3
+   }
+  ],
+  "settle_dispute_by_chargeback": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id",
+     "_stripe_dispute_id",
+     "_disputed_cents",
+     "_charge_cents"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 4
    }
   ],
   "settle_dispute_record": [
@@ -3741,6 +4068,15 @@
    }
   ],
   "sync_has_active_dispute": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sync_job_after_roster_departure": [
    {
     "anon": false,
     "args": [],
@@ -4623,6 +4959,113 @@
    "rls": true,
    "triggers": []
   },
+  "crew_cancellation_fee_shares": {
+   "checks": [
+    "CHECK ((fee_percent = ANY (ARRAY[0, 25, 50])))",
+    "CHECK (((status <> 'paid'::text) OR (stripe_transfer_id IS NOT NULL)))",
+    "CHECK ((share_amount >= (0)::numeric))",
+    "CHECK ((share_basis_cents >= 0))",
+    "CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'failed'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "committed": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "fee_percent": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "paid_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "share_amount": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "numeric(10,2)"
+    },
+    "share_basis_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "stripe_transfer_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "Crew member or poster reads a fee share",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": []
+  },
   "cron_catchup_policy": {
    "checks": [
     "CHECK (((max_late > '00:00:00'::interval) AND (max_late < '7 days'::interval)))",
@@ -4862,7 +5305,7 @@
      "enum": null,
      "generated": false,
      "hasDefault": false,
-     "notNull": true,
+     "notNull": false,
      "type": "bigint"
     },
     "status_code": {
@@ -4897,7 +5340,9 @@
    "triggers": []
   },
   "cron_work_expectations": {
-   "checks": [],
+   "checks": [
+    "CHECK (((work_visibility IS NULL) OR (work_visibility = 'candidates'::text) OR ((work_visibility = 'idle'::text) AND (COALESCE(cardinality(work_keys), 0) > 0) AND (max_idle IS NOT NULL)) OR ((work_visibility = 'exempt'::text) AND (length(btrim(COALESCE(work_exempt_reason, ''::text))) >= 40))))"
+   ],
    "columnGrants": {},
    "columns": {
     "candidate_key": {
@@ -4928,6 +5373,13 @@
      "notNull": true,
      "type": "text"
     },
+    "max_idle": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "interval"
+    },
     "min_streak": {
      "enum": null,
      "generated": false,
@@ -4948,6 +5400,27 @@
      "hasDefault": true,
      "notNull": true,
      "type": "timestamp with time zone"
+    },
+    "work_exempt_reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "work_keys": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text[]"
+    },
+    "work_visibility": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
     }
    },
    "grants": {
@@ -5923,7 +6396,8 @@
    "rls": true,
    "triggers": [
     "after:insert",
-    "before:insert"
+    "before:insert",
+    "before:update"
    ]
   },
   "favorite_helpers": {
@@ -6467,6 +6941,7 @@
    ],
    "rls": true,
    "triggers": [
+    "after:delete",
     "before:delete",
     "before:insert",
     "before:insert|update",
@@ -9299,7 +9774,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:update"
+   ]
   },
   "login_history": {
    "checks": [],
@@ -10093,7 +10570,7 @@
      "name": "Users can mark messages as read",
      "permissive": "PERMISSIVE",
      "roles": [
-      "public"
+      "authenticated"
      ]
     },
     {
@@ -11242,6 +11719,52 @@
    "rls": false,
    "triggers": []
   },
+  "ops_alert_admin_subjects": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "alerted_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "rule": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "subject_key": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": []
+  },
   "ops_alert_ledger": {
    "checks": [
     "CHECK (((status <> 'closed'::text) OR ((closed_at IS NOT NULL) AND (length(COALESCE(closed_evidence, ''::text)) >= 10))))",
@@ -11410,7 +11933,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert"
+   ]
   },
   "ops_alert_pending": {
    "checks": [],
@@ -11524,6 +12049,52 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": []
+  },
+  "parish_match_alert_queue": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "notify_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
     }
    },
    "grants": {},
@@ -13207,6 +13778,7 @@
    "rls": true,
    "triggers": [
     "after:update",
+    "before:insert",
     "before:insert|update",
     "before:update"
    ]
@@ -13472,7 +14044,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:update"
    ]
   },
   "referral_credits": {
@@ -13875,6 +14448,54 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": []
+  },
+  "retired_client_relations": {
+   "checks": [
+    "CHECK ((relation ~ '^[a-z][a-z0-9_]*$'::text))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "first_stale_read_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "last_stale_read_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "relation": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "retired_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "stale_reads": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
     }
    },
    "grants": {},
@@ -14320,6 +14941,45 @@
     "before:insert",
     "before:update"
    ]
+  },
+  "seed_purge_runs": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "dry_run": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
+    },
+    "ran_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "result": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "jsonb"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": []
   },
   "str_calendar_connections": {
    "checks": [

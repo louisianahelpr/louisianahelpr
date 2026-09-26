@@ -1424,6 +1424,18 @@
     "nargs": 2
    }
   ],
+  "get_off_job_thread_state": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id",
+     "_other"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "get_open_jobs_for_map": [
    {
     "anon": true,

@@ -80,7 +80,8 @@ export function useOffJobState({
 }): OffJobState | null {
   const jobId = activeConvo?.jobId ?? "";
   const otherUserId = activeConvo?.otherUserId ?? null;
-  const key = `${jobId}|${otherUserId ?? ""}`;
+  // A deleted counterparty keys as "deleted", never "" (messagesReceiverNullable).
+  const key = `${jobId}|${otherUserId ?? "deleted"}`;
   const [answer, setAnswer] = useState<{ key: string; state: OffJobState | null } | null>(null);
 
   useEffect(() => {

@@ -5227,6 +5227,17 @@ export type Database = {
         Returns: string
       }
       ban_fingerprint_salt: { Args: never; Returns: string }
+      ban_settlement_action: {
+        Args: {
+          p_is_crew: boolean
+          p_is_series: boolean
+          p_payment_status: string
+          p_seat: string
+          p_status: string
+          p_work_started: boolean
+        }
+        Returns: string
+      }
       block_user_and_settle: {
         Args: { p_blocked: string; p_reason?: string }
         Returns: Json
@@ -6505,6 +6516,10 @@ export type Database = {
           _transfer_id?: string
         }
         Returns: string
+      }
+      settle_one_off_jobs_for_banned_account: {
+        Args: { p_user: string }
+        Returns: Json
       }
       stamp_dispute_settlement_claim: {
         Args: { _job_id: string; _token: string }

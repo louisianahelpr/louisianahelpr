@@ -222,6 +222,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:prevent_job_field_escalation": "no-return",
     "function:purge_user_data": "no-return",
     "function:respond_to_direct_offer": "no-return",
+    // Q327: declines a pending offer on a banned poster's cancelled job or to a
+    // banned account; returns only job ids, actions and counts, never the offeree.
+    "function:settle_one_off_jobs_for_banned_account": "no-return",
     "function:user_may_see_job_address": "no-return",
   };
 

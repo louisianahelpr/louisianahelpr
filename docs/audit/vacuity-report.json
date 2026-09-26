@@ -1,11 +1,14 @@
 {
-  "generated": "2026-09-26T03:57:18.644Z",
-  "guards": 1054,
+  "generated": "2026-09-26T04:30:41.322Z",
+  "guards": 1055,
   "registered": 1054,
-  "unregistered": [],
+  "unregistered": [
+    "src/components/admin/adminusers/adminUsersProfilesPaging.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",
+    "src/components/admin/adminusers/adminUsersProfilesPaging.test.ts",
     "src/components/analytics/analyticsContrast.test.ts",
     "src/lib/earlyAccess.parity.test.ts",
     "src/lib/evidenceUrl.test.ts",

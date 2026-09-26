@@ -2,7 +2,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, basename } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// PostgREST caps a response at 1000 rows and says nothing when it truncates, so
+// PostgREST caps a response at 1000 rows (db-max-rows, measured 2026-09-01 in
+// supabase/functions/money-reconciliation/index.ts) and says nothing when it truncates, so
 // `.from("profiles").select("*")` with no bound silently stops at the
 // thousandth user: admin counts, charts and user lists all under-report. This
 // guard finds every such read in src/ and fails CI on a new one. A read is

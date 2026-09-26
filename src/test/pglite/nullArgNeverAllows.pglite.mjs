@@ -116,7 +116,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
   "is_party_to_job_folder", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address", "is_crew_member_of_job_folder"];
-const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked"];
+const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded")];
 const loaded = [];
@@ -130,7 +130,7 @@ console.log(`loaded newest definitions: ${loaded.join(" ")}`);
 // Stubs for the rest of the classified inventory (right arity + volatility).
 const sqlFile = readFileSync(`${ROOT}scripts/ci/null-arg-validators.sql`, "utf8");
 const classRows = [...sqlFile.matchAll(/^\s*\('([a-z_0-9]+)',\s*'(allow|absent|deny|classify|noarg|action)',/gm)].map((m) => ({ fn: m[1], kind: m[2] }));
-check("the class list parses (54 entries)", classRows.length === 54, `${classRows.length}`);
+check("the class list parses (55 entries)", classRows.length === 55, `${classRows.length}`);
 const real = new Set([...ALLOW, ...HELPERS]);
 for (const { fn, kind } of classRows) {
   if (real.has(fn)) continue;

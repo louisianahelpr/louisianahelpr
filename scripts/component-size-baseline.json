@@ -11,7 +11,7 @@
     "src/components/admin/AdminSettings.tsx": 766,
     "src/components/BrowseMap.tsx": 1241,
     "src/components/dashboard/BrowseTasksFeed.tsx": 779,
-    "src/components/dashboard/FilterSheet.tsx": 922,
+    "src/components/dashboard/FilterSheet.tsx": 759,
     "src/components/dashboard/JobCard.tsx": 837,
     "src/components/dashboard/JobDetailDialog.tsx": 960,
     "src/components/job-card/JobListPage.tsx": 793,

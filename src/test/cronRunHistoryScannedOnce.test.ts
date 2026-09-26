@@ -15,8 +15,13 @@
  * new correlated read fails, and so does a known one that got fixed without
  * lowering its count here.
  *
- * Behavioural proof of the sweep_dead_crons rewrite (old and new body file the
- * same rows for every verdict): src/test/pglite/sweepDeadCronsOneScan.pglite.mjs.
+ * run_missed_cron_catch_up() did it 5x per due job, every 10 minutes (~288 ms
+ * per call, Q397); 20260925155322 joins the due jobs to the history once.
+ *
+ * Behavioural proofs (old and new body give the same results):
+ * src/test/pglite/sweepDeadCronsOneScan.pglite.mjs (every verdict) and
+ * src/test/pglite/cronCatchUpOneScan.pglite.mjs (the same slots picked, run
+ * and alerted, on named edge cases and 150 seeded random histories).
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";
@@ -27,11 +32,9 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 
 // @two-way src/test/cronRunHistoryScannedOnce.test.ts:stale correlated entry
 // function -> number of jobid-correlated subqueries over cron.job_run_details.
-// run_missed_cron_catch_up: 5, ~288 ms per call, every 10 minutes (Q397).
 // cron_dispatch_health: 1, not in cron.job and no caller in src/ or supabase/functions (2026-09-25).
 const KNOWN_CORRELATED: Record<string, number> = {
   cron_dispatch_health: 1,
-  run_missed_cron_catch_up: 5,
 };
 
 const CORRELATED =
@@ -50,6 +53,7 @@ function correlatedCounts(): { readers: string[]; counts: Record<string, number>
   return { readers: readers.sort(), counts };
 }
 
+// @mutate supabase/migrations/20260925155322_catch_up_candidates_one_scan.sql |            h.last_failure |            (SELECT d.status FROM cron.job_run_details d WHERE d.jobid = u.jobid LIMIT 1) AS last_failure
 // @mutate supabase/migrations/20260925140304_sweep_dead_crons_one_scan.sql |              s.last_start, |              (SELECT max(d.start_time) FROM cron.job_run_details d WHERE d.jobid = j.jobid) AS last_start,
 describe("Q105(4): cron run history is scanned once, not once per job", () => {
   const { readers, counts } = correlatedCounts();
@@ -58,10 +62,15 @@ describe("Q105(4): cron run history is scanned once, not once per job", () => {
     // Every function that reads the run history at all.
     expect(readers.length).toBeGreaterThan(4);
     expect(readers).toContain("sweep_dead_crons");
+    expect(readers).toContain("run_missed_cron_catch_up");
   });
 
   it("sweep_dead_crons reads the run history without a per-job subquery", () => {
     expect(counts.sweep_dead_crons ?? 0).toBe(0);
+  });
+
+  it("run_missed_cron_catch_up reads the run history without a per-job subquery (Q397)", () => {
+    expect(counts.run_missed_cron_catch_up ?? 0).toBe(0);
   });
 
   it("no known entry is stale (fixed or gone without lowering it here)", () => {

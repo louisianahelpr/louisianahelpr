@@ -191,7 +191,9 @@ export const ReviewsSection = ({
               with only 5★ reviews won't surface an empty "4★" tab. */}
           <div className="flex flex-wrap gap-1.5">
             {([
-              { key: "all" as const, label: "All", count: reviews.length, stars: 0 },
+              // Q321: "All" is how many reviews EXIST (the header's number), not
+              // how many of them this page has loaded so far (20 per page).
+              { key: "all" as const, label: "All", count: Math.max(trueReviewCount, reviews.length), stars: 0 },
               { key: "5" as const, label: "", count: reviews.filter((r) => r.rating === 5).length, stars: 5 },
               { key: "4" as const, label: "", count: reviews.filter((r) => r.rating === 4).length, stars: 4 },
               { key: "low" as const, label: "≤3", count: reviews.filter((r) => r.rating <= 3).length, stars: 3 },

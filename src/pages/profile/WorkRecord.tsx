@@ -39,6 +39,7 @@ import {
   type WorkRecordDocumentInput,
 } from "@/lib/workRecordDocument";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { fetchRatingStats } from "@/lib/reviewStats";
 
 // jobs.offered_to_helper_id is not selectable (20260915045110): named columns.
 type Job = ReadableJobRow;
@@ -168,27 +169,15 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
         .order("created_at", { ascending: false });
       const completedJobs = readableJobRows<Job>(unwrap(jobsRes));
 
-      // Fetch reviews received as helper — the SAME set the Reviews tab
-      // shows (`useProfileStats`): only reviews past their anti-retaliation
-      // reveal (`feedback_visible_at <= now()`). This query used to have no
-      // reveal filter, so this document counted reviews the Reviews tab
-      // deliberately hides — "AVG RATING 4.5 (2)" here beside "No reviews
-      // yet" there, same account, same session (state-matrix sweep,
-      // 2026-09-11). In prod the reviews SELECT policy happens to enforce the
-      // reveal for everyone but the reviewer, which is why it never showed
-      // live; an employer-facing number must not lean on RLS to be right.
-      const reviewsRes = await supabase
-        .from("reviews")
-        .select("rating")
-        .eq("reviewee_id", userId)
-        .lte("feedback_visible_at", new Date().toISOString());
-      const reviews = unwrap(reviewsRes) as { rating: number }[];
-
-      const reviewCount = reviews.length;
-      const avgRating =
-        reviewCount > 0
-          ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviewCount) * 10) / 10
-          : null;
+      // Reviews received, through the one aggregate every surface reads
+      // (Q321: get_public_profile_stats via fetchRatingStats) — published, past
+      // the anti-retaliation reveal, job not cancelled — so this employer-facing
+      // count is the applicant row's and the profile header's. A direct
+      // `reviews` read here once disagreed with the Reviews tab (2026-09-11)
+      // and could never apply the cancelled-job rule (jobs is RLS-hidden).
+      const rating = (await fetchRatingStats([userId])).get(userId);
+      const reviewCount = rating?.count ?? 0;
+      const avgRating = rating && rating.count > 0 ? Math.round(rating.avg * 10) / 10 : null;
 
       // Total earnings, resolved PER JOB by the shared helper: the fee stamped
       // at payout wins, then the % frozen on the row, then (legacy rows only)

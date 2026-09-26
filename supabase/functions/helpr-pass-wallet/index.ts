@@ -107,10 +107,18 @@ Deno.serve(async (req) => {
     }
 
     // 3. Aggregate ratings so the pass can show the live star average.
-    const { data: reviews } = await supabase
+    //    Q321: the same reviews every other surface counts
+    //    (get_public_profile_stats): published, past the blind period, job not
+    //    cancelled. This is a service-role read, so without these it averaged
+    //    reviews still inside the 14-day anti-retaliation window.
+    const { data: reviews, error: reviewsErr } = await supabase
       .from("reviews")
-      .select("rating")
-      .eq("reviewee_id", user.id);
+      .select("rating, jobs!inner(status)")
+      .eq("reviewee_id", user.id)
+      .eq("status", "published")
+      .lte("feedback_visible_at", new Date().toISOString())
+      .neq("jobs.status", "cancelled");
+    if (reviewsErr) throw reviewsErr;
     const ratings = (reviews ?? []).map((r) => r.rating);
     const avgRating = ratings.length > 0
       ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10

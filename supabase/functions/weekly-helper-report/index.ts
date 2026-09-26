@@ -159,11 +159,21 @@ Deno.serve(async (req) => {
           .eq("helper_id", helper.user_id)
           .eq("status", "completed")
           .gte("updated_at", weekAgoISO),
+        // Q321: reviews that became PUBLIC this week, under the same three
+        // rules as get_public_profile_stats (published, past the blind period,
+        // job not cancelled). This is a service-role read, so without them it
+        // counted — and emailed the average of — reviews still inside the
+        // 14-day anti-retaliation window, which the helper may not see yet.
+        // Windowed on the reveal, not on created_at, so a review written in
+        // one week and revealed in the next is counted exactly once.
         supabase
           .from("reviews")
-          .select("rating")
+          .select("rating, jobs!inner(status)")
           .eq("reviewee_id", helper.user_id)
-          .gte("created_at", weekAgoISO),
+          .eq("status", "published")
+          .gte("feedback_visible_at", weekAgoISO)
+          .lte("feedback_visible_at", new Date().toISOString())
+          .neq("jobs.status", "cancelled"),
         supabase
           .from("jobs")
           // `payment_status` is REQUIRED, not decorative: helperEarnings'

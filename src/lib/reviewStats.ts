@@ -105,3 +105,27 @@ function aggregateRatings(
   }
   return map;
 }
+
+/**
+ * Q321: the same three predicates `get_public_profile_stats` applies, as a pure
+ * function for the readers that must load every row anyway (admin, who can
+ * read unrevealed reviews and whose count therefore used to disagree with the
+ * public one: Hallie read "5.0 (24)" on her applicant row and 39 in admin on
+ * 2026-09-26, the difference being 15 reviews still inside the blind period).
+ * Select `REVIEW_COUNT_COLUMNS` to feed it.
+ */
+export const REVIEW_COUNT_COLUMNS = "rating, status, feedback_visible_at, jobs(status)";
+
+export function countsTowardRating(
+  r: { status?: string | null; feedback_visible_at?: string | null; jobs?: { status?: string | null } | null },
+  now: number = Date.now(),
+): boolean {
+  return (
+    r.status === "published" &&
+    !!r.feedback_visible_at &&
+    new Date(r.feedback_visible_at).getTime() <= now &&
+    // Inner join in SQL: a review whose job row is unreadable or gone does not count.
+    !!r.jobs &&
+    r.jobs.status !== "cancelled"
+  );
+}

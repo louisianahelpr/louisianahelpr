@@ -64,6 +64,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { TestTag } from "@/components/admin/TestTag";
 
 interface ReviewRow {
   user_id: string;
@@ -75,6 +76,8 @@ interface ReviewRow {
   idv_attempted_at: string | null;
   idv_failure_reason: string | null;
   created_at: string | null;
+  /** Q233: added to the `profiles` select below, not resolved separately. */
+  is_seed: boolean | null;
 }
 
 /**
@@ -128,7 +131,7 @@ const AdminIDVReview = () => {
         await supabase
           .from("profiles")
           .select(
-            "user_id, full_name, email, idv_status, idv_session_id, idv_attempt_count, idv_attempted_at, idv_failure_reason, created_at",
+            "user_id, full_name, email, idv_status, idv_session_id, idv_attempt_count, idv_attempted_at, idv_failure_reason, created_at, is_seed",
           )
           // manual_review first: those people are actively waiting on a human.
           // `failed` is the rescue list, not the shift.
@@ -302,8 +305,9 @@ const AdminIDVReview = () => {
                       {(r.full_name || r.email || "?").slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-ds-13 text-foreground truncate">
-                        {r.full_name || "Unnamed"}
+                      <p className="font-semibold text-ds-13 text-foreground flex items-center gap-2 min-w-0">
+                        <span className="truncate">{r.full_name || "Unnamed"}</span>
+                        {r.is_seed && <TestTag />}
                       </p>
                       <p className="text-ds-11 text-muted-foreground truncate">{r.email || "No email on file"}</p>
                     </div>

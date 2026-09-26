@@ -25,6 +25,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
+import { TestTag } from "@/components/admin/TestTag";
+import { fetchSeedUserIds } from "@/components/admin/seedRows";
 
 interface PendingRow {
   user_id: string;
@@ -40,6 +42,8 @@ interface PendingRow {
   /** Claimed company name — check it against the name printed on the doc. */
   business_name: string | null;
   submitted_at: string;
+  /** Q233: resolved client-side; get_pending_credentials does not return it. */
+  is_seed?: boolean;
 }
 
 const AdminCredentialQueue = () => {
@@ -97,7 +101,11 @@ const AdminCredentialQueue = () => {
   const { data: rows, isInitialLoading, isError, refetch } = useInstantQuery<PendingRow[]>({
     key: queryKey,
     fallback: [],
-    fetcher: async () => (unwrap(await supabase.rpc("get_pending_credentials")) ?? []) as PendingRow[],
+    fetcher: async () => {
+      const rows = (unwrap(await supabase.rpc("get_pending_credentials")) ?? []) as PendingRow[];
+      const seedIds = await fetchSeedUserIds(rows.map((r) => r.user_id));
+      return rows.map((r) => ({ ...r, is_seed: seedIds.has(r.user_id) }));
+    },
   });
 
   const decide = async (
@@ -261,7 +269,10 @@ const AdminCredentialQueue = () => {
                   fallbackClassName="text-ds-13 ring-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-ds-13 text-foreground truncate">{r.full_name || "Unnamed"}</p>
+                  <p className="font-semibold text-ds-13 text-foreground flex items-center gap-2 min-w-0">
+                    <span className="truncate">{r.full_name || "Unnamed"}</span>
+                    {r.is_seed && <TestTag />}
+                  </p>
                   <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>
                 </div>
                 {/* The claimed business name is part of what's being reviewed:

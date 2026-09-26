@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
+import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -236,8 +237,8 @@ const AdminAnalytics = () => {
       // Named columns, not `*`: offered_to_helper_id is not selectable
       // (20260915045110) and `*` would 42501 the whole read.
       let query = supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false });
-      if (type === "revenue" || type === "fees") query = query.in("payment_status", ["escrow", "payout_pending", "released"]);
-      if (type === "payouts") query = query.in("payment_status", ["escrow", "payout_pending", "released"]);
+      if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null);
+      if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null);
       const { data, error } = await query;
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
       setDrillJobs(readableJobRows<Job>(data));

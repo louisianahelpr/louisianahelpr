@@ -97,6 +97,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
       .from("reviews")
       .select("id, rating, jobs!inner(status)")
       .eq("reviewee_id", userId)
+      .eq("status", "published")
       .lte("feedback_visible_at", new Date().toISOString())
       .neq("jobs.status", "cancelled")
       .gte("created_at", yearStart)

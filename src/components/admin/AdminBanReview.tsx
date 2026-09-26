@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * Ban Review — the human half of EVERY consequence ladder.
@@ -209,7 +210,7 @@ const BanReviewInner = () => {
       setDismissTarget(null);
       setNote("");
     } catch (err) {
-      toast.error((err as Error).message || "Action failed");
+      toast.error(userFacingError(err, "Couldn't record that decision — try again."));
     } finally {
       setBusy(null);
     }

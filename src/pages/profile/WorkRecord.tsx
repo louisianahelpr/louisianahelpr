@@ -321,7 +321,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
     try {
       window.print();
     } catch {
-      toast.error("Couldn't open the print dialog.", {
+      toast.error("Couldn't open the print dialog", {
         description: "Use Share Record (PDF) to send this record instead.",
       });
     }

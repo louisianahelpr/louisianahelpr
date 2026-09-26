@@ -19,6 +19,7 @@ import { formatCategory } from "@/lib/format";
 import { saveOrShareFile } from "@/lib/fileExport";
 // jsPDF + jspdf-autotable are ~450KB combined; load only when user clicks PDF export.
 import type jsPDFType from "jspdf";
+import { userFacingError } from "@/lib/userFacingError";
 
 // react-day-picker (the Calendar's dependency) only renders inside the
 // tap-to-open date popovers below — defer its chunk until one opens.
@@ -57,7 +58,7 @@ type CSVValue = string | number | null | undefined;
 type JsPDFWithAutoTable = jsPDFType & { lastAutoTable?: { finalY?: number } };
 
 const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Export failed";
+  userFacingError(error, "Couldn't export your earnings — try again?");
 
 export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onOpenChange, hideTrigger }: EarningsExportProps) => {
   const [internalOpen, setInternalOpen] = useState(false);

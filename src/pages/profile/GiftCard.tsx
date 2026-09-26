@@ -65,6 +65,7 @@ import type { RecipientMatch } from "./giftCards/RecipientPicker";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { userFacingError } from "@/lib/userFacingError";
 
 // Client-side shape check only — the edge function is the authority (it also
 // enforces the bounds and the self-gift block server-side). We mirror the
@@ -233,7 +234,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
       } catch (e) {
         report(e, { tags: { source: "GiftCard.claim" } });
         errorToast("Couldn't claim gift card", {
-          description: e instanceof Error ? e.message : "Try again?",
+          description: userFacingError(e, "Try again?"),
         });
         return false;
       } finally {
@@ -401,7 +402,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     onError: (e) => {
       report(e, { tags: { source: "GiftCard.donate" } });
       errorToast("Couldn't send gift card", {
-        description: e instanceof Error ? e.message : "Please try again.",
+        description: userFacingError(e, "Please try again."),
       });
     },
   });

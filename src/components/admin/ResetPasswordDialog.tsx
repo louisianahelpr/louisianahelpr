@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { userFacingError } from "@/lib/userFacingError";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -53,7 +54,7 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Action failed");
+      toast.error(userFacingError(err, "Couldn't send the password reset — try again."));
     } finally {
       inFlight.current = false;
       setBusy(false);

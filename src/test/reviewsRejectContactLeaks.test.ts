@@ -8,7 +8,7 @@
  * @mutate supabase/migrations/20260924063123_reviews_reject_contact_leaks.sql | v_reason := public.contact_leak_reason(NEW.feedback);  -- TS-010 feedback scan | v_reason := NULL;
  * @mutate supabase/migrations/20260924063123_reviews_reject_contact_leaks.sql | v_reason := public.contact_leak_reason(NEW.response_text);  -- TS-010 reply scan | v_reason := NULL;
  * @mutate supabase/migrations/20260924063123_reviews_reject_contact_leaks.sql | BEFORE INSERT OR UPDATE OF feedback, response_text ON public.reviews | BEFORE UPDATE OF feedback ON public.reviews
- * @mutate src/components/CompletionPrompts.tsx | else if (error.code === "23514" && error.message) { hapticError(); toast.error(error.message); } // server contact-leak refusal (TS-010) | else if (false) {}
+ * @mutate src/components/CompletionPrompts.tsx | else if (error.code === "23514" && error.message) { hapticError(); toast.error(userFacingError(error, "We couldn't submit your review — please try again.")); } // server contact-leak refusal (TS-010) | else if (false) {}
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -33,7 +33,7 @@ describe("reviews are behind the contact-leak gate (TS-010)", () => {
     expect(newest).toMatch(/BEFORE INSERT OR UPDATE OF feedback, response_text ON public\.reviews/);
   });
   it("both review clients surface the refusal copy", () => {
-    expect(readFileSync("src/components/CompletionPrompts.tsx", "utf8")).toMatch(/error\.code === "23514" && error\.message\) \{ hapticError\(\); toast\.error\(error\.message\)/);
+    expect(readFileSync("src/components/CompletionPrompts.tsx", "utf8")).toMatch(/error\.code === "23514" && error\.message\) \{ hapticError\(\); toast\.error\(userFacingError\(error, /);
     expect(readFileSync("src/components/reviewPanel/ReviewForm.tsx", "utf8")).toMatch(/error\?\.code === "23514"/);
   });
 });

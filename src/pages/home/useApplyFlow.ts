@@ -298,7 +298,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // Upload errors are usually a flaky-network attachment — Retry is
         // genuinely useful here. The mutation already rolled back the
         // appliedJobIds set, so the apply is in a clean state to re-run.
-        errorToast(err.message, {
+        errorToast(userFacingError(err, "Couldn't upload your attachment."), {
           onRetry: () => applyMutation.mutate(vars),
         });
       } else if (code === "RATE_LIMITED") {
@@ -379,14 +379,14 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       }
 
       if (noteWithheld) {
-        toast.warning("Application sent — but your note wasn't included.", {
+        toast.warning("Application sent — but your note wasn't included", {
           description:
             "It looked like contact or payment details, which can't be shared before a job is confirmed. The person who posted it sees your application without it.",
           duration: 10000,
           action: { label: "View", onClick: () => navigate(`/jobs?job=${vars.jobId}`) },
         });
       } else {
-        toast.success("Application sent! Track it in My Jobs.", {
+        toast.success("Application sent. Track it in My Jobs.", {
           action: { label: "View", onClick: () => navigate(`/jobs?job=${vars.jobId}`) },
         });
       }

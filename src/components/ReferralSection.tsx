@@ -67,7 +67,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       hapticSuccess();
       setTimeout(() => setCopied(false), 2000);
     } else {
-      toast.error(`Couldn't copy — your code is ${referralCode}`);
+      toast.error(`Couldn't copy — your code is ${referralCode}.`);
     }
   };
 

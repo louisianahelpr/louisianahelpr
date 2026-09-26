@@ -27,6 +27,7 @@ import {
   parseCapInput,
   type AbuseLimitKey,
 } from "./abuseLimits";
+import { userFacingError } from "@/lib/userFacingError";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
 // than restated. `TIER_PERKS` is the same table `tierFeePercent()` resolves a
@@ -141,7 +142,7 @@ const AdminSettings = () => {
       if ((err as CaughtErr)?.code === "42703") {
         toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
-        toast.error(mutationErrorMessage(err, (err as CaughtErr)?.message));
+        toast.error(mutationErrorMessage(err, userFacingError(err, "Couldn't save that setting — try again.")));
       }
       return;
     }
@@ -203,7 +204,7 @@ const AdminSettings = () => {
       if ((err as CaughtErr)?.code === "42703") {
         toast.error("These settings aren't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
-        toast.error(mutationErrorMessage(err, (err as CaughtErr)?.message));
+        toast.error(mutationErrorMessage(err, userFacingError(err, "Couldn't save that setting — try again.")));
       }
       return;
     }
@@ -228,7 +229,7 @@ const AdminSettings = () => {
     if (!settingsId) return;
     const url = socialWebhookUrl.trim();
     if (url && !/^https?:\/\//i.test(url)) {
-      toast.error("Webhook URL must start with http:// or https://");
+      toast.error("Webhook URL must start with http:// or https://.");
       return;
     }
     setSavingWebhook(true);
@@ -243,7 +244,7 @@ const AdminSettings = () => {
       );
     } catch (err: unknown) {
       setSavingWebhook(false);
-      toast.error(mutationErrorMessage(err, (err as CaughtErr)?.message));
+      toast.error(mutationErrorMessage(err, userFacingError(err, "Couldn't save that setting — try again.")));
       return;
     }
     setSavingWebhook(false);
@@ -302,7 +303,7 @@ const AdminSettings = () => {
 
     if (error) {
       console.error("[AdminSettings] searchUsers:", error);
-      toast.error("Search failed: " + error.message);
+      toast.error(userFacingError(error, "Couldn't search users — try again."));
       setSearching(false);
       return;
     }

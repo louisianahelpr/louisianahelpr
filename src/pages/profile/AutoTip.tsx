@@ -173,7 +173,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
       // "these settings", not "your auto-tip": one Save persists BOTH the tip
       // and the release toggle, so naming only the tip left a poster who had just
       // flipped Instant Release unsure whether that half had landed.
-      toast.error("Couldn't save these settings.", {
+      toast.error("Couldn't save these settings", {
         description: "We couldn't reach your profile. Try again in a moment.",
       });
       return;

@@ -355,6 +355,41 @@ describe("useMessagesData — deep links against the cache", () => {
   });
 });
 
+// docs/OPEN.md Q333: a link to a person who deleted their account resolves to
+// a placeholder with otherUserId null. When the inbox already has that job's
+// deleted-account thread (it holds what I sent them), that thread opens, and
+// no second, empty copy is prepended.
+// @mutate src/pages/messages/useMessagesData.ts |         if (deletedThread) { |         if (false) {
+describe("useMessagesData — deep link to a deleted account (Q333)", () => {
+  it("opens the job's existing deleted-account thread instead of an empty placeholder", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const deletedThread: Conversation = {
+      otherUserId: null,
+      otherUserName: "Former member",
+      jobTitle: "Paint the porch",
+      jobId: "job-7",
+      lastMessage: "See you Saturday",
+      lastAt: "2026-08-17T12:00:00.000Z",
+      unread: 0,
+    };
+    fetchConversationsMock.mockResolvedValue([CONVO, deletedThread]);
+    buildDeepLinkPlaceholderMock.mockResolvedValue({
+      ...deletedThread,
+      lastMessage: "",
+      lastAt: "2026-09-26T00:00:00.000Z",
+    });
+
+    const { result } = renderMessagesData(client, {
+      deepLinkJobId: "job-7",
+      deepLinkUserId: "gone-7",
+    });
+
+    await waitFor(() => expect(buildDeepLinkPlaceholderMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.activeConvo).toEqual(deletedThread));
+    expect(result.current.conversations.filter((c) => c.jobId === "job-7")).toHaveLength(1);
+  });
+});
+
 // Q380: build the placeholder only after the refetch settles again.
 // @mutate src/pages/messages/useMessagesData.ts | const placeholderP = deepLinkUserId | await loadConversations(resolvedUserId);\n      const placeholderP = deepLinkUserId
 // Proof this guard can fail: open the deep-linked thread by hand instead of

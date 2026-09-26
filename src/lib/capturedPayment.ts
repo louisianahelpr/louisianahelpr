@@ -6,7 +6,7 @@
  * in escrow/payout_pending/released. A status is a claim; the Stripe
  * PaymentIntent is the evidence. The two card-capture paths write the PI in
  * the same UPDATE that sets the status (stripe-webhook checkoutSessionCompleted,
- * charge-recurring-visits). KNOWN GAP (Q409): a job paid IN FULL by a gift card
+ * charge-recurring-visits). KNOWN GAP (Q443): a job paid IN FULL by a gift card
  * (redeem_gift_card) goes to escrow with no job PI — its money came through the
  * gift card's own PI — so it is not counted here yet. None exists outside seed
  * data on 2026-09-26. Otherwise a held-status row with NO PI is a row nobody

@@ -1,3 +1,6 @@
+import { mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
+
 /**
  * WHAT A PRESS FAILURE IS NOT — docs/OPEN.md Q128.
  *
@@ -312,4 +315,47 @@ export function rowDetailLines({ route, persona, controls, documented, max = 700
     out.push(`[${route} ${persona}]   ${kind} "${(c.chain ?? []).join(" › ")}" — ${why}`);
   }
   return out;
+}
+
+/**
+ * SHARDS PULL ROWS FROM ONE QUEUE (nightly-red #1582, run 36230166945).
+ *
+ * The shards used to split the route list round-robin (`k % 4`), blind to
+ * cost. That night shard 2 finished in 73 min and sat idle while shard 4
+ * stopped at its 135-min budget with 12 rows not reached: /admin?view=jobs
+ * alone took 97 min (412 presses). Shard-time summed to ~430 min of the 540
+ * available, so the work fit; the split did not.
+ *
+ * Now every shard walks the whole list and CLAIMS each row (route x persona)
+ * before walking it, by an atomic mkdir in the run's PRESS_QUEUE_DIR, so a
+ * shard with time left takes the next row instead of idling. A shard of an
+ * earlier wave that reaches its budget stops claiming and releases a row it
+ * had to cut short, so the next wave walks it whole. Only the LAST wave
+ * reports rows as not reached, and it claims each first, so no row is
+ * reported twice and none is silently dropped.
+ */
+export function claimRow({ dir, key }) {
+  mkdirSync(dir, { recursive: true });
+  try {
+    mkdirSync(join(dir, key));
+    return true;
+  } catch (e) {
+    if (e && e.code === "EEXIST") return false; // another shard has it
+    throw e;
+  }
+}
+
+export function releaseRow({ dir, key }) {
+  rmSync(join(dir, key), { recursive: true, force: true });
+}
+
+/**
+ * What a queued shard does with the next unclaimed row.
+ *  - "walk": claim it and walk it.
+ *  - "stop": over budget in an earlier wave; leave it for the next wave.
+ *  - "not-reached": over budget in the last wave; claim it and report it.
+ */
+export function queuedRowAction({ overBudget, lastWave }) {
+  if (!overBudget) return "walk";
+  return lastWave ? "not-reached" : "stop";
 }

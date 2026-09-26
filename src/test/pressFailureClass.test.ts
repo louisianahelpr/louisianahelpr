@@ -136,7 +136,7 @@ describe("Q128: the harness uses every rule (wiring)", () => {
     expect(press).toMatch(/for \(const p of Object\.keys\(sessions\)\) \{ noticedOn = "clean-up"; await ensureLiveSession\(p\); \}\s*const cleaned = await cleanup/);
   });
   it("rows not reached are reported and fail the run", () => {
-    expect(press.split("overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })").length - 1).toBe(2);
+    expect(press.split("overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })").length - 1).toBe(3); // before a row, mid-row, and before a queued claim (#1582)
     expect(press).toContain("uncoveredPersonas.length > 0 || notReached.length > 0");
   });
   it("inventory: the run's measured classes are all covered (floor)", () => {

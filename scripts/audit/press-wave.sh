@@ -22,6 +22,12 @@ if [ "$#" -lt 1 ]; then
 fi
 : "${SNAPSHOT_IN:?SNAPSHOT_IN must name the run-level snapshot (Q272)}"
 RUN_BASE="${RUN_BASE:-local-$(date +%s)}"
+# #1582: every shard of the run pulls rows from ONE queue (claimRow in
+# pressFailureClass.mjs), so a shard with time left takes the next row instead
+# of idling beside a slow one. Both waves of a run share it (same RUN_BASE).
+# PRESS_LAST_WAVE=0 on an earlier wave hands unwalked rows to the next one.
+export PRESS_QUEUE_DIR="${PRESS_QUEUE_DIR:-test-results/press-queue/$RUN_BASE}"
+export PRESS_LAST_WAVE="${PRESS_LAST_WAVE:-1}"
 
 pids=()
 for n in "$@"; do

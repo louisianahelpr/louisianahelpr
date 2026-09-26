@@ -47,6 +47,10 @@
  *   ROUTES=/home,/profile?tab=earnings  … to narrow
  *   PERSONAS=customer                       … to narrow (anon,customer,helper,admin,incomplete)
  *   SHARD=1/4                               … CI sharding over the route list
+ *   PRESS_QUEUE_DIR=<dir>                   … shards CLAIM rows from one shared queue instead
+ *                                             (#1582); SHARD then only names the shard
+ *   PRESS_LAST_WAVE=0                       … a later wave follows: stop at the budget and
+ *                                             hand unwalked rows on instead of reporting them
  *   CLEANUP_SINCE=<iso>                     … clean-up only (the workflow's final job)
  *
  * Needs `.env` with VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY and
@@ -64,7 +68,7 @@ import * as pressSafety from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
-  classifyConsoleError, classifyFailedResponse, clickFailureReason, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
+  claimRow, classifyConsoleError, classifyFailedResponse, clickFailureReason, queuedRowAction, releaseRow, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
 } from "./pressFailureClass.mjs";
 import { budgetFor } from "../e2e/request-budget.mjs";
 import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
@@ -871,7 +875,14 @@ async function main() {
   // by a second browser, signed in as the SAME shared poster account, against
   // the SAME live notification feed shard 3 was pressing. Hence the full set.
   const allRoutes = routeSet;
-  if (process.env.SHARD) {
+  // #1582: with PRESS_QUEUE_DIR set, shards CLAIM rows from one shared queue
+  // (claimRow) instead of taking every n-th route, so a shard with time left
+  // takes the next row while another is still on /admin?view=jobs.
+  const QUEUE_DIR = process.env.PRESS_QUEUE_DIR || "";
+  // Safe default: a run is its own last wave (reports what it did not reach)
+  // unless told a later wave follows (PRESS_LAST_WAVE=0).
+  const LAST_WAVE = process.env.PRESS_LAST_WAVE !== "0";
+  if (process.env.SHARD && !QUEUE_DIR) {
     const [i, n] = process.env.SHARD.split("/").map(Number);
     routeSet = routeSet.filter((_, k) => k % n === i - 1);
   }
@@ -982,13 +993,23 @@ async function main() {
     }
   };
 
-  for (const route of routeSet) {
+  let queueStopped = false;
+  for (const [routeIdx, route] of routeSet.entries()) {
+    if (queueStopped) break;
     if (route.redirect) {
+      if (QUEUE_DIR && !claimRow({ dir: QUEUE_DIR, key: `${String(routeIdx).padStart(3, "0")}-redirect` })) continue;
       results.push({ route: route.url, persona: "-", status: "redirect", note: "pure redirect route — its target is walked on its own row", controls: [] });
       continue;
     }
     const personas = route.personas.filter((p) => PERSONAS.includes(p));
     for (const persona of personas) {
+      const rowKey = `${String(routeIdx).padStart(3, "0")}-${persona}`;
+      if (QUEUE_DIR) {
+        const action = queuedRowAction({ overBudget: overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS }), lastWave: LAST_WAVE });
+        // An earlier wave out of time leaves every unclaimed row to the next wave.
+        if (action === "stop") { queueStopped = true; break; }
+        if (!claimRow({ dir: QUEUE_DIR, key: rowKey })) continue; // another shard has it
+      }
       const rec = { route: route.url, persona, status: "ok", landedOn: null, found: 0, pressed: 0, passed: 0, failed: 0, skipped: 0, controls: [], notes: [], net: null, nonApp: [] };
       results.push(rec);
       if (overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })) {
@@ -1342,6 +1363,14 @@ async function main() {
         while (idx < queue.length) {
           if (overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })) {
             // Q128 class 6: stop mid-row rather than be cancelled mid-row.
+            if (QUEUE_DIR && !LAST_WAVE) {
+              // #1582: an earlier wave hands the row back; the next wave walks it whole.
+              releaseRow({ dir: QUEUE_DIR, key: rowKey });
+              rec.status = "handed-on";
+              rec.notes.push(`handed on: this wave's time budget ran out with ${queue.length - idx} control(s) unpressed; the next wave walks the row whole`);
+              queueStopped = true;
+              break;
+            }
             rec.status = NOT_REACHED_STATUS;
             rec.notes.push(`cut short: the sweep's own time budget ran out with ${queue.length - idx} control(s) of this row unpressed`);
             break;
@@ -1779,6 +1808,7 @@ async function main() {
       for (const l of rowDetailLines({ route: route.url, persona, controls: rec.controls, documented: DOCUMENTED_SKIPS })) console.log(l);
     }
   }
+  if (queueStopped) console.log(`::warning title=press shard handed on::time budget reached; unclaimed rows are left in ${QUEUE_DIR} for the next wave`);
   requestMeter.flush();
   await browser.close();
 

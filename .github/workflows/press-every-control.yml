@@ -186,6 +186,10 @@ jobs:
 
       - name: Press every control (wave 1, shards 1 and 2)
         id: wave1
+        # #1582: shards claim rows from one queue; wave 1 hands what it could
+        # not reach to wave 2 instead of reporting it.
+        env:
+          PRESS_LAST_WAVE: "0"
         run: bash scripts/audit/press-wave.sh 1 2
 
       - name: Press every control (wave 2, shards 3 and 4)
@@ -193,6 +197,8 @@ jobs:
         # A red wave 1 still leaves shards 3-4 unpressed; run them, but only
         # on top of a snapshot (nothing could be restored without one).
         if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
+        env:
+          PRESS_LAST_WAVE: "1"
         run: bash scripts/audit/press-wave.sh 3 4
 
       # Whatever a shard created and could not remove itself (a shard that

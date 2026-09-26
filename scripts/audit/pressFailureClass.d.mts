@@ -33,3 +33,6 @@ export declare function rowDetailLines(a: {
 export declare const RECENT_CYCLES: number;
 export declare const PACE_HEADROOM: number;
 export declare function cycleBurstEstimate(recent: readonly number[] | null | undefined): number;
+export declare function claimRow(a: { dir: string; key: string }): boolean;
+export declare function releaseRow(a: { dir: string; key: string }): void;
+export declare function queuedRowAction(a: { overBudget: boolean; lastWave: boolean }): "walk" | "stop" | "not-reached";

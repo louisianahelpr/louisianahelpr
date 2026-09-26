@@ -1477,14 +1477,27 @@ export function ConversationList({
                blank and then filled in, which reads as the page growing. Six
                is a FLOOR, not a promise: the real count is unknowable while
                the query is out, so reserve what the viewport will hold and let
-               a longer list extend past the fold, where nothing is displaced. */
-            <div>
+               a longer list extend past the fold, where nothing is displaced.
+
+               KEYED, and so is every branch after it. All four branches are a
+               bare <div> in the same slot, so without keys React REUSED the
+               bones' node for whatever landed — and when the hidden-unread
+               banner (or the aged-out note) landed above it in the same
+               commit, that one node moved down by the banner's height. The
+               browser scores a node that exists in both frames and moved as a
+               layout shift: prod-audit page-settle measured "375 /messages:
+               cls=0.0558" (div 139→205) and "1440 /messages: cls=0.0216"
+               (142→194), runs 36003051878 / 36069316906. Keyed, the bones are
+               REMOVED and the list is NEW content, which is what actually
+               happened; nothing that was on screen moves.
+               Guard: src/test/placeholderNodeNotReused.test.ts. */
+            <div key="bones">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <MessageThreadSkeleton key={i} />
               ))}
             </div>
           ) : noTabMatches ? (
-            <div className="flex flex-col items-center text-center py-14 gap-2">
+            <div key="no-tab-matches" className="flex flex-col items-center text-center py-14 gap-2">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{
@@ -1561,7 +1574,7 @@ export function ConversationList({
           ) : noSearchMatches ? (
             /* Active search filtered every thread out — a tidy in-place
                message rather than an empty list. */
-            <div className="flex flex-col items-center text-center py-14 gap-2">
+            <div key="no-search-matches" className="flex flex-col items-center text-center py-14 gap-2">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{
@@ -1591,7 +1604,7 @@ export function ConversationList({
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div key="threads" className="space-y-2">
               {(() => {
                 const visibleConvos = showAllConvos
                   ? filteredConversations

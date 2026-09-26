@@ -92,12 +92,20 @@
          all three were arguments about how to lose that race gracefully. The
          race is gone; the woff2 ships with the binary.
 
-         Two preloads only, both for the LCP path: the Bodoni Moda latin
-         face (the hero H1) and the Montserrat latin face (everything else
-         above the fold). The remaining faces — latin-ext for both, Bodoni
-         italic, Beth Ellen — are left to the @font-face fetch; preloading
-         them competes with the LCP for bandwidth and none of them is on the
-         first paint. `crossorigin` is REQUIRED on a font preload even
+         Three preloads, all for the LCP path: the Bodoni Moda latin face
+         (the hero H1), the Bodoni Moda ITALIC latin face (the hero H1's
+         <em>, "Partner.") and the Montserrat latin face (everything else
+         above the fold). The italic was once left out on the belief that no
+         italic is on the first paint; the hero's <em> is. Without it the
+         <em> painted in the local fallback and re-wrapped when the woff2
+         landed: prod-audit page-settle measured "1440 /: cls=0.0315" on the
+         Linux runner (runs 36003051878, 36069316906; the em moved y 377→351),
+         where no Georgia exists for the metric-matched fallback — as on
+         Android. src/test/heroFontsPreloaded.test.ts derives the faces the
+         hero sets and fails when one is not preloaded. The remaining faces —
+         latin-ext for both, Beth Ellen — are left to the @font-face fetch;
+         preloading them competes with the LCP for bandwidth and none of them
+         is on the first paint. `crossorigin` is REQUIRED on a font preload even
          same-origin: fonts are fetched in CORS mode, and a preload without it
          is a second, wasted download rather than a warm cache hit. -->
     <link
@@ -105,6 +113,13 @@
       as="font"
       type="font/woff2"
       href="/fonts/bodoni-moda-normal-latin.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/bodoni-moda-italic-latin.woff2"
       crossorigin
     />
     <link

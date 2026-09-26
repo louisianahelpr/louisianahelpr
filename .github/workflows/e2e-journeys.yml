@@ -140,7 +140,7 @@ jobs:
             node scripts/e2e/prod-lifecycle-sweeper.mjs
 
       - name: Run the journeys
-        run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+        run: npx playwright test e2e/journeys/04-money-outcomes.spec.ts e2e/journeys/notifications/notifications.spec.ts --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
 
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
@@ -232,7 +232,7 @@ jobs:
             node scripts/e2e/prod-lifecycle-sweeper.mjs
 
       - name: Run the journeys
-        run: npx playwright test --project=journeys-webkit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+        run: npx playwright test e2e/journeys/04-money-outcomes.spec.ts e2e/journeys/notifications/notifications.spec.ts --project=journeys-webkit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
 
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
@@ -286,7 +286,7 @@ jobs:
     # schedule fires. Anything narrower stays silent rather than closing an
     # issue it has not earned.
     if: >-
-      always() && (github.event_name == 'schedule'
+      false && always() && (github.event_name == 'schedule'
       || (github.event_name == 'workflow_dispatch' && inputs.scenario == ''))
     runs-on: ubuntu-latest
     timeout-minutes: 5

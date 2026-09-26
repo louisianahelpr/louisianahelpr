@@ -1103,6 +1103,8 @@ RETURNS trigger
 LANGUAGE plpgsql
 SET search_path TO 'public'
 AS $function$
+DECLARE
+  v_due timestamptz;
 BEGIN
   IF OLD.execution_status IS DISTINCT FROM 'crew_fanout' THEN
     RETURN NEW;
@@ -1117,10 +1119,14 @@ BEGIN
     RAISE EXCEPTION 'crew_fanout_decision_fixed: a crew decision is not rewritten; supersede it (dispute_id=%)', OLD.id
       USING ERRCODE = '42501';
   END IF;
-  IF NEW.status IS DISTINCT FROM OLD.status AND EXISTS (
-       SELECT 1 FROM public.jobs j
-        WHERE j.id = OLD.job_id
-          AND (j.payout_scheduled_at IS NULL OR j.payout_scheduled_at <= now() + interval '15 minutes')) THEN
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    -- FOR SHARE: the payout time is judged on a row nobody can move under
+    -- this decision (rpc_supersede_dispute_decision already holds it FOR
+    -- UPDATE; a direct admin write does not).
+    SELECT j.payout_scheduled_at INTO v_due FROM public.jobs j WHERE j.id = OLD.job_id FOR SHARE;
+  END IF;
+  IF NEW.status IS DISTINCT FROM OLD.status
+     AND (v_due IS NULL OR v_due <= now() + interval '15 minutes') THEN
     RAISE EXCEPTION 'crew_fanout_due: this crew decision is being paid out and can no longer be superseded (dispute_id=%)', OLD.id
       USING ERRCODE = '42501';
   END IF;

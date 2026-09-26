@@ -54,6 +54,8 @@ import { blankComments, blankNonCode } from "./helpers/blankNonCode";
 // @mutate supabase/functions/money-reconciliation/index.ts | pi = await stripe.paymentIntents.retrieve( | pi = await stripe.paymentIntents.cancel(
 // @mutate supabase/functions/void-cancelled-payments/index.ts | const jobs = cancelledJobs; | const jobs = cancelledJobs;\n    for (const j of jobs \|\| []) await stripe.refunds.create({ payment_intent: String(j.id) });
 // @mutate supabase/functions/execute-dispute-split/index.ts | "claim_dispute_settlement", | "claim_dispute_settlement_x",
+// Transitive (Q409): a money helper reached through another helper, called once outside the guarded loop.
+// @mutate supabase/functions/process-scheduled-payouts/index.ts |     const crewSettled = new Set<string>(); |     const crewSettled = new Set<string>();\n    const early = () => crewReadyToRelease(null as never);
 
 const MONEY_SRC =
   String.raw`\.\s*(?:transfers\s*\.\s*(?:create|createReversal)|refunds\s*\.\s*create|paymentIntents\s*\.\s*(?:cancel|capture)|payouts\s*\.\s*create|disputes\s*\.\s*close)\s*\(` +
@@ -252,16 +254,34 @@ function unguardedSites(
   hi = code.length,
 ): string[] {
   const inReg = (i: number) => (i >= allowFrom && i >= reg[0] && i < reg[1]) || fedOnlyAfterGuard(code, bare, i, allowFrom, reg);
+  const callsOf = (owner: Fn) =>
+    [...code.matchAll(new RegExp(String.raw`\b${owner.name}\s*\(`, "g"))]
+      .map((c) => c.index ?? 0)
+      .filter((i) => i < owner.at || i > owner.at + 60 + owner.name.length);
+  /**
+   * A site is covered when it is in the guarded region, or it sits inside a
+   * function every one of whose call sites is covered, TRANSITIVELY (a money
+   * helper called only from another helper that is itself called only where
+   * money is allowed: process-scheduled-payouts' refundUnfilledCrewShares,
+   * called from crewReadyToRelease, Q409). Same bar at every level: one
+   * uncovered call anywhere up the chain is a miss. Depth-capped against
+   * recursion.
+   */
+  const covered = (at: number, depth = 0): boolean => {
+    if (inReg(at)) return true;
+    if (depth > 4) return false;
+    const owner = fns.filter((f) => f.at < at && at < f.end).pop();
+    if (!owner) return false;
+    const calls = callsOf(owner);
+    return calls.length > 0 && calls.every((i) => covered(i, depth + 1));
+  };
   const out: string[] = [];
   for (const s of sites) {
-    if (s.at < lo || s.at >= hi || inReg(s.at)) continue;
-    // Inside a function body: fine iff that function is only called where money is allowed.
+    if (s.at < lo || s.at >= hi || covered(s.at)) continue;
+    // Inside a function body called only from outside [lo, hi): judged there.
     const owner = fns.filter((f) => f.at < s.at && s.at < f.end).pop();
     if (owner) {
-      const calls = [...code.matchAll(new RegExp(String.raw`\b${owner.name}\s*\(`, "g"))]
-        .map((c) => c.index ?? 0)
-        .filter((i) => i < owner.at || i > owner.at + 60 + owner.name.length);
-      if (calls.length > 0 && calls.every(inReg)) continue;
+      const calls = callsOf(owner);
       if (calls.length > 0 && calls.every((i) => i < lo || i >= hi)) continue; // called only from elsewhere; judged there
     }
     out.push(`${s.via ?? "stripe"}@${code.slice(0, s.at).split("\n").length}`);
@@ -373,7 +393,11 @@ describe("Q231: only execute-dispute-split moves a decided dispute's escrow", ()
   it("the shared check reads decided + not executed, and refuses on a read error", () => {
     const code = blankComments(readFileSync("supabase/functions/_shared/unsettledDispute.ts", "utf8"));
     expect(code).toMatch(/\.eq\("status", "decided"\)/);
-    expect(code).toMatch(/\.or\("execution_status\.is\.null,execution_status\.neq\.executed"\)/);
+    // The default read; `crewFanout` (process-scheduled-payouts, group jobs
+    // only, Q409) additionally leaves out a crew decision that cron executes.
+    expect(code).toMatch(/:\s*"execution_status\.is\.null,execution_status\.neq\.executed";/);
+    expect(code).toMatch(/opts\.crewFanout\s*\?\s*"execution_status\.is\.null,and\(execution_status\.neq\.executed,execution_status\.neq\.crew_fanout\)"/);
+    expect(code).toMatch(/\.or\(unsettled\)/);
     expect(code).toMatch(/blocked: true,\s*readError/);
     // Its one fail-open branch is a missing TABLE (nothing to block); it must stay that narrow.
     expect(code.match(/return \{ blocked: false \}/g)?.length).toBe(3);

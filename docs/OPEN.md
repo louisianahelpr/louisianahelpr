@@ -7,10 +7,10 @@ Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 - **Queue (this file):** 251 done, 38 partly done (fixed, protection pending), 117 open. Source of truth for work.
 - **Audit bus:** 23 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Ops alert ledger:** 19 open (6 critical, 12 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-23T06:09Z)_
-- **nightly-red issues:** 8 open — `gh issue list -l nightly-red`. _(2026-09-23T06:08Z)_
-- **Workflows on main:** 10 red, 8 stale, 1 unknown, 27 green of 46 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-23T06:08Z)_
-- **Remote branches:** 34 carry patches not on main, 26 fully merged, of 63 (Q79). _(2026-09-23T06:08Z)_
+- **Ops alert ledger:** 15 open (14 error, 1 warning), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-25T22:28Z)_
+- **nightly-red issues:** 10 open — `gh issue list -l nightly-red`. _(2026-09-25T22:26Z)_
+- **Workflows on main:** 10 red, 8 stale, 0 unknown, 39 green of 57 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-25T22:26Z)_
+- **Remote branches:** 66 carry patches not on main, 3 fully merged, of 73 (Q79). _(2026-09-25T22:26Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 

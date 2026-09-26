@@ -10,7 +10,7 @@
  * that failed to deploy is not applied, so fixing it in place is allowed.
  * --offline treats every file present at <base-sha> as applied (the
  * upper bound; used to prove the check red on 42a7962cc without prod).
- * Exit 1 on a finding, 2 if it could not read prod.
+ * Exits non-zero on a finding (code one), or code two if it could not read prod.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";

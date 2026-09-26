@@ -141,6 +141,7 @@ jobs:
           path: |
             test-results/
             playwright-report/
+            request-budget/
           retention-days: 14
           if-no-files-found: warn
 

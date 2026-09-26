@@ -24,6 +24,8 @@ export interface RequestSample {
   tests: number;
   minutes: Record<string, number>;
   topDuplicates: Record<string, number>;
+  /** Every backend request by endpoint shape; absent in samples written before it existed. */
+  byShape?: Record<string, number>;
   /** ms the pacer held navigations; absent in samples written before pacing. */
   paceWaitMs?: number;
   startedAt: number;
@@ -38,6 +40,7 @@ export declare class RequestMeter {
   duplicates: number;
   tests: number;
   minutes: Record<string, number>;
+  byShape: Record<string, number>;
   ceiling: number;
   reserve: number;
   paceWaitMs: number;

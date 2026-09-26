@@ -17,7 +17,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { budgetFor } from "../scripts/e2e/request-budget.mjs";
+import { budgetFor, shapeKey } from "../scripts/e2e/request-budget.mjs";
 
 /** Where samples go. Not test-results/: Playwright wipes that at the start of
  *  every invocation, and one workflow job runs several. */
@@ -122,6 +122,10 @@ export class RequestMeter {
     this.minutes = {};
     /** duplicate GET counts per key, for the summary's top list */
     this.dupKeys = {};
+    /** EVERY backend request by endpoint shape (shapeKey: ids -> :id), so an
+     *  over-budget run names what it sent instead of only how much (Q104;
+     *  privacy-journey 36158780317 went 81 -> 84 and nothing said which 3). */
+    this.byShape = {};
     this.lastSeen = new Map();
     this.startedAt = Date.now();
     /** Pacing is off until paceTo(): the metered node scripts measure without it. */
@@ -193,6 +197,8 @@ export class RequestMeter {
     this.total++;
     this.sinceGate++;
     this.byClass[cls] = (this.byClass[cls] || 0) + 1;
+    const shape = shapeKey(requestKey(method, url));
+    this.byShape[shape] = (this.byShape[shape] || 0) + 1;
     const minute = Math.floor(now / 60_000);
     this.minutes[minute] = (this.minutes[minute] || 0) + 1;
     if (isSignIn(url, method)) this.signIns++;
@@ -252,6 +258,7 @@ export class RequestMeter {
       tests: this.tests,
       minutes: this.minutes,
       topDuplicates: Object.fromEntries(topDup),
+      byShape: this.byShape,
       paceWaitMs: this.paceWaitMs,
       startedAt: this.startedAt,
       endedAt: Date.now(),

@@ -63,6 +63,7 @@ import { FROM_CONTACT, SUPPORT_EMAIL, sendWithResend } from '../_shared/resend.t
 // renderSupportEmail below), so nothing in this file builds HTML by hand.
 import { SupportRequestEmail } from '../_shared/email-templates/support-request.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 // Mirrors SUPPORT_TOPICS in src/lib/supportTopics.ts — edge functions run on
 // Deno and cannot import from src/. Change both together.
@@ -142,7 +143,7 @@ async function renderSupportEmail(t: {
   return await renderEmail(React.createElement(SupportRequestEmail, t))
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }

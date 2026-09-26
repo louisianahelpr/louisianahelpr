@@ -51,34 +51,69 @@ export function extractProofPhotoPath(urlOrPath: string | null | undefined): str
   return match[1].split("?")[0];
 }
 
-/** A short-lived URL for one stored value, or null if it cannot be signed. */
-async function getProofPhotoSignedUrl(
-  urlOrPath: string | null | undefined,
-  expiresInSeconds: number = PROOF_PHOTO_SIGN_TTL_SECONDS,
-): Promise<string | null> {
-  const path = extractProofPhotoPath(urlOrPath);
-  // `data:`/`blob:` values pass extractProofPhotoPath unchanged (it only
-  // strips http(s) URLs); they are not objects in this bucket.
-  if (!isStorageObjectPath(path)) return null;
+/**
+ * SIGNED URLS ARE BATCHED AND REUSED.
+ *
+ * #1582 (press-every-control run 36208184593, shard 2): one visit to the
+ * poster's job list sent a `createSignedUrl` POST per photo, every time a
+ * gallery mounted, and never reused the ten-minute URL it had just been given.
+ * That shard's storage requests went from 1,657 to 14,095, storage answered
+ * `429` on `/object/sign/proof-photos/…`, and the photo that got the 429 did
+ * not render. A person scrolling a long list pays the same cost.
+ *
+ * Now every call signs the paths it does not already hold in ONE
+ * `createSignedUrls` request, several galleries asking at once share that
+ * request, and a signed URL is handed out again while at least half of its
+ * life is left. A path that cannot be signed (deleted object, RLS) still comes
+ * back null and is still reported, per path.
+ */
+type SignedEntry = { url: string; expiresAt: number };
+const signed = new Map<string, SignedEntry>();
+const inFlight = new Map<string, Promise<void>>();
+
+/** Test hook: forget every signed URL and pending batch. */
+export function resetProofPhotoSignCache(): void {
+  signed.clear();
+  inFlight.clear();
+}
+
+function usable(path: string, expiresInSeconds: number, now: number): string | null {
+  const hit = signed.get(path);
+  return hit && hit.expiresAt - now >= (expiresInSeconds * 1000) / 2 ? hit.url : null;
+}
+
+async function signBatch(paths: string[], expiresInSeconds: number): Promise<void> {
+  // Only storage object paths are ever signed (signedUrlOnlyForStoragePaths).
+  const objectPaths = paths.filter((p) => isStorageObjectPath(p));
+  if (objectPaths.length === 0) return;
+  const requestedAt = Date.now();
   try {
     const { data, error } = await supabase.storage
       .from(PROOF_PHOTOS_BUCKET)
-      .createSignedUrl(path, expiresInSeconds);
+      .createSignedUrls(objectPaths, expiresInSeconds);
     if (error) {
-      // NOT a silent catch: signing can legitimately fail (the object was
-      // deleted, RLS says no) and the caller's answer to that is to render
-      // nothing — but a reader seeing nothing is a real symptom, so it is
-      // reported rather than swallowed.
-      report(error, { tags: { source: "proofPhotoStorage.createSignedUrl" } });
-      return null;
+      // NOT a silent catch: signing can legitimately fail and the caller's
+      // answer is to render nothing, but a reader seeing nothing is a real
+      // symptom, so it is reported rather than swallowed.
+      report(error, { tags: { source: "proofPhotoStorage.createSignedUrls" } });
+      return;
     }
-    return data?.signedUrl ?? null;
+    for (const row of data ?? []) {
+      if (row.error || !row.signedUrl || !row.path) {
+        // One missing object (deleted, RLS) does not fail the batch; it is
+        // reported on its own, the way the per-path call reported it.
+        report(new Error(`proof photo not signed: ${row.error ?? "no url"} (${row.path ?? "?"})`), {
+          tags: { source: "proofPhotoStorage.createSignedUrls" },
+        });
+        continue;
+      }
+      signed.set(row.path, { url: row.signedUrl, expiresAt: requestedAt + expiresInSeconds * 1000 });
+    }
   } catch (err) {
     // A throw here (offline, a storage client that is not there) must degrade
     // to an unrendered photo, never to an unhandled rejection inside a React
     // effect — which is how this surfaced in the component tests.
-    report(err, { tags: { source: "proofPhotoStorage.createSignedUrl" } });
-    return null;
+    report(err, { tags: { source: "proofPhotoStorage.createSignedUrls" } });
   }
 }
 
@@ -92,11 +127,25 @@ export async function signProofPhotoUrls(
   values: readonly string[],
   expiresInSeconds: number = PROOF_PHOTO_SIGN_TTL_SECONDS,
 ): Promise<(string | null)[]> {
-  return Promise.all(
-    values.map(async (value) => {
-      const signed = await getProofPhotoSignedUrl(value, expiresInSeconds);
-      if (signed) return signed;
-      return /^https?:\/\//i.test(value ?? "") ? value : null;
-    }),
-  );
+  // `data:`/`blob:` values pass extractProofPhotoPath unchanged (it only
+  // strips http(s) URLs); isStorageObjectPath rejects them.
+  const paths = values.map((v) => {
+    const p = extractProofPhotoPath(v);
+    return isStorageObjectPath(p) ? p : "";
+  });
+  const now = Date.now();
+  const toSign = [...new Set(paths.filter((p) => p && !usable(p, expiresInSeconds, now) && !inFlight.has(p)))];
+  if (toSign.length) {
+    const batch = signBatch(toSign, expiresInSeconds).finally(() => {
+      for (const p of toSign) if (inFlight.get(p) === batch) inFlight.delete(p);
+    });
+    for (const p of toSign) inFlight.set(p, batch);
+  }
+  await Promise.all([...new Set(paths.filter((p) => p && inFlight.has(p)).map((p) => inFlight.get(p)))]);
+  const at = Date.now();
+  return values.map((value, i) => {
+    const url = paths[i] ? signed.get(paths[i])?.url ?? null : null;
+    if (url && (signed.get(paths[i])?.expiresAt ?? 0) > at) return url;
+    return /^https?:\/\//i.test(value ?? "") ? value : null;
+  });
 }

@@ -142,6 +142,8 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "keyed to a fixture id", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "no is_seed job in status", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/a11y-prod/a11y-prod.spec.ts", match: "no is_seed group job", verdict: "failure", why: MISSING_FIXTURE },
+  { file: "e2e/a11y-prod/reduced-motion.spec.ts", match: "no poster session", verdict: "failure", why: MISSING_CREDS },
+  { file: "e2e/a11y-prod/reduced-motion.spec.ts", match: "keyed to a fixture id", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/prod-audit/", match: "GAP:", verdict: "failure", why: MISSING_FIXTURE },
   {
     file: "e2e/prod-audit/messy-input.spec.ts",

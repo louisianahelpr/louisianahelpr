@@ -19,10 +19,12 @@ import { readSource, walkSource } from "./helpers/walkSource";
  * KNOWN_ABOVE_MODAL — exact, two-way.
  */
 
-// Not fixed by Q303 (only StrikeBanner was named). Whether the offline notice
-// should stay above a modal is an open question, not a decision.
+// Empty since Q313 (2026-09-25): OfflineBanner was the one entry, and it now
+// dims under the modal like StrikeBanner (decision and measurement in the
+// src/index.css comment beside `.offline-banner`). A new entry needs a reason
+// written here.
 // @two-way src/test/persistentChromeUnderModalBackdrop.test.ts:const staleKnown =
-const KNOWN_ABOVE_MODAL = ["src/components/OfflineBanner.tsx"];
+const KNOWN_ABOVE_MODAL: string[] = [];
 
 const css = blankComments(readFileSync("src/index.css", "utf8"));
 const lowered = new Map<string, number>();
@@ -69,6 +71,13 @@ describe("persistent fixed chrome drops under the modal backdrop (Q303)", () => 
     const strike = hits.filter((h) => h.file === "src/components/StrikeBanner.tsx");
     expect(strike.length).toBe(2);
     for (const h of strike) expect(isLowered(h)).toBe(true);
+  });
+
+  it("OfflineBanner is lowered (Q313)", () => {
+    // @mutate src/index.css | body[data-scroll-locked] .offline-banner { | body[data-scroll-lockedx] .offline-banner {
+    const offline = hits.filter((h) => h.file === "src/components/OfflineBanner.tsx");
+    expect(offline.length).toBe(1);
+    expect(isLowered(offline[0])).toBe(true);
   });
 
   it("KNOWN_ABOVE_MODAL is exact (every entry still offends)", () => {

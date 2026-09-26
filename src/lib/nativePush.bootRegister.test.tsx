@@ -37,6 +37,7 @@
 // @mutate src/lib/nativePush.ts | if (event === "SIGNED_IN" && currentDeviceToken && currentDevicePlatform) { | if (event === "NEVER" && currentDeviceToken && currentDevicePlatform) {
 // @mutate src/lib/nativePush.ts | track("push_token_saved", { platform }); | void platform;
 // @mutate src/lib/nativePush.ts | track("push_permission_state", { state: receive, source }); | void source;
+// @mutate src/lib/nativePush.ts | void startDeepLinkRouting(navigate); | void startDeepLinkRouting;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
@@ -53,6 +54,7 @@ const getUserMock = vi.fn();
 const authCallbacks: Array<(event: string, session: unknown) => void> = [];
 const reportMock = vi.fn();
 const trackMock = vi.fn();
+let pushAddListenerThrows = false;
 
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: true }));
 
@@ -64,6 +66,7 @@ vi.mock("@capacitor/push-notifications", () => ({
   PushNotifications: {
     addListener: async (name: string, fn: Listener) => {
       await tick();
+      if (pushAddListenerThrows) throw new Error("push plugin unavailable");
       pushListeners[name] = fn;
       return { remove: vi.fn() };
     },
@@ -153,6 +156,7 @@ beforeEach(() => {
   for (const k of Object.keys(pushListeners)) delete pushListeners[k];
   for (const k of Object.keys(appListeners)) delete appListeners[k];
   authCallbacks.length = 0;
+  pushAddListenerThrows = false;
   checkPermissionsMock.mockReturnValue({ receive: "granted" });
   upsertMock.mockResolvedValue({ error: null });
   getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
@@ -193,6 +197,19 @@ describe("useNativePushSetup — cold launch that redirects away from /", () => 
     // Inventory floor: registration, registrationError, pushNotificationReceived,
     // pushNotificationActionPerformed — all four attached, not a subset.
     expect(Object.keys(pushListeners).length).toBeGreaterThan(3);
+  });
+});
+
+describe("deep links do not depend on push setup (NB-017)", () => {
+  // RED on origin/main 61b1cb451: appUrlOpen sat after six push awaits in one
+  // try, so this throw skipped it and the listener was never attached.
+  it("attaches appUrlOpen even when push setup throws", async () => {
+    pushAddListenerThrows = true;
+    await bootAtRootWithLaunchRedirect();
+    await waitFor(() =>
+      expect(reportMock).toHaveBeenCalledWith(expect.any(Error), { tags: { source: "useNativePushSetup" } }),
+    );
+    await waitFor(() => expect(appListeners.appUrlOpen).toBeTypeOf("function"));
   });
 });
 

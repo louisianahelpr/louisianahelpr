@@ -15,6 +15,7 @@ import { readLiveCache, sessionAlive, writeCache } from "../liveSession";
 import { openCardFields } from "../stripeCheckoutCard";
 import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
+import { payInChromium } from "./stripeInChromium";
 
 /**
  * Shared plumbing for the USER JOURNEY suite (e2e/journeys/*).
@@ -447,6 +448,16 @@ export async function payOnStripeCheckout(page: Page) {
    */
   const brokenPanel = page.getByText(/Something went wrong/i).first();
   const paymentField = cardNumber.or(methodRadio);
+  /* WHAT STRIPE'S PAGE TRIED AND FAILED, recorded while it loads, so a "Something
+     went wrong" names its cause in the run log instead of only in a screenshot
+     (the artifact host is not reachable from every place a red is read). */
+  const stripeTrouble: string[] = [];
+  const onFailed = (r: Request) => stripeTrouble.push(`requestfailed ${r.url().slice(0, 140)} ${r.failure()?.errorText ?? ""}`);
+  const onConsole = (m: { type(): string; text(): string }) => {
+    if (m.type() === "error") stripeTrouble.push(`console ${m.text().slice(0, 200)}`);
+  };
+  page.on("requestfailed", onFailed);
+  page.on("console", onConsole);
   for (let attempt = 1; attempt <= 2; attempt++) {
     await expect(
       paymentField.or(brokenPanel),
@@ -457,7 +468,12 @@ export async function payOnStripeCheckout(page: Page) {
       type: "stripe-checkout-error",
       description: `attempt ${attempt}: Stripe's own "Something went wrong" page at ${page.url()}`,
     });
+    if (stripeTrouble.length) {
+      console.log(`Stripe Checkout attempt ${attempt} (${engineOf(page)}) trouble:\n  ${stripeTrouble.slice(-15).join("\n  ")}`);
+    }
     if (attempt === 2) {
+      page.off("requestfailed", onFailed);
+      page.off("console", onConsole);
       skipUncovered(
         "Stripe Checkout did not load",
         `Stripe's hosted page answered with its own "Something went wrong" twice, across a reload, for a ` +
@@ -470,6 +486,8 @@ export async function payOnStripeCheckout(page: Page) {
     await page.reload({ waitUntil: "domcontentloaded" }).catch(() => undefined);
     await page.waitForTimeout(2_000);
   }
+  page.off("requestfailed", onFailed);
+  page.off("console", onConsole);
   await expect(paymentField, "Stripe Checkout never rendered a payment field").toBeVisible({ timeout: 30_000 });
   await openCardFields(page);
   await cardNumber.fill(TEST_CARD.number);
@@ -505,6 +523,56 @@ export async function payOnStripeCheckout(page: Page) {
     console.log(`Stripe Pay attempt ${attempt} did not leave checkout: ${complaints.join(" | ") || "no inline error"}`);
   }
   throw new Error("Stripe Checkout never submitted after 3 Pay taps");
+}
+
+/** The engine a page runs in: "chromium" | "webkit" | "firefox". */
+export function engineOf(page: Page): string {
+  return page.context().browser()?.browserType().name() ?? "unknown";
+}
+
+/**
+ * PAY A CHECKOUT SESSION THE WAY THE PRODUCT SHOWS IT, then bring `page` back.
+ *
+ * `page` is sitting on Stripe's hosted Checkout (the app sent it there). In
+ * Chromium it is paid right there, as before. In any other engine it is paid
+ * in a CHROMIUM page instead, and `page` is then taken to the path Stripe
+ * returned to, on this run's own build.
+ *
+ * WHY NOT IN WEBKIT. Stripe Checkout is never rendered inside the app's
+ * WKWebView: on native, `openExternalUrl` (src/lib/openExternalUrl.ts) hands
+ * it to SFSafariViewController, and on the web an iPhone opens it in Safari.
+ * Playwright's WebKit is its own Linux build, which is neither, and Stripe's
+ * hosted page answered it with "Something went wrong" twice across a reload
+ * on 3 of 3 journeys-webkit runs (e2e-journeys 35796081270, 35905284660,
+ * 36164148002) while Chromium paid a session minted the same way in the same
+ * run each time. Since 2026-09-23 that skip is a failure (Q52), so the WebKit
+ * money chain (post, apply, hire, the whole day-of ladder) never ran at all.
+ * What WebKit is here to test is OUR app in Apple's engine, and every screen
+ * of ours before and after the payment still runs in it.
+ *
+ * THE RETURN TRIP never reaches the deployed site: Stripe returns to the
+ * configured app URL (create-payment's buildRedirectUrl), so the Chromium
+ * page's navigation off Stripe is answered with an empty document and only its
+ * PATH is kept; `page` then opens that path on this run's local build
+ * (baseURL). Guarded by src/test/journeyStripeEngine.test.ts.
+ */
+export async function payCheckoutSession(page: Page): Promise<void> {
+  if (engineOf(page) === "chromium") {
+    await payOnStripeCheckout(page);
+    return;
+  }
+  const returned = await payCheckoutUrlInChromium(page.url());
+  test.info().annotations.push({ type: "stripe-engine", description: `paid in chromium for ${engineOf(page)}; returned to ${returned}` });
+  await page.goto(returned);
+}
+
+/**
+ * Pay a `cs_test_` Checkout Session in a throwaway Chromium and return the
+ * path + query Stripe sent the payer back to (./stripeInChromium.ts: the
+ * return page is never loaded, so nothing reaches the deployed site).
+ */
+export async function payCheckoutUrlInChromium(checkoutUrl: string): Promise<string> {
+  return payInChromium(checkoutUrl, payOnStripeCheckout);
 }
 
 /**

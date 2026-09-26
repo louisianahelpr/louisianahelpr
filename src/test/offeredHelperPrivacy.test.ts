@@ -288,7 +288,11 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     expect(text).toContain(
       "CASE WHEN t.customer_id = v_uid OR t.offered_to_helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'offered_to_helper_id' END",
     );
-    expect(text, "it must never take the caller's identity as an argument").not.toMatch(/p_user_id|p_uid|p_caller/);
+    // Q408: it takes the id as p_user_id, so nobody but the export-my-data edge
+    // function (which passes the JWT-verified id) may call it: service_role only.
+    const mig = maskComments(readSource(`supabase/migrations/${def!.file}`)!).replace(/\s+/g, " ");
+    expect(mig).toContain("REVOKE ALL ON FUNCTION public.export_my_data(uuid) FROM PUBLIC, anon, authenticated;");
+    expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role;");
   });
 
   it("open_jobs_browse nulls the offeree for everyone but the poster and the offeree", () => {

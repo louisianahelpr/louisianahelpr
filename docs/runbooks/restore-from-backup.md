@@ -27,6 +27,20 @@ up to 24 h plus GitHub's scheduling delay (measured up to about 7 h), and
 longer if a run fails. That was 36 h once in the last 10 days, before the
 retry. There is no PITR, so nothing between two backups can be recovered.
 
+### What is backed up where (2026-09-25)
+
+| Store | Platform backup (pro plan, daily, 7 days, no PITR) | Our `db-backup.yml` artifact (14 days) | After a restore, reconcile with |
+|---|---|---|---|
+| Postgres rows (public, auth) | yes | yes | §3.3 |
+| Cron schedules | yes (in-place restore) | yes, `cron.sql` | §4 |
+| Storage policies | yes | yes, `storage-policies.sql` | §3.3 |
+| Storage FILES | **no** | **no** | §4.1 `check-storage-refs.mjs` |
+| Vault secrets | yes (in-place only) | no | §4 (re-create; `ban_fingerprint_salt` is unrecoverable) |
+| Edge-function secrets | **no** | **no** | §4 (re-set from their sources; docs/OPEN.md owner step) |
+| Edge-function code | n/a (git) | n/a (git) | §6 step 2, build-stamp check |
+| Stripe objects | n/a (Stripe is its own record, never rewound) | n/a | §5.1 `check-stripe-restore-drift.mjs`, §5.2 |
+| Auth config, SMTP, redirect URLs | no | no | §4 (dashboard) |
+
 ## 1. Pick the restore path
 
 | | Platform daily backup | Our artifact (this runbook) |
@@ -148,6 +162,38 @@ SELECT (SELECT count(*) FROM auth.users) users, (SELECT count(*) FROM public.job
 | **Auth config** | providers, redirect URLs, SMTP, JWT settings live in the project config, not the database | Re-enter them in the dashboard. Users' password hashes and identities do restore (`auth.users`, `auth.identities`). |
 | **Stripe / Resend** | their own systems of record, never rewound | §5 |
 
+### 4.1 List the rows whose files are gone
+
+`scripts/check-storage-refs.mjs` (read-only) reads every column that names a
+Storage object (the inventory is `STORAGE_REFERENCE_COLUMNS` in
+`scripts/lib/storageRefs.mjs`; `src/test/storageRefs.test.ts` fails when a new
+photo or document column is left out), lists the folders those values name,
+and prints each reference whose file is not there:
+
+```bash
+SUPABASE_URL=https://<new-ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<new service key> \
+  node scripts/check-storage-refs.mjs --json storage-refs.json
+```
+
+Or, once the GitHub secrets point at the restored project (§6 step 1), run the
+`restore-reconcile.yml` workflow. It reports three kinds of problem:
+
+- **MISSING**: the row names a file that is not in Storage. Expected for every
+  file uploaded or deleted after the backup: account purges, the weekly orphan
+  sweep, a user removing a photo. Decide per column: clear the value (avatars,
+  portfolio), or ask the user to upload again (credentials: `profiles.license_url`,
+  `profiles.insurance_url`, `helper_credentials.document_url` are what an admin
+  reviews). Evidence columns (`jobs.proof_*`, `disputes.evidence_urls`) are
+  gone for good: note it on any open dispute before an admin decides it.
+- **ON ANOTHER PROJECT**: a full URL whose host is not the project you checked.
+  After a restore into a NEW project, every public avatar and job-photo URL
+  still names the OLD project's host and breaks when that project goes. Copy the
+  files across first if the old project still exists, then rewrite the host.
+- **UNRESOLVED**: a value the parser cannot map to an object. Read it by hand.
+
+Exit 2 means it could not measure (a read failed, or it read no reference at
+all) and is never a pass.
+
 ## 5. Money: reconcile before switching payouts back on
 
 The database is the only record of what the platform promised: escrow state,
@@ -168,16 +214,80 @@ processed after T is missing from the database:
   subscription-reconciliation and money-reconciliation. Pull Stripe's
   charges, transfers, refunds and disputes created after T and bring the
   database into line first.
-- `money-reconciliation` is the job that would notice a divergence. It has not
-  completed a run (already on the open list), so do not count on it here.
+- Some money state is in Postgres only, so Stripe cannot give it back:
+  `referral_credits` (platform credit, no Stripe object unless it was cashed
+  out), and who decided a dispute and why (`execute-dispute-split` transfers
+  carry `metadata.dispute_id`, so the money movement and its recipient are
+  recoverable, the decision is not). A dispute settled after T comes back
+  open with its money already moved: find it through §5.1's transfer list
+  (`dispute_id=` in the hint) and re-record the outcome by hand before an
+  admin can decide it a second time.
+
+### 5.1 What Stripe did after T that the database does not know
+
+`scripts/check-stripe-restore-drift.mjs` (read-only: Stripe list GETs,
+PostgREST GETs) lists every PaymentIntent, transfer and refund Stripe created
+at or after T and looks each one up BY ID in the columns that record it
+(`DB_ID_COLUMNS` in `scripts/lib/stripeRestoreReconcile.mjs`; a new Stripe-id
+column fails `src/test/stripeRestoreReconcile.test.ts` until it is listed):
+
+```bash
+SUPABASE_URL=https://<new-ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<new service key> \
+STRIPE_TEST_SECRET_KEY=sk_test_... \
+  node scripts/check-stripe-restore-drift.mjs --since <backup time, ISO-8601> --mode test --json stripe-drift.json
+# after launch: STRIPE_SECRET_KEY=sk_live_... ... --mode live
+```
+
+T is the backup's own timestamp (the `db-backup.yml` run's start, or the
+platform backup's time in the dashboard), never the time you restored.
+
+- **NOT IN DB** is the finding. A transfer there is a helper already paid for
+  a job the database still shows as owed: re-create its `payout_transfers` row
+  (or mark the job released) BEFORE auto-release-payment or
+  process-scheduled-payouts runs. A PaymentIntent there is a payment or tip the
+  database has no record of: re-link it to its job (`job_id=` in the hint). A
+  refund there is money already returned: record it in `payment_refunds`.
+- **not id-linked by design** (job boosts, background-check fees, onboarding
+  fees, subscription invoices) are listed for you to check by hand; the app never stores their id.
+- It lists only objects CREATED since T. Check by hand in the dashboard:
+  Stripe disputes (chargebacks) opened since T and transfer reversals made
+  since T (`chargeback_clawbacks` records them; neither is listed), and
+  PaymentIntents created before T but captured or cancelled after it (§5.2's
+  money-reconciliation compares those jobs' state with Stripe).
+- `--mode` has no default on purpose: `test` until launch, `live` after.
+- It does not list instant payouts: those live ON each helper's connected
+  account (`instant_payouts.stripe_payout_id`). Check the helpers who had an
+  instant payout in the lost window in the Stripe dashboard.
+
+### 5.2 Then the other direction
+
+`money-reconciliation` compares the rows the database DOES have with Stripe
+(each settled job's PaymentIntent, stranded payouts, escrow on terminal jobs).
+Invoke it once by hand, with the crons still off, and read its findings:
+`curl -X POST https://<new-ref>.supabase.co/functions/v1/money-reconciliation -H "Authorization: Bearer <CRON_SECRET or the service-role key>"`
+(it accepts either, `money-reconciliation/index.ts`; add `?include_seed=1` to also grade test rows).
+On prod it runs daily; the audit lane measured 15 HTTP 200 runs in
+`cron_run_log`, the latest on 2026-09-24 (DR-006 re-measure, 2026-09-25).
+
+Switch the money crons on only when §5.1 exits 0 (or every line it printed is
+accounted for) and §5.2 reports nothing new.
 
 ## 6. Cut over
 
-Only after §3.3, §4 and §5: update `SUPABASE_PROJECT_REF`,
-`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` and the service keys
-everywhere they live (GitHub Actions secrets, Vercel env, local `.env`, the iOS
-build), re-deploy the edge functions, switch the crons on, and log in as a
-real user to check an escrow-held job against Stripe.
+1. Update `SUPABASE_PROJECT_REF`, `VITE_SUPABASE_URL`,
+   `VITE_SUPABASE_PUBLISHABLE_KEY` and the service keys everywhere they live
+   (GitHub Actions secrets, Vercel env, local `.env`, the iOS build). The
+   `restore-reconcile.yml` workflow reads the GitHub secrets, so this comes
+   before running it.
+2. Re-set the edge-function secrets (§4) and re-deploy every function with
+   `functions-deploy.yml` (dispatch with no function name after a change to
+   the workflow, or push). Its last step, "Verify every function serves HEAD's
+   build", asks every function for the build stamp HEAD computes and fails on
+   any mismatch (BR-024); green there is the evidence the new project runs the
+   repo's code.
+3. Run §3.3, §4.1 and §5.1–§5.2 against the new project.
+4. Only then switch the crons on, and log in as a real user to check an
+   escrow-held job against Stripe.
 
 ## 7. Drill record
 

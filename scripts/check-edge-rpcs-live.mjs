@@ -14,10 +14,11 @@
  *
  * The inventory is DERIVED from source: every `.rpc("<name>"` (any quote,
  * across line breaks) in supabase/functions/**.ts. A migration that adds an
- * RPC and the function that calls it land in the same push, and the Supabase
- * GitHub integration applies the migration about a minute later, so a missing
- * name is re-read every 20 s for up to --wait seconds (default 0) before the
- * verdict. A failed or empty read never waits: it exits 2 at once.
+ * RPC and the function that calls it land in the same push, and db-deploy.yml
+ * applies the migration minutes later (8.6 min for 9f2021865, issue #1819), so
+ * functions-deploy.yml first waits for that commit's db-deploy run to finish,
+ * and a missing name is then re-read every 20 s for up to --wait seconds
+ * (default 0) before the verdict. A failed or empty read never waits: it exits 2 at once.
  *
  * Usage: node scripts/check-edge-rpcs-live.mjs [--wait 480] [--inject-missing]
  * Env: SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF, else `supabase db query --linked`.

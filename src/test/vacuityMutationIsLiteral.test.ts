@@ -6,7 +6,6 @@
  * @mutate scripts/vacuity/lib.mjs | return source.replace(find, () => replace); | return source.replace(find, replace);
  */
 import { describe, expect, it } from "vitest";
-// @ts-expect-error — plain .mjs, no types
 import { applyMutation } from "../../scripts/vacuity/lib.mjs";
 
 describe("vacuity applies mutations literally", () => {

@@ -9,10 +9,13 @@
 --      failing) before the probe check. Live 2026-09-26: 0 open
 --      user-error-screen items at all (2 closed, both with a screen), and
 --      ops_route_probe holds a '/' row, so the hole was reachable.
---      Restated from its NEWEST definition
---      (20260923215732_cron_http_untagged_close_rule.sql, Q287; md5 of its body
---      = live pg_proc.prosrc 0bb399cc42444396edabadf3cf97ef52 on 2026-09-26)
---      verbatim plus that one early return.
+--      Restated from its NEWEST definition in the repo,
+--      20260925155922_admin_queue_alerts_close_themselves.sql (Q355), verbatim
+--      plus that one early return. NOTE (2026-09-26): prod still runs the
+--      body before that, 20260923215732 (Q287; live prosrc md5
+--      0bb399cc42444396edabadf3cf97ef52): 20260925155922 is on main but not in
+--      live schema_migrations, so this file carries Q355's 'ops-alert:custom'
+--      branch too and must deploy after (or with) it.
 --  (b) record_route_probe_passes: p_routes was unbounded (service_role only,
 --      but a runaway caller could write any number of keys of any length).
 --      More than 1000 routes in one call now raises 22023; each route is cut
@@ -21,11 +24,12 @@
 --      = live 6f8c6241c6e3022c343b03d67e67b63a on 2026-09-26) plus those two.
 --
 -- Replay-safe: CREATE OR REPLACE only; both functions' dependencies
--- (ops_route_probe, ops_route_key) are created earlier (20260923182022).
+-- (ops_route_probe, ops_route_key: 20260923182022; admin_alert_close_rule,
+-- admin_alert_ref, admin_queue_still_pending: 20260925155922) are created earlier.
 -- Grants restated: FROM PUBLIC, anon, authenticated; service_role only.
 -- Behaviour (3x apply, red without it): src/test/pglite/routeProbeCloseRule.pglite.mjs.
 
--- ledger close rule (newest body, 20260923215732 (Q287), + the Q298 early return)
+-- ledger close rule (newest body, 20260925155922 (Q355), + the Q298 early return)
 CREATE OR REPLACE FUNCTION public.ops_alert_condition(p_source text, p_sample_ref jsonb, p_since timestamp with time zone, p_probe_only boolean DEFAULT false)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -246,6 +250,17 @@ BEGIN
       SELECT 1 FROM public.ops_route_probe p
        WHERE p.route = public.ops_route_key(p_sample_ref ->> 'screen')
          AND p.passed_at > p_since);
+
+  ELSIF p_source = 'ops-alert:custom'
+        AND public.admin_alert_close_rule(public.admin_alert_ref(p_sample_ref) ->> 'title') IS NOT NULL THEN
+    -- Q355. An admin-queue post mirrored to Slack (send-push-notification ->
+    -- postSlackOpsAlert, kind 'custom'). Re-asks the queue the post was
+    -- about (admin_queue_still_pending); any other 'custom' post has no
+    -- rule, so it falls through to NULL and keeps 'companions'.
+    IF p_probe_only THEN RETURN true; END IF;
+    RETURN public.admin_queue_still_pending(
+             public.admin_alert_close_rule(public.admin_alert_ref(p_sample_ref) ->> 'title'),
+             public.admin_alert_ref(p_sample_ref), p_since);
   END IF;
   RETURN NULL;
 END;

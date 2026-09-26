@@ -50,7 +50,7 @@
 //
 // Any change to the schedule MUST keep `period ≤ WINDOW_HOURS`.
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";

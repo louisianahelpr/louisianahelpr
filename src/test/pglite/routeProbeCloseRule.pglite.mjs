@@ -57,6 +57,7 @@ const CHAIN = [
 const Q94 = "20260923182022_ops_route_probe_close_rule.sql";
 // Q287 restated ops_alert_condition after Q94 (the newest body Q298 restates).
 const Q287 = "20260923215732_cron_http_untagged_close_rule.sql";
+const Q355 = "20260925155922_admin_queue_alerts_close_themselves.sql";
 const Q298 = "20260926034740_route_probe_close_rule_hardening.sql";
 
 let failures = 0;
@@ -164,6 +165,8 @@ else {
     }
   }
   try { await db.exec(mig(Q287)); } catch (e) { check(`chain ${Q287}`, false, e.message); }
+  // Q355 restated ops_alert_condition after Q287; Q298 restates on top of it.
+  try { await db.exec(mig(Q355)); } catch (e) { check(`chain ${Q355}`, false, e.message); }
 }
 const SKIP298 = SKIP || process.env.Q298_MIGRATION === "skip";
 if (SKIP298) console.log("Q298_MIGRATION=skip: running WITHOUT the Q298 migration (expect FAILs)");

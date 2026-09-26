@@ -20,8 +20,9 @@
 --   * a cron_work_expectations row (3h gap), so sweep_dead_crons pages if the
 --     watchdog itself stops.
 --
--- ops_alert_condition is restated from its newest body (20260926034740, Q298)
--- with ONLY the new 'ops-alert-pending-stale' branch added.
+-- ops_alert_condition is restated from its newest body (20260926034740, Q298,
+-- itself on top of 20260925155922, Q355) with ONLY the new
+-- 'ops-alert-pending-stale' branch added.
 --
 -- REPLAY-SAFETY: CREATE OR REPLACE throughout; the expectation row upserts;
 -- cron.schedule upserts by job name and is skipped without pg_cron.
@@ -254,6 +255,17 @@ BEGIN
       SELECT 1 FROM public.ops_route_probe p
        WHERE p.route = public.ops_route_key(p_sample_ref ->> 'screen')
          AND p.passed_at > p_since);
+
+  ELSIF p_source = 'ops-alert:custom'
+        AND public.admin_alert_close_rule(public.admin_alert_ref(p_sample_ref) ->> 'title') IS NOT NULL THEN
+    -- Q355. An admin-queue post mirrored to Slack (send-push-notification ->
+    -- postSlackOpsAlert, kind 'custom'). Re-asks the queue the post was
+    -- about (admin_queue_still_pending); any other 'custom' post has no
+    -- rule, so it falls through to NULL and keeps 'companions'.
+    IF p_probe_only THEN RETURN true; END IF;
+    RETURN public.admin_queue_still_pending(
+             public.admin_alert_close_rule(public.admin_alert_ref(p_sample_ref) ->> 'title'),
+             public.admin_alert_ref(p_sample_ref), p_since);
   END IF;
   RETURN NULL;
 END;

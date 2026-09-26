@@ -39,6 +39,7 @@ const CHAIN = [
   "20260923181420_user_reports_reach_the_ledger.sql",
   "20260923182022_ops_route_probe_close_rule.sql",
   "20260923215732_cron_http_untagged_close_rule.sql",
+  "20260925155922_admin_queue_alerts_close_themselves.sql",
   "20260926034740_route_probe_close_rule_hardening.sql",
 ];
 const NEW = "20260926040011_ops_alert_pending_watchdog.sql";

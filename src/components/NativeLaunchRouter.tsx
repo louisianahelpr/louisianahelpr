@@ -9,7 +9,7 @@ import { wasDeepLinkClaimed } from "@/lib/nativeLaunchMutex";
  * post-auth route. Web is a no-op. Runs exactly once per app process.
  *
  * Cold-launch race: when the app was opened from a Universal Link, the
- * deep-link handler in nativePush.ts may navigate concurrently with this
+ * deep-link handler in deepLinkRouter.ts may navigate concurrently with this
  * resolver. We honor whoever lands first via a shared module-level flag
  * (`nativeLaunchMutex`) so a /m/abc deep link doesn't get overridden by
  * the default post-auth route this resolver would otherwise pick.

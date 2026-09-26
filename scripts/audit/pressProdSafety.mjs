@@ -318,6 +318,25 @@ function isStateToggle({ meta = {}, label = "" }) {
   const isToggle = TOGGLE_ROLES.has(role) || (meta.tag === "input" && /^(checkbox|radio)$/i.test(String(meta.type ?? "")));
   return isToggle || STATE_TOGGLE_LABEL_RX.test(label);
 }
+/**
+ * AN ADMIN WRITE WHOSE LABEL NAMES NO DESTRUCTIVE_RX VERB.
+ *
+ * #1582, run 36069319716 and the run before it (35976390920): on
+ * /admin?view=reports the sweep pressed "Investigating" ungated, on whatever
+ * report was in the queue. It is `updateStatus(report.id, "investigating")`
+ * (src/components/admin/AdminReports.tsx), a write to `reports`; the card then
+ * left the pending queue and "Message Seed", "Message Perry" and "Dismiss"
+ * were "not found" behind it. "Assign to Me" (assigned_to), "Dismiss"
+ * (status dismissed, on Reports AND Support) and "Add" (grant admin,
+ * AdminSettings) are the same shape: writes no word in DESTRUCTIVE_RX names.
+ * Pressed as admin they are mutating, so mutationGate only lets them act on a
+ * test-owned record. src/test/pressGatesEveryAdminWrite.test.ts keeps this
+ * vocabulary in step with the admin buttons that write, read from the source.
+ */
+export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend)\b/i;
+export function isAdminWrite({ persona, label = "" }) {
+  return persona === "admin" && ADMIN_WRITE_RX.test(label);
+}
 export function isAdminStateToggle({ persona, meta = {}, label = "" }) {
   if (persona !== "admin") return false;
   return isStateToggle({ meta, label });

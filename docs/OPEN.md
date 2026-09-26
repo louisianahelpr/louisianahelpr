@@ -1899,6 +1899,14 @@ sure someone hears it and closes it.
    the hero font loads (e.g. preloading Bodoni Moda or matching the fallback's
    size). The hero font is locked, so: may I change how it LOADS, without
    changing the font, colour or words?
+28. **Where the /messages "N unread conversations aren't in Active" bar goes (Q384(5), nightly-red #1754, 2026-09-25).**
+    Held for the morning (owner: "I'll decide tom"). Screenshot: ~/.lh-shots/msg-notice/helper-e2e-375.png
+    (prod, helper-e2e, 375). The beige bar only appears after the list loads, so every
+    conversation under it jumps down (~66px at 375, ~52px at 1440; CLS 0.0558 / 0.0216).
+    Options: (a) below the rows; (b) a small chip in the header; (c) keep it on top and hold
+    a blank band for it while loading; (d) leave it and accept the red. PR #1825 only keys the
+    skeleton so the number reads zero while the rows still jump: not landed, for that reason.
+    Class guard for the fix is in PR #1832 (noLoadedOnlyChromeAbovePlaceholder).
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

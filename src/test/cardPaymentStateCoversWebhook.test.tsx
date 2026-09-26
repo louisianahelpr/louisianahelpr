@@ -42,7 +42,7 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
  * closed" to the poster and "Paid out" to the Helpr.
  *
  * INVENTORY, from the app's own source, both directions:
- *   A. WRITES: every `payment_status: "x"` / `.payment_status = "x"` in
+ *   A. WRITES: every `payment_status: <value>` / `.payment_status = <value>` in
  *      supabase/functions/stripe-webhook (comments blanked). A write chained
  *      straight off `.from("<table>")` is attributed to that table; any other
  *      ("detached": built in a variable first) must be listed in DETACHED with

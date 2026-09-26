@@ -21,6 +21,14 @@
  *     - the live "Helpers can create applications" policy still refuses B's
  *       application to A's job, and still admits H's;
  *     - proacl: no PUBLIC/anon EXECUTE; authenticated keeps it.
+ *     - TRIGGER CHAIN (lh-authz-rls review F1): a job status change by a THIRD
+ *       party (the hired Helpr H) makes the live insert_job_status_system_message
+ *       shape insert a message FROM poster A TO B, whom A blocked. The live
+ *       enforce_block_on_message_insert (`IF are_users_blocked(...) THEN RAISE`)
+ *       must still refuse it, exactly as before this migration.
+ *   RED-PRIOR-BRANCH: the same chain on this migration WITHOUT the
+ *     pg_trigger_depth() arm (the first push of PR #1820): the function returns
+ *     NULL to H, `IF NULL` is not taken, and the message crosses the block.
  */
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${process.env.HOME}/.lh-pglite-probe`;
 let PGlite;
@@ -64,7 +72,10 @@ const SETUP = `
   CREATE TABLE public.user_blocks (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     blocker_id uuid NOT NULL, blocked_id uuid NOT NULL, UNIQUE (blocker_id, blocked_id));
-  CREATE TABLE public.jobs (id uuid PRIMARY KEY, customer_id uuid);
+  CREATE TABLE public.jobs (id uuid PRIMARY KEY, customer_id uuid, helper_id uuid, status text);
+  CREATE TABLE public.messages (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, sender_id uuid, receiver_id uuid,
+    content text, is_system boolean NOT NULL DEFAULT false);
   CREATE TABLE public.applications (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL,
     status text NOT NULL DEFAULT 'pending');
@@ -101,7 +112,37 @@ const SETUP = `
                 AND (NOT are_users_blocked(helper_id, get_job_customer_id(job_id))));
   CREATE POLICY "own" ON public.applications FOR SELECT TO authenticated USING ((SELECT auth.uid()) = helper_id);
 
-  INSERT INTO public.jobs VALUES ('${JOB}', '${A}');
+  -- Live shapes of the message-block chain (prosrc on prod, 2026-09-26),
+  -- reduced to the statements that matter.
+  CREATE OR REPLACE FUNCTION public.enforce_block_on_message_insert() RETURNS trigger
+    LANGUAGE plpgsql SET search_path TO 'public' AS $$
+    BEGIN
+      IF public.are_users_blocked(NEW.sender_id, NEW.receiver_id) THEN
+        RAISE EXCEPTION 'You can''t message this user.';
+      END IF;
+      RETURN NEW;
+    END $$;
+  CREATE TRIGGER trg_enforce_block_on_message_insert BEFORE INSERT ON public.messages
+    FOR EACH ROW EXECUTE FUNCTION public.enforce_block_on_message_insert();
+  CREATE OR REPLACE FUNCTION public.insert_job_status_system_message() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+    BEGIN
+      INSERT INTO messages (job_id, sender_id, receiver_id, content, is_system)
+      SELECT DISTINCT NEW.id, NEW.customer_id, p.participant, 'status', true
+      FROM (SELECT CASE WHEN m.sender_id = NEW.customer_id THEN m.receiver_id ELSE m.sender_id END AS participant
+              FROM messages m WHERE m.job_id = NEW.id AND m.is_system = false AND m.sender_id IS NOT NULL) p
+      WHERE p.participant IS NOT NULL;
+      RETURN NEW;
+    END $$;
+  CREATE TRIGGER job_status_system_message AFTER UPDATE OF status ON public.jobs
+    FOR EACH ROW EXECUTE FUNCTION public.insert_job_status_system_message();
+  -- The third party's status change, as a definer RPC (mark_helper_arrival shape).
+  CREATE OR REPLACE FUNCTION public.helper_moves_job(p_job uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+    BEGIN UPDATE jobs SET status = 'in_progress' WHERE id = p_job AND helper_id = auth.uid(); END $$;
+  GRANT EXECUTE ON FUNCTION public.helper_moves_job(uuid) TO authenticated;
+
+  INSERT INTO public.jobs VALUES ('${JOB}', '${A}', '${H}', 'accepted');
   INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${A}', '${B}');
 `;
 
@@ -124,6 +165,31 @@ const ask = async (db, who, x, y) => {
 };
 const apply = (db, who) =>
   as(db, who, `INSERT INTO public.applications (job_id, helper_id) VALUES ($1, $2) RETURNING id`, [JOB, who]);
+
+/** B wrote in the job thread before A blocked B (seeded as a server context). */
+const SEED_THREAD = `
+  ALTER TABLE public.messages DISABLE TRIGGER trg_enforce_block_on_message_insert;
+  INSERT INTO public.messages (job_id, sender_id, receiver_id, content) VALUES ('${JOB}', '${B}', '${A}', 'hi');
+  ALTER TABLE public.messages ENABLE TRIGGER trg_enforce_block_on_message_insert;`;
+const crossBlockMessages = async (db) =>
+  (await db.query(`SELECT count(*)::int AS n FROM public.messages WHERE is_system AND receiver_id = $1`, [B])).rows[0].n;
+
+// ── RED-PRIOR-BRANCH: no trigger arm ────────────────────────────────────────
+{
+  const ARM = /\n\s*OR pg_trigger_depth\(\) > 0/;
+  if (!ARM.test(MIGRATION)) {
+    console.error("FAIL  could not locate the pg_trigger_depth arm — the prior-branch baseline would be vacuous.");
+    process.exit(2);
+  }
+  const db = new PGlite();
+  await db.exec(SETUP);
+  await db.exec(MIGRATION.replace(ARM, ""));
+  await db.exec(SEED_THREAD);
+  const moved = await as(db, H, `SELECT public.helper_moves_job($1)`, [JOB]);
+  const n = await crossBlockMessages(db);
+  check("RED-PRIOR-BRANCH a third party's status change sends A's system message to blocked B", moved.ok && n === 1, moved.err ?? `${n} message(s)`);
+  await db.close();
+}
 
 // ── RED-BEFORE ──────────────────────────────────────────────────────────────
 {
@@ -162,6 +228,11 @@ const apply = (db, who) =>
   check("AFTER the applications INSERT policy still refuses the blocked helper", !b.ok, b.err ?? "LANDED");
   const h = await apply(db, H);
   check("AFTER ...and still admits an unrelated helper", h.ok, h.err ?? "landed");
+  await db.exec(SEED_THREAD);
+  const moved = await as(db, H, `SELECT public.helper_moves_job($1)`, [JOB]);
+  check("AFTER the message-block trigger still refuses A→B when a third party changes the status",
+    !moved.ok && /can't message this user/.test(moved.err ?? ""), moved.err ?? "status change LANDED");
+  check("AFTER ...so no system message crossed the block", (await crossBlockMessages(db)) === 0);
   const acl = (await db.query(`SELECT proacl::text AS a FROM pg_proc WHERE proname = 'are_users_blocked'`)).rows[0].a;
   check("AFTER proacl has no PUBLIC (=X) or anon EXECUTE", !/(^|[{,])=X/.test(acl) && !/anon=/.test(acl), acl);
   check("AFTER proacl keeps authenticated", /authenticated=X/.test(acl), acl);

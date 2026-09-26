@@ -27,17 +27,24 @@
 //   work_started          job in_progress + the Helpr's job_tracking row = working
 //   dispute_withdrawn     newest disputes row withdrawn, opened by the sender
 //   dispute_response      jobs.dispute_status live + jobs.dispute_helper_response
-//   revision_acknowledged newest job_revisions row accepted
+//   revision_acknowledged newest job_revisions row accepted AND requested by the
+//                         poster (job_revisions RLS lets the Helpr write rows)
 //   job_confirmed         the sender's own stamp: poster_confirmed_at /
 //                         helper_dayof_confirmed_at
 //   dispute_resolved      newest disputes row withdrawn, opened by the sender
 //                         (rpc_withdraw_dispute: only the opener may close it)
+//                         AND the escrow released (payment_status
+//                         payout_pending / released), because the copy says so
 //   revision_requested    a job_revisions row with a description
 //   arrival_confirmed     jobs.poster_confirmed_arrival_at
 //   work_confirmed        jobs.poster_confirmed_working_at
 //   job_offer             the target's application is accepted
 //   application_declined  the target's application is rejected
 //   no_show_reported      a no_show user_violations row for (target, job)
+//
+// What this does NOT stop: the facts are durable state, so while they hold the
+// same notice can be sent again (bounded by create-notification's rate limit).
+// The notice is then still true, only repeated.
 //
 // src/test/edge/create-notification.test.ts holds one "state not reached →
 // 409" case per template, keyed by this registry, both directions exact.
@@ -56,6 +63,7 @@ interface TemplateJob {
   helper_dayof_confirmed_at?: string | null;
   poster_confirmed_arrival_at?: string | null;
   poster_confirmed_working_at?: string | null;
+  payment_status?: string | null;
 }
 
 export interface TemplateFacts {
@@ -66,6 +74,8 @@ export interface TemplateFacts {
   revisionDescription?: string | null;
   /** Newest job_revisions.status for the job (revision_acknowledged). */
   revisionStatus?: string | null;
+  /** Newest job_revisions.requested_by (revision_acknowledged). */
+  revisionRequestedBy?: string | null;
   /** Newest disputes row for the job (dispute_* templates). */
   dispute?: { status: string | null; opener_id: string | null } | null;
   /** The assigned Helpr's job_tracking.status for the job (work_started). */
@@ -112,6 +122,9 @@ export interface NotificationTemplate {
 function jobTitle(f: TemplateFacts): string {
   return f.job.title?.trim() || "your job";
 }
+
+/** jobs.payment_status after create-payment "release" (payout_pending, then released). */
+const RELEASED = new Set(["payout_pending", "released"]);
 
 /** jobs.dispute_status values that mean a dispute is still live. */
 const ACTIVE_DISPUTE = new Set(["open", "helper_responded", "escalated", "under_review"]);
@@ -164,7 +177,8 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   revision_acknowledged: {
     sender: "helper",
     needs: ["revision"],
-    build: (f) => f.revisionStatus !== "accepted" ? null : ({
+    build: (f) =>
+      f.revisionStatus !== "accepted" || !f.job.customer_id || f.revisionRequestedBy !== f.job.customer_id ? null : ({
       title: "Helpr acknowledged the revision",
       message: "Your Helpr has seen your revision request and will fix it. Payment stays held until you confirm.",
       type: "info",
@@ -188,7 +202,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   dispute_resolved: {
     sender: "poster",
     needs: ["dispute"],
-    build: (f) => !senderWithdrewDispute(f) ? null : ({
+    build: (f) => !senderWithdrewDispute(f) || !RELEASED.has(f.job.payment_status ?? "") ? null : ({
       title: "Dispute resolved ✓",
       message: `The person who posted this job confirmed the issue on "${jobTitle(f)}" is resolved. Payment will be released.`,
       type: "payment",

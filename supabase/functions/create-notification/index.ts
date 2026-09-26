@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
         // The state columns are what the templates check the event against (Q307).
         .select(
           "id, title, customer_id, helper_id, response_deadline, dispute_status, status, dispute_helper_response, " +
-            "poster_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_arrival_at, poster_confirmed_working_at",
+            "poster_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_arrival_at, poster_confirmed_working_at, payment_status",
         )
         .eq("id", jobId)
         .maybeSingle();
@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
       if (needs.includes("revision")) {
         const { data: rev, error: e1 } = await adminClient
           .from("job_revisions")
-          .select("description, status")
+          .select("description, status, requested_by")
           .eq("job_id", job.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -316,6 +316,7 @@ Deno.serve(async (req) => {
         factReadError ??= e1;
         facts.revisionDescription = rev?.description ?? null;
         facts.revisionStatus = rev?.status ?? null;
+        facts.revisionRequestedBy = rev?.requested_by ?? null;
       }
       if (needs.includes("application")) {
         const { data: app, error: e2 } = await adminClient

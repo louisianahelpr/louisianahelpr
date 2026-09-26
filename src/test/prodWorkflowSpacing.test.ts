@@ -91,6 +91,10 @@ export const EXEMPT: Record<string, string> = {
     "aggregate queries on public.ops_alert_ledger (tens of rows) through the " +
     "Management API, once a day at 07:05 Central. Every 90-min slot in the " +
     "owner's morning is taken by a suite; the page must land before the owner wakes.",
+  "app-store-reviews.yml":
+    "A monitor, not a suite (Q289): one read-only Management API query of public.ops_alert_ledger " +
+    "(three rows at most) plus one ops_alert_record call per NEW App Store review rated 3 or less, " +
+    "once a day. Its other traffic goes to App Store Connect, not prod.",
   "schedule-heartbeat.yml":
     "A monitor, not a suite: its only prod touch is CJ-011's cron-detectors-alive.mjs, one read-only " +
     "Management API query of cron.job / cron.job_run_details for four jobs, once a day. The rest " +

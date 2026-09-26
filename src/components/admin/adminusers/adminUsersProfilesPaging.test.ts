@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 // and so does a listed file that no longer offends (lower the list in the same
 // commit as the fix).
 // @two-way src/components/admin/adminusers/adminUsersProfilesPaging.test.ts:const stale = KNOWN_UNBOUNDED_PROFILES_SELECT.filter(
+// @mutate src/components/admin/AdminUsers.tsx | .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1); | ;
 export const KNOWN_UNBOUNDED_PROFILES_SELECT: readonly string[] = [];
 
 const SRC = join(__dirname, "../../..");
@@ -54,12 +55,15 @@ export function unboundedProfilesSelects(text: string): number[] {
 
 describe("profiles reads are bounded (PostgREST 1000-row cap)", () => {
   const offenders = new Map<string, string[]>();
-  for (const f of sourceFiles(SRC)) {
+  const files = sourceFiles(SRC);
+  for (const f of files) {
     const lines = unboundedProfilesSelects(readFileSync(f, "utf8"));
     if (lines.length) offenders.set(basename(f), lines.map((l) => `${relative(SRC, f)}:${l}`));
   }
 
   it("no new unbounded profiles select(\"*\")", () => {
+    // 918 source files on 2026-09-26; a walk that finds none passes vacuously.
+    expect(files.length).toBeGreaterThan(500);
     const unexpected = [...offenders.keys()].filter((f) => !KNOWN_UNBOUNDED_PROFILES_SELECT.includes(f));
     expect(unexpected.flatMap((f) => offenders.get(f)!)).toEqual([]);
   });

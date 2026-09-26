@@ -59,8 +59,8 @@ export function HiddenUnreadBar({
         onClick={onDismiss}
         tabIndex={held ? -1 : undefined}
         aria-label="Dismiss"
-        className="shrink-0 w-11 flex items-center justify-center btn-press"
-        style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+        className="shrink-0 self-center h-11 w-11 mr-0.5 flex items-center justify-center btn-press ctl-exit ctl-tint"
+        style={{ color: "hsl(var(--olivewood) / 0.9)" }}
       >
         <X className="w-4 h-4" aria-hidden="true" />
       </button>

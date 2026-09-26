@@ -571,9 +571,11 @@ function groupJobHelperRows(jobId, helperId, applicantId) {
  */
 async function applyGroupJob(posterId, helperId, applicantId) {
   const jobId = sid("job:group");
-  // `helper_id` mirrors what accept_group_application actually sets it to:
-  // the FIRST accepted helper (COALESCE(v_existing_lead, v_helper_id)).
-  await upsert("jobs", [{ ...jobBase, ...GROUP_JOB_ROW, id: jobId, customer_id: posterId, helper_id: helperId }]);
+  // `helper_id` stays NULL: a group job's crew is its roster, and
+  // trg_group_job_has_no_lead (20260925154606, Q396) rejects any group job
+  // with a lead. Setting it to the first helper made every --apply 400 from
+  // 2026-09-25 (prod-audit run 36272080924).
+  await upsert("jobs", [{ ...jobBase, ...GROUP_JOB_ROW, id: jobId, customer_id: posterId, helper_id: null }]);
   await upsert("group_job_helpers", groupJobHelperRows(jobId, helperId, applicantId));
   return jobId;
 }

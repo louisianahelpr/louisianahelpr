@@ -509,7 +509,7 @@ jobs:
           POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
           HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
           HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
-          SWEEP_PHASE: teardown
+          SWEEP_PHASE: teardown  # lifecycle-teardown-anchor
           E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
           PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
         run: |

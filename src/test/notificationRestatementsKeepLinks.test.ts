@@ -28,8 +28,8 @@
  * (origin/cloud/q139-notification-subjects, 20260923162545) in place of
  * 20260923205635: (a) 8 functions, (b) the same 8 (14 links).
  *
- * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/jobs?job=' \|\| rec.id::text, false, rec.id); | '/jobs?filter=offered', false, rec.id);
- * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
+ * @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | '/jobs?job=' \|\| rec.id::text, false, rec.id); | '/jobs?filter=offered', false, rec.id);
+ * @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
  * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/admin?view=fraud&user=' \|\| p_reviewee_id, | '/admin?view=fraud&usr=' \|\| p_reviewee_id,
  * @mutate src/test/helpers/effectiveFunctionDefs.ts | const next = pgRegexpReplace(cur.stmt, r.pattern, r.replacement, r.flags); | const next = cur.stmt;
  */

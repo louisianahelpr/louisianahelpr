@@ -12,6 +12,10 @@
  *
  * Read-only against prod: navigation only, the shared poster account.
  */
+// Shown able to fail: the dashboard feed reading user_blocks on its own again
+// puts the boot back at 2 reads (3 per document, run 36212848613), over the
+// exact budget of 2.
+// @mutate src/hooks/useDashboardData.ts |         readUserBlockRows(userId), |         supabase.from("user_blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
 import { test, expect, type Page, type Request } from "../prodTest";
 import { newUserContext, sessionFor } from "./harness";
 

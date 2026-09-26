@@ -160,13 +160,33 @@ test.describe("UI audit evidence sweep (prod)", () => {
     // the sweeper may retire any individual row. A status with no seeded row
     // SKIPS with that stated reason instead of passing quietly.
     const owned = await request.get(
-      `${SUPABASE_URL}/rest/v1/jobs?select=id,status&customer_id=eq.${poster.user.id}&is_seed=eq.true&order=created_at.desc`,
+      `${SUPABASE_URL}/rest/v1/jobs?select=id,status,payment_status,date_needed,accepted_at,helper_confirmed_at,updated_at&customer_id=eq.${poster.user.id}&is_seed=eq.true&order=created_at.desc`,
       { headers: rest(poster) },
     );
-    if (owned.ok()) {
-      for (const row of (await owned.json()) as { id: string; status: string }[]) {
-        if (!jobByStatus.has(row.status)) jobByStatus.set(row.status, row.id);
+    if (!owned.ok()) throw new Error(`poster's seed jobs unreadable: HTTP ${owned.status()} ${(await owned.text()).slice(0, 200)}`);
+    const ownedRows = (await owned.json()) as { id: string; status: string; payment_status: string; date_needed: string | null; accepted_at: string | null; helper_confirmed_at: string | null; updated_at: string }[];
+    for (const row of ownedRows) {
+      if (!jobByStatus.has(row.status)) jobByStatus.set(row.status, row.id);
+    }
+    // The fixture state this sweep depends on, in the log: a status that
+    // skips must be explainable from the run itself (2026-09-25, run
+    // 36148473443: "accepted" had no row and nothing said where it went).
+    console.log(`prod sweep: poster ${poster.user.id} owns ${ownedRows.length} is_seed job(s):`);
+    for (const r of ownedRows) {
+      console.log(`  ${r.status.padEnd(18)} ${r.payment_status.padEnd(9)} ${r.id} date_needed=${r.date_needed} accepted_at=${r.accepted_at} confirmed=${r.helper_confirmed_at} updated=${r.updated_at}`);
+    }
+    // What moved a job out of a status: the poster's own job-status notices
+    // (auto-expire-jobs' "Job re-opened", cancellations, completions).
+    const notices = await request.get(
+      `${SUPABASE_URL}/rest/v1/notifications?select=created_at,title,link&user_id=eq.${poster.user.id}&type=eq.job_updates&order=created_at.desc&limit=15`,
+      { headers: rest(poster) },
+    );
+    if (notices.ok()) {
+      for (const n of (await notices.json()) as { created_at: string; title: string; link: string | null }[]) {
+        console.log(`  notice ${n.created_at} ${n.title} ${n.link ?? ""}`);
       }
+    } else {
+      console.log(`  notices unreadable: HTTP ${notices.status()}`);
     }
 
     // The poster's is_seed group job (scripts/audit/prod-seed.mjs --group-job).

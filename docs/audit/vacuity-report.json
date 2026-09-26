@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-26T00:06:32.785Z",
-  "guards": 1066,
-  "registered": 1066,
+  "generated": "2026-09-26T00:19:34.877Z",
+  "guards": 1081,
+  "registered": 1081,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -28,6 +28,7 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
+    "src/test/seriesChargeCopyNamesTheRefund.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],
@@ -325,6 +326,15 @@
       ],
       "parents": [
         "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/series/SeriesTermsLine.tsx",
+      "tests": [
+        "src/pages/post-job/seriesSplitChoice.test.tsx"
+      ],
+      "parents": [
+        "src/components/dashboard/JobDetailDialog.tsx"
       ]
     },
     {

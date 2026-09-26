@@ -11,7 +11,8 @@
  * failed read is never reused, and a block by the OTHER person can reach the
  * viewer at most 2 s later than before.
  */
-// @mutate src/lib/userBlocks.ts |   if (held && (held.settledAt === null \|\| now - held.settledAt <= BLOCK_READ_REUSE_MS)) return held.read; |   if (false) return held.read;
+// @mutate src/lib/userBlocks.ts |     held &&\n | false &&\n
+// @mutate src/lib/userBlocks.ts | now - held.startedAt <= BLOCK_READ_JOIN_MAX_MS | true
 // @mutate src/lib/userBlocks.ts |           if (res.error) blockReads.delete(currentUserId); |           if (false) blockReads.delete(currentUserId);
 // @mutate src/lib/userBlocks.ts | now - held.settledAt <= BLOCK_READ_REUSE_MS | true
 // @mutate src/lib/userBlocks.ts |   forgetBlockRead(blockerId);\n  return { ok: true, | \n  return { ok: true,
@@ -41,7 +42,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
-import { BLOCK_READ_REUSE_MS, __resetBlockReadsForTests, blockUser, getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
+import { BLOCK_READ_JOIN_MAX_MS, BLOCK_READ_REUSE_MS, __resetBlockReadsForTests, blockUser, getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROW = { blocker_id: "me", blocked_id: "them" };
@@ -72,6 +73,15 @@ describe("user_blocks: one read per moment, never a cache (Q330)", () => {
     expect(requests, "past the window, the server is asked again (a new block is seen)").toBe(2);
     respond({ data: [ROW], error: null });
     expect((await later).data).toEqual([ROW]);
+  });
+
+  it("a read that hangs is not joined forever: past BLOCK_READ_JOIN_MAX_MS the next caller asks afresh", () => {
+    const t = Date.now();
+    void readUserBlockRows("me", t); // never answered
+    void readUserBlockRows("me", t + 1_000);
+    expect(requests, "a caller 1 s later joins the in-flight read").toBe(1);
+    void readUserBlockRows("me", t + BLOCK_READ_JOIN_MAX_MS + 1);
+    expect(requests, "a caller after the join window does not wait on the hung read").toBe(2);
   });
 
   it("a failed read is never reused", async () => {

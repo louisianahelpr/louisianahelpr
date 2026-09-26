@@ -18,7 +18,14 @@ type BlockRows = { data: { blocker_id: string; blocked_id: string }[] | null; er
  * covers the boot and nothing a person does.
  */
 export const BLOCK_READ_REUSE_MS = 2_000;
-type BlockRead = { read: Promise<BlockRows>; settledAt: number | null };
+/**
+ * An in-flight read is joined only while it is younger than this. A request
+ * that hangs (dropped connection) must not capture every later caller: past
+ * this, the next caller asks afresh, exactly as it did before sharing existed
+ * (found by the second lh-silent-failure review of Q330).
+ */
+export const BLOCK_READ_JOIN_MAX_MS = 10_000;
+type BlockRead = { read: Promise<BlockRows>; startedAt: number; settledAt: number | null };
 const blockReads = new Map<string, BlockRead>();
 
 /**
@@ -33,7 +40,8 @@ const blockReads = new Map<string, BlockRead>();
  *     own error (getBlockedUserIds throws; the dashboard feed reports and
  *     continues, see Q573).
  * The one thing that can arrive up to 2 s later than before is a block made
- * by the OTHER person, well inside the time realtime takes to say so.
+ * by the OTHER person, well inside the time realtime takes to say so. A read
+ * that hangs is joined for at most BLOCK_READ_JOIN_MAX_MS.
  */
 function forgetBlockRead(userId: string): void {
   blockReads.delete(userId);
@@ -41,8 +49,13 @@ function forgetBlockRead(userId: string): void {
 
 export function readUserBlockRows(currentUserId: string, now: number = Date.now()): Promise<BlockRows> {
   const held = blockReads.get(currentUserId);
-  if (held && (held.settledAt === null || now - held.settledAt <= BLOCK_READ_REUSE_MS)) return held.read;
-  const entry: BlockRead = { read: Promise.resolve(null as unknown as BlockRows), settledAt: null };
+  if (
+    held &&
+    (held.settledAt === null ? now - held.startedAt <= BLOCK_READ_JOIN_MAX_MS : now - held.settledAt <= BLOCK_READ_REUSE_MS)
+  ) {
+    return held.read;
+  }
+  const entry: BlockRead = { read: Promise.resolve(null as unknown as BlockRows), startedAt: now, settledAt: null };
   entry.read = Promise.resolve(
     supabase
       .from("user_blocks")

@@ -61,6 +61,9 @@ says more.
   verify live with `pg_get_functiondef` / `pg_proc.proacl`.
 - Money / authz / data-model changes get a REVIEW-ONLY pass (lh-authz-rls,
   lh-silent-failure or lh-money-escrow) — say in your report what needs one.
+  Record each review as a `Sensitive-Review: <reviewer>: <verdict>` trailer
+  (or `node scripts/check-sensitive-review.mjs record ...` after the fact);
+  sensitive-review.yml turns main red on an unrecorded one (Q9).
 
 ## Landing
 - Commit in your worktree, then

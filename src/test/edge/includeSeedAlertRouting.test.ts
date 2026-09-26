@@ -425,7 +425,7 @@ describe("subscription-reconciliation ?include_seed=1", () => {
   });
 
   it("Q93 (b): a failed repair WRITE on a seed profile stays a defect, and its text says seed profile", async () => {
-    // Repair mode (no dry_run), and the profile UPDATE matches 0 rows.
+    // Repair mode (no dry_run), and the profile UPDATE returns an empty list.
     scenario.reads.profiles = { rows: [neverLapsing("u-seed", true)] };
     scenario.writeSelectRows.profiles = [];
     const fn = await load();

@@ -1584,6 +1584,18 @@
     "nargs": 0
    }
   ],
+  "get_thread_counterparty_deleted": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id",
+     "_other"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "get_user_credential_tier": [
    {
     "anon": false,

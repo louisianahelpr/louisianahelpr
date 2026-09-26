@@ -23,7 +23,7 @@ import { recognizedAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
-import { clearOAuthPending, markOAuthPending, socialAuthErrorCopy } from "@/lib/oauthRedirectError";
+import { clearOAuthPending, isExpectedSocialRefusal, markOAuthPending, socialAuthErrorCopy } from "@/lib/oauthRedirectError";
 
 export type SocialProvider = "apple" | "google";
 
@@ -168,7 +168,13 @@ export async function signInWithProvider(
       // (an expired provider config, an unlinked pod, a bad client id) locks
       // people out of an entire login method, and the only other signal is a
       // toast the user sees and we never do.
-      report(err, { severity: "error", tags: { area: "auth", op: "nativeSocialSignIn", provider } });
+      const code = (err as { code?: unknown } | null)?.code;
+      report(err, {
+        // An unverified provider email or a banned account is the person's
+        // outcome, not a broken login method: keep it visible, not paging.
+        severity: isExpectedSocialRefusal(typeof code === "string" ? code : null) ? "warning" : "error",
+        tags: { area: "auth", op: "nativeSocialSignIn", provider },
+      });
       return { kind: "error", message: friendlyProviderError(provider, err) };
     }
   }

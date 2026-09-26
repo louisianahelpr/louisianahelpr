@@ -16,7 +16,8 @@ import AuthShell from "@/components/auth/AuthShell";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
-import { takeOAuthRedirectError } from "@/lib/oauthRedirectError";
+import { isExpectedSocialRefusal, takeOAuthRedirectError } from "@/lib/oauthRedirectError";
+import { report } from "@/lib/errorLogger";
 import {
   setLastAuthMethod,
 } from "@/lib/lastAuthMethod";
@@ -190,6 +191,18 @@ const Login = () => {
   // provider email, two accounts on one address, a banned account). Captured
   // at boot by oauthRedirectError.ts; read-and-clear, so it shows once.
   const [oauthError] = useState(() => takeOAuthRedirectError());
+  // Reported here, not at capture: oauthRedirectError.ts runs before the
+  // Supabase client and must not import errorLogger. A refusal that is the
+  // person's own outcome stays quiet; anything else (a server_error from a
+  // failing auth trigger, a disabled provider, two accounts on one address)
+  // was showing copy while ops heard nothing (lh-silent-failure review, #1806).
+  useEffect(() => {
+    if (!oauthError || isExpectedSocialRefusal(oauthError.code)) return;
+    report(new Error(`web social sign-in refused: ${oauthError.code}`), {
+      severity: "error",
+      tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider, code: oauthError.code },
+    });
+  }, [oauthError]);
   const notice =
     oauthError
       ? oauthError.message

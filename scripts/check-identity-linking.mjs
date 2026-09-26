@@ -112,6 +112,15 @@ if (checks.length < 12 || CASES.some((c) => !seen.has(c))) {
   couldNot(`expected >= 12 checks over cases ${CASES.join(",")}, got ${checks.length} — refusing to report clean`);
 }
 
+// On prod the identity rows ARE the point: a trigger added to auth.identities
+// by a dashboard edit is what the live run exists to catch. If the table did
+// not resolve for this role, every identity write was skipped and a pass
+// would say nothing (lh-silent-failure review of #1806). The replayed schema
+// (--psql) has no auth.identities, so there the skip is expected.
+if (!usePsql && verdict.identities_table !== true) {
+  couldNot("auth.identities did not resolve for this role, so the identity writes were skipped — refusing to report clean");
+}
+
 let failed = false;
 if (config) {
   const want = [

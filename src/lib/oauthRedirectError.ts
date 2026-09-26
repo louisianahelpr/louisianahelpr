@@ -75,6 +75,18 @@ export const SOCIAL_AUTH_ERROR_CODES = [
 ] as const;
 
 /**
+ * A refusal that is the person's own outcome, not a fault anyone should be
+ * paged about: they declined, their provider email is unverified, or the
+ * account is banned. Everything else (a server_error from a failing trigger,
+ * provider_disabled, two accounts on one address, an unknown code) is
+ * reported to monitoring by the caller (lh-silent-failure review of #1806:
+ * the web path showed copy and told ops nothing).
+ */
+export function isExpectedSocialRefusal(code: string | null | undefined): boolean {
+  return code === "access_denied" || code === "provider_email_needs_verification" || code === "user_banned";
+}
+
+/**
  * Specific copy for a social sign-in failure, or null when the code is not one
  * we know (the caller keeps its own fallback). Returns "" for a user who
  * backed out at the provider — that is not an error and gets no notice.

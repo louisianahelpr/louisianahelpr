@@ -33,6 +33,7 @@
  * any crash), or it is in NOT_HERMETIC with a reason. Both lists are two-way.
  */
 
+// @mutate scripts/check-identity-linking.mjs | if (!usePsql && verdict.identities_table !== true) { | if (false) {
 // @mutate scripts/check-unvalidated-constraints.mjs | if (n === 0) { | if (n === -1) {
 // @mutate scripts/check-unvalidated-constraints.mjs | failed = true; // stale entry | // stale entry
 // @mutate scripts/check-anon-table-grants.mjs | if (!tablesChecked \|\| !Array.isArray(offenders)) { | if (false) {
@@ -246,6 +247,9 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "no credentials", says: /could not run the identity-linking scenarios: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
     { label: "Management API 500", env: MGMT("fail"), says: /could not run the identity-linking scenarios: auth config: Management API 500/ },
     { label: "Management API []", env: MGMT("empty"), says: /could not run the identity-linking scenarios: query: Management API 200/ },
+    // Every check passes but auth.identities never resolved: the identity
+    // writes the live run exists for were all skipped (lh-silent-failure, #1806).
+    { label: "identity writes skipped", env: MGMT("noident"), says: /auth\.identities did not resolve for this role, so the identity writes were skipped — refusing to report clean/ },
   ],
   "scripts/check-test-account-strikes.mjs": [
     { label: "REST read fails", env: { SUPABASE_URL: "@HTTP@/fail", SUPABASE_SERVICE_ROLE_KEY: "stub" }, says: /could not check: GET profiles → 500/ },
@@ -290,6 +294,19 @@ beforeAll(async () => {
         res.end(JSON.stringify([{ public_constraints: 300, unvalidated }]));
       });
       return;
+    }
+    // check-identity-linking: a clean auth config, and a scenario verdict whose
+    // checks all pass with identities_table false.
+    if (mode === "noident") {
+      if (req.url?.endsWith("/config/auth")) {
+        return void res.end(JSON.stringify({
+          mailer_autoconfirm: false, external_email_enabled: true, external_apple_enabled: true, external_google_enabled: true,
+          external_phone_enabled: false, external_anonymous_users_enabled: false, external_github_enabled: false,
+        }));
+      }
+      const checks = ["A", "A", "A", "A", "B", "B", "B", "B", "C", "C", "C", "D"].map((c, i) => ({ case: c, check: `c${i}`, ok: true, got: 1 }));
+      res.statusCode = 400;
+      return void res.end(JSON.stringify({ message: `Failed to run sql query: ERROR:  P0001: OA018_RESULT:${JSON.stringify({ identities_table: false, checks })}\nCONTEXT:  PL/pgSQL function inline_code_block line 131 at RAISE` }));
     }
     if (mode === "one" && req.url?.includes("/rest/v1/profiles")) {
       return void res.end(JSON.stringify([{ user_id: "00000000-0000-0000-0000-000000000001", email: "helpr-e2e-poster-0902@mailinator.com", ban_status: "active" }]));

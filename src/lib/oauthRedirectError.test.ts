@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SOCIAL_AUTH_ERROR_CODES,
   captureOAuthRedirectError,
+  isExpectedSocialRefusal,
   markOAuthPending,
   socialAuthErrorCopy,
   takeOAuthRedirectError,
@@ -131,6 +132,15 @@ describe("socialAuthErrorCopy — every social refusal has its own words", () =>
         // Never role-based copy (CLAUDE.md UI rules).
         expect(copy).not.toMatch(/\b(helpers?|posters?|customers?)\b/i);
       }
+    }
+  });
+
+  it("treats only the person's own outcomes as expected (everything else is reported)", () => {
+    for (const code of ["access_denied", "provider_email_needs_verification", "user_banned"]) {
+      expect(isExpectedSocialRefusal(code), code).toBe(true);
+    }
+    for (const code of ["server_error", "unexpected_failure", "provider_disabled", "multiple_accounts", "unspecified", null]) {
+      expect(isExpectedSocialRefusal(code), String(code)).toBe(false);
     }
   });
 

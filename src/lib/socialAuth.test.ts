@@ -35,6 +35,9 @@ vi.mock("@capgo/capacitor-social-login", () => ({
   },
 }));
 
+const reportMock = vi.fn();
+vi.mock("@/lib/errorLogger", () => ({ report: (...args: unknown[]) => reportMock(...args) }));
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
@@ -243,6 +246,24 @@ describe("signInWithProvider — linking refusals (OA-018)", () => {
       expect(result.message).toMatch(/Verify it with Google/);
       expect(result.message).not.toMatch(/give it another try/);
     }
+  });
+
+  it("native: an unverified provider email is reported as a warning, a server fault as an error", async () => {
+    isNativePlatformMock.mockReturnValue(true);
+    isPluginAvailableMock.mockReturnValue(true);
+    initializeMock.mockResolvedValue(undefined);
+    loginMock.mockResolvedValue({ result: { idToken: "google-jwt" } });
+    const { signInWithProvider } = await load();
+
+    reportMock.mockReset();
+    signInWithIdTokenMock.mockResolvedValue({ error: { code: "provider_email_needs_verification", message: "Unverified email with google" } });
+    await signInWithProvider("google");
+    expect(reportMock.mock.calls[0][1].severity).toBe("warning");
+
+    reportMock.mockReset();
+    signInWithIdTokenMock.mockResolvedValue({ error: { code: "unexpected_failure", message: "Database error saving new user" } });
+    await signInWithProvider("google");
+    expect(reportMock.mock.calls[0][1].severity).toBe("error");
   });
 
   it("native: two accounts on one address (no GoTrue code) is named, not retried", async () => {

@@ -19,6 +19,8 @@
  * @mutate src/lib/socialAuth.ts | markOAuthPending(provider, new URL(redirectTo, getPublicOrigin()).pathname); | void redirectTo;
  * @mutate src/lib/socialAuth.ts | const specific = socialAuthErrorCopy(provider, typeof code === "string" ? code : null, raw); | const specific = null;
  * @mutate src/pages/auth/Login.tsx | useState(() => takeOAuthRedirectError()) | useState(() => null)
+ * @mutate src/pages/auth/Login.tsx | op: "webSocialRedirect" | op: "webSocialRedirectOff"
+ * @mutate src/lib/oauthRedirectError.ts | return code === "access_denied" \|\| code === "provider_email_needs_verification" \|\| code === "user_banned"; | return true;
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -82,6 +84,17 @@ describe("every social sign-in outcome reaches the person (OA-018)", () => {
     const capture = imports.indexOf("./lib/oauthRedirectError");
     expect(capture).toBeGreaterThan(-1);
     expect(capture).toBeLessThan(imports.indexOf("./App.tsx"));
+  });
+
+  it("Login reports a web refusal that is not the person's own outcome", () => {
+    // Showing copy while ops hears nothing was the silent-failure half of the
+    // class (lh-silent-failure review of #1806): a server_error from a failing
+    // auth trigger reached the user as "try again" and nobody else.
+    const login = code("src/pages/auth/Login.tsx");
+    expect(login).toMatch(/isExpectedSocialRefusal\(\s*oauthError\.code\s*\)/);
+    expect(login).toMatch(/report\([\s\S]{0,200}op:\s*"webSocialRedirect"/);
+    // The capture module runs before the Supabase client: it must import nothing.
+    expect(code("src/lib/oauthRedirectError.ts")).not.toMatch(/^\s*import\s/m);
   });
 
   it("Login shows the captured reason", () => {

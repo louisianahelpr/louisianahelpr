@@ -1675,7 +1675,7 @@ html.web-desktop {
   html.web-desktop .ds-activity-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.75rem;
+    gap: var(--list-gap);
     align-items: start;
   }
   /* ONE column at every width (owner). The 2-up at 1024 and 3-up at 1440 were
@@ -2064,6 +2064,18 @@ body[data-scroll-locked] .offline-banner {
   :root {
     --card-pad: 1.25rem;
   }
+}
+
+/* ── List pitch (Q213a) ────────────────────────────────────────────────────
+   --list-gap  the gap between consecutive cards in a job-card list: the
+   signed-in Home feed, guest /browse, and the Activity lists (/posts, /jobs).
+   Owner decision: ONE 12px pitch, equal to --shell-gap on phones. Before
+   this the three lists drifted (Home 8px, /browse 10px, Activity 12px).
+   Read through Tailwind's `list` spacing key (`pb-list`, `gap-list`,
+   `space-y-list`). Guards: src/test/listPitchToken.test.ts (no list types its
+   own pitch) + e2e/prod-audit/shell-spacing.spec.ts. */
+:root {
+  --list-gap: 0.75rem;
 }
 
 /* ── .helpr-emblem — the wrought-iron H mark ───────────────────────────────

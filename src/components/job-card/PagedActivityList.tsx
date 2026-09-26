@@ -33,7 +33,7 @@ export function PagedActivityList<TItem>({
     <>
       {/* Single column on phones / native; the wide browser desktop splits
           into two columns via `.ds-activity-grid` in index.css. */}
-      <div className="space-y-3 ds-activity-grid">
+      <div className="space-y-list ds-activity-grid">
         {items.slice(0, shown).map((item) => (
           <div key={getKey(item)}>{renderItem(item)}</div>
         ))}

@@ -156,7 +156,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
  * finding, one breakpoint further along.
  *
  * The mobile rendering is untouched: below `md` this is a single column at
- * the original `gap-2.5` rhythm. Only at `md`+ does it widen to /jobs'
+ * the shared 12px `gap-list` pitch (Q213a). Only at `md`+ does it widen to /jobs'
  * `gap-4`, which is the gutter a two-column layout needs.
  */
 // Defined beside GuestBrowseSkeleton so the chunk-load placeholder lays its

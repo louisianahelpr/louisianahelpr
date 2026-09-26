@@ -272,11 +272,6 @@ const SECTION_GAP = sectionGapPx();
  * `first: true` holds only the first gap (the rest is a flexible filler).
  */
 const SECTION_EXCEPTIONS: Record<string, { px: number; first?: boolean; why: string }> = {
-  "browse-guest": { px: 10, why: "the guest job feed is a LIST (GUEST_FEED_GRID_CLASS gap-2.5), not page sections; unifying the job-card list rhythm (8 dashboard, 10 here, 12 Activity) is Q213" },
-  dashboard: { px: 8, why: "the virtualized job feed's own row pitch (BrowseTasksFeed pb-2) — a list, not sections" },
-  "complete-profile": { px: 8, why: "a complete account lands on /home: same feed" },
-  "job-detail-1": { px: 8, why: "the catalog's fake job id lands on /home: same feed" },
-  "job-detail-missing": { px: 8, why: "a missing job lands on /home: same feed" },
   messages: { px: 20, why: "conversation rows are a divided list (row padding either side of a hairline), not cards" },
   "posts": { px: SECTION_GAP, first: true, why: "after the list, ListTail's mt-auto fills the panel's leftover height — a filler, not a gap" },
   "profile-support": { px: 24, why: "the Help Center row sits a deliberate DOUBLE rhythm (!mt-6) below the form so it does not read as part of it" },
@@ -294,6 +289,9 @@ const NO_SECTION_STACK = new Set([
 // @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-section"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4";
 // @mutate src/pages/info/HelpCenter.tsx | <div className="mx-auto page-measure space-y-section"> | <div className="mx-auto page-measure space-y-6">
 // @mutate src/index.css | --section-gap: 0.75rem; | --section-gap: 1rem;
+// The job-card lists (Home feed, guest /browse) are held to the same 12px by
+// --list-gap (Q213a); a list pitch back off the token fails here too:
+// @mutate src/index.css | --list-gap: 0.75rem; | --list-gap: 0.5rem;
 test("every page's sections sit --section-gap apart at every phone width", async ({ browser }, info) => {
   test.setTimeout(40 * 60_000);
   expect(SECTION_GAP, "--section-gap is the 12px phone rhythm").toBe(12);

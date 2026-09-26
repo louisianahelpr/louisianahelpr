@@ -158,17 +158,17 @@ function MainFeedSection({
         scrollElementRef={containerRef}
         getKey={(job) => job.id}
         // Card renders ~83px tall (single-line title + one meta row) plus
-        // the pb-2/2.5/3 row gap — 92 tracks that instead of the generic
+        // the 12px --list-gap row pitch (Q213a) — 95 tracks that instead of the generic
         // 132 default, which was reserving ~60% more slot height than any
         // row actually needs and reads as excess whitespace before
         // measureElement corrects it.
-        estimateSize={92}
+        estimateSize={95}
         renderItem={(job, i) => (
           // Gap between cards — `space-y-*` can't apply once the
           // virtualizer absolutely-positions rows, so the gap is bottom
           // padding measured as part of the row height.
           <div
-            className="pb-2 lg:pb-2.5 xl:pb-3"
+            className="pb-list"
             onMouseEnter={() => setHoveredJobId?.(job.id)}
             onMouseLeave={() => setHoveredJobId?.(null)}
           >
@@ -682,7 +682,7 @@ export function BrowseTasksFeed({
           <>
             {showFullSkeleton && density === "comfortable" && (
               <div
-                className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3"
+                className="px-3 pt-3 pb-1 space-y-list"
                 aria-hidden
               >
                 {/* Recommended-section variant — matches the real recommended

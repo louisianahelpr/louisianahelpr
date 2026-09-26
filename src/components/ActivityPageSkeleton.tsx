@@ -123,14 +123,14 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
           </div>
         </div>
       )}
-      {/* `space-y-3`, which is what BOTH loaded lists use (AppliedJobsTab and
-          PostedJobsTab: `space-y-3 ds-activity-grid`, and the grouped
+      {/* `space-y-list` (12px, Q213a), which is what BOTH loaded lists use (AppliedJobsTab and
+          PostedJobsTab: `space-y-list ds-activity-grid`, and the grouped
           ActivitySectionedView the same). It said `space-y-2.5` — 10px against
           the real 12px — so even once each card reserved the right HEIGHT the
           pitch was 2px short per row and the list crept upward as it went:
           measured at 375, placeholder card 4 landed 13px above the real one.
           A gap is part of the reservation. */}
-      <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-3" aria-hidden>
+      <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-list" aria-hidden>
         {tab === "applied"
           ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
           : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}

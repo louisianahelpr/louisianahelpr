@@ -8,7 +8,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
  * this placeholder and the page it stands in for cannot lay their cards out
  * differently.
  */
-export const GUEST_FEED_GRID_CLASS = "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4";
+export const GUEST_FEED_GRID_CLASS = "grid grid-cols-1 gap-list md:grid-cols-2 md:gap-4";
 
 /**
  * The loading grid's reserve (Q169). At phone width a screenful, so the site
@@ -68,7 +68,7 @@ const GuestBrowseSkeleton = () => {
 
     <div className="mx-auto w-full max-w-3xl lg:max-w-5xl px-4 pt-4 space-y-4">
       {/* Job card list — shape-matched to the real feed cards. */}
-      <div className="space-y-2.5">
+      <div className="space-y-list">
         {Array.from({ length: 5 }).map((_, i) => (
           <JobCardSkeleton key={i} />
         ))}

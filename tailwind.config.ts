@@ -201,6 +201,9 @@ export default {
         // from `sm` — the value lives in --card-pad (index.css). `p-card`;
         // never a per-card p-4/p-5 (src/test/cardPaddingToken.test.ts).
         card: "var(--card-pad)",
+        // The pitch between cards in a job-card list (Q213a): 12px, from
+        // --list-gap (index.css). `pb-list` / `gap-list` / `space-y-list`.
+        list: "var(--list-gap)",
       },
       transitionTimingFunction: {
         "ds-out": "cubic-bezier(0.22, 1, 0.36, 1)",

@@ -72,6 +72,7 @@ import { getAppUrl } from '../_shared/appUrl.ts'
 import { LOGO_URL } from '../_shared/email-templates/styles.ts'
 import { SUPPORT_EMAIL } from '../_shared/resend.ts'
 import { unsubscribeSigningConfigured, verifyUnsubscribeToken } from '../_shared/unsubscribe.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 /**
  * PostgREST turns `*` into `%` and passes `%`/`_` straight into SQL ILIKE, so
@@ -217,7 +218,7 @@ function text(body: string, status: number): Response {
   })
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   if (req.method !== 'GET' && req.method !== 'POST') {
     return text('Method not allowed', 405)

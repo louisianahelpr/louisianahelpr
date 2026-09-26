@@ -10,41 +10,67 @@ import { unwrapMutation, isWriteRejected } from "@/lib/mutationResult";
  * Either side of the block hides the other.
  */
 type BlockRows = { data: { blocker_id: string; blocked_id: string }[] | null; error: PostgrestError | null };
-const blockReadsInFlight = new Map<string, Promise<BlockRows>>();
+/**
+ * How long a SUCCESSFUL read is reused. A signed-in boot mounts the dashboard
+ * feed and the nav badge within a second of each other; sharing only while a
+ * read was in flight was timing-dependent (prod-audit runs 36213595709 and
+ * 36214629782 measured 1 and 2 boot reads for the same walk). Two seconds
+ * covers the boot and nothing a person does.
+ */
+export const BLOCK_READ_REUSE_MS = 2_000;
+type BlockRead = { read: Promise<BlockRows>; settledAt: number | null };
+const blockReads = new Map<string, BlockRead>();
 
 /**
  * The `user_blocks` rows either side of `currentUserId`, as the raw
- * `{ data, error }` result. CONCURRENT callers share ONE request (Q330: on a
- * signed-in boot the dashboard feed and the nav badge each read it in the
- * same moment, measured 2 reads per boot; the Messages inbox shares it too).
- * Nothing is kept once it settles, so this is not a cache, and a successful
- * blockUser / unblockUser drops the in-flight read (forgetInFlightBlockRead)
- * so a reader that starts AFTER the write never joins a read that began
- * before it. Every caller gets the same `{ data, error }` it got before and
- * handles it as before (getBlockedUserIds throws on error; the dashboard feed
- * reports and continues, see Q573).
+ * `{ data, error }` result, read ONCE for everyone who asks within the same
+ * moment (Q330): callers share an in-flight read, and a successful read is
+ * reused for BLOCK_READ_REUSE_MS after it lands. It never outlives that:
+ *   - a successful blockUser / unblockUser drops it at once, so the person
+ *     who blocked never sees their own block late (found by the
+ *     lh-silent-failure review of this change);
+ *   - a failed read is never reused: the next caller asks again and gets its
+ *     own error (getBlockedUserIds throws; the dashboard feed reports and
+ *     continues, see Q573).
+ * The one thing that can arrive up to 2 s later than before is a block made
+ * by the OTHER person, well inside the time realtime takes to say so.
  */
-/** A block or unblock just committed: the next reader must ask afresh. */
-function forgetInFlightBlockRead(userId: string): void {
-  blockReadsInFlight.delete(userId);
+function forgetBlockRead(userId: string): void {
+  blockReads.delete(userId);
 }
 
-export function readUserBlockRows(currentUserId: string): Promise<BlockRows> {
-  const pending = blockReadsInFlight.get(currentUserId);
-  if (pending) return pending;
-  const read: Promise<BlockRows> = Promise.resolve(
+export function readUserBlockRows(currentUserId: string, now: number = Date.now()): Promise<BlockRows> {
+  const held = blockReads.get(currentUserId);
+  if (held && (held.settledAt === null || now - held.settledAt <= BLOCK_READ_REUSE_MS)) return held.read;
+  const entry: BlockRead = { read: Promise.resolve(null as unknown as BlockRows), settledAt: null };
+  entry.read = Promise.resolve(
     supabase
       .from("user_blocks")
       .select("blocker_id, blocked_id")
       .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`),
   )
     .then(({ data, error }) => ({ data, error }))
-    // Only its OWN entry: after a block dropped it, a newer read may hold the slot.
-    .finally(() => {
-      if (blockReadsInFlight.get(currentUserId) === read) blockReadsInFlight.delete(currentUserId);
-    });
-  blockReadsInFlight.set(currentUserId, read);
-  return read;
+    .then(
+      (res) => {
+        // Only its OWN entry: after a block dropped it, a newer read may hold the slot.
+        if (blockReads.get(currentUserId) === entry) {
+          if (res.error) blockReads.delete(currentUserId);
+          else entry.settledAt = Date.now();
+        }
+        return res;
+      },
+      (err: unknown) => {
+        if (blockReads.get(currentUserId) === entry) blockReads.delete(currentUserId);
+        throw err;
+      },
+    );
+  blockReads.set(currentUserId, entry);
+  return entry.read;
+}
+
+/** Test-only. */
+export function __resetBlockReadsForTests(): void {
+  blockReads.clear();
 }
 
 export async function getBlockedUserIds(currentUserId: string): Promise<Set<string>> {
@@ -115,7 +141,7 @@ export async function blockUser(
   reason?: string,
 ): Promise<{ ok: boolean; cancelledJobIds: string[]; settled: SettledJob[]; error?: string }> {
   // The server takes the blocker from auth.uid(), never from the client; the
-  // id is used here only to drop this user's in-flight block read.
+  // id is used here only to drop this user's held block read.
   // `p_reason` is OMITTED rather than passed as null when blank. The SQL
   // declares `p_reason text DEFAULT NULL` and the body coalesces it to '', so
   // omitting is byte-for-byte the same call — and it is expressible in the
@@ -137,7 +163,7 @@ export async function blockUser(
   const settled = ((data as { settled?: SettledJob[] } | null)?.settled ?? []) as SettledJob[];
   // The blocked person reaches the blocker's list only through blocker_id, so
   // the blocker's read is the one that must not be joined (Q330 shared read).
-  forgetInFlightBlockRead(blockerId);
+  forgetBlockRead(blockerId);
   return { ok: true, cancelledJobIds: settled.map((s) => s.job_id), settled };
 }
 
@@ -164,7 +190,7 @@ export async function unblockUser(blockerId: string, blockedId: string): Promise
         .select("id"),
       { action: "unblock this person", context: { blockerId, blockedId } },
     );
-    forgetInFlightBlockRead(blockerId);
+    forgetBlockRead(blockerId);
     return true;
   } catch (err) {
     // unwrapMutation already reported the zero-row rejection; this covers the

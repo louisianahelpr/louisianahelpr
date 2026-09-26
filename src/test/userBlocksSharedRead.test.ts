@@ -4,17 +4,17 @@
  * Measured in one document on prod (e2e/prod-audit/account-reads-per-document,
  * run 36212848613): a signed-in boot of /home read `user_blocks` twice, the
  * dashboard feed (useDashboardData) and the nav badge (useNavUnreadCount) each
- * asking in the same instant. readUserBlockRows shares the in-flight request.
- * It must NOT become a cache: a harassment block made a moment later has to
- * reach the next read (a successful blockUser/unblockUser drops the in-flight
- * read; found by the lh-silent-failure review of this change), and a failed
- * read has to reach every caller. A block made by the OTHER person can still
- * be missed by a reader that joins a read started a moment before it, which
- * is the same as that reader having asked a moment earlier.
+ * asking in the same instant. Sharing only the in-flight request was
+ * timing-dependent (1 or 2 boot reads across runs), so a successful read is
+ * reused for BLOCK_READ_REUSE_MS (2 s) and no longer: a block or unblock by
+ * the viewer drops it at once (found by the lh-silent-failure review), a
+ * failed read is never reused, and a block by the OTHER person can reach the
+ * viewer at most 2 s later than before.
  */
-// @mutate src/lib/userBlocks.ts |   if (pending) return pending; |   if (pending && false) return pending;
-// @mutate src/lib/userBlocks.ts |       if (blockReadsInFlight.get(currentUserId) === read) blockReadsInFlight.delete(currentUserId); |       void 0;
-// @mutate src/lib/userBlocks.ts |   forgetInFlightBlockRead(blockerId);\n  return { ok: true, | \n  return { ok: true,
+// @mutate src/lib/userBlocks.ts |   if (held && (held.settledAt === null \|\| now - held.settledAt <= BLOCK_READ_REUSE_MS)) return held.read; |   if (false) return held.read;
+// @mutate src/lib/userBlocks.ts |           if (res.error) blockReads.delete(currentUserId); |           if (false) blockReads.delete(currentUserId);
+// @mutate src/lib/userBlocks.ts | now - held.settledAt <= BLOCK_READ_REUSE_MS | true
+// @mutate src/lib/userBlocks.ts |   forgetBlockRead(blockerId);\n  return { ok: true, | \n  return { ok: true,
 // @mutate src/hooks/useDashboardData.ts |         readUserBlockRows(userId), |         supabase.from("user_blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -41,13 +41,14 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
-import { blockUser, getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
+import { BLOCK_READ_REUSE_MS, __resetBlockReadsForTests, blockUser, getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROW = { blocker_id: "me", blocked_id: "them" };
 
 beforeEach(() => {
   requests = 0;
+  __resetBlockReadsForTests();
 });
 
 describe("user_blocks: one read per moment, never a cache (Q330)", () => {
@@ -60,17 +61,30 @@ describe("user_blocks: one read per moment, never a cache (Q330)", () => {
     expect([...(await b)]).toEqual(["them"]);
   });
 
-  it("a read after the first settled asks the server again (a new block is seen)", async () => {
+  it("a settled read is reused for BLOCK_READ_REUSE_MS, then the server is asked again", async () => {
     const first = readUserBlockRows("me");
     respond({ data: [], error: null });
     await first;
-    const second = readUserBlockRows("me");
-    expect(requests).toBe(2);
+    const t = Date.now();
+    await readUserBlockRows("me", t + 500);
+    expect(requests, "a boot reader 0.5 s later reuses the read").toBe(1);
+    const later = readUserBlockRows("me", t + BLOCK_READ_REUSE_MS + 50);
+    expect(requests, "past the window, the server is asked again (a new block is seen)").toBe(2);
     respond({ data: [ROW], error: null });
-    expect((await second).data).toEqual([ROW]);
+    expect((await later).data).toEqual([ROW]);
   });
 
-  it("a read that starts AFTER a successful block never joins a read from before it", async () => {
+  it("a failed read is never reused", async () => {
+    const a = readUserBlockRows("me");
+    respond({ data: null, error: { message: "boom" } });
+    expect((await a).error).toBeTruthy();
+    const b = readUserBlockRows("me");
+    expect(requests).toBe(2);
+    respond({ data: [], error: null });
+    await b;
+  });
+
+  it("a read that starts AFTER a successful block never gets a read from before it", async () => {
     const before = readUserBlockRows("me");
     expect(requests).toBe(1);
     expect((await blockUser("me", "them")).ok).toBe(true);

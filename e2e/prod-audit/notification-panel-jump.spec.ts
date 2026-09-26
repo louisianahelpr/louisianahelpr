@@ -142,6 +142,8 @@ for (const engine of ["chromium", "webkit"] as const) {
       const measure = `${engine} 375: frames=${edge.length} largest one-frame move=${largest.dy.toFixed(1)}px over ${largest.dt.toFixed(0)}ms total travel=${travel.toFixed(1)}px`;
       test.info().annotations.push({ type: "measure", description: measure });
       console.log(`[notification-panel-jump] ${measure}`);
+      // The whole series, so a failure explains itself in the log (y px @ ms since the previous frame).
+      console.log(`[notification-panel-jump] ${engine} series: ${edge.map((e, i) => `${e.y.toFixed(0)}@${i ? (e.t - edge[i - 1].t).toFixed(0) : 0}`).join(" ")}`);
       await page.screenshot({ path: test.info().outputPath(`panel-after-${engine}.png`) });
       expect(edge.length, "too few frames sampled to judge").toBeGreaterThan(10);
       expect(travel, "the panel edge never moved: nothing was measured").toBeGreaterThan(20);

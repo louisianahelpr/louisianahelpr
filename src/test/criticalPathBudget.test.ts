@@ -145,8 +145,11 @@ describe("the page's own chunk is started by the entry, beside the app", () => {
 
   it("the entry and routePreload import nothing that would drag the app-shared chunk into the entry", () => {
     const entryImports = [...code("src/entry.ts").matchAll(/^\s*import\s+(?:[^"';]*from\s*)?["']([^"']+)["']/gm)].map((m) => m[1]);
-    expect(entryImports.sort()).toEqual(["./boot/routePreload", "./index.css"]);
+    expect(entryImports.sort()).toEqual(["./boot/guestJobsPrefetch", "./boot/routePreload", "./index.css"]);
     expect(code("src/boot/routePreload.ts")).not.toMatch(/^\s*import\s/m);
+    // Q206 b: the guest /browse prefetch may import routePreload and nothing else.
+    const prefetchImports = [...code("src/boot/guestJobsPrefetch.ts").matchAll(/^\s*import\s+(?:[^"';]*from\s*)?["']([^"']+)["']/gm)].map((m) => m[1]);
+    expect(prefetchImports).toEqual(["./routePreload"]);
     expect(code("src/entry.ts")).toMatch(/import\(\s*["']\.\/main["']\s*\)/);
   });
 

@@ -39,6 +39,7 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { feedPhase } from "@/lib/feedPhase";
+import { GUEST_JOBS_LIMIT, GUEST_JOBS_SELECT, takeGuestJobsPrefetch } from "@/lib/guestJobsQuery";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 
 /**
@@ -226,24 +227,24 @@ const DashboardGuest = () => {
   } = useQuery({
     queryKey: queryKeys.dashboard.guestJobs(),
     queryFn: async (): Promise<EnrichedJob[]> => {
-      const { data: rawJobs, error } = await supabase
-        .from("open_jobs_browse")
-        .select(
-          // `latitude, longitude` are the view's MASKED coordinates (rounded
-          // to 2dp ≈ 1.1km — 20260903031231), and they are what makes the
-          // "Nearby" radius chip a real filter on this surface. Without them
-          // the haversine branch in useDashboardFilters could never run, and a
-          // guest — who has no saved profile location to fall back on — got NO
-          // filtering at all while the toolbar said "Filtered Results". A
-          // 1-mile radius returned a job 72.7 miles away (BD-001).
-          // `credential_tier`, `parish` — same column parity fix as the
-          // authed feed (useDashboardData.ts), see 20260904031002.
-          "id, title, description, category, budget, date_needed, location, latitude, longitude, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, pricing_mode, credential_tier, parish",
-        )
-        .neq("payment_status", "abandoned")
-        .order("boosted_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .limit(40);
+      // Q206: the entry started this exact read beside the app download
+      // (src/boot/guestJobsPrefetch.ts). Taken once; if it failed or is old,
+      // ask Supabase as before.
+      const prefetched = await takeGuestJobsPrefetch();
+      const { data: rawJobs, error } = prefetched
+        ? { data: prefetched, error: null }
+        : await supabase
+            .from("open_jobs_browse")
+            // `latitude, longitude` are the view's MASKED coordinates (rounded
+            // to 2dp ≈ 1.1km — 20260903031231), and they are what makes the
+            // "Nearby" radius chip a real filter on this surface (BD-001).
+            // `credential_tier`, `parish` — same column parity fix as the
+            // authed feed (useDashboardData.ts), see 20260904031002.
+            .select(GUEST_JOBS_SELECT)
+            .neq("payment_status", "abandoned")
+            .order("boosted_at", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+            .limit(GUEST_JOBS_LIMIT);
       if (error) throw error;
 
       const now = new Date();

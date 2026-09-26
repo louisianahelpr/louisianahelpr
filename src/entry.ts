@@ -19,6 +19,7 @@
 // round, instead of waiting for this module to load and ask for main.
 import "./index.css";
 import { hasToken, preloadEntryRoute } from "./boot/routePreload";
+import { startGuestJobsPrefetch } from "./boot/guestJobsPrefetch";
 
 // The app. A failed fetch here is a stale HTML page (its chunks deleted by a
 // later deploy). The index.html boot watchdog owns that case: every chunk of
@@ -30,6 +31,8 @@ void import("./main");
 // The page, in the same tick — and AFTER main, so the links it adds are only
 // the page's own chunks (see preloadEntryRoute for why that order matters).
 preloadEntryRoute(window.location.pathname);
+// Q206: the guest /browse job list, beside the app download (see the module).
+startGuestJobsPrefetch(window.location.pathname);
 
 // Then, once THIS page has loaded, warm the pages a visitor most likely opens
 // next (guest: browse / login / signup; signed in: the dock tabs + post-job),

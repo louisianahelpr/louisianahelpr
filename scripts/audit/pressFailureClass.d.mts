@@ -30,3 +30,6 @@ export declare function rowDetailLines(a: {
   documented: ReadonlySet<string>;
   max?: number;
 }): string[];
+export declare const RECENT_CYCLES: number;
+export declare const PACE_HEADROOM: number;
+export declare function cycleBurstEstimate(recent: readonly number[] | null | undefined): number;

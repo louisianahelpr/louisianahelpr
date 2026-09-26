@@ -63,7 +63,7 @@ import {
 import * as pressSafety from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
-  CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, MIN_CYCLE_BURST, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
+  CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
   classifyConsoleError, classifyFailedResponse, clickFailureReason, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
 } from "./pressFailureClass.mjs";
 import { budgetFor } from "../e2e/request-budget.mjs";
@@ -863,13 +863,14 @@ async function main() {
   requestMeter.attachBrowser(browser);
   process.on("exit", () => requestMeter.flush());
   // The load ceiling the budget step judges this run by (e2e/request-budgets.json),
-  // and the largest burst one press cycle has produced so far. See ceilingWaitMs.
+  // and the recent press cycles' sizes. See ceilingWaitMs and cycleBurstEstimate.
   const LOAD_CEILING = budgetFor(JSON.parse(readFileSync(resolve(REPO, "e2e/request-budgets.json"), "utf8")).budgets, "press-every-control").ceilingPerMinute;
-  let cycleBurst = MIN_CYCLE_BURST;
+  const recentCycles = [];
   let cycleStartTotal = null;
   const paceToCeiling = async (page) => {
-    if (cycleStartTotal !== null) cycleBurst = Math.max(cycleBurst, requestMeter.total - cycleStartTotal);
-    const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: LOAD_CEILING, burst: cycleBurst });
+    if (cycleStartTotal !== null) recentCycles.push(requestMeter.total - cycleStartTotal);
+    if (recentCycles.length > 50) recentCycles.shift();
+    const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: Math.floor(LOAD_CEILING * PACE_HEADROOM), burst: cycleBurstEstimate(recentCycles) });
     if (wait > 0) await page.waitForTimeout(wait);
     cycleStartTotal = requestMeter.total;
   };

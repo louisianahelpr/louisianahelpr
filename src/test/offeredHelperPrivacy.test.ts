@@ -203,6 +203,8 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:can_send_message_to_in_job": "no-return",
     // V-008: re-checks the job is not under a live direct offer; returns boolean.
     "function:deliver_saved_search_alert": "no-return",
+    // Q225: same re-check for the queued parish alert; returns boolean.
+    "function:deliver_parish_match_alert": "no-return",
     "function:enforce_application_job_state": "no-return",
     "function:enforce_hire_columns_rpc_only": "no-return",
     "function:enforce_jobs_insert_column_lock": "no-return",

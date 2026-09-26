@@ -47,7 +47,7 @@ import { walkSource } from "./helpers/walkSource";
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | CREATE TRIGGER trg_notifications_seed_boundary | CREATE TRIGGER aaa_notifications_seed_boundary
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |     v_cross := true;\n    v_reason := 'seed boundary check failed, dropped: ' \|\| SQLERRM;\n  END;\n\n  IF v_cross THEN\n    -- The | v_cross := false;\n    v_reason := 'x';\n  END;\n\n  IF v_cross THEN\n    -- The
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |   BEFORE INSERT ON public.match_digest_queue | AFTER INSERT ON public.match_digest_queue
-// @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |         AND (NOT nj.is_seed OR COALESCE(p.is_seed, false)) |         AND true
+// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql |         AND (NOT nj.is_seed OR COALESCE(p.is_seed, false)) |         AND true
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |   v_job := COALESCE(p_job_id, public.notification_job_id_from_link(p_link)); |   v_job := p_job_id;
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | '[?&](?:userId\|offerTo\|user)= | '[?&](?:userId\|user)=
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | notification_crosses_seed_boundary(uuid, uuid, text, uuid) FROM PUBLIC, anon, authenticated; | notification_crosses_seed_boundary(uuid, uuid, text, uuid) FROM PUBLIC;
@@ -60,14 +60,14 @@ import { walkSource } from "./helpers/walkSource";
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN |   IF false THEN
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql | admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC, anon; | admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC;
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |      AND l.error_message LIKE 'seed boundary check failed%';\n\n  IF v_24h = 0 THEN |      AND l.error_message LIKE 'seed_boundary_check_failed%';\n\n  IF v_24h = 0 THEN
-// @mutate supabase/migrations/20260923133021_cron_missed_slot_catch_up.sql |   ELSIF p_source = 'seed-boundary-check-failed' THEN |   ELSIF p_source = 'seed-boundary-check-failed-x' THEN
+// @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |   ELSIF p_source = 'seed-boundary-check-failed' THEN |   ELSIF p_source = 'seed-boundary-check-failed-x' THEN
 // @mutate supabase/migrations/20260923130621_seed_boundary_honest_skips_and_monitor.sql |     PERFORM cron.schedule('seed-boundary-failures', '41 * * * *', |     PERFORM cron.schedule('seed-boundary-failures', '41 3 1 1 *',
 // @mutate .github/workflows/functions-deploy.yml |         run: node scripts/check-edge-rpcs-live.mjs --wait 300\n |         run: echo skipped\n
 // @mutate supabase/functions/create-notification/index.ts |         p_actor: user.id, |         p_actor: null,
 // @mutate supabase/functions/create-notification/index.ts |     if (crossesSeed === true) { |     if (crossesSeed === "never") {
 // @mutate supabase/functions/daily-match-digest/index.ts | .from("notifications").insert(notifications) | .from("notifications").insert(notifications); await supabase.from("notifications").insert({ user_id: userId, title, message, type: "job_match" })
 // @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/admin?view=fraud&user=' \|\| p_reviewee_id, | '/admin?view=fraud',
-// @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n    VALUES (\n      _admin, | INSERT INTO public.notifications (user_id, title, message, type, link)\n    VALUES (\n      _admin,
+// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n    VALUES (\n      _admin, | INSERT INTO public.notifications (user_id, title, message, type, link)\n    VALUES (\n      _admin,
 // @mutate supabase/functions/create-payment/index.ts |             user_id: job.helper_id,\n            job_id: job.id,\n            title: "Job completed!", |             user_id: job.helper_id,\n            title: "Job completed!",
 // @mutate supabase/functions/stripe-idv-webhook/index.ts |               link: `/admin?view=people&user=${userId}`, |               link: "/admin",
 // @mutate supabase/functions/arrival-confirm-reminder/index.ts |       if ((await seedBoundaryDropsRow(supabase, { user_id: userId, job_id: jobId, link })) === true) return;\n |       if (false) return;\n

@@ -16,17 +16,22 @@
  *   (ord, 'fn', $p$pattern$p$, $q$replacement$q$, 'flags')
  * inside a pg_get_functiondef + regexp_replace DO block is applied to it, in
  * `ord` order, exactly as Postgres would (a function that does not exist yet
- * is skipped). Comments never define anything: definitions and tuples are
- * located on comment-blanked text, and the statement is cut from the raw text
- * at the same offsets.
+ * is skipped). The tuple parser and the regexp_replace emulation live in
+ * scripts/lib/functionRewrites.mjs, shared with the nightly prod check
+ * scripts/audit/function-body-drift.mjs. Comments never define anything:
+ * definitions and tuples are located on comment-blanked text, and the
+ * statement is cut from the raw text at the same offsets.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./blankNonCode";
+import { parseRewriteTuples, pgRegexpReplace } from "../../../scripts/lib/functionRewrites.mjs";
 
 export interface FnDef {
   /** Migration whose CREATE FUNCTION text is the base. */
   file: string;
+  /** Offset of that CREATE in `file`, so two definitions in one file are told apart. */
+  index: number;
   /** Raw statement, CREATE … closing tag … `;`, after later rewrites. */
   stmt: string;
   /** Rewrite migrations applied on top of `file`'s text, in order. */
@@ -43,8 +48,6 @@ export interface Rewrite {
 }
 
 const DEF = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?(\w+)"?\s*\(/gi;
-const TUPLE =
-  /\(\s*(\d+)\s*,\s*'(\w+)'\s*,\s*\$p\$([\s\S]*?)\$p\$\s*,\s*\$q\$([\s\S]*?)\$q\$\s*,\s*'(\w*)'\s*\)/g;
 
 /** Every CREATE FUNCTION statement in one migration, with its offset. */
 export function parseDefs(sql: string): { name: string; index: number; stmt: string }[] {
@@ -65,32 +68,9 @@ export function parseDefs(sql: string): { name: string; index: number; stmt: str
   return out;
 }
 
-/** Rewrite tuples of a pg_get_functiondef + regexp_replace migration. */
+/** Rewrite tuples of a pg_get_functiondef + regexp_replace migration (shared parser). */
 export function parseRewrites(sql: string, file = ""): Rewrite[] {
-  const code = blankSqlComments(sql);
-  if (!/pg_get_functiondef\s*\(/i.test(code) || !/regexp_replace\s*\(/i.test(code)) return [];
-  const out: Rewrite[] = [];
-  for (const m of code.matchAll(TUPLE)) {
-    out.push({
-      file,
-      ord: Number(m[1]),
-      fn: m[2].toLowerCase(),
-      pattern: m[3],
-      replacement: m[4],
-      flags: m[5],
-    });
-  }
-  return out.sort((a, b) => a.ord - b.ord);
-}
-
-/** Postgres regexp_replace, in JS. ARE `.` spans newlines unless flag `n`. */
-function pgRegexpReplace(src: string, pattern: string, replacement: string, flags: string): string {
-  const jsFlags = (flags.includes("g") ? "g" : "") + (flags.includes("n") ? "" : "s") + (flags.includes("i") ? "i" : "");
-  const rep = replacement
-    .replace(/\$/g, "$$$$")
-    .replace(/\\&/g, "$$&")
-    .replace(/\\(\d)/g, "$$$1");
-  return src.replace(new RegExp(pattern, jsFlags), rep);
+  return parseRewriteTuples(sql, blankSqlComments(sql), file).map(({ index: _index, ...r }) => r);
 }
 
 export function migrationFiles(dir: string): string[] {
@@ -130,7 +110,7 @@ export function applyMigration(defs: Map<string, FnDef>, file: string, sql: stri
   };
   for (const d of parseDefs(sql)) {
     if (d.index > rewriteAt) flushRewrites();
-    defs.set(d.name, { file, stmt: d.stmt, rewrites: [] });
+    defs.set(d.name, { file, index: d.index, stmt: d.stmt, rewrites: [] });
   }
   if (rewrites.length) flushRewrites();
 }

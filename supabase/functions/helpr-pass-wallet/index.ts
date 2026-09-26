@@ -18,13 +18,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { tierDisplayName } from "../_shared/tierNames.ts";
 import { profileHasPerk, tiersGrantingPerk, tiersGrantingPerkSentence } from "../_shared/tierPerks.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const rl = await checkRateLimit(req, {

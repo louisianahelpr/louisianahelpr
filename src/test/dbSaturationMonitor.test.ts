@@ -1,7 +1,7 @@
-// @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | ELSIF p_source = 'db-saturation' THEN | ELSIF p_source = 'db-saturation-x' THEN
+// @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql | ELSIF p_source = 'db-saturation' THEN | ELSIF p_source = 'db-saturation-x' THEN
 // @mutate supabase/migrations/20260923090536_db_saturation_monitor.sql | PERFORM cron.schedule('db-saturation-check', '*/5 * * * *', | PERFORM cron.schedule('db-saturation-check', '0 3 * * *',
 // @mutate supabase/migrations/20260923090536_db_saturation_monitor.sql | jsonb_build_object('source', 'db-statement-timeouts', 'area', 'database'), | jsonb_build_object('source', 'db-statement-timeout', 'area', 'database'),
-// @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | JOIN firsts f ON f.jobname = m.jobname | CROSS JOIN LATERAL (SELECT COALESCE((SELECT min(m2.rn) FROM marked m2 WHERE m2.jobname = m.jobname AND NOT m2.suspicious), 2147483647) AS first_ok) f
+// @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | JOIN firsts f ON f.jobname = m.jobname | CROSS JOIN LATERAL (SELECT COALESCE((SELECT min(m2.rn) FROM marked m2 WHERE m2.jobname = m.jobname AND NOT m2.suspicious), 2147483647) AS first_ok) f
 // @mutate .github/workflows/prod-errors.yml | run: node scripts/db-saturation-check.mjs | run: echo skipped
 // @mutate scripts/db-saturation-check.mjs | if (!Number.isFinite(n)) throw | if (false) throw
 import { describe, expect, it } from "vitest";

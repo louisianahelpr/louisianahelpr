@@ -24,11 +24,23 @@
  *             in notification-link literals are NOT drift: 20260831232514 and
  *             20260901021929 rewrite links in place with regexp_replace over
  *             pg_get_functiondef.
+ * In-place rewrites ARE replayed: a migration that rewrites a function through
+ * pg_get_functiondef + regexp_replace + EXECUTE, with the
+ * (ord, 'fn', $p$pattern$p$, $q$replacement$q$, 'flags') tuples that
+ * scripts/lib/functionRewrites.mjs parses, changes the expected body of every
+ * overload of `fn` at that point in the replay, exactly as Postgres would (the
+ * same parser src/test/helpers/effectiveFunctionDefs.ts uses). Until
+ * 2026-09-26 only link literals were tolerated, so 20260925143327 (role-neutral
+ * notification copy in 11 functions, applied on prod exactly as written) read as
+ * 11 "unmatched" bodies every night (issue #1802).
  * A stale/unmatched body can be accepted in function-body-drift.baseline.json,
  * pinned to prod's exact md5(prosrc) with a reason; if prod's body changes the
  * entry stops matching and the check fails again.
  *
- * Limits: bodies created only inside EXECUTE strings are not seen; a signature
+ * Limits: bodies created only inside EXECUTE strings are not seen, other than
+ * by the rewrite tuples above (applied to the body, where Postgres applies them
+ * to the whole pg_get_functiondef — the same thing unless a pattern matches the
+ * header); a signature
  * this parser cannot normalise falls back to name matching when both sides
  * have exactly one overload.
  *
@@ -42,6 +54,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { parseRewriteTuples, pgRegexpReplace } from "../lib/functionRewrites.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MIG_DIR = path.join(ROOT, "supabase/migrations");
@@ -134,7 +147,8 @@ function parenList(text, open) {
 /**
  * Every public function definition and drop in one migration, in file order.
  * Unqualified names count as public (this project's search_path).
- * @returns {{kind: "create"|"drop", name: string, sig: string|null, body?: string, at: number}[]}
+ * A rewrite tuple is a `rewrite` event on every overload of its function.
+ * @returns {{kind: "create"|"drop"|"rewrite", name: string, sig: string|null, body?: string, at: number, ord?: number, pattern?: string, replacement?: string, flags?: string}[]}
  */
 export function extractFunctionEvents(text) {
   const events = [];
@@ -165,6 +179,13 @@ export function extractFunctionEvents(text) {
     const args = m[2] ? parenList(text, dropRe.lastIndex - 1) : null;
     events.push({ kind: "drop", name: m[1].toLowerCase(), sig: args ? normalizeSignature(args.list) : null, at: m.index });
   }
+  // In-place rewrites run when their DO block runs: all at once, in `ord` order.
+  const tuples = parseRewriteTuples(text).filter((t) => !inLineComment(text, t.index));
+  const rewriteAt = tuples.length ? Math.min(...tuples.map((t) => t.index)) : 0;
+  for (const t of tuples) {
+    events.push({ kind: "rewrite", name: t.fn, sig: null, ord: t.ord, pattern: t.pattern, replacement: t.replacement, flags: t.flags, at: rewriteAt });
+  }
+  // Stable sort: rewrites sharing `at` keep their `ord` order.
   return events.sort((a, b) => a.at - b.at);
 }
 
@@ -180,6 +201,21 @@ export function expectedFunctions(migDir = MIG_DIR) {
     const version = f.slice(0, 14);
     const text = fs.readFileSync(path.join(migDir, f), "utf8");
     for (const e of extractFunctionEvents(text)) {
+      if (e.kind === "rewrite") {
+        for (const [key, v] of expected) {
+          if (v.name !== e.name || v.state !== "defined") continue;
+          const body = pgRegexpReplace(v.body, e.pattern, e.replacement, e.flags);
+          if (body === v.body) continue; // pattern no longer matches: Postgres changes nothing
+          const h = nmd5(body);
+          const prior = history.get(e.name) ?? new Set();
+          prior.add(v.md5);
+          expected.set(key, { ...v, body, md5: h, lmd5: md5(linkNormalize(body)), version, history: new Set([...prior].filter((x) => x !== h)), rewrites: [...(v.rewrites ?? []), `${version}#${e.ord}`] });
+          // A later CREATE makes this body OLDER, so prod still running it reads as stale.
+          prior.add(h);
+          history.set(e.name, prior);
+        }
+        continue;
+      }
       if (e.kind === "drop") {
         for (const [key, v] of expected) {
           if (v.name === e.name && (e.sig === null || v.sig === e.sig)) expected.set(key, { ...v, state: "dropped", version });
@@ -189,7 +225,7 @@ export function expectedFunctions(migDir = MIG_DIR) {
       const key = `${e.name}(${e.sig})`;
       const h = nmd5(e.body);
       const prior = history.get(e.name) ?? new Set();
-      expected.set(key, { name: e.name, sig: e.sig, state: "defined", md5: h, lmd5: md5(linkNormalize(e.body)), version, history: new Set(prior) });
+      expected.set(key, { name: e.name, sig: e.sig, state: "defined", body: e.body, md5: h, lmd5: md5(linkNormalize(e.body)), version, history: new Set(prior), rewrites: [] });
       prior.add(h);
       history.set(e.name, prior);
     }

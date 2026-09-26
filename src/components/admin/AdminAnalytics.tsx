@@ -10,7 +10,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
 import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
-import { SUB_PRICE, type Profile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
+import { SUB_PRICE, ANALYTICS_PROFILE_COLUMNS, DRILL_PROFILE_COLUMNS, type Profile, type DrillProfile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
 import { TIER_ORDER } from "@/lib/subscriptionTiers";
 import { TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
 import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
@@ -53,6 +53,28 @@ const ChartFallback = () => (
   </div>
 );
 
+/** Reads every non-seed profile, `PAGE_SIZE` rows at a time. An unbounded
+ *  `profiles` read stops at PostgREST's 1000-row cap without an error, and
+ *  "Total Users" would then quietly freeze at 1,000. Stops on the first error
+ *  and returns it alongside whatever pages did arrive. */
+const profilesQuery = (columns: string) => supabase.from("profiles").select(columns).eq("is_seed", false);
+type ProfilesQuery = ReturnType<typeof profilesQuery>;
+
+async function readAllProfiles<T>(
+  columns: string,
+  // Every caller must end in a total order (`id` last) or rows shift between pages.
+  narrow: (q: ProfilesQuery) => ProfilesQuery = (q) => q.order("id"),
+): Promise<{ rows: T[]; error: unknown }> {
+  const PAGE_SIZE = 1000;
+  const rows: T[] = [];
+  for (let page = 0; ; page++) {
+    const { data, error } = await narrow(profilesQuery(columns)).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    if (error) return { rows, error };
+    rows.push(...((data ?? []) as unknown as T[]));
+    if (!data || data.length < PAGE_SIZE) return { rows, error: null };
+  }
+}
+
 const AdminAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [drillDown, setDrillDown] = useState<DrillDown>(null);
@@ -65,7 +87,7 @@ const AdminAnalytics = () => {
   // the money tiles below render the two differently — see computeMetrics.
   const [transfers, setTransfers] = useState<{ amount_cents: number | string; status: string; job_id?: string | null }[] | null>([]);
   const [tips, setTips] = useState<Tip[]>([]);
-  const [drillUsers, setDrillUsers] = useState<Profile[]>([]);
+  const [drillUsers, setDrillUsers] = useState<DrillProfile[]>([]);
   const [drillJobs, setDrillJobs] = useState<Job[]>([]);
   // user_id → role lookup (profiles.role was dropped — fetched separately
   // from user_roles and joined client-side for the helper/customer counts).
@@ -90,7 +112,7 @@ const AdminAnalytics = () => {
       }
 
       const [profilesRes, tipsRes, rolesRes, transfersRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("is_seed", false),
+        readAllProfiles<Profile>(ANALYTICS_PROFILE_COLUMNS),
         // Seed-filtered like every other source in this loader. `tips` has no
         // `is_seed` column of its own, so we constrain through the job it
         // belongs to with an inner join. Without this the Money grid rendered
@@ -108,7 +130,7 @@ const AdminAnalytics = () => {
       if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
       if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
       if (rolesRes.error) report(rolesRes.error, { tags: { source: "AdminAnalytics.loadRoles" } });
-      setProfiles(profilesRes.data || []);
+      setProfiles(profilesRes.rows);
       setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
       // This error was the ONE of the four that went unchecked, and it was the
@@ -224,9 +246,9 @@ const AdminAnalytics = () => {
     setDrillDown(type);
     setDrillLoading(true);
     if (type === "users") {
-      const { data, error } = await supabase.from("profiles").select("*").eq("is_seed", false).order("created_at", { ascending: false });
+      const { rows, error } = await readAllProfiles<DrillProfile>(DRILL_PROFILE_COLUMNS, (q) => q.order("created_at", { ascending: false }).order("id"));
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownUsers" } });
-      setDrillUsers(data || []);
+      setDrillUsers(rows);
     } else if (type === "jobs" || type === "revenue" || type === "fees" || type === "payouts") {
       // Reassign, never `query.in(…)` as a bare statement: today's
       // postgrest-js mutates the builder and returns `this`, so a discarded
@@ -243,9 +265,9 @@ const AdminAnalytics = () => {
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
       setDrillJobs(readableJobRows<Job>(data));
     } else if (type === "subscriptions") {
-      const { data, error } = await supabase.from("profiles").select("*").eq("is_seed", false).not("subscription_tier", "is", null).order("subscription_tier");
+      const { rows, error } = await readAllProfiles<DrillProfile>(DRILL_PROFILE_COLUMNS, (q) => q.not("subscription_tier", "is", null).order("subscription_tier").order("id"));
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownSubscriptions" } });
-      setDrillUsers(data || []);
+      setDrillUsers(rows);
     }
     setDrillLoading(false);
   };

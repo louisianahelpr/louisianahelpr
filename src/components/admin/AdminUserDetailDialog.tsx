@@ -32,7 +32,7 @@ interface AdminUserDetailDialogProps {
   emailTracking: { event_type: string; email_type: string; created_at: string }[];
   emailSendStats: { template_name: string; count: number; last_sent: string }[];
   /** Per-user last-login map — tells whether an approved user is active yet. */
-  lastLoginSummary: Record<string, string>;
+  lastLoginSummary: Record<string, string> | null;
   /** Profile id currently mid-resend, or null — drives the email spinners. */
   resending: string | null;
   /** Account lifecycle + support actions, all owned by the parent. */

@@ -229,10 +229,30 @@ const BUNDLE_AFFECTING = [
 ];
 export const needsRebuild = (target) => BUNDLE_AFFECTING.some((re) => re.test(target));
 
+/*
+ * Which playwright project runs a guard: the FIRST project in
+ * playwright.config.ts whose own testDir holds the spec, else "chromium".
+ * Read from the config, not a hand list: the list missed
+ * job-status-fixtures, canary and privacy, so their guards ran under
+ * chromium, whose testIgnore drops them — "No tests found", a red baseline,
+ * and an INCONCLUSIVE vacuity on main (nightly-red #1794 follow-up).
+ */
+export const projectsFromConfig = (src) => {
+  const out = [];
+  const re = /name:\s*"([^"]+)"|testDir:\s*"\.\/(e2e\/[^"]+)"/g;
+  let name = null;
+  for (const m of src.matchAll(re)) {
+    if (m[1]) name = m[1];
+    else if (name && m[2] !== "e2e") { out.push({ name, dir: m[2].replace(/\/$/, "") }); name = null; }
+  }
+  return out;
+};
+export const pwProjectFor = (rel, projects) =>
+  projects.find((p) => rel.startsWith(p.dir + "/"))?.name ?? "chromium";
+let projectsCache;
 const PW_PROJECT = (rel) => {
-  const m = /^e2e\/([^/]+)\//.exec(rel);
-  const dir = m?.[1];
-  return ["happy-path", "journeys", "prod-audit", "a11y-prod"].includes(dir) ? dir : "chromium";
+  projectsCache ??= projectsFromConfig(fs.readFileSync(path.join(REPO, "playwright.config.ts"), "utf8"));
+  return pwProjectFor(rel, projectsCache);
 };
 
 /*

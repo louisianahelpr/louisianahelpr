@@ -24,8 +24,12 @@
  * Failure THROWS: nothing in this file skips.
  *
  * Shown able to fail: src/test/acceptedJobFixture.test.ts registers the
- * mutations of the plan and of the workflow wiring.
+ * mutations of the plan and of the workflow wiring. The one below is this
+ * spec's own: ensureAcceptedJob hands back a row with no runway left (what
+ * auto-expire-jobs would re-open tomorrow) and the runway assertion goes red.
+ * It needs no mint: on a run that reuses the fixture it is two reads.
  */
+// @mutate e2e/prod-audit/fundedOpenJob.ts | return { job: { id, title: after.title, date_needed: after.date_needed }, log }; | return { job: { id, title: after.title, date_needed: centralDatePlus(0) }, log };
 import { test, expect } from "../prodTest";
 import { ensureAcceptedJob, centralDatePlus } from "../prod-audit/fundedOpenJob";
 import { MIN_RUNWAY_DAYS, daysBetween } from "../prod-audit/fundedOpenJobPlan";

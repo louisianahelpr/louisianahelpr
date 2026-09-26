@@ -497,7 +497,7 @@ describe("stripe-webhook edge function", () => {
         },
       });
       scenario.reads.jobs = {
-        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }],
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "escrow" }],
       };
       await fn.fetch(webhookRequest(fn, "{}"));
       const jobWrite = scenario.writes.find(

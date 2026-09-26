@@ -210,7 +210,7 @@ serve(async (req) => {
         //
         // And there is no way out of that state from the UI: a repo-wide search
         // found no client entry point that funds an already-created job (the
-        // `repay` metadata branch in stripe-webhook has no caller in src/). So
+        // `repay` metadata branch in stripe-webhook never had a caller and was removed, Q343). So
         // an auto-created cleaning job is currently unfundable by the host AND
         // unseeable by helpers.
         //

@@ -163,7 +163,7 @@ describe("a reversed gift-card charge revokes the credit", () => {
     });
     // The RPC's answer for "this PaymentIntent is not a gift".
     scenario.rpc.revoke_gift_card_for_refund = { outcome: "no_gift" };
-    scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }] };
+    scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "escrow" }] };
 
     await fn.fetch(webhookRequest(fn, "{}"));
 

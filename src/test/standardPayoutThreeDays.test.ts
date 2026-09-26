@@ -96,7 +96,8 @@ describe("standard pay: 3 days after the job is done (Q202)", () => {
         writes.push({ file: rel, value });
       }
     }
-    expect(writes.length, "inventory of payout_scheduled_at writers").toBeGreaterThanOrEqual(4);
+    // 3 since Q343 removed checkoutSessionCompleted's dead `repay` writer (2026-09-26).
+    expect(writes.length, "inventory of payout_scheduled_at writers").toBeGreaterThanOrEqual(3);
     const bad = writes.filter((w) => !/^standardPayoutAtIso\(/.test(w.value) && ALLOWED[w.file] !== w.value);
     expect(bad, JSON.stringify(bad, null, 2)).toEqual([]);
     // Two-way: an ALLOWED entry whose write no longer exists is stale.
@@ -106,8 +107,10 @@ describe("standard pay: 3 days after the job is done (Q202)", () => {
     for (const f of [
       "supabase/functions/auto-release-payment/index.ts",
       "supabase/functions/create-payment/index.ts",
-      "supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts",
     ]) expect(files.has(f), f).toBe(true);
+    // Q343: the webhook's only writer was the dead `repay` branch; a webhook
+    // must not schedule a payout on its own (checkoutMetadataKeysAreWritten).
+    expect(files.has("supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts")).toBe(false);
   });
 
   it("no edge notification promises a payout 'in 24 hours'", () => {

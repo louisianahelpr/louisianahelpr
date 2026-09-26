@@ -27,9 +27,10 @@ import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { JobStatusStrip } from "../../components/job-card/JobStatusStrip";
-import { helperStatusLine } from "../../components/job-card/jobStatusLine";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
+import { helperStatusLine, withDisputeSettling } from "../../components/job-card/jobStatusLine";
+import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 
 /**
@@ -88,6 +89,8 @@ function AppliedJobCardInner({
   // The viewing helper's own tier rate. Only consulted when the job carries no
   // stamped helper_fee_percent — see the fee-precedence note in the helper.
   const { profile: viewerProfile } = useCurrentUser();
+  // Q344: a decided dispute whose money has not moved is not "Paid out".
+  const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
   const viewerFeePercent = tierFeePercent(
     viewerProfile?.subscription_tier,
     viewerProfile?.subscription_expires_at ?? null,
@@ -879,7 +882,7 @@ function AppliedJobCardInner({
               keeps having removed. `deriveHelperWait` still answers for those
               states (`not_selected` / `cancelled` / `job_gone`); the card
               chooses not to draw a second copy. */}
-          {!isMinimalCard && !isExpanded && <JobStatusStrip line={helperStatusLine(app)} />}
+          {!isMinimalCard && !isExpanded && <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />}
         </JobCardShell>
         </div>
     </JobCardPersonContext.Provider>

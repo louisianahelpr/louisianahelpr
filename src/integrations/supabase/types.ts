@@ -6562,6 +6562,15 @@ export type Database = {
         Args: { _job_id: string; _other_user_id: string; _until: string }
         Returns: string
       }
+      settle_dispute_by_chargeback: {
+        Args: {
+          _charge_cents: number
+          _disputed_cents: number
+          _job_id: string
+          _stripe_dispute_id: string
+        }
+        Returns: Json
+      }
       settle_dispute_record: {
         Args: {
           _decided_by?: string

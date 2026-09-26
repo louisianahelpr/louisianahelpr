@@ -160,6 +160,7 @@ export type PosterWait =
   | "dispute_escalated"
   | "bank_dispute"
   | "payment_failed"
+  | "dispute_settling"
   | "done_paid"
   | "done_tip_open"
   | "done_review_open"
@@ -227,6 +228,13 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      the job 'completed' (or wherever it was) and a declined card leaves it
      'open'. Same words on both tabs — see PAYMENT_PROBLEM_COPY. */
   ...problemCopy(),
+  /* DECIDED IS NOT PAID (Q344). rpc_decide_dispute moves the job to completed
+     or cancelled the moment an admin rules, and execute-dispute-split moves
+     the money later. Until the dispute row reads execution_status='executed'
+     this card said "Done · paid and closed" (poster) / "Paid out" (Helpr) over
+     money that had not moved. The flag comes from the dispute row, not the
+     job: a withdrawn dispute writes the same job columns. */
+  dispute_settling: { detail: "Decided — payment processing", eyebrow: "Dispute decided", tone: "them" },
   /* DONE MEANS BOTH (owner, 2026-09-21): "it shouldnt say done if tip is not
      complete… it shouldnt say done if reviewed and tip have not both been done.
      it should also only have 1 check at the bottom. it cant be both done and
@@ -243,6 +251,27 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   done_both_open: { detail: "Review and tip still open", tone: "them" },
   cancelled: { detail: "This job didn't happen" },
 };
+
+/**
+ * Q344: the job carries a decided dispute whose money has not moved yet.
+ *
+ * Not on the jobs row (a withdrawn dispute writes the same status and
+ * dispute_status as a decided one): the card attaches it from the dispute row
+ * with `withDisputeSettling` (useUnsettledDisputeJobIds).
+ */
+export type DisputeSettlingFlag = { dispute_settling?: boolean };
+
+function disputeSettling(job: object): boolean {
+  return (job as DisputeSettlingFlag).dispute_settling === true;
+}
+
+/** The job, flagged when its dispute is decided but not yet executed. */
+export function withDisputeSettling<J extends { id: string }>(
+  job: J,
+  unsettledJobIds: ReadonlySet<string> | undefined,
+): J & DisputeSettlingFlag {
+  return unsettledJobIds?.has(job.id) ? { ...job, dispute_settling: true } : job;
+}
 
 /**
  * Which sentence a job I POSTED is owed.
@@ -278,8 +307,9 @@ export function derivePosterWait(
   if (problem) return problem;
   switch (job.status) {
     case "cancelled":
-      return "cancelled";
+      return disputeSettling(job) ? "dispute_settling" : "cancelled";
     case "completed":
+      if (disputeSettling(job)) return "dispute_settling";
       /* Which finish it is depends on the loose ends, not on the row. */
       if (completion && !(completion.tipped && completion.reviewed)) {
         if (completion.reviewed) return "done_tip_open";
@@ -389,6 +419,7 @@ export type HelperWait =
   | "dispute_escalated"
   | "bank_dispute"
   | "payment_failed"
+  | "dispute_settling"
   | "done_paid";
 
 /**
@@ -432,6 +463,8 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
   dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
   ...problemCopy(),
+  /* Q344, the Helpr's half: see POSTER_WAIT.dispute_settling. */
+  dispute_settling: { detail: "Decided — payment processing", eyebrow: "Dispute decided", tone: "them" },
   done_paid: { detail: "Paid out" },
 };
 
@@ -456,9 +489,9 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
 
   switch (job.status) {
     case "cancelled":
-      return "cancelled";
+      return disputeSettling(job) ? "dispute_settling" : "cancelled";
     case "completed":
-      return "done_paid";
+      return disputeSettling(job) ? "dispute_settling" : "done_paid";
     case "disputed":
       return (job as { dispute_status?: string | null }).dispute_status === "escalated"
         ? "dispute_escalated"

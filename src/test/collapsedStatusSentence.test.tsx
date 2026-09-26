@@ -283,6 +283,12 @@ const POSTER_FIXTURES: Record<
   bank_dispute: { job: job({ status: "completed", helper_id: HELPER, payment_status: "chargeback" }) },
   /* Q360: a declined card on a job still open (the webhook's only precondition). */
   payment_failed: { job: job({ payment_status: "failed", stripe_session_id: "cs_1" }) },
+  /* Q344: decided (job completed, dispute_status 'resolved') but the split has
+     not moved the money. The flag is what the card attaches from the dispute row. */
+  dispute_settling: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "escrow", dispute_status: "resolved", dispute_settling: true }),
+    completion: { tipped: true, reviewed: true },
+  },
   done_paid: {
     job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
     completion: { tipped: true, reviewed: true },
@@ -349,6 +355,7 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
   payment_failed: makeApp({ status: "pending" }, {
     status: "open", payment_status: "failed", direct_offer_status: "pending", offered_to_helper_id: HELPER,
   }),
+  dispute_settling: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "escrow", dispute_status: "resolved", dispute_settling: true }),
   done_paid: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "released" }),
 };
 

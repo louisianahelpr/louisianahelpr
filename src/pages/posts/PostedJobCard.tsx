@@ -8,7 +8,8 @@ import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { JobStatusStrip } from "../../components/job-card/JobStatusStrip";
-import { posterStatusLine } from "../../components/job-card/jobStatusLine";
+import { posterStatusLine, withDisputeSettling } from "../../components/job-card/jobStatusLine";
+import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
@@ -93,6 +94,8 @@ function PostedJobCardInner({
   // until it does — so "archived completed" is no longer a special layout.
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
   const { fundJob, fundingJobId } = useFundExistingJob();
+  // Q344: a decided dispute whose money has not moved is not "Done · paid".
+  const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
   const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
@@ -869,7 +872,7 @@ function PostedJobCardInner({
                    (owner, 2026-09-21: "it should also only have 1 check at the
                    bottom"). */
                 line={posterStatusLine(
-                  job,
+                  withDisputeSettling(job, unsettledDisputeJobIds),
                   pendingApplicantCounts?.[job.id] ?? 0,
                   undefined,
                   completedJobMeta[job.id],

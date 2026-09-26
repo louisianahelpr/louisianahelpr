@@ -113,7 +113,7 @@ describe("Q233: every admin view filters or tags seed rows", () => {
         const src = code(rule.file);
         const headers = [...src.matchAll(/const header\s*=\s*\n?\s*"([^"]+)"/g)].map((m) => m[1]);
         expect(headers.length).toBe(3);
-        for (const h of headers) expect(h.split(",").at(-1), h).toBe("Test");
+        for (const h of headers) expect(h.split(",").pop(), h).toBe("Test");
         expect(src.match(/is_seed \? "yes" : "no"/g)?.length).toBe(3);
       });
     }

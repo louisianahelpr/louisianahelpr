@@ -23,16 +23,15 @@
  *     truncates each route before keying it, and equals the one before it otherwise;
  *   - both are revoked FROM PUBLIC, anon, authenticated again.
  *
- * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql | AND p.passed_at > p_since); | AND p.passed_at > p_since - interval '100 years');
+ * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | AND p.passed_at > p_since); | AND p.passed_at > p_since - interval '100 years');
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | REVOKE ALL ON FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC;
  * @mutate supabase/migrations/20260923182022_ops_route_probe_close_rule.sql | ELSIF p_source = 'seed-boundary-check-failed' THEN | ELSIF p_source = 'seed-boundary-check-failed-x' THEN
  * @mutate scripts/audit/pressRouteProbe.mjs | if (r.status === "ok" && !(r.failed > 0)) v.clean++; | v.clean++;
  * @mutate scripts/audit/press-every-control.mjs | const probePasses = routeProbePasses(results); | const probePasses = [];
- * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql | IF nullif(p_sample_ref ->> 'screen', '') IS NULL THEN RETURN true; END IF; | IF false THEN RETURN true; END IF;
+ * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | IF nullif(p_sample_ref ->> 'screen', '') IS NULL THEN RETURN true; END IF; | IF false THEN RETURN true; END IF;
  * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql | IF cardinality(p_routes) > 1000 THEN | IF cardinality(p_routes) > 100000 THEN
  * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql | public.ops_route_key(left(r, 512)) | public.ops_route_key(r)
  * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql | FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC, anon, authenticated; | FUNCTION public.record_route_probe_passes(text[], text) FROM PUBLIC;
- * @mutate supabase/migrations/20260926034740_route_probe_close_rule_hardening.sql |   ELSIF p_source = 'push-tokens-empty' THEN |   ELSIF p_source = 'push-tokens-empty-x' THEN
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

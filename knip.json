@@ -39,6 +39,7 @@
   },
   "ignoreBinaries": [
     "supabase",
-    "gitleaks"
+    "gitleaks",
+    "psql"
   ]
 }

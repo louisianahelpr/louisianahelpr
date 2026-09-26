@@ -137,6 +137,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/pages/auth/Login.tsx` | input×3 | text, email | 6 | mfa-login-code · email · login-email-error · password · login-password-error |
 
+## /login, /signup, /signup-pending, /complete-profile, /forgot-password, /payment-success, /admin, /messages, /support, /legal, /terms, /privacy, /browse, /rules, *
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/lib/sentry.ts` | input×1 | text |  |  |
+
 ## /messages
 
 | File | Controls | input types | maxLength | hints |
@@ -206,12 +212,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/pages/auth/signup/SignupStep1.tsx` | input×2, checkbox/switch/radio×3 | email, text |  | email · signup-email-error · password · signup-password-error · policies · policies-label · age-confirm · age-confirm-label |
 | `src/pages/auth/signup/SignupStep2.tsx` | input×7, textarea×1, date/calendar×1 | file, text, date, tel | 14, 5 | avatar · avatar-error · firstName · firstName-error · lastName · lastName-error · dob · dob-error |
-
-## /signup, /signup-pending, /complete-profile, /forgot-password, /payment-success, /admin, /messages, /support, /legal, /terms, /privacy, /browse, /rules, *
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/lib/sentry.ts` | input×1 | text |  |  |
 
 ## /support
 

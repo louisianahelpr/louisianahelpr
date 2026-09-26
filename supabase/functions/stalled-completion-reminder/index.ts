@@ -66,6 +66,7 @@ import {
   type NudgeLedger,
   type StalledEvidence,
 } from "../_shared/stalledCompletion.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,7 +81,7 @@ type StalledJob = StalledEvidence & {
   is_seed: boolean | null;
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const url = new URL(req.url);
   if (url.searchParams.get("health") === "1") {

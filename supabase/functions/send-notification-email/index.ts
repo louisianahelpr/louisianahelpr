@@ -8,6 +8,7 @@ import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 // Map notification "type" values to (a) the email pref column and (b) the
 // log category used for admin observability.
@@ -118,7 +119,7 @@ async function renderNotificationEmail(
   )
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }

@@ -10,9 +10,8 @@ import { missingSentryEnvIsAlert } from "../../scripts/lib/sentryLedgerSync.mjs"
  * run read Sentry fine: the bumps came from local `ops-alert-ledger.mjs sync`
  * runs, which never have the repo secrets. Missing credentials are an alert
  * in CI only; locally the step is skipped and says so.
- *
- * @mutate scripts/lib/sentryLedgerSync.mjs |   return env.GITHUB_ACTIONS === "true"; |   return true;
  */
+// @mutate scripts/lib/sentryLedgerSync.mjs |   return env.GITHUB_ACTIONS === "true"; |   return true;
 describe("sentry sync: missing credentials alert only in CI", () => {
   it("CI with no credentials is an alert", () => {
     expect(missingSentryEnvIsAlert({ GITHUB_ACTIONS: "true" })).toBe(true);

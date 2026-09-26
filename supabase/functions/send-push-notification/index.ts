@@ -81,6 +81,7 @@ import {
 import { logPush } from '../_shared/notificationLog.ts'
 import { inferCategoryFromLink, type PushCategory } from './category.ts'
 import { isInQuietHours, QUIET_HOURS_TIME_ZONE } from './quietHours.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -350,7 +351,7 @@ async function mapWithConcurrency<T, R>(
 // Main handler
 // ─────────────────────────────────────────────────────────────────────
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   const authHeader = req.headers.get('Authorization')

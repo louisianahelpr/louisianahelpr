@@ -6,6 +6,7 @@ import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
 import { AccountStatusEmail } from '../_shared/email-templates/account-status.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 function getGreetingName(fullName?: string | null): string {
   const normalized = (fullName || '').trim()
@@ -131,7 +132,7 @@ async function renderAccountStatusEmail(
   )
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }

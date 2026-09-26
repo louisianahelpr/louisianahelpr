@@ -24,42 +24,27 @@ vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn() }))
 vi.mock("@/hooks/useAuthReady", () => ({
   useAuthReady: () => ({ user: { id: "user-1" }, isReady: true }),
 }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn() } }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: vi.fn() } } }));
 
-const TABLE_DATA: Record<string, unknown> = {
-  profiles: { user_id: "user-1", full_name: "Marie Boudreaux" },
+// Q290: the whole export is ONE server call (export-my-data runs
+// export_my_data() as the caller and adds signed file links). The card saves
+// what it returns, as is.
+const EXPORT = {
+  exported_at: "2026-09-25T00:00:00Z",
+  user_id: "user-1",
+  profile: { user_id: "user-1", full_name: "Marie Boudreaux" },
   jobs: [{ id: "job-1", title: "Fix the fence" }],
-  applications: [{ id: "app-1", helper_id: "user-1" }],
-  reviews: [{ id: "rev-1", rating: 5 }],
+  messages: [{ id: "msg-1", content: "On my way" }],
+  reports: [{ id: "rep-1", reason: "spam" }],
+  storage_objects: [{ bucket: "avatars", path: "user-1/a.jpg", signed_url: "https://x/sig", expires_at: "2026-10-02T00:00:00Z" }],
 };
-
-/**
- * The export builds four queries whose terminal call differs — `profiles`
- * ends in `.maybeSingle()`, the other three are awaited straight off `.eq()`
- * / `.or()`. So the stub has to be BOTH chainable and thenable, or one of the
- * three list queries silently resolves to the builder object itself.
- */
-function stubTable(table: string, error: unknown = null) {
-  const result = { data: error ? null : TABLE_DATA[table], error };
-  const builder: Record<string, unknown> = {
-    select: () => builder,
-    eq: () => builder,
-    or: () => builder,
-    maybeSingle: () => Promise.resolve(result),
-    then: (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) =>
-      Promise.resolve(result).then(res, rej),
-  };
-  return builder;
-}
 
 let createdBlobs: Blob[] = [];
 
 beforeEach(() => {
   vi.clearAllMocks();
   createdBlobs = [];
-  vi.mocked(supabase.from).mockImplementation(
-    ((table: string) => stubTable(table)) as unknown as typeof supabase.from,
-  );
+  vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: EXPORT, error: null } as never);
   // jsdom implements neither of these, and clicking a real <a download> would
   // emit a "navigation not implemented" error instead of running the assertion.
   URL.createObjectURL = vi.fn((blob: Blob) => {
@@ -114,7 +99,7 @@ describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
     expect(screen.getByText(/Under the EU GDPR and California CCPA/)).toBeInTheDocument();
   });
 
-  it("exports profile, jobs, applications and reviews as one JSON file", async () => {
+  it("saves everything export-my-data returns as one JSON file", async () => {
     renderPrivacy();
 
     fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));
@@ -122,13 +107,8 @@ describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
 
     expect(createdBlobs[0].type).toBe("application/json");
     const payload = JSON.parse(await createdBlobs[0].text());
-    expect(payload).toMatchObject({
-      profile: TABLE_DATA.profiles,
-      jobs: TABLE_DATA.jobs,
-      applications: TABLE_DATA.applications,
-      reviews: TABLE_DATA.reviews,
-    });
-    expect(payload.exported_at).toEqual(expect.any(String));
+    expect(supabase.functions.invoke).toHaveBeenCalledWith("export-my-data");
+    expect(payload).toEqual(EXPORT);
     // `saveOrShareFile` defers the revoke by ~1s (nativeShare.ts) — revoking
     // on the same tick can abort the download in Safari. Still asserted: an
     // un-revoked blob URL pins the whole export in memory for the session.
@@ -137,11 +117,8 @@ describe("Legal & policies — data rights (inside the Privacy Policy)", () => {
     });
   });
 
-  it("surfaces a Supabase failure instead of downloading a file full of nulls", async () => {
-    vi.mocked(supabase.from).mockImplementation(
-      ((table: string) =>
-        stubTable(table, table === "reviews" ? { message: "permission denied" } : null)) as unknown as typeof supabase.from,
-    );
+  it("surfaces a server failure instead of downloading a partial file", async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: null, error: { message: "permission denied" } } as never);
     renderPrivacy();
 
     fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));

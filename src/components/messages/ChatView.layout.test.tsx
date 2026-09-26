@@ -3,8 +3,9 @@
  * area". Only the composer was named. The first fix removed the 780px reading
  * cap from the WHOLE chat column, so the safety banner and every message bubble
  * spread across a ~1570px desktop pane too. This pins the split: the composer
- * dock sits in an uncapped column, and the banner and the message scroller each
- * keep the centred 780px column.
+ * dock sits in an uncapped column, and the message scroller keeps the centred
+ * 780px column. The safety banner used to keep it too; since 2026-09-25 (owner:
+ * "needs to fill the space and be under the name") it spans the column.
  *
  * The children that own data, realtime and scrolling are stubbed — this test is
  * about which element carries the cap, not about what renders inside them.
@@ -132,10 +133,10 @@ describe.each([
     expect(chain.some(capped)).toBe(true);
   });
 
-  it("the safety banner keeps the centred 780px column", () => {
+  it("the safety banner spans the column, uncapped (owner, 2026-09-25: \"fill the space\")", () => {
     renderChat(embedded);
     const text = screen.getByText(/Keep chats & payments on Helpr/);
-    expect(ancestorsWithinPane(text).some(capped)).toBe(true);
+    expect(ancestorsWithinPane(text).filter(capped)).toEqual([]);
   });
 });
 
@@ -153,3 +154,5 @@ describe.each([
 // …and the other direction — re-capping the column the composer dock sits in,
 // which is the regression the owner reported.
 // @mutate src/components/messages/ChatView.tsx | className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150" | className="flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"
+// …and the banner, which spans the column like the composer notices.
+// @mutate src/components/messages/ChatView.tsx | <div className="w-full mt-3 shrink-0 rounded-md | <div className="w-full max-w-[780px] mx-auto mt-3 shrink-0 rounded-md

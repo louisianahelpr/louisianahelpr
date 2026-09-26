@@ -7,5 +7,7 @@ export declare function nextStage(s: {
   held: number;
   moving: number;
   quietFor: number;
+  /** The app has rendered visible text in #root (not the blank boot frame). */
+  booted: boolean;
   settleMs?: number;
 }): StageStep;

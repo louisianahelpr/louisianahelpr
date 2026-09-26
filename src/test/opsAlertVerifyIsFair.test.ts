@@ -9,9 +9,9 @@
  * stamps. Behaviour is proven in src/test/pglite/opsAlertVerifyFair.pglite.mjs
  * (ALL PASS on the fix; 3 FAIL with OLD=1, the 20260923050059 verifier).
  *
- * @mutate supabase/migrations/20260924005818_ops_alert_verify_is_fair.sql | WHERE status <> 'closed' AND verify_kind = 'sql_condition'\n            ORDER BY verify_started_at ASC NULLS FIRST, last_seen DESC LIMIT 200 | WHERE status <> 'closed' AND verify_kind = 'sql_condition'\n            ORDER BY last_seen DESC LIMIT 200
- * @mutate supabase/migrations/20260924005818_ops_alert_verify_is_fair.sql | WHERE status <> 'closed' AND verify_kind = 'companions'\n            ORDER BY verify_started_at ASC NULLS FIRST, last_seen DESC LIMIT 200 | WHERE status <> 'closed' AND verify_kind = 'companions'\n            ORDER BY last_seen DESC LIMIT 200
- * @mutate supabase/migrations/20260924005818_ops_alert_verify_is_fair.sql | UPDATE public.ops_alert_ledger SET verify_started_at = v_at, updated_at = now()\n       WHERE id = r.id AND verify_started_at IS DISTINCT FROM v_at;\n      v_unknown | v_unknown
+ * @mutate supabase/migrations/20260924041136_q316_shared_ops_alert_fingerprint.sql | WHERE status <> 'closed' AND verify_kind = 'sql_condition'\n            ORDER BY verify_started_at ASC NULLS FIRST, last_seen DESC LIMIT 200 | WHERE status <> 'closed' AND verify_kind = 'sql_condition'\n            ORDER BY last_seen DESC LIMIT 200
+ * @mutate supabase/migrations/20260924041136_q316_shared_ops_alert_fingerprint.sql | WHERE status <> 'closed' AND verify_kind = 'companions'\n            ORDER BY verify_started_at ASC NULLS FIRST, last_seen DESC LIMIT 200 | WHERE status <> 'closed' AND verify_kind = 'companions'\n            ORDER BY last_seen DESC LIMIT 200
+ * @mutate supabase/migrations/20260924041136_q316_shared_ops_alert_fingerprint.sql | UPDATE public.ops_alert_ledger SET verify_started_at = v_at, updated_at = now()\n       WHERE id = r.id AND verify_started_at IS DISTINCT FROM v_at;\n      v_unknown | v_unknown
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

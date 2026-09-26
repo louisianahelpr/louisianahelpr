@@ -44,18 +44,18 @@ describe("loading-state measurement: the frame is a settled stage, not an instan
   const settled = { quietFor: SETTLE_MS, moving: 0 };
 
   it("waits while anything but a held request is in flight, or the screen is still changing", () => {
-    expect(nextStage({ placeholders: 3, held: 0, moving: 1, quietFor: 10_000 })).toBe("wait");
-    expect(nextStage({ placeholders: 3, held: 2, moving: 0, quietFor: SETTLE_MS - 1 })).toBe("wait");
-    expect(nextStage({ placeholders: 0, held: 2, moving: 0, quietFor: 0 })).toBe("wait");
+    expect(nextStage({ placeholders: 3, held: 0, moving: 1, quietFor: 10_000, booted: true })).toBe("wait");
+    expect(nextStage({ placeholders: 3, held: 2, moving: 0, quietFor: SETTLE_MS - 1, booted: true })).toBe("wait");
+    expect(nextStage({ placeholders: 0, held: 2, moving: 0, quietFor: 0, booted: true })).toBe("wait");
   });
 
   it("captures a settled stage that shows placeholders, with requests still held", () => {
-    expect(nextStage({ placeholders: 4, held: 3, ...settled })).toBe("capture");
-    expect(nextStage({ placeholders: 1, held: 0, ...settled })).toBe("capture");
+    expect(nextStage({ placeholders: 4, held: 3, ...settled, booted: true })).toBe("capture");
+    expect(nextStage({ placeholders: 1, held: 0, ...settled, booted: true })).toBe("capture");
   });
 
   it("lets one held wave through only when the settled stage shows nothing", () => {
-    expect(nextStage({ placeholders: 0, held: 2, ...settled })).toBe("release");
+    expect(nextStage({ placeholders: 0, held: 2, ...settled, booted: true })).toBe("release");
   });
 
   it("reports no loading state when settled, empty and nothing is held", () => {

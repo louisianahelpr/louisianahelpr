@@ -42,7 +42,7 @@
 // as `seed_findings` and go to the daily digest (postSlackOpsAlert `seed`);
 // they never page and never fail the run (docs/OPEN.md Q90).
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";

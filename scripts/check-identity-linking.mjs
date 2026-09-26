@@ -19,7 +19,7 @@
  * must be enabled.
  *
  * What it cannot do: drive a real Apple/Google consent screen. Those steps are
- * docs/OPEN.md Q428 (owner, on a device).
+ * docs/OPEN.md Q446 (owner, on a device).
  *
  * Usage:
  *   node scripts/check-identity-linking.mjs            prod, via the Management API
@@ -161,7 +161,7 @@ for (const c of checks) {
   console.log(`${c.ok ? "PASS" : "FAIL"} ${c.case} ${c.check}${c.ok ? "" : ` — got ${JSON.stringify(c.got)}`}`);
 }
 if (failed) {
-  console.error("::error::identity linking: a check failed (see FAIL lines). OA-018 / docs/OPEN.md Q428.");
+  console.error("::error::identity linking: a check failed (see FAIL lines). OA-018 / docs/OPEN.md Q446.");
   process.exit(1);
 }
 console.log(`OK: ${checks.length} identity-linking checks passed${config ? " + auth config" : ""}.`);

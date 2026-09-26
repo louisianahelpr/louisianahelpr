@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useRef, useMemo, lazy, Suspense } fro
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Search, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -37,6 +37,8 @@ import { signupUrlFor } from "@/lib/jobIntent";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
+import { feedPhase } from "@/lib/feedPhase";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 
 /**
@@ -217,7 +219,8 @@ const DashboardGuest = () => {
   // the card already hides the signals when they are absent.
   const {
     data: baseJobs = [],
-    isLoading,
+    status: jobsStatus,
+    fetchStatus: jobsFetchStatus,
     isError,
     refetch,
   } = useQuery({
@@ -335,7 +338,11 @@ const DashboardGuest = () => {
   // then every card lands once, in its final order. No poster ids (empty or
   // all-ownerless list) means there is nothing to wait for.
   const enrichmentSettled = posterIds.length === 0 || posterInfoStatus !== "pending";
-  const feedReady = useArrivalGate(!isLoading, enrichmentSettled);
+  // Q332: "is the list in" is the query's STATUS, never `!isLoading` — a query
+  // paused offline is not loading and has no data (see feedPhase).
+  const { online } = useOnlineStatus();
+  const phase = feedPhase({ status: jobsStatus, fetchStatus: jobsFetchStatus }, online);
+  const feedReady = useArrivalGate(phase === "ready" || phase === "error", enrichmentSettled);
 
   // Same filter engine the authenticated dashboard uses — search, category,
   // budget range, location radius, expiry, sort. Guests pass no user /
@@ -570,7 +577,25 @@ const DashboardGuest = () => {
 
   const feedList = (
     <>
-      {!feedReady ? (
+      {phase === "offline-empty" ? (
+        /* Offline with nothing loaded yet (Q332): say exactly that. Not the
+           skeleton (nothing is coming) and not the empty state (we do not
+           know that there are no jobs). The query resumes by itself when
+           the connection returns (TanStack onlineManager). */
+        <div className={emptyWrapperClass}>
+          <EmptyState
+            icon={WifiOff}
+            eyebrow="Offline"
+            title="You're offline."
+            body="Open jobs will load here as soon as you're back online."
+            action={
+              <Button variant="outline" size="sm" onClick={() => void refetch()} className="rounded-ds-md">
+                Try Again
+              </Button>
+            }
+          />
+        </div>
+      ) : !feedReady ? (
         /* Loading feed — shape-matched JobCardSkeletons (the same
            primitive the authenticated dashboard uses) so the cards
            swap in without shifting the layout (no CLS). Reserves the

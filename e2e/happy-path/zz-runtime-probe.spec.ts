@@ -760,7 +760,7 @@ test("2d · offline: OfflineBanner appears and the app degrades honestly", async
   const banner = page.getByRole("status").filter({ hasText: "You're offline" });
   await expect(banner).toBeVisible({ timeout: 10_000 });
   await expect(
-    page.getByText("You're offline. Showing the last data we have."),
+    page.getByText("You're offline. Reconnect to load anything new."),
   ).toBeVisible();
   await shot(page, "2d-offline-banner");
 
@@ -773,7 +773,7 @@ test("2d · offline: OfflineBanner appears and the app degrades honestly", async
   // …and it goes away again.
   await context.setOffline(false);
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
-  await expect(page.getByText("You're offline. Showing the last data we have.")).toHaveCount(0, {
+  await expect(page.getByText("You're offline. Reconnect to load anything new.")).toHaveCount(0, {
     timeout: 10_000,
   });
 });

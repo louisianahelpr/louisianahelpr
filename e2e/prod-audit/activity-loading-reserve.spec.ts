@@ -31,7 +31,7 @@
  * draws the collapsed card's two blocks instead of six bone rows and a footer
  * button, and `ActivityPageSkeleton` reserves the status-tab line that the
  * page header (PostsHeader / JobsHeader) renders on phone when the row is
- * open (and uses the lists' own `space-y-3`, not `space-y-2.5`).
+ * open (and uses the lists' own `space-y-list` (12px), not `space-y-2.5`).
  *
  * The /posts row height comes from one more: `ActivityCardSkeleton` is no
  * longer a hand-drawn box but `CollapsedActivityCardSkeleton`, the same
@@ -73,7 +73,7 @@
 // that compounds, and the row-height and first-y assertions are what hold the
 // surface. The mutation therefore proves the assertion is live, at a size that
 // is genuinely out of budget.
-// @mutate src/components/ActivityPageSkeleton.tsx | pb-0 space-y-3" aria-hidden | pb-0 space-y-8" aria-hidden
+// @mutate src/components/ActivityPageSkeleton.tsx | pb-0 space-y-list" aria-hidden | pb-0 space-y-8" aria-hidden
 
 import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { getSession, type Session } from "./harness";
@@ -371,7 +371,7 @@ for (const surface of SURFACES) {
          the day the mix fell the other way. The GAP (next row's top minus
          this row's bottom) is 12px on every one of those pairs, placeholder
          and real, which is what this assertion was written to hold ("the
-         lists use space-y-3"). Only same-list pairs count: the grouped view
+         lists use space-y-list"). Only same-list pairs count: the grouped view
          is one list per section with a heading between them. */
       const gaps = (r: { h: number; y: number; list: number }[]) =>
         r.slice(1).flatMap((x, i) => (x.list === r[i].list ? [x.y - (r[i].y + r[i].h)] : []));
@@ -438,7 +438,7 @@ for (const surface of SURFACES) {
         expect(
           Math.abs(gap(loading) - gap(loaded)),
           `${surface.name}: placeholder rows are ${gap(loading)}px apart, real rows ${gap(loaded)}px. The gap ` +
-            `between rows is part of the reservation — the lists use \`space-y-3\`.`,
+            `between rows is part of the reservation — the lists use \`space-y-list\` (12px).`,
         ).toBeLessThanOrEqual(ROW_BUDGET);
       }
 

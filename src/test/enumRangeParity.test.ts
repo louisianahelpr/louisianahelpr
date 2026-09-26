@@ -146,7 +146,7 @@ const ROWS: Row[] = [
     id: "push token platform (nativePush persistPushToken vs push_tokens_platform_check)",
     relation: "subset",
     client: () => {
-      const m = /function\s+persistPushToken\([^)]*platform:\s*((?:"[^"]*"\s*\|?\s*)+)\)/.exec(readCode("src/lib/nativePush.ts"));
+      const m = /function\s+persistPushToken\([^)]*platform:\s*("[^"]*"(?:\s*\|\s*"[^"]*")*)\s*\)/.exec(readCode("src/lib/nativePush.ts"));
       if (!m) throw new Error("nativePush: persistPushToken signature not found");
       return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
     },

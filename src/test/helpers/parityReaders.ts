@@ -20,8 +20,8 @@ import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./blankNonCode";
 import { latestFunctionDefs, type FunctionDef } from "./rpcErrorInventory";
 
-export const REPO = resolve(__dirname, "../../..");
-export const MIGRATIONS = join(REPO, "supabase/migrations");
+const REPO = resolve(__dirname, "../../..");
+const MIGRATIONS = join(REPO, "supabase/migrations");
 
 export function readCode(rel: string): string {
   return blankComments(readFileSync(join(REPO, rel), "utf8"));
@@ -78,13 +78,13 @@ export function stringArrayConst(rel: string, name: string): string[] {
   return [...m[1].matchAll(/"([^"]*)"|'([^']*)'/g)].map((x) => x[1] ?? x[2]);
 }
 
-export type CheckDef = { file: string; body: string };
+type CheckDef = { file: string; body: string };
 
 /**
  * The newest `ADD CONSTRAINT <name> CHECK (...)` body in apply order, or null
  * when the newest event for that name is a DROP (or it never existed).
  */
-export function newestCheck(name: string): CheckDef | null {
+function newestCheck(name: string): CheckDef | null {
   let cur: CheckDef | null = null;
   const add = new RegExp(`ADD\\s+CONSTRAINT\\s+"?${escapeRe(name)}"?\\s+CHECK\\s*\\(`, "gi");
   const drop = new RegExp(`DROP\\s+CONSTRAINT\\s+(?:IF\\s+EXISTS\\s+)?"?${escapeRe(name)}"?\\b`, "gi");

@@ -5,7 +5,7 @@
  *
  *   node scripts/session-worktree.mjs start
  *       SessionStart hook. In a LOCAL Claude session that opened in the shared
- *       main checkout: creates (or reuses) ~/.lh-wt/session-<id8> detached at
+ *       main checkout: creates (or reuses) ~/.lh-wt/session-<sha256(id)[:8]> detached at
  *       origin/main, symlinks node_modules into it, records it as this session's
  *       tree and prints a banner telling the session to work there. Otherwise it
  *       records the current tree. Local git only (no fetch); never fails.
@@ -20,7 +20,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { commitVerdict, describeSession, describeTree, recordName, startPlan } from "./lib/sessionWorktree.mjs";
+import { commitVerdict, describeSession, describeTree, recordName, sessionTag, startPlan } from "./lib/sessionWorktree.mjs";
 
 const git = (args, cwd = process.cwd()) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 
@@ -29,7 +29,7 @@ function whereAmI(cwd = process.cwd()) {
   return { tree: describeTree({ toplevel, gitDir, commonDir }), commonDir };
 }
 
-const recordPath = (commonDir, id) => join(commonDir, "lh-sessions", recordName(id));
+const recordPath = (commonDir, id) => join(commonDir, "lh-sessions", recordName(sessionTag(id)));
 
 function start() {
   const session = describeSession(process.env);
@@ -78,7 +78,7 @@ function checkCommit() {
     try {
       const dir = join(homedir(), ".lh-hygiene");
       mkdirSync(dir, { recursive: true });
-      appendFileSync(join(dir, "shared-checkout-commits.log"), `${new Date().toISOString()}\t${session.id}\t${tree.toplevel}\t${v.reason}\n`);
+      appendFileSync(join(dir, "shared-checkout-commits.log"), `${new Date().toISOString()}\tsession-${sessionTag(session.id)}\t${tree.toplevel}\t${v.reason}\n`);
     } catch { /* the log is a courtesy; the override itself was explicit */ }
   }
 }

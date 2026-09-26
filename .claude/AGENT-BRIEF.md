@@ -9,7 +9,7 @@ says more.
   is the shared checkout (`/Users/lexilombas/louisianahelpr` itself), stop and
   move into your worktree — never edit or commit from the shared checkout.
   Enforced (Q47/Q18): the SessionStart hook gives a local session that opens
-  in the shared checkout its own `~/.lh-wt/session-<id>` worktree, and
+  in the shared checkout its own `~/.lh-wt/session-<hash>` worktree, and
   .husky/pre-commit refuses a Claude session's commit from the shared checkout
   (`scripts/session-worktree.mjs`; owner-approved override
   `LH_SHARED_CHECKOUT_OK="<reason>"`, logged).

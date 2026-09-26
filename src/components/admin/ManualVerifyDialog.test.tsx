@@ -78,12 +78,12 @@ describe("ManualVerifyDialog", () => {
   });
 
   it("toasts an error when the edge function fails", async () => {
-    invokeMock.mockResolvedValue({ data: null, error: new Error("nope") });
+    invokeMock.mockResolvedValue({ data: null, error: new Error("That user could not be changed right now.") });
     const onClose = vi.fn();
     render(<ManualVerifyDialog profile={sampleProfile} onClose={onClose} />);
     screen.getByRole("button", { name: /Manually Verify/ }).click();
     await waitFor(() => expect(toastError).toHaveBeenCalled());
-    expect(toastError).toHaveBeenCalledWith(expect.stringContaining("nope"));
+    expect(toastError).toHaveBeenCalledWith(expect.stringContaining("That user could not be changed right now."));
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -96,7 +96,7 @@ describe("ManualVerifyDialog", () => {
    * silence, not a stuck spinner.
    */
   it("RELEASES the in-flight latch, so the admin can verify again", async () => {
-    invokeMock.mockResolvedValueOnce({ data: null, error: new Error("nope") });
+    invokeMock.mockResolvedValueOnce({ data: null, error: new Error("That user could not be changed right now.") });
     const onClose = vi.fn();
     const onSuccess = vi.fn();
     render(<ManualVerifyDialog profile={sampleProfile} onClose={onClose} onSuccess={onSuccess} />);

@@ -8,6 +8,7 @@
  * from there. Pure decisions live here so src/test/sessionWorktree.test.ts can
  * drive them on a real fixture repo; scripts/session-worktree.mjs does the I/O.
  */
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 
 /**
@@ -56,7 +57,7 @@ export function commitVerdict({ tree, session, startTree, env }) {
         `Q47: this is the SHARED main checkout (${tree.toplevel}); sessions never commit here.\n` +
         (startTree && resolve(startTree) !== tree.toplevel
           ? `Q18: this session started in ${startTree}. Your cwd was moved; go back there and commit.\n`
-          : `Work in your session worktree (printed at session start: ~/.lh-wt/session-<id>), or \`git worktree add --detach ~/.lh-wt/<name> origin/main\`.\n`) +
+          : `Work in your session worktree (printed at session start: ~/.lh-wt/session-<hash>), or \`git worktree add --detach ~/.lh-wt/<name> origin/main\`.\n`) +
         `Owner-approved exception only: ${OVERRIDE}="<reason>" git commit ... (the reason is logged).`,
     };
   }
@@ -74,8 +75,16 @@ export function startPlan({ tree, session, home }) {
   if (!session.inSession) return { action: "none", reason: "not a Claude session" };
   if (session.remote) return { action: "none", reason: "cloud container: its clone is private to this session" };
   if (!tree.primary) return { action: "none", reason: `already in a linked worktree (${tree.toplevel})` };
-  const short = String(session.id).replace(/[^A-Za-z0-9]/g, "").slice(0, 8) || "unknown";
-  return { action: "create", path: resolve(home, ".lh-wt", `session-${short}`) };
+  return { action: "create", path: resolve(home, ".lh-wt", `session-${sessionTag(session.id)}`) };
+}
+
+/**
+ * Stable 8-hex tag for a session's worktree name: a hash, not the raw id, so
+ * the path the hook prints carries no environment value (CodeQL
+ * js/clear-text-logging on PR #1823). Same session id -> same worktree on resume.
+ */
+export function sessionTag(sessionId) {
+  return createHash("sha256").update(String(sessionId)).digest("hex").slice(0, 8);
 }
 
 /** File name that records a session's start tree, under <common git dir>/lh-sessions/. */

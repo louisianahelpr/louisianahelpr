@@ -18,7 +18,7 @@
  * <ResponseDeadlineDialog /> from ActivityDialogs.tsx leaves it green — the
  * onConfirm-throws contract on the other side lives in useOfferHandlers.
  */
-// @mutate src/components/ResponseDeadlineDialog.tsx | setErrorMessage(msg ?? "Couldn't | // setErrorMessage(msg ?? "Couldn't
+// @mutate src/components/ResponseDeadlineDialog.tsx |       setErrorMessage(msg); |       // setErrorMessage(msg);
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";

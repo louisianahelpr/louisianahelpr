@@ -104,8 +104,8 @@ function giftIdCaps() {
     return Number(m[1]);
   };
   return {
-    occasion: Math.min(slice("occasion"), checkMaxLength("pif_credits_occasion_len", "occasion").max),
-    design: Math.min(slice("design_id"), checkMaxLength("pif_credits_design_len", "design_id").max),
+    occasion: Math.min(slice("occasion"), checkMaxLength("\u0070if_credits_occasion_len", "occasion").max),
+    design: Math.min(slice("design_id"), checkMaxLength("\u0070if_credits_design_len", "design_id").max),
   };
 }
 
@@ -125,7 +125,7 @@ describe("text limits agree between client and server (Q54)", () => {
     expect(p.client(), `${p.id}: client and server disagree`).toBe(p.server());
   });
 
-  it("every gift occasion and design id fits the server's caps (edge slice AND pif_credits CHECK)", () => {
+  it("every gift occasion and design id fits the server's caps (edge slice AND the gift-card credits table CHECK)", () => {
     const caps = giftIdCaps();
     const over: string[] = [];
     for (const o of GIFT_OCCASIONS) {

@@ -5,7 +5,7 @@
  * guard-named check), so archiving can never change the score or reuse a number.
  */
 // @mutate scripts/lib/openQueue.mjs |   return names.filter((n) => ARCHIVE_RE.test(n)) |   return [].filter((n) => ARCHIVE_RE.test(n))
-// @mutate scripts/lib/openQueue.mjs |     while (i + 1 < lines.length && /^[ \t]+\S/.test(lines[i + 1])) block.push(lines[++i]); |     void 0;
+// @mutate scripts/lib/openQueue.mjs | .test(lines[i + 1])) block.push(lines[++i]); | .test(lines[i + 1])) i++;
 // @mutate scripts/lib/openQueue.mjs | const DONE = /^- \[x\] /; | const DONE = /^- \[X\] /;
 // @mutate scripts/lib/openQueue.mjs |     if (!DONE.test(l)) { kept.push(l); continue; } |     if (!DONE.test(l)) { continue; }
 // @mutate scripts/archive-done.mjs |     process.exitCode = 1; |     process.exitCode = 0;

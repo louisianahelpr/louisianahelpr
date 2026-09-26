@@ -19,6 +19,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, existsSync, rmSync, realpathSync, readFileSync, lstatSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 
 const ROOT = join(__dirname, "..", "..");
 const CLI = join(ROOT, "scripts", "session-worktree.mjs");
@@ -43,6 +44,7 @@ function run(cmd: "start" | "check-commit", cwd: string, env: Record<string, str
   return { status: r.status, out: (r.stdout ?? "") + (r.stderr ?? "") };
 }
 const LOCAL = (id: string) => ({ CLAUDE_CODE_SESSION_ID: id, CLAUDECODE: "1" });
+const tag = (id: string) => createHash("sha256").update(id).digest("hex").slice(0, 8);
 
 beforeAll(() => {
   base = realpathSync(mkdtempSync(join(tmpdir(), "lh-sessionwt-")));
@@ -97,10 +99,11 @@ describe("pre-commit: sessions never commit from the shared checkout (Q47)", () 
 });
 
 describe("session start: a local session in the shared checkout gets its own worktree (Q47)", () => {
-  it("creates ~/.lh-wt/session-<id8> at origin/main with node_modules linked, and says so", () => {
+  it("creates ~/.lh-wt/session-<hash8 of the id> at origin/main with node_modules linked, and says so", () => {
     const r = run("start", main, LOCAL("abcd1234-rest-of-id"));
     expect(r.status).toBe(0);
-    const wt = join(home, ".lh-wt", "session-abcd1234");
+    const wt = join(home, ".lh-wt", `session-${tag("abcd1234-rest-of-id")}`);
+    expect(r.out).not.toContain("abcd1234-rest-of-id");
     expect(r.out).toContain(`cd ${wt}`);
     expect(existsSync(join(wt, "a.txt"))).toBe(true);
     expect(lstatSync(join(wt, "node_modules")).isSymbolicLink()).toBe(true);
@@ -112,8 +115,8 @@ describe("session start: a local session in the shared checkout gets its own wor
   it("creates nothing for a cloud session or a session already in a linked worktree", () => {
     run("start", main, { ...LOCAL("cloud999-x"), CLAUDE_CODE_REMOTE: "true" });
     run("start", linked, LOCAL("lane5555-x"));
-    expect(existsSync(join(home, ".lh-wt", "session-cloud999"))).toBe(false);
-    expect(existsSync(join(home, ".lh-wt", "session-lane5555"))).toBe(false);
+    expect(existsSync(join(home, ".lh-wt", `session-${tag("cloud999-x")}`))).toBe(false);
+    expect(existsSync(join(home, ".lh-wt", `session-${tag("lane5555-x")}`))).toBe(false);
   });
 
   it("is wired as a SessionStart hook", () => {
@@ -128,7 +131,7 @@ describe("pre-commit: a commit from a different tree than the session recorded (
     // the session started in main and was moved to its worktree by the start hook
     const r = run("check-commit", main, LOCAL("abcd1234-rest-of-id"));
     expect(r.status).toBe(1);
-    expect(r.out).toMatch(/Q18: this session started in .*session-abcd1234/);
+    expect(r.out).toContain(`Q18: this session started in ${join(home, ".lh-wt", `session-${tag("abcd1234-rest-of-id")}`)}`);
   });
 
   it("warns (does not refuse) from a different linked worktree", () => {

@@ -1,5 +1,5 @@
 // @mutate scripts/queue-count.mjs | return [...seen].filter(([, n]) => n > 1) | return [...seen].filter(([, n]) => n > 99)
-// @mutate docs/OPEN.md | Class check: src/lib/jobDayHasEnded.tz.test.ts sweeps | Class check: a tz sweep
+// @mutate docs/archive/OPEN-done-2026-09.md | Class check: src/lib/jobDayHasEnded.tz.test.ts sweeps | Class check: a tz sweep
 /*
  * A queue item is not DONE until something stops it from recurring.
  *

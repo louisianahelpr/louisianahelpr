@@ -43,7 +43,16 @@
     "test traffic costs no Vercel edge requests. `canonical` is skipped because",
     "index.html's canonical names the production host, which Lighthouse scores 0",
     "on any other origin; the baselines above were measured on prod and the first",
-    "local run is the new baseline to compare against."
+    "local run is the new baseline to compare against.",
+    "",
+    "METRIC BUDGETS (Q56, measured 2026-09-26 with these exact settings on a local build, prod backend, Lighthouse 12):",
+    "  /        FCP 3439  LCP 5905  TBT 176  (perf 0.69)",
+    "  /browse  FCP 3648  LCP 6533  TBT 109  (perf 0.68)",
+    "  /login   FCP 3429  LCP 5809  TBT 110  (perf 0.70)",
+    "  /signup  FCP 3773  LCP 6646  TBT  94  (perf 0.68)",
+    "Budgets sit ~20% above the worst route: FCP 4500, LCP 8000, TBT 600 ms. A score can hold while one metric regresses",
+    "(the score is a weighted blend), so each metric gets its own error. Lower them when a fix lowers the numbers;",
+    "src/test/lighthouseMetricBudgets.test.ts keeps them error-level and inside 10-40% of this measurement."
   ],
   "ci": {
     "collect": {
@@ -66,7 +75,10 @@
         "categories:performance": ["error", { "minScore": 0.5 }],
         "categories:accessibility": ["warn", { "minScore": 0.85 }],
         "categories:best-practices": ["warn", { "minScore": 0.8 }],
-        "categories:seo": ["error", { "minScore": 0.9 }]
+        "categories:seo": ["error", { "minScore": 0.9 }],
+        "first-contentful-paint": ["error", { "maxNumericValue": 4500 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 8000 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 600 }]
       }
     }
   }

@@ -197,7 +197,7 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-live-privileges.mjs
 
-      # OA-018 (docs/OPEN.md Q424): an existing email account signing in with
+      # OA-018 (docs/OPEN.md Q428): an existing email account signing in with
       # Apple/Google. Performs GoTrue's own row writes for the four linking
       # cases on PROD inside one transaction that always rolls back, and checks
       # no second profile / no lost signup data / no 500 on an email-less user,

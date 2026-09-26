@@ -15,7 +15,7 @@
 // Security: a leaked token can't be claimed by a stranger — if the gift names
 // a recipient_email, the caller's email must match it.
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 

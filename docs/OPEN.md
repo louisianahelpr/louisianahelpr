@@ -4,8 +4,6 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 252 done, 39 partly done (fixed, protection pending), 115 open. Source of truth for work.
-- **Audit bus:** 23 open, 3 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 - **Queue (this file):** 251 done, 39 partly done (fixed, protection pending), 117 open. Source of truth for work.
 - **Audit bus:** 22 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
@@ -42,8 +40,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 406 items — 252 done, 39 partly done (fixed, protection pending), 115 open.**
-**Queue: 419 items — 256 done, 42 partly done (fixed, protection pending), 121 open.**
+**Queue: 425 items — 257 done, 48 partly done (fixed, protection pending), 120 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

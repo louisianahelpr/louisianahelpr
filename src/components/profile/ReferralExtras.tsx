@@ -68,7 +68,7 @@ export function ReferralExtras({ referralCount, earnedFromReferrals }: ReferralE
   return (
     <div className="space-y-4">
       {/* ── Tier ladder ──────────────────────────────────────────── */}
-      <div className="rounded-2xl liquid-glass p-4">
+      <div className="rounded-2xl liquid-glass p-card">
         <div className="flex items-baseline justify-between gap-2 mb-3">
           <div>
             {/* h2, not h3: the only heading above this on the Referrals tab

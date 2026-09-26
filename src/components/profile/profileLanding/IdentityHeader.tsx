@@ -101,7 +101,7 @@ export function IdentityHeader({
           radial Sienna→Verdigris backdrop as the Dashboard greeting
           card. */}
       <div
-        className="relative liquid-glass shrink-0 p-4 overflow-hidden"
+        className="relative liquid-glass shrink-0 p-card overflow-hidden"
         style={{
           backgroundImage:
             "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +

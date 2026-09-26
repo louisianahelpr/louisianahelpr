@@ -37,7 +37,7 @@ export const BatchRow = ({
   const isStale = ageDays >= 3;
   const isHeld = !!hold;
   return (
-    <div className="rounded-ds-md liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="rounded-ds-md liquid-glass p-card flex flex-col sm:flex-row sm:items-center gap-3">
       {/* The checkbox slot is ALWAYS reserved on the Ready tab, and only
           filled when the batch can actually be selected. It used to be
           conditionally rendered with nothing in its place, so a row for a

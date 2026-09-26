@@ -164,7 +164,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
     return (
       <div
         data-testid="earnings-forecast-skeleton"
-        className="rounded-2xl liquid-glass p-5 space-y-2"
+        className="rounded-2xl liquid-glass p-card space-y-2"
       >
         <Skeleton className="h-3 w-32 rounded" />
         <Skeleton className="h-7 w-40 rounded" />
@@ -179,7 +179,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
   // this week — the helper has a clean slate, nudge them to browse.
   if (projectedTotal <= 0) {
     return (
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      <div className="rounded-2xl liquid-glass p-card space-y-3">
         <div className="flex items-center gap-2.5">
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
@@ -219,7 +219,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
   const pct = projectedTotal > 0 ? Math.min(100, Math.round((earnedSoFar / projectedTotal) * 100)) : 0;
 
   return (
-    <div className="rounded-2xl liquid-glass p-5">
+    <div className="rounded-2xl liquid-glass p-card">
       <div className="flex items-center gap-2.5 mb-3">
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"

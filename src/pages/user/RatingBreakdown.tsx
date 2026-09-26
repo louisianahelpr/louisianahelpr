@@ -19,7 +19,7 @@ export const RatingBreakdown = ({ reviews }: Props) => {
   // renders below now.
 
   return (
-    <div className="rounded-2xl liquid-glass p-5 space-y-3">
+    <div className="rounded-2xl liquid-glass p-card space-y-3">
       {/* Distribution chart */}
       <p
         className="text-ds-10 uppercase tracking-wide font-semibold"

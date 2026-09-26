@@ -571,7 +571,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {stripeLoading ? (
           /* Wallet-shaped skeleton — owned here (not inside WalletCard)
              because the card itself only ever renders connected+loaded. */
-          <div className="rounded-2xl liquid-glass p-5 space-y-3">
+          <div className="rounded-2xl liquid-glass p-card space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Skeleton className="h-3 w-20 rounded" />

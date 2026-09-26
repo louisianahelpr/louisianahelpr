@@ -35,7 +35,7 @@ export function WalletCard({
   onUpgrade,
 }: WalletCardProps) {
   return (
-    <div className="rounded-2xl liquid-glass p-5">
+    <div className="rounded-2xl liquid-glass p-card">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">

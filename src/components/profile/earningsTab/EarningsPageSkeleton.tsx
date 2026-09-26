@@ -29,7 +29,7 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
         </>
       )}
       <section className="space-y-3">
-        <div className="rounded-2xl liquid-glass p-5 space-y-4">
+        <div className="rounded-2xl liquid-glass p-card space-y-4">
           <div className="flex items-center gap-2.5">
             <Skeleton className="h-9 w-9 rounded-full" />
             <Skeleton className="h-5 w-24 rounded" />
@@ -48,7 +48,7 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
           <Skeleton className="h-10 w-full rounded-md" />
           <Skeleton className="h-10 w-full rounded-md" />
         </div>
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <div className="rounded-2xl liquid-glass p-card space-y-3">
           <Skeleton className="h-5 w-36 rounded" />
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="flex items-center justify-between gap-3">

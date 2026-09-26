@@ -25,7 +25,7 @@ function EntryChoiceSkeleton() {
     <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
       <span className="sr-only">Loading…</span>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="rounded-2xl liquid-glass p-4 flex items-center" style={{ minHeight: "104px" }} aria-hidden>
+        <div key={i} className="rounded-2xl liquid-glass p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
           <div className="flex items-center gap-4 w-full">
             <span className="w-11 h-11 rounded-full shrink-0 animate-pulse" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} />
             <span className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       <button
         type="button"
         onClick={form.startFresh}
-        className="w-full rounded-2xl liquid-glass p-4 text-left flex items-center gap-4 active:scale-[0.99] transition-transform"
+        className="w-full rounded-2xl liquid-glass p-card text-left flex items-center gap-4 active:scale-[0.99] transition-transform"
           style={{ minHeight: "104px" }}
       >
         <span
@@ -218,7 +218,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             track("unpaid_draft_resume", { jobId: draft.id });
             fundJob(draft.id);
           }}
-          className="w-full rounded-2xl liquid-glass p-4 text-left flex items-center gap-4 active:scale-[0.99] transition-transform disabled:opacity-60"
+          className="w-full rounded-2xl liquid-glass p-card text-left flex items-center gap-4 active:scale-[0.99] transition-transform disabled:opacity-60"
           style={{ minHeight: "104px" }}
           data-unpaid-draft={draft.id}
         >
@@ -253,7 +253,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         <button
           type="button"
           onClick={form.loadDraftAndContinue}
-          className="w-full rounded-2xl liquid-glass p-4 text-left flex items-center gap-4 active:scale-[0.99] transition-transform"
+          className="w-full rounded-2xl liquid-glass p-card text-left flex items-center gap-4 active:scale-[0.99] transition-transform"
           style={{ minHeight: "104px" }}
         >
           <span
@@ -290,7 +290,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           for a first-time poster, and only that second case moves anything —
           by which point it has usually already happened. */}
       {recentPosted === null && (
-        <div className="rounded-2xl liquid-glass p-4" aria-hidden>
+        <div className="rounded-2xl liquid-glass p-card" aria-hidden>
           <div className="flex items-center gap-4">
             <span className="w-11 h-11 rounded-full shrink-0 animate-pulse" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} />
             <span className="min-w-0 flex-1">
@@ -302,7 +302,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       )}
 
       {hasRecent && (
-        <div className="rounded-2xl liquid-glass p-4 min-h-[104px] flex flex-col justify-center">
+        <div className="rounded-2xl liquid-glass p-card min-h-[104px] flex flex-col justify-center">
           <button
             type="button"
             onClick={() => toggleSection("repost")}
@@ -393,7 +393,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       )}
 
       {/* 4 — USE A TEMPLATE (collapsed by default) */}
-      <div className="rounded-2xl liquid-glass p-4 min-h-[104px] flex flex-col justify-center">
+      <div className="rounded-2xl liquid-glass p-card min-h-[104px] flex flex-col justify-center">
         <button
           type="button"
           onClick={() => toggleSection("templates")}

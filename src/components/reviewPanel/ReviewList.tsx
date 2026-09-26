@@ -93,7 +93,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-ds-md liquid-glass p-5 space-y-3">
+      <div className="rounded-ds-md liquid-glass p-card space-y-3">
         <div className="flex items-center gap-3">
           <div className="flex">
             {[1, 2, 3, 4, 5].map((s) => (
@@ -110,7 +110,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
       </div>
       <div className="space-y-3">
         {reviews.map((r) => (
-          <div key={r.id} className="rounded-ds-sm liquid-glass p-4">
+          <div key={r.id} className="rounded-ds-sm liquid-glass p-card">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
                 <div role="img" aria-label={`${r.rating} out of 5 stars`} className="flex">

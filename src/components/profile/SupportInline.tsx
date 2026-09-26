@@ -265,7 +265,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         ref={formRef}
         onSubmit={handleSubmit}
         noValidate
-        className="rounded-2xl liquid-glass p-5 space-y-4"
+        className="rounded-2xl liquid-glass p-card space-y-4"
       >
         {/* Reason — the click-to-change control. Same three options the
             public /support <Select> renders, from the one shared list. */}

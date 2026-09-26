@@ -239,7 +239,7 @@ export const ReviewsSection = ({
             // Keyed by review id, never array index: the category/star
             // filters reorder and re-slice this list, and an index key let
             // the inline response editor stay mounted on the wrong card.
-            <div key={r.id} className="rounded-2xl liquid-glass p-5 space-y-2" data-testid="profile-review-card">
+            <div key={r.id} className="rounded-2xl liquid-glass p-card space-y-2" data-testid="profile-review-card">
               {/* TOP-DOWN, in the order the owner asked for (2026-09-19,
                   reading /user/:id): the person's NAME, then the stars with
                   the category CHIP, then their one-tap words, then the review

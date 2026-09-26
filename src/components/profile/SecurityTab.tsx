@@ -516,7 +516,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           on — so this settings card can be rendered and measured in a browser
           instead of being invisible everywhere except a device. */}
       {isAppLockSupported() && (
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <div className="rounded-2xl liquid-glass p-card space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <Fingerprint className="w-4 h-4 text-primary" />
@@ -600,7 +600,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         </div>
       )}
 
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      <div className="rounded-2xl liquid-glass p-card space-y-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Monitor className="w-4 h-4 text-primary" />

@@ -110,7 +110,7 @@ class SectionErrorBoundary extends React.Component<
       }
       return (
         <div
-          className="liquid-glass rounded-2xl p-5 my-3 flex items-start gap-3"
+          className="liquid-glass rounded-2xl p-card my-3 flex items-start gap-3"
           style={{
             background: "hsl(var(--burnt-sienna) / 0.06)",
             border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",

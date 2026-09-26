@@ -7,10 +7,10 @@ import { execSync } from "node:child_process";
  * A survey of the 84 hand-rolled `rounded-2xl liquid-glass p-N` cards looked at
  * first like six competing paddings. It is not — every value has a job:
  *
- *   p-5    SECTION card. The default, and the outer container on a page.
- *   p-4    NESTED card, one level inside a section. Visible in PaymentTab,
- *          where the p-4 at :136 sits inside the p-5 at :116 — flattening
- *          these two would make a child the same weight as its parent.
+ *   p-card THE card: 16px on a phone, 20px from `sm` (--card-pad, Q213b,
+ *          owner 2026-09-26). It replaced the old p-5 section / p-4 nested
+ *          pair, which the owner collapsed into one responsive token;
+ *          src/test/cardPaddingToken.test.ts keeps raw p-4/p-5 out.
  *   p-6    CENTRED EMPTY STATE. Wants more air because the content is one
  *          short line in the middle of an otherwise empty box.
  *   p-3    COMPACT row inside a nested card — a third level down.
@@ -27,16 +27,16 @@ import { execSync } from "node:child_process";
  * the risk of one site rendering differently afterwards is larger than the
  * problem it solves.
  */
-const ALLOWED = new Set(["p-5", "p-4", "p-6", "p-3", "p-3.5", "p-1.5"]);
+const ALLOWED = new Set(["p-card", "p-6", "p-3", "p-3.5", "p-1.5"]);
 
 describe("glass card padding scale", () => {
   it("every liquid-glass card uses a padding from the named set", () => {
     // ripgrep over the source, not a glob walk — this has to see every file.
     const out = execSync(
-      `grep -rhoE '(rounded-2xl liquid-glass|liquid-glass rounded-2xl) p-[0-9.]+' src --include='*.tsx' || true`,
+      `grep -rhoE '(rounded-2xl liquid-glass|liquid-glass rounded-2xl) p-(card|[0-9.]+)' src --include='*.tsx' || true`,
       { cwd: process.cwd(), encoding: "utf8" },
     );
-    const matches = out.split("\n").map((l) => l.match(/p-[0-9.]+$/)?.[0]).filter(Boolean) as string[];
+    const matches = out.split("\n").map((l) => l.match(/p-(card|[0-9.]+)$/)?.[0]).filter(Boolean) as string[];
 
     /*
      * INVENTORY FLOOR — the difference between this guard checking 73 cards
@@ -62,7 +62,7 @@ describe("glass card padding scale", () => {
     expect(
       unknown,
       `unrecognised glass-card padding(s): ${unknown.join(", ")}. ` +
-        `The scale is p-5 section / p-4 nested / p-6 centred-empty / p-3 compact. ` +
+        `The scale is p-card card / p-6 centred-empty / p-3 compact. ` +
         `If one of those fits, use it; if none does, add it here with the reason.`,
     ).toEqual([]);
   });
@@ -70,10 +70,10 @@ describe("glass card padding scale", () => {
   it("the scale itself has not silently grown", () => {
     // A second guard on the guard: if someone widens ALLOWED without thinking,
     // this makes the count change visible in the diff.
-    expect(ALLOWED.size, "glass-card padding tiers").toBe(6);
+    expect(ALLOWED.size, "glass-card padding tiers").toBe(5);
   });
 });
 
-// A SEVENTH padding tier appearing because nobody knew the other six were
+// A SIXTH padding tier appearing because nobody knew the other five were
 // deliberate — the exact drift this guard was written for.
-// @mutate src/components/ReferralSection.tsx | <div className="rounded-2xl liquid-glass p-5"> | <div className="rounded-2xl liquid-glass p-7">
+// @mutate src/components/ReferralSection.tsx | <div className="rounded-2xl liquid-glass p-card"> | <div className="rounded-2xl liquid-glass p-7">

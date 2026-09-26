@@ -174,7 +174,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
               ? { duration: 0.15 }
               : { type: "spring", damping: 22, stiffness: 280 }
           }
-          className="relative rounded-2xl liquid-glass p-4 overflow-hidden"
+          className="relative rounded-2xl liquid-glass p-card overflow-hidden"
           style={{
             backgroundImage:
               "radial-gradient(60% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.18) 0%, transparent 55%), " +

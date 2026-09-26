@@ -214,7 +214,6 @@
     "src/components/admin/adminViewShell.test.ts :: here silently re-spaces 17 screens",
     "src/components/browseMap/mapFilter.test.ts :: before any user saw it (0 boosted rows",
     "src/components/dashboard/jobDetailDialog/JobStatTiles.test.tsx :: fix this was 2 cells in 3 columns",
-    "src/components/glassCardScale.test.ts :: onent refactor. Routing 84 call sites",
     "src/components/job-card/activityConstants.test.ts :: seven attributed to the 20260504 state-machine trigger",
     "src/components/job-card/jobStepOneRow.test.tsx :: // …and the REAL 320 row",
     "src/components/profile/HelperScheduleStrip.test.tsx :: ay cell that summarises 3 jobs",

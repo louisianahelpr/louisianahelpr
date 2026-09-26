@@ -306,7 +306,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       )}
 
       {unredeemedCredits > 0 && (
-        <div className="rounded-2xl liquid-glass p-4 flex items-center justify-between gap-3">
+        <div className="rounded-2xl liquid-glass p-card flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Cash out credits
@@ -333,7 +333,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       />
 
       {/* How it works */}
-      <div className="rounded-2xl liquid-glass p-5">
+      <div className="rounded-2xl liquid-glass p-card">
         <div className="space-y-3">
           {[
             "Share your code with friends",

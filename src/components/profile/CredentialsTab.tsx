@@ -458,7 +458,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     const noun = KIND_NOUN[kind];
 
     return (
-      <div className="rounded-2xl liquid-glass p-5 space-y-4">
+      <div className="rounded-2xl liquid-glass p-card space-y-4">
         <div className="min-w-0">
           {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
           <h3
@@ -701,7 +701,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           cards below say what's happened to each file; this says what posters
           currently see. It used to repeat the same "pending" fact as an
           eyebrow AND a chip, in two different phrasings. */}
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      <div className="rounded-2xl liquid-glass p-card space-y-3">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-ds-md flex items-center justify-center shrink-0"
@@ -754,7 +754,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           on this screen with the documents rather than in general profile
           settings, and it re-enters review when it changes. */}
       {(licensedOn || insuredOn) && (
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <div className="rounded-2xl liquid-glass p-card space-y-3">
           <div>
             {/* Small-caps "Optional" eyebrow removed at the owner's direction
                 (2026-08-27). The field is not required anywhere and the

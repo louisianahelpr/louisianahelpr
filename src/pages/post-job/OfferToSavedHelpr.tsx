@@ -94,7 +94,7 @@ export function OfferToSavedHelpr({
   };
 
   return (
-    <div className="rounded-2xl liquid-glass p-4 flex flex-col justify-center" style={{ minHeight: "104px" }}>
+    <div className="rounded-2xl liquid-glass p-card flex flex-col justify-center" style={{ minHeight: "104px" }}>
       <button
         type="button"
         onClick={toggle}

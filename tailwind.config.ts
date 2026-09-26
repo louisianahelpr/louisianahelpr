@@ -197,6 +197,10 @@ export default {
         // phone, 16px from `sm` — the value lives in --section-gap (index.css).
         // `space-y-section` / `gap-section`; never a per-page space-y-5/6.
         section: "var(--section-gap)",
+        // A liquid-glass card's inner padding (Q213b): 16px on a phone, 20px
+        // from `sm` — the value lives in --card-pad (index.css). `p-card`;
+        // never a per-card p-4/p-5 (src/test/cardPaddingToken.test.ts).
+        card: "var(--card-pad)",
       },
       transitionTimingFunction: {
         "ds-out": "cubic-bezier(0.22, 1, 0.36, 1)",

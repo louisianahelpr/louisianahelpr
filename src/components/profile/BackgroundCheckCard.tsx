@@ -91,7 +91,7 @@ function BackgroundCheckCard({ status }: { status: string }) {
   if (status === "verified") {
     return (
       <div
-        className="rounded-2xl liquid-glass p-4 flex items-center gap-3"
+        className="rounded-2xl liquid-glass p-card flex items-center gap-3"
         style={{ border: "0.5px solid hsl(var(--sage) / 0.4)" }}
       >
         <div
@@ -115,7 +115,7 @@ function BackgroundCheckCard({ status }: { status: string }) {
   if (status === "pending") {
     return (
       <div
-        className="rounded-2xl liquid-glass p-4 flex items-center gap-3"
+        className="rounded-2xl liquid-glass p-card flex items-center gap-3"
         style={{ border: "0.5px solid hsl(var(--amber-tint) / 0.35)" }}
       >
         <div
@@ -146,7 +146,7 @@ function BackgroundCheckCard({ status }: { status: string }) {
   if (!BGC_PURCHASE_ENABLED) return null;
 
   return (
-    <div className="rounded-2xl liquid-glass p-5 space-y-3">
+    <div className="rounded-2xl liquid-glass p-card space-y-3">
       <div className="flex items-start gap-3">
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"

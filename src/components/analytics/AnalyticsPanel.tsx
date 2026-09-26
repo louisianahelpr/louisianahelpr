@@ -29,7 +29,7 @@ interface AnalyticsPanelProps {
 
 export function AnalyticsPanel({ title, caption, actions, children }: AnalyticsPanelProps) {
   return (
-    <section className="rounded-2xl liquid-glass p-5 space-y-3">
+    <section className="rounded-2xl liquid-glass p-card space-y-3">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h2

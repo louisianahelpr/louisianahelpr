@@ -26,7 +26,7 @@ export function RecentWorkSection({
   removePortfolioAt,
 }: RecentWorkSectionProps) {
   return (
-    <div id={anchorId} className="rounded-2xl liquid-glass p-5 space-y-4 scroll-mt-24">
+    <div id={anchorId} className="rounded-2xl liquid-glass p-card space-y-4 scroll-mt-24">
       {/* Titled — the counter used to float alone on the right, so the card
           opened with "0/6" and no word saying what it counted. */}
       <div className="flex items-center justify-between gap-2">

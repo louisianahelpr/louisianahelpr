@@ -651,7 +651,7 @@ const AdminSettings = () => {
         ) : (
           <div className="space-y-2">
             {admins.map((admin) => (
-              <div key={admin.role_id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between gap-3">
+              <div key={admin.role_id} className="rounded-ds-md liquid-glass p-card flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-foreground text-ds-13">{admin.name}</p>

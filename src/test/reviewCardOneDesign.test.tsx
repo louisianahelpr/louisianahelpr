@@ -188,7 +188,7 @@ function renderSection(reviews: ProfileReview[]) {
 function reviewCard(): HTMLElement {
   const byTestId = screen.queryByTestId("profile-review-card");
   if (byTestId) return byTestId;
-  const el = document.querySelector<HTMLElement>(".rounded-2xl.liquid-glass.p-5");
+  const el = document.querySelector<HTMLElement>(".rounded-2xl.liquid-glass.p-card");
   if (!el) throw new Error("no review card rendered at all");
   return el;
 }

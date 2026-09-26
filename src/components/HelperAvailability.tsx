@@ -331,7 +331,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             <div
               key={day}
               className={cn(
-                "rounded-2xl liquid-glass p-4 transition-all",
+                "rounded-2xl liquid-glass p-card transition-all",
                 // Dimming an "off" row with opacity attenuates its TEXT too:
                 // at 70% the day label and hours measured under the 4.5:1 AA
                 // bar (12 axe nodes). 85% still reads as de-emphasised without

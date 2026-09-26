@@ -2047,6 +2047,25 @@ body[data-scroll-locked] .offline-banner {
   }
 }
 
+/* ── CARD PADDING (Q213b, owner 2026-09-26) ─────────────────────────────────
+   liquid-glass cards typed their own padding: p-4 on 40 class strings, p-5 on
+   48, so neighbouring cards on one screen sat 16 or 20px in from their edge.
+
+   --card-pad   a liquid-glass card's inner padding. 16px on a phone, where
+                width is scarce, and 20px from `sm` up.
+
+   Read through Tailwind's `card` spacing key (`p-card`, tailwind.config.ts).
+   Guard: src/test/cardPaddingToken.test.ts (no liquid-glass card types a raw
+   p-4/p-5; the AuthShell card's own p-5 sm:p-6 lg:p-10 scale is listed). */
+:root {
+  --card-pad: 1rem;
+}
+@media (min-width: 640px) {
+  :root {
+    --card-pad: 1.25rem;
+  }
+}
+
 /* ── .helpr-emblem — the wrought-iron H mark ───────────────────────────────
    The artwork is dark iron on a transparent ground, with brass fleur-de-lis
    finials and a verdigris centre. On the light parchment canvas it reads

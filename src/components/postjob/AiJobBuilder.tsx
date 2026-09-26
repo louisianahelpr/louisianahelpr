@@ -110,7 +110,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
     // out of line at 375. Any change to this row belongs in BOTH files.
     // (The old markup also put `<div>`/`<p>` inside a `<button>`, which is
     // invalid content for a button; the sibling's all-`<span>` shape isn't.)
-    <div className="rounded-2xl liquid-glass overflow-hidden p-4 min-h-[104px] flex flex-col justify-center">
+    <div className="rounded-2xl liquid-glass overflow-hidden p-card min-h-[104px] flex flex-col justify-center">
       <button
         type="button"
         onClick={() => setOpen(!open)}

@@ -180,7 +180,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
         </div>
       )}
       <section className="space-y-2">
-        <div className="rounded-2xl liquid-glass p-5">
+        <div className="rounded-2xl liquid-glass p-card">
           <PayoutSetupForm />
         </div>
       </section>
@@ -200,7 +200,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
           d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
         return (
           <section className="space-y-2">
-            <div className="rounded-2xl liquid-glass p-4">
+            <div className="rounded-2xl liquid-glass p-card">
               <div className="flex items-start gap-3">
                 <span
                   className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
@@ -243,7 +243,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
       })()}
 
       <section className="space-y-2">
-        <div className="rounded-2xl liquid-glass p-5">
+        <div className="rounded-2xl liquid-glass p-card">
           {hasNoActivity ? (
             /* One empty state — no scope toggle, no dual $0.00 columns,
                no repeated "no jobs yet" copy. */

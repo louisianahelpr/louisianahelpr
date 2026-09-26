@@ -71,7 +71,7 @@ export function SavedHelperCard({
     // that is correct link behaviour, not a regression.
     <div
       key={h.helper_id}
-      className="relative rounded-2xl liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className="relative rounded-2xl liquid-glass p-card space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
       {/* The stretched link. `inset-0` + the card's own `rounded-2xl` so the
           hit area and the focus ring both match the card exactly. It has no

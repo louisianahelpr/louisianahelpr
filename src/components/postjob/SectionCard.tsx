@@ -28,7 +28,7 @@ export function SectionCard({
   children,
 }: SectionCardProps) {
   return (
-    <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
+    <section className="rounded-2xl liquid-glass p-card space-y-5 shadow-sm">
       {/* Chapter header — numbered marker, Bodoni title. A divider rule
           under it visually closes the header off from the fields so the
           section reads as a chapter, not a field group. */}

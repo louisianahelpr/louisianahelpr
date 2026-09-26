@@ -104,7 +104,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
     return wrap(
       <>
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-2xl liquid-glass p-5 space-y-3">
+          <div key={i} className="rounded-2xl liquid-glass p-card space-y-3">
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-3 w-56" />
             <Skeleton className="h-24 w-full" />

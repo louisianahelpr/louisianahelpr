@@ -113,7 +113,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
   return (
     /* SAME SURFACE as its neighbours (owner: "August background should match
        the others"). This card sat in a column with the projection card and the
-       Wallet card — both `rounded-2xl liquid-glass p-5` — while it wore a flat
+       Wallet card — both `rounded-2xl liquid-glass p-card` — while it wore a flat
        parchment-tint box with a 1px border and tighter padding, so one card in
        a stack of three read as a different kind of thing.
 
@@ -124,7 +124,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
        an inline value would override liquid-glass and put the odd one out
        straight back. */
     <div
-      className="rounded-2xl liquid-glass p-5 space-y-3"
+      className="rounded-2xl liquid-glass p-card space-y-3"
       style={
         hitGoal
           ? {

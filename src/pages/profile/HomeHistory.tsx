@@ -434,7 +434,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
                       )}
 
                       {/* Job card. DELIBERATE deviation from the
-                          `rounded-2xl liquid-glass p-5` card convention — a
+                          `rounded-2xl liquid-glass p-card` card convention — a
                           plain white liquid-glass fill would make these
                           timeline entries read as app cards floating over the
                           page rather than as entries on a single record

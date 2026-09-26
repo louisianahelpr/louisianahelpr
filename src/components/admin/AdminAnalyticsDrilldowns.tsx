@@ -74,7 +74,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
       ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {users.map(u => (
-          <div key={u.id} className="rounded-ds-md liquid-glass p-4">
+          <div key={u.id} className="rounded-ds-md liquid-glass p-card">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-ds-13">{formatName(u.full_name, "—")}</p>
@@ -130,7 +130,7 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
       ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(u => (
-          <div key={u.id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
+          <div key={u.id} className="rounded-ds-md liquid-glass p-card flex items-center justify-between">
             <div>
               <p className="font-semibold text-foreground text-ds-13">{formatName(u.full_name, "—")}</p>
               <p className="text-ds-11 text-muted-foreground">{u.email} · {u.location || "No location"}</p>
@@ -162,7 +162,7 @@ export const CategoriesDrillDown = ({ data }: { data: { name: string; count: num
     ) : (
     <div className="space-y-2">
       {data.map((cat, i) => (
-        <div key={cat.name} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
+        <div key={cat.name} className="rounded-ds-md liquid-glass p-card flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
             <span className="text-ds-13 font-medium text-foreground capitalize">{cat.name}</span>
@@ -204,7 +204,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
         haptic={false}
       />
 
-      <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
+      <div className="rounded-ds-md liquid-glass p-card flex items-center justify-between">
         <span className="text-ds-11 text-muted-foreground">Total for filter ({filtered.length} job{filtered.length === 1 ? "" : "s"})</span>
         <span className="text-ds-17 font-bold text-foreground">
           ${formatPrice(filtered.reduce((s, j) => s + (j.budget || 0), 0))}
@@ -216,7 +216,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
       ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(j => (
-          <div key={j.id} className="rounded-ds-md liquid-glass p-4">
+          <div key={j.id} className="rounded-ds-md liquid-glass p-card">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-ds-13 truncate">{j.title}</p>
@@ -267,7 +267,7 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
       />
 
       {showFinancials && (
-        <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
+        <div className="rounded-ds-md liquid-glass p-card flex items-center justify-between">
           <span className="text-ds-11 text-muted-foreground">{showFees ? "Total Fees" : "Total Revenue"} ({filtered.length} job{filtered.length === 1 ? "" : "s"})</span>
           <span className="text-ds-17 font-bold text-foreground">${total.toFixed(2)}</span>
         </div>
@@ -278,7 +278,7 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
       ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(j => (
-          <div key={j.id} className="rounded-ds-md liquid-glass p-4">
+          <div key={j.id} className="rounded-ds-md liquid-glass p-card">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-ds-13 truncate">{j.title}</p>

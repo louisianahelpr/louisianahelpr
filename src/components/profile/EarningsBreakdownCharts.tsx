@@ -153,7 +153,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
       </div>
 
       {hasPieData && (
-        <div className="rounded-2xl liquid-glass p-4">
+        <div className="rounded-2xl liquid-glass p-card">
           <div className="h-[180px] w-full">
             <ResponsiveContainer width="100%" height="100%" minHeight={180}>
               <PieChart>
@@ -191,7 +191,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
       )}
 
       {hasTrendData && (
-        <div className="rounded-2xl liquid-glass p-4">
+        <div className="rounded-2xl liquid-glass p-card">
           <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
             <p
               className="font-sans uppercase text-ds-10"

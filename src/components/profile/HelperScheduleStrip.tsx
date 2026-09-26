@@ -152,7 +152,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
     return (
       <div
         data-testid="helper-schedule-strip-skeleton"
-        className="rounded-2xl liquid-glass p-4 space-y-3"
+        className="rounded-2xl liquid-glass p-card space-y-3"
       >
         <Skeleton className="h-3 w-32 rounded" />
         <div className="flex gap-2 overflow-x-auto">
@@ -181,7 +181,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
 
   if (jobs.length === 0) {
     return (
-      <div className="rounded-2xl liquid-glass p-5">
+      <div className="rounded-2xl liquid-glass p-card">
         <div className="flex items-start gap-3">
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
@@ -228,7 +228,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
     <>
       <section
         data-testid="helper-schedule-strip"
-        className="rounded-2xl liquid-glass p-4"
+        className="rounded-2xl liquid-glass p-card"
       >
         <div className="mb-3">
           <h3

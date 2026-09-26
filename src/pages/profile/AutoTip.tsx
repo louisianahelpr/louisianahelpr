@@ -226,7 +226,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
           adding a `page-measure`/gutter wrapper here would be a second
           max-width inside Profile's own. */}
       <div className="space-y-section">
-        <section className="liquid-glass rounded-ds-md p-5 space-y-4">
+        <section className="liquid-glass rounded-ds-md p-card space-y-4">
           <h2 className="font-display font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
             Automatic Tip
           </h2>
@@ -452,7 +452,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
             row beneath it "Release on completion" — the same sentence twice, in
             two type treatments, over a single switch. The section heading is the
             name; the italic line is what it does. */}
-        <section className="liquid-glass rounded-ds-md p-5 space-y-3">
+        <section className="liquid-glass rounded-ds-md p-card space-y-3">
           {/* The switch sits on the HEADING row, not beside the sentence. It
               used to share a tinted inner box with the description, which
               left the body text a ~200px column beside a 44px switch inside

@@ -168,7 +168,7 @@ export function ProfileEditForm({
         />
 
         {/* Contact section */}
-        <div className="rounded-2xl liquid-glass p-5 space-y-4">
+        <div className="rounded-2xl liquid-glass p-card space-y-4">
           <div className="space-y-3">
             <div>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
@@ -232,7 +232,7 @@ export function ProfileEditForm({
         {/* Bio section — ordered before Skills & Services (owner-confirmed
             field order: Phone/City/ZIP, About You, Skills & Services,
             Recent Work). */}
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <div className="rounded-2xl liquid-glass p-card space-y-3">
           {/* A VISIBLE label, like every other field on this form. The bio
               carried its name in `aria-label` only, so a screen reader heard
               "About you" while a sighted user got an unlabelled box between a
@@ -283,7 +283,7 @@ export function ProfileEditForm({
             column would have meant touching all five. A plain text field with
             a live pill preview gives the chip affordance without changing what
             is persisted. */}
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <div className="rounded-2xl liquid-glass p-card space-y-3">
           <div className="flex items-baseline justify-between gap-3">
             <Label htmlFor="skills" className="text-ds-11 block">Skills &amp; services</Label>
             {skillList.length > 0 && (

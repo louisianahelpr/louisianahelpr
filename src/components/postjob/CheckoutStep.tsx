@@ -723,7 +723,7 @@ export function CheckoutStep({
       {setSaveCardForFuture && (
         <label
           htmlFor="save-card"
-          className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-4 cursor-pointer"
+          className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-card cursor-pointer"
         >
           <span className="text-ds-13 text-foreground leading-snug">
             <span className="font-semibold block">Save Card for Next Time</span>
@@ -766,7 +766,7 @@ export function CheckoutStep({
           Checkbox element alone, satisfying WCAG 2.5.5 on SE screens. */}
       <label
         htmlFor="confirm-details"
-        className="flex items-start gap-3 rounded-ds-md liquid-glass p-4 cursor-pointer min-h-[44px]"
+        className="flex items-start gap-3 rounded-ds-md liquid-glass p-card cursor-pointer min-h-[44px]"
       >
         <Checkbox
           id="confirm-details"

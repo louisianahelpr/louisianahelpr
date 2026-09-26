@@ -407,7 +407,7 @@ const AdminAnalytics = () => {
       {/* ── Subscriptions ── */}
       <SectionLabel>Subscriptions</SectionLabel>
       <div className="grid sm:grid-cols-2 gap-4">
-        <button onClick={() => openDrillDown("subscriptions")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
+        <button onClick={() => openDrillDown("subscriptions")} className="rounded-ds-md liquid-glass p-card text-left hover:border-primary/30 transition-all group">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" /> Subscription Revenue
@@ -512,7 +512,7 @@ const AdminAnalytics = () => {
       {/* ── Row 5: Payout Pipeline & Category Breakdown ── */}
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Payout pipeline */}
-        <button onClick={() => openDrillDown("payouts")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
+        <button onClick={() => openDrillDown("payouts")} className="rounded-ds-md liquid-glass p-card text-left hover:border-primary/30 transition-all group">
           <h2 className="text-ds-13 font-semibold text-foreground mb-4 flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" /> Payout Pipeline
             <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
@@ -568,7 +568,7 @@ const AdminAnalytics = () => {
         </button>
 
         {/* Category breakdown */}
-        <button onClick={() => openDrillDown("categories")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
+        <button onClick={() => openDrillDown("categories")} className="rounded-ds-md liquid-glass p-card text-left hover:border-primary/30 transition-all group">
           <h2 className="text-ds-13 font-semibold text-foreground mb-3 flex items-center gap-2">
             <PieChart className="w-4 h-4 text-primary" /> Top Categories
             <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>

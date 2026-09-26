@@ -117,12 +117,12 @@ export const ProfileTabBodyReserve = () => {
       data-testid="profile-tab-fallback"
       className="space-y-section"
     >
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      <div className="rounded-2xl liquid-glass p-card space-y-3">
         <Skeleton className="h-5 w-32 rounded" />
         <Skeleton className="h-4 w-2/3 rounded" />
         <Skeleton className="h-4 w-1/2 rounded" />
       </div>
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      <div className="rounded-2xl liquid-glass p-card space-y-3">
         <Skeleton className="h-4 w-1/3 rounded" />
         <Skeleton className="h-4 w-3/4 rounded" />
         <Skeleton className="h-4 w-1/2 rounded" />

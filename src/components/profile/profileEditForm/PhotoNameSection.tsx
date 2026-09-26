@@ -63,7 +63,7 @@ export function PhotoNameSection({
   const [photoRejection, setPhotoRejection] = useState<AvatarPhotoRejection | null>(null);
 
   return (
-    <div className="rounded-2xl liquid-glass p-5 space-y-4">
+    <div className="rounded-2xl liquid-glass p-card space-y-4">
       <div className="flex items-center gap-4">
         {/* Avatar always shows the actual photo (previously hidden behind
             a full-coverage Camera overlay at opacity-100 on mobile).

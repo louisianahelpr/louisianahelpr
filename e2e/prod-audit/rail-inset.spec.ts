@@ -23,11 +23,10 @@
  * Red on the original class: the @mutate below drops the shared frame inset;
  * every fixed-shell route then fails claim 2 and 3.
  *
- * Read-only against prod. When the dispatch passes a Playwright grep (the
- * prod-audit workflow exports it as GREP), every failing route's frame plus
- * the 1440 sample of three routes is printed as `RAILSHOT <name> <base64 jpeg>`
- * so a reviewer without artifact access can LOOK at it; LH_RAIL_SHOTS=<dir>
- * writes PNGs instead.
+ * Read-only against prod. LH_RAIL_SHOTS=<dir> saves every failing route's
+ * frame plus the 1440 sample of three routes as PNGs; shots are not evidence
+ * until someone LOOKED (`npm run review:record`). Every measured cell prints a
+ * `RAIL` line, so the run log is the measurement.
  */
 import { test, expect, type Page } from "../prodTest";
 import { mkdirSync } from "node:fs";
@@ -45,7 +44,6 @@ const TOL = 2;
 const SCREENS = spacingScreens().filter((s) => s.auth === "poster");
 const SHOTS = process.env.LH_RAIL_SHOTS;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
-const PRINT_SHOTS = !!process.env.GREP;
 const SAMPLES = new Set(["dashboard", "profile-gift-card", "messages"]);
 
 let poster: Session;
@@ -137,10 +135,6 @@ async function settle(page: Page) {
 
 async function shot(page: Page, name: string) {
   if (SHOTS) await page.screenshot({ path: join(SHOTS, `${name}.png`) });
-  if (PRINT_SHOTS) {
-    const buf = await page.screenshot({ type: "jpeg", quality: 45, scale: "css" });
-    console.log(`RAILSHOT ${name} ${buf.toString("base64")}`);
-  }
 }
 
 test("the signed-in route inventory is the app's own, and is not empty", () => {

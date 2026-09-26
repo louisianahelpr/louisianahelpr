@@ -25,6 +25,8 @@ import type { APIRequestContext, Browser } from "@playwright/test";
 import { ANON, SUPABASE_URL, type Session } from "../journeys/fixtures";
 import { openCardFields } from "../stripeCheckoutCard";
 import {
+  ACCEPTED_FIXTURE_TITLE,
+  planAcceptedJob,
   DISPUTE_FIXTURE_TITLE,
   FUNDED_FIXTURE_TITLE,
   NEW_FIXTURE_DAYS,
@@ -245,6 +247,95 @@ async function rpc<T>(api: APIRequestContext, s: Session, fn: string, args: Reco
 }
 
 /**
+ * Take a fixture job from wherever it stopped to HIRED, each step the app's
+ * own: fund (create-payment escrow + Stripe TEST checkout + webhook),
+ * helper-e2e applies (apply_to_job), poster-e2e hires (accept_application).
+ * Shared by the disputed and the accepted fixtures. Throws; never skips.
+ */
+async function driveToHired(
+  api: APIRequestContext,
+  browser: Browser,
+  poster: Session,
+  helper: Session,
+  id: string,
+  from: "fund" | "apply" | "hire",
+  fixture: "dispute" | "accepted",
+  log: string[],
+): Promise<void> {
+  if (from === "fund") await fund(api, browser, poster, await readRow(api, poster, id), log);
+  if (from === "fund" || from === "apply") {
+    // helper-e2e is free tier: the job is not theirs to see for 20 minutes.
+    await waitVisibleToHelper(api, helper, id, (await readRow(api, poster, id)).created_at, log);
+    await rpc<string>(api, helper, "apply_to_job", { p_job_id: id, p_message: `Prod-audit ${fixture} fixture application.` });
+    log.push(`helper-e2e applied to ${id}`);
+  }
+  // Then hire, whichever step it started from.
+  const apps = await readJson<{ id: string }[]>(
+    await api.get(`${SUPABASE_URL}/rest/v1/applications?job_id=eq.${id}&helper_id=eq.${helper.user.id}&status=eq.pending&select=id`, { headers: headers(poster) }),
+    "read the fixture application",
+  );
+  if (apps.length !== 1) throw new Error(`${fixture} fixture: expected one pending application on ${id}, found ${apps.length}`);
+  await rpc(api, poster, "accept_application", {
+    p_application_id: apps[0].id,
+    p_deadline: new Date(Date.now() + 24 * 3_600_000).toISOString(),
+    p_offer_message: null,
+  });
+  log.push(`poster-e2e hired helper-e2e on ${id}`);
+}
+
+/**
+ * nightly-red #1794: make sure one ACCEPTED job of poster-e2e, hired to
+ * helper-e2e, exists and will stay accepted (the decision is
+ * `planAcceptedJob`, read its header). Returns it plus a log. Throws on any
+ * refusal or a state that did not land; never skips.
+ */
+export async function ensureAcceptedJob(
+  api: APIRequestContext,
+  browser: Browser,
+  poster: Session,
+  helper: Session,
+): Promise<{ job: { id: string; title: string; date_needed: string }; log: string[] }> {
+  const log: string[] = [];
+  const rows = await readJson<Row[]>(
+    await api.get(
+      `${SUPABASE_URL}/rest/v1/jobs?select=${COLS}&customer_id=eq.${poster.user.id}&is_seed=is.true` +
+        `&title=like.${encodeURIComponent(`${ACCEPTED_FIXTURE_TITLE}*`)}&order=created_at.desc&limit=20`,
+      { headers: headers(poster) },
+    ),
+    "list accepted fixture jobs",
+  );
+  const pending = await readJson<{ job_id: string }[]>(
+    await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&status=eq.pending&select=job_id`, { headers: headers(helper) }),
+    "list helper-e2e applications",
+  );
+  const plan = planAcceptedJob(rows, { today: centralDatePlus(0), helperId: helper.user.id, appliedJobIds: new Set(pending.map((a) => a.job_id)) });
+  for (const { row, why } of plan.retire) log.push(`${await retireFundedJob(api, poster, row.id)} — ${why}`);
+  let id: string;
+  if (plan.kind === "reuse") {
+    id = plan.row.id;
+    log.push(`reused accepted ${id}`);
+  } else {
+    let from: "fund" | "apply" | "hire" = "fund";
+    if (plan.kind === "create") {
+      const row = await createFixtureRow(api, poster, `${ACCEPTED_FIXTURE_TITLE}: fix a sticking screen door`);
+      id = row.id;
+      log.push(`created ${id}`);
+    } else {
+      id = plan.row.id;
+      from = plan.next;
+      log.push(`resuming ${id} at ${from}`);
+    }
+    await driveToHired(api, browser, poster, helper, id, from, "accepted", log);
+  }
+  // The row is the fact, not the RPC's 200 (CLAUDE.md "A null error is not a write").
+  const after = await readRow(api, poster, id);
+  if (after.status !== "accepted" || after.helper_id !== helper.user.id || after.payment_status !== "escrow") {
+    throw new Error(`accepted fixture: ${id} is ${after.status}/${after.payment_status} (helper ${after.helper_id}), not accepted/escrow with helper-e2e`);
+  }
+  return { job: { id, title: after.title, date_needed: after.date_needed }, log };
+}
+
+/**
  * Q132: make sure one DISPUTED job between poster-e2e and helper-e2e exists
  * (the decision is `planDisputedJob`, read its header). Every step is the
  * app's own: fund (create-payment escrow + Stripe TEST checkout + webhook),
@@ -292,30 +383,7 @@ export async function ensureDisputedJob(
     next = plan.next;
     log.push(`resuming ${id} at ${next}`);
   }
-  if (next === "fund") {
-    await fund(api, browser, poster, await readRow(api, poster, id), log);
-    next = "apply";
-  }
-  if (next === "apply") {
-    // helper-e2e is free tier: the job is not theirs to see for 20 minutes.
-    await waitVisibleToHelper(api, helper, id, (await readRow(api, poster, id)).created_at, log);
-    await rpc<string>(api, helper, "apply_to_job", { p_job_id: id, p_message: "Prod-audit dispute fixture application." });
-    log.push(`helper-e2e applied to ${id}`);
-    next = "hire";
-  }
-  if (next === "hire") {
-    const apps = await readJson<{ id: string }[]>(
-      await api.get(`${SUPABASE_URL}/rest/v1/applications?job_id=eq.${id}&helper_id=eq.${helper.user.id}&status=eq.pending&select=id`, { headers: headers(poster) }),
-      "read the fixture application",
-    );
-    if (apps.length !== 1) throw new Error(`dispute fixture: expected one pending application on ${id}, found ${apps.length}`);
-    await rpc(api, poster, "accept_application", {
-      p_application_id: apps[0].id,
-      p_deadline: new Date(Date.now() + 24 * 3_600_000).toISOString(),
-      p_offer_message: null,
-    });
-    log.push(`poster-e2e hired helper-e2e on ${id}`);
-  }
+  if (next !== "dispute") await driveToHired(api, browser, poster, helper, id, next, "dispute", log);
   await rpc(api, poster, "rpc_open_dispute", {
     _job_id: id,
     _reason: "Prod-audit dispute fixture: the patch was left unsanded.",

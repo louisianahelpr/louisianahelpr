@@ -39,7 +39,15 @@
  *
  * READ-ONLY. It never writes, deletes or signs; it lists and compares.
  *
- * Usage:  node scripts/proof-photo-reference-check.mjs [--json] [--quiet]
+ * REPAIR (the one write, #1582 / Q389(a)): `--repair-seed-before <ISO>` removes
+ * the dangling values from is_seed jobs CREATED BEFORE that instant, and only
+ * those. The press-every-control clean-up passes the moment the source fix
+ * landed (a8d75d3b3, 2026-09-25T05:42:00Z: prod-lifecycle's teardown deleted
+ * proof objects under rows it left behind), so the residue that fix stopped is
+ * cleared, while a dangling value on a real job, or on a seed job made after
+ * the fix, is still red: a new source cannot be repaired away every night.
+ *
+ * Usage:  node scripts/proof-photo-reference-check.mjs [--json] [--quiet] [--repair-seed-before <ISO>]
  * Env:    SUPABASE_URL or SUPABASE_PROJECT_REF (or VITE_SUPABASE_URL),
  *         SUPABASE_SERVICE_ROLE_KEY
  * Exit:   0 every stored value resolves; 1 any dangling reference; 2 harness
@@ -51,6 +59,12 @@ import { createClient } from "@supabase/supabase-js";
 const args = process.argv.slice(2);
 const AS_JSON = args.includes("--json");
 const QUIET = args.includes("--quiet");
+const REPAIR_IDX = args.indexOf("--repair-seed-before");
+const REPAIR_BEFORE = REPAIR_IDX >= 0 ? Date.parse(args[REPAIR_IDX + 1] ?? "") : null;
+if (REPAIR_IDX >= 0 && !Number.isFinite(REPAIR_BEFORE)) {
+  console.error("::error::--repair-seed-before needs an ISO timestamp");
+  process.exit(2);
+}
 
 const BUCKET = "proof-photos";
 /** prod is a free-tier nano: pace every listing. */
@@ -88,13 +102,37 @@ export function storagePathFor(value) {
   return m[1].split("?")[0];
 }
 
+/**
+ * Which rows may be repaired, and to what. Only is_seed rows created before
+ * `before`; each gets its arrays with the dangling values removed.
+ * @param {{ jobId: string, col: string, value: string }[]} dangling
+ * @param {Map<string, { is_seed?: boolean|null, created_at?: string|null, proof_before_urls?: string[]|null, proof_after_urls?: string[]|null }>} rowsById
+ * @param {number} before epoch ms
+ */
+export function seedRepairPlan(dangling, rowsById, before) {
+  const plan = new Map();
+  for (const d of dangling) {
+    const row = rowsById.get(d.jobId);
+    if (!row || row.is_seed !== true) continue;
+    const created = Date.parse(row.created_at ?? "");
+    if (!Number.isFinite(created) || !(created < before)) continue;
+    const next = plan.get(d.jobId) ?? {
+      proof_before_urls: [...(row.proof_before_urls ?? [])],
+      proof_after_urls: [...(row.proof_after_urls ?? [])],
+    };
+    next[d.col] = next[d.col].filter((v) => v !== d.value);
+    plan.set(d.jobId, next);
+  }
+  return plan;
+}
+
 async function main() {
   const { url, key } = env();
   const db = createClient(url, key, { auth: { persistSession: false } });
 
   const { data: rows, error } = await db
     .from("jobs")
-    .select("id, is_seed, proof_before_urls, proof_after_urls")
+    .select("id, is_seed, created_at, proof_before_urls, proof_after_urls")
     .or("proof_before_urls.neq.{},proof_after_urls.neq.{}");
   if (error) {
     console.error(`::error::reading jobs failed: ${error.message}`);
@@ -128,7 +166,27 @@ async function main() {
     await sleep(PACE_MS);
   }
 
-  const dangling = resolvable.filter((s) => !present.has(storagePathFor(s.value)));
+  let dangling = resolvable.filter((s) => !present.has(storagePathFor(s.value)));
+
+  if (REPAIR_BEFORE !== null && dangling.length) {
+    const plan = seedRepairPlan(dangling, new Map((rows ?? []).map((r) => [r.id, r])), REPAIR_BEFORE);
+    const repaired = new Set();
+    for (const [jobId, next] of plan) {
+      const { data: upd, error: updErr } = await db
+        .from("jobs")
+        .update(next)
+        .eq("id", jobId)
+        .eq("is_seed", true)
+        .select("id");
+      if (updErr || (upd ?? []).length !== 1) {
+        console.error(`::error::repair of seed job ${jobId} failed: ${updErr?.message ?? `${(upd ?? []).length} rows updated`}`);
+        continue;
+      }
+      repaired.add(jobId);
+      console.log(`::warning title=proof-photo residue repaired::seed job ${jobId}: dropped references to objects that do not exist (created before ${new Date(REPAIR_BEFORE).toISOString()})`);
+    }
+    dangling = dangling.filter((d) => !repaired.has(d.jobId));
+  }
 
   const summary = {
     stored: stored.length,
@@ -163,7 +221,7 @@ async function main() {
   if (!QUIET) console.log("::notice::every stored proof-photo reference resolves to a live object");
 }
 
-main().catch((err) => {
+if (import.meta.url === `file://${process.argv[1]}`) main().catch((err) => {
   console.error(`::error::${err?.stack ?? err}`);
   process.exit(2);
 });

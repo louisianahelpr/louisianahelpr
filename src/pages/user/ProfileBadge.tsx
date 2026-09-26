@@ -110,9 +110,15 @@ export function ProfileBadge({
     typeof window !== "undefined" &&
     typeof window.matchMedia === "function" &&
     window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  // A mouse reaches the pill before it clicks, so hover has already opened
+  // it; Radix's click toggle would then close it again and the click reads
+  // as dead (nightly-red #1582, "no observable change"). The first click
+  // after a hover-open keeps it open instead.
+  const openedByHover = useRef(false);
   const hoverIn = () => {
     if (!canHover()) return;
     window.clearTimeout(closeTimer.current);
+    if (!open) openedByHover.current = true;
     setOpen(true);
   };
   const hoverOut = () => {
@@ -123,7 +129,13 @@ export function ProfileBadge({
   const sizedIcon = sizeIcon(icon);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) openedByHover.current = false;
+        setOpen(next);
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -132,6 +144,11 @@ export function ProfileBadge({
           style={style}
           onPointerEnter={hoverIn}
           onPointerLeave={hoverOut}
+          onClick={(e) => {
+            // preventDefault skips Radix's composed toggle (composeEventHandlers).
+            if (openedByHover.current && open) e.preventDefault();
+            openedByHover.current = false;
+          }}
         >
           {sizedIcon}
           {label}

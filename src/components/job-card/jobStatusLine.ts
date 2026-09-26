@@ -447,10 +447,11 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
   // A job-cancel close (Q274) is 'rejected' too, but nobody passed on this
   // applicant: let the job's own status speak.
   if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected";
-  // Money first (Q360), after the two states that say this job is no longer
-  // the reader's: a passed-over applicant is not told about someone else's
-  // payment.
-  const problem = problemWait(job);
+  // Money first (Q360), for everyone still on the job: a passed-over applicant
+  // (any rejection, a job-cancel close included) is not told about someone
+  // else's payment. appliedActivityBucket and AppliedJobCard's notice use the
+  // same `app.status !== "rejected"` gate.
+  const problem = app.status === "rejected" ? null : problemWait(job);
   if (problem) return problem;
 
   switch (job.status) {

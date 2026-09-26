@@ -3,6 +3,8 @@
 // @mutate src/components/job-card/jobStatusLine.ts | if (problem) return problem;\n  switch (job.status) { | switch (job.status) {
 // @mutate src/pages/posts/PostedJobCard.tsx | <PaymentProblemNotice job={job} /> | {null}
 // @mutate src/pages/jobs/AppliedJobCard.tsx | <PaymentProblemNotice job={job} /> | {null}
+// @mutate src/components/job-card/activityFilters.ts | if (cardPaymentProblem(j)) return "needs_you"; | if (false) return "needs_you";
+// @mutate src/components/job-card/activityFilters.ts | if (app.status !== "rejected" && cardPaymentProblem(app.job)) return "needs_you"; | if (false) return "needs_you";
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -23,6 +25,8 @@ import {
   helperStatusLine,
 } from "@/components/job-card/jobStatusLine";
 import { PaymentProblemNotice } from "@/components/job-card/PaymentProblemNotice";
+import { appliedActivityBucket, postedActivityBucket } from "@/components/job-card/activityFilters";
+import { Constants } from "@/integrations/supabase/types";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
 /**
@@ -233,5 +237,57 @@ describe("C. both parties' cards show the money problem, in the same words", () 
       expect(src, `${side} card no longer renders PaymentProblemNotice`).toMatch(/<PaymentProblemNotice job=\{job\} \/>/);
       expect(src, `${side} card no longer gates the notice on cardPaymentProblem`).toMatch(/cardPaymentProblem\(job\)/);
     }
+  });
+});
+
+/* ═════════════ D. the card is filed where someone looks (Q360 review) ═════════════ */
+
+describe("D. a money problem files the card under Needs You, for both parties", () => {
+  const STATUSES: readonly string[] = Constants.public.Enums.job_status;
+
+  it("inventory floor: every job status x every payment status", () => {
+    expect(STATUSES.length).toBeGreaterThan(6);
+    expect(PAYMENT_STATUSES.length).toBeGreaterThan(8);
+  });
+
+  it("poster and Helpr: needs_you iff cardPaymentProblem (for a party still on the job)", () => {
+    const wrong: string[] = [];
+    let problems = 0;
+    for (const status of STATUSES) {
+      for (const ps of PAYMENT_STATUSES) {
+        const j = job({ status, payment_status: ps });
+        if (!cardPaymentProblem(j)) continue;
+        problems++;
+        const posted = postedActivityBucket(j);
+        const applied = appliedActivityBucket(app(j));
+        if (posted !== "needs_you") wrong.push(`poster ${status}/${ps} -> ${posted}`);
+        if (applied !== "needs_you") wrong.push(`helper ${status}/${ps} -> ${applied}`);
+      }
+    }
+    expect(problems).toBeGreaterThan(10);
+    expect(wrong, "a money-problem card filed where nobody looks").toEqual([]);
+  });
+
+  it("the defect as reviewed: a chargeback after completion is not filed under Done", () => {
+    const j = job({ status: "completed", payment_status: "chargeback" });
+    expect(postedActivityBucket(j)).toBe("needs_you");
+    expect(appliedActivityBucket(app(j))).toBe("needs_you");
+    // Without the money problem the same job is Done on both sides.
+    const paid = job({ status: "completed", payment_status: "released" });
+    expect(postedActivityBucket(paid)).toBe("done");
+    expect(appliedActivityBucket(app(paid))).toBe("done");
+  });
+
+  it("a passed-over applicant is not pulled into Needs You by someone else's payment", () => {
+    const j = job({ status: "completed", payment_status: "chargeback", helper_id: "someone-else" });
+    const rejected = { ...app(j), status: "rejected" } as unknown as AppliedApp;
+    expect(appliedActivityBucket(rejected)).toBe("cancelled");
+    expect(helperStatusLine(rejected).id).not.toBe("bank_dispute");
+  });
+
+  it("the tab counts come from the same bucket functions (badges stay in sync)", () => {
+    const src = blankComments(readFileSync(join(process.cwd(), "src", "components", "job-card", "activityFilters.ts"), "utf8"));
+    expect(src).toMatch(/counts\[appliedActivityBucket\(a\)\]\+\+/);
+    expect(src).toMatch(/counts\[postedActivityBucket\(j,/);
   });
 });

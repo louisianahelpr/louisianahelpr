@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { isPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
+import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import {
   BUCKET_ORDER,
   BUCKET_LABEL,
@@ -217,11 +218,17 @@ export function postedActivityBucket(
     direct_offer_status?: string | null;
     date_needed?: string | null;
     expires_at?: string | null;
+    payment_status?: string | null;
   },
   /** Applications still AWAITING a decision — not every application ever filed. */
   pendingApplicantCount = 0,
   now: Date = new Date(),
 ): ActivityBucket {
+  // MONEY FIRST (Q360 review). A chargeback leaves jobs.status 'completed' (or
+  // wherever it was) and a declined card leaves it 'open', so every rule below
+  // would file the alarm card under Done or Waiting, where nobody looks. The
+  // same predicate the card's status line and notice use.
+  if (cardPaymentProblem(j)) return "needs_you";
   if (j.status === "cancelled") return "cancelled";
   if (j.status === "completed") return "done";
   // Work submitted and not yet approved, a revision I asked for, or an open
@@ -293,6 +300,10 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   // reader tells the applicant a poster turned them down. A job that merely
   // closed to someone else is still read here, from the missing job row.
   if (!app.job) return "cancelled";
+  // MONEY FIRST (Q360 review), for everyone still on the job: a passed-over
+  // applicant is not told about someone else's payment. Same predicate as the
+  // status line (deriveHelperWait) and AppliedJobCard's notice.
+  if (app.status !== "rejected" && cardPaymentProblem(app.job)) return "needs_you";
   if (app.status === "rejected" || jobStatus === "cancelled") return "cancelled";
   if (jobStatus === "completed") return "done";
   // An offer held for me, or a revision the poster asked for — my move, and the

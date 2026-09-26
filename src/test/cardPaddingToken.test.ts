@@ -63,7 +63,8 @@ const TOKEN = /(^|\s)p-card(?=\s|$)/;
 function survey() {
   const raw: Record<string, number> = {};
   let tokenUsers = 0;
-  for (const rel of sourceFiles("src")) {
+  const files = sourceFiles("src");
+  for (const rel of files) {
     const code = blankComments(read(rel));
     for (const m of code.matchAll(GLASS_STRING)) {
       const cls = m[2];
@@ -72,7 +73,7 @@ function survey() {
       if (TOKEN.test(cls)) tokenUsers++;
     }
   }
-  return { raw, tokenUsers };
+  return { raw, tokenUsers, files };
 }
 
 describe("liquid-glass card padding token (Q213b)", () => {
@@ -85,12 +86,13 @@ describe("liquid-glass card padding token (Q213b)", () => {
   });
 
   it("no liquid-glass string types a raw p-4/p-5 outside the exact exception list", () => {
-    const { raw, tokenUsers } = survey();
+    const { raw, tokenUsers, files } = survey();
     /*
      * INVENTORY FLOOR. With the string regex broken the survey finds no raw
      * padding and no token users, and the equality below would pass on an
      * empty object. 82 p-card strings on 2026-09-26.
      */
+    expect(files.length, "src .ts/.tsx files walked — the walk found nothing (938 on 2026-09-26)").toBeGreaterThan(900);
     expect(tokenUsers, "liquid-glass strings reading p-card — the survey is matching nothing").toBeGreaterThanOrEqual(75);
 
     // Stale direction, named per entry so a fixed card lowers the list.

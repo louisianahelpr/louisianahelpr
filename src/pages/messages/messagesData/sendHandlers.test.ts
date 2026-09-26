@@ -152,3 +152,85 @@ describe("sendMessage — client-flagged content, honest strike wording", () => 
 // blocked on this device, but apply_message_violation_consequence is never
 // asked, so nothing is recorded and no verdict copy is ever shown.
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | await logViolation(userId, cachedUser, violationDesc, content); | void 0;
+
+// docs/OPEN.md Q334: a thread already open when the other party deletes their
+// account kept its composer live (activeConvo.otherUserId still held the old
+// id), and the refused send said "tap it to try again". The refusal now asks
+// the server (get_thread_counterparty_deleted); when the person is gone the
+// open thread becomes the deleted-account thread (otherUserId null, read-only
+// notice) and the bubble is not retryable.
+// @mutate src/pages/messages/messagesData/sendHandlers.ts | (await fetchCounterpartyDeleted(optimistic.job_id, receiverId)) === true | false
+// @mutate src/pages/messages/messagesData/sendHandlers.ts |                 otherUserId: null, |                 otherUserId: prev.otherUserId,
+describe("dispatchMessage — the other party deleted their account mid-thread (Q334)", () => {
+  function refusedSend(deleted: boolean | "error") {
+    insertResult.data = null;
+    insertResult.error = { code: "42501", message: 'new row violates row-level security policy for table "messages"' };
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_thread_counterparty_deleted"
+        ? deleted === "error"
+          ? { data: null, error: { code: "PGRST202", message: "not found" } }
+          : { data: deleted, error: null }
+        : { data: null, error: null },
+    );
+    const setMessages = vi.fn();
+    const setActiveConvo = vi.fn();
+    const handlers = createSendHandlers({
+      userId: "user-1",
+      cachedUser: { user_metadata: { full_name: "Test User" } },
+      activeConvo: ACTIVE_CONVO,
+      messages: [] as Message[],
+      warningShown: false,
+      setWarningShown: vi.fn(),
+      setMessages,
+      setConversations: vi.fn(),
+      scrollToBottom: vi.fn(),
+      activeConvoRef: { current: ACTIVE_CONVO },
+      loadConversations: vi.fn(async () => {}),
+      setActiveConvo,
+    });
+    return { handlers, setMessages, setActiveConvo };
+  }
+
+  /** Apply every functional setState call in order to a starting value. */
+  function applyAll<T>(fn: ReturnType<typeof vi.fn>, start: T): T {
+    return fn.mock.calls.reduce(
+      (acc: T, [arg]: [unknown]) => (typeof arg === "function" ? (arg as (p: T) => T)(acc) : (arg as T)),
+      start,
+    );
+  }
+
+  it("flips the open thread to the deleted-account thread and marks the bubble refused, not retryable", async () => {
+    const { handlers, setMessages, setActiveConvo } = refusedSend(true);
+    await handlers.sendMessage("are you still coming tomorrow?");
+
+    expect(rpcMock).toHaveBeenCalledWith("get_thread_counterparty_deleted", {
+      _job_id: "job-1",
+      _other: "other-1",
+    });
+    const convo = applyAll<Conversation | null>(setActiveConvo, ACTIVE_CONVO);
+    expect(convo?.otherUserId).toBeNull();
+    expect(convo?.otherUserName).toBe("Former member");
+    const msgs = applyAll<Message[]>(setMessages, []);
+    expect(msgs.at(-1)?.sendStatus).toBe("refused");
+    const calls = toastError().mock.calls.map((c) => String(c[0]));
+    expect(calls.some((c) => /deleted/i.test(c))).toBe(true);
+    expect(calls.some((c) => /try again/i.test(c))).toBe(false);
+  });
+
+  it("keeps the ordinary retry, and the person, when the server says they are NOT deleted", async () => {
+    const { handlers, setMessages, setActiveConvo } = refusedSend(false);
+    await handlers.sendMessage("are you still coming tomorrow?");
+
+    const convo = applyAll<Conversation | null>(setActiveConvo, ACTIVE_CONVO);
+    expect(convo?.otherUserId).toBe("other-1");
+    expect(applyAll<Message[]>(setMessages, []).at(-1)?.sendStatus).toBe("failed");
+  });
+
+  it("falls back to today's retry when the check cannot be asked (RPC not deployed)", async () => {
+    const { handlers, setMessages, setActiveConvo } = refusedSend("error");
+    await handlers.sendMessage("are you still coming tomorrow?");
+
+    expect(applyAll<Conversation | null>(setActiveConvo, ACTIVE_CONVO)?.otherUserId).toBe("other-1");
+    expect(applyAll<Message[]>(setMessages, []).at(-1)?.sendStatus).toBe("failed");
+  });
+});

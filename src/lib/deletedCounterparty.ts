@@ -10,6 +10,8 @@
  * the PostgREST pair filter with `threadPairFilter`, which uses `is.null` for
  * the deleted side. Guard: src/test/messagesReceiverNullable.test.ts.
  */
+import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 /** Read-only notice that replaces the composer in that thread. Role-neutral. */
 export const DELETED_ACCOUNT_NOTICE =
@@ -26,4 +28,36 @@ export function threadPairFilter(me: string, other: string | null): string {
     return `and(sender_id.eq.${me},receiver_id.is.null),is_system.eq.true`;
   }
   return `and(sender_id.eq.${me},receiver_id.eq.${other}),and(sender_id.eq.${other},receiver_id.eq.${me}),is_system.eq.true`;
+}
+
+/** Toast when a send is refused because the other party has just deleted their account (Q334). */
+export const DELETED_ACCOUNT_TOAST = "This account has been deleted, so the message wasn't sent.";
+
+/**
+ * Q333/Q334: has the other party of this job thread deleted their account?
+ * Asked of the server (get_thread_counterparty_deleted), because the client's
+ * only local signal, get_safe_profiles returning nobody, is also what a
+ * banned, unverified or anonymised person looks like, and calling them
+ * "deleted" would be false.
+ *
+ * Returns true/false from the server, or null when it could not be asked
+ * (any error, including PGRST202 before the RPC is deployed): callers keep
+ * their existing handling on null, so the fallback is today's behaviour.
+ */
+export async function fetchCounterpartyDeleted(
+  jobId: string,
+  otherUserId: string,
+): Promise<boolean | null> {
+  if (!jobId || !otherUserId) return null;
+  const { data, error } = await supabase.rpc("get_thread_counterparty_deleted", {
+    _job_id: jobId,
+    _other: otherUserId,
+  });
+  if (error) {
+    if ((error as { code?: string }).code !== "PGRST202") {
+      report(error, { severity: "warning", tags: { source: "deletedCounterparty.fetchCounterpartyDeleted" } });
+    }
+    return null;
+  }
+  return data === true;
 }

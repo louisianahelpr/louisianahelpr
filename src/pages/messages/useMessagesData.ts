@@ -549,6 +549,19 @@ export function useMessagesData({
         toast.error(placeholder.problem);
         return;
       }
+      // Q333: the person behind the link deleted their account. Their
+      // messages to me went with them and mine now have no receiver, so the
+      // thread lives under this job's deleted-account row. Open that when the
+      // inbox has one; otherwise the read-only placeholder below.
+      if (placeholder.otherUserId === null) {
+        const deletedThread = (refreshed ?? []).find(
+          (c) => c.jobId === deepLinkJobId && c.otherUserId === null,
+        );
+        if (deletedThread) {
+          void openConvo(deletedThread);
+          return;
+        }
+      }
       setConversations((prev) => [placeholder, ...prev]);
       void openConvo(placeholder);
     })();

@@ -197,8 +197,31 @@ export function ceilingWaitMs({ minutes, now = Date.now(), ceiling, burst }) {
   return (minute + 1) * 60_000 - now + 50;
 }
 
-/** The burst estimate before any cycle has been measured; measured cycles only raise it. */
+/** The burst estimate before any cycle has been measured, and its floor. */
 export const MIN_CYCLE_BURST = 100;
+
+/**
+ * THE BURST ESTIMATE FOLLOWS THE RECENT CYCLES, NOT THE WORST ONE EVER.
+ *
+ * #1582, press run 36208184593 (2026-09-26, this pacing's first run): shard 1 averaged
+ * ~125 requests/min against a 400 ceiling and still did not reach 37 rows
+ * (14 before pacing). `/home` customer took 44 min for 81 presses and
+ * `/home` helper 50 min for 67 (9.5 and 8 min in run 36069319716): the
+ * estimate was the run's all-time largest cycle, so after one heavy cycle
+ * (a row's cold load, an opened feed) every later cycle waited for the next
+ * minute as soon as the current one held any traffic. And pacing to exactly
+ * the ceiling still let the busiest minute reach 455.
+ *
+ * So the estimate is the largest of the last RECENT_CYCLES cycles (floored at
+ * MIN_CYCLE_BURST), and the pacer aims PACE_HEADROOM below the ceiling, so a
+ * cycle heavier than its estimate lands under the limit rather than over it.
+ */
+export const RECENT_CYCLES = 6;
+export const PACE_HEADROOM = 0.85;
+export function cycleBurstEstimate(recent) {
+  const window = (recent ?? []).slice(-RECENT_CYCLES);
+  return Math.max(MIN_CYCLE_BURST, ...window);
+}
 
 /**
  * AN OVERLAY OPENED FROM THE HEADER IS THE SAME OVERLAY ON EVERY ROUTE.
@@ -261,3 +284,32 @@ export function landingSettled(samples, quietMs) {
   return last.t - samples[i].t >= quietMs;
 }
 export const LANDING_QUIET_MS = 1500;
+
+/**
+ * THE LOG IS THE ONLY REPORT A CLOUD TRIAGE CAN READ.
+ *
+ * Issue #1582 (run 36069319716): the per-row log line listed at most FOUR
+ * failures and never said WHY a control was left unpressed, so "90 control(s)
+ * unpressed without a documented reason" on shard 2 could not be traced to a
+ * single control from the log; coverage.md has it, but the shard artifacts are
+ * not downloadable from the agents that triage the red (the blob host is
+ * outside their network policy). Q389(b) stayed "not root-caused, needs the
+ * artifacts" for the same reason.
+ *
+ * So every FAILED press and every UNDOCUMENTED skip gets its own log line, in
+ * full, under the row's summary line. Documented skips and passes stay in
+ * coverage.md only: they are not what a red is made of.
+ *
+ * @param {{ route: string, persona: string, controls: readonly { chain?: readonly string[], result?: string, why?: string }[], documented: ReadonlySet<string>, max?: number }} a
+ * @returns {string[]}
+ */
+export function rowDetailLines({ route, persona, controls, documented, max = 700 }) {
+  const out = [];
+  for (const c of controls ?? []) {
+    const kind = c.result === "FAIL" ? "FAIL" : c.result === "SKIP" && !documented.has(c.why ?? "") ? "UNDOCUMENTED SKIP" : null;
+    if (!kind) continue;
+    const why = String(c.why ?? "").replace(/\s+/g, " ").slice(0, max);
+    out.push(`[${route} ${persona}]   ${kind} "${(c.chain ?? []).join(" › ")}" — ${why}`);
+  }
+  return out;
+}

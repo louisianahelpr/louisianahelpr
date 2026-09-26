@@ -2,12 +2,14 @@
 // as one JSON document (docs/OPEN.md Q290).
 //
 // Two halves, and why they live here rather than in the browser:
-//   1. The rows. `export_my_data()` (SECURITY DEFINER, migration
-//      20260925232153) returns the caller's rows from every table with a
-//      column that references a person. It is called with the CALLER's JWT,
-//      so auth.uid() inside it is the person asking, never a parameter anyone
-//      can set. The table list is guarded two-way against the schema by
-//      src/test/dataExportCoversEveryUserTable.test.ts.
+//   1. The rows. `export_my_data(p_user_id)` (SECURITY DEFINER; newest
+//      definition 20260926034548) returns that person's rows from every table
+//      with a column that references a person. EXECUTE is granted to
+//      service_role ONLY (Q408): this function is the one door, so the per-user
+//      rate limit below cannot be skipped by calling the RPC directly. The id
+//      passed is the one getUser() verified from the caller's JWT, never
+//      anything the request body says. The table list is guarded two-way
+//      against the schema by src/test/dataExportCoversEveryUserTable.test.ts.
 //   2. The files. The person's stored objects (the identity buckets under
 //      `<uid>/`, and the chat attachments on the messages in their export) are
 //      handed over as signed links. The identity buckets are listed and signed
@@ -73,7 +75,7 @@ serve(async (req) => {
     const { data: { user } } = await asUser.auth.getUser(authHeader.replace("Bearer ", ""));
     if (!user) return json({ error: "Unauthorized" }, 401);
 
-    const { data: exported, error: rpcError } = await asUser.rpc("export_my_data");
+    const { data: exported, error: rpcError } = await admin.rpc("export_my_data", { p_user_id: user.id });
     if (rpcError || !exported || typeof exported !== "object") {
       console.error("[export-my-data] export_my_data failed:", rpcError?.code, rpcError?.message);
       return json({ error: "We couldn't put your data together just now. Try again, or email support." }, 500);

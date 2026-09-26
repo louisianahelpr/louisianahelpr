@@ -2,6 +2,8 @@ name: Supabase Edge Functions Deploy
 
 permissions:
   contents: read
+  # Read this push's db-deploy run (the wait step before the RPC check).
+  actions: read
 
 # Auto-deploys edge functions when changes land on main. Same structural
 # fix as db-deploy.yml — closes the manual handoff that lets prod's
@@ -48,7 +50,9 @@ jobs:
   deploy:
     name: Deploy changed edge functions
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 60, not 15: the db-deploy wait below can take up to 45 minutes when
+    # that run is queued behind another (its concurrency group serializes).
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -225,6 +229,60 @@ jobs:
         run: |
           supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
+      # WAIT FOR THIS PUSH'S DB DEPLOY FIRST. Added 2026-09-26 (issue #1819).
+      #
+      # The RPC check below used to be the only wait, and it waited 300 s on
+      # the assumption that the migration lands "about a minute later". It is
+      # applied by db-deploy.yml, a separate workflow on the same push with
+      # three gate jobs and a serialized concurrency group: for #1812's merge
+      # (9f2021865) it ran 03:43:36-03:52:13Z, 8.6 minutes, and one on
+      # 2026-09-26 01:03Z took 20. So run 36215687560 gave up at 03:49:02Z
+      # ("public.export_my_data does not exist on prod"), three minutes before
+      # db-deploy created it, and uploaded NO function at all: export-my-data
+      # stayed 404 on prod, "Download My Data" failed for every user, and the
+      # _shared change (a deploy-all) never shipped either.
+      #
+      # This step removes the race rather than lengthening a guess: it waits
+      # for the db-deploy run of this exact commit to finish, whatever its
+      # conclusion, then lets the RPC check below give the verdict. No such
+      # run within 90 s means this push touched no db-deploy path, and the
+      # check below still fails closed on a missing RPC.
+      - name: Wait for this commit's db-deploy run to finish
+        if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          while :; do
+            ELAPSED=$(( $(date +%s) - START ))
+            # Newest db-deploy run for this exact commit: "<id> <status> <conclusion>".
+            RUN=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/db-deploy.yml/runs?head_sha=${SHA}&per_page=10" \
+              --jq '.workflow_runs | sort_by(.created_at) | last | if . == null then "" else "\(.id) \(.status) \(.conclusion // "none")" end')
+            if [ -z "$RUN" ]; then
+              if [ "$ELAPSED" -ge 90 ]; then
+                echo "No db-deploy run for ${SHA} after ${ELAPSED}s: this push changed no migration. The RPC check below still gives the verdict."
+                break
+              fi
+            else
+              read -r ID STATUS CONCLUSION <<< "$RUN"
+              if [ "$STATUS" = "completed" ]; then
+                echo "db-deploy run ${ID} for ${SHA} finished (${CONCLUSION}) after ${ELAPSED}s of waiting."
+                if [ "$CONCLUSION" != "success" ]; then
+                  echo "::warning::db-deploy run ${ID} concluded ${CONCLUSION}; the RPC check below decides whether any function can ship."
+                fi
+                break
+              fi
+              if [ "$ELAPSED" -ge 2700 ]; then
+                echo "::error::db-deploy run ${ID} for ${SHA} is still ${STATUS} after 45 minutes. Not deploying functions ahead of their migrations; re-run this workflow once it finishes."
+                exit 1
+              fi
+              echo "Waiting for db-deploy run ${ID} (${STATUS}) for ${SHA}..."
+            fi
+            sleep 20
+          done
+
       # A FUNCTION MUST NOT SHIP AHEAD OF AN RPC IT CALLS. Added 2026-09-23 (Q159).
       #
       # send-notification-email asks notification_crosses_seed_boundary()
@@ -234,8 +292,8 @@ jobs:
       # reads every `.rpc("<name>"` in supabase/functions against prod's
       # pg_proc and fails the deploy, before anything is uploaded, while one is
       # missing. --wait: the migration that adds the RPC usually lands in the
-      # same push and the Supabase GitHub integration applies it about a minute
-      # later, so a missing name is re-read for up to 5 minutes first.
+      # same push; the step above waited for db-deploy.yml to apply it, and a
+      # missing name is still re-read for up to 5 minutes (schema cache lag).
       - name: Verify every RPC an edge function calls exists on prod
         if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
         env:

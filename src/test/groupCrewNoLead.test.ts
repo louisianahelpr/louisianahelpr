@@ -78,19 +78,18 @@ const HELPER_ID_KEYED =
  * roster-aware one fails until it is taken off.
  */
 const SINGLE_HELPER_ONLY: Record<string, string> = {
-  block_user_and_settle: "settles a block against the single hired Helpr; a crew has none (Q408: crew block settlement)",
+  block_user_and_settle: "settles a block against the single hired Helpr; a crew has none (Q408: what a block between the poster and ONE member settles is an owner question)",
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",
   enforce_dispute_markers_server_owned: "a crew member cannot write jobs at all (no UPDATE policy match)",
   enforce_helper_completion_gates: "judges the single Helpr's job-level Done; a crew completes through the roster roll-up",
   enforce_helper_jobs_column_whitelist: "the single Helpr's jobs UPDATE whitelist; a crew member matches no jobs UPDATE policy",
-  get_helper_parish_badges: "counts single-helper jobs toward a badge (Q408: crew jobs in badge counts)",
   helper_abort_job: "the single Helpr aborting; a crew member leaves through helper_cancel_booking's crew branch",
   helper_mark_on_the_way: "single-helper tracking; a crew uses rpc_group_member_on_the_way",
   instant_book_claim: "instant book is single-helper; the no-lead trigger refuses it on a group job",
   mark_helper_arrival: "single-helper arrival; a crew uses rpc_group_member_mark_arrival",
   prevent_job_field_escalation: "a crew member cannot write jobs at all",
   rpc_helper_mark_done: "single-helper Done; a crew uses rpc_group_member_mark_done",
-  save_weekly_availability: "reads the caller's own single-helper bookings (Q408: crew bookings in availability)",
+  save_weekly_availability: "matches helper_availability.helper_id (the caller's own weekly hours), not jobs: nothing crew-specific (re-read for Q408)",
   user_has_pending_application: "a pending application, not a hire",
 };
 

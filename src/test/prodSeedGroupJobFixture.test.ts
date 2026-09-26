@@ -172,9 +172,9 @@ describe("prod-seed group job has no lead (trg_group_job_has_no_lead)", () => {
       .sort()
       .map((f) => readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, ""))
       .filter((sql) => /trg_group_job_has_no_lead/.test(sql))
-      .at(-1);
+      .pop();
     expect(last, "no migration defines trg_group_job_has_no_lead").toBeDefined();
-    expect(last!.split(/;\s*\n/).filter((st) => /trg_group_job_has_no_lead/.test(st)).at(-1)).toMatch(/create\s+trigger/i);
+    expect(last!.split(/;\s*\n/).filter((st: string) => /trg_group_job_has_no_lead/.test(st)).pop()).toMatch(/create\s+trigger/i);
     const fn = /async function applyGroupJob[\s\S]*?\n}/.exec(src)?.[0] ?? "";
     const jobsUpsert = /upsert\("jobs",[^\n]*/.exec(fn)?.[0] ?? "";
     expect(jobsUpsert, "applyGroupJob has no jobs upsert").not.toBe("");

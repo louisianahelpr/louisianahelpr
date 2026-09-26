@@ -1935,7 +1935,3 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   - `job_match_queue` rows marked 'dropped' leave `settled_at` null.
   - The seed-suppressed branch has no PGlite case.
   - OWNER: confirm that a 'dropped' row (e.g. blocked or seed) should also stop the other channel from sending.
-- [x] **Q724 Proof-photo signed-URL cache survives sign-out (Q718 batch 1 review, LOW, 2026-09-26).** DONE 2026-09-26: `signOutWithPushCleanup` now calls `resetProofPhotoSignCache()`. Class check `src/test/moduleCachesClearedOnSignOut.test.ts` classifies all 32 empty-constructed module Maps/Sets (exact, two-way) and requires every unkeyed user-data cache to be cleared on sign-out; proven red with the call removed and with a new unclassified Map.
-  - `src/lib/proofPhotoStorage.ts` keeps a module-level `signed` Map. Its only reset, `resetProofPhotoSignCache`, is called from `src/test/proofPhotoSigningIsBatched.test.ts` alone (grep of `src/`, 2026-09-26).
-  - Effect: after sign-out in the same tab, the next account can be handed a URL signed for the previous one for the rest of its ten-minute life.
-  - Fix: call it from `src/lib/authSignOut.ts`. Add a class check that every module-level Map/Set holding user-scoped data is cleared on sign-out.

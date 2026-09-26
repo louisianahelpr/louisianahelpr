@@ -9,6 +9,8 @@
  * reached it. The inventory is every `new Map()` / `new Set()` constructed
  * empty at module scope in non-test `src/`; the classification below must
  * match it exactly, in both directions.
+ *
+ * @mutate src/lib/authSignOut.ts | resetProofPhotoSignCache(); | void 0;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

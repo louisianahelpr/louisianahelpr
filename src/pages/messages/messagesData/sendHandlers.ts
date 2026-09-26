@@ -14,7 +14,12 @@ import {
 } from "@/lib/messagingLockout";
 import { RECIPIENT_RESTRICTED_TOAST, fetchRecipientRestricted } from "@/lib/recipientGate";
 import { OFF_JOB_TOAST, fetchOffJobState } from "@/lib/offJobGate";
-import { DELETED_ACCOUNT_NOTICE } from "@/lib/deletedCounterparty";
+import {
+  DELETED_ACCOUNT_NOTICE,
+  DELETED_ACCOUNT_TOAST,
+  fetchCounterpartyDeleted,
+} from "@/lib/deletedCounterparty";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 // Module-level so it survives the per-render re-creation of the handlers:
 // a blocked send logs at most ONE violation per unique (user, message) —
@@ -196,7 +201,39 @@ export function createSendHandlers({
       // loaded before the job completed, or a device clock behind the
       // server's). If that explains the refusal, say so and flip the thread
       // to its read-only notice instead of inviting a retry that cannot work.
-      if ((error as { code?: string } | null)?.code === "42501") {
+      const refusalCode = (error as { code?: string } | null)?.code;
+      // Q334: the other party deleted their account while this thread was
+      // open. The SET NULL reaches our rows, but the open thread still holds
+      // their old id, so the composer stayed live and the send is refused
+      // (RLS 42501: they are no longer the poster, Helpr or an applicant; or
+      // 23503 if the FK is what trips). Ask the server whether that is why; if
+      // so the thread becomes the deleted-account thread (read-only notice)
+      // and the bubble is non-retryable, instead of "tap to try again".
+      if (
+        (refusalCode === "42501" || refusalCode === "23503") &&
+        (await fetchCounterpartyDeleted(optimistic.job_id, receiverId)) === true
+      ) {
+        toast.error(DELETED_ACCOUNT_TOAST);
+        setActiveConvo?.((prev) =>
+          prev && prev.jobId === optimistic.job_id && prev.otherUserId === receiverId
+            ? {
+                ...prev,
+                otherUserId: null,
+                otherUserName: FORMER_MEMBER_LABEL,
+                otherUserAvatarUrl: null,
+              }
+            : prev,
+        );
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.clientId === optimistic.clientId ? { ...m, sendStatus: "refused" } : m,
+          ),
+        );
+        // The inbox regroups this thread under the job's deleted-account row.
+        loadConversations(userId!);
+        return;
+      }
+      if (refusalCode === "42501") {
         const closesAt =
           (await fetchMessagingClosesAt([optimistic.job_id])).get(optimistic.job_id) ?? null;
         if (isLockoutRefusal(error, closesAt)) {

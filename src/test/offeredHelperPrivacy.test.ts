@@ -212,6 +212,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:enforce_hire_columns_rpc_only": "no-return",
     "function:enforce_jobs_insert_column_lock": "no-return",
     "function:get_messaging_closes_at": "no-return",
+    // Q333/Q334: reads the column only to decide whether the caller has a
+    // thread on the job; returns a boolean about the OTHER party, never the offeree.
+    "function:get_thread_counterparty_deleted": "no-return",
     "function:get_open_jobs_for_map": "no-return",
     "function:get_public_open_jobs": "no-return",
     "function:get_ranked_open_jobs": "no-return",

@@ -10,6 +10,7 @@ import { fetchMessagingClosesAt } from "@/lib/messagingLockout";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import type { Conversation, Message } from "@/components/messages/types";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { fetchCounterpartyDeleted } from "@/lib/deletedCounterparty";
 
 /**
  * One person, resolved once.
@@ -384,9 +385,19 @@ export async function buildDeepLinkPlaceholder(
   // string "User" through `formatName`, which returned it verbatim — that is
   // where the bare "User" in a thread title came from.
   const resolved = indexProfiles(profileRes.data).get(deepLinkUserId);
+  // Q333: no profile but the job is still there. If the person DELETED their
+  // account (asked of the server: a missing profile is also what a banned or
+  // unverified person looks like), the link must open this job's
+  // deleted-account thread (`otherUserId: null`, read-only notice), never a
+  // live composer addressed to an id that no longer exists. The caller opens
+  // the existing deleted-account thread for this job when the inbox has one.
+  const counterpartyDeleted =
+    !profileFound && (await fetchCounterpartyDeleted(deepLinkJobId, deepLinkUserId)) === true;
   return {
-    otherUserId: deepLinkUserId,
-    otherUserName: resolved?.name || UNRESOLVED_PERSON,
+    otherUserId: counterpartyDeleted ? null : deepLinkUserId,
+    otherUserName: counterpartyDeleted
+      ? FORMER_MEMBER_LABEL
+      : resolved?.name || UNRESOLVED_PERSON,
     otherUserAvatarUrl: resolved?.avatarUrl ?? null,
     jobTitle: jobRes.data?.title || "a job",
     jobId: deepLinkJobId,

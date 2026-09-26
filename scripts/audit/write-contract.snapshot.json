@@ -1642,6 +1642,18 @@
     "nargs": 0
    }
   ],
+  "get_thread_counterparty_deleted": [
+   {
+    "anon": false,
+    "args": [
+     "_job_id",
+     "_other"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "get_user_credential_tier": [
    {
     "anon": false,
@@ -14673,6 +14685,13 @@
      "notNull": true,
      "type": "timestamp with time zone"
     },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
     "job_id": {
      "enum": null,
      "generated": false,
@@ -14684,7 +14703,7 @@
      "enum": null,
      "generated": false,
      "hasDefault": false,
-     "notNull": true,
+     "notNull": false,
      "type": "uuid"
     },
     "user_id": {

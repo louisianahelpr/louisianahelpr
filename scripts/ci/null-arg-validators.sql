@@ -70,6 +70,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_late_cancellation',          'classify', 'labels a cancellation late (fee ladder)'),
   ('is_seed_email',                 'classify', 'labels an address as a seed account'),
   ('is_user_error_screen_row',      'classify', 'labels an error_logs row as a user-facing error screen'),
+  ('get_thread_counterparty_deleted', 'classify', 'labels a thread''s other party as a deleted account (read-only notice); grants no access (it discloses one bit, account gone vs exists, see its migration), and a NULL argument returns false (threadCounterpartyDeleted.pglite.mjs)'),
   ('user_error_screen_is_real',     'classify', 'labels an error screen as real-user (ops alert counting)'),
   ('user_report_is_open',           'classify', 'labels a reports row still to-do in its admin queue (ledger close rule, Q64); NULL status = pending'),
   ('user_report_is_real',           'classify', 'labels a reporter as real (ledger routing, Q64); NULL reporter = a deleted account = real'),

@@ -4274,20 +4274,23 @@ export type Database = {
       thread_archives: {
         Row: {
           archived_at: string
+          id: string
           job_id: string
-          other_user_id: string
+          other_user_id: string | null
           user_id: string
         }
         Insert: {
           archived_at?: string
+          id?: string
           job_id: string
-          other_user_id: string
+          other_user_id?: string | null
           user_id: string
         }
         Update: {
           archived_at?: string
+          id?: string
           job_id?: string
-          other_user_id?: string
+          other_user_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -6081,6 +6084,10 @@ export type Database = {
       }
       get_service_role_key: { Args: never; Returns: string }
       get_supabase_url: { Args: never; Returns: string }
+      get_thread_counterparty_deleted: {
+        Args: { _job_id: string; _other: string }
+        Returns: boolean
+      }
       get_user_credential_tier: { Args: { p_user_id: string }; Returns: number }
       get_user_last_active: {
         Args: { user_ids: string[] }

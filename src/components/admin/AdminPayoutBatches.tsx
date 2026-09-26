@@ -34,6 +34,7 @@ import { BatchRow } from "./adminPayoutBatches/BatchRow";
 import { LedgerList } from "./adminPayoutBatches/LedgerList";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
+import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * Guard against a SILENT NO-OP on the money path.
@@ -282,7 +283,7 @@ const AdminPayoutBatches = () => {
       qc.invalidateQueries({ queryKey });
     } catch (err: unknown) {
       report(err, { tags: { source: "AdminPayoutBatches.triggerPayout" } });
-      toast.error(err instanceof Error ? err.message : "Couldn't trigger that payout — try again");
+      toast.error(userFacingError(err, "Couldn't trigger that payout — try again."));
     } finally {
       setPaying(null);
     }

@@ -39,6 +39,7 @@ import {
   formatPhone,
 } from "./completeProfile/constants";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
+import { userFacingError } from "@/lib/userFacingError";
 
 // Q292: an incomplete account cannot reach /profile (the gate sends it here),
 // so in-app deletion (Apple 5.1.1(v), GDPR Art. 17) has to be offered here.
@@ -489,7 +490,7 @@ const CompleteProfile = () => {
           contactLeakRejectionMessage(err)
             ?? (isWriteRejected(err)
               ? mutationErrorMessage(err)
-              : (err as { message?: string } | null | undefined)?.message || "We couldn't save your profile just yet — give it another try."),
+              : userFacingError(err, "We couldn't save your profile just yet — give it another try.")),
         );
       }
     } finally {

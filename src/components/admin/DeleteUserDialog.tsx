@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { requireBiometric } from "@/lib/biometricGate";
+import { userFacingError } from "@/lib/userFacingError";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -62,7 +63,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
       setConfirmText("");
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Couldn't delete that account — try again");
+      toast.error(userFacingError(err, "Couldn't delete that account — try again."));
     } finally {
       setDeleting(false);
     }

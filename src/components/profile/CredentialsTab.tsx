@@ -14,6 +14,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { queryKeys } from "@/lib/queryKeys";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface CredentialFields {
   is_licensed: boolean;
@@ -305,7 +306,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       hapticSuccess();
     } catch (err) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "Couldn't send your documents — try again?");
+      toast.error(userFacingError(err, "Couldn't send your documents — try again?"));
       // Objects we uploaded but couldn't attach to the profile are
       // unreferenced. Clear them so a failed send doesn't litter the private
       // bucket; the drafts stay put so the retry works.

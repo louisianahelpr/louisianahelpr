@@ -54,6 +54,14 @@ export const REPO = resolve(import.meta.dirname, "..");
  */
 export const GENERATED = [
   {
+    // SURFACE.md's toast count is read from this same scanner (Q228).
+    id: "toast-inventory",
+    script: "scripts/toast-inventory.mjs",
+    cmd: ["node", "scripts/toast-inventory.mjs"],
+    outputs: ["docs/audit/toast-inventory.json"],
+    what: "every toast call in src/ with its title/description copy (literal / template / dynamic), render status under toastPolicy, raw-error leaks",
+  },
+  {
     id: "surface",
     script: "scripts/audit-surface.mjs",
     cmd: ["node", "scripts/audit-surface.mjs"],

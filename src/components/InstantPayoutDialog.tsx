@@ -76,7 +76,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     if (error || data?.error) {
       hapticError();
       toast.error(
-        data?.error || (error ? await functionErrorMessage(error, "Payout failed") : "Payout failed")
+        data?.error || (error ? await functionErrorMessage(error, "Your instant payout didn't go through — try again?") : "Your instant payout didn't go through — try again?")
       );
       return;
     }

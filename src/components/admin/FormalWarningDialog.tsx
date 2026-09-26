@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { userFacingError } from "@/lib/userFacingError";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -76,7 +77,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Action failed");
+      toast.error(userFacingError(err, "Couldn't send that warning — try again."));
     } finally {
       inFlight.current = false;
       setBusy(false);

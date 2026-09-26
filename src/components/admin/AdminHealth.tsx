@@ -21,6 +21,7 @@ import { useOpenAlerts } from "./adminHealth/useOpenAlerts";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * One check row. Extracted so the Configuration and Scheduled-jobs cards render
@@ -133,11 +134,11 @@ const AdminHealth = () => {
       } else if ((result.sent ?? 0) > 0) {
         confirmConsequential(`Pushed to ${result.sent}/${result.total} device${result.total === 1 ? "" : "s"}`, { description: "Check your phone." });
       } else {
-        toast.error("All sends failed", { description: `0 of ${result.total} succeeded` });
+        toast.error("All sends failed", { description: `0 of ${result.total} succeeded.` });
       }
     } catch (err) {
       report(err, { tags: { source: "AdminHealth.sendTestPush" } });
-      toast.error("Test push failed", { description: err instanceof Error ? err.message : String(err) });
+      toast.error("Test push failed", { description: userFacingError(err, "Try again in a minute.") });
     } finally {
       setSendingTestPush(false);
     }

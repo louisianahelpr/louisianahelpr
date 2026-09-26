@@ -125,7 +125,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     }).select("id");
     setSaving(false);
     if (error) {
-      toast.error(userFacingError(error, "Couldn't save that note — try again"));
+      toast.error(userFacingError(error, "Couldn't save that note — try again."));
       return;
     }
     await logAdminAction("admin_note_add", "user", userId, { note_id: created?.[0]?.id, category: newCategory });
@@ -177,7 +177,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       }
       // Deliberately does NOT call cancelEdit(): the editor stays open with the
       // text the admin wrote, so a refused save can be retried rather than lost.
-      toast.error(mutationErrorMessage(err, "Couldn't update that note — try again"));
+      toast.error(mutationErrorMessage(err, "Couldn't update that note — try again."));
       return;
     }
     await logAdminAction("admin_note_edit", "user", userId, { note_id: id, category: editingCategory });
@@ -207,7 +207,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
           tags: { source: "AdminUserNotes.removeNote" },
         });
       }
-      toast.error(mutationErrorMessage(err, "Couldn't delete that note — try again"));
+      toast.error(mutationErrorMessage(err, "Couldn't delete that note — try again."));
       return;
     }
     setDeleting(false);

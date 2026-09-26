@@ -12,7 +12,7 @@
 // @mutate supabase/migrations/20260924013122_settle_without_payment_closes_funding.sql |         where d.job_id = p_job_id and d.status = 'decided') then | where false) then
 // @mutate supabase/functions/create-payment/index.ts |       if (decidedDisputes && decidedDisputes.length > 0) { |       if (false) {
 // @mutate supabase/functions/create-payment/index.ts |           .not("status", "in", `(${[...FUNDING_CLOSED_JOB_STATUSES].join(",")})`); | ;
-// @mutate src/components/admin/AdminDisputes.tsx |       report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });\n      toast.error(userFacingError(err, "Couldn't close that settlement — try again")); | throw err;
+// @mutate src/components/admin/AdminDisputes.tsx |       report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });\n      toast.error(userFacingError(err, "Couldn't close that settlement — try again.")); | throw err;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { readFileSync, readdirSync } from "node:fs";

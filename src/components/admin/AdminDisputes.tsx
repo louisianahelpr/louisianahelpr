@@ -315,7 +315,7 @@ const AdminDisputes = () => {
       }
       loadDisputes();
     } catch (err: unknown) {
-      toast.error(userFacingError(err, "Couldn't resolve that dispute — try again"));
+      toast.error(userFacingError(err, "Couldn't resolve that dispute — try again."));
     } finally {
       resolveInFlight.current = false;
       setResolving(null);
@@ -416,7 +416,7 @@ const AdminDisputes = () => {
     try {
       await settle(job, disputeId);
     } catch (err: unknown) {
-      toast.error(userFacingError(err, "Couldn't retry that settlement — try again"));
+      toast.error(userFacingError(err, "Couldn't retry that settlement — try again."));
     } finally {
       setRetrying(null);
       loadDisputes();
@@ -446,7 +446,7 @@ const AdminDisputes = () => {
         { _dispute_id: disputeId, _note: note.trim() },
       );
       if (error) {
-        toast.error(rpcErrorMessage("rpc_settle_dispute_without_payment", error) ?? userFacingError(error, "Couldn't close that settlement — try again"));
+        toast.error(rpcErrorMessage("rpc_settle_dispute_without_payment", error) ?? userFacingError(error, "Couldn't close that settlement — try again."));
         return;
       }
       confirmConsequential("Settlement closed. No payment was on file, so nothing moved.");
@@ -454,7 +454,7 @@ const AdminDisputes = () => {
       // A thrown call (network drop, client fault) never reached the RPC's
       // refusals above: say so, and report it, instead of an unhandled rejection.
       report(err, { tags: { source: "AdminDisputes.closeWithoutPayment" } });
-      toast.error(userFacingError(err, "Couldn't close that settlement — try again"));
+      toast.error(userFacingError(err, "Couldn't close that settlement — try again."));
     } finally {
       setRetrying(null);
       loadDisputes();
@@ -556,7 +556,7 @@ const AdminDisputes = () => {
       setHelperShare(50);
       loadDisputes();
     } catch (err: unknown) {
-      toast.error(userFacingError(err, "Couldn't record that decision — try again"));
+      toast.error(userFacingError(err, "Couldn't record that decision — try again."));
     } finally {
       setSubmittingDecision(false);
     }

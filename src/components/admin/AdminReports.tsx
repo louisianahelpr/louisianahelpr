@@ -273,7 +273,7 @@ const AdminReports = () => {
           toast.error(mutationErrorMessage(fallbackErr, "Couldn't assign that report — try again."));
         }
       } else {
-        toast.error(userFacingError(error, "Couldn't update that report — try again"));
+        toast.error(userFacingError(error, "Couldn't update that report — try again."));
       }
     } else if (!rows || rows.length === 0) {
       // Zero rows on the primary path — same treatment as the fallback: report

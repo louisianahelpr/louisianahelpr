@@ -1,8 +1,8 @@
 # Launch audit — findings rollup
 
-_Generated from findings.jsonl as of its newest entry (2026-09-26T04:05:14.169Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
+_Generated from findings.jsonl as of its newest entry (2026-09-26T04:30:29.111Z). Do not hand-edit — run `node scripts/audit-bus.mjs rollup`._
 
-**21 open findings** · 2 open launch blockers · 340 fixed · 1 wontfix · 22 obsolete · 14 retracted · 31 duplicate · 429 filed all time
+**20 open findings** · 2 open launch blockers · 341 fixed · 1 wontfix · 22 obsolete · 14 retracted · 31 duplicate · 429 filed all time
 
 ## HIGH (113)
 
@@ -341,7 +341,7 @@ What IS verified working, so it is not re-audited: both providers are genuinely 
 | VD-002 |  | fixed | `NavQuickMenu (bottom nav long-press, 375)` | Long-press quick menu was not centred on its tab: framer-motion's inline transform ends as 'none' and wipes Tailwind -translate-x-1/2, so the panel's left edge sat on the tab centre; Messages menu spanned x 206-430 in a 375 viewport (55px clipped). Menu also took no focus, so Tab walked the page behind it. | visual-dialogs | 1 |
 | VD-004 |  | fixed | `Chat photo message (MessageAttachment)` | Sending a photo in chat rendered 'Couldn't Load Photo' on the sender's own message until reload: the first single-object createSignedUrl right after a 200 upload returned 404 NoSuchKey (storage read-after-write lag), and the component treated one null as terminal. | visual-dialogs | 1 |
 | VD-005 |  | fixed | `Photo viewers (dashboard PhotoLightbox, MessageAttachment lightbox)` | Both hand-rolled full-screen photo viewers opened without taking focus and did not trap Tab: focus stayed on the thumbnail behind, and inside JobDetailDialog Radix's FocusScope kept Tab cycling on 'View photos' underneath, so the viewer's Close was unreachable by keyboard and never announced. | visual-dialogs | 2 |
-| BR-024 |  | filed | `Supabase Management API — version/ezbr_sha256 fields for ~40 edge functions` | version and ezbr_sha256 are NOT deploy evidence for the ~40 functions whose entrypoint_path the platform has rewritten to /app/... They churn continuously with no deploy: measured health-check 1305->1307 and money-reconciliation 986->988 inside 9 minutes with no CI run, both landing on the identical updated_at 1790097325917. That is how create-payment reached version 2191. Any staleness audit keyed on updated_at/version will report those 40 as fresh regardless of the truth; only a content read is decisive for them. | lh-build-release | 1 |
+| BR-024 |  | fixed | `Supabase Management API — version/ezbr_sha256 fields for ~40 edge functions` | version and ezbr_sha256 are NOT deploy evidence for the ~40 functions whose entrypoint_path the platform has rewritten to /app/... They churn continuously with no deploy: measured health-check 1305->1307 and money-reconciliation 986->988 inside 9 minutes with no CI run, both landing on the identical updated_at 1790097325917. That is how create-payment reached version 2191. Any staleness audit keyed on updated_at/version will report those 40 as fresh regardless of the truth; only a content read is decisive for them. | lh-build-release | 1 |
 | BR-025 |  | fixed | `prod edge-function deploy pipeline` | Supabase accepts and discards a fraction of edge-function uploads. Measured twice today: run 35756822730 lost 8 of 64 uploads, run 35761183146 lost 3 of 58, and the two sets do not overlap — it is intermittent, not a per-function property (create-pro-checkout, lost twice in a row, landed on the third attempt unchanged). Root cause is inside the CLI or the platform, not this repo: the CLI itself printed 'Deployed Functions on project ***: X' for every lost function, so the workflow's exit-code branch was not the swallower. Mitigated, not cured, by the retry in 3470ad103. | lh-build-release | 1 |
 
 ## LOW (72)

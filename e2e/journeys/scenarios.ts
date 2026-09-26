@@ -50,6 +50,36 @@ export const REAL_BACKEND_UNREACHABLE: Partial<Record<AccountState, string>> = {
   banned: "needs a dedicated seed account banned via admin tooling and restored; banning a shared account breaks every lane",
 };
 
+/**
+ * OUTCOMES no journey drives, and why (Q253). Every other OUTCOMES entry must be
+ * the `outcome` of a real journey test (a `scenarioTitle({ … outcome: "x" })` or
+ * 02-marketplace's `title(…, "x")`) — src/test/journeyOutcomesDriven.test.ts
+ * holds the two sides to each other in both directions. Each entry here is
+ * announced as `uncovered` at run time by 04-money-outcomes.spec.ts.
+ *
+ * `elsewhere` names the real-backend file that DOES drive the outcome outside
+ * the journeys, and the door it calls there; the guard checks the door is still
+ * in that file's code.
+ */
+export const OUTCOME_UNDRIVEN: Partial<Record<Outcome, { why: string; elsewhere?: { file: string; door: string } }>> = {
+  "no-show": {
+    why:
+      "report_helper_no_show strikes the Helpr it names: apply_consequence_ladder writes a user_violations 'no_show' row and sets " +
+      "ban_status = 'final_warning' (pg_get_functiondef on prod, 2026-09-26), undoable only by an admin, and " +
+      "auto_restrict_repeat_violators counts that row, so the next counted violation temp-bans the account for 7 days. " +
+      "The only Helpr a journey has is the shared helper, whose lock-out breaks every lane. It also needs a funded, hired " +
+      "job whose scheduled start has PASSED with no arrival. Needs a dedicated seed Helpr the run may strike and an " +
+      "admin reversal after (owner: credentials).",
+  },
+  disputed: {
+    why:
+      "every rpc_open_dispute pages #ops-alerts (open_dispute_as -> notify_ops_dispute_filed) and freezes the escrow for " +
+      "an admin decision, so a nightly journey does not open a fresh one; prod-audit keeps ONE disputed fixture instead " +
+      "and drives the disputed screens against it.",
+    elsewhere: { file: "e2e/prod-audit/fundedOpenJob.ts", door: '"rpc_open_dispute"' },
+  },
+};
+
 export type Rotation = { device: Device; network: Network; data: DataVolume };
 
 /** A pairwise covering array over device x network x data (18 rows, every pair at least once). */

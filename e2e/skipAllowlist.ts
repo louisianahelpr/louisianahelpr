@@ -48,6 +48,12 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     why: "a dispatch with SCENARIO=<one journey> runs only that journey; every other journey is out of scope for the run by request",
   },
   {
+    file: "e2e/journeys/04-money-outcomes.spec.ts",
+    match: "money outcomes run in Chromium only",
+    verdict: "justified",
+    why: "the money-outcome legs are REST calls plus Stripe's hosted Checkout page, which 02-marketplace already drives in WebKit; a second engine would double every Stripe test charge and prod write for no new surface",
+  },
+  {
     file: "e2e/prod-audit/messy-input.spec.ts",
     match: "test.skip(...args)",
     verdict: "justified",

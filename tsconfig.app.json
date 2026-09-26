@@ -56,6 +56,11 @@
     // src/test/stateMatrixPendingApprovalUnreachable.test.ts (Q251) imports the
     // manifest enumerator to assert pending_approval cells are unreachable.
     "e2e/happy-path/state-matrix/stateMatrix.ts",
+    // Journey coverage registries, imported by src/test/journeyOutcomesDriven,
+    // notificationProducersCovered and adminWritePathsDriven (Q253/Q230/Q226).
+    "e2e/journeys/scenarios.ts",
+    "e2e/journeys/notifications/producers.ts",
+    "e2e/journeys/adminWritePaths.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/forEachBounded.ts",
     "supabase/functions/_shared/reservedRecipient.ts",

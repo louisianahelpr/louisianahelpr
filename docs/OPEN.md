@@ -1012,6 +1012,19 @@ sure someone hears it and closes it.
     Correction: the earlier "prod 0.0589 → fixed 0" for the below-rows build was not re-confirmed on prod (prod
     still served the bar on top when re-measured). WebKit shots ~/.lh-shots/mq28-top-{375,1440}.png (reviewed ok).**
 
+29. **PR #1810 (Q392): which parish job-match alert design stays? (2026-09-26).** PR #1810 and main
+    (20260926041132, Q225/V-008) both fix "parish alert arrives before early access shows the job", differently:
+    (A) KEEP MAIN'S queue-only design (every send goes through the 1-minute sweep, so elite/no-delay users hear up
+    to ~60s later; nothing sent inside the funding write) and ADD the PR's block check (`user_blocks`, both ways)
+    and shared `job_announceable_to()` gate. A user who deletes the alert can be told again if the job reopens.
+    (B) TAKE THE PR'S design: elite/no-delay users told inline at funding (incl. email via net.http_post inside the
+    escrow write), a permanent per-(user, job) `job_match_queue` ledger so nobody is ever told twice, block check;
+    main's `parish_match_alert_queue` and its sweep step are retired.
+    Measured live (pg_get_functiondef, prod): neither `notify_helpers_on_job_post` nor `deliver_parish_match_alert`
+    checks `user_blocks` today; `deliver_job_match`/`job_announceable_to` do not exist on prod.
+    Not blocked by this: the PR's instant-match half, digest gating, export_my_data line, and Q401 (auth-page
+    noindex) are being landed separately. The PR's old-timestamp migrations must never reach main as-is.
+
 ## CARRIED — still open from the sections archived 2026-09-23
 
 Every unchecked box and every section marked OPEN / STILL OPEN / HEADS-UP /

@@ -8,7 +8,7 @@
  * definition's set of p_source literals must contain the previous one's.
  * Removing a branch on purpose means listing it in KNOWN_DROPPED (exact).
  *
- * @mutate supabase/migrations/20260923215732_cron_http_untagged_close_rule.sql |   ELSIF p_source = 'user-report' THEN |   ELSIF p_source = 'user-report-x' THEN
+ * @mutate supabase/migrations/20260925155922_admin_queue_alerts_close_themselves.sql |   ELSIF p_source = 'user-report' THEN |   ELSIF p_source = 'user-report-x' THEN
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

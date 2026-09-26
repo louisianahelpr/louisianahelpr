@@ -4,6 +4,7 @@ import { feePercentForTier } from "../_shared/helperFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { TIER_ORDER, TIER_PERK_MATRIX } from "../_shared/tierPerks.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 // The "Pro+" weekly report rides the Advanced Analytics perk. Derived from the
 // perk matrix, not a hand-kept list: a hardcoded ["pro","elite"] silently
@@ -18,7 +19,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

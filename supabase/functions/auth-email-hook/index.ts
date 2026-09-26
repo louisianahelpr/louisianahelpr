@@ -11,6 +11,7 @@ import { ReauthenticationEmail } from '../_shared/email-templates/reauthenticati
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { FROM_DEFAULT, SENDER_DOMAIN } from '../_shared/resend.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 // ED-002: every failure branch here blocks a signup confirmation, password
 // reset or magic link. One user sees an error; a SYSTEMIC failure (secret
@@ -284,7 +285,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   )
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   const url = new URL(req.url)
 
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })

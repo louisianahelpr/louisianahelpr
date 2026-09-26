@@ -7,6 +7,7 @@ import { banConfirmedMessage, banDismissedMessage, banReviewCopy } from './banRe
 import { AdminActionEmail, type AdminActionCallout } from '../_shared/email-templates/admin-action.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,7 +58,7 @@ function emailStatusFields(result: { ok: boolean }) {
     : { email_sent: false, email_error: 'Notification email could not be queued.' }
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   // Same shape and budget as admin-delete-user. Admin-only endpoints are not

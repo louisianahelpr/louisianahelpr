@@ -36,7 +36,7 @@
 // theft. When the pre-check is bypassed, raced, or simply offline, the only
 // safe move is to GRANT and FLAG. That asymmetry is deliberate.
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { TIER_FEE_PERCENT, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";

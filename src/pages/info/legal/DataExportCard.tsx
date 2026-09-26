@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { report } from "@/lib/errorLogger";
-import { JOB_READABLE_COLUMNS } from "@/lib/jobColumns";
 import { hapticError } from "@/lib/haptics";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { toast } from "sonner";
@@ -71,27 +70,19 @@ export function DataExportCard() {
     if (!userId) return;
     setExporting(true);
     try {
-      const [profileRes, jobsRes, applicationsRes, reviewsRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
-        // Named columns, not `*`: jobs.offered_to_helper_id is not selectable
-        // (20260915045110, owner decision 2026-09-14) and `*` 42501s the read.
-        supabase.from("jobs").select(JOB_READABLE_COLUMNS).or(`customer_id.eq.${userId},helper_id.eq.${userId}`),
-        supabase.from("applications").select("*").eq("helper_id", userId),
-        supabase.from("reviews").select("*").or(`reviewer_id.eq.${userId},reviewee_id.eq.${userId}`),
-      ]);
-
-      // Never drop the Supabase `error` — a swallowed failure would hand the
-      // user a JSON file full of `null` and call it their data export.
-      const firstError = profileRes.error || jobsRes.error || applicationsRes.error || reviewsRes.error;
-      if (firstError) throw firstError;
-
-      const payload = {
-        exported_at: new Date().toISOString(),
-        profile: profileRes.data,
-        jobs: jobsRes.data,
-        applications: applicationsRes.data,
-        reviews: reviewsRes.data,
-      };
+      // One server call for the whole account (Q290). The edge function runs
+      // export_my_data() as this user (every table with a column that
+      // references a person: messages, payouts, reports filed, legal
+      // acceptances, login history and the rest; the list is guarded two-way
+      // against the schema by src/test/dataExportCoversEveryUserTable.test.ts)
+      // and adds signed links to the person's stored files. It fails closed:
+      // an error, never a file that silently leaves part of the account out.
+      const { data, error } = await supabase.functions.invoke("export-my-data");
+      if (error) throw error;
+      if (!data || typeof data !== "object" || !("exported_at" in data)) {
+        throw new Error("export-my-data returned no export");
+      }
+      const payload = { ...(data as Record<string, unknown>) };
 
       // `saveOrShareFile`, never `<a download>` + blob URL: WKWebView honours
       // neither, so on iOS the old handoff fetched every row and produced no
@@ -134,7 +125,7 @@ export function DataExportCard() {
               Download your data
             </h2>
             <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
-              Get a complete copy of your Helpr data — profile, posted jobs, applications, and reviews — as a single JSON file.
+              Get a copy of everything your Helpr account holds — profile, jobs, messages, payments, reviews, settings, and links to your uploaded files — as a single JSON file.
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import * as React from "npm:react@18.3.1";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";

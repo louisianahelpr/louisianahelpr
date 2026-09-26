@@ -12,6 +12,7 @@
 // 1 req/sec, so this sleeps between calls rather than firing in parallel.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,7 +69,7 @@ async function geocodeAddress(address: string | null | undefined): Promise<Geoco
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

@@ -25,7 +25,7 @@
 //   3. A poster with no saved card is never silently skipped forever — the
 //      row records why and is marked prompted, so the app can ask them once.
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";

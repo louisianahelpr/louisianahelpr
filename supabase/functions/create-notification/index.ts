@@ -7,6 +7,7 @@ import {
   SELF_TEST_TEMPLATE,
   type TemplateFacts,
 } from "../_shared/notification-templates.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,7 +80,7 @@ function resolveTemplateJobId(body: Record<string, unknown>): string | null {
   return null;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

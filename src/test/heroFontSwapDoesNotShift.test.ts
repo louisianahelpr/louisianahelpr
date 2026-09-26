@@ -29,7 +29,17 @@ import { blankComments } from "./helpers/blankNonCode";
 const ROOT = resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 const css = blankComments(read("src/index.css"));
-const html = read("index.html").replace(/<!--[\s\S]*?-->/g, "");
+/** index.html without its comments (a loop, not a one-pass regex, so no comment survives). */
+function withoutHtmlComments(src: string): string {
+  let out = src;
+  for (;;) {
+    const start = out.indexOf("<!--");
+    if (start < 0) return out;
+    const end = out.indexOf("-->", start + 4);
+    out = end < 0 ? out.slice(0, start) : out.slice(0, start) + out.slice(end + 3);
+  }
+}
+const html = withoutHtmlComments(read("index.html"));
 
 type Face = { family: string; style: string; weight: string; src: string; range: string };
 const faces: Face[] = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => {

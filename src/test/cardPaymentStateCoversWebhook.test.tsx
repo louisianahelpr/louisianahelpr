@@ -185,7 +185,7 @@ const job = (over: Record<string, unknown>) =>
   ({
     id: "job-1", title: "Porch repaint", category: "painting", budget: 200,
     status: "completed", customer_id: "poster-1", helper_id: HELPER,
-    date_needed: "2026-09-20", start_time: "09:00", payment_status: "released", ...over,
+    date_needed: "2024-09-20", start_time: "09:00", payment_status: "released", ...over,
   }) as unknown as Job;
 const app = (j: Job) =>
   ({ id: "app-1", job_id: j.id, helper_id: HELPER, status: "accepted", posterName: "Pierre B.", job: j }) as unknown as AppliedApp;

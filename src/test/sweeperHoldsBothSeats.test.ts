@@ -33,9 +33,9 @@
 
 // @mutate scripts/e2e/sweep-both-seats.sh | HELPER_ACCESS_TOKEN="$HTOKEN" SWEEP_PHASE="$SWEEP_PHASE" exec node | exec node
 // @mutate .github/workflows/e2e-abuse-notifications.yml |     concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    strategy: |     strategy:
-// @mutate .github/workflows/e2e-journeys.yml |           SWEEP_PHASE: teardown | SWEEP_PHASE: pre
-// @mutate .github/workflows/slow-network.yml |           E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }} | E2E_STRIPE_MODE: test
-// @mutate .github/workflows/e2e-abuse-notifications.yml |           PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }} | PLAYWRIGHT_LIFECYCLE_JOB_ID: ""
+// @mutate .github/workflows/e2e-real-backend.yml |           SWEEP_PHASE: teardown | SWEEP_PHASE: pre
+// @mutate .github/workflows/slow-network.yml |           SWEEP_PHASE: teardown\n          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }} |           SWEEP_PHASE: teardown\n          E2E_STRIPE_MODE: test
+// @mutate .github/workflows/e2e-abuse-notifications.yml |           SWEEP_PHASE: teardown\n          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}\n          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }} |           SWEEP_PHASE: teardown\n          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}\n          PLAYWRIGHT_LIFECYCLE_JOB_ID: ""
 // @mutate scripts/e2e/stripe-sandbox-off.sh | gh variable set E2E_STRIPE_MODE --body live | gh variable list
 // @mutate scripts/e2e/stripe-sandbox-off.sh |   exit 1\nfi\n\nread -r -s -p "Paste your sk_live key: " |   true\nfi\n\nread -r -s -p "Paste your sk_live key: "
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | export const SETTLE_FORWARD_MIN_AGE_MS = 6 * 60 * 60 * 1000; | export const SETTLE_FORWARD_MIN_AGE_MS = 2 * 60 * 60 * 1000;

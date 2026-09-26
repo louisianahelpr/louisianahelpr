@@ -70,9 +70,13 @@ export function extractProofPhotoPath(urlOrPath: string | null | undefined): str
 type SignedEntry = { url: string; expiresAt: number };
 const signed = new Map<string, SignedEntry>();
 const inFlight = new Map<string, Promise<void>>();
+// Bumped on every reset, so a batch that was already in flight when the
+// previous account signed out cannot write its signed URLs back afterwards.
+let generation = 0;
 
 /** Forget every signed URL and pending batch: sign-out (authSignOut.ts) and tests. */
 export function resetProofPhotoSignCache(): void {
+  generation += 1;
   signed.clear();
   inFlight.clear();
 }
@@ -87,6 +91,7 @@ async function signBatch(paths: string[], expiresInSeconds: number): Promise<voi
   const objectPaths = paths.filter((p) => isStorageObjectPath(p));
   if (objectPaths.length === 0) return;
   const requestedAt = Date.now();
+  const startedIn = generation;
   try {
     const { data, error } = await supabase.storage
       .from(PROOF_PHOTOS_BUCKET)
@@ -98,6 +103,8 @@ async function signBatch(paths: string[], expiresInSeconds: number): Promise<voi
       report(error, { tags: { source: "proofPhotoStorage.createSignedUrls" } });
       return;
     }
+    // Signed for an account that has since signed out: drop, never cache.
+    if (startedIn !== generation) return;
     for (const row of data ?? []) {
       if (row.error || !row.signedUrl || !row.path) {
         // One missing object (deleted, RLS) does not fail the batch; it is

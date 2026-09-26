@@ -16,6 +16,7 @@
  * @mutate src/lib/proofPhotoStorage.ts |   return hit && hit.expiresAt - now >= (expiresInSeconds * 1000) / 2 ? hit.url : null; |   return null;
  * @mutate src/lib/proofPhotoStorage.ts | !usable(p, expiresInSeconds, now) && !inFlight.has(p) | !usable(p, expiresInSeconds, now)
  * @mutate src/lib/proofPhotoStorage.ts |       .createSignedUrls(objectPaths, expiresInSeconds); |       .createSignedUrls(objectPaths.slice(0, 1), expiresInSeconds);
+ * @mutate src/lib/proofPhotoStorage.ts |     if (startedIn !== generation) return; |     void startedIn;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -24,12 +25,14 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const batches: string[][] = [];
 let missing = new Set<string>();
+let gate: Promise<void> | null = null;
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     storage: {
       from: () => ({
         createSignedUrls: async (paths: string[]) => {
           batches.push([...paths]);
+          if (gate) await gate;
           return {
             data: paths.map((path) =>
               missing.has(path) ? { path, error: "Object not found", signedUrl: null } : { path, error: null, signedUrl: `https://signed.test/${path}` },
@@ -54,6 +57,7 @@ describe("proof photos are signed in batches and reused (#1582)", () => {
   beforeEach(() => {
     batches.length = 0;
     missing = new Set();
+    gate = null;
     report.mockClear();
     resetProofPhotoSignCache();
   });
@@ -69,6 +73,18 @@ describe("proof photos are signed in batches and reused (#1582)", () => {
     await signProofPhotoUrls([p("b1"), p("a1")]);
     await signProofPhotoUrls([p("b1"), p("a1")]);
     expect(batches).toHaveLength(1);
+  });
+
+  it("a batch still in flight at sign-out does not refill the cache (Q724)", async () => {
+    let release!: () => void;
+    gate = new Promise((r) => (release = r));
+    const before = signProofPhotoUrls([p("b1")]);
+    resetProofPhotoSignCache(); // the previous account signs out mid-request
+    gate = null;
+    release();
+    await before;
+    await signProofPhotoUrls([p("b1")]);
+    expect(batches).toHaveLength(2);
   });
 
   it("two galleries asking at once share one request", async () => {

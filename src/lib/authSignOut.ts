@@ -120,10 +120,11 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // not strand someone in a half-signed-out state — but NOT silent: a swallowed
   // error here is the leak itself, so it is logged rather than dropped.
   try {
-    queryClient.clear();
     // Signed proof-photo URLs are bearer links to another person's photos;
-    // the next account on this device must not be handed them (Q724).
+    // the next account on this device must not be handed them (Q724). First,
+    // because it cannot throw and nothing before it may skip it.
     resetProofPhotoSignCache();
+    queryClient.clear();
     await removePersistedClient();
   } catch (err) {
     console.error("[signOut] cache wipe failed — prior user data may persist", err);

@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { postAuthDestination } from "@/lib/jobIntent";
 import { report } from "@/lib/errorLogger";
@@ -31,7 +32,8 @@ const SignupPending = () => {
   // check your email, so the user comes back to a tab strip and has to pick
   // it out. It is also the moment a screen reader should announce where the
   // user landed after submitting the signup form.
-  usePageTitle("Check Your Email — Helpr");
+  // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
+  usePageMeta(NOINDEX_PAGE_META["/signup-pending"]);
 
   const location = useLocation();
   const navigate = useNavigate();

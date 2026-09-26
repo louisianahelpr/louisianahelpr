@@ -826,4 +826,4 @@ describe("the registry's checks are able to fail", () => {
 // never exists, with nothing on screen to say so. This proves the registry is
 // reading `supabase/functions/**` for real — the meta-tests at the bottom of
 // this file only ever exercise temp-dir fixtures.
-// @mutate supabase/functions/instant-job-match/index.ts | type: "job_match", | type: "job_match_v2",
+// @mutate supabase/functions/daily-match-digest/index.ts | type: "job_match", | type: "job_match_v2",

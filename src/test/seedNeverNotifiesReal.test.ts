@@ -47,7 +47,7 @@ import { walkSource } from "./helpers/walkSource";
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | CREATE TRIGGER trg_notifications_seed_boundary | CREATE TRIGGER aaa_notifications_seed_boundary
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |     v_cross := true;\n    v_reason := 'seed boundary check failed, dropped: ' \|\| SQLERRM;\n  END;\n\n  IF v_cross THEN\n    -- The | v_cross := false;\n    v_reason := 'x';\n  END;\n\n  IF v_cross THEN\n    -- The
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |   BEFORE INSERT ON public.match_digest_queue | AFTER INSERT ON public.match_digest_queue
-// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql |         AND (NOT nj.is_seed OR COALESCE(p.is_seed, false)) |         AND true
+// @mutate supabase/migrations/20260925231704_job_matches_wait_for_early_access.sql |         AND (NOT nj.is_seed OR COALESCE(p.is_seed, false)) |         AND true
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql |   v_job := COALESCE(p_job_id, public.notification_job_id_from_link(p_link)); |   v_job := p_job_id;
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | '[?&](?:userId\|offerTo\|user)= | '[?&](?:userId\|user)=
 // @mutate supabase/migrations/20260923121354_seed_subject_never_notifies_real.sql | notification_crosses_seed_boundary(uuid, uuid, text, uuid) FROM PUBLIC, anon, authenticated; | notification_crosses_seed_boundary(uuid, uuid, text, uuid) FROM PUBLIC;
@@ -356,7 +356,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
 
   it("every SQL email producer also writes the notifications row (the email sender re-checks)", () => {
     const emailers = sqlCalling("send-notification-email");
-    expect(emailers).toEqual(["deliver_saved_search_alert", "notify_helpers_on_job_post", "notify_on_application"]);
+    expect(emailers).toEqual(["deliver_job_match", "deliver_saved_search_alert", "notify_helpers_on_job_post", "notify_on_application"]);
     for (const fn of emailers) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b/i.test(liveDef(fn)!.body), fn).toBe(true);
   });
 

@@ -14,14 +14,19 @@ import { stripSqlComments } from "../../scripts/check-migration-raise-codes.mjs"
  * preference BEFORE writing, and that both fan-out gates route the type
  * through the new column rather than through `job_updates`.
  *
- * Four producers write type 'job_match':
+ * Four SQL producers write type 'job_match':
  *   1. notify_helpers_on_job_post        (trigger — parish fan-out)
  *   2. deliver_saved_search_alert        (saved searches: called only by
  *                                         the every-minute
  *                                         saved-search-alert-queue sweep;
  *                                         the trigger queues)
  *   3. sweep_daily_job_digest            (cron — daily parish digest)
- *   4. supabase/functions/instant-job-match (edge function)
+ *   4. deliver_job_match                 (Q392: the job_match_queue send
+ *                                         path for supabase/functions/
+ *                                         instant-job-match and the parish
+ *                                         fan-out's not-yet-visible users)
+ * and the instant-job-match edge function drops muted users before it hands
+ * its matches to enqueue_instant_job_match.
  *
  * Derived from the files, not from a hand-written list of four: the producer
  * set is recomputed here by scanning for the literal `'job_match'` write, so a
@@ -115,13 +120,14 @@ function liveFunctionBody(name: string): string {
 
 /** Producers discovered from the source tree, not asserted from memory. */
 const SQL_PRODUCERS = [
+  "deliver_job_match",
   "deliver_saved_search_alert",
   "notify_helpers_on_job_post",
   "sweep_daily_job_digest",
 ];
 
 describe("job_match respects the user's Job Matches preference", () => {
-  it("finds no SQL producer of 'job_match' outside the three we gate", () => {
+  it("finds no SQL producer of 'job_match' outside the four we gate", () => {
     // The guard on the guard. If a later migration teaches a fourth function
     // to write this type, it shows up here before it ships unmuteable.
     const writers = new Set<string>();
@@ -151,16 +157,18 @@ describe("job_match respects the user's Job Matches preference", () => {
       "utf8",
     );
     // It has to SELECT the column...
-    expect(src).toMatch(/\.select\(\s*"user_id, match_digest_mode, job_matches"\s*\)/);
+    expect(src).toMatch(/\.select\(\s*"user_id, job_matches"\s*\)/);
     // ...and actually skip on it. `=== false` not `!`: a NULL or an absent
     // column must read as ON.
     expect(src).toContain("if (p.job_matches === false) mutedMatches.add(p.user_id)");
     expect(src).toContain("if (mutedMatches.has(h.user_id)) continue;");
-    // The skip must come BEFORE both writes, or it mutes nothing.
+    // The skip must come BEFORE the one write (Q392: the queue RPC), or it
+    // mutes nothing. deliver_job_match re-reads the switch at send time.
     const skipAt = src.indexOf("mutedMatches.has(h.user_id)");
     expect(skipAt).toBeGreaterThan(-1);
-    expect(skipAt).toBeLessThan(src.indexOf('type: "job_match"'));
-    expect(skipAt).toBeLessThan(src.indexOf("match_digest_queue"));
+    expect(skipAt).toBeLessThan(src.indexOf('rpc("enqueue_instant_job_match"'));
+    // It writes no notification and no digest row itself any more.
+    expect(src).not.toMatch(/from\("notifications"\)|from\("match_digest_queue"\)/);
   });
 
   it("push and email both gate job_match on the new column", () => {

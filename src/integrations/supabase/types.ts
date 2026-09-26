@@ -1544,6 +1544,76 @@ export type Database = {
           },
         ]
       }
+      job_match_queue: {
+        Row: {
+          created_at: string
+          drop_reason: string | null
+          id: string
+          job_id: string
+          link: string
+          message: string
+          notify_at: string
+          send_email: boolean
+          settled_at: string | null
+          source: string
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drop_reason?: string | null
+          id?: string
+          job_id: string
+          link: string
+          message: string
+          notify_at: string
+          send_email?: boolean
+          settled_at?: string | null
+          source: string
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drop_reason?: string | null
+          id?: string
+          job_id?: string
+          link?: string
+          message?: string
+          notify_at?: string
+          send_email?: boolean
+          settled_at?: string | null
+          source?: string
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_match_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_match_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_match_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_pets: {
         Row: {
           created_at: string
@@ -5305,6 +5375,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      deliver_job_match: { Args: { p_id: string }; Returns: boolean }
       deliver_saved_search_alert: {
         Args: {
           p_job_id: string
@@ -5337,6 +5408,10 @@ export type Database = {
           p_phone?: string
           p_user_id: string
         }
+        Returns: Json
+      }
+      enqueue_instant_job_match: {
+        Args: { p_job_id: string; p_matches: Json }
         Returns: Json
       }
       enqueue_email: {
@@ -6048,6 +6123,13 @@ export type Database = {
         Returns: boolean
       }
       is_user_error_screen_row: { Args: { p_tags: Json }; Returns: boolean }
+      job_announceable_to: {
+        Args: {
+          p_job: Database["public"]["Tables"]["jobs"]["Row"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       job_expires_at_for_schedule: {
         Args: { p_date_needed: string; p_start_time: string }
         Returns: string
@@ -6065,6 +6147,13 @@ export type Database = {
           _updated_at: string
         }
         Returns: string
+      }
+      job_match_digest_rows: {
+        Args: { p_queue_ids: string[] }
+        Returns: {
+          id: string
+          send: boolean
+        }[]
       }
       job_messaging_closes_at: { Args: { _job_id: string }; Returns: string }
       job_payment_is_funded: {
@@ -6462,6 +6551,7 @@ export type Database = {
       sweep_disputes_closed_without_payment: { Args: never; Returns: Json }
       sweep_email_dlqs: { Args: never; Returns: Json }
       sweep_expired_auto_bans: { Args: never; Returns: number }
+      sweep_job_match_queue: { Args: never; Returns: number }
       sweep_job_start_reminders: { Args: never; Returns: number }
       sweep_no_show_alerts: { Args: never; Returns: number }
       sweep_old_email_send_log: { Args: never; Returns: number }

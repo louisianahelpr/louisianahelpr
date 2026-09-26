@@ -89,7 +89,10 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
   status text NOT NULL DEFAULT 'open', payment_status text DEFAULT 'unpaid',
   poster_completed_at timestamptz, helper_completed_at timestamptz, revision_completed_at timestamptz, completed_at timestamptz,
   cancelled_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
-  has_active_dispute boolean NOT NULL DEFAULT false, dispute_resolved_at timestamptz, disputed_by uuid, disputed_at timestamptz);
+  has_active_dispute boolean NOT NULL DEFAULT false, dispute_resolved_at timestamptz, disputed_by uuid, disputed_at timestamptz,
+  is_seed boolean DEFAULT false, credential_tier integer NOT NULL DEFAULT 0, start_time time);
+-- job_announceable_to (Q392) reads the credential tier; its own gate is not under test here.
+CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 CREATE TABLE public.applications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL,
   status text DEFAULT 'pending', UNIQUE (job_id, helper_id));
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
@@ -112,11 +115,13 @@ $function$;
 const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job", "can_send_message_to_in_job",
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
   "helper_credential_document_ok", "helper_has_advanced_analytics", "identity_is_verified", "is_party_to_job",
-  "is_party_to_job_folder", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
+  "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
   "user_may_see_job_address"];
+// Loaded after the stubs below: its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
+const AFTER_STUBS = ["job_announceable_to"];
 const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
-const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded")];
+const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded" && !AFTER_STUBS.includes(f))];
 const loaded = [];
 for (const name of ORDER) {
   const def = newest(name);
@@ -128,13 +133,20 @@ console.log(`loaded newest definitions: ${loaded.join(" ")}`);
 // Stubs for the rest of the classified inventory (right arity + volatility).
 const sqlFile = readFileSync(`${ROOT}scripts/ci/null-arg-validators.sql`, "utf8");
 const classRows = [...sqlFile.matchAll(/^\s*\('([a-z_0-9]+)',\s*'(allow|absent|deny|classify|noarg|action)',/gm)].map((m) => ({ fn: m[1], kind: m[2] }));
-check("the class list parses (47 entries)", classRows.length === 47, `${classRows.length}`);
+// 53 on 2026-09-25: main had 51 (this line still said 47, stale since before
+// Q392); Q392 adds job_announceable_to (allow) and deliver_job_match (action).
+check("the class list parses (53 entries)", classRows.length === 53, `${classRows.length}`);
 const real = new Set([...ALLOW, ...HELPERS]);
 for (const { fn, kind } of classRows) {
   if (real.has(fn)) continue;
   const args = kind === "noarg" ? "" : "x text";
   const vol = kind === "action" ? "VOLATILE" : "STABLE";
   await db.exec(`CREATE FUNCTION public.${fn}(${args}) RETURNS boolean LANGUAGE sql ${vol} AS $$ SELECT false $$;`);
+}
+for (const name of AFTER_STUBS) {
+  const def = newest(name);
+  await db.exec(def.sql);
+  console.log(`loaded newest definition after stubs: ${name}@${def.file.slice(0, 14)}`);
 }
 
 if (!MODE) {

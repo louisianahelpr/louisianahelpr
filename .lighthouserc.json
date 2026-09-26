@@ -43,7 +43,16 @@
     "test traffic costs no Vercel edge requests. `canonical` is skipped because",
     "index.html's canonical names the production host, which Lighthouse scores 0",
     "on any other origin; the baselines above were measured on prod and the first",
-    "local run is the new baseline to compare against."
+    "local run is the new baseline to compare against.",
+    "",
+    "NOINDEX PAGES (Q401a, 2026-09-25): /login and /signup now serve",
+    "`robots: noindex, follow` on purpose (auth entry points, out of the",
+    "sitemap). Lighthouse's is-crawlable audit fails on noindex and takes the",
+    "SEO category to 0.63, so those two URLs are graded by assertMatrix on the",
+    "SEO audits that still apply (each at 1, not a lowered category floor)",
+    "with is-crawlable off (LHCI has no maxScore to require 0; the noindex",
+    "itself is proven by src/test/publicRoutesServeOwnHead.test.ts).",
+    "/ and /browse keep the full `categories:seo` >= 0.9 gate."
   ],
   "ci": {
     "collect": {
@@ -62,12 +71,33 @@
       "numberOfRuns": 2
     },
     "assert": {
-      "assertions": {
-        "categories:performance": ["error", { "minScore": 0.5 }],
-        "categories:accessibility": ["warn", { "minScore": 0.85 }],
-        "categories:best-practices": ["warn", { "minScore": 0.8 }],
-        "categories:seo": ["error", { "minScore": 0.9 }]
-      }
+      "assertMatrix": [
+        {
+          "matchingUrlPattern": "^http://127\\.0\\.0\\.1:4173/(browse)?$",
+          "assertions": {
+            "categories:performance": ["error", { "minScore": 0.5 }],
+            "categories:accessibility": ["warn", { "minScore": 0.85 }],
+            "categories:best-practices": ["warn", { "minScore": 0.8 }],
+            "categories:seo": ["error", { "minScore": 0.9 }]
+          }
+        },
+        {
+          "matchingUrlPattern": "^http://127\\.0\\.0\\.1:4173/(login|signup)$",
+          "assertions": {
+            "categories:performance": ["error", { "minScore": 0.5 }],
+            "categories:accessibility": ["warn", { "minScore": 0.85 }],
+            "categories:best-practices": ["warn", { "minScore": 0.8 }],
+            "is-crawlable": "off",
+            "document-title": ["error", { "minScore": 1 }],
+            "meta-description": ["error", { "minScore": 1 }],
+            "http-status-code": ["error", { "minScore": 1 }],
+            "link-text": ["error", { "minScore": 1 }],
+            "crawlable-anchors": ["error", { "minScore": 1 }],
+            "robots-txt": ["error", { "minScore": 1 }],
+            "hreflang": ["error", { "minScore": 1 }]
+          }
+        }
+      ]
     }
   }
 }

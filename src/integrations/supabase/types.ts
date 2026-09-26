@@ -5335,7 +5335,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      detect_stuck_payments: { Args: never; Returns: number }
+      detect_stuck_payments: { Args: never; Returns: Json }
       detect_suspicious_user_patterns: { Args: never; Returns: number }
       dispute_evidence_url_ok: {
         Args: { _job_id: string; _uploader: string; _url: string }
@@ -6489,7 +6489,7 @@ export type Database = {
       sweep_old_email_send_log: { Args: never; Returns: number }
       sweep_old_error_logs: { Args: never; Returns: number }
       sweep_old_notifications: { Args: never; Returns: number }
-      sweep_release_last_chance: { Args: never; Returns: number }
+      sweep_release_last_chance: { Args: never; Returns: Json }
       sweep_saved_search_alert_queue: { Args: never; Returns: number }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
       sync_jobs_select_grants: { Args: never; Returns: Json }

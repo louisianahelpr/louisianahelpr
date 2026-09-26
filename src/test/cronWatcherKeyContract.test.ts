@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { jobCommands } from "./helpers/cronWorkRegister";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { blankSqlComments } from "./helpers/blankNonCode";
 
 /**
  * The silent-failure watcher reads its keys OUT OF THE FUNCTION'S RESPONSE
@@ -82,6 +85,34 @@ function functionSource(jobname: string): string | null {
 }
 
 /**
+ * A SQL cron's rule (CJ-007): the job records its result through
+ * cron_record_work('<job>', to_jsonb(public.<fn>())), so its body is what
+ * <fn> returns. The effective definition of <fn> (later rewrites applied),
+ * comments blanked; null when the job's newest command wraps no function.
+ */
+const sqlCommands = jobCommands(
+  readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
+    .map((file) => ({ file, sql: readFileSync(join(MIGRATIONS, file), "utf8") })),
+);
+const sqlDefs = effectiveDefs(MIGRATIONS);
+function sqlFunctionSource(jobname: string): string | null {
+  const cmd = sqlCommands.get(jobname)?.command ?? "";
+  const fn = new RegExp(String.raw`cron_record_work\(\s*'${jobname}'\s*,\s*to_jsonb\(\s*public\.(\w+)\(`).exec(cmd)?.[1];
+  const stmt = fn ? sqlDefs.get(fn)?.stmt : undefined;
+  return stmt ? blankSqlComments(stmt) : null;
+}
+
+/** Whether a SQL body returns `key` as a jsonb_build_object key: 'key', value. */
+function sqlEmitsKey(src: string, key: string): boolean {
+  return new RegExp(`'${key}'\\s*,`).test(src);
+}
+
+/** A SQL key returned as a bare true/false. */
+function sqlEmitsKeyAsBoolean(src: string, key: string): boolean {
+  return new RegExp(`'${key}'\\s*,\\s*(true|false)\\b`, "i").test(src);
+}
+
+/**
  * Whether the source assigns `key` as an object property.
  *
  * Deliberately loose — it accepts `key: 0`, `key: someVar`, `key,` shorthand and
@@ -104,6 +135,7 @@ function emitsKeyAsBoolean(src: string, key: string): boolean {
 // nearly shipped on 2026-09-03 (`skipped: true`), and it takes down
 // silent-failure detection for EVERY cron, not just this one.
 // @mutate supabase/functions/marketing-publish/index.ts | skipped: 0, | skipped: true,
+// @mutate supabase/migrations/20260926040817_money_sweeps_found_vs_done.sql | 'already_alerted', v_already_alerted, | 'already_alerted_x', v_already_alerted,
 
 const expectations = registeredExpectations();
 
@@ -117,23 +149,28 @@ describe("cron watcher key contract", () => {
 
   for (const exp of expectations) {
     describe(exp.jobname, () => {
-      const src = functionSource(exp.jobname);
+      const edge = functionSource(exp.jobname);
+      const sql = edge === null ? sqlFunctionSource(exp.jobname) : null;
+      const src = edge ?? sql;
+      const emits = (k: string) => (edge !== null ? emitsKey(edge, k) : sql !== null && sqlEmitsKey(sql, k));
+      const asBoolean = (k: string) =>
+        edge !== null ? emitsKeyAsBoolean(edge, k) : sql !== null && sqlEmitsKeyAsBoolean(sql, k);
 
-      it("has an edge function of that name", () => {
-        expect(src, `${exp.jobname} is registered by ${exp.migration} but has no function directory`).not.toBeNull();
+      it("has an edge function of that name, or a SQL function its cron records", () => {
+        expect(src, `${exp.jobname} is registered by ${exp.migration} but has no function directory and no cron_record_work-wrapped SQL function`).not.toBeNull();
       });
 
       it(`emits its candidate key "${exp.candidateKey}"`, () => {
         if (src === null) return;
         expect(
-          emitsKey(src, exp.candidateKey),
+          emits(exp.candidateKey),
           `${exp.jobname} never emits "${exp.candidateKey}". The watcher joins on \`body ? candidate_key\`, so this job is silently NOT being checked — while still appearing in cron_work_expectations as though it were.`,
         ).toBe(true);
       });
 
       it("emits every disposition key it registered", () => {
         if (src === null) return;
-        const missing = exp.dispositionKeys.filter((k) => !emitsKey(src, k));
+        const missing = exp.dispositionKeys.filter((k) => !emits(k));
         expect(
           missing,
           `${exp.jobname} registered disposition keys it never emits: ${missing.join(", ")}. Each one reads as 0, so a healthy run looks like "candidates found, none dispositioned" and pages falsely.`,
@@ -143,7 +180,7 @@ describe("cron watcher key contract", () => {
       it("emits no contract key as a boolean", () => {
         if (src === null) return;
         const keys = [exp.candidateKey, ...exp.dispositionKeys];
-        const booleans = keys.filter((k) => emitsKeyAsBoolean(src, k));
+        const booleans = keys.filter((k) => asBoolean(k));
         expect(
           booleans,
           `${exp.jobname} emits ${booleans.join(", ")} as a boolean. sweep_silent_cron_failures casts every disposition with (body ->> k)::numeric — 'true'::numeric RAISES inside the detector's own query, which breaks silent-failure detection for EVERY cron in the table, not just this one.`,

@@ -240,6 +240,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/verify-functions-deployed.mjs": "--lost-file for the deploy retry",
   "scripts/check-generated-current.mjs": "restores generator outputs after each comparison",
   "scripts/any-baseline.mjs": "rewrites scripts/any-baseline.json only on --write, which refuses to raise any entry (two-way guard: src/test/anyRatchet.test.ts)",
+  "scripts/component-size-baseline.mjs": "rewrites scripts/component-size-baseline.json only on --write, which refuses to raise or add any entry (two-way guard: src/test/componentSizeRatchet.test.ts)",
   "scripts/check-stated-counts.mjs": "rewrites scripts/stated-counts-baseline.json only on --write-baseline, which refuses to grow it",
 };
 

@@ -4,7 +4,7 @@ import { Inbox, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatName } from "@/lib/utils";
-import type { Database } from "@/integrations/supabase/types";
+import type { DrillProfile } from "./adminAnalytics/types";
 import type { ReadableJobRow } from "@/lib/jobColumns";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
@@ -35,7 +35,7 @@ const DrillDownEmpty = ({ title, body }: { title: string; body: string }) => (
   <EmptyState surfaceStyle={NESTED_EMPTY_SURFACE} variant="inline" icon={Inbox} title={title} body={body} />
 );
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type Profile = DrillProfile;
 // jobs.offered_to_helper_id is not client-selectable (20260915045110).
 type Job = ReadableJobRow;
 

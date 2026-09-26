@@ -1,7 +1,17 @@
 import type { Database } from "@/integrations/supabase/types";
 import type { ReadableJobRow } from "@/lib/jobColumns";
 
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+
+// Named columns, never `*`, and read in pages: PostgREST caps a response at
+// 1000 rows, so an unbounded `profiles` read silently stops counting users at
+// the thousandth. adminUsersProfilesPaging.test.ts fails CI on the shape.
+// ANALYTICS_PROFILE_COLUMNS is exactly what computeMetrics reads.
+export const ANALYTICS_PROFILE_COLUMNS = "user_id, created_at, email_verified, stripe_account_id, subscription_tier" as const;
+export type Profile = Pick<ProfileRow, "user_id" | "created_at" | "email_verified" | "stripe_account_id" | "subscription_tier">;
+// What the Users and Subscriptions drill-downs render.
+export const DRILL_PROFILE_COLUMNS = "id, user_id, full_name, email, location, subscription_tier, email_verified, created_at" as const;
+export type DrillProfile = Pick<ProfileRow, "id" | "user_id" | "full_name" | "email" | "location" | "subscription_tier" | "email_verified" | "created_at">;
 // The row as an admin client can read it: jobs.offered_to_helper_id is not
 // selectable by `authenticated` (20260915045110), admins included.
 export type Job = ReadableJobRow;

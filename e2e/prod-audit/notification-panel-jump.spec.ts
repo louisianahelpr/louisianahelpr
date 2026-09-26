@@ -32,6 +32,8 @@ import { newUserContext, sessionFor, SUPABASE_URL, ANON, rest, type Session } fr
 
 /** ~40px per the Q51 spec: a third of the pre-fix jump, 3x the fixed one. */
 export const MAX_FRAME_PX = 40;
+/** A step spanning more than ~3 frames at 60 Hz is a dropped-frame gap, not "one frame". */
+export const MAX_STEP_MS = 50;
 const TITLE = "Test from Helpr";
 
 let poster: Session;
@@ -68,14 +70,16 @@ async function seedUnread(request: import("@playwright/test").APIRequestContext,
 }
 
 /** Per-frame bottom edge of the open panel while `act` runs, for `ms`. */
-async function sampleEdge(page: Page, act: () => Promise<void>, ms: number): Promise<number[]> {
+type Sample = { y: number; t: number };
+/** Per-frame bottom edge of the open panel, with each frame's timestamp, while `act` runs, for `ms`. */
+async function sampleEdge(page: Page, act: () => Promise<void>, ms: number): Promise<Sample[]> {
   await page.evaluate(() => {
-    const w = window as unknown as { __edge: number[]; __edgeOn: boolean };
+    const w = window as unknown as { __edge: { y: number; t: number }[]; __edgeOn: boolean };
     w.__edge = [];
     w.__edgeOn = true;
     const tick = () => {
       const el = document.querySelector('[role="dialog"][aria-labelledby]');
-      if (el) w.__edge.push(el.getBoundingClientRect().bottom);
+      if (el) w.__edge.push({ y: el.getBoundingClientRect().bottom, t: performance.now() });
       if (w.__edgeOn) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -83,7 +87,7 @@ async function sampleEdge(page: Page, act: () => Promise<void>, ms: number): Pro
   await act();
   await page.waitForTimeout(ms);
   return page.evaluate(() => {
-    const w = window as unknown as { __edge: number[]; __edgeOn: boolean };
+    const w = window as unknown as { __edge: { y: number; t: number }[]; __edgeOn: boolean };
     w.__edgeOn = false;
     return w.__edge;
   });
@@ -128,16 +132,26 @@ for (const engine of ["chromium", "webkit"] as const) {
       const edge = await sampleEdge(page, () => rows.last().click(), 1200);
       await expect(rows, "the tapped row did not leave the Unread list").toHaveCount(before - 1, { timeout: 5_000 });
 
-      const steps = edge.slice(1).map((y, i) => Math.abs(y - edge[i]));
-      const largest = Math.max(0, ...steps);
-      const travel = Math.abs(edge[edge.length - 1] - edge[0]);
-      const measure = `${engine} 375: frames=${edge.length} largest one-frame move=${largest.toFixed(1)}px total travel=${travel.toFixed(1)}px`;
+      // A step is a move between two consecutive frames, with the time it
+      // spanned. A JUMP is a big move inside a normal frame interval; a big move
+      // across a long gap (a dropped-frame stretch on a loaded runner) cannot be
+      // told from a smooth slide, so it is not passed: it fails as "cannot judge".
+      const steps = edge.slice(1).map((s, i) => ({ dy: Math.abs(s.y - edge[i].y), dt: s.t - edge[i].t }));
+      const largest = steps.reduce((a, b) => (b.dy > a.dy ? b : a), { dy: 0, dt: 0 });
+      const travel = Math.abs(edge[edge.length - 1].y - edge[0].y);
+      const measure = `${engine} 375: frames=${edge.length} largest one-frame move=${largest.dy.toFixed(1)}px over ${largest.dt.toFixed(0)}ms total travel=${travel.toFixed(1)}px`;
       test.info().annotations.push({ type: "measure", description: measure });
       console.log(`[notification-panel-jump] ${measure}`);
       await page.screenshot({ path: test.info().outputPath(`panel-after-${engine}.png`) });
       expect(edge.length, "too few frames sampled to judge").toBeGreaterThan(10);
       expect(travel, "the panel edge never moved: nothing was measured").toBeGreaterThan(20);
-      expect(largest, `the panel edge jumped ${largest.toFixed(1)}px in one frame (${engine})`).toBeLessThanOrEqual(MAX_FRAME_PX);
+      const jumps = steps.filter((s) => s.dy > MAX_FRAME_PX && s.dt <= MAX_STEP_MS);
+      const unjudgeable = steps.filter((s) => s.dy > MAX_FRAME_PX && s.dt > MAX_STEP_MS);
+      expect(jumps.map((s) => `${s.dy.toFixed(1)}px in ${s.dt.toFixed(0)}ms`), `the panel edge jumped in one frame (${engine})`).toEqual([]);
+      expect(
+        unjudgeable.map((s) => `${s.dy.toFixed(1)}px across a ${s.dt.toFixed(0)}ms gap`),
+        `frames were dropped exactly where the panel moved, so this run cannot tell a jump from a slide (${engine}); re-run`,
+      ).toEqual([]);
       await ctx.close();
     } finally {
       if (engine !== "chromium") await browser.close();

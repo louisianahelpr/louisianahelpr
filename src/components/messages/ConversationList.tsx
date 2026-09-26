@@ -1503,7 +1503,7 @@ export function ConversationList({
               top, space held"). The count only exists once the inbox lands, so
               a bar that simply appeared then pushed every row down (CLS 0.059
               at 375). The last count this device saw for this account is kept
-              (`hiddenUnreadCacheKey`), and while the list loads an invisible
+              (`HIDDEN_UNREAD_CACHE_KEY`), and while the list loads an invisible
               copy of the bar with that text holds its height above the
               skeleton. A device's very first visit has nothing cached and can
               still shift once. */}

@@ -29,6 +29,7 @@ import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSk
 import { VirtualList, type VirtualListHandle } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
+import { HiddenUnreadBar, readCachedHiddenUnread, writeCachedHiddenUnread } from "./HiddenUnreadBar";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
 import {
   ARCHIVE_CHANGED_EVENT,
@@ -247,66 +248,6 @@ function useSearchOnOwnLine(): boolean {
     return () => mql.removeEventListener?.("change", apply);
   }, []);
   return on;
-}
-
-/** The hidden-unread bar. One definition so the invisible loading-frame copy
-    and the real bar cannot differ in height. */
-function HiddenUnreadBar({ count, onShowAll }: { count: number; onShowAll: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onShowAll}
-      className="w-full flex items-center gap-2 rounded-ds-md px-3 py-2.5 btn-press transition-colors text-left"
-      style={{
-        background: "hsl(var(--amber-tint) / 0.10)",
-        border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
-      }}
-    >
-      <span
-        className="shrink-0 w-2 h-2 rounded-full"
-        style={{ background: "hsl(var(--burnt-sienna))" }}
-        aria-hidden="true"
-      />
-      <span
-        className="font-sans text-ds-13 leading-snug"
-        style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-      >
-        {count === 1
-          ? "1 unread conversation isn't in Active — show all"
-          : `${count} unread conversations aren't in Active — show all`}
-      </span>
-    </button>
-  );
-}
-
-/**
- * The last hidden-unread count this device saw (MQ28), stored as
- * "<userId>:<count>". One device-level key, not one per account, because
- * the inbox's first skeleton frame renders BEFORE `userId` resolves: a
- * per-account read waited for it and the held space arrived ~15ms after
- * the skeleton, shifting it (measured, 2026-09-26). While `userId` is
- * still null the stored count is trusted; once it resolves, a count
- * stored by a different account is dropped.
- */
-const HIDDEN_UNREAD_CACHE_KEY = "helpr_inbox_hidden_unread";
-
-function readCachedHiddenUnread(userId: string | null): number {
-  try {
-    const [owner, raw] = (localStorage.getItem(HIDDEN_UNREAD_CACHE_KEY) ?? "").split(":");
-    if (userId && owner !== userId) return 0;
-    const n = Number(raw);
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  } catch {
-    return 0; // storage blocked: first-visit behaviour, nothing held
-  }
-}
-
-function writeCachedHiddenUnread(userId: string, count: number) {
-  try {
-    localStorage.setItem(HIDDEN_UNREAD_CACHE_KEY, `${userId}:${count}`);
-  } catch {
-    // storage blocked: the next visit behaves like a first one
-  }
 }
 
 /**
@@ -1498,19 +1439,9 @@ export function ConversationList({
               Active, not searching, with at least one unread thread outside
               the live slice. It sends the reader to All (the widest view),
               not to a filter, because the point is to stop hiding.
-
-              ON TOP, WITH ITS SPACE HELD (owner, 2026-09-26, MQ28: "back on
-              top, space held"). The count only exists once the inbox lands, so
-              a bar that simply appeared then pushed every row down (CLS 0.059
-              at 375). The last count this device saw for this account is kept
-              (`HIDDEN_UNREAD_CACHE_KEY`), and while the list loads an invisible
-              copy of the bar with that text holds its height above the
-              skeleton. A device's very first visit has nothing cached and can
-              still shift once. */}
+              On top, space held while loading (MQ28): see ./HiddenUnreadBar. */}
           {loading && inboxTab === "active" && !searchQuery.trim() && cachedHiddenUnread > 0 && (
-            <div aria-hidden="true" style={{ visibility: "hidden" }}>
-              <HiddenUnreadBar count={cachedHiddenUnread} onShowAll={() => {}} />
-            </div>
+            <HiddenUnreadBar held count={cachedHiddenUnread} />
           )}
           {!loading && inboxTab === "active" && !searchQuery.trim() && hiddenUnreadCount > 0 && (
             <HiddenUnreadBar

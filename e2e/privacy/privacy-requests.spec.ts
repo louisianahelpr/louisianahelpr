@@ -62,7 +62,7 @@ import {
  */
 
 // Guard-proof lines: each plants a defect the journey must catch.
-// @mutate src/pages/info/legal/DataExportCard.tsx |         jobs: jobsRes.data,\n |         jobs: [],\n
+// @mutate src/pages/info/legal/DataExportCard.tsx | const payload = { ...(data as Record<string, unknown>) }; | const payload = { ...(data as Record<string, unknown>), jobs: [] };
 
 function readServiceEnv(): { url: string; key: string } | null {
   let key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";

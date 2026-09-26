@@ -318,7 +318,7 @@ export function rowDetailLines({ route, persona, controls, documented, max = 700
 }
 
 /**
- * SHARDS PULL ROWS FROM ONE QUEUE (nightly-red #1582, run 36230166945).
+ * SHARDS PULL ROWS FROM ONE QUEUE (nightly-red #1582, run 36230166945, 2026-09-26).
  *
  * The shards used to split the route list round-robin (`k % 4`), blind to
  * cost. That night shard 2 finished in 73 min and sat idle while shard 4

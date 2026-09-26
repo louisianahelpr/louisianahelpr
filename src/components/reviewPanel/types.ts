@@ -107,7 +107,9 @@ export type Review = {
   rating: number;
   feedback: string | null;
   created_at: string;
-  reviewer_id: string;
+  // Null for an author who deleted their account (deletion anonymises; the
+  // review stands and renders under FORMER_MEMBER_LABEL).
+  reviewer_id: string | null;
   photo_urls?: string[] | null;
   reviewerName?: string;
 };

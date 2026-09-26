@@ -248,7 +248,9 @@ const DashboardGuest = () => {
       if (error) throw error;
 
       const now = new Date();
-      return ((rawJobs ?? []) as any[])
+      // The prefetch (Q206) hands back the same rows untyped (unknown[]).
+      type GuestJobRow = { expires_at: string | null; boost_expires_at: string | null };
+      return ((rawJobs ?? []) as GuestJobRow[])
         .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
         .map((j) => ({
           ...j,

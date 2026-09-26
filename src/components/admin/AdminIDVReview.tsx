@@ -65,6 +65,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { TestTag } from "@/components/admin/TestTag";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface ReviewRow {
   user_id: string;
@@ -165,7 +166,7 @@ const AdminIDVReview = () => {
       qc.invalidateQueries({ queryKey });
     } catch (err) {
       report(err, { tags: { source: "AdminIDVReview.run", decision } });
-      toast.error((err as Error).message || "Action failed");
+      toast.error(userFacingError(err, "Couldn't record that decision — try again."));
     } finally {
       setBusy(null);
     }

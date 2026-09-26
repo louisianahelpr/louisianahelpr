@@ -157,6 +157,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/any-baseline.json": {
     files: "src/test/anyRatchet.test.ts:FELL from",
   },
+  "scripts/component-size-baseline.json": {
+    files: "scripts/component-size-baseline.mjs:SHRANK from",
+  },
   "scripts/deadcode-baseline.json": {
     exports: "src/test/deadcodeRatchet.test.ts:FELL from",
     types: "src/test/deadcodeRatchet.test.ts:FELL from",

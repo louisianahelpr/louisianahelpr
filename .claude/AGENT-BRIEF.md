@@ -8,6 +8,11 @@ says more.
 - You are in your own git worktree. Work only there. If you ever find your cwd
   is the shared checkout (`/Users/lexilombas/louisianahelpr` itself), stop and
   move into your worktree — never edit or commit from the shared checkout.
+  Enforced (Q47/Q18): the SessionStart hook gives a local session that opens
+  in the shared checkout its own `~/.lh-wt/session-<hash>` worktree, and
+  .husky/pre-commit refuses a Claude session's commit from the shared checkout
+  (`scripts/session-worktree.mjs`; owner-approved override
+  `LH_SHARED_CHECKOUT_OK="<reason>"`, logged).
 - Never `git stash` (refs/stash is shared by every worktree).
 - Evidence (screenshots, logs, measurements) goes under `~/.lh-shots/<task>/`,
   NOT inside your worktree — worktrees are deleted when you finish.
@@ -56,6 +61,9 @@ says more.
   verify live with `pg_get_functiondef` / `pg_proc.proacl`.
 - Money / authz / data-model changes get a REVIEW-ONLY pass (lh-authz-rls,
   lh-silent-failure or lh-money-escrow) — say in your report what needs one.
+  Record each review as a `Sensitive-Review: <reviewer>: <verdict>` trailer
+  (or `node scripts/check-sensitive-review.mjs record ...` after the fact);
+  sensitive-review.yml turns main red on an unrecorded one (Q9).
 
 ## Landing
 - Commit in your worktree, then

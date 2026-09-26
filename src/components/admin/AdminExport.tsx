@@ -8,6 +8,7 @@ import { Download, Users, Briefcase, DollarSign, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { saveOrShareFile } from "@/lib/fileExport";
+import { userFacingError } from "@/lib/userFacingError";
 
 /** A row of the jobs export: the narrow select, plus the two columns only the wide one carries. */
 type ExportJobRow = Pick<
@@ -59,13 +60,13 @@ const AdminExport = () => {
     ]);
     if (error) {
       report(error, { tags: { source: "AdminExport.exportUsers.profiles" } });
-      toast.error("Export failed: " + error.message);
+      toast.error(userFacingError(error, "Couldn't export that — try again."));
       setExporting(null);
       return;
     }
     if (rolesError) {
       report(rolesError, { tags: { source: "AdminExport.exportUsers.roles" } });
-      toast.error("Export failed: " + rolesError.message);
+      toast.error(userFacingError(rolesError, "Couldn't export that — try again."));
       setExporting(null);
       return;
     }
@@ -120,7 +121,7 @@ const AdminExport = () => {
     }
     if (queryErr) {
       report(queryErr, { tags: { source: "AdminExport.exportJobs" } });
-      toast.error("Export failed: " + queryErr.message);
+      toast.error(userFacingError(queryErr, "Couldn't export that — try again."));
       setExporting(null);
       return;
     }
@@ -141,7 +142,7 @@ const AdminExport = () => {
     const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_fee_percent, is_group_job, helpers_needed, helper_id, customer_id, status, updated_at, payment_status, urgent_fee, is_seed").eq("status", "completed");
     if (error) {
       report(error, { tags: { source: "AdminExport.exportEarnings" } });
-      toast.error("Export failed: " + error.message);
+      toast.error(userFacingError(error, "Couldn't export that — try again."));
       setExporting(null);
       return;
     }

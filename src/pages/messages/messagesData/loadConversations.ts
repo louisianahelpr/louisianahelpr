@@ -136,7 +136,7 @@ export async function fetchConversations(
 
   if (!msgs || msgs.length === 0) return [];
 
-  const filteredMsgs = msgs.filter((m: any) => {
+  const filteredMsgs = msgs.filter((m) => {
     // System messages (sender_id IS NULL) never drive the conversation
     // list — they belong inside the thread view only. Skip them here so
     // they don't inflate unread counts or appear as the "last message"

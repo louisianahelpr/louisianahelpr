@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import type { Database } from "@/integrations/supabase/types";
+import { userFacingError } from "@/lib/userFacingError";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -25,7 +26,7 @@ type HelperAvailabilityRow = Database["public"]["Tables"]["helper_availability"]
 type HelperAvailabilityInsert = Database["public"]["Tables"]["helper_availability"]["Insert"];
 
 const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Couldn't save that — try again?";
+  userFacingError(error, "Couldn't save that — try again?");
 
 export function HelperAvailability({ userId, compact = false }: { userId: string; compact?: boolean }) {
   const [slots, setSlots] = useState<AvailabilitySlot[]>(

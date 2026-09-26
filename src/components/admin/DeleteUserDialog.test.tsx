@@ -139,7 +139,7 @@ describe("DeleteUserDialog", () => {
   });
 
   it("toasts an error when the edge function fails", async () => {
-    invokeMock.mockResolvedValue({ data: null, error: new Error("nope") });
+    invokeMock.mockResolvedValue({ data: null, error: new Error("That user could not be changed right now.") });
     const onClose = vi.fn();
     render(
       <DeleteUserDialog profile={sampleProfile} onClose={onClose} />,
@@ -147,7 +147,7 @@ describe("DeleteUserDialog", () => {
     typeConfirm();
     screen.getByRole("button", { name: /Delete Permanently/ }).click();
     await waitFor(() => expect(toastError).toHaveBeenCalled());
-    expect(toastError).toHaveBeenCalledWith(expect.stringContaining("nope"));
+    expect(toastError).toHaveBeenCalledWith(expect.stringContaining("That user could not be changed right now."));
     expect(onClose).not.toHaveBeenCalled();
   });
 });

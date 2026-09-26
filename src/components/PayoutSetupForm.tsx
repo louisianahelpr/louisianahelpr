@@ -27,6 +27,7 @@ import {
   type PayoutMethod,
 } from "@/lib/payoutSetupQueries";
 import { requireBiometric } from "@/lib/biometricGate";
+import { userFacingError } from "@/lib/userFacingError";
 
 export function PayoutSetupForm() {
   const qc = useQueryClient();
@@ -102,7 +103,7 @@ export function PayoutSetupForm() {
       });
     } catch (err: unknown) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "We couldn't start payout setup — try again in a moment.");
+      toast.error(userFacingError(err, "We couldn't start payout setup — try again in a moment."));
       setOnboarding(false);
     }
   };
@@ -128,7 +129,7 @@ export function PayoutSetupForm() {
       await openExternalUrl(data.url, () => void loadData());
     } catch (err: unknown) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "We couldn't open your Stripe dashboard — try again in a moment.");
+      toast.error(userFacingError(err, "We couldn't open your Stripe dashboard — try again in a moment."));
     }
   };
 
@@ -158,7 +159,7 @@ export function PayoutSetupForm() {
       loadData();
     } catch (err: unknown) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "We couldn't remove that payout method — try again in a moment.");
+      toast.error(userFacingError(err, "We couldn't remove that payout method — try again in a moment."));
     } finally {
       setDeleting(null);
     }
@@ -190,7 +191,7 @@ export function PayoutSetupForm() {
       });
     } catch (err: unknown) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "We couldn't reset your account just now — try again in a moment.");
+      toast.error(userFacingError(err, "We couldn't reset your account just now — try again in a moment."));
       setResetting(false);
     }
   };

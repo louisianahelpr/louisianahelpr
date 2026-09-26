@@ -92,7 +92,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/dashboard/FilterSheet.tsx` | checkbox/switch/radio×1 |  |  | Close filters |
+| `src/components/dashboard/filterSheet/FilterSheetRows.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/SavedSearches.tsx` | input×1 | text | 60 | Saved searches · search-name · e.g. Lawn care under $200 · Save filter set · Delete saved search |
 
 ## /home, /user/:userId, /messages

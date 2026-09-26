@@ -192,7 +192,7 @@ const ExceptionQueueInner = () => {
     qc.invalidateQueries({ queryKey });
     if (failures.length === 0) toast.success(`Resolved ${ok}`);
     else if (ok === 0) toast.error(`Could not resolve ${failures.length} — you may not have permission to write to this queue.`);
-    else toast.warning(`Resolved ${ok}, ${failures.length} failed — ${failures.join(", ")}`);
+    else toast.warning(`Resolved ${ok}, ${failures.length} failed — ${failures.join(", ")}.`);
   };
 
   const resolve = async (row: ExceptionRow, res: string) => {
@@ -212,7 +212,7 @@ const ExceptionQueueInner = () => {
       .select("id");
     setBusy(null);
     if (error) {
-      toast.error(userFacingError(error, "Couldn't action that exception — try again"));
+      toast.error(userFacingError(error, "Couldn't action that exception — try again."));
       return;
     }
     if (!updated || updated.length === 0) {

@@ -36,6 +36,7 @@ import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvi
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { formatDistanceToNow } from "date-fns";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface DisputeRow {
   id: string;
@@ -285,7 +286,7 @@ export const DisputeTimelineDialog = ({
       onUpdated();
     } catch (err: unknown) {
       hapticError();
-      toast.error(mutationErrorMessage(err, err instanceof Error ? err.message : "Couldn't upload your evidence — try again?"));
+      toast.error(mutationErrorMessage(err, userFacingError(err, "Couldn't upload your evidence — try again?")));
     } finally {
       setSubmitting(false);
     }

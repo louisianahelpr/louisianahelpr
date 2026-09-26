@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { userFacingError } from "@/lib/userFacingError";
 
 export interface AiGeneratedJob {
   title?: string;
@@ -88,7 +89,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
           ? "The AI builder is busy right now — give it a few seconds and try again."
           : /AI service error|non-2xx|Unknown error|Failed to generate/i.test(raw) || !raw
             ? "Couldn't generate a posting just now. Try again, or start from a blank form."
-            : raw,
+            : userFacingError(err, "Couldn't generate a posting just now. Try again, or start from a blank form."),
       );
     } finally {
       setLoading(false);

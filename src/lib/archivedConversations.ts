@@ -224,11 +224,10 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   const local = readLocal(userId);
   cache.set(userId, local);
 
-  // `thread_archives` isn't in the generated Supabase types yet (migration
-  // lag — see supabase/migrations/20260831011232_add_thread_archives.sql),
-  // same `as any` pattern pinnedConversations.ts used for thread_pins
-  // before types were regenerated.
-  const { data, error } = await (supabase.from("thread_archives" as any) as any)
+  // `thread_archives` (20260831011232_add_thread_archives.sql) is in the
+  // generated Supabase types, so these reads and writes are fully typed.
+  const { data, error } = await supabase
+    .from("thread_archives")
     .select("job_id, other_user_id, archived_at")
     .eq("user_id", userId);
 
@@ -284,10 +283,12 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
       other_user_id: e.otherUserId,
       archived_at: e.archivedAt,
     });
-    const upsert = (rows: ReturnType<typeof toRow>[]) =>
-      (supabase.from("thread_archives" as any) as any).upsert(rows, {
+    const upsert = async (rows: ReturnType<typeof toRow>[]) => {
+      const { error } = await supabase.from("thread_archives").upsert(rows, {
         onConflict: "user_id,job_id,other_user_id",
-      }) as Promise<{ error: { code?: string } | null }>;
+      });
+      return { error };
+    };
     const code = (e: { code?: string } | null) => e?.code;
     // Rows the server can never accept: the person (or job) no longer exists
     // (23503 — an archive of someone who then deleted their account; their
@@ -363,7 +364,7 @@ export function archiveConversation(
   emitArchiveChanged();
 
   void (async () => {
-    const { error } = await (supabase.from("thread_archives" as any) as any).upsert(
+    const { error } = await supabase.from("thread_archives").upsert(
       { user_id: userId, job_id: jobId, other_user_id: otherUserId, archived_at: archivedAt },
       { onConflict: "user_id,job_id,other_user_id" },
     );
@@ -403,7 +404,7 @@ export function unarchiveConversation(
   emitArchiveChanged();
 
   void (async () => {
-    const base = (supabase.from("thread_archives" as any) as any)
+    const base = supabase.from("thread_archives")
       .delete()
       .eq("user_id", userId)
       .eq("job_id", jobId);

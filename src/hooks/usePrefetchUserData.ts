@@ -20,7 +20,9 @@ export function usePrefetchUserData(userId: string | undefined) {
   useEffect(() => {
     if (!userId) return;
     const idle = (cb: () => void) => {
-      const w = window as any;
+      const w = window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      };
       if (typeof w.requestIdleCallback === "function") {
         w.requestIdleCallback(cb, { timeout: 1500 });
       } else {

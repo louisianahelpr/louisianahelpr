@@ -32,6 +32,7 @@ import { createNotification } from "@/lib/notifications";
 import { logAdminAction } from "@/lib/adminAudit";
 import type { Database } from "@/integrations/supabase/types";
 import { requireBiometric } from "@/lib/biometricGate";
+import { userFacingError } from "@/lib/userFacingError";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type BanType = "warning" | "temporary" | "permanent";
@@ -293,7 +294,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       onSuccess?.();
       handleClose();
     } catch (err) {
-      toast.error(mutationErrorMessage(err, (err as Error).message || "Couldn't apply that action — try again"));
+      toast.error(mutationErrorMessage(err, userFacingError(err, "Couldn't apply that action — try again.")));
     } finally {
       setBanning(false);
     }

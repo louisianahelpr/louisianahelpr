@@ -139,3 +139,52 @@ describe("userFacingError", () => {
 // error instances from the installed library instead of retyping their
 // strings.
 // @mutate src/lib/userFacingError.ts | /\bEdge Function\b/i, | /\bEdge Functions Are Fine\b/i,
+
+// lh-silent-failure review of the Q228 toast sweep (2026-09-26): what the
+// sweep newly routed through this helper must not lose deliberate server
+// refusals, and must not let raw RPC raise text or mutationResult's
+// developer messages through.
+// @mutate src/lib/userFacingError.ts | const MAX_SHOWABLE = 280; | const MAX_SHOWABLE = 160;
+// @mutate src/lib/userFacingError.ts |   /^[a-z][^.!?]*$/, |   /^never matches either$/,
+// @mutate src/lib/userFacingError.ts |     return named.userMessage; |     return fallback;
+// @mutate src/lib/userFacingError.ts |   if (named?.name === "MissingRowCountError") return fallback; |   if (named?.name === "MissingRowCountErrorX") return fallback;
+describe("userFacingError after the Q228 sweep review", () => {
+  beforeEach(() => { vi.spyOn(console, "error").mockImplementation(() => {}); });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it.each([
+    // supabase/functions/stripe-connect/index.ts (409 on reset), 181 chars
+    "We couldn't reset your payout account — Stripe still has activity on it (this usually means money is waiting to pay out). Nothing was changed. Contact support and we'll sort it out.",
+    // supabase/functions/create-payment/index.ts admin_refund_general on a disputed job
+    "This job is under dispute. Use Quick Refund on the dispute instead — it settles the dispute and the refund together, and a general refund would race it. No money was moved.",
+  ])("keeps a long deliberate server refusal: %s", (copy) => {
+    expect(copy.length).toBeGreaterThan(160);
+    expect(userFacingError(new Error(copy), FALLBACK)).toBe(copy);
+  });
+
+  it.each(["not_cancellable", "not authorized for this job", "job not found", "not authenticated"])(
+    "drops raw RPC raise text: %s",
+    (raw) => {
+      // postgrest-js returns `error` as a plain object, not an Error
+      expect(userFacingError({ message: raw, code: "P0001" }, FALLBACK)).toBe(FALLBACK);
+    },
+  );
+
+  it("shows a zero-row write's own copy, never its developer message", () => {
+    const err = Object.assign(new Error("Write affected 0 row(s), expected at least 1. Most likely RLS, a stale id, or a guard predicate that no longer holds."), {
+      name: "WriteRejectedError", userMessage: "That credential was already reviewed.",
+    });
+    expect(userFacingError(err, FALLBACK)).toBe("That credential was already reviewed.");
+  });
+
+  it("never shows a missing-row-count developer message", () => {
+    const err = Object.assign(new Error('unwrapMutation("x") received no rows array — add .select("id") to the mutation so the affected-row count is observable.'), { name: "MissingRowCountError" });
+    expect(userFacingError(err, FALLBACK)).toBe(FALLBACK);
+  });
+
+  it("uses the real mutationResult classes' names", async () => {
+    const { WriteRejectedError, MissingRowCountError } = await import("@/lib/mutationResult");
+    expect(userFacingError(new WriteRejectedError("Already done.", 0, 1), FALLBACK)).toBe("Already done.");
+    expect(userFacingError(new MissingRowCountError("x"), FALLBACK)).toBe(FALLBACK);
+  });
+});

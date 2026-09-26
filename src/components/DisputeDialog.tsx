@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface DisputeDialogProps {
   jobId: string;
@@ -61,7 +62,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
   // dispute but it's not letting me".
   const getErrorMessage = (error: unknown) =>
     lifecycleErrorMessage(error) ??
-    (error instanceof Error ? error.message : "Couldn't file the dispute — try again?");
+    userFacingError(error, "Couldn't file the dispute — try again?");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

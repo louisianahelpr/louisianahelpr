@@ -107,7 +107,7 @@ export function usePortfolio({ profile, onPortfolioChange }: UsePortfolioArgs) {
         const { publicUrl } = await uploadPortfolioImage(supabase, userId, file, file.type);
         uploaded.push(publicUrl);
       } catch {
-        toast.error(`Couldn't upload ${file.name}`);
+        toast.error(`Couldn't upload ${file.name}.`);
         continue;
       }
     }

@@ -175,7 +175,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
         );
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't sync your calendar — try again?");
+      toast.error(userFacingError(err, "Couldn't sync your calendar — try again?"));
     } finally {
       setSyncingId(null);
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });

@@ -167,7 +167,7 @@ export async function saveOrShareFile({
 }: SaveFileOptions): Promise<boolean> {
   if (isNativePlatform && blob.size > NATIVE_SHARE_MAX_BYTES) {
     toast.error("That export is too large to share from the app", {
-      description: "Narrow the date range, or download it from helpr on the web.",
+      description: "Narrow the date range, or download it from Louisiana Helpr on the web.",
     });
     return false;
   }

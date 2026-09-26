@@ -90,7 +90,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
     if (hitGoal && !celebrated && goal != null) {
       setCelebrated(true);
       hapticSuccess();
-      toast.success(`Goal hit — $${formatPriceFloor(thisMonthEarnings)} this month. Nice work!`);
+      toast.success(`Goal hit — $${formatPriceFloor(thisMonthEarnings)} this month. Nice work.`);
     }
   }, [hitGoal, celebrated, goal, thisMonthEarnings]);
 

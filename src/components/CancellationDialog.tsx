@@ -36,6 +36,7 @@ import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits
 // formatPriceExact, not formatPrice: this block shows the fee arithmetic,
 // and whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
+import { userFacingError } from "@/lib/userFacingError";
 
 type CancellationDialogProps = {
   jobId: string;
@@ -275,9 +276,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
     } catch (err) {
       const message = isWriteRejected(err)
         ? err.userMessage
-        : err instanceof Error
-          ? err.message
-          : "Couldn't cancel — please try again";
+        : userFacingError(err, "Couldn't cancel — please try again.");
       hapticError();
       toast.error(message);
     } finally {

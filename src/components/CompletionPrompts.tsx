@@ -28,6 +28,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 import { unwrapMutation, WriteRejectedError } from "@/lib/mutationResult";
+import { userFacingError } from "@/lib/userFacingError";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -182,7 +183,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     setSaving(false);
     if (error) {
       if (error.code === "23505") { recordReviewInActivityCache(jobId); setStep("tip"); }
-      else if (error.code === "23514" && error.message) { hapticError(); toast.error(error.message); } // server contact-leak refusal (TS-010)
+      else if (error.code === "23514" && error.message) { hapticError(); toast.error(userFacingError(error, "We couldn't submit your review — please try again.")); } // server contact-leak refusal (TS-010)
       else if (error instanceof WriteRejectedError) { hapticError(); toast.error(error.userMessage); }
       else { hapticError(); toast.error("We couldn't submit your review — please try again."); }
     } else {
@@ -274,7 +275,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       if (data?.url) await openExternalUrl(data.url);
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Couldn't send that tip — please try again";
+      const message = userFacingError(err, "Couldn't send that tip — please try again.");
       toast.error(message);
     } finally {
       savingRef.current = false;

@@ -760,6 +760,7 @@ export const GAPS: Record<string, string> = {
     "opened only by a control NEVER_PRESS refuses (/delete (my )?account/) — the shared accounts are a sign-in dependency for the suite",
   // Non-text controls: no typed value to be messy. Checked by press-every-control (npm run audit:press).
   "src/components/dashboard/FilterSheet.tsx": "switch only — no typed input",
+  "src/components/dashboard/filterSheet/FilterSheetRows.tsx": "switch only — no typed input (the Show-only rows extracted from FilterSheet.tsx, Q184)",
   "src/components/admin/AdminNotifications.tsx": "switches only",
   "src/components/admin/adminPayoutBatches/BatchRow.tsx": "checkbox only",
   "src/components/admin/AdminFraudDashboard.tsx": "select only",

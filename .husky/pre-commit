@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
+# Q47/Q18: a Claude session never commits from the shared main checkout.
+node scripts/session-worktree.mjs check-commit || exit 1
 # Q75: no secret lands. Staged ADDED lines only, value never printed.
 node scripts/secret-scan.mjs --staged || exit 1
 npx lint-staged

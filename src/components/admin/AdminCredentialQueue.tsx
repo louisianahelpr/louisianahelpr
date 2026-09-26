@@ -128,7 +128,7 @@ const AdminCredentialQueue = () => {
     setBusy(null);
     if (error) {
       report(error, { tags: { source: "AdminCredentialQueue.decide", decision, credential } });
-      toast.error(userFacingError(error, "Couldn't update that credential — try again"));
+      toast.error(userFacingError(error, "Couldn't update that credential — try again."));
       return;
     }
     qc.invalidateQueries({ queryKey });

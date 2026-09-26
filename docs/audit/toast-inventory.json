@@ -1,0 +1,6096 @@
+{
+  "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
+  "summary": {
+    "calls": 549,
+    "files": 137,
+    "rendering": 529,
+    "suppressedByPolicy": 20,
+    "byKind": {
+      "confirmConsequential": 23,
+      "errorToast": 6,
+      "successToast": 1,
+      "toast": 36,
+      "toast.error": 437,
+      "toast.loading": 1,
+      "toast.message": 1,
+      "toast.success": 24,
+      "toast.warning": 20
+    },
+    "copyPiecesByForm": {
+      "literal": 314,
+      "template": 73,
+      "dynamic": 202,
+      "jsx": 0
+    }
+  },
+  "toasts": [
+    {
+      "file": "src/components/AttachmentLink.tsx",
+      "line": 40,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't open that — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/AwardGateDialog.tsx",
+      "line": 94,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Couldn't open Stripe — try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/BlockUserDialog.tsx",
+      "line": 112,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Sign in to continue."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/BlockUserDialog.tsx",
+      "line": 117,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "result.error || \"Couldn't block this person — try again?\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/BrowseMap.tsx",
+      "line": 859,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "geo.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: geo.message"
+      ]
+    },
+    {
+      "file": "src/components/BrowseMap.tsx",
+      "line": 873,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "geo.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: geo.message"
+      ]
+    },
+    {
+      "file": "src/components/CancellationDialog.tsx",
+      "line": 220,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Cancellation warning (1 of 2) — cancelling again after a Helpr commits is a final warning."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CancellationDialog.tsx",
+      "line": 222,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Final warning — one more cancellation after a Helpr commits and your account is restricted for 7 days pending review."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CancellationDialog.tsx",
+      "line": 244,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "!wasFunded ? // Nothing was ever charged, so there is nothing to return. This // branch exists because the unfunded case used to fall through to // the refund sentence below and tell a poster whose checkout never // completed that \"the full amount returns to your card\" — a // promise of money movement that will never appear on a statement, // on the one screen where they are already unsure what happened to // their payment. \"Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund.\" : appliedFee > 0 ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.` : \"Job cancelled — the full amount returns to your card.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Job cancelled. Your checkout was never completed, so you were never charged — there's nothing to refund."
+          },
+          {
+            "form": "dynamic",
+            "text": "appliedFee > 0 ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.` : \"Job cancelled — the full amount returns to your card.\"",
+            "branches": [
+              {
+                "form": "template",
+                "text": "Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card."
+              },
+              {
+                "form": "literal",
+                "text": "Job cancelled — the full amount returns to your card."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CancellationDialog.tsx",
+      "line": 266,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CompletionPrompts.tsx",
+      "line": 121,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy. Try long-pressing the link."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CompletionPrompts.tsx",
+      "line": 152,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Please select a rating."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CompletionPrompts.tsx",
+      "line": 162,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"We couldn't submit your review — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CompletionPrompts.tsx",
+      "line": 163,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't submit your review — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CompletionPrompts.tsx",
+      "line": 233,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Tips must be between $${TIP_MIN_CENTS / 100} and $${(TIP_MAX_CENTS / 100).toLocaleString(\"en-US\")}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/CompletionPrompts.tsx",
+      "line": 251,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeDialog.tsx",
+      "line": 71,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "\"${f.name}\" exceeds 5 MB limit."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeDialog.tsx",
+      "line": 105,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Please select a reason."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeDialog.tsx",
+      "line": 113,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Tell us what happened — an admin decides this from your words."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeDialog.tsx",
+      "line": 157,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${failedUploads} of ${evidenceFiles.length} photo${evidenceFiles.length === 1 ? \"\" : \"s\"} didn't upload. Try again — your evidence matters here."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeDialog.tsx",
+      "line": 274,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "getErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeTimelineDialog.tsx",
+      "line": 128,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "\"${f.name}\" exceeds 5 MB limit."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeTimelineDialog.tsx",
+      "line": 265,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "${newUrls.length} photo${newUrls.length === 1 ? \"\" : \"s\"} attached to the dispute."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/DisputeTimelineDialog.tsx",
+      "line": 272,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, userFacingError(err, \"Couldn't upload your evidence — try again?\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/EarningsExport.tsx",
+      "line": 109,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick both a start and end date."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/EarningsExport.tsx",
+      "line": 113,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your start date is after your end date — swap them and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/EarningsExport.tsx",
+      "line": 150,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "No earnings found for ${range.label}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/EarningsExport.tsx",
+      "line": 157,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "getErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 89,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load group Helprs."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 176,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(failure, \"Couldn't remove Helpr.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/HelperAvailability.tsx",
+      "line": 62,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load your availability — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/HelperAvailability.tsx",
+      "line": 145,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${DAYS[inverted.day_of_week]}: the end time has to be after the start time."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/HelperAvailability.tsx",
+      "line": 195,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Weekly hours saved"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/HelperAvailability.tsx",
+      "line": 198,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "isWriteRejected(err) ? mutationErrorMessage(err, getErrorMessage(err)) : getErrorMessage(err)",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "mutationErrorMessage(err, getErrorMessage(err))"
+          },
+          {
+            "form": "dynamic",
+            "text": "getErrorMessage(err)"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/IDVPromptDialog.tsx",
+      "line": 143,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Your setup fee is already paid — you can verify now."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/IDVPromptDialog.tsx",
+      "line": 150,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Couldn't open checkout — try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/IDVPromptDialog.tsx",
+      "line": 191,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/InstantPayoutDialog.tsx",
+      "line": 78,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "data?.error || (error ? await functionErrorMessage(error, \"Your instant payout didn't go through — try again?\") : \"Your instant payout didn't go through — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobBoostDialog.tsx",
+      "line": 101,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't start your boost — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobConfirmation.tsx",
+      "line": 280,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't confirm just now — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 756,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load job tracking — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1091,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check the job's completion requirements — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1101,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "arrivalGateMessage(gate)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1116,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "requiredProof(proofJob).reason"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1125,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Almost — Done unlocks in ${minsLeft} min. Jobs can't be completed in under 30 minutes."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1177,
+      "kind": "toast.warning",
+      "title": {
+        "form": "dynamic",
+        "text": "arrivalRefusalMessage(refusal)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1182,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "arrivalErr.code === \"PGRST202\" // Short window between merge and the auto-deploy landing. ? \"Arrival check-in is updating — try again in a minute.\" : (rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? \"Couldn't mark you arrived — try again?\")",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Arrival check-in is updating — try again in a minute."
+          },
+          {
+            "form": "dynamic",
+            "text": "rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? \"Couldn't mark you arrived — try again?\""
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1202,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't mark you arrived — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1288,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "lifecycleErrorMessage(doneErr) ?? mutationErrorMessage(doneErr, \"Couldn't mark the job complete — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1301,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "lifecycleErrorMessage(doneRpcErr) ?? rpcErrorMessage(\"rpc_helper_mark_done\", doneRpcErr) ?? \"Couldn't mark the job complete — try again?\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1328,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Marked done. The person who posted this job already approved, but we couldn't start your payout just now — it releases automatically unless something needs a look. Pull to refresh."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1381,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"helper_mark_on_the_way\", otwErr) ?? \"Couldn't mark you on the way — try again?\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1425,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "lifecycleErrorMessage(writeErr) ?? mutationErrorMessage(writeErr, \"Couldn't update your status — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1484,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Saved for you, but we couldn't update what the person who posted this job sees — check your connection."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1543,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Work started — we saved it, but couldn't tell the person who posted this job. Send them a message so they know."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/JobTracking.tsx",
+      "line": 1547,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/NotificationPanel.tsx",
+      "line": 239,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load notifications — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPanel.tsx",
+      "line": 444,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "Capacitor.isNativePlatform() ? \"Notifications are off. Turn them on in your device settings.\" : \"Notifications are off. Turn them on in your browser settings.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Notifications are off. Turn them on in your device settings."
+          },
+          {
+            "form": "literal",
+            "text": "Notifications are off. Turn them on in your browser settings."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPanel.tsx",
+      "line": 553,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't mark all as read — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPreferences.tsx",
+      "line": 229,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load notification preferences — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPreferences.tsx",
+      "line": 303,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't save that preference — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPreferences.tsx",
+      "line": 326,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't save quiet hours — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPreferences.tsx",
+      "line": 421,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Test sent — check the bell icon, and your email."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPreferences.tsx",
+      "line": 457,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Test didn't reach you — ${joinList([...issues, ...(pushNote ? [pushNote] : [])]) || \"no channel was available\"}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPreferences.tsx",
+      "line": 459,
+      "kind": "toast.warning",
+      "title": {
+        "form": "template",
+        "text": "Sent to ${joinList(landed)} — but ${joinList([...issues, ...(pushNote ? [pushNote] : [])])}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPreferences.tsx",
+      "line": 461,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Sent to ${joinList(landed)}.${pushNote ? \" No device is registered for push.\" : \"\"}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/NotificationPreferences.tsx",
+      "line": 468,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "await functionErrorMessage(err, \"Test failed — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PayoutSetupForm.tsx",
+      "line": 106,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't start payout setup — try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PayoutSetupForm.tsx",
+      "line": 132,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't open your Stripe dashboard — try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PayoutSetupForm.tsx",
+      "line": 139,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Keep at least one payout method — update it from your Stripe dashboard instead."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PayoutSetupForm.tsx",
+      "line": 162,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't remove that payout method — try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PayoutSetupForm.tsx",
+      "line": 194,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't reset your account just now — try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 62,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Max 5 photos."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 79,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "failure.copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 90,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add at least one photo."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 133,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "files.length === 1 ? \"That photo didn't upload. Try again — if it keeps failing, contact support.\" : \"None of those photos uploaded. Try again — if it keeps failing, contact support.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "That photo didn't upload. Try again — if it keeps failing, contact support."
+          },
+          {
+            "form": "literal",
+            "text": "None of those photos uploaded. Try again — if it keeps failing, contact support."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 142,
+      "kind": "toast.warning",
+      "title": {
+        "form": "template",
+        "text": "${failedUploads} of ${files.length} photos didn't upload — the rest were attached."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 164,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(updateError, \"Photos uploaded but couldn't be saved to the job. Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReferralSection.tsx",
+      "line": 70,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't copy — your code is ${referralCode}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReferralSection.tsx",
+      "line": 142,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "result.error"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReferralSection.tsx",
+      "line": 149,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't cash out — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReportDialog.tsx",
+      "line": 236,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick a reason first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReportDialog.tsx",
+      "line": 237,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Add at least ${MIN_LENGTH} characters of detail."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReportDialog.tsx",
+      "line": 243,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Sign in to continue."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReportDialog.tsx",
+      "line": 259,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "reportSubmitError(error, \"We couldn't send your report — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ReportDialog.tsx",
+      "line": 284,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy — long-press the number to select it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/ResponseDeadlineDialog.tsx",
+      "line": 85,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 98,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 102,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Voice dictation isn't available on this device."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 127,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't start a voice note — try reopening the chat."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 135,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "result.error"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 155,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "That file's too large — keep attachments under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)} MB."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 192,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "failure.copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 208,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "failure.copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 223,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't upload that — try reopening the chat."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 230,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "result.error"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 246,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This device can't share location."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 271,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Location access denied — allow it in Settings to share your location."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 283,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Location access denied — allow it in Settings to share your location."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/RichMessageInput.tsx",
+      "line": 337,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SaveHelperButton.tsx",
+      "line": 93,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "previousSaved ? \"Couldn't unsave Helpr — try again?\" : \"Couldn't save Helpr — try again?\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Couldn't unsave Helpr — try again?"
+          },
+          {
+            "form": "literal",
+            "text": "Couldn't save Helpr — try again?"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SaveHelperButton.tsx",
+      "line": 95,
+      "kind": "successToast",
+      "title": {
+        "form": "literal",
+        "text": "Saved to your Helprs"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SavedSearches.tsx",
+      "line": 170,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't load your saved searches — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SavedSearches.tsx",
+      "line": 180,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Name your search to save it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SavedSearches.tsx",
+      "line": 191,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Set at least one filter so the search has something to match on."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SavedSearches.tsx",
+      "line": 233,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Saved searches are being upgraded right now — try again in a few minutes."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SavedSearches.tsx",
+      "line": 235,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't save your search — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SavedSearches.tsx",
+      "line": 272,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't update that alert — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SavedSearches.tsx",
+      "line": 308,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't delete that search — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SosShareButton.tsx",
+      "line": 166,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't get your location"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Sharing without it — turn on location access and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/TermsReconsentDialog.tsx",
+      "line": 157,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't record your acceptance. Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/TipDialog.tsx",
+      "line": 44,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Enter a valid amount."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/TipDialog.tsx",
+      "line": 68,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Tips must be between $${TIP_MIN_CENTS / 100} and $${(TIP_MAX_CENTS / 100).toLocaleString(\"en-US\")}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/TipDialog.tsx",
+      "line": 89,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't send your tip — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/W9CollectionDialog.tsx",
+      "line": 68,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't record your signature right now — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/W9CollectionDialog.tsx",
+      "line": 70,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't record that signature — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminBanReview.tsx",
+      "line": 207,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "confirming ? \"Account permanently banned.\" : \"Restriction lifted.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Account permanently banned."
+          },
+          {
+            "form": "literal",
+            "text": "Restriction lifted."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminBanReview.tsx",
+      "line": 213,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't record that decision — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminCredentialQueue.tsx",
+      "line": 122,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't update that credential — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminCredentialQueue.tsx",
+      "line": 171,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Approved ${ok} credential${ok === 1 ? \"\" : \"s\"}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminCredentialQueue.tsx",
+      "line": 172,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "None approved — ${failures.length} failed."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminCredentialQueue.tsx",
+      "line": 173,
+      "kind": "toast.warning",
+      "title": {
+        "form": "template",
+        "text": "Approved ${ok}, but ${failures.length} failed. The queue still shows them."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminCredentialQueue.tsx",
+      "line": 490,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This document link isn't one we can open."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminCredentialQueue.tsx",
+      "line": 499,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't generate a view link."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 102,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load disputes — refresh to retry."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 139,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check for unsettled settlements — some decided disputes may be missing from this queue."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 158,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load the unsettled disputes — money may be stuck without appearing here."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 318,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't resolve that dispute — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 341,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Decision recorded. This dispute has no formal record to settle against — move the escrow with Quick Release or Quick Refund."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 378,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Decision recorded. The settlement service is still deploying — reopen this dispute in a minute to move the money."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 387,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Decision recorded, but the money didn't move: ${message}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 400,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Dispute settled — ${parts.join(\", \")}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 409,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This dispute has no formal record to settle against — move the escrow with Quick Release or Quick Refund."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 419,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't retry that settlement — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 437,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This dispute has no formal record to close."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 449,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"rpc_settle_dispute_without_payment\", error) ?? userFacingError(error, \"Couldn't close that settlement — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 452,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Settlement closed. No payment was on file, so nothing moved."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 457,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't close that settlement — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 482,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a decision note first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminDisputes.tsx",
+      "line": 559,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't record that decision — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExceptionQueue.tsx",
+      "line": 186,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Resolved ${ok}"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminExceptionQueue.tsx",
+      "line": 187,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Could not resolve ${failures.length} — you may not have permission to write to this queue."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExceptionQueue.tsx",
+      "line": 188,
+      "kind": "toast.warning",
+      "title": {
+        "form": "template",
+        "text": "Resolved ${ok}, ${failures.length} failed — ${failures.join(\", \")}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExceptionQueue.tsx",
+      "line": 208,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't action that exception — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExceptionQueue.tsx",
+      "line": 212,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That exception couldn't be resolved — you may not have permission to write to this queue."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 63,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't export that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 69,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(rolesError, \"Couldn't export that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 73,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "No data to export."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 122,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(queryErr, \"Couldn't export that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 126,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "No data to export."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 143,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't export that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 147,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "No data to export."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminFraudDashboard.tsx",
+      "line": 144,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't resolve that flag — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 115,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Test push not available yet"
+      },
+      "description": {
+        "form": "literal",
+        "text": "The admin-test-push function hasn't finished deploying. Try again in a minute."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 123,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Test push failed"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 131,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Push backend not configured"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "result.skipped"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 133,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "No registered devices"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Open the app on your phone and grant push permission first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 135,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Pushed to ${result.sent}/${result.total} device${result.total === 1 ? \"\" : \"s\"}"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Check your phone."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 137,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "All sends failed"
+      },
+      "description": {
+        "form": "template",
+        "text": "0 of ${result.total} succeeded."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 141,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Test push failed"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Try again in a minute.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 314,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Test event sent"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Check Sentry in ~30 seconds."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminHealth.tsx",
+      "line": 326,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Throwing uncaught error"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Check Sentry in ~30 seconds."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminIDVReview.tsx",
+      "line": 156,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "decision === \"manual_verify\" ? \"Approved — they can post and accept jobs now.\" : decision === \"request_id_reupload\" ? \"Sent. They have a fresh verification attempt.\" : \"Rejected. They stay listed here so this can be undone.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Approved — they can post and accept jobs now."
+          },
+          {
+            "form": "dynamic",
+            "text": "decision === \"request_id_reupload\" ? \"Sent. They have a fresh verification attempt.\" : \"Rejected. They stay listed here so this can be undone.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Sent. They have a fresh verification attempt."
+              },
+              {
+                "form": "literal",
+                "text": "Rejected. They stay listed here so this can be undone."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminIDVReview.tsx",
+      "line": 166,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't record that decision — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminIDVReview.tsx",
+      "line": 214,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Approved ${ok} Helpr${ok === 1 ? \"\" : \"s\"}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminIDVReview.tsx",
+      "line": 215,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "None approved — ${failures.length} failed."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminIDVReview.tsx",
+      "line": 216,
+      "kind": "toast.warning",
+      "title": {
+        "form": "template",
+        "text": "Approved ${ok}, but ${failures.length} failed: ${failures.join(\", \")}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminJobs.tsx",
+      "line": 105,
+      "kind": "toast.message",
+      "title": {
+        "form": "template",
+        "text": "That change is saved. ${who === \"the poster\" ? \"The poster\" : \"The Helpr\"} was not notified: this is a test job and they are a real account, and test jobs never notify real people."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminJobs.tsx",
+      "line": 128,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage( err, `That change is saved, but ${who} couldn't be notified — tell them directly.`, )"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminJobs.tsx",
+      "line": 196,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load jobs — refresh to retry."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminJobs.tsx",
+      "line": 353,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, userFacingError(err, \"Couldn't remove that job — try again.\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminJobs.tsx",
+      "line": 369,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Partial amount $${parsedDollars.toFixed(2)} exceeds job total $${Number(detailJob.budget).toFixed(2)}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminJobs.tsx",
+      "line": 411,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminJobs.tsx",
+      "line": 493,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't override status — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminMarketing.tsx",
+      "line": 42,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Subject and body are required."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminMarketing.tsx",
+      "line": 46,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Enter a test email."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminMarketing.tsx",
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick a parish."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminMarketing.tsx",
+      "line": 80,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Couldn't send that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminNotifications.tsx",
+      "line": 170,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load notification preferences — refresh to retry."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminNotifications.tsx",
+      "line": 180,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't set up notification preferences — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminNotifications.tsx",
+      "line": 207,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't update that preference — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminNotifications.tsx",
+      "line": 245,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't update preferences — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminPayoutBatches.tsx",
+      "line": 208,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${batch.helper_name} has no Stripe payout account configured."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminPayoutBatches.tsx",
+      "line": 286,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't trigger that payout — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminPayoutBatches.tsx",
+      "line": 339,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't process the payout for ${batch.helper_name} — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminReports.tsx",
+      "line": 273,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(fallbackErr, \"Couldn't assign that report — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminReports.tsx",
+      "line": 276,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't update that report — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminReports.tsx",
+      "line": 291,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't assign that report — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminReports.tsx",
+      "line": 314,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't remove that review — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminReports.tsx",
+      "line": 317,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Review removed."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminReports.tsx",
+      "line": 338,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't update that report — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminReports.tsx",
+      "line": 394,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't send that message — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 93,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load platform settings — refresh to retry."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 124,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Min build must be a non-negative integer."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 128,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Min build must be no greater than 999,999."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 143,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 145,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, userFacingError(err, \"Couldn't save that setting — try again.\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 161,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "n === 0 ? \"Force-update gate turned OFF — no device is blocked.\" : `Force-update gate live — native builds below ${n} will be blocked within a minute.`",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Force-update gate turned OFF — no device is blocked."
+          },
+          {
+            "form": "template",
+            "text": "Force-update gate live — native builds below ${n} will be blocked within a minute."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 188,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${limit.label}: ${parsed.error}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 205,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "These settings aren't live yet — the latest database update is still deploying. Try again in a few minutes."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 207,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, userFacingError(err, \"Couldn't save that setting — try again.\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 222,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "ABUSE_LIMITS.map((l) => describeCap(l.key, patch[l.key])).join(\" \")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 232,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Webhook URL must start with http:// or https://."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 247,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, userFacingError(err, \"Couldn't save that setting — try again.\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 263,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load admin list — refresh to retry."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 306,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't search users — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 342,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "detail || \"Couldn't add the admin — try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 354,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You can't remove yourself as admin."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSettings.tsx",
+      "line": 388,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't remove the admin — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminStalledJobs.tsx",
+      "line": 144,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This queue's functions aren't deployed yet — nothing was recorded."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminStalledJobs.tsx",
+      "line": 156,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Already cleared — someone got to this one first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminStalledJobs.tsx",
+      "line": 160,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Marked reviewed. The escrow is untouched."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminStalledJobs.tsx",
+      "line": 165,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't record that review — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSupport.tsx",
+      "line": 334,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't update that ticket — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminUserNotes.tsx",
+      "line": 112,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Write something before saving."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminUserNotes.tsx",
+      "line": 116,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't identify admin user."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminUserNotes.tsx",
+      "line": 128,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't save that note — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminUserNotes.tsx",
+      "line": 152,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Note can't be empty."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminUserNotes.tsx",
+      "line": 180,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't update that note — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminUserNotes.tsx",
+      "line": 210,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't delete that note — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminUsers.tsx",
+      "line": 173,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load users — refresh to retry."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AutoRestrictedRail.tsx",
+      "line": 114,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't reverse that restriction — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/BanDialog.tsx",
+      "line": 116,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a freeform note for 'Other' reason."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/BanDialog.tsx",
+      "line": 144,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You can't take an account action against your own account. Ask another admin."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/BanDialog.tsx",
+      "line": 293,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "actionLabel"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/BanDialog.tsx",
+      "line": 297,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, userFacingError(err, \"Couldn't apply that action — try again.\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/DeleteUserDialog.tsx",
+      "line": 66,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't delete that account — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/EditEmailDialog.tsx",
+      "line": 44,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Emails don't match."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/EditEmailDialog.tsx",
+      "line": 48,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a new email address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/EditEmailDialog.tsx",
+      "line": 53,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That doesn't look like a valid email address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/EditEmailDialog.tsx",
+      "line": 87,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/FormalWarningDialog.tsx",
+      "line": 80,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't send that warning — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/ManualVerifyDialog.tsx",
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't verify that account — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/ResetPasswordDialog.tsx",
+      "line": 57,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't send the password reset — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/RestrictApplicationsDialog.tsx",
+      "line": 93,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a reason — it is the only record of why this was applied."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/RestrictApplicationsDialog.tsx",
+      "line": 143,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Applications restricted for ${days} days."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/RestrictApplicationsDialog.tsx",
+      "line": 147,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't apply that restriction — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminusers/useAdminUserActions.ts",
+      "line": 44,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't resend the verification email — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminusers/useAdminUserActions.ts",
+      "line": 67,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(banErr, \"Couldn't lift the ban — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminusers/useAdminUserActions.ts",
+      "line": 96,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "The ban wasn't lifted — the update was refused. Check your admin permissions and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminusers/useAdminUserActions.ts",
+      "line": 115,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(profileErr, \"Ban row cleared, but the account status didn't update — re-check this user.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingComposerDialog.tsx",
+      "line": 172,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Image attached."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingComposerDialog.tsx",
+      "line": 175,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't upload that image — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingComposerDialog.tsx",
+      "line": 186,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Post saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingComposerDialog.tsx",
+      "line": 189,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "mode === \"scheduled\" ? \"Post scheduled.\" : \"Draft saved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Post scheduled."
+          },
+          {
+            "form": "literal",
+            "text": "Draft saved."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingComposerDialog.tsx",
+      "line": 195,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't save that post — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingQueue.tsx",
+      "line": 125,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "done"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingQueue.tsx",
+      "line": 129,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't do that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingQueue.tsx",
+      "line": 146,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "issues[0].message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: issues[0].message"
+      ]
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingQueue.tsx",
+      "line": 160,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "issues[0].message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: issues[0].message"
+      ]
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingSettingsCard.tsx",
+      "line": 79,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "done"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/marketing/MarketingSettingsCard.tsx",
+      "line": 83,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't save that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/userDetail/UserAuditLog.tsx",
+      "line": 94,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "error.code === \"PGRST202\" ? \"Reversal isn't live yet — this deploys with the next migration. Try again shortly.\" : (rpcErrorMessage(\"admin_reverse_violation\", error) ?? \"Couldn't reverse that strike. Nothing was changed.\")",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Reversal isn't live yet — this deploys with the next migration. Try again shortly."
+          },
+          {
+            "form": "dynamic",
+            "text": "rpcErrorMessage(\"admin_reverse_violation\", error) ?? \"Couldn't reverse that strike. Nothing was changed.\""
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/userDetail/UserAuditLog.tsx",
+      "line": 103,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "restored ? \"Strike reversed and account access restored.\" : \"Strike reversed. It no longer counts toward future warnings.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Strike reversed and account access restored."
+          },
+          {
+            "form": "literal",
+            "text": "Strike reversed. It no longer counts toward future warnings."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/auth/SocialAuthButtons.tsx",
+      "line": 124,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "${providerName} sign-in cancelled."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/auth/SocialAuthButtons.tsx",
+      "line": 129,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(result, `Couldn't sign in with ${provider} — try again?`)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/dashboard/BrowseTasksFeed.tsx",
+      "line": 532,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "m"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx",
+      "line": 238,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "You're offline"
+      },
+      "description": {
+        "form": "literal",
+        "text": "We saved your pitch. Try again once you're back online."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/feedback/NpsPrompt.tsx",
+      "line": 134,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/JobListPage.tsx",
+      "line": 398,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "GPS confirmed you were at the job."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/job-card/activityActions/useApplicantsState.ts",
+      "line": 121,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't pull up applicants right now — give it a second and try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useApplicantsState.ts",
+      "line": 146,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't pull up applicants right now — give it a second and try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 83,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't check this job's status. Please try again in a moment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 89,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This job can't be cancelled — the Helpr is already on the way or working."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 136,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "arrivalGateMessage(arrivalRow)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 158,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "requiredProof(job).reason"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 243,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Enjoying smooth jobs?"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Turn on Instant Release and payment goes out the moment your Helpr marks done with photo proof — no 24-hour wait."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 257,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't mark this job complete — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 270,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Revision marked as fixed"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 272,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't resolve that revision — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 294,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "lifecycleErrorMessage(err) ?? \"We couldn't confirm arrival just now — please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 303,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Arrival confirmed."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 328,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "lifecycleErrorMessage(err) ?? \"We couldn't confirm that just now — please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 337,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Work confirmed."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 356,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't find the Helpr on this job — pull to refresh and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 380,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"report_helper_no_show\", rpcError) ?? \"Couldn't report the no-show — please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 414,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "dynamic",
+        "text": "legacyBanned ? \"No-show reported — this Helpr has been banned for repeated no-shows.\" : restricted ? \"No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again.\" : \"No-show reported — the Helpr has been warned and your job is open again.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "No-show reported — this Helpr has been banned for repeated no-shows."
+          },
+          {
+            "form": "dynamic",
+            "text": "restricted ? \"No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again.\" : \"No-show reported — the Helpr has been warned and your job is open again.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again."
+              },
+              {
+                "form": "literal",
+                "text": "No-show reported — the Helpr has been warned and your job is open again."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
+      "line": 422,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't report the no-show just now — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 141,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't decline that applicant — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 145,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Applicant declined"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 322,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check your verification status — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 344,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Offer responses are updating right now — try again in a minute."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 352,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "guard"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 363,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "UNFUNDED_AWARD_COPY"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 368,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't record your response — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 404,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check your verification status — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 462,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "UNFUNDED_AWARD_COPY"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 466,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't accept the job — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 475,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This offer is no longer available — it may have expired."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 595,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "guard"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 599,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't record your response — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 612,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't record this right now — try again shortly."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 627,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "This is your final warning — one more strike suspends your account for 7 days."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 635,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Third strike — your account is suspended for 7 days."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 659,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Offer declined"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/ChatView.tsx",
+      "line": 236,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "The 15-minute edit window closed — that change wasn't saved."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/ChatView.tsx",
+      "line": 246,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/ConversationList.tsx",
+      "line": 615,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Conversations with a deleted account can't be hidden."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/ConversationList.tsx",
+      "line": 621,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "You can select up to ${MAX_SELECT} conversations."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/ConversationList.tsx",
+      "line": 1668,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Restored conversation with ${c.otherUserName ?? \"this person\"}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/MessageActionSheet.tsx",
+      "line": 88,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy that message."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/mobileNav/useNavUnreadCount.ts",
+      "line": 189,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't mark messages read — give it another try."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/postjob/AiJobBuilder.tsx",
+      "line": 59,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Describe what you need help with."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/postjob/AiJobBuilder.tsx",
+      "line": 87,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "busy ? \"The AI builder is busy right now — give it a few seconds and try again.\" : /AI service error|non-2xx|Unknown error|Failed to generate/i.test(raw) || !raw ? \"Couldn't generate a posting just now. Try again, or start from a blank form.\" : userFacingError(err, \"Couldn't generate a posting just now. Try again, or start from a blank form.\")",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "The AI builder is busy right now — give it a few seconds and try again."
+          },
+          {
+            "form": "dynamic",
+            "text": "/AI service error|non-2xx|Unknown error|Failed to generate/i.test(raw) || !raw ? \"Couldn't generate a posting just now. Try again, or start from a blank form.\" : userFacingError(err, \"Couldn't generate a posting just now. Try again, or start from a blank form.\")",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Couldn't generate a posting just now. Try again, or start from a blank form."
+              },
+              {
+                "form": "dynamic",
+                "text": "userFacingError(err, \"Couldn't generate a posting just now. Try again, or start from a blank form.\")"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/postjob/CurrentLocationPill.tsx",
+      "line": 209,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Location isn't supported on this device."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/postjob/CurrentLocationPill.tsx",
+      "line": 241,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "denied ? \"Location access is off — turn it on in Settings, or type the address instead.\" : \"Couldn't get your location — try again or type it in.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Location access is off — turn it on in Settings, or type the address instead."
+          },
+          {
+            "form": "literal",
+            "text": "Couldn't get your location — try again or type it in."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/postjob/CurrentLocationPill.tsx",
+      "line": 259,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't resolve your address. Try typing it instead."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/postjob/CurrentLocationPill.tsx",
+      "line": 267,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Louisiana Helpr is available in Louisiana only."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/AvailabilityTab.tsx",
+      "line": 246,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't update availability — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/BackgroundCheckCard.tsx",
+      "line": 65,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "await functionErrorMessage(error, \"Couldn't start your background check. Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/BackgroundCheckCard.tsx",
+      "line": 72,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "data.error"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/BackgroundCheckCard.tsx",
+      "line": 77,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't start your background check. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/BackgroundCheckCard.tsx",
+      "line": 84,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't start your background check — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 135,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load credentials."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 196,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${label}: must be JPG, PNG, WEBP, or PDF."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 200,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${label}: must be under 5 MB."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 309,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't send your documents — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 330,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This document link isn't one we can open."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 337,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't generate a view link."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 374,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't update your credentials — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 435,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't save your business name — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 446,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "anyVerified ? \"Saved — your badge is back in review while we check the new name.\" : \"Saved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Saved — your badge is back in review while we check the new name."
+          },
+          {
+            "form": "literal",
+            "text": "Saved."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/profile/EarningsTab.tsx",
+      "line": 151,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "No payouts to export"
+      },
+      "description": {
+        "form": "template",
+        "text": "No payouts found for ${year}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/MonthlyGoalCard.tsx",
+      "line": 93,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Goal hit — $${formatPriceFloor(thisMonthEarnings)} this month. Nice work."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/profile/MonthlyGoalCard.tsx",
+      "line": 100,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Enter a positive dollar amount."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SecurityTab.tsx",
+      "line": 198,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't sign you out everywhere — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SecurityTab.tsx",
+      "line": 240,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't update your security settings — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SecurityTab.tsx",
+      "line": 260,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Check ${trimmed} to confirm your new address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SecurityTab.tsx",
+      "line": 488,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't send the reset link — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SecurityTab.tsx",
+      "line": 491,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Reset link sent to ${email}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SubscriptionTab.tsx",
+      "line": 94,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Membership status refreshed."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SubscriptionTab.tsx",
+      "line": 96,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't refresh your membership — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SubscriptionTab.tsx",
+      "line": 149,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "await functionErrorMessage(err, \"Couldn't open the billing portal — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SubscriptionTab.tsx",
+      "line": 188,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "err.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: err.message"
+      ]
+    },
+    {
+      "file": "src/components/profile/SubscriptionTab.tsx",
+      "line": 191,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "await functionErrorMessage(err, \"Couldn't start checkout — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SubscriptionTab.tsx",
+      "line": 206,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Purchases restored. If you had a membership, it's back on your account."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SubscriptionTab.tsx",
+      "line": 208,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't restore purchases — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SupportInline.tsx",
+      "line": 142,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Select an image file."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SupportInline.tsx",
+      "line": 146,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Screenshot must be under 5 MB."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SupportInline.tsx",
+      "line": 183,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't upload screenshot — sending without it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SupportInline.tsx",
+      "line": 224,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "reportSubmitError(error, \"We couldn't send that — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/TwoFactorCard.tsx",
+      "line": 266,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That code didn't match. Check your app and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/TwoFactorCard.tsx",
+      "line": 391,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That code didn't match. Check your app and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/TwoFactorCard.tsx",
+      "line": 397,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't turn off two-step verification — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/profileEditForm/usePortfolio.ts",
+      "line": 56,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save your work photos."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/profileEditForm/usePortfolio.ts",
+      "line": 67,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your profile is updated, but we couldn't delete the removed photo from storage yet — it may still be viewable. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/profileEditForm/usePortfolio.ts",
+      "line": 82,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Maximum ${MAX_PORTFOLIO} photos."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/profileEditForm/usePortfolio.ts",
+      "line": 93,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Skipping ${f.name} — ${err instanceof Error ? err.message : \"unsupported file.\"}"
+      },
+      "renders": true,
+      "rawError": [
+        "title: err.message"
+      ]
+    },
+    {
+      "file": "src/components/profile/profileEditForm/usePortfolio.ts",
+      "line": 110,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't upload ${file.name}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/savedHelpersTab/useSavedHelpers.ts",
+      "line": 141,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/savedHelpersTab/useSavedHelpers.ts",
+      "line": 145,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Note saved"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/savedHelpersTab/useSavedHelpers.ts",
+      "line": 175,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't remove — restored."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/savedHelpersTab/useSavedHelpers.ts",
+      "line": 182,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Removed from saved"
+      },
+      "description": {
+        "form": "template",
+        "text": "${formatName(snapshot.full_name)} won't appear here anymore."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 78,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "failure.copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 106,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Tap an Overall star rating to leave your review."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 111,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Please sign back in to leave your review."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 162,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "urls.length > 0 ? \"Some photos couldn't be attached — your review was still posted.\" : \"Your photos couldn't be attached — your review was still posted.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Some photos couldn't be attached — your review was still posted."
+          },
+          {
+            "form": "literal",
+            "text": "Your photos couldn't be attached — your review was still posted."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 190,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You've already reviewed this job."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 197,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't post your review — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 199,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't post your review — this job may no longer be open for reviews. Refresh and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 203,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't post your review — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 256,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Review posted. It goes live once they review you too — or in 14 days, whichever comes first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useDeleteAccount.ts",
+      "line": 125,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "await functionErrorMessage(err, \"Couldn't delete your account — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useFundExistingJob.ts",
+      "line": 91,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't start payment: ${endSentence(message)} The job is still here — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useFundExistingJob.ts",
+      "line": 99,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't set up payment just yet — the job is still here, please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useHelperMilestones.ts",
+      "line": 132,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "m.title"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "m.description"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/usePendingSaveConsumer.ts",
+      "line": 31,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Job saved"
+      },
+      "description": {
+        "form": "literal",
+        "text": "The job you bookmarked is waiting under Only Saved Jobs."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useVoiceRecorder.ts",
+      "line": 140,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Microphone access denied. Allow microphone access in Settings to record voice notes."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useVoiceRecorder.ts",
+      "line": 166,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Voice recording is not supported on this device."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/calendarExport.ts",
+      "line": 227,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't build the calendar event"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Your device wouldn't let the app save the file. Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/calendarExport.ts",
+      "line": 248,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't open your calendar"
+      },
+      "description": {
+        "form": "literal",
+        "text": "The share sheet didn't open. Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/calendarExport.ts",
+      "line": 276,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "${fileName} downloaded"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Open it to add the job to your calendar."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/calendarExport.ts",
+      "line": 280,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't export to calendar — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/fileExport.ts",
+      "line": 169,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That export is too large to share from the app"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Narrow the date range, or download it from Louisiana Helpr on the web."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/fileExport.ts",
+      "line": 181,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't prepare ${label}"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Try again in a moment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/nativePush.ts",
+      "line": 279,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "notification.title || \"New notification\""
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "notification.body || undefined"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/nativeShare.ts",
+      "line": 85,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "hasUrl ? \"Link copied\" : \"Summary copied\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Link copied"
+          },
+          {
+            "form": "literal",
+            "text": "Summary copied"
+          }
+        ]
+      },
+      "description": {
+        "form": "literal",
+        "text": "Paste it anywhere to share."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/nativeShare.ts",
+      "line": 218,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "url ? \"Copy this link\" : \"Copy this summary\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Copy this link"
+          },
+          {
+            "form": "literal",
+            "text": "Copy this summary"
+          }
+        ]
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "clipboardText"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/nativeShare.ts",
+      "line": 237,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't share — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/nativeShare.ts",
+      "line": 268,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "${fileName} downloaded"
+      },
+      "description": {
+        "form": "literal",
+        "text": "It's in your browser's downloads."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/nativeShare.ts",
+      "line": 336,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't prepare the file"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Your device wouldn't let the app save it. Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/nativeShare.ts",
+      "line": 349,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't open the share sheet"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/nativeShare.ts",
+      "line": 371,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't download the file — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/pushPermissionNudge.ts",
+      "line": 220,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "title"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/requireOnline.ts",
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You're offline. Try again when you're back."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/CompleteProfile.tsx",
+      "line": 168,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${label} — that file type isn't supported."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/CompleteProfile.tsx",
+      "line": 172,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${label} is over 5 MB — try a smaller file."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/CompleteProfile.tsx",
+      "line": 325,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/CompleteProfile.tsx",
+      "line": 433,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/CompleteProfile.tsx",
+      "line": 489,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "contactLeakRejectionMessage(err) ?? (isWriteRejected(err) ? mutationErrorMessage(err) : userFacingError(err, \"We couldn't save your profile just yet — give it another try.\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/ForgotPassword.tsx",
+      "line": 69,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Too many requests — try again in a minute."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 253,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Too many attempts — try again in ${minutesLeft} min."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 268,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "friendlyAuthError(error.message)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 289,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Too many attempts — try again in ${minutesLeft} min."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 291,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "friendlyAuthError(error.message)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 304,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Check your inbox first — you'll need to confirm your email before signing in."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 332,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't verify your security settings — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 366,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That code didn't match. Check your app and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/ResetPassword.tsx",
+      "line": 178,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 272,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add your email address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 292,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "pwProblem"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 293,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Check the box to agree to the terms and platform rules."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 294,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Check the box to confirm you're 18 or older."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 307,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't read your photo. You can add one later from your profile."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 392,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Too many attempts — try again in ${secsLeft}s."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 400,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "This password has appeared in ${pwnedCount.toLocaleString()} known data breaches. Please choose a different password."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 463,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${userFacingError(completionErr, \"We couldn't finish setting up your profile.\")} Your account is created: confirm your email, then sign in to finish."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 485,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 546,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "authCopy ?? userFacingError(err, \"Couldn't create your account — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/SignupPending.tsx",
+      "line": 166,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Too many requests — try again in a minute."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/signup/signupHelpers.ts",
+      "line": 33,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${label}: that file type isn't supported — try JPG, PNG, or WEBP."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/signup/signupHelpers.ts",
+      "line": 37,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${label}: that file is over 5 MB — try a smaller one."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/Dashboard.tsx",
+      "line": 206,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Your job is boosted — it's at the top of the feed for the next 24 hours."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/Dashboard.tsx",
+      "line": 210,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Boost cancelled — your job is still posted, just not boosted."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/Dashboard.tsx",
+      "line": 373,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Job removed from your feed"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/Dashboard.tsx",
+      "line": 825,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "m"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/QuickApplyHandler.tsx",
+      "line": 107,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 117,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You can't apply to your own post."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 267,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Your application was sent, but the attachments didn't save — add them from Activity."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 296,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You've already applied."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 301,
+      "kind": "errorToast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't upload your attachment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 307,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't send your application — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 314,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "resolveApplyErrorCopy((err as { message?: string }).message)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 323,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't send your application through"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Tap retry to try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 382,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Application sent — but your note wasn't included"
+      },
+      "description": {
+        "form": "literal",
+        "text": "It looked like contact or payment details, which can't be shared before a job is confirmed. The person who posted it sees your application without it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 389,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Application sent. Track it in My Jobs."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useApplyFlow.ts",
+      "line": 458,
+      "kind": "toast.loading",
+      "title": {
+        "form": "literal",
+        "text": "Sending your application…"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useSaveJob.ts",
+      "line": 71,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save that job right now"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Tap retry to try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/info/Support.tsx",
+      "line": 243,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "data?.error || (error ? await functionErrorMessage( error, \"We couldn't send that — please try again.\", ) : \"We couldn't send that — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/info/legal/DataExportCard.tsx",
+      "line": 107,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't put your data together just now — try again or email support."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 110,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save your note — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 120,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick a reason to continue."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 123,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a bit more detail."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 150,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't withdraw that one — give it another try?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 162,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That file's too large — keep it under 5 MB."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 167,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't upload that file — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 180,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save that attachment — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 200,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't remove that — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 209,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Attachment removed"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 221,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't put that back — re-attach it instead."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/HelperRevisionCard.tsx",
+      "line": 186,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Got it — the person who posted this job knows you'll fix it. Tap Mark Fixed when it's done."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/HelperRevisionCard.tsx",
+      "line": 193,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't update the revision status. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
+      "line": 176,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
+      "line": 181,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
+      "line": 184,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
+      "line": 200,
+      "kind": "toast.warning",
+      "title": {
+        "form": "dynamic",
+        "text": "result?.action === \"temp_ban\" ? \"We told the person who posted this job — third strike: your account is suspended for 7 days.\" : result?.action === \"warning\" ? \"We told the person who posted this job — final warning. One more strike is a 7-day suspension.\" : outcome === \"disputed\" ? \"We told the person who posted this job. Our team will review what you’re owed.\" : \"We told the person who posted this job, and the job is open again. This counts as a reliability strike.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "We told the person who posted this job — third strike: your account is suspended for 7 days."
+          },
+          {
+            "form": "dynamic",
+            "text": "result?.action === \"warning\" ? \"We told the person who posted this job — final warning. One more strike is a 7-day suspension.\" : outcome === \"disputed\" ? \"We told the person who posted this job. Our team will review what you’re owed.\" : \"We told the person who posted this job, and the job is open again. This counts as a reliability strike.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "We told the person who posted this job — final warning. One more strike is a 7-day suspension."
+              },
+              {
+                "form": "dynamic",
+                "text": "outcome === \"disputed\" ? \"We told the person who posted this job. Our team will review what you’re owed.\" : \"We told the person who posted this job, and the job is open again. This counts as a reliability strike.\"",
+                "branches": [
+                  {
+                    "form": "literal",
+                    "text": "We told the person who posted this job. Our team will review what you’re owed."
+                  },
+                  {
+                    "form": "literal",
+                    "text": "We told the person who posted this job, and the job is open again. This counts as a reliability strike."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ConfirmedSection.tsx",
+      "line": 58,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"helper_cancel_booking\", error) ?? \"We couldn't cancel this job — please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ConfirmedSection.tsx",
+      "line": 75,
+      "kind": "toast.warning",
+      "title": {
+        "form": "dynamic",
+        "text": "action === \"temp_ban\" ? \"Job cancelled — third strike: your account is suspended for 7 days.\" : action === \"warning\" ? \"Job cancelled — final warning. One more strike is a 7-day suspension.\" : \"Job cancelled. This counts as a reliability strike.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Job cancelled — third strike: your account is suspended for 7 days."
+          },
+          {
+            "form": "dynamic",
+            "text": "action === \"warning\" ? \"Job cancelled — final warning. One more strike is a 7-day suspension.\" : \"Job cancelled. This counts as a reliability strike.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Job cancelled — final warning. One more strike is a 7-day suspension."
+              },
+              {
+                "form": "literal",
+                "text": "Job cancelled. This counts as a reliability strike."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/DisputedSection.tsx",
+      "line": 95,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "expected ? (lifecycleErrorMessage(error) ?? \"We couldn't withdraw that dispute — please try again.\") : \"We couldn't withdraw that dispute — please try again.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "lifecycleErrorMessage(error) ?? \"We couldn't withdraw that dispute — please try again.\""
+          },
+          {
+            "form": "literal",
+            "text": "We couldn't withdraw that dispute — please try again."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/DisputedSection.tsx",
+      "line": 107,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Dispute withdrawn — the payment is off hold."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/DisputedSection.tsx",
+      "line": 331,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't submit your response — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/Messages.tsx",
+      "line": 319,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't delete that one — give it another try?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/Messages.tsx",
+      "line": 359,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/Messages.tsx",
+      "line": 369,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save that edit — give it another try?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/logViolation.ts",
+      "line": 64,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Sharing contact info or taking business off-platform isn't allowed. This is your first warning — a second one is a final warning."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/logViolation.ts",
+      "line": 73,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Final warning — that's your second blocked message. One more and your account is restricted for 7 days while an admin reviews it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/logViolation.ts",
+      "line": 78,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your account is restricted for 7 days while an admin reviews it. If you think this was a mistake, email admin@louisianahelpr.com."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/messagesData/loadConversations.ts",
+      "line": 243,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load image previews — your messages are intact."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/messagesData/sendHandlers.ts",
+      "line": 131,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "DELETED_ACCOUNT_NOTICE"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/messagesData/sendHandlers.ts",
+      "line": 223,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "threadClosedCopy(closedStatus).toast"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/messagesData/sendHandlers.ts",
+      "line": 260,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "RECIPIENT_RESTRICTED_TOAST"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/messagesData/sendHandlers.ts",
+      "line": 277,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Message didn't go through — tap it to try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/messagesData/sendHandlers.ts",
+      "line": 347,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Remove contact details (phone number, email, payment app, etc.) to send this message."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useMessagesData.ts",
+      "line": 549,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "placeholder.problem"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useMessagesData.ts",
+      "line": 584,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't refresh this conversation."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useMessagesData.ts",
+      "line": 625,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load earlier messages. Tap to try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useThreadMuteActions.ts",
+      "line": 82,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't update mute — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useThreadMuteActions.ts",
+      "line": 133,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't update mute — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/useThreadMuteActions.ts",
+      "line": 161,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't update mute — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobFormEffects.ts",
+      "line": 262,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load the previous job for rebooking — please fill in the details manually."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobMediaUpload.ts",
+      "line": 37,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "problem"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobMediaUpload.ts",
+      "line": 64,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Only JPG, PNG, WEBP, and GIF images are allowed."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobMediaUpload.ts",
+      "line": 68,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Maximum 5 images allowed."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobMediaUpload.ts",
+      "line": 183,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your job posted, but the photos didn't attach — you can add them from the job page."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 217,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Give your job a title."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 224,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Shorten your title to ${TITLE_MAX} characters — it's ${title.length - TITLE_MAX} too long."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 233,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "titleLeak"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 235,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a description."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 238,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "descLeak"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 240,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Replace the [bracketed] placeholders with your own details before posting."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 241,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick a category."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 245,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a street address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 246,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a city."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 247,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a state."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 248,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add a zip code."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 249,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick a date for the job."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 254,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That date has already passed — pick a future date."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 255,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Start time is required (or mark the schedule as flexible)."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 264,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That start time has already passed. Pick a later time or a future date."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 277,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 278,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 279,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 283,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Urgent bonus can't be more than ${formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 290,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick at least one day this job repeats on."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 334,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Please wait before posting another job. You recently submitted one."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 343,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Sign in to post a job."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 363,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check your verification status — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 392,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check your open job count — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 398,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You can have a maximum of 5 open jobs at a time. Close or wait for existing jobs first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 552,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "leakRejection ? leakRejection : isPolicyRefusal ? \"We couldn't post this because your account isn't cleared to post yet. Check your identity verification in Profile, then try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "leakRejection"
+          },
+          {
+            "form": "dynamic",
+            "text": "isPolicyRefusal ? \"We couldn't post this because your account isn't cleared to post yet. Check your identity verification in Profile, then try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "We couldn't post this because your account isn't cleared to post yet. Check your identity verification in Profile, then try again."
+              },
+              {
+                "form": "dynamic",
+                "text": "isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "CONNECTION_TROUBLE_COPY"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "userFacingError(error, \"Couldn't post your job just yet — give it another try?\")"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 589,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your job posted, but the pet details didn't attach"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Open the job and add them from Edit so your Helpr can see them."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 740,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "outcomeUnknown ? CONNECTION_TROUBLE_COPY : `Couldn't start payment: ${errorMsg} Please try again.`",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "CONNECTION_TROUBLE_COPY"
+          },
+          {
+            "form": "template",
+            "text": "Couldn't start payment: ${errorMsg} Please try again."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 793,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't set up payment just yet — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/CompletionChoiceSheet.tsx",
+      "line": 95,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Describe what needs fixing so the Helpr knows where to start."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/CompletionChoiceSheet.tsx",
+      "line": 142,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "photoPaths.length > 0 ? \"Some photos couldn't be attached — your revision request was still sent.\" : \"Your photos couldn't be attached — your revision request was still sent.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Some photos couldn't be attached — your revision request was still sent."
+          },
+          {
+            "form": "literal",
+            "text": "Your photos couldn't be attached — your revision request was still sent."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/CompletionChoiceSheet.tsx",
+      "line": 215,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't send the revision request. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/EditJobDialog.tsx",
+      "line": 122,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't save your changes — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
+      "line": 201,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"We couldn't escalate that — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
+      "line": 207,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Escalated — an admin will review this and decide."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
+      "line": 251,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "expected ? (lifecycleErrorMessage(error) ?? \"We couldn't mark that resolved — please try again.\") : \"We couldn't mark that resolved — please try again.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "lifecycleErrorMessage(error) ?? \"We couldn't mark that resolved — please try again.\""
+          },
+          {
+            "form": "literal",
+            "text": "We couldn't mark that resolved — please try again."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
+      "line": 262,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Dispute closed, but the payment didn't release. Contact support so we can finish it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
+      "line": 274,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Dispute resolved — payment released to your Helpr."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/AutoTip.tsx",
+      "line": 135,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You're signed out — sign in again to change this."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/AutoTip.tsx",
+      "line": 139,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Check the highlighted amount before saving."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/AutoTip.tsx",
+      "line": 165,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save these settings — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/AutoTip.tsx",
+      "line": 176,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save these settings"
+      },
+      "description": {
+        "form": "literal",
+        "text": "We couldn't reach your profile. Try again in a moment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/GiftCard.tsx",
+      "line": 168,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Gift cancelled"
+      },
+      "description": {
+        "form": "literal",
+        "text": "No charge was made."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/GiftCard.tsx",
+      "line": 176,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Gift sent"
+      },
+      "description": {
+        "form": "literal",
+        "text": "We've emailed your recipient a link to claim it. It'll appear below in a moment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/GiftCard.tsx",
+      "line": 218,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "data.already_claimed ? \"Already yours\" : \"Gift claimed\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Already yours"
+          },
+          {
+            "form": "literal",
+            "text": "Gift claimed"
+          }
+        ]
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "data.already_claimed ? \"This gift is already attached to your account.\" : \"It's attached to your account and ready to use.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "This gift is already attached to your account."
+          },
+          {
+            "form": "literal",
+            "text": "It's attached to your account and ready to use."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/GiftCard.tsx",
+      "line": 236,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't claim gift card"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/GiftCard.tsx",
+      "line": 404,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't send gift card"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/HomeHistory.tsx",
+      "line": 278,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Home record saved"
+      },
+      "description": {
+        "form": "template",
+        "text": "${file.fileName} — attach it or print it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/PetProfiles.tsx",
+      "line": 92,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Pet removed"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/PetProfiles.tsx",
+      "line": 103,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't remove that pet — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/Profile.tsx",
+      "line": 384,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save setting — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/Profile.tsx",
+      "line": 408,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "bioLeak"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/Profile.tsx",
+      "line": 432,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "contactLeakRejectionMessage(err) ?? mutationErrorMessage(err, \"We couldn't save your profile — please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/Profile.tsx",
+      "line": 513,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "uploaded ? mutationErrorMessage(err, \"Photo uploaded, but couldn't pin it to your profile. Try again?\") : mutationErrorMessage(err, \"Couldn't upload your photo — please try again.\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "mutationErrorMessage(err, \"Photo uploaded, but couldn't pin it to your profile. Try again?\")"
+          },
+          {
+            "form": "dynamic",
+            "text": "mutationErrorMessage(err, \"Couldn't upload your photo — please try again.\")"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/Profile.tsx",
+      "line": 529,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/StrSettings.tsx",
+      "line": 128,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Calendar connected"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/StrSettings.tsx",
+      "line": 133,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't connect your calendar — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/StrSettings.tsx",
+      "line": 159,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't sync — ${result.error}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/StrSettings.tsx",
+      "line": 171,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "created > 0 ? `Synced — ${created} cleaning ${created === 1 ? \"job\" : \"jobs\"} posted` : \"Synced — no new checkouts to cover\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Synced — ${created} cleaning ${created === 1 ? \"job\" : \"jobs\"} posted"
+          },
+          {
+            "form": "literal",
+            "text": "Synced — no new checkouts to cover"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/StrSettings.tsx",
+      "line": 178,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't sync your calendar — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/StrSettings.tsx",
+      "line": 200,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Calendar removed"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/StrSettings.tsx",
+      "line": 206,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't remove that calendar — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/WorkRecord.tsx",
+      "line": 301,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Work record saved"
+      },
+      "description": {
+        "form": "template",
+        "text": "${file.fileName} — attach or print it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/WorkRecord.tsx",
+      "line": 324,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't open the print dialog"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Use Share Record (PDF) to send this record instead."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/petProfiles/PetForm.tsx",
+      "line": 103,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pet name is required."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/petProfiles/PetForm.tsx",
+      "line": 108,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "firstError"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/petProfiles/PetForm.tsx",
+      "line": 123,
+      "kind": "toast.warning",
+      "title": {
+        "form": "template",
+        "text": "You already have a pet named ${form.name.trim()} — tap Save again if this is a different ${form.species}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/petProfiles/PetForm.tsx",
+      "line": 156,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "initialValues ? \"Pet updated\" : \"Pet added\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Pet updated"
+          },
+          {
+            "form": "literal",
+            "text": "Pet added"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/petProfiles/PetForm.tsx",
+      "line": 161,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save pet profile — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/user/UserProfile.tsx",
+      "line": 86,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't unblock this person. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/user/UserProfile.tsx",
+      "line": 89,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Unblocked"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/user/UserProfile.tsx",
+      "line": 455,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Write a response first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/user/UserProfile.tsx",
+      "line": 466,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save your response right now — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/user/UserProfile.tsx",
+      "line": 468,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save your response — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/user/UserProfile.tsx",
+      "line": 483,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save your response — try again?"
+      },
+      "renders": true
+    }
+  ]
+}

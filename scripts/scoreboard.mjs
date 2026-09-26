@@ -44,6 +44,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { queueCounts } from "./queue-count.mjs";
+import { queueText } from "./lib/openQueue.mjs";
 import { countFindings, foldFindings, parseFindingsLog } from "./lib/auditFindings.mjs";
 import { INVENTORY as EXPIRY_INVENTORY, inventoryCounts, runAll as runExpiry, scoreboardRows as expiryScoreboardRows } from "./lib/expiryMonitor.mjs";
 import { measureSlos, realIo, sloRecord, sloTargetRows } from "./slo.mjs";
@@ -93,7 +94,7 @@ const AT_HEAD = "HEAD (diffed every push)";
 export function localRows(read = (p) => readFileSync(join(REPO, p), "utf8")) {
   const rows = [];
 
-  const q = queueCounts(read(OPEN));
+  const q = queueCounts(queueText(REPO, read)); // OPEN.md + done archives (Q16)
   rows.push({ group: "open work", signal: "OPEN.md queue (done / partly / open)", status: q.open + q.partial ? "WARN" : "PASS",
     pass: q.done, fail: q.open, skipped: `${q.partial} partly`, total: q.total, at: AT_HEAD, source: "[docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs",
     note: `${q.done} done, ${q.partial} partly done (fixed, protection pending), ${q.open} open` });

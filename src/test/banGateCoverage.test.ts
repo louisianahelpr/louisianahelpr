@@ -66,7 +66,13 @@ const migGated = [...(MIG.match(/FOREACH v_pair IN ARRAY ARRAY\[([\s\S]*?)\]/)?.
 // see rpc_settle_dispute_without_payment (20260923205812), so db-deploy went
 // red after the push (run 35921603040) instead of CI before it.
 const SNAP_VERSION = SNAP.captured.replace(/\D/g, "").slice(0, 14);
+// Scanned once: gatedInRepo runs per snapshot RPC, and a rescan each time
+// took the stale-exemption test past vitest's 20s timeout on CI (Vitest red).
+let migrationScan: { lastBody: Map<string, string>; granted: Set<string> } | undefined;
 function migrationRpcs(): { lastBody: Map<string, string>; granted: Set<string> } {
+  return (migrationScan ??= scanMigrationRpcs());
+}
+function scanMigrationRpcs(): { lastBody: Map<string, string>; granted: Set<string> } {
   const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
   const lastBody = new Map<string, string>();
   const granted = new Set<string>();

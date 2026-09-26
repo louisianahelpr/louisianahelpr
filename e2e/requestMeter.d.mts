@@ -2,7 +2,7 @@
  * Types for ./requestMeter.mjs (plain JS so `node` can run the scripts that
  * import it; see that file's header).
  */
-import type { Browser, BrowserContext } from "@playwright/test";
+import type { APIRequestContext, Browser, BrowserContext } from "@playwright/test";
 
 export declare const REQUEST_BUDGET_DIR: string;
 export declare const DUPLICATE_WINDOW_MS: number;
@@ -51,6 +51,7 @@ export declare class RequestMeter {
   record(url: string, method: string, now?: number, seen?: Map<string, number>): RequestClass | null;
   attach(context: BrowserContext): BrowserContext;
   attachBrowser(browser: Browser): Browser;
+  attachApi<T extends APIRequestContext>(api: T): T;
   toJSON(): RequestSample;
   flush(): string;
 }

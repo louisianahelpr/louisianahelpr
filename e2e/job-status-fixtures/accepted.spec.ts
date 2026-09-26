@@ -35,7 +35,9 @@ import { ensureAcceptedJob, centralDatePlus } from "../prod-audit/fundedOpenJob"
 import { MIN_RUNWAY_DAYS, daysBetween } from "../prod-audit/fundedOpenJobPlan";
 import { getSession } from "../prod-audit/harness";
 
-test("accepted: poster-e2e has an is_seed job hired to helper-e2e, escrowed, with runway", async ({ request, browser }, info) => {
+test("accepted: poster-e2e has an is_seed job hired to helper-e2e, escrowed, with runway", async ({ request, browser, _requestMeter }, info) => {
+  // Most of this spec's prod traffic is node-side; meter it (nightly-red #1794).
+  _requestMeter.attachApi(request);
   test.setTimeout(26 * 60_000); // a fresh fixture: Stripe TEST checkout + the 20-minute early-access window
   const poster = await getSession(request, "poster");
   const helper = await getSession(request, "helper");

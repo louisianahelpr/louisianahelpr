@@ -241,6 +241,34 @@ export class RequestMeter {
     return browser;
   }
 
+  /**
+   * Count every request a Playwright APIRequestContext (the `request` fixture)
+   * sends. It emits no "request" events, so its methods are wrapped. A spec
+   * whose backend traffic is all node-side (job-status-fixtures, when it
+   * reuses its fixture) otherwise measures 0 and the budget step calls the
+   * meter loose.
+   */
+  attachApi(api) {
+    if (api.__requestMeter) return api;
+    api.__requestMeter = this;
+    const seen = new Map();
+    for (const m of ["get", "post", "put", "patch", "delete", "head"]) {
+      const orig = api[m].bind(api);
+      api[m] = (url, ...rest) => {
+        this.record(String(url), m.toUpperCase(), Date.now(), seen);
+        return orig(url, ...rest);
+      };
+    }
+    const fetch = api.fetch.bind(api);
+    api.fetch = (urlOrRequest, options = {}) => {
+      const url = typeof urlOrRequest === "string" ? urlOrRequest : urlOrRequest.url();
+      const method = (options.method || (typeof urlOrRequest === "string" ? "GET" : urlOrRequest.method())).toUpperCase();
+      this.record(url, method, Date.now(), seen);
+      return fetch(urlOrRequest, options);
+    };
+    return api;
+  }
+
   toJSON() {
     const topDup = Object.entries(this.dupKeys).sort((a, b) => b[1] - a[1]).slice(0, 10);
     return {

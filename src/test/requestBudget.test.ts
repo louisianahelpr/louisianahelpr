@@ -285,3 +285,49 @@ describe("Q104 review: the budget step is red when nothing was measured", () => 
     expect(allowed.status, allowed.stdout + allowed.stderr).toBe(0);
   });
 });
+
+describe("#1794: the API request context is metered too", () => {
+  function fakeApi() {
+    const calls: string[] = [];
+    const api = {
+      get: async (u: string) => void calls.push(`GET ${u}`),
+      post: async (u: string) => void calls.push(`POST ${u}`),
+      put: async (u: string) => void calls.push(`PUT ${u}`),
+      patch: async (u: string) => void calls.push(`PATCH ${u}`),
+      delete: async (u: string) => void calls.push(`DELETE ${u}`),
+      head: async (u: string) => void calls.push(`HEAD ${u}`),
+      fetch: async (u: string) => void calls.push(`FETCH ${u}`),
+    };
+    return { api, calls };
+  }
+  const REST = "https://fncmgoasalhdgfwzhsqa.supabase.co/rest/v1/jobs?id=eq.1";
+  const FN = "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/create-checkout";
+
+  it("counts get/post/fetch through an attached context, and still sends them", async () => {
+    const meter = new RequestMeter("t");
+    const { api, calls } = fakeApi();
+    meter.attachApi(api as never);
+    await api.get(REST);
+    await api.post(FN);
+    await api.fetch(REST);
+    expect(calls).toEqual([`GET ${REST}`, `POST ${FN}`, `FETCH ${REST}`]);
+    expect(meter.total).toBe(3);
+    expect(meter.toJSON().byClass.rest).toBe(2);
+    expect(meter.toJSON().byClass.functions).toBe(1);
+    meter.attachApi(api as never); // idempotent: no double count
+    await api.get(REST);
+    expect(meter.total).toBe(4);
+  });
+
+  it("an unattached context counts nothing (the #1794 zero)", async () => {
+    const meter = new RequestMeter("t");
+    const { api } = fakeApi();
+    await api.get(REST);
+    expect(meter.total).toBe(0);
+  });
+
+  it("the job-status-fixtures spec attaches it", () => {
+    const src = readFileSync(resolve(__dirname, "..", "..", "e2e", "job-status-fixtures", "accepted.spec.ts"), "utf8");
+    expect(src).toMatch(/_requestMeter\.attachApi\(request\);/);
+  });
+});

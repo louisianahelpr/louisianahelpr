@@ -35,7 +35,7 @@
 --                       row: process-scheduled-payouts' own roster test, and
 --                       the stripe-webhook transfer.created handler can flip
 --                       a group job to released after ONE member is paid
---                       (docs/OPEN.md Q411), which must not close the alert.
+--                       (docs/OPEN.md Q427), which must not close the alert.
 --   arrival-unconfirmed "Arrival not confirmed in 24h", "Arrival near a wrong
 --                       pin not confirmed": arrival-confirm-reminder's own
 --                       predicate: job accepted/in_progress, helper_arrived_at

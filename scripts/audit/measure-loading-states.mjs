@@ -59,7 +59,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
 import { mintAccounts, prodSelect } from "./pressProdSafety.mjs";
-import { RequestMeter, ceilingFor } from "../../e2e/requestMeter.mjs";
+import { RequestMeter, ceilingFor, classify } from "../../e2e/requestMeter.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../..");
@@ -690,14 +690,20 @@ async function main() {
       if (i >= targets.length) return;
       const t = targets[i];
       const ctx = await freshContext(t.persona);
+      // Backend requests this surface sent (its context is its own), so the
+      // log says which surface a busy minute came from: the budget step judges
+      // the busiest minute, and one heavy surface can fill it alone.
+      let sent = 0;
+      ctx.on("request", (q) => { if (classify(q.url())) sent++; });
       const r = await measureOne(ctx, t).finally(() => ctx.close().catch(() => {}));
+      r.requests = sent;
       results.push(r);
       const tag = r.status === "measured"
         ? `cl=${String(r.clustersMeasured ?? 0)}/${String(r.clusters?.length ?? 0)}  worstΔrow=${String(r.worstDeltaRowPx ?? "?").padStart(7)}px  ` +
           `ΔrowH=${String(r.worstDeltaRowH ?? "-").padStart(5)}  Δrows=${String(r.worstDeltaRows ?? "-").padStart(4)}  shapeBad=${r.shapeMismatches}  ` +
           `shift=${String(r.maxLandmarkShiftPx ?? "?").padStart(6)}px`
         : `${r.status}  ${r.note ?? ""}${r.finalUrl && r.finalUrl !== t.url ? `  (at ${r.finalUrl})` : ""}`;
-      console.log(`${t.persona.padEnd(9)} ${t.url.padEnd(44)} ${tag}`);
+      console.log(`${t.persona.padEnd(9)} ${t.url.padEnd(44)} ${tag}  req=${sent}`);
     }
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));

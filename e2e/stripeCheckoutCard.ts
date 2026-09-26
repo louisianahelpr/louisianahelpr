@@ -29,6 +29,9 @@ export async function openCardFields(page: Page, attempts = 3): Promise<Locator>
   return card;
 }
 
+
+const STRIPE_CHECKOUT_HOST = "checkout.stripe.com";
+
 /**
  * Pay a TEST-mode hosted Checkout Session with 4242 4242 4242 4242 and wait to
  * leave Stripe. The same field-by-field fill e2e/prod-lifecycle.spec.ts does
@@ -42,7 +45,14 @@ export async function openCardFields(page: Page, attempts = 3): Promise<Locator>
  * the browser lands.
  */
 export async function payWithTestCard(page: Page, checkoutUrl: string): Promise<void> {
-  if (!/\/cs_test_[A-Za-z0-9]+/.test(checkoutUrl)) {
+  let host = "";
+  try {
+    host = new URL(checkoutUrl).hostname;
+  } catch {
+    // Not a URL at all: refused below with the same message.
+  }
+  // Exact host, not a suffix: "evil-checkout.stripe.com.example" must not pass.
+  if (host !== STRIPE_CHECKOUT_HOST || !/\/cs_test_[A-Za-z0-9]+/.test(checkoutUrl)) {
     throw new Error(`refusing to pay a Checkout Session that is not test mode: ${checkoutUrl.slice(0, 80)}`);
   }
   await page.goto(checkoutUrl, { waitUntil: "domcontentloaded" });
@@ -71,7 +81,7 @@ export async function payWithTestCard(page: Page, checkoutUrl: string): Promise<
     await linkOptIn.uncheck({ force: true }).catch(() => undefined);
   }
   await page.getByTestId("hosted-payment-submit-button").click();
-  await page.waitForURL((url) => !url.host.endsWith("checkout.stripe.com"), { timeout: 120_000 }).catch(async (err) => {
+  await page.waitForURL((url) => url.hostname !== STRIPE_CHECKOUT_HOST, { timeout: 120_000 }).catch(async (err) => {
     const complaints = await page
       .locator('[role="alert"], .FieldError, [class*="Error"]')
       .allInnerTexts()

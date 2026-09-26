@@ -1024,6 +1024,9 @@ sure someone hears it and closes it.
     checks `user_blocks` today; `deliver_job_match`/`job_announceable_to` do not exist on prod.
     Not blocked by this: the PR's instant-match half, digest gating, export_my_data line, and Q401 (auth-page
     noindex) are being landed separately. The PR's old-timestamp migrations must never reach main as-is.
+    **ANSWERED 2026-09-26 (owner pop-up): "A + never twice": keep main's queue-only send path, add the
+    `user_blocks` check (both ways) and `job_announceable_to()` gate, AND write parish sends into the permanent
+    per-(user, job) ledger so a deleted alert is never re-sent when the job reopens. Lands after the instant half.**
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

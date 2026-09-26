@@ -74,6 +74,9 @@ serve(async (req) => {
     if (!user) return json({ error: "Unauthorized" }, 401);
 
     const { data: exported, error: rpcError } = await asUser.rpc("export_my_data");
+    // export_my_data() carries its own per-user limiter (Q408, SQLSTATE P0429)
+    // so a direct PostgREST call is capped too. It is a 429, not a failure.
+    if (rpcError?.code === "P0429") return rateLimitResponse(600, corsHeaders);
     if (rpcError || !exported || typeof exported !== "object") {
       console.error("[export-my-data] export_my_data failed:", rpcError?.code, rpcError?.message);
       return json({ error: "We couldn't put your data together just now. Try again, or email support." }, 500);

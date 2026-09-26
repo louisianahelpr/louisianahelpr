@@ -11,12 +11,24 @@
  * says are stripped really are, that anon cannot execute it, and that the
  * client, the edge function and the privacy journey all agree on the sections.
  *
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
- * @mutate supabase/migrations/20260925232153_export_my_data.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
- * @mutate supabase/migrations/20260925232153_export_my_data.sql | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC;
+ * Q408: the function carries its own per-user limiter (a direct PostgREST call
+ * skips the edge function's), so it is VOLATILE and refuses with P0429, which
+ * the edge function maps to a 429. Q409: every row matched by ADDRESS alone is
+ * bounded to the account's lifetime (created_at >= v_since) or, for a gift, to
+ * one nobody has claimed, so a previous holder of the address is not exported.
+ *
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon; | GRANT EXECUTE ON FUNCTION public.export_my_data() TO anon;
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql |   v_rl := public.rate_limit_hit('export_my_data_rpc', v_uid::text, NULL, 600, 5, 5); |   v_rl := jsonb_build_object('allowed', true);
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | LANGUAGE plpgsql\n VOLATILE | LANGUAGE plpgsql\n STABLE
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | WHERE lower(t.email) = v_email AND t.created_at >= v_since | WHERE lower(t.email) = v_email
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | OR (t.recipient_id IS NULL AND lower(t.recipient_email) = v_email) | OR lower(t.recipient_email) = v_email
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | OR (t.user_id IS NULL AND lower(t.recipient_email) = v_email AND t.created_at >= v_since) | OR lower(t.recipient_email) = v_email
+ * @mutate supabase/functions/export-my-data/index.ts |     if (rpcError?.code === "P0429") return rateLimitResponse(600, corsHeaders); |     void rateLimitResponse;
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
  * @mutate src/test/helpers/dataExportInventory.ts |   "fraud_flags.user_id": { reason: | "fraud_flagz.user_id": { reason:
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
@@ -113,6 +125,9 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
         .replace(/\(SELECT[^()]*WHERE[^()]*v_uid[^()]*\)/gi, "")
         .replace(/(?:lower\()?\bt\.\w+\)?\s*=\s*v_(?:uid|email)\b/g, "")
         .replace(/NOT coalesce\(t\.flagged_hidden, false\)/g, "")
+        // Q409 narrowings: they only ever remove rows from an address match.
+        .replace(/\bAND t\.created_at >= v_since\b/g, "")
+        .replace(/\bt\.(?:user_id|recipient_id) IS NULL AND\b/g, "")
         .replace(/AND t\.status = 'published'\s+AND t\.feedback_visible_at IS NOT NULL AND t\.feedback_visible_at <= now\(\)/g, "")
         .replace(/\bt\.id IN\b|\bt\.job_id IN\b/g, "");
       return /\bt\.\w+|\btrue\b/i.test(residue.replace(/^WHERE/i, ""));
@@ -149,6 +164,39 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     expect(flat("jobs")).toMatch(
       /CASE WHEN t\.customer_id = v_uid OR public\.user_may_see_job_address\(t\.id, v_uid\) THEN CASE .*? ELSE jsonb_build_object\( 'id', t\.id, .*'row_limited', true/,
     );
+  });
+
+  it("Q408: rate-limited per caller before any row is read, and the edge function says 429", () => {
+    const flat = body.replace(/\s+/g, " ");
+    const hit = flat.search(/v_rl := public\.rate_limit_hit\('export_my_data_rpc', v_uid::text, NULL, \d+, \d+, \d+\);/);
+    expect(hit, "export_my_data must call rate_limit_hit keyed on v_uid").toBeGreaterThan(-1);
+    const refuse = flat.search(/IF NOT coalesce\(\(v_rl->>'allowed'\)::boolean, false\) THEN RAISE EXCEPTION '\w+' USING ERRCODE = 'P0429'/);
+    expect(refuse, "a refused hit must raise P0429 (fail closed on a missing 'allowed')").toBeGreaterThan(hit);
+    expect(refuse).toBeLessThan(flat.indexOf("v_out := v_out ||"));
+    // Recording a hit is a write: a STABLE function could not.
+    const file = read(`supabase/migrations/${defs.get("export_my_data")?.file}`);
+    const header = /CREATE OR REPLACE FUNCTION public\.export_my_data\(\)([\s\S]*?)\bAS \$/.exec(file)?.[1] ?? "";
+    expect(header).toMatch(/\bVOLATILE\b/);
+    const fn = blankComments(read("supabase/functions/export-my-data/index.ts"));
+    expect(fn).toMatch(/if \(rpcError\?\.code === "P0429"\) return rateLimitResponse\(/);
+  });
+
+  it("Q409: every match by address alone is bounded to this account", () => {
+    const loose: string[] = [];
+    for (const s of sections) {
+      const flat = s.text.replace(/\s+/g, " ");
+      for (const m of flat.matchAll(/(\(?)(?:t\.(\w+) IS NULL AND )?lower\(t\.(\w+)\) = v_email( AND t\.created_at >= v_since)?/g)) {
+        const [, , nullCol, col, since] = m;
+        // Bounded by the account's lifetime, or (a gift) to rows nobody claimed.
+        const ok = Boolean(since) || (s.table === "gift_cards" && nullCol === "recipient_id");
+        if (!ok) loose.push(`${s.name}: lower(t.${col}) = v_email`);
+      }
+    }
+    expect(loose, "an address match without created_at >= v_since exports a previous holder's rows").toEqual([]);
+    expect(body.replace(/\s+/g, " ")).toMatch(/SELECT lower\(u\.email\), u\.created_at INTO v_email, v_since FROM auth\.users u WHERE u\.id = v_uid;/);
+    // The floor: the four address-keyed sections exist and were inspected.
+    const addressed = sections.filter((s) => /lower\(t\.\w+\) = v_email/.test(s.text)).map((s) => s.name).sort();
+    expect(addressed).toEqual(["email_send_log", "gift_cards", "notification_logs", "suppressed_emails"]);
   });
 
   it("anon cannot execute it", () => {

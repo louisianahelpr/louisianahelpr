@@ -42,7 +42,7 @@
  *
  * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | AND j.command NOT LIKE '%cron_http_tag(%' | AND false
  * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | JOIN public.cron_http_requests t ON t.request_id = resp.id | LEFT JOIN public.cron_http_requests t ON t.request_id = resp.id
- * @mutate supabase/migrations/20260923172145_cron_catch_up_http_outcome_and_untagged.sql | WHERE h.jobname = r.jobname AND h.created_at = now(); | WHERE false;
+ * @mutate supabase/migrations/20260925155322_catch_up_candidates_one_scan.sql | WHERE h.jobname = r.jobname AND h.created_at = now(); | WHERE false;
  * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | action          = CASE WHEN v_ok THEN action ELSE 'catch_up_failed' END, | action = action,
  * @mutate supabase/migrations/20260924132850_cron_log_keys_survive_pg_net_id_reuse.sql | IF cardinality(v_parts) > 0 THEN | IF v_errors > 0 THEN
  *

@@ -882,7 +882,7 @@ export async function handleCheckoutSessionCompleted(
     // amount_details, which Checkout is not known to fill. A gift-card
     // shortfall session prices its one line non-taxable on purpose
     // (create-payment), so it is not this signal; that path is its own open
-    // question (docs/OPEN.md Q424). Seed jobs go to the digest. Never throws:
+    // question (docs/OPEN.md Q441). Seed jobs go to the digest. Never throws:
     // the read returns its error and postSlackOpsAlert swallows its own.
     const sessionTaxCents = session.total_details?.amount_tax;
     const isGiftShortfall = Boolean((session.metadata as any)?.gift_card_id);
@@ -899,7 +899,7 @@ export async function handleCheckoutSessionCompleted(
           kind: "custom",
           severity: "warning",
           title: "Taxable job charged $0 Louisiana sales tax",
-          message: "Stripe Tax returned $0 on a taxable labor line billed to a Louisiana address. Check Stripe Tax > Registrations for Louisiana in this mode (docs/OPEN.md Q424).",
+          message: "Stripe Tax returned $0 on a taxable labor line billed to a Louisiana address. Check Stripe Tax > Registrations for Louisiana in this mode (docs/OPEN.md Q441).",
           fields: { job_id: jobId, category: taxJob?.category ?? "(none)", session_id: session.id, livemode: String(session.livemode) },
           oncePerDayKey: `taxable-zero-tax:${session.livemode ? "live" : "test"}`,
           seed: taxJob?.is_seed === true,

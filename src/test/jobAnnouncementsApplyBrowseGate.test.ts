@@ -11,8 +11,10 @@
  * credential gate, and could be re-triggered to the same users; the daily
  * parish digest counted unfunded, ownerless, offered and not-yet-visible jobs.
  * (The parish fan-out's clock was fixed by 20260926041132, Q225/V-008: it only
- * queues, and deliver_parish_match_alert spells the gate out. Its block check
- * and the permanent per-(user, job) ledger are the MQ29 follow-up.)
+ * queues. 20260926195608 (MQ29, "A + never twice") gives it the same gate
+ * call, a block check both ways, and the permanent per-(user, job) ledger:
+ * each parish send writes a source='parish' row into job_match_queue and is
+ * refused when a row from either source already exists.)
  *
  * This file derives every producer from the source tree and asserts each one
  * applies every piece of the gate and the clock:
@@ -36,7 +38,14 @@
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier), | OR true),
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |              AND public.early_access_visible_at(q.user_id, j.created_at) > now()); | );
- * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |   IF v_job.parish IS NULL OR NOT public.job_announceable_to(v_job, p_user_id) THEN | IF v_job.parish IS NULL THEN
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
  * @mutate supabase/functions/instant-job-match/index.ts | supabase.rpc("enqueue_instant_job_match", { | supabase.rpc("enqueue_instant_job_match_v0", {
  * @mutate supabase/functions/daily-match-digest/index.ts | supabase.rpc("job_match_digest_rows", { p_queue_ids: allIds }) | supabase.rpc("job_match_digest_rows_v0", { p_queue_ids: allIds })
  */
@@ -100,7 +109,7 @@ const CLOCK = /early_access_visible_at\([^;]*?(?:>|<=)\s*now\(\)|v_visible_at\s*
  */
 const SQL_PRODUCERS: Record<string, string> = {
   deliver_job_match: "job_match_queue's one send path (instant-job-match's matches)",
-  deliver_parish_match_alert: "parish fan-out (Q225, V-008): notify_helpers_on_job_post only queues; this spells the gate out",
+  deliver_parish_match_alert: "parish fan-out (Q225, V-008; Q392): notify_helpers_on_job_post only queues; this calls the gate and claims the ledger",
   deliver_saved_search_alert: "saved-search alerts (Q225, V-008): spells the gate out",
   sweep_daily_job_digest: "daily parish digest: counts only jobs the recipient can already see",
 };
@@ -262,6 +271,31 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(b).not.toMatch(/INSERT\s+INTO\s+public\.notifications/i);
     // Its sender is deliver_parish_match_alert, a classified producer above.
     expect(Object.keys(SQL_PRODUCERS)).toContain("deliver_parish_match_alert");
+    // Q392 (MQ29): the fan-out pre-filters on the gate, blocks both ways and the ledger.
+    expect(b).toContain("AND public.job_announceable_to(NEW, c.user_id)");
+    expect(b).toContain(
+      "WHERE (b.blocker_id = NEW.customer_id AND b.blocked_id = c.user_id) OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id)",
+    );
+    expect(b).toContain("AND NOT EXISTS ( SELECT 1 FROM public.job_match_queue l WHERE l.user_id = c.user_id AND l.job_id = NEW.id )");
+  });
+
+  it("the parish send calls the gate, refuses a block either way, and claims the shared ledger (never twice)", () => {
+    const d = body("deliver_parish_match_alert");
+    expect(d).toContain("IF v_job.parish IS NULL OR NOT public.job_announceable_to(v_job, p_user_id) THEN RETURN false;");
+    expect(d).toContain(
+      "WHERE (b.blocker_id = v_job.customer_id AND b.blocked_id = p_user_id) OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) ) THEN RETURN false;",
+    );
+    // Any ledger row, from either source and in any status, refuses the send.
+    expect(d).toContain("SELECT 1 FROM public.job_match_queue l WHERE l.user_id = p_user_id AND l.job_id = p_job_id ) THEN RETURN false;");
+    // The claim comes before the notification, under the (user, job) unique key.
+    const claim = d.indexOf("INSERT INTO public.job_match_queue (user_id, job_id, source, notify_at, title, message, link, send_email, status, settled_at) VALUES (p_user_id, v_job.id, 'parish',");
+    expect(claim).toBeGreaterThan(0);
+    const conflict = d.indexOf("ON CONFLICT (user_id, job_id) DO NOTHING RETURNING id INTO v_ledger; IF v_ledger IS NULL THEN RETURN false;");
+    expect(conflict).toBeGreaterThan(claim);
+    expect(d.indexOf("INSERT INTO public.notifications")).toBeGreaterThan(conflict);
+    expect(d).toContain("IF v_notified IS NULL THEN UPDATE public.job_match_queue SET status = 'dropped'");
+    const all = migrations.map((m) => m.sql).join("\n");
+    expect(all).toContain("REVOKE ALL ON FUNCTION public.deliver_parish_match_alert(uuid, uuid) FROM PUBLIC, anon, authenticated;");
   });
 
   it("daily-match-digest re-checks its rows against the gate before it summarises them", () => {

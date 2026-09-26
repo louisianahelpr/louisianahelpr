@@ -1,23 +1,26 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260926193006_q392_instant_job_matches_wait_for_early_access
- * (Q392, the instant half of PR #1810).
+ * PGlite proof for Q392 (PR #1810), both halves:
+ *   20260926193006_q392_instant_job_matches_wait_for_early_access (instant)
+ *   20260926195608_q392_parish_matches_block_gate_ledger          (parish, MQ29)
  *
- *   node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs                     # GREEN
- *   NEW_MIGRATION=skip node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs  # RED: the previous definitions
+ *   node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs                             # GREEN
+ *   NEW_MIGRATION=skip node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs          # RED: main before the parish half
+ *   NEW_MIGRATION=skip-instant node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs  # RED: main before either half
  *
- * The previous state is main's migrations before the new one: 20260926041132
+ * The base is main's migrations before the instant file: 20260926041132
  * (the parish queue, deliver_parish_match_alert, the queue-only
  * notify_helpers_on_job_post and the sweep that sends it) applied verbatim,
- * then each function's newest definition from before the new file
+ * then each function's newest definition from before the instant file
  * (early_access_* from 20260925053412, sweep_daily_job_digest from
- * 20260924220318). There was no SQL instant-match path before:
- * instant-job-match inserted its notifications directly, so on RED every
- * instant check fails for want of enqueue_instant_job_match. The parish
- * checks assert MAIN's behaviour (queue-only, sent by the minute sweep once
- * visible); this migration leaves the parish path alone (its blocks, gate and
- * ledger are the MQ29 follow-up). GREEN applies the new migration 3x on top
- * (replay-safety). Minimal fixture: only the columns the functions read.
+ * 20260924220318). The instant file is then applied 3x, then the parish file
+ * 3x (replay-safety). skip leaves out the parish file, so every parish
+ * blocks / gate / ledger / never-twice check fails on main's parish
+ * definitions; skip-instant also leaves out the instant file, so every
+ * instant check fails for want of enqueue_instant_job_match (instant-job-match
+ * used to insert its notifications directly). Minimal fixture: only the
+ * columns the functions read, and both of prod's fan-out triggers (funded
+ * insert; update into open+funded, which is how a reopened job re-fires).
  * "Time passing" is simulated by moving jobs.created_at back, which is
  * exactly the input visible_at reads.
  */
@@ -29,8 +32,12 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const NEW_FILE = "20260926193006_q392_instant_job_matches_wait_for_early_access.sql";
 const PARISH_FILE = "20260926041132_parish_match_alerts_wait_for_early_access.sql";
-const RED = process.env.NEW_MIGRATION === "skip";
-if (RED) console.log("NEW_MIGRATION=skip: running the PREVIOUS definitions (expect FAILs)");
+const LEDGER_FILE = "20260926195608_q392_parish_matches_block_gate_ledger.sql";
+/** RED: main before the instant half (no ledger table, no enqueue). */
+const RED = process.env.NEW_MIGRATION === "skip-instant";
+/** PARISH_RED: main before the parish half (the instant half applied). */
+const PARISH_RED = RED || process.env.NEW_MIGRATION === "skip";
+if (PARISH_RED) console.log(`NEW_MIGRATION=${process.env.NEW_MIGRATION}: running the PREVIOUS definitions (expect FAILs)`);
 
 /** The newest `CREATE OR REPLACE FUNCTION public.<name>(` statement in migrations before `before`. */
 function previousDefinition(name, before) {
@@ -120,12 +127,21 @@ for (const fn of ["early_access_delay_minutes", "early_access_visible_at", "noti
   "sweep_saved_search_alert_queue", "sweep_daily_job_digest"]) {
   await db.exec(previousDefinition(fn, NEW_FILE).text);
 }
-if (!RED) {
-  const sql = readFileSync(MIG_DIR + NEW_FILE, "utf8");
+for (const [file, skip] of [[NEW_FILE, RED], [LEDGER_FILE, PARISH_RED]]) {
+  if (skip) continue;
+  const sql = readFileSync(MIG_DIR + file, "utf8");
   for (let i = 0; i < 3; i++) await db.exec(sql);
-  console.log("applied the new migration 3x");
+  console.log(`applied ${file} 3x`);
 }
-await db.exec(`CREATE TRIGGER t AFTER INSERT ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.notify_helpers_on_job_post();`);
+// Prod's two fan-out triggers (trg_notify_helpers_funded_insert / _update).
+await db.exec(`
+CREATE TRIGGER t AFTER INSERT ON public.jobs FOR EACH ROW
+  WHEN (NEW.status = 'open' AND NEW.payment_status IN ('escrow','payout_pending','released'))
+  EXECUTE FUNCTION public.notify_helpers_on_job_post();
+CREATE TRIGGER tu AFTER UPDATE ON public.jobs FOR EACH ROW
+  WHEN (NEW.status = 'open' AND NEW.payment_status IN ('escrow','payout_pending','released')
+        AND NOT (OLD.status = 'open' AND COALESCE(OLD.payment_status, '') IN ('escrow','payout_pending','released')))
+  EXECUTE FUNCTION public.notify_helpers_on_job_post();`);
 
 const q = async (s, p = []) => (await db.query(s, p)).rows;
 const has = async (sig) => (await q(`SELECT to_regprocedure($1) IS NOT NULL AS ok`, [sig]))[0].ok;
@@ -249,36 +265,99 @@ check("25 eligible matches: the top 20 are queued; a re-trigger reaches nobody p
   `${JSON.stringify(r7)} ${JSON.stringify(r7b)}`);
 
 
-// ── 6. the parish fan-out: MAIN's behaviour, untouched (Q225 / V-008) ──────
+// ── 6. the parish fan-out: queue-only (Q225 / V-008), one ledger (Q392) ───
+/** job_match_queue rows for a job as "user:source:status", sorted ([] before the instant half). */
+const ledger = async (jobId) => RED ? [] : (await q(`SELECT user_id, source, status FROM public.job_match_queue WHERE job_id = $1`, [jobId]))
+  .map((r) => `${name(r.user_id)}:${r.source}:${r.status}`).sort();
+const parishQueued = async (jobId) =>
+  (await q(`SELECT user_id FROM public.parish_match_alert_queue WHERE job_id = $1`, [jobId])).map((r) => name(r.user_id)).sort();
 for (const k of ["free", "pro", "elite"]) await db.query(`INSERT INTO public.applications VALUES ($1, null)`, [U[k]]);
 await db.exec(`DELETE FROM net.calls`);
 const job8 = await postJob("Clean gutters", { parish: "Orleans" });
-const queued8 = (await q(`SELECT user_id FROM public.parish_match_alert_queue WHERE job_id = $1`, [job8])).map((r) => name(r.user_id)).sort();
+const queued8 = await parishQueued(job8);
 check("parish: the fan-out only queues (nobody told inside the funding write)",
   (await q(`SELECT count(*)::int n FROM public.notifications WHERE job_id = $1`, [job8]))[0].n === 0
     && JSON.stringify(queued8) === JSON.stringify(["elite", "free", "pro"]), JSON.stringify(queued8));
 await parishSweep();
 check("parish sweep at t+0: elite told, free and pro still waiting",
   (await notifiedAbout(U.elite, job8)) === 1 && (await notifiedAbout(U.free, job8)) + (await notifiedAbout(U.pro, job8)) === 0);
-await enqueue(job8, [U.elite, U.free, U.pro]);
-check("instant match after the parish send: elite is not told twice", (await notifiedAbout(U.elite, job8)) === 1);
+const eliteRow8 = RED ? null : (await q(`SELECT source, status, title, link, send_email FROM public.job_match_queue WHERE user_id = $1 AND job_id = $2`, [U.elite, job8]))[0];
+check("parish: the send wrote a source='parish', status='sent' ledger row with its copy",
+  eliteRow8?.source === "parish" && eliteRow8?.status === "sent" && eliteRow8?.title === "New job in your parish"
+    && eliteRow8?.link === `/home?job=${job8}` && eliteRow8?.send_email === true, JSON.stringify(eliteRow8));
+const r8 = await enqueue(job8, [U.elite, U.free, U.pro]);
+check("instant match after the parish send: elite's slot is taken (already), elite not told twice",
+  r8?.already === 1 && r8?.queued === 2 && (await notifiedAbout(U.elite, job8)) === 1, JSON.stringify(r8));
 await ageJob(job8, 21);
 await parishSweep();
 await sweep();
 check("t+21m, both sweeps: free and pro told exactly once each",
   (await notifiedAbout(U.free, job8)) === 1 && (await notifiedAbout(U.pro, job8)) === 1);
-const parishRow = (await q(`SELECT title FROM public.notifications WHERE user_id = $1 AND job_id = $2`, [U.free, job8]))[0];
-check("parish: the queued parish row keeps the parish copy", parishRow?.title === "New job in your parish", JSON.stringify(parishRow));
-const states8 = RED ? [] : await q(`SELECT status, count(*)::int n FROM public.job_match_queue WHERE job_id = $1 GROUP BY 1`, [job8]);
-check("the instant rows for a parish-notified job settle as dropped (already notified), never sent",
-  JSON.stringify(states8) === JSON.stringify([{ status: "dropped", n: 3 }]), JSON.stringify(states8));
+const freeRow8 = (await q(`SELECT title FROM public.notifications WHERE user_id = $1 AND job_id = $2`, [U.free, job8]))[0];
+check("never twice, either source: free's instant row came first, so the parish send stood down and the instant copy went",
+  freeRow8?.title === "🧹 Match for you", JSON.stringify(freeRow8));
+const states8 = await ledger(job8);
+check("ledger for the job: elite parish/sent, free and pro instant/sent (one row each)",
+  JSON.stringify(states8) === JSON.stringify(["elite:parish:sent", "free:instant:sent", "pro:instant:sent"]), JSON.stringify(states8));
 const mails = (await q(`SELECT count(*)::int n FROM net.calls WHERE body->>'type' = 'job_match'`))[0].n;
-check("parish: one email per parish notification (3), none for the instant copy", mails === 3, `emails ${mails}`);
+check("parish: one email per parish notification (1, elite), none for the instant copy", mails === 1, `emails ${mails}`);
 const job9 = await postJob("Rewire a shed", { parish: "Orleans", tier: 2 });
 await ageJob(job9, 25);
 await parishSweep();
 const who9 = (await q(`SELECT user_id FROM public.notifications WHERE job_id = $1`, [job9])).map((r) => name(r.user_id)).sort();
 check("parish: credential-gated job reaches only the tier-2 user", JSON.stringify(who9) === JSON.stringify(["pro"]), JSON.stringify(who9));
+
+// ── 6b. parish: blocks both ways, the ledger across a reopen ───────────────
+// The poster blocked 'blocked' (fixture); 'plus' blocks the poster here.
+for (const k of ["blocked", "plus"]) await db.query(`INSERT INTO public.applications VALUES ($1, null)`, [U[k]]);
+await db.query(`INSERT INTO public.user_blocks VALUES ($1, $2)`, [U.plus, POSTER]);
+const jobB = await postJob("Pressure wash a patio", { parish: "Orleans" });
+const queuedB = await parishQueued(jobB);
+check("parish fan-out: neither side of a block is queued (poster blocked them / they blocked the poster)",
+  !queuedB.includes("blocked") && !queuedB.includes("plus") && queuedB.includes("free"), JSON.stringify(queuedB));
+await db.query(`INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) VALUES ($1, $3, now()), ($2, $3, now()) ON CONFLICT DO NOTHING`,
+  [U.blocked, U.plus, jobB]);
+await ageJob(jobB, 25);
+await parishSweep();
+check("parish deliver: a queued row across a block, either way, is refused",
+  (await notifiedAbout(U.blocked, jobB)) + (await notifiedAbout(U.plus, jobB)) === 0 && (await notifiedAbout(U.free, jobB)) === 1,
+  `blocked ${await notifiedAbout(U.blocked, jobB)} plus ${await notifiedAbout(U.plus, jobB)} free ${await notifiedAbout(U.free, jobB)}`);
+await db.query(`DELETE FROM public.user_blocks WHERE blocker_id = $1`, [U.plus]);
+await db.exec(`DELETE FROM public.applications WHERE helper_id IN ('${U.blocked}', '${U.plus}')`);
+
+const jobL = await postJob("Paint a shed", { parish: "Orleans" });
+await db.query(`INSERT INTO public.user_blocks VALUES ($1, $2)`, [U.free, POSTER]);
+await ageJob(jobL, 25);
+await parishSweep();
+check("parish deliver: a block added after the row was queued stops the send", (await notifiedAbout(U.free, jobL)) === 0);
+await db.query(`DELETE FROM public.user_blocks WHERE blocker_id = $1`, [U.free]);
+
+const jobR = await postJob("Haul brush", { parish: "Orleans" });
+await ageJob(jobR, 25);
+await parishSweep();
+const toldR = await Promise.all(["elite", "free", "pro"].map((k) => notifiedAbout(U[k], jobR)));
+check("reopen setup: elite, free and pro each told once", JSON.stringify(toldR) === "[1,1,1]", JSON.stringify(toldR));
+await db.query(`DELETE FROM public.notifications WHERE job_id = $1`, [jobR]);
+await db.query(`UPDATE public.jobs SET status = 'accepted' WHERE id = $1`, [jobR]);
+await db.query(`UPDATE public.jobs SET status = 'open' WHERE id = $1`, [jobR]);
+const requeuedR = await parishQueued(jobR);
+check("reopen after the users deleted the notification: the fan-out re-queues nobody (the ledger decides)",
+  requeuedR.length === 0, JSON.stringify(requeuedR));
+await db.query(`INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) VALUES ($1, $2, now()) ON CONFLICT DO NOTHING`, [U.free, jobR]);
+await parishSweep();
+check("reopen: a stray queued parish row is refused at send, nobody told twice",
+  (await notifiedAbout(U.elite, jobR)) + (await notifiedAbout(U.free, jobR)) + (await notifiedAbout(U.pro, jobR)) === 0);
+
+const jobI = await postJob("Sweep a garage", { parish: "Orleans" });
+await db.exec(`DELETE FROM public.parish_match_alert_queue WHERE job_id = '${jobI}'`);
+await enqueue(jobI, [U.free]);
+await ageJob(jobI, 25);
+const direct = (await q(`SELECT public.deliver_parish_match_alert($1, $2) AS ok`, [U.free, jobI]))[0].ok;
+check("parish deliver refuses when an instant row already holds the (user, job) slot",
+  direct === false && (await notifiedAbout(U.free, jobI)) === 0, `returned ${direct}`);
+const ledgerI = await ledger(jobI);
+check("... and writes no second ledger row", JSON.stringify(ledgerI) === JSON.stringify(["free:instant:queued"]), JSON.stringify(ledgerI));
+await sweep();
 
 // ── 7. an instant send that raises is logged and dropped; the rest still send
 const job10 = await postJob("Paint a fence");

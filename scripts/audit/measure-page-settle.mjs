@@ -63,7 +63,17 @@ export const SETTLE_INIT = (placeholderSel) => {
           const n = s.node && s.node.nodeType !== 1 ? s.node.parentElement : s.node;
           if (!n || n.nodeType !== 1) return "#text";
           const cls = (n.getAttribute("class") || "").split(/\s+/).slice(0, 3).join(".");
-          return `${n.tagName.toLowerCase()}${n.id ? "#" + n.id : ""}${cls ? "." + cls : ""} ${Math.round(s.previousRect.y)}→${Math.round(s.currentRect.y)} h${Math.round(s.previousRect.height)}→${Math.round(s.currentRect.height)}`;
+          // WHAT PUSHED IT: the element now directly above the moved node, with
+          // the start of its text. A source names only the node that moved;
+          // the cause is usually a sibling that appeared in front of it
+          // (2026-09-26, /messages: a skeleton wrapper React reused as the
+          // list container, pushed down by the hidden-unread notice, read only
+          // as "div.space-y-2 moved").
+          const p = n.previousElementSibling;
+          const pc = p ? (p.getAttribute("class") || "").split(/\s+/).slice(0, 3).join(".") : "";
+          const pt = p ? (p.textContent || "").replace(/\s+/g, " ").trim().slice(0, 60) : "";
+          const above = p ? ` ↑${p.tagName.toLowerCase()}${pc ? "." + pc : ""} h${Math.round(p.getBoundingClientRect().height)}${pt ? ` "${pt}"` : ""}` : "";
+          return `${n.tagName.toLowerCase()}${n.id ? "#" + n.id : ""}${cls ? "." + cls : ""} ${Math.round(s.previousRect.y)}→${Math.round(s.currentRect.y)} h${Math.round(s.previousRect.height)}→${Math.round(s.currentRect.height)}${above}`;
         });
         w.__settle.shifts.push({ t: Math.round(e.startTime), v: e.value, srcs });
       }

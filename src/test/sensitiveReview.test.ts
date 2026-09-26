@@ -87,6 +87,20 @@ describe("what counts as a recorded review", () => {
     const c = { sha: "a".repeat(40), date: "2026-09-20T00:00:00Z", message: "m", files: ["supabase/migrations/fixture_old.sql"] };
     expect(audit([c], new Map()).rows).toEqual([]);
   });
+
+  it("the window is judged in UTC, whatever offset the committer had (Q717)", () => {
+    // 2026-09-25T21:00-05:00 is 2026-09-26T02:00Z: inside a window that starts 2026-09-26 UTC.
+    const late = { sha: "b".repeat(40), date: "2026-09-25T21:00:00-05:00", message: "m", files: ["supabase/migrations/fixture_late.sql"] };
+    expect(audit([late], new Map(), { since: "2026-09-26" }).missing).toHaveLength(1);
+    // 2026-09-26T01:00+05:00 is 2026-09-25T20:00Z: before it.
+    const early = { sha: "c".repeat(40), date: "2026-09-26T01:00:00+05:00", message: "m", files: ["supabase/migrations/fixture_early.sql"] };
+    expect(audit([early], new Map(), { since: "2026-09-26" }).rows).toEqual([]);
+    // The default window opens at an instant, not a day: one second before it is out.
+    const before = { ...late, date: "2026-09-25T23:01:58-07:00" };
+    const after = { ...late, date: "2026-09-26T06:02:00Z" };
+    expect(audit([before], new Map()).rows).toEqual([]);
+    expect(audit([after], new Map()).missing).toHaveLength(1);
+  });
 });
 
 describe("the CLI on a fixture repo", () => {

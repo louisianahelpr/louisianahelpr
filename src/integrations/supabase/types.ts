@@ -331,6 +331,20 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crew_cancellation_fee_shares_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_cancellation_fee_shares_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cron_catchup_policy: {
@@ -2870,6 +2884,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_alert_admin_subjects: {
+        Row: {
+          alerted_at: string
+          job_id: string | null
+          rule: string
+          subject_key: string
+          user_id: string | null
+        }
+        Insert: {
+          alerted_at: string
+          job_id?: string | null
+          rule: string
+          subject_key: string
+          user_id?: string | null
+        }
+        Update: {
+          alerted_at?: string
+          job_id?: string | null
+          rule?: string
+          subject_key?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ops_alert_ledger: {
         Row: {
           closed_at: string | null
@@ -2998,6 +3036,52 @@ export type Database = {
           run_ref?: string | null
         }
         Relationships: []
+      }
+      parish_match_alert_queue: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          notify_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          notify_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          notify_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parish_match_alert_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parish_match_alert_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parish_match_alert_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_refunds: {
         Row: {
@@ -4119,6 +4203,27 @@ export type Database = {
           query?: string | null
           radius_miles?: number | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      seed_purge_runs: {
+        Row: {
+          dry_run: boolean
+          id: number
+          ran_at: string
+          result: Json
+        }
+        Insert: {
+          dry_run: boolean
+          id?: number
+          ran_at?: string
+          result: Json
+        }
+        Update: {
+          dry_run?: boolean
+          id?: number
+          ran_at?: string
+          result?: Json
         }
         Relationships: []
       }
@@ -6155,7 +6260,10 @@ export type Database = {
         Args: { _category: Database["public"]["Enums"]["job_category"] }
         Returns: boolean
       }
-      is_crew_member_of_job_folder: { Args: { object_name: string }; Returns: boolean }
+      is_crew_member_of_job_folder: {
+        Args: { object_name: string }
+        Returns: boolean
+      }
       is_fixture_email: { Args: { p_email: string }; Returns: boolean }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_late_cancellation: {
@@ -6390,7 +6498,7 @@ export type Database = {
       prune_edge_rate_limit_log: { Args: never; Returns: Json }
       prune_retention_tables: { Args: never; Returns: Json }
       purge_old_seed_data: {
-        Args: { p_batch?: number; p_dry_run?: boolean; p_older_than?: unknown }
+        Args: { p_batch?: number; p_dry_run?: boolean; p_older_than?: string }
         Returns: Json
       }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }

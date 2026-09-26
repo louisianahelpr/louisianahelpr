@@ -11,19 +11,19 @@
  * says are stripped really are, that anon cannot execute it, and that the
  * client, the edge function and the privacy journey all agree on the sections.
  *
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | to_jsonb(t) - 'flag_reason' | to_jsonb(t)
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
  * @mutate src/test/helpers/dataExportInventory.ts |   "retained_bans.email_sha256": { reason: | "retained_banz.email_sha256": { reason:
- * @mutate supabase/migrations/20260926045122_export_my_data_email_rows_other_accounts.sql | to_jsonb(t) - 'created_by' | to_jsonb(t)
+ * @mutate supabase/migrations/20260926180859_export_my_data_crew_fee_shares.sql | to_jsonb(t) - 'created_by' | to_jsonb(t)
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
  * @mutate scripts/lib/privacyJourney.mjs | KNOWN_NOT_EXPORTED = []; | KNOWN_NOT_EXPORTED = ["reports"];
  */

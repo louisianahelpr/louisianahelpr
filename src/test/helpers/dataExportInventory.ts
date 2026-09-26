@@ -86,6 +86,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   saved_searches: { by: ["user_id"] },
   saved_search_alert_queue: { by: ["user_id"] },
   match_digest_queue: { by: ["user_id"] },
+  parish_match_alert_queue: { by: ["user_id"] },
+  ops_alert_admin_subjects: { by: ["user_id"] },
   favorite_helpers: { by: ["customer_id"] },
   helper_availability: { by: ["helper_id"] },
   helper_credentials: { by: ["user_id"] },

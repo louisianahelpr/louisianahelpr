@@ -19,7 +19,11 @@
  */
 
 /** Commits before this landed are history, measured once above, not a backlog. */
-export const START_DATE = "2026-09-26";
+// The instant the gate landed on main (39451a470, 2026-09-26T06:01:59Z), in UTC. A bare
+// date means 00:00Z that day. Earlier commits predate the rule (their reviews: Q718).
+export const START_DATE = "2026-09-26T06:01:59Z";
+/** "YYYY-MM-DD" or an ISO instant -> the UTC instant the window opens. */
+export const windowStart = (since) => (since.includes("T") ? since : `${since}T00:00:00Z`);
 
 export const REVIEWERS = ["lh-authz-rls", "lh-money-escrow", "lh-silent-failure", "code-review", "security-review", "owner"];
 
@@ -74,7 +78,9 @@ const logLookup = (bySha, sha) => {
 export function audit(commits, logBySha, { since = START_DATE } = {}) {
   const rows = [];
   for (const c of commits) {
-    if (c.date.slice(0, 10) < since) continue;
+    // Compared as instants, never as the committer's local date string: the same commit must
+    // land on the same side of the window on every machine (Q717: 0 missing on the Mac, 2 in CI).
+    if (Date.parse(c.date) < Date.parse(windowStart(since))) continue;
     const sensitive = c.files.filter(isSensitive);
     if (!sensitive.length) continue;
     rows.push({ ...c, sensitive, review: trailerReview(c.message) ?? logLookup(logBySha, c.sha) });

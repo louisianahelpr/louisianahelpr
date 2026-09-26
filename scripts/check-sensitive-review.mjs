@@ -19,7 +19,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { REVIEWERS, START_DATE, audit, parseLog } from "./lib/sensitiveReview.mjs";
+import { REVIEWERS, START_DATE, audit, parseLog, windowStart } from "./lib/sensitiveReview.mjs";
 
 export const LOG = "docs/reviews/sensitive-reviews.jsonl";
 const args = process.argv.slice(2);
@@ -44,7 +44,7 @@ const strict = args.includes("--strict");
 const since = opt("--since") ?? START_DATE; // --since only to MEASURE history; the gate window is START_DATE
 
 const SEP = "\u001e";
-const raw = git(["log", "--no-merges", `--since=${since}T00:00:00`, "--name-only", `--format=${SEP}%H%x1f%cI%x1f%B%x1f`, range]);
+const raw = git(["log", "--no-merges", `--since=${windowStart(since)}`, "--name-only", `--format=${SEP}%H%x1f%cI%x1f%B%x1f`, range]);
 const commits = raw.split(SEP).filter(Boolean).map((chunk) => {
   const [sha, date, message, files = ""] = chunk.split("\u001f");
   return { sha, date, message, files: files.split("\n").map((f) => f.trim()).filter(Boolean) };

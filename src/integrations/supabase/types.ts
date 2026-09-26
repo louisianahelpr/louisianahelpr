@@ -5152,7 +5152,16 @@ export type Database = {
         }[]
       }
       admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
+      admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
       admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }
+      admin_alert_subjects: {
+        Args: { p_ref: Json; p_rule: string; p_since: string }
+        Returns: {
+          alerted_at: string
+          job_id: string
+          user_id: string
+        }[]
+      }
       admin_delete_review: {
         Args: { _reason: string; _review_id: string }
         Returns: undefined

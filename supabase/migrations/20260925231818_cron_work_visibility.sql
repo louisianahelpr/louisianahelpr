@@ -7,8 +7,11 @@
 -- command was a bare `SELECT public.fn()`, so the count fn returned was
 -- written nowhere: pg_cron's job_run_details says only 'succeeded' / '1 row'.
 -- The app could prove these jobs FIRED and could not tell whether they DID
--- anything. (Not re-measured by this change: this session had no prod SQL
--- access. The inventory below is the repo's own, which is what the guard reads.)
+-- anything. Read-only on prod, 2026-09-26 03:4xZ, before this deployed: 63
+-- cron.job rows and 63 cron_work_expectations rows, one to one (the same 63
+-- the guard derives from the repo); 37 non-HTTP jobs (the 36 below plus
+-- extend-boosts-hourly), all owned by postgres, every schedule equal to the one
+-- this file assumes; extend_boosts_with_no_applications() is set-returning.
 --
 -- What this does:
 --   1. cron_run_log takes SQL runs too: response_id is NULL for a row a SQL

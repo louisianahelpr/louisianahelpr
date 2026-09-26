@@ -8,9 +8,14 @@ ELI_ID=11111111-1111-1111-1111-111111111104
 ELI_EMAIL=eli.seed.helper@louisianahelpr.com
 KEY=$(supabase projects api-keys --project-ref $REF -o json | python3 -c "import json,sys;print(next(k['api_key'] for k in json.load(sys.stdin) if k.get('name')=='service_role'))")
 # 1. auth user bound to the existing profile id (409 = already exists, fine)
+# seed-policy: patched — step 1b marks the profile is_seed (eli.seed.helper@ is not a fixture inbox that trg_profiles_seed_from_fixture_email matches)
 curl -s -o /dev/null -w "create-user: %{http_code}\n" -X POST "https://$REF.supabase.co/auth/v1/admin/users" \
   -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d "{\"id\":\"$ELI_ID\",\"email\":\"$ELI_EMAIL\",\"email_confirm\":true,\"user_metadata\":{\"full_name\":\"Eli Thibodeaux\"}}"
+# 1b. the profile is test data from birth (docs/OPEN.md Q46)
+curl -s -o /dev/null -w "mark-seed: %{http_code}\n" -X PATCH "https://$REF.supabase.co/rest/v1/profiles?user_id=eq.$ELI_ID" \
+  -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"is_seed":true}'
 # 2. magic link, redirected to the second dev origin (127.0.0.1 = separate session from localhost)
 curl -s -X POST "https://$REF.supabase.co/auth/v1/admin/generate_link" \
   -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \

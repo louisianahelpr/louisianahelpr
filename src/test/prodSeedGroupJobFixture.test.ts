@@ -28,7 +28,7 @@
 //
 // @mutate scripts/audit/prod-seed.mjs |   budget: 300,\n  status: "open", |   budget: 9000,\n  status: "open",
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   extractConstraints,
@@ -162,11 +162,19 @@ describe("prod-seed.mjs group job fixture — the roster rows could be inserted"
 // The CHECK reader above cannot see triggers. trg_group_job_has_no_lead
 // (20260925154606, Q396) rejects a group job whose helper_id is set, and the
 // seeder kept setting it to the first helper, so every prod-seed --apply
-// 400'd (prod-audit run 36272080924). Pinned from the migration, both ways.
+// 400'd (prod-audit run 36272080924). Read from the NEWEST migration that
+// names the trigger (not one pinned file), so a later DROP turns this red.
 describe("prod-seed group job has no lead (trg_group_job_has_no_lead)", () => {
   it("writes helper_id NULL while the no-lead trigger exists", () => {
-    const mig = readFileSync(join(REPO, "supabase/migrations/20260925154606_group_crew_has_no_lead.sql"), "utf8");
-    expect(mig).toMatch(/trg_group_job_has_no_lead/);
+    const dir = join(REPO, "supabase/migrations");
+    const last = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, ""))
+      .filter((sql) => /trg_group_job_has_no_lead/.test(sql))
+      .at(-1);
+    expect(last, "no migration defines trg_group_job_has_no_lead").toBeDefined();
+    expect(last!.split(/;\s*\n/).filter((st) => /trg_group_job_has_no_lead/.test(st)).at(-1)).toMatch(/create\s+trigger/i);
     const fn = /async function applyGroupJob[\s\S]*?\n}/.exec(src)?.[0] ?? "";
     const jobsUpsert = /upsert\("jobs",[^\n]*/.exec(fn)?.[0] ?? "";
     expect(jobsUpsert, "applyGroupJob has no jobs upsert").not.toBe("");

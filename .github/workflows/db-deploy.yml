@@ -94,6 +94,9 @@ on:
       - "scripts/lib/migrationProvenance.mjs"
       - "scripts/audit/migration-provenance.json"
       - "scripts/check-types-fresh.mjs"
+      - "scripts/check-applied-migration-edits.mjs"
+      - "scripts/lib/appliedMigrationEdits.mjs"
+      - "scripts/audit/applied-migration-edits.json"
   # Manual trigger so you can re-run the deploy without a new commit
   # (e.g., to apply a backlog after secrets are first configured).
   workflow_dispatch:

@@ -218,6 +218,13 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", args: ["check"], env: MGMT("fail"), says: /could not check migration provenance: Management API query failed: 500/ },
     { label: "Management API []", args: ["check"], env: MGMT("empty"), says: /schema_migrations read returned no rows — refusing to report clean/ },
   ],
+  // Q719 (db-deploy.yml): which edited migrations prod already applied, read
+  // from schema_migrations through the Management API (LH_SUPABASE_API_BASE).
+  "scripts/check-applied-migration-edits.mjs": [
+    { label: "no credentials", args: ["HEAD"], says: /could not read prod schema_migrations: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", args: ["HEAD"], env: MGMT("fail"), says: /could not read prod schema_migrations: Management API query failed: 500/ },
+    { label: "Management API []", args: ["HEAD"], env: MGMT("empty"), says: /schema_migrations came back empty; refusing to treat nothing as applied/ },
+  ],
   // Q164 (db-drift-detect.yml): GET /v1/projects/{ref}/functions (LH_SUPABASE_API_BASE).
   "scripts/check-deployed-functions.mjs": [
     { label: "no credentials", says: /could not list the deployed edge functions: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },

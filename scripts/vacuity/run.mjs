@@ -112,6 +112,22 @@ process.on("uncaughtException", (e) => { restoreAll(); throw e; });
  * A timeout is `inconclusive`, which is already a hard failure. The honest
  * answer when nothing was observed.
  */
+/*
+ * THE TAIL OF A RED RUN MUST CARRY ITS FAILURE (Q432). A Playwright run's
+ * last lines are the webServer's `[WebServer]` build warnings, so a plain
+ * `.slice(-25)` kept Tailwind/Vite noise and dropped the failing assertion
+ * (run 36215687625: #1819's privacy-requests.spec.ts entries showed only
+ * warnings). Drop those lines before taking the tail.
+ */
+export function failureTail(out, n = 25) {
+  return String(out ?? "")
+    .trim()
+    .split("\n")
+    .filter((l) => !/^\s*\[WebServer\]/.test(l))
+    .slice(-n)
+    .join("\n");
+}
+
 export function timedOut(r) {
   return r.error?.code === "ETIMEDOUT" || r.signal === "SIGTERM" || r.signal === "SIGKILL";
 }
@@ -492,7 +508,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const r = runVitest([g]);
     if (r.green) continue;
     baselineRed.add(g);
-    baselineWhy.set(g, r.out.trim().split("\n").slice(-25).join("\n"));
+    baselineWhy.set(g, failureTail(r.out));
   }
   /*
    * A guard red ALONE but green TOGETHER is its own finding, not just a skip:
@@ -540,12 +556,12 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
           `  Read the tail below before blaming the spec: a failed rebuild or a webServer that did\n` +
           `  not come up looks identical here to a genuinely flaky test. If it IS the spec, that is a\n` +
           `  finding — a guard that needs a retry gets ignored, and a real failure ignored with it.\n` +
-          `  First run's tail:\n${c.dim(r.out.trim().split("\n").slice(-25).join("\n"))}\n`,
+          `  First run's tail:\n${c.dim(failureTail(r.out))}\n`,
       );
       continue;
     }
     baselineRed.add(g);
-    baselineWhy.set(g, again.out.trim().split("\n").slice(-25).join("\n"));
+    baselineWhy.set(g, failureTail(again.out));
   }
 
   for (const m of mutations) {

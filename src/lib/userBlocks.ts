@@ -1,3 +1,4 @@
+import type { PostgrestError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -8,11 +9,34 @@ import { unwrapMutation, isWriteRejected } from "@/lib/mutationResult";
  * plus user IDs that have blocked the current user.
  * Either side of the block hides the other.
  */
+type BlockRows = { data: { blocker_id: string; blocked_id: string }[] | null; error: PostgrestError | null };
+const blockReadsInFlight = new Map<string, Promise<BlockRows>>();
+
+/**
+ * The `user_blocks` rows either side of `currentUserId`, as the raw
+ * `{ data, error }` result. CONCURRENT callers share ONE request (Q330: on a
+ * signed-in boot the dashboard feed and the nav badge each read it in the
+ * same moment, measured 2 reads per boot). Nothing is kept once it settles,
+ * so a block made a second later is seen by the next read; this is not a
+ * cache. Each caller still gets the error and fails closed as before.
+ */
+export function readUserBlockRows(currentUserId: string): Promise<BlockRows> {
+  const pending = blockReadsInFlight.get(currentUserId);
+  if (pending) return pending;
+  const read: Promise<BlockRows> = Promise.resolve(
+    supabase
+      .from("user_blocks")
+      .select("blocker_id, blocked_id")
+      .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`),
+  )
+    .then(({ data, error }) => ({ data, error }))
+    .finally(() => blockReadsInFlight.delete(currentUserId));
+  blockReadsInFlight.set(currentUserId, read);
+  return read;
+}
+
 export async function getBlockedUserIds(currentUserId: string): Promise<Set<string>> {
-  const { data, error } = await supabase
-    .from("user_blocks")
-    .select("blocker_id, blocked_id")
-    .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`);
+  const { data, error } = await readUserBlockRows(currentUserId);
 
   // FAIL CLOSED. Returning an empty set on error reads as "nobody is blocked",
   // so a failed read silently un-blocks every harassment block the user has

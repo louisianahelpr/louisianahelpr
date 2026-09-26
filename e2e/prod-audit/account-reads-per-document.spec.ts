@@ -32,12 +32,17 @@ const DWELL_MS = 4_000;
  * EXACT, two-way: set from the measured run below; a fix that lowers a count
  * lowers its number here in the same commit, and a count under it fails too.
  */
+// Calibrated from prod-audit run 36212848613 (2026-09-26): boot /home read
+// everything once (user_blocks twice), the first /messages re-read
+// user_blocks, and the second /messages (past useCurrentUser's 30 s
+// staleTime) re-read profile + roles. user_blocks is re-measured after the
+// shared read (Q330) and set in the commit that has its number.
 export const PER_DOCUMENT: Record<string, number | null> = {
   "user_blocks": null,
-  "profiles select=*": null,
-  "user_roles": null,
-  "profiles terms_version_accepted": null,
-  "/auth/v1/user": null,
+  "profiles select=*": 2,
+  "user_roles": 2,
+  "profiles terms_version_accepted": 1,
+  "/auth/v1/user": 1,
 };
 
 async function clientNav(page: Page, path: string) {

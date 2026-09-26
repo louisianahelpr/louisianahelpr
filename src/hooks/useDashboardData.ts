@@ -8,6 +8,7 @@ import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@t
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { readUserBlockRows } from "@/lib/userBlocks";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
@@ -106,10 +107,8 @@ async function fetchDashboardContext(
           .from("applications")
           .select("job_id")
           .eq("helper_id", userId),
-        supabase
-          .from("user_blocks")
-          .select("blocker_id, blocked_id")
-          .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
+        // Shared with the nav badge's read of the same rows (Q330).
+        readUserBlockRows(userId),
       ]);
     } catch (ctxErr) {
       report(ctxErr, {

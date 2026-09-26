@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-26T02:46:31.484Z",
-  "guards": 1057,
-  "registered": 1056,
+  "generated": "2026-09-26T02:56:34.119Z",
+  "guards": 1058,
+  "registered": 1057,
   "unregistered": [
     "e2e/prod-audit/account-reads-per-document.spec.ts"
   ],

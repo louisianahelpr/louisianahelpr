@@ -14,7 +14,9 @@
  *      read and KEEPS the panel open, and the row leaves the Unread tab);
  *   2. open the bell, pick Unread, and require a SHORT list (the panel is
  *      content-sized, not at max height; at max height the scroll area absorbs
- *      the change and the check would be vacuous);
+ *      the change and the check would be vacuous). The panel's notification
+ *      reads are narrowed on the wire to the rows this spec created, because
+ *      the shared poster's own backlog fills the panel;
  *   3. tap one row and sample the panel's bottom edge every animation frame;
  *   4. assert the row really left AND the edge really moved (a no-op cannot
  *      pass), and that no single frame moved it more than MAX_FRAME_PX.
@@ -91,6 +93,16 @@ for (const engine of ["chromium", "webkit"] as const) {
     const browser: Browser = engine === "chromium" ? defaultBrowser : await webkit.launch();
     try {
       const ctx = await newUserContext(browser, poster);
+      // The shared poster carries hundreds of real unread notifications, so its
+      // list overflows the panel and no jump could happen (first CI run: 4936px
+      // in 451px). Narrow the panel's OWN reads to the rows this spec created:
+      // real rows, the real backend, only an id filter added on the wire.
+      const ids = created.join(",");
+      await ctx.route(/\/rest\/v1\/notifications\?/, (route) => {
+        const req = route.request();
+        if (req.method() !== "GET" && req.method() !== "HEAD") return route.continue();
+        return route.continue({ url: `${req.url()}&id=in.(${ids})` });
+      });
       const page = await ctx.newPage();
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto("/home");

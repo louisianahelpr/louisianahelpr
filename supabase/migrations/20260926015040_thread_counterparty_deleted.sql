@@ -10,9 +10,20 @@
 --
 -- Who may ask: only someone with a thread on the job (poster, hired or offered
 -- Helpr, crew member, applicant, or a sender/receiver of any message on it).
--- Anyone else gets false, never an error, so the RPC cannot be used to probe
--- arbitrary ids. Existence of a live, verified account is already public
--- through get_safe_profiles; this adds nothing about who a live account is.
+-- Anyone else gets false, never an error.
+--
+-- What it discloses (lh-authz-rls review, 2026-09-26, accepted): only the
+-- CALLER is scoped, not _other. A deleted account leaves no row tying it to
+-- the job (its applications, crew rows and messages cascade away), so _other
+-- cannot be scoped after the fact. Any member on some job can therefore learn,
+-- for a UUID they already hold, "no account" vs "an account exists". Combined
+-- with get_safe_profiles that separates "exists but hidden (banned, unverified,
+-- anonymised)" from "gone" — one bit, never which hidden state, and only for an
+-- unguessable v4 UUID. Nothing about who a live account is.
+--
+-- Also: an id that NEVER existed reads as deleted (true). A hand-typed or
+-- corrupted deep link therefore opens a read-only "Former member" thread;
+-- nothing sendable to a live person is ever locked by it.
 --
 -- Consumers: src/lib/deletedCounterparty.ts fetchCounterpartyDeleted (deep-link
 -- fallback in loadConversations.ts, refused send in sendHandlers.ts).

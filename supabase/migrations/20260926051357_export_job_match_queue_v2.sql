@@ -1,18 +1,16 @@
--- Q290 x Q392: "Download My Data" includes job_match_queue.
+-- job_match_queue (created by 20260925231704) holds a user's queued parish
+-- match emails: personal data, so export_my_data() returns it.
 --
--- 20260925231704 (Q392) added job_match_queue: one row per (job, user) for
--- every instant or parish job match, holding the notification copy, when it
--- is due and whether it was sent, digested or dropped. It is keyed to a person
--- (user_id -> auth.users), and its two siblings saved_search_alert_queue and
--- match_digest_queue are already exported by export_my_data() (20260925232153),
--- so this restates that function verbatim with one more section, filtered to
--- the caller like every other section.
---
--- Replay-safe: CREATE OR REPLACE; the body is plpgsql, so the table it reads
--- is resolved at call time. Grants restated as in 20260925232153.
--- Guard: src/test/dataExportCoversEveryUserTable.test.ts.
+-- Replaces 20260926035907_export_job_match_queue.sql, which restated the old
+-- no-argument export_my_data() and so would have resurrected the door
+-- 20260926034548 closed. This restates 20260926045122 verbatim plus one
+-- section: job_match_queue, filtered to the user.
 
-CREATE OR REPLACE FUNCTION public.export_my_data()
+-- Replay-safety: 20260926034548 already dropped it; kept so no later replay
+-- resurrects the no-argument door.
+DROP FUNCTION IF EXISTS public.export_my_data();
+
+CREATE OR REPLACE FUNCTION public.export_my_data(p_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
@@ -20,15 +18,16 @@ CREATE OR REPLACE FUNCTION public.export_my_data()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
-  v_uid   uuid := auth.uid();
-  v_email text;
+  v_uid     uuid := p_user_id;
+  v_email   text;
+  v_created timestamptz;
   v_out   jsonb;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
 
-  SELECT lower(u.email) INTO v_email FROM auth.users u WHERE u.id = v_uid;
+  SELECT lower(u.email), u.created_at INTO v_email, v_created FROM auth.users u WHERE u.id = v_uid;
 
   v_out := jsonb_build_object('exported_at', now(), 'user_id', v_uid, 'email', v_email);
 
@@ -65,7 +64,7 @@ BEGIN
   v_out := v_out || jsonb_build_object('notification_preferences', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.notification_preferences t
       WHERE t.user_id = v_uid));
   v_out := v_out || jsonb_build_object('notification_logs', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.notification_logs t
-      WHERE t.user_id = v_uid OR lower(t.recipient_email) = v_email));
+      WHERE t.user_id = v_uid OR (lower(t.recipient_email) = v_email AND t.user_id IS NULL AND t.created_at >= v_created)));
   v_out := v_out || jsonb_build_object('notification_dedupe_suppressions', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.notification_dedupe_suppressions t
       WHERE t.user_id = v_uid));
   v_out := v_out || jsonb_build_object('push_tokens', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'token'), '[]'::jsonb) FROM public.push_tokens t
@@ -105,7 +104,7 @@ BEGIN
   v_out := v_out || jsonb_build_object('tips', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.tips t
       WHERE t.tipper_id = v_uid OR t.helper_id = v_uid));
   v_out := v_out || jsonb_build_object('gift_cards', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'claim_token'), '[]'::jsonb) FROM public.gift_cards t
-      WHERE t.donor_id = v_uid OR t.recipient_id = v_uid OR lower(t.recipient_email) = v_email));
+      WHERE t.donor_id = v_uid OR t.recipient_id = v_uid OR (lower(t.recipient_email) = v_email AND t.recipient_id IS NULL)));
   v_out := v_out || jsonb_build_object('referral_codes', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.referral_codes t
       WHERE t.user_id = v_uid));
   v_out := v_out || jsonb_build_object('referral_credits', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.referral_credits t
@@ -131,9 +130,9 @@ BEGIN
   v_out := v_out || jsonb_build_object('email_tracking', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.email_tracking t
       WHERE t.user_id = v_uid));
   v_out := v_out || jsonb_build_object('email_send_log', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.email_send_log t
-      WHERE lower(t.recipient_email) = v_email));
+      WHERE lower(t.recipient_email) = v_email AND t.created_at >= v_created));
   v_out := v_out || jsonb_build_object('suppressed_emails', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.suppressed_emails t
-      WHERE lower(t.email) = v_email));
+      WHERE lower(t.email) = v_email AND t.created_at >= v_created));
   v_out := v_out || jsonb_build_object('job_checkins', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.job_checkins t
       WHERE t.user_id = v_uid));
   v_out := v_out || jsonb_build_object('job_tracking', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.job_tracking t
@@ -170,6 +169,12 @@ BEGIN
       WHERE t.user_id = v_uid));
   v_out := v_out || jsonb_build_object('error_logs', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.error_logs t
       WHERE t.user_id = v_uid));
+  v_out := v_out || jsonb_build_object('admin_user_notes', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'admin_id'), '[]'::jsonb) FROM public.admin_user_notes t
+      WHERE t.user_id = v_uid));
+  v_out := v_out || jsonb_build_object('fraud_flags', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.fraud_flags t
+      WHERE t.user_id = v_uid));
+  v_out := v_out || jsonb_build_object('helper_shadowbans', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'created_by'), '[]'::jsonb) FROM public.helper_shadowbans t
+      WHERE t.helper_id = v_uid));
   v_out := v_out || jsonb_build_object('application_rate_log', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.application_rate_log t
       WHERE t.applicant_id = v_uid));
   v_out := v_out || jsonb_build_object('profile_search_rate_log', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.profile_search_rate_log t
@@ -179,5 +184,5 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.export_my_data() TO authenticated;
+REVOKE ALL ON FUNCTION public.export_my_data(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role;

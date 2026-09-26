@@ -131,6 +131,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   nps_responses: { by: ["user_id"] },
   analytics_events: { by: ["user_id"] },
   error_logs: { by: ["user_id"] },
+  admin_user_notes: { by: ["user_id"] },
+  fraud_flags: { by: ["user_id"] },
+  helper_shadowbans: { by: ["helper_id"] },
   application_rate_log: { by: ["applicant_id"] },
   profile_search_rate_log: { by: ["searcher_id"] },
 };
@@ -143,16 +146,14 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
-  // Staff and anti-abuse records. Handing these over would tell an abuser what
-  // was noticed and by whom; GDPR Art. 23(1)(d)/(i) and CCPA 1798.105(d)(2)
-  // security exceptions. Owner decision pending: docs/OPEN.md Q290.
+  // Staff-only records and ban-evasion data. Staff notes, fraud flags and
+  // shadowbans ABOUT the person are exported (owner, 2026-09-26, Q290); what
+  // stays out is who on staff wrote or applied them, and records that are the
+  // staff's own rather than the person's.
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
-  "admin_user_notes.admin_id": { reason: "staff notes: the author is a staff member" },
-  "admin_user_notes.user_id": { reason: "internal staff notes about the account (anti-abuse; owner decision pending, Q290)" },
+  "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
+  "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },
   "job_match_queue.send_email": { reason: "a boolean (send the parish email or not), not a person: matched by name only" },
-  "fraud_flags.user_id": { reason: "fraud signals: disclosure defeats them (security exception; owner decision pending, Q290)" },
-  "helper_shadowbans.helper_id": { reason: "a shadowban only works undisclosed (security exception; owner decision pending, Q290)" },
-  "helper_shadowbans.created_by": { reason: "staff member who applied the shadowban" },
   "retained_bans.email_sha256": { reason: "ban-evasion hash kept AFTER deletion; a live account's ban is exported via user_bans" },
   "dispute_settlement_claims.claimed_by": { reason: "transient settlement lock held by staff or a function, not the person's data" },
   "marketing_content.created_by": { reason: "staff-only marketing drafts" },

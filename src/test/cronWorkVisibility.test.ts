@@ -31,8 +31,8 @@
  * (CRON_WORK_MIGRATIONS_BEFORE=20260925231818 reproduces it; see the last test).
  *
  * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | ('sweep-release-last-chance',       $c$SELECT public.cron_record_work('sweep-release-last-chance', to_jsonb(public.sweep_release_last_chance()));$c$), | ('sweep-release-last-chance',       $c$SELECT public.sweep_release_last_chance();$c$),
- * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | ('weekly-helper-report',            'exempt', | ('weekly-helper-report-gone',       'exempt',
- * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | ('sweep-silent-cron-failures',      'idle', interval '6 hours', ARRAY['recorded'] | ('sweep-silent-cron-failures',      'idle', interval '6 hours', ARRAY['recorded_rows']
+ * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | ('weekly-helper-report',            NULL, NULL, 'exempt', | ('weekly-helper-report-gone',       NULL, NULL, 'exempt',
+ * @mutate supabase/migrations/20260925231818_cron_work_visibility.sql | ('sweep-silent-cron-failures',      interval '6 hours', ARRAY['recorded'], 'idle' | ('sweep-silent-cron-failures',      interval '6 hours', ARRAY['recorded_rows'], 'idle'
  */
 import { describe, it, expect } from "vitest";
 import { existsSync, readdirSync, readFileSync } from "node:fs";

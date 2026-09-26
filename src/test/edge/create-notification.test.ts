@@ -188,7 +188,8 @@ describe("create-notification — server-built copy only (Q223)", () => {
 
   it("the assigned Helpr's template lands with SERVER copy — caller title/message/type are ignored", async () => {
     scenario.authUser = { id: TARGET };
-    scenario.reads.jobs = { rows: [job({ customer_id: POSTER, helper_id: TARGET })] };
+    scenario.reads.jobs = { rows: [job({ customer_id: POSTER, helper_id: TARGET, status: "in_progress" })] };
+    scenario.reads.job_tracking = { rows: [{ status: "working" }] };
     const fn = await load();
     const res = await fn.fetch(
       fn.request({
@@ -321,4 +322,162 @@ describe("notification templates — every non-admin path is server-built", () =
     expect(serverSet.length).toBeGreaterThan(10);
     expect(clientSet).toEqual(serverSet);
   });
+});
+
+// ─── Q307: every template proves its EVENT, not only its sender ─────────────
+//
+// Q223 made the words server-built and gated each template to the right side
+// of the job, but only three templates read the database to prove the event:
+// the assigned Helpr could send "Dispute withdrawn" on a job with no dispute,
+// and the poster "Dispute resolved ✓ … Payment will be released" (type
+// payment) before resolving anything. Each template now reads the state its
+// own transition writes.
+//
+// CLASS GUARD over the template inventory: STATE below must name EXACTLY the
+// templates in NOTIFICATION_TEMPLATES (a new template with no "not reached"
+// case fails the first test), and for each one the sender is the right side
+// of the job, so a 409 can only come from the missing state — and the same
+// send with the state present must land (a predicate that refuses everything
+// is not a fix).
+//
+// Registered mutations - each turns this guard RED on its own:
+//   Dropping the dispute proof restores the Q307 repro (withdrawn with no dispute).
+// @mutate supabase/functions/_shared/notification-templates.ts | return f.dispute?.status === "withdrawn" && | return true \|\|
+//   Letting any tracking row count as "working".
+// @mutate supabase/functions/_shared/notification-templates.ts | f.trackingStatus !== "working" | f.trackingStatus === "nope"
+//   Not reading the arrival stamp.
+// @mutate supabase/functions/_shared/notification-templates.ts |     build: (f) => !f.job.poster_confirmed_arrival_at ? null : ({ |     build: (f) => ({
+//   Not reading the job_offer application.
+// @mutate supabase/functions/_shared/notification-templates.ts |       if (f.application?.status !== "accepted") return null; |
+type Reads = Record<string, { rows: Record<string, unknown>[]; count?: number }>;
+interface StateCase {
+  sender: "poster" | "helper";
+  /** Job columns + extra table reads for the state NOT reached. */
+  notReached: { job?: Record<string, unknown>; reads?: Reads };
+  /** The same, with the event recorded. */
+  reached: { job?: Record<string, unknown>; reads?: Reads };
+}
+const withdrawnByPoster = { disputes: { rows: [{ status: "withdrawn", opener_id: POSTER }] } };
+const withdrawnByHelper = { disputes: { rows: [{ status: "withdrawn", opener_id: TARGET }] } };
+const STATE: Record<string, StateCase> = {
+  work_started: {
+    sender: "helper",
+    // on_the_way already moved the job to in_progress; only the tracking row
+    // says whether work has started.
+    notReached: { job: { status: "in_progress" }, reads: { job_tracking: { rows: [{ status: "on_the_way" }] } } },
+    reached: { job: { status: "in_progress" }, reads: { job_tracking: { rows: [{ status: "working" }] } } },
+  },
+  dispute_withdrawn: {
+    sender: "helper",
+    // The Q307 repro: no dispute on the job at all.
+    notReached: { reads: { disputes: { rows: [] } } },
+    reached: { job: { dispute_status: "resolved" }, reads: withdrawnByHelper },
+  },
+  dispute_response: {
+    sender: "helper",
+    notReached: { job: { dispute_status: null, dispute_helper_response: "my side" } },
+    reached: { job: { dispute_status: "helper_responded", dispute_helper_response: "my side" } },
+  },
+  revision_acknowledged: {
+    sender: "helper",
+    notReached: { reads: { job_revisions: { rows: [{ description: "fix it", status: "pending" }] } } },
+    reached: { reads: { job_revisions: { rows: [{ description: "fix it", status: "accepted" }] } } },
+  },
+  job_confirmed: {
+    sender: "helper",
+    // The POSTER's stamp does not prove the Helpr confirmed.
+    notReached: { job: { poster_confirmed_at: "2026-09-25T00:00:00Z", helper_dayof_confirmed_at: null } },
+    reached: { job: { helper_dayof_confirmed_at: "2026-09-25T00:00:00Z" } },
+  },
+  dispute_resolved: {
+    sender: "poster",
+    // The Q307 repro: a still-open dispute, "Payment will be released" before resolving.
+    notReached: { job: { dispute_status: "open" }, reads: { disputes: { rows: [{ status: "open", opener_id: POSTER }] } } },
+    reached: { job: { dispute_status: "resolved" }, reads: withdrawnByPoster },
+  },
+  revision_requested: {
+    sender: "poster",
+    notReached: { reads: { job_revisions: { rows: [] } } },
+    reached: { reads: { job_revisions: { rows: [{ description: "fix the edge", status: "pending" }] } } },
+  },
+  arrival_confirmed: {
+    sender: "poster",
+    notReached: { job: { poster_confirmed_arrival_at: null } },
+    reached: { job: { poster_confirmed_arrival_at: "2026-09-25T00:00:00Z" } },
+  },
+  work_confirmed: {
+    sender: "poster",
+    notReached: { job: { poster_confirmed_working_at: null } },
+    reached: { job: { poster_confirmed_working_at: "2026-09-25T00:00:00Z" } },
+  },
+  job_offer: {
+    sender: "poster",
+    notReached: { reads: { applications: { rows: [{ status: "pending", decline_reason: null }], count: 1 } } },
+    reached: { reads: { applications: { rows: [{ status: "accepted", decline_reason: null }], count: 1 } } },
+  },
+  application_declined: {
+    sender: "poster",
+    notReached: { reads: { applications: { rows: [{ status: "pending", decline_reason: null }], count: 1 } } },
+    reached: { reads: { applications: { rows: [{ status: "rejected", decline_reason: null }], count: 1 } } },
+  },
+  no_show_reported: {
+    sender: "poster",
+    notReached: { reads: { user_violations: { rows: [] } } },
+    reached: { reads: { user_violations: { rows: [{ action_taken: "warning" }] } } },
+  },
+};
+
+describe("Q307 — every template refuses (409) when its event is not in the database", () => {
+  beforeEach(() => {
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetStripeMock();
+    resetEnv();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: true }))));
+    scenario.rpc.has_role = false;
+    scenario.rpc.notification_crosses_seed_boundary = false;
+    scenario.reads.push_tokens = { rows: [], count: 0 };
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("the state table covers EXACTLY the template inventory", () => {
+    const templates = Object.keys(NOTIFICATION_TEMPLATES).sort();
+    expect(templates.length).toBeGreaterThan(10);
+    expect(Object.keys(STATE).sort()).toEqual(templates);
+    for (const [name, c] of Object.entries(STATE)) {
+      // The sender in the table is one the registry accepts, so a 409 below
+      // cannot be a 403 in disguise.
+      const tpl = NOTIFICATION_TEMPLATES[name];
+      expect(tpl.sender === "either" || tpl.sender === c.sender, name).toBe(true);
+    }
+  });
+
+  async function send(name: string, c: StateCase, side: "notReached" | "reached") {
+    // Poster sends to the assigned Helpr; the Helpr sends to the poster.
+    scenario.authUser = { id: c.sender === "poster" ? POSTER : TARGET };
+    scenario.reads.jobs = { rows: [job({ customer_id: POSTER, helper_id: TARGET, ...(c[side].job ?? {}) })] };
+    for (const [t, r] of Object.entries(c[side].reads ?? {})) scenario.reads[t] = r;
+    const fn = await load();
+    return fn.fetch(
+      fn.request({
+        headers: { Authorization: "Bearer good" },
+        body: { user_id: c.sender === "poster" ? TARGET : POSTER, template: name, job_id: JOB },
+      }),
+    );
+  }
+
+  for (const [name, c] of Object.entries(STATE)) {
+    it(`${name}: state not reached → 409, nothing inserted`, async () => {
+      const res = await send(name, c, "notReached");
+      expect(res.status).toBe(409);
+      expect(notificationInserts()).toHaveLength(0);
+    });
+    it(`${name}: state reached → the notice lands`, async () => {
+      const res = await send(name, c, "reached");
+      expect(res.status).toBe(200);
+      expect(notificationInserts()).toHaveLength(1);
+    });
+  }
 });

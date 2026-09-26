@@ -109,8 +109,14 @@ export const SEED_GATED_SURFACES = [
   // and it re-checks the seed gate at send time.
   { surface: "saved-search alerts (queued send)", object: "public.deliver_saved_search_alert" },
   // Q225 (20260926041132): the parish-match alert queue's send path re-checks
-  // the seed gate at send time, like the saved-search send above.
-  { surface: "parish match alert (queued send)", object: "public.deliver_parish_match_alert" },
+  // the seed gate at send time, like the saved-search send above. Since
+  // 20260926195608 (Q392) it asks through job_announceable_to (registered
+  // below), so the parity test checks for that call instead (`via`).
+  {
+    surface: "parish match alert (queued send)",
+    object: "public.deliver_parish_match_alert",
+    via: "public.job_announceable_to",
+  },
   // MISSING UNTIL 2026-09-03, and found the other way round. Every check here
   // used to discover surfaces by NAME (`public.*open_jobs*`) and ask whether
   // each was registered — which cannot see this one, or the saved-search entry

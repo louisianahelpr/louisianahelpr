@@ -13,11 +13,11 @@
  * src/test/pglite/parishMatchAlertsWaitForEarlyAccess.pglite.mjs (GREEN 21/21
  * applied 3x; NEW_MIGRATION=skip -> 15 FAIL on the previous fan-out).
  *
- * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
- * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
- * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) |     PERFORM public.deliver_parish_match_alert(helper_record.helper_id, NEW.id);\n    INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)
- * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |      ) >= 10\n  THEN |      ) >= 1000\n  THEN
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) |     PERFORM public.deliver_parish_match_alert(helper_record.helper_id, NEW.id);\n    INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
+ * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |      ) >= 10\n  THEN |      ) >= 1000\n  THEN
  * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |       DELETE FROM public.parish_match_alert_queue WHERE id = r.id;\n      IF public.deliver_parish_match_alert | IF public.deliver_parish_match_alert
  */
 import { readdirSync, readFileSync } from "node:fs";

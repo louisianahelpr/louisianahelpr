@@ -97,10 +97,20 @@ describe("fixture-job visibility — one switch, every surface", () => {
     expect(SEED_VISIBILITY_FLAG_KEY).toContain("hidden");
   });
 
-  it.each(SEED_GATED_SURFACES.map((s) => [s.surface, s.object] as const))(
+  it.each(SEED_GATED_SURFACES.map((s) => [s.surface, s.object, "via" in s ? s.via : undefined] as const))(
     "%s (%s) consults the authority in its LATEST definition",
-    (_surface, object) => {
+    (_surface, object, via) => {
       const { file, body } = latestDefinition(object);
+      if (via) {
+        // A surface that asks through another registered surface: the call
+        // must be there, and the one it asks must itself be registered (and
+        // is proven by its own row of this test).
+        expect(SEED_GATED_SURFACES.some((s) => s.object === via && !("via" in s))).toBe(true);
+        expect(executable(body), `${object} was last defined in ${file} and no longer calls ${via}(`).toContain(
+          `${via}(`,
+        );
+        return;
+      }
       expect(
         executable(body),
         `${object} was last defined in ${file} and no longer calls ${SEED_VISIBILITY_AUTHORITY}()`,

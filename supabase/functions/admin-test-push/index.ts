@@ -40,6 +40,7 @@
 // success.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,7 +53,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   const authHeader = req.headers.get('Authorization')

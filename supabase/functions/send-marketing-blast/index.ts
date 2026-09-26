@@ -24,6 +24,7 @@ import { renderEmail } from "../_shared/email-templates/render.ts";
 // for the fail-closed pattern used below.
 import { scanAll, scanAllIn } from "../_shared/paginate.ts";
 import type { CountOption } from "../_shared/paginate.ts";
+import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,7 +55,7 @@ interface SendLogRow {
   error_message?: string;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

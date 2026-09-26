@@ -500,7 +500,13 @@ serve(async (req) => {
           if (pi.status !== "succeeded") {
             console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — CANNOT transfer funds.`);
             results.push({ job_id: job.id, status: `pi_not_succeeded_${pi.status}`, skipped: true });
-            const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.piNotSucceeded");
+            // A SEED job's blocked payout never reaches the admins' in-app
+            // inbox (docs/OPEN.md Q93): an `?include_seed=1` run filled
+            // /admin notifications with fixture noise. Its result row above is
+            // unchanged; unknown is_seed is REAL, as for every seed route (Q91).
+            const { ids: adminIds } = job.is_seed === true
+              ? { ids: [] as string[] }
+              : await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.piNotSucceeded");
             {
               for (const adminId of adminIds) {
                 await insertNotifications(supabaseAdmin, {
@@ -1177,7 +1183,11 @@ serve(async (req) => {
           link: "https://www.louisianahelpr.com/admin?view=payouts",
         });
 
-        const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.payoutFailed");
+        // Seed: the digest alert above and seedDefects carry it; the admins'
+        // in-app inbox does not (docs/OPEN.md Q93). Unknown is_seed is REAL.
+        const { ids: adminIds } = job.is_seed === true
+          ? { ids: [] as string[] }
+          : await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.payoutFailed");
         {
           for (const adminId of adminIds) {
             await insertNotifications(supabaseAdmin, {

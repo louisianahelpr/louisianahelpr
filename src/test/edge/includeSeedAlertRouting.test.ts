@@ -5,6 +5,9 @@
 // @mutate supabase/functions/subscription-reconciliation/index.ts | return typeof id === "string" && seedUserIds.has(id); | return false;
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | (jobs ?? []).filter((j) => j.is_seed === true) | (jobs ?? []).filter((j) => j.is_seed !== false)
 // @mutate supabase/functions/subscription-reconciliation/index.ts | notes.some((n) => n !== dryRunNote) | notes.length
+// @mutate supabase/functions/process-scheduled-payouts/index.ts | const { ids: adminIds } = job.is_seed === true\n          ? { ids: [] as string[] } | const { ids: adminIds } = false\n          ? { ids: [] as string[] }
+// @mutate supabase/functions/process-scheduled-payouts/index.ts | const { ids: adminIds } = job.is_seed === true\n              ? { ids: [] as string[] } | const { ids: adminIds } = job.is_seed !== false\n              ? { ids: [] as string[] }
+// @mutate supabase/functions/subscription-reconciliation/index.ts | (seedProfile.has(id) ? `${id} (seed profile)` : id) | id
 /**
  * docs/OPEN.md Q91: an `?include_seed=1` run of a money cron never pages
  * #ops-alerts for fixture data — and still pages for a real subject on the
@@ -271,6 +274,40 @@ describe("process-scheduled-payouts ?include_seed=1", () => {
     expect(digest()).toHaveLength(0);
   });
 
+  // docs/OPEN.md Q93 (a): the admins' in-app inbox is a channel too.
+  const adminInbox = () => scenario.writes.filter((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("admin-1"));
+
+  it("Q93: a SEED job's failed transfer puts nothing in the admins' in-app inbox; a REAL one does", async () => {
+    seedTransferFailing(true);
+    scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+    let fn = await load();
+    await fn.fetch(cron(fn, URL_SEED));
+    expect(adminInbox(), "a seed job reached /admin notifications").toHaveLength(0);
+
+    resetSupabaseMock();
+    resetSharedMocks();
+    seedTransferFailing(false);
+    scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+    fn = await load();
+    await fn.fetch(cron(fn, URL_SEED));
+    expect(adminInbox().length, "the real job's admin alert is gone too: the fixture proves nothing").toBeGreaterThan(0);
+  });
+
+  it("Q93: a SEED job whose charge was not captured puts nothing in the admins' inbox; unknown is_seed does", async () => {
+    for (const [isSeed, want] of [[true, 0], [undefined, 1]] as const) {
+      resetSupabaseMock();
+      resetStripeMock();
+      resetSharedMocks();
+      seedTransferFailing(isSeed);
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "requires_capture", latest_charge: "ch_1", amount: 11200, amount_received: 0 });
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      const fn = await load();
+      const b = await json(await fn.fetch(cron(fn, URL_SEED)));
+      expect((b.results as Array<{ status: string }>)[0].status).toBe("pi_not_succeeded_requires_capture");
+      expect(adminInbox(), `is_seed=${String(isSeed)}`).toHaveLength(want);
+    }
+  });
+
   it("seed vs real: the same transfer is attempted with the same arguments", async () => {
     const run = async (isSeed: boolean) => {
       resetSupabaseMock();
@@ -385,6 +422,27 @@ describe("subscription-reconciliation ?include_seed=1", () => {
     const res = await fn.fetch(cron(fn, URL_SEED));
     expect(res.status).toBe(200);
     expect(alerts()).toHaveLength(0);
+  });
+
+  it("Q93 (b): a failed repair WRITE on a seed profile stays a defect, and its text says seed profile", async () => {
+    // Repair mode (no dry_run), and the profile UPDATE matches 0 rows.
+    scenario.reads.profiles = { rows: [neverLapsing("u-seed", true)] };
+    scenario.writeSelectRows.profiles = [];
+    const fn = await load();
+    const res = await fn.fetch(cron(fn, "https://edge.test/subscription-reconciliation?include_seed=1"));
+    const text = JSON.stringify(await json(res));
+    expect(res.status, "a broken write on a seed profile was muted").toBe(500);
+    expect(text).toContain("repair failed — u-seed (seed profile): repair matched 0 rows");
+  });
+
+  it("Q93 (b): the same failure on a REAL profile carries no seed label", async () => {
+    scenario.reads.profiles = { rows: [neverLapsing("u-real", false)] };
+    scenario.writeSelectRows.profiles = [];
+    const fn = await load();
+    const res = await fn.fetch(cron(fn, "https://edge.test/subscription-reconciliation?include_seed=1"));
+    const text = JSON.stringify(await json(res));
+    expect(res.status).toBe(500);
+    expect(text).toContain("repair failed — u-real: repair matched 0 rows");
   });
 
   it("seed vs real: the same repairs are computed", async () => {

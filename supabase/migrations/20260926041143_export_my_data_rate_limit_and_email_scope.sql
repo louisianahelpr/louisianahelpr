@@ -55,6 +55,15 @@ BEGIN
   -- the edge function counts in 'export-my-data' before calling this, so an
   -- export through the app spends one hit in each and never trips this one
   -- first. Refused with SQLSTATE P0429, which the edge function maps to 429.
+  --
+  -- The hit row is inserted inside THIS transaction, which stays open for the
+  -- whole export; under READ COMMITTED a concurrent call cannot see it, so N
+  -- parallel calls would each count only committed hits and all pass. The
+  -- per-user transaction lock queues one user's exports behind each other, so
+  -- each counts the hits the ones before it committed (lh-authz-rls review).
+  -- A refused or failed call rolls its own hit back; allowed ones commit, so
+  -- the cap holds, but a refusal leaves no row in edge_rate_limit_log.
+  PERFORM pg_advisory_xact_lock(hashtextextended('export_my_data_rpc:' || v_uid::text, 0));
   v_rl := public.rate_limit_hit('export_my_data_rpc', v_uid::text, NULL, 600, 5, 5);
   IF NOT coalesce((v_rl->>'allowed')::boolean, false) THEN
     RAISE EXCEPTION 'export_rate_limited'

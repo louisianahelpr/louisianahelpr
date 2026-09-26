@@ -12,8 +12,9 @@
  * client, the edge function and the privacy journey all agree on the sections.
  *
  * Q408: the function carries its own per-user limiter (a direct PostgREST call
- * skips the edge function's), so it is VOLATILE and refuses with P0429, which
- * the edge function maps to a 429. Q409: every row matched by ADDRESS alone is
+ * skips the edge function's), behind a per-user transaction lock so parallel
+ * calls cannot each miss the others' uncommitted hits; it is VOLATILE and
+ * refuses with P0429, which the edge function maps to a 429. Q409: every row matched by ADDRESS alone is
  * bounded to the account's lifetime (created_at >= v_since) or, for a gift, to
  * one nobody has claimed, so a previous holder of the address is not exported.
  *
@@ -24,6 +25,7 @@
  * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
  * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | REVOKE ALL ON FUNCTION public.export_my_data() FROM PUBLIC, anon; | GRANT EXECUTE ON FUNCTION public.export_my_data() TO anon;
  * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql |   v_rl := public.rate_limit_hit('export_my_data_rpc', v_uid::text, NULL, 600, 5, 5); |   v_rl := jsonb_build_object('allowed', true);
+ * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql |   PERFORM pg_advisory_xact_lock(hashtextextended('export_my_data_rpc:' \|\| v_uid::text, 0)); |   PERFORM 1;
  * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | LANGUAGE plpgsql\n VOLATILE | LANGUAGE plpgsql\n STABLE
  * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | WHERE lower(t.email) = v_email AND t.created_at >= v_since | WHERE lower(t.email) = v_email
  * @mutate supabase/migrations/20260926041143_export_my_data_rate_limit_and_email_scope.sql | OR (t.recipient_id IS NULL AND lower(t.recipient_email) = v_email) | OR lower(t.recipient_email) = v_email
@@ -170,6 +172,12 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     const flat = body.replace(/\s+/g, " ");
     const hit = flat.search(/v_rl := public\.rate_limit_hit\('export_my_data_rpc', v_uid::text, NULL, \d+, \d+, \d+\);/);
     expect(hit, "export_my_data must call rate_limit_hit keyed on v_uid").toBeGreaterThan(-1);
+    // The hit is uncommitted for the whole export, so parallel calls cannot
+    // see each other's; a per-user xact lock taken BEFORE the hit serialises
+    // them (real-Postgres proof: 10 parallel calls, 10 pass without it, 5 with).
+    const lock = flat.search(/PERFORM pg_advisory_xact_lock\(hashtextextended\('export_my_data_rpc:' \|\| v_uid::text, 0\)\);/);
+    expect(lock, "a per-user pg_advisory_xact_lock must precede the rate_limit_hit").toBeGreaterThan(-1);
+    expect(lock).toBeLessThan(hit);
     const refuse = flat.search(/IF NOT coalesce\(\(v_rl->>'allowed'\)::boolean, false\) THEN RAISE EXCEPTION '\w+' USING ERRCODE = 'P0429'/);
     expect(refuse, "a refused hit must raise P0429 (fail closed on a missing 'allowed')").toBeGreaterThan(hit);
     expect(refuse).toBeLessThan(flat.indexOf("v_out := v_out ||"));

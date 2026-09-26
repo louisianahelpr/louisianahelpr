@@ -30,15 +30,19 @@
  *     U's own notification, and the unclaimed gift; the 6th call raises
  *     P0429; a second user is not limited by the first; anon cannot execute.
  */
+const CONCURRENCY = process.argv.includes("--concurrency");
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${process.env.HOME}/.lh-pglite-probe`;
 let PGlite;
-try {
-  ({ PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`));
-} catch {
-  console.error(`Could not load pglite from ${PGLITE_DIR} (npm i @electric-sql/pglite there).`);
-  process.exit(2);
+if (!CONCURRENCY) {
+  try {
+    ({ PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`));
+  } catch {
+    console.error(`Could not load pglite from ${PGLITE_DIR} (npm i @electric-sql/pglite there).`);
+    process.exit(2);
+  }
 }
 import { readFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
 
 const mig = (f) => readFileSync(new URL(`../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8");
 const OLD = mig("20260925232153_export_my_data.sql");
@@ -90,8 +94,8 @@ const T0 = "2026-09-01T00:00:00Z";
 const BEFORE = "2026-08-01T00:00:00Z";
 const AFTER = "2026-09-10T00:00:00Z";
 
-async function fresh(migrationText, times) {
-  const db = new PGlite();
+/** Schema + limiter + `migrationText` x `times` + fixture, as one SQL script. */
+function setupSql(migrationText, times) {
   const body = OLD.slice(OLD.indexOf("CREATE OR REPLACE FUNCTION public.export_my_data()"));
   const tables = schemaFrom(body);
   // Pin the Q409 columns even if the parser ever misses one.
@@ -106,7 +110,11 @@ async function fresh(migrationText, times) {
     tables.set(t, s);
   }
   let ddl = `
-    CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
+    DO $r$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon; END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated; END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role; END IF;
+    END $r$;
     CREATE SCHEMA auth;
     CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, created_at timestamptz);
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
@@ -116,11 +124,9 @@ async function fresh(migrationText, times) {
   for (const [t, cols] of tables) {
     ddl += `CREATE TABLE public.${t} (${[...cols].map((c) => `${c} ${c === "id" ? "uuid DEFAULT gen_random_uuid()" : typeOf(c)}`).join(", ")});\n`;
   }
-  await db.exec(ddl);
-  await db.exec(limiterDDL());
-  for (let i = 0; i < times; i++) await db.exec(migrationText);
-
-  await db.exec(`
+  ddl += limiterDDL();
+  for (let i = 0; i < times; i++) ddl += "\n" + migrationText + "\n";
+  return ddl + `
     INSERT INTO auth.users VALUES ('${U}', 'u@x.test', '${T0}'), ('${W}', 'w@x.test', '2026-01-01'), ('${V}', 'v@x.test', '${T0}');
     INSERT INTO public.email_send_log (recipient_email, created_at) VALUES ('U@x.test', '${BEFORE}'), ('u@x.test', '${AFTER}');
     INSERT INTO public.suppressed_emails (email, created_at) VALUES ('u@x.test', '${BEFORE}'), ('u@x.test', '${AFTER}');
@@ -132,7 +138,12 @@ async function fresh(migrationText, times) {
     INSERT INTO public.gift_cards (donor_id, recipient_id, recipient_email, claim_token, created_at) VALUES
       ('${W}', NULL, 'u@x.test', 'secret-1', '${BEFORE}'),
       ('${V}', '${W}', 'u@x.test', 'secret-2', '${BEFORE}');
-  `);
+  `;
+}
+
+async function fresh(migrationText, times) {
+  const db = new PGlite();
+  await db.exec(setupSql(migrationText, times));
   return db;
 }
 
@@ -142,6 +153,57 @@ async function exportAs(db, uid) {
   return r.rows[0].x;
 }
 const count = (x, k) => (Array.isArray(x[k]) ? x[k].length : -1);
+
+// ── CONCURRENCY (real Postgres; PGlite has one connection) ────────────────
+// PGURL=postgres://postgres@127.0.0.1:5439/postgres node <this> --concurrency
+// Local clusters only. N sessions call export_my_data as U at the same moment,
+// each holding its transaction open 1.5 s (a slow scan). The limiter's hit is
+// uncommitted until then, so without the per-user lock every session counts
+// only its own hit and all N pass.
+if (CONCURRENCY) {
+  const url = process.env.PGURL ?? "";
+  if (!/^postgres(?:ql)?:\/\/[^@]*@(?:127\.0\.0\.1|localhost)(?::\d+)?\//.test(url)) {
+    console.error("--concurrency needs PGURL pointing at a LOCAL cluster (127.0.0.1/localhost). Never prod.");
+    process.exit(2);
+  }
+  const N = 10;
+  const LOCK = /^ {2}PERFORM pg_advisory_xact_lock\(.*\n/m;
+  if (!LOCK.test(NEW)) throw new Error("the new migration has no pg_advisory_xact_lock line to remove");
+  const psql = (db, args, input) =>
+    spawnSync("psql", [url.replace(/\/[^/]*$/, `/${db}`), "-X", "-q", "-v", "ON_ERROR_STOP=1", ...args], { input, encoding: "utf8" });
+  const session = `\\set VERBOSITY verbose
+BEGIN;
+SET LOCAL request.jwt.claim.sub = '${U}';
+SELECT (public.export_my_data())->>'user_id';
+SELECT pg_sleep(1.5);
+COMMIT;
+`;
+  async function burst(label, migrationText) {
+    const db = `lh_probe_q408_${label}`;
+    const mk = psql("postgres", ["-c", `DROP DATABASE IF EXISTS ${db}`, "-c", `CREATE DATABASE ${db}`]);
+    if (mk.status !== 0) throw new Error(mk.stderr);
+    const setup = psql(db, [], setupSql(OLD + "\n" + migrationText, 1));
+    if (setup.status !== 0) throw new Error(setup.stderr);
+    const runs = await Promise.all(Array.from({ length: N }, () => new Promise((resolve) => {
+      const p = spawn("psql", [url.replace(/\/[^/]*$/, `/${db}`), "-X", "-q", "-v", "ON_ERROR_STOP=1"]);
+      let err = "";
+      p.stderr.on("data", (d) => (err += d));
+      p.on("close", (code) => resolve(code === 0 ? "ok" : /P0429/.test(err) ? "P0429" : err.trim()));
+      p.stdin.end(session);
+    })));
+    psql("postgres", ["-c", `DROP DATABASE IF EXISTS ${db}`]);
+    const ok = runs.filter((r) => r === "ok").length;
+    const refused = runs.filter((r) => r === "P0429").length;
+    const other = runs.filter((r) => r !== "ok" && r !== "P0429");
+    return { ok, refused, other };
+  }
+  const before = await burst("nolock", NEW.replace(LOCK, ""));
+  check(`without the lock: ${N} parallel calls all pass the 5-per-10-min limit (the race)`, before.ok === N, JSON.stringify(before));
+  const after = await burst("lock", NEW);
+  check(`with the lock: exactly 5 of ${N} parallel calls pass, 5 get P0429`, after.ok === 5 && after.refused === 5 && after.other.length === 0, JSON.stringify(after));
+  console.log(failures ? `\n${failures} FAILED` : "\nall passed");
+  process.exit(failures ? 1 : 0);
+}
 
 // ── RED-BEFORE: the Q290 function verbatim ────────────────────────────────
 {

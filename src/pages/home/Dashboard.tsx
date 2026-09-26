@@ -788,6 +788,7 @@ const Dashboard = () => {
                     hasNextPage={hasNextPage}
                     isFetchingNextPage={isFetchingNextPage}
                     fetchNextPage={fetchNextPage}
+                    lead={giftCardCount > 0 ? <GiftCardTeaser giftCardCount={giftCardCount} /> : null}
                     hoveredJobId={hoveredJobId}
                     setHoveredJobId={setHoveredJobId}
                     exclusions={exclusions}
@@ -848,9 +849,6 @@ const Dashboard = () => {
                 )}
               </div>
             </SectionBoundary>
-
-            {/* Gift card teaser — only shown when this user holds an unspent gift card */}
-            <GiftCardTeaser giftCardCount={giftCardCount} />
 
     </PageScaffold>
 

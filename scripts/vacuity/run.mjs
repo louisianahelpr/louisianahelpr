@@ -116,6 +116,26 @@ export function timedOut(r) {
   return r.error?.code === "ETIMEDOUT" || r.signal === "SIGTERM" || r.signal === "SIGKILL";
 }
 
+/**
+ * The last `n` lines that can say WHY a run was red.
+ *
+ * `runPlaywright` returns stdout + stderr, and with PLAYWRIGHT_WEB_SERVER=1 the
+ * webServer's build warnings arrive on stderr, AFTER the reporter's output. A
+ * plain `.slice(-25)` therefore kept 25 lines of `[WebServer]` Tailwind/Vite
+ * warnings and dropped the failing test's error: measured on PR #1809
+ * (2026-09-26), where e2e/prod-audit/shell-spacing.spec.ts came back
+ * "RED before any mutation" three runs in a row with no reason printed (OPEN.md
+ * Q410). Server chatter is dropped first, so the reason is what is kept.
+ */
+export function failureTail(out, n = 25) {
+  return String(out ?? "")
+    .trim()
+    .split("\n")
+    .filter((l) => !/^\s*\[WebServer\]/.test(l))
+    .slice(-n)
+    .join("\n");
+}
+
 function runVitest(guards, extraEnv = {}) {
   const list = Array.isArray(guards) ? guards : [guards];
   const r = spawnSync(
@@ -492,7 +512,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const r = runVitest([g]);
     if (r.green) continue;
     baselineRed.add(g);
-    baselineWhy.set(g, r.out.trim().split("\n").slice(-25).join("\n"));
+    baselineWhy.set(g, failureTail(r.out));
   }
   /*
    * A guard red ALONE but green TOGETHER is its own finding, not just a skip:
@@ -540,12 +560,12 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
           `  Read the tail below before blaming the spec: a failed rebuild or a webServer that did\n` +
           `  not come up looks identical here to a genuinely flaky test. If it IS the spec, that is a\n` +
           `  finding — a guard that needs a retry gets ignored, and a real failure ignored with it.\n` +
-          `  First run's tail:\n${c.dim(r.out.trim().split("\n").slice(-25).join("\n"))}\n`,
+          `  First run's tail:\n${c.dim(failureTail(r.out))}\n`,
       );
       continue;
     }
     baselineRed.add(g);
-    baselineWhy.set(g, again.out.trim().split("\n").slice(-25).join("\n"));
+    baselineWhy.set(g, failureTail(again.out));
   }
 
   for (const m of mutations) {

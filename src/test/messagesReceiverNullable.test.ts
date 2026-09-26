@@ -37,7 +37,7 @@
  * @mutate src/lib/archivedConversations.ts | return `${jobId}_${otherUserId === null ? DELETED_PARTY_KEY : otherUserId}`; | return `${jobId}_${otherUserId}`;
  * @mutate src/lib/archivedConversations.ts | if (other === DELETED_PARTY_KEY \|\| other === "null") return { jobId, otherUserId: null }; | if (other === DELETED_PARTY_KEY) return { jobId, otherUserId: null };
  * @mutate src/lib/archivedConversations.ts | return UUID_RE.test(other) ? { jobId, otherUserId: other } : null; | return { jobId, otherUserId: other };
- * @mutate src/lib/archivedConversations.ts | if (GONE.has(code(error) ?? "")) localOnly.delete(k); | if (false) localOnly.delete(k);
+ * @mutate src/lib/archivedConversations.ts | if (GONE.has(code(error) ?? "")) { | if (false) {
  * @mutate src/pages/messages/useMessagesData.ts |       (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt), |       (c) => c.otherUserId === null \|\| !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
  * @mutate src/components/messages/ConversationList.tsx |                       return selectMode \|\| isRecentlyDeletedView ? row : ( |                       return selectMode \|\| isRecentlyDeletedView \|\| c.otherUserId === null ? row : (
  * @mutate src/components/messages/ConversationList.tsx | onTogglePin={c.otherUserId === null ? undefined : () => handleTogglePin(c)} | onTogglePin={() => handleTogglePin(c)}
@@ -272,7 +272,7 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     // is gone (23503) or whose id is malformed (22P02) leave the mirror.
     const src = blankComments(read("src/lib/archivedConversations.ts"));
     expect(src).toMatch(/const GONE = new Set\(\["23503", "22P02"\]\)/);
-    expect(src).toMatch(/if \(GONE\.has\(code\(error\) \?\? ""\)\) localOnly\.delete\(k\);/);
+    expect(src).toMatch(/if \(GONE\.has\(code\(error\) \?\? ""\)\) \{\s*localOnly\.delete\(k\);/);
   });
 
   it("pin stays off for it: the swipe row gets no pin action", () => {

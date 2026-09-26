@@ -106,6 +106,75 @@ function userScopedKey(userId: string): string {
 const cache = new Map<string, ArchiveMap>();
 
 /**
+ * Q511: the keys THIS device archived whose server write is not yet
+ * confirmed (offline, a failed write, or the pre-deploy windows above).
+ *
+ * The merge-up used to push EVERY key the device held that the server did
+ * not, so a thread restored on another device (server row deleted) was
+ * archived again by the first device's stale mirror on its next load, and
+ * hidden everywhere. The server is the source of truth for everything it
+ * has confirmed; only a pending key is this device's news to push. A
+ * local-only key that is not pending was confirmed once and has since left
+ * the server (restored elsewhere, or cascaded away), so it is dropped.
+ */
+function pendingStorageKey(userId: string): string {
+  return `${STORAGE_KEY}_pending_${userId}`;
+}
+
+function readPending(userId: string): Set<string> {
+  try {
+    const raw = safeStorage.getItem(pendingStorageKey(userId));
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === "string") : []);
+  } catch {
+    // Corrupt / unparseable: nothing pending. The worst case is one
+    // unconfirmed archive that has to be made again, never a resurrection.
+    return new Set();
+  }
+}
+
+function writePending(userId: string, pending: Set<string>): void {
+  try {
+    safeStorage.setItem(pendingStorageKey(userId), JSON.stringify([...pending]));
+  } catch {
+    /* ignore quota / private-mode failures — archiving is best-effort UX */
+  }
+}
+
+function setPending(userId: string, key: string, on: boolean): void {
+  const pending = readPending(userId);
+  if (on === pending.has(key)) return;
+  if (on) pending.add(key);
+  else pending.delete(key);
+  writePending(userId, pending);
+}
+
+/**
+ * Q511: what the merge-up does with each canonical mirror key the server did
+ * NOT return. Pure, so the rule is testable without a network.
+ *   push: archived here and never confirmed; send it up.
+ *   drop: confirmed once, now gone from the server (restored on another
+ *         device, or its person/job was deleted); never re-push it.
+ * `confirmed` lists pending keys the server already has (the write landed,
+ * only its response was lost); they stop being pending.
+ */
+export function planMergeUp(
+  localKeys: Iterable<string>,
+  serverKeys: ReadonlySet<string>,
+  pending: ReadonlySet<string>,
+): { push: string[]; drop: string[]; confirmed: string[] } {
+  const push: string[] = [];
+  const drop: string[] = [];
+  for (const k of localKeys) {
+    if (serverKeys.has(k)) continue;
+    if (pending.has(k)) push.push(k);
+    else drop.push(k);
+  }
+  const confirmed = [...pending].filter((k) => serverKeys.has(k));
+  return { push, drop, confirmed };
+}
+
+/**
  * True when the table isn't deployed yet.
  *
  * Migrations auto-deploy on merge, but there is a window between the code
@@ -190,14 +259,24 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   // Keys are canonicalised first (a pre-Q335 `${job}_null` becomes the
   // deleted-account key) and a key the server could never take is dropped,
   // never re-pushed on every load.
-  const localOnly = new Map<string, { jobId: string; otherUserId: string | null; archivedAt: string }>();
+  //
+  // Q511: only keys this device archived and never saw confirmed are
+  // pushed; a key the server confirmed once and no longer has was restored
+  // elsewhere (or cascaded away) and is dropped, so a restore sticks.
+  const canonicalLocal = new Map<string, { jobId: string; otherUserId: string | null; archivedAt: string }>();
   for (const [k, archivedAt] of Object.entries(local)) {
     const parsed = parseConversationKey(k);
     if (!parsed) continue;
-    const canonical = conversationKey(parsed.jobId, parsed.otherUserId);
-    if (canonical in server) continue;
-    localOnly.set(canonical, { ...parsed, archivedAt });
+    canonicalLocal.set(conversationKey(parsed.jobId, parsed.otherUserId), { ...parsed, archivedAt });
   }
+  const pending = readPending(userId);
+  const plan = planMergeUp(canonicalLocal.keys(), new Set(Object.keys(server)), pending);
+  for (const k of plan.confirmed) pending.delete(k);
+  // A pending key with no mirror entry was restored here before its write
+  // was confirmed; nothing to push.
+  for (const k of [...pending]) if (!canonicalLocal.has(k)) pending.delete(k);
+  const localOnly = new Map<string, { jobId: string; otherUserId: string | null; archivedAt: string }>();
+  for (const k of plan.push) localOnly.set(k, canonicalLocal.get(k)!);
   if (localOnly.size > 0) {
     const toRow = (e: { jobId: string; otherUserId: string | null; archivedAt: string }) => ({
       user_id: userId,
@@ -215,6 +294,7 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
     // thread is now the deleted-account thread), or a malformed id (22P02).
     const GONE = new Set(["23503", "22P02"]);
     const { error: batchError } = await upsert([...localOnly.values()].map(toRow));
+    if (!batchError) for (const k of localOnly.keys()) pending.delete(k);
     // 23502: a deleted-account row (Q335) before 20260926041106 made
     // other_user_id nullable. Deploy lag; the batch retries on the next load.
     if (batchError && !isMissingTable(batchError) && code(batchError) !== "23502") {
@@ -223,8 +303,14 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
       let unexpected: { code?: string } | null = null;
       for (const [k, e] of [...localOnly]) {
         const { error } = await upsert([toRow(e)]);
-        if (!error) continue;
-        if (GONE.has(code(error) ?? "")) localOnly.delete(k);
+        if (!error) {
+          pending.delete(k);
+          continue;
+        }
+        if (GONE.has(code(error) ?? "")) {
+          localOnly.delete(k);
+          pending.delete(k);
+        }
         else if (code(error) !== "23502" && !isMissingTable(error)) unexpected = error;
       }
       if (unexpected) {
@@ -233,6 +319,7 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
     }
     for (const [k, e] of localOnly) server[k] = e.archivedAt;
   }
+  writePending(userId, pending);
 
   cache.set(userId, server);
   writeLocal(userId, server);
@@ -270,6 +357,9 @@ export function archiveConversation(
   const map = { ...getArchiveMap(userId), [key]: archivedAt };
   cache.set(userId, map);
   writeLocal(userId, map);
+  // Q511: pending until the server confirms it; only a pending key is pushed
+  // by loadArchives' merge-up.
+  setPending(userId, key, true);
   emitArchiveChanged();
 
   void (async () => {
@@ -277,6 +367,7 @@ export function archiveConversation(
       { user_id: userId, job_id: jobId, other_user_id: otherUserId, archived_at: archivedAt },
       { onConflict: "user_id,job_id,other_user_id" },
     );
+    if (!error) setPending(userId, key, false);
     if (error) {
       if (isMissingTable(error)) return; // pre-deploy — the mirror still holds it
       // Q335 deploy lag: before 20260926041106 other_user_id is NOT NULL
@@ -287,6 +378,7 @@ export function archiveConversation(
       delete rollback[key];
       cache.set(userId, rollback);
       writeLocal(userId, rollback);
+      setPending(userId, key, false);
       emitArchiveChanged();
       report(error, { severity: "warning", tags: { source: "archivedConversations.archiveConversation" } });
     }
@@ -306,6 +398,8 @@ export function unarchiveConversation(
   delete map[key];
   cache.set(userId, map);
   writeLocal(userId, map);
+  // Q511: a restore cancels any unconfirmed archive of the same thread.
+  setPending(userId, key, false);
   emitArchiveChanged();
 
   void (async () => {

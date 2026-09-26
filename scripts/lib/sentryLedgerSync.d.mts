@@ -1,5 +1,6 @@
 export const SENTRY_SYNC_QUERY: string;
 export function sentryReadToken(env: Record<string, string | undefined>): string;
+export function missingSentryEnvIsAlert(env: Record<string, string | undefined>): boolean;
 export function sentryIssuesUrl(org: string, project: string, base?: string): string;
 export interface SentryIssueLike {
   id?: string; shortId?: string; title?: string; culprit?: string; level?: string;

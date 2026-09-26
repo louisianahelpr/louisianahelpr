@@ -1,4 +1,4 @@
--- CJ-007 follow-up (docs/OPEN.md Q434 (b)): the cron-silent 'idle' and
+-- CJ-007 follow-up (docs/OPEN.md Q436 (b)): the cron-silent 'idle' and
 -- 'unrecorded' alerts close themselves.
 --
 -- ── WHY ────────────────────────────────────────────────────────────────────

@@ -100,6 +100,7 @@ const AdminUsers = () => {
     ratingSummary,
     jobsCompletedSummary,
     openReportsSummary,
+    summariesSettled,
     loadSummaries,
   } = useAdminUserSummaries();
 
@@ -418,6 +419,9 @@ const AdminUsers = () => {
           body={`Nothing is ${tabCountLabel[tab]} right now. Try another tab above.`}
         />
       ) : (
+        // aria-busy until every per-row summary has settled: a row read before
+        // then is not the row (#1582, run 36069319716; useAdminUserSummaries).
+        <div aria-busy={!summariesSettled}>
         <VirtualList
           items={filtered}
           getKey={(p) => p.id}
@@ -439,6 +443,7 @@ const AdminUsers = () => {
             />
           )}
         />
+        </div>
       )}
 
 

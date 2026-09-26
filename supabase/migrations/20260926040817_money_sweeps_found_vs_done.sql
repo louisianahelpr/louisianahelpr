@@ -1,4 +1,4 @@
--- CJ-007 follow-up (docs/OPEN.md Q434 (c)): the money SQL sweeps report what
+-- CJ-007 follow-up (docs/OPEN.md Q436 (c)): the money SQL sweeps report what
 -- they FOUND and what they DID, so "found some, did none" pages.
 --
 -- ── WHY ────────────────────────────────────────────────────────────────────

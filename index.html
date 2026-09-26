@@ -76,7 +76,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-c/0573eAhTzoxAXtXa+Y4HKO8Q4ZDJCpicZsCBlny5M=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-6SSGJNaAxv//C19LFgeHG3nZjqzq77WgDNPBhY6snsU=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -412,6 +412,13 @@
         var FLAG = "helpr_chunk_reload_at";
         var COUNT = "helpr_chunk_reload_count";
         var fired = false;
+        // The chunk whose load failed. WebKit keeps that failure in its
+        // in-memory cache and replays it to the next document in the same
+        // process without asking the server, so a reload (automatic or Try
+        // Again) failed on the same file even after the network or deploy
+        // was fine again: measured in Playwright WebKit, only index-*.js
+        // reached the server on the retry. reloadFresh refetches it first.
+        var failedSrc = "";
         // BEGIN decideChunkReload (mirror of src/lib/chunkReload.ts)
         function decide(count, last, now, offline) {
           var SCHEDULE = [0, 5000, 15000, 40000];
@@ -465,6 +472,9 @@
               tasks.push(caches.keys().then(function (ks) {
                 return Promise.all(ks.map(function (k) { return caches.delete(k).catch(function () {}); }));
               }).catch(function () {}));
+            }
+            if (failedSrc && typeof fetch === "function") {
+              tasks.push(fetch(failedSrc, { cache: "reload", credentials: "same-origin" }).catch(function () {}));
             }
           } catch (e) { /* proceed to reload */ }
           Promise.all(tasks).then(go, go);
@@ -537,6 +547,7 @@
           if (u.origin !== location.origin || u.pathname.indexOf("/assets/") !== 0 || !/\.js$/.test(u.pathname)) return;
           if (document.readyState !== "loading" && booted()) return;
           fired = true;
+          failedSrc = u.pathname;
           var offline = navigator.onLine === false;
           var st = readState();
           var wait = decide(st.count, st.last, Date.now(), offline);

@@ -360,7 +360,41 @@ export const __resetChunkReloadForTests = (): void => {
   speculativePrefetchesInFlight = 0;
   lateBackgroundImports = 0;
   for (const k of Object.keys(backgroundImportFailures)) delete backgroundImportFailures[k];
+  failedAssetUrls.clear();
 };
+
+/**
+ * Every /assets/*.js this document failed to load. WebKit keeps a failed
+ * module load in its in-process memory cache and replays it to the next
+ * document without asking the server, so the recovery reload (automatic or
+ * Try Again) failed on the same file even once it was reachable again:
+ * measured in Playwright WebKit behind a real 404 (no-store) proxy, the
+ * reloaded page never re-requested the route chunk and showed the error card
+ * again. hardReloadBypassCache refetches these with cache: "reload" first,
+ * which replaces the cached failure. The same fix lives in index.html's boot
+ * watchdog for the entry graph.
+ */
+const failedAssetUrls = new Set<string>();
+
+/** Registered once by main.tsx: records the URL of every failed /assets/*.js load. */
+export const trackFailedAssetLoads = (): void => {
+  window.addEventListener(
+    "error",
+    (event) => {
+      const el = event.target as { src?: unknown; href?: unknown } | null;
+      if (!el || (el as unknown) === window) return;
+      const raw = typeof el.src === "string" && el.src ? el.src : typeof el.href === "string" ? el.href : "";
+      try {
+        const u = new URL(raw, window.location.href);
+        if (u.origin === window.location.origin && /^\/assets\/[^/]+\.js$/.test(u.pathname)) failedAssetUrls.add(u.pathname);
+      } catch {
+        /* not a URL: not an asset */
+      }
+    },
+    true,
+  );
+};
+
 
 /**
  * Force-reload that purges any cached service-worker / Cache Storage entry
@@ -414,6 +448,17 @@ export const hardReloadBypassCache = async () => {
   try {
     if ("caches" in window) {
       await bounded(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k).catch(() => null)))));
+    }
+  } catch {
+    /* swallow — proceed to reload */
+  }
+  try {
+    if (failedAssetUrls.size > 0 && typeof fetch === "function") {
+      await bounded(
+        Promise.all(
+          [...failedAssetUrls].map((u) => fetch(u, { cache: "reload", credentials: "same-origin" }).catch(() => null)),
+        ),
+      );
     }
   } catch {
     /* swallow — proceed to reload */

@@ -13,6 +13,7 @@ import {
   PURGE_STEP_TIMEOUT_MS,
   hardReloadBypassCache,
   recoverFromChunkError,
+  trackFailedAssetLoads,
 } from "./chunkReload";
 
 /**
@@ -270,6 +271,39 @@ describe("hardReloadBypassCache follow-ups", () => {
     delete window.caches;
   });
 
+  it("WebKit replay: a failed /assets chunk is refetched with cache 'reload' BEFORE the reload", async () => {
+    // WebKit keeps a failed module load in its memory cache and replays it into
+    // the next document without asking the server (measured behind a real 404
+    // proxy, e2e/happy-path/stale-deploy.spec.ts "warm, guard armed").
+    Object.defineProperty(window, "location", {
+      value: { href: "https://www.louisianahelpr.com/terms", origin: "https://www.louisianahelpr.com", replace },
+      configurable: true,
+      writable: true,
+    });
+    const order: string[] = [];
+    const fetchSpy = vi.fn(async (u: string, init?: RequestInit) => {
+      order.push(`fetch ${u} ${init?.cache}`);
+      return new Response("");
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    replace.mockImplementation(() => order.push("replace"));
+    trackFailedAssetLoads();
+    const link = document.createElement("link");
+    link.rel = "modulepreload";
+    link.href = "https://www.louisianahelpr.com/assets/Legal-abc123.js";
+    document.head.appendChild(link);
+    link.dispatchEvent(new Event("error"));
+    const css = document.createElement("link");
+    css.href = "https://www.louisianahelpr.com/assets/index-abc.css";
+    document.head.appendChild(css);
+    css.dispatchEvent(new Event("error"));
+    await hardReloadBypassCache();
+    expect(order).toEqual(["fetch /assets/Legal-abc123.js reload", "replace"]);
+    link.remove();
+    css.remove();
+    vi.unstubAllGlobals();
+  });
+
   it("going offline between the attempt and the reload refunds the attempt", async () => {
     sessionStorage.setItem("helpr_chunk_reload_count", "1");
     setOnline(false);
@@ -280,6 +314,8 @@ describe("hardReloadBypassCache follow-ups", () => {
 });
 
 // Shown able to fail:
+// The WebKit replay refetch. Without it iOS Try Again replays the cached 404 forever.
+// @mutate src/lib/chunkReload.ts | if (failedAssetUrls.size > 0 && typeof fetch === "function") { | if (false) {
 // The cap itself. Without it a tab whose chunk keeps 404ing reloads forever.
 // @mutate src/lib/chunkReload.ts | if (count >= CHUNK_RELOAD_MAX_ATTEMPTS) return { reload: false }; | if (count >= 99) return { reload: false };
 // The cap's VALUE, checked independently of the constant the tests import —

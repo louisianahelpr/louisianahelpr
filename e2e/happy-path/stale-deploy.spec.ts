@@ -147,6 +147,25 @@ async function leaveOneAttempt(page: Page) {
   );
 }
 
+/**
+ * Arms the guard before the FIRST document of a clean page runs, and never
+ * again (the reload the test counts must see the guard the app itself left).
+ * The boot tests cannot load a start page first: WebKit keeps that page's
+ * chunks in its in-process memory cache, so the "broken" load that follows
+ * mounts the app from cache and the watchdog never sees a failure.
+ */
+async function armOnFirstLoad(page: Page, count: number, agoMs: number) {
+  await page.addInitScript(
+    ([k, c, n, ago]) => {
+      if (location.protocol === "about:" || sessionStorage.getItem("__lh_armed")) return;
+      sessionStorage.setItem("__lh_armed", "1");
+      sessionStorage.setItem(k, String(Date.now() - ago));
+      sessionStorage.setItem(c, String(n));
+    },
+    [GUARD_KEY, COUNT_KEY, count, agoMs] as const,
+  );
+}
+
 async function expectHonestCard(page: Page, label: string) {
   // Poll card AND non-blank together, then re-read once the document has
   // settled. A single read right after the poll could land mid-reload and see
@@ -278,11 +297,8 @@ for (const rc of [ROUTES[3], ROUTES[6]]) {
     test("stale HTML, one attempt left: one reload, then an honest message, never an endless spinner", async ({ page, context, baseURL }) => {
       test.slow();
       await setup(page, context, rc, baseURL ?? "");
-      await page.goto(rc.start, { waitUntil: "load" });
-      await leaveOneAttempt(page);
-      // Leave the app before breaking the graph, so no chunk the start page
-      // still loads can spend that attempt (sessionStorage survives in the tab).
-      await page.goto("about:blank");
+      const last = CHUNK_RELOAD_MAX_ATTEMPTS - 1;
+      await armOnFirstLoad(page, last, CHUNK_RELOAD_SCHEDULE_MS[last] + 1_000);
       const forbidden = watchForbidden(page);
       const block = await breakEntryGraph(page);
       const docs = countDocumentLoads(page);
@@ -304,8 +320,7 @@ for (const rc of [ROUTES[3], ROUTES[6]]) {
     test("stale HTML, guard armed: honest message, then Try Again boots the app and the failure is reported", async ({ page, context, baseURL }) => {
       test.slow();
       await setup(page, context, rc, baseURL ?? "");
-      await page.goto(rc.start, { waitUntil: "load" });
-      await armGuard(page);
+      await armOnFirstLoad(page, CHUNK_RELOAD_MAX_ATTEMPTS, 0);
       const block = await breakEntryGraph(page);
       const docs = countDocumentLoads(page);
       await page.goto(rc.path, { waitUntil: "domcontentloaded" });

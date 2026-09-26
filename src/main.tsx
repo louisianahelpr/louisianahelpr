@@ -13,7 +13,7 @@ import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { USER_ERROR_SCREEN } from "./lib/currentScreen";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
-import { backgroundImport, handleVitePreloadError } from "./lib/chunkReload";
+import { backgroundImport, handleVitePreloadError, trackFailedAssetLoads } from "./lib/chunkReload";
 import { blockReplayIfTestProfile } from "./lib/replayTestProfile";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
@@ -78,6 +78,7 @@ initSimpleMode();
 // the user never hits an error boundary on the common case. The error
 // boundaries keep the same detection as a backstop for throws that bypass
 // this event (e.g. a bare `import()` rejection inside an effect).
+trackFailedAssetLoads();
 window.addEventListener("vite:preloadError", (event) => {
   // Only swallow the throw when we are ACTUALLY going to recover.
   //

@@ -19,6 +19,7 @@
 // @mutate src/components/ErrorBoundary.tsx | if (this.state.recovering) return <ChunkRecoveringState />; | if (false) return <ChunkRecoveringState />;
 // @mutate src/components/SectionBoundary.tsx | if (this.state.recovering) return <ChunkRecoveringState compact />; | if (false) return <ChunkRecoveringState compact />;
 // @mutate src/components/SectionBoundary.tsx | return { hasError: true, error, recovering: isRecoveryReloadInFlight() }; | return { hasError: true, error };
+// @mutate src/components/ErrorBoundary.tsx | return { hasError: true, error, recovering: isRecoveryReloadInFlight() }; | return { hasError: true, error };
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -98,9 +99,19 @@ describe.each(BOUNDARIES)("$file during stale-chunk recovery", (b) => {
     expect(report).not.toHaveBeenCalled();
   });
 
-  it("any error while a recovery reload is already in flight: quiet on the FIRST render", () => {
+  it("any error while a recovery reload is already in flight: quiet on the FIRST render", async () => {
     expect(recoverFromChunkError()).toBe(true); // main.tsx's vite:preloadError handler
+    // Every node ever committed, including a card that a later setState in
+    // componentDidCatch removes before paint: the owner saw that one frame.
+    const committed: string[] = [];
+    const mo = new MutationObserver((recs) => {
+      for (const r of recs) r.addedNodes.forEach((n) => committed.push(n.textContent ?? ""));
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
     render(b.wrap(<PreventedPreloadLazy />));
+    await Promise.resolve();
+    mo.disconnect();
+    expect(committed.filter((t) => b.card.test(t)), "the error card was committed").toEqual([]);
     expect(screen.queryByText(b.card)).toBeNull();
     expect(screen.getByRole("status").textContent).toMatch(/Loading/);
     expect(report).not.toHaveBeenCalled();

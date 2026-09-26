@@ -3,10 +3,24 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 // @ts-expect-error — plain .mjs script shared with CI (race-runner.yml), no types.
 import * as guard from "../../scripts/check-race-class.mjs";
+import { effectiveDefs, type FnDef } from "./helpers/effectiveFunctionDefs";
+import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync, statSync } from "node:fs";
+
+function walkTestFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const e of readdirSync(dir)) {
+    const p = resolve(dir, e);
+    if (statSync(p).isDirectory()) { if (e !== "fixtures" && e !== "node_modules") out.push(...walkTestFiles(p)); }
+    else if (/\.(test|spec)\.tsx?$/.test(e)) out.push(p);
+  }
+  return out;
+}
 
 // Q245: a second unguarded write of the same shape in an already-baselined
 // file gets its own key (base#2), so it is NEW, not covered by the first's
 // baseline entry.
+// @mutate scripts/check-race-class.mjs | .filter((f) => !before \|\| f < before) | .filter((f) => true)
 // @mutate scripts/check-race-class.mjs | hits.push({ key: n === 1 ? base : `${base}#${n}`, file: relPath, line }); | hits.push({ key: base, file: relPath, line });
 
 /**
@@ -22,17 +36,13 @@ import * as guard from "../../scripts/check-race-class.mjs";
  */
 
 const FIX = "20260913014328";
-// 20260915101102 rebuilt enforce_application_job_state from its LIVE (post-fix,
-// FOR SHARE) body to change only its NULL-uid trust test, so it restates the
-// fix. "Pre-fix" therefore means leaving both out.
-const RESTATES_FIX = "20260915101102";
-// Every LATER migration that redefines enforce_application_job_state from its
-// live body also restates the FOR SHARE fix, so each one has to be excluded as
-// well or "pre-fix" quietly stops meaning pre-fix and the first assertion below
-// goes hollow. 20260921190002 added the self-application guard C3;
-// 20260924020956 (Q341) added the block refusal.
-const RESTATES_APP_JOB_STATE_FIX = [RESTATES_FIX, "20260921190002", "20260924020956"];
+// "Pre-fix" is every migration sorting BEFORE the fix (Q28, 2026-09-26). It
+// used to be "all migrations minus FIX minus a hand-kept list of every later
+// restatement" (20260915101102, 20260921190002, 20260924020956 had each been
+// added after a restatement quietly made the baseline hollow); a version cut
+// cannot be broken by the next restatement.
 const FIXTURES = resolve(__dirname, "fixtures/raceClass");
+const MIGRATIONS_DIR = resolve(__dirname, "../..", "supabase/migrations");
 const OFFER_HANDLERS = "src/components/job-card/activityActions/useOfferHandlers.ts";
 
 type Hit = { key: string; file: string; line?: number };
@@ -40,7 +50,7 @@ type Hit = { key: string; file: string; line?: number };
 // @mutate src/components/JobTracking.tsx | .in("status", ["accepted", "in_progress", "revision_requested"]) |
 describe("race-class guard — red on the pre-fix code, green on the fix", () => {
   it("flags enforce_application_job_state when the FOR SHARE migration is absent", () => {
-    const keys = guard.sqlHits(guard.readMigrations({ exclude: [FIX, ...RESTATES_APP_JOB_STATE_FIX] })).map((h: Hit) => h.key);
+    const keys = guard.sqlHits(guard.readMigrations({ before: FIX })).map((h: Hit) => h.key);
     expect(keys).toContain("sql:public.enforce_application_job_state");
   });
 
@@ -216,19 +226,19 @@ describe("race-class guard — edge functions (create-payment release, proven on
 describe("race-class guard — job completion (helper Done vs poster confirm / cancel, 20260914215112)", () => {
   const JT = "src/components/JobTracking.tsx";
   const COMPLETION_FIX = "20260914215112";
-  // 20260924220318 restates the live bodies (guards included) to rename the
-  // tab addresses, so every pre-guard baseline excludes it too.
-  const RENAMES_TAB_ADDRESSES = "20260924220318";
-  const latestDefinition = (name: string, exclude: string[] = []) => {
-    let body: string | null = null;
-    for (const { sql } of guard.readMigrations({ exclude })) {
-      const re = new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${name}\\s*\\([\\s\\S]*?\\$(function)?\\$([\\s\\S]*?)\\$(function)?\\$`, "gi");
-      for (const m of sql.matchAll(re)) body = m[2];
-    }
-    return body ?? "";
+  // Bodies come from the shared replaying parser (any dollar-quote tag,
+  // CREATE with or without OR REPLACE, later regexp rewrites applied). The
+  // pre-guard baseline is the effective definition BEFORE the fix version
+  // (Q28), never "all minus a hand-kept exclusion list".
+  const defsCache = new Map<string, Map<string, FnDef>>();
+  const defsBefore = (before = "") => {
+    if (!defsCache.has(before)) defsCache.set(before, effectiveDefs(MIGRATIONS_DIR, before ? { before } : {}));
+    return defsCache.get(before)!;
   };
-  const triggerDefined = (exclude: string[] = []) =>
-    guard.readMigrations({ exclude }).some(({ sql }: { sql: string }) => /CREATE\s+TRIGGER\s+trg_completion_on_live_job\s+BEFORE\s+UPDATE\s+OF\s+helper_completed_at/i.test(sql));
+  const latestDefinition = (name: string) => defsBefore().get(name)?.stmt ?? "";
+  const preGuardDefinition = (name: string) => defsBefore(COMPLETION_FIX).get(name)?.stmt ?? "";
+  const triggerDefined = (before = "") =>
+    guard.readMigrations({ before }).some(({ sql }: { sql: string }) => /CREATE\s+TRIGGER\s+trg_completion_on_live_job\s+BEFORE\s+UPDATE\s+OF\s+helper_completed_at/i.test(sql));
 
   it("flags the pre-fix Done stamp (helper_completed_at, id predicate only)", () => {
     const src = readFileSync(resolve(FIXTURES, "JobTrackingDone.prefix.tsx.txt"), "utf8");
@@ -243,10 +253,9 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
   });
 
   it("without the fix migration there is no status guard on helper_completed_at and a done job is cancellable", () => {
-    expect(triggerDefined([COMPLETION_FIX])).toBe(false);
-    // 20260925154606 (Q407: a crew has no lead) restates it WITH the guard
-    // (plus the crew's per-member version), so the pre-guard baseline excludes it.
-    expect(latestDefinition("poster_cancel_job", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES, "20260925154606"])).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
+    expect(triggerDefined(COMPLETION_FIX)).toBe(false);
+    expect(preGuardDefinition("poster_cancel_job")).not.toBe("");
+    expect(preGuardDefinition("poster_cancel_job")).not.toMatch(/helper_completed_at\s+IS\s+NOT\s+NULL/i);
   });
 
   it("with it: the trigger judges OLD.status and pins a re-stamp; poster_cancel_job refuses a job marked done", () => {
@@ -260,26 +269,14 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
 
   it("no exit around the stamp: clearing it, a block, a no-show report or a Helpr cancel cannot undo a job marked done", () => {
     const without = {
-      // 20260915101102 (the NULL-uid trust swap) re-derives this guard from its
-      // LIVE body to change only its role test, so it restates the fix — exclude
-      // it too, or the pre-guard baseline still finds a definition.
-      trg: latestDefinition("enforce_completion_on_live_job", [COMPLETION_FIX, RESTATES_FIX]),
-      // 20260923075415 (Q88: fee tier follows commitment) restates the whole
-      // function WITH the done-stamp guard, so the pre-guard baseline must
-      // exclude it too — same as RESTATES_FIX above.
-      // 20260923232809 (Q301) and 20260924023843 (Q345) restate it the same way.
-      block: latestDefinition("block_user_and_settle", [COMPLETION_FIX, "20260923075415", "20260923232809", "20260924023843", RENAMES_TAB_ADDRESSES]),
-      // Also exclude the arrival migration (20260915044137): it legitimately
-      // made report_helper_no_show read helper_completed_at for a STRONGER
-      // no-show guard (refuses if arrived OR completed). The pre-guard baseline
-      // is the definition before both guard-adders. 20260915074058 (VN-33(b))
-      // restates that guard after prod lost it to an out-of-order apply, and
-      // 20260924060512 (DH-006: one report per job+Helpr) restates it again.
-      noShow: latestDefinition("report_helper_no_show", [COMPLETION_FIX, "20260915044137", "20260915074058", "20260924060512"]),
-      // 20260925140148 (Q393: a crew member can leave) restates it with the
-      // done-stamp guard on both the single-helper and the crew path.
-      helperCancel: latestDefinition("helper_cancel_booking", [COMPLETION_FIX, RENAMES_TAB_ADDRESSES, "20260925140148"]),
+      trg: preGuardDefinition("enforce_completion_on_live_job"),
+      block: preGuardDefinition("block_user_and_settle"),
+      noShow: preGuardDefinition("report_helper_no_show"),
+      helperCancel: preGuardDefinition("helper_cancel_booking"),
     };
+    // Each baseline must exist (except the trigger the fix created), or a
+    // "not.toMatch" below would pass on an empty string.
+    for (const k of ["block", "noShow", "helperCancel"] as const) expect(without[k]).not.toBe("");
     expect(without.trg).toBe("");
     expect(without.block).not.toMatch(/helper_completed_at/);
     expect(without.noShow).not.toMatch(/helper_completed_at/);
@@ -390,5 +387,24 @@ describe("race-class guard — baseline over the live repo", () => {
     expect(guard.compare(hits, { ...baseline, safe: { ...safe, "edge:gone.ts::status": "x" } }).stale).toEqual([
       "edge:gone.ts::status",
     ]);
+  });
+});
+
+describe("pre-fix baselines are a version cut, never a hand-kept exclusion list (Q28)", () => {
+  // Every restatement of a fixed body used to need its version appended to an
+  // exclusion list, or the "pre-fix" baseline silently read the fix back in
+  // and the red-on-pre-fix assertion went hollow (four extensions on
+  // 2026-09-21..24). A test passing `exclude:` to readMigrations is that shape.
+  it("no test builds a migration baseline with exclude:", () => {
+    const offenders: string[] = [];
+    for (const f of walkTestFiles(resolve(__dirname))) {
+      const code = blankComments(readFileSync(f, "utf8"));
+      if (/readMigrations\(\s*\{[^}]*\bexclude\s*:/.test(code)) offenders.push(f);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("the scan reads the test tree (floor)", () => {
+    expect(walkTestFiles(resolve(__dirname)).length).toBeGreaterThan(500);
   });
 });

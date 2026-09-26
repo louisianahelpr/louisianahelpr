@@ -1,6 +1,8 @@
 // @mutate .husky/pre-commit | node scripts/secret-scan.mjs --staged |
 // @mutate scripts/lib/secretShapes.mjs | sb_secret_[A-Za-z0-9_-]{20,} | sb_secretZZ_[A-Za-z0-9_-]{20,}
 // @mutate .github/workflows/secret-scan.yml | --exit-code 1 | --exit-code 0
+// @mutate .github/workflows/secret-scan.yml |             GL_RANGE="${AFTER}" |             GL_RANGE="${RANGE}"
+// @mutate .github/workflows/secret-scan.yml |           RANGE: ${{ steps.range.outputs.gl_range }} |           RANGE: ${{ steps.range.outputs.range }}
 /*
  * Q75: a secret can never land.
  *
@@ -138,6 +140,15 @@ describe("Q75 secret-scan gate", () => {
     expect(wf).toMatch(/sha256sum -c/);
     expect(wf).toContain("node scripts/check-gitleaksignore.mjs");
     expect(wf).not.toMatch(/continue-on-error|\|\| true/);
+  });
+
+  it("a push to main makes gitleaks read ALL of main, so a red finding cannot be superseded (Q75, 2026-09-26)", () => {
+    // Run 36067442586 went red on 7a7745632 and the next push, scanning only
+    // its own range, went green: the finding sat untriaged for two days.
+    const wf = read(".github/workflows/secret-scan.yml");
+    expect(wf).toMatch(/if \[ "\$EVENT" = "push" \] && \[ "\$REF" = "main" \]; then\n\s+GL_RANGE="\$\{AFTER\}"/);
+    const step = wf.slice(wf.indexOf("- name: gitleaks (default rules"), wf.indexOf("- name: Repo key shapes"));
+    expect(step).toContain("RANGE: ${{ steps.range.outputs.gl_range }}");
   });
 
   it("the CLI exits 1 on planted fakes and never prints a value", () => {

@@ -30,6 +30,18 @@ export const TIP_MIN_CENTS = 300;
 export const TIP_MAX_CENTS = 100_000;
 
 /**
+ * The only payment methods a tip Checkout Session offers (Q383, 2026-09-26).
+ * The fee above recovers Stripe's CARD rate. Without an explicit list the
+ * account's default configuration also offers Klarna, Affirm, Afterpay,
+ * Cash App and US bank account (measured in test mode 2026-09-26); Klarna/
+ * Affirm/Afterpay cost 5.99% + 30c, so the platform would pay the gap on
+ * every such tip. Apple Pay and Google Pay are card wallets and stay offered
+ * under "card"; Link is billed at card rates. auto-tip-charge already charges
+ * only a saved card (paymentMethods.list type "card").
+ */
+export const TIP_PAYMENT_METHOD_TYPES: ("card" | "link")[] = ["card", "link"];
+
+/**
  * The card-processing fee added on top of a tip of `tipCents`, in cents: the
  * smallest whole-cent `fee` with `fee >= stripeProcessingCostCents(tip + fee)`,
  * so the platform recovers Stripe's card-rate cost on the full charge and keeps

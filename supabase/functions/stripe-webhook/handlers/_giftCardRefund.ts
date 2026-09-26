@@ -37,6 +37,38 @@ const NO_GIFT: GiftRevokeResult = {
 };
 
 /**
+ * True when the gift donation behind this PaymentIntent was already reversed
+ * (its root credit reads payment_status 'refunded'), false for a live gift or
+ * for a PaymentIntent that is not a gift at all.
+ *
+ * Q210(a): a chargeback revokes on EITHER charge.dispute.created or
+ * charge.dispute.funds_withdrawn (an inquiry the bank escalates arrives only as
+ * the second). An ordinary chargeback sends both, and the revoke RPC counts the
+ * already-spent rows again on a repeat call, so without this check the second
+ * event would re-page ops "platform absorbed it" for money already reported.
+ * Reversal is one-way (payment_status never goes back to 'paid'), so a
+ * 'refunded' root means there is nothing left to revoke.
+ *
+ * THROWS on a read error (the webhook 500s and Stripe retries), never guesses.
+ */
+export async function giftDonationAlreadyReversed(
+  supabase: any,
+  paymentIntentId: string | null,
+): Promise<boolean> {
+  if (!paymentIntentId) return false;
+  const { data, error } = await supabase
+    .from("gift_cards")
+    .select("id, payment_status")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`gift_cards lookup failed for ${paymentIntentId}: ${error.message}`);
+  }
+  return (data as { payment_status?: string } | null)?.payment_status === "refunded";
+}
+
+/**
  * Revoke the unspent portion of a gift-card donation tree whose charge went
  * back to the donor.
  *

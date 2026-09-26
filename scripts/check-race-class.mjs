@@ -132,9 +132,14 @@ export function analyzeFunctionBody(fn) {
   return { unlockedReads: unlocked.length, writes: [...writes].sort(), trigger: fn.returnsTrigger };
 }
 
-export function readMigrations({ dir = join(REPO, "supabase/migrations"), exclude = [] } = {}) {
+// `before`: only migrations sorting strictly before that version — the way a
+// test builds a "pre-fix" baseline, so a later restatement of the fixed body
+// can never leak into it (Q28). `exclude` stays for the CLI's
+// --exclude-migration; tests must not hand-keep version lists with it.
+export function readMigrations({ dir = join(REPO, "supabase/migrations"), exclude = [], before = "" } = {}) {
   return readdirSync(dir)
     .filter((f) => f.endsWith(".sql"))
+    .filter((f) => !before || f < before)
     .filter((f) => !exclude.some((p) => f.startsWith(p)))
     .sort()
     .map((f) => ({ name: f, sql: readFileSync(join(dir, f), "utf8") }));

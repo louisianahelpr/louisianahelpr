@@ -16,7 +16,7 @@ import {
   findInternalPayoutHold,
   holdReasons,
 } from "./_chargebackHold.ts";
-import { revokeGiftCardForRefund } from "./_giftCardRefund.ts";
+import { giftDonationAlreadyReversed, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 import { clawBackReleasedPayout, HOLD_NOTICE_TITLE, notifyPayee, type ClawbackResult } from "./_chargebackClawback.ts";
 
 export async function handleChargeDisputeCreated(
@@ -99,7 +99,16 @@ async function applyCardDispute(
       id: dispute.id,
       status: dispute.status,
     });
-  } else if (mode === "created") {
+  } else if (await giftDonationAlreadyReversed(supabase, disputePiId)) {
+    // The created + funds_withdrawn pair of an ordinary chargeback, or a
+    // redelivery: revoked once already, so do not revoke or page again.
+    logStep("Gift donation already reversed — not revoked or paged again", {
+      id: dispute.id,
+      mode,
+    });
+  } else {
+    // Both modes (Q210(a)): an inquiry the bank escalates never produces a
+    // money-moving charge.dispute.created, only funds_withdrawn.
     await revokeGiftCardForRefund(supabase, disputePiId, "chargeback", logStep);
   }
 

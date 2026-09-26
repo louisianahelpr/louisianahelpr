@@ -32,13 +32,13 @@
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      OR v_job.customer_id IS NULL\n |
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      OR (COALESCE(v_job.credential_tier, 0) <> 0 | OR (false
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      DELETE FROM public.saved_search_alert_queue WHERE id = r.id;\n      IF public.deliver |      IF public.deliver
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |        FOR UPDATE OF q SKIP LOCKED |        FOR UPDATE OF q
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      ORDER BY q.user_id, q.id |      ORDER BY q.id
+ * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |      DELETE FROM public.saved_search_alert_queue WHERE id = r.id;\n      IF public.deliver |      IF public.deliver
+ * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |        FOR UPDATE OF q SKIP LOCKED |        FOR UPDATE OF q
+ * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |      ORDER BY q.user_id, q.id |      ORDER BY q.id
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql | WHERE id = p_job_id FOR SHARE NOWAIT; | WHERE id = p_job_id FOR SHARE;
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |   SELECT now() - make_interval(mins => public.early_access_delay_minutes((SELECT auth.uid()))); |   SELECT now() - make_interval(mins => 20 - COALESCE((SELECT CASE WHEN p.subscription_tier = 'elite' THEN 20 WHEN p.subscription_tier = 'plus' THEN 15 WHEN p.subscription_tier = 'pro' THEN 10 WHEN p.subscription_tier = 'basic' THEN 5 ELSE 0 END FROM public.profiles p WHERE p.user_id = (SELECT auth.uid())), 0));
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |          FOR UPDATE\n    ) x; |     ) x;
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |       WHEN OTHERS THEN\n        -- One row |       WHEN division_by_zero THEN\n        -- One row
+ * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |       WHEN OTHERS THEN\n        -- One row |       WHEN division_by_zero THEN\n        -- One row
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql | REVOKE ALL ON TABLE public.saved_search_alert_queue FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.saved_search_alert_queue TO authenticated;
  */
 import { describe, it, expect } from "vitest";
@@ -130,8 +130,11 @@ describe("saved-search alerts wait for early access (V-008)", () => {
     const { file, body } = get("sweep_saved_search_alert_queue");
     const b = ws(body);
     expect(b, file).toContain("PERFORM set_config('lock_timeout', '5s', true);");
+    // Names its own queue: since Q225 the same sweep has a second loop over
+    // parish_match_alert_queue with the same clause, which would satisfy a
+    // bare match on its own (a mutation of this loop survived that way).
     expect(b, file).toContain(
-      "WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now() ORDER BY q.user_id, q.id LIMIT 1000 FOR UPDATE OF q SKIP LOCKED",
+      "FROM public.saved_search_alert_queue q JOIN public.jobs j ON j.id = q.job_id WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now() ORDER BY q.user_id, q.id LIMIT 1000 FOR UPDATE OF q SKIP LOCKED",
     );
     const del = b.indexOf("DELETE FROM public.saved_search_alert_queue WHERE id = r.id; IF public.deliver_saved_search_alert(");
     expect(del, `${file}: row not deleted before the send`).toBeGreaterThan(0);

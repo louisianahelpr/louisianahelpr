@@ -15,7 +15,9 @@ import { stripSqlComments } from "../../scripts/check-migration-raise-codes.mjs"
  * through the new column rather than through `job_updates`.
  *
  * Four producers write type 'job_match':
- *   1. notify_helpers_on_job_post        (trigger — parish fan-out)
+ *   1. deliver_parish_match_alert        (parish fan-out: notify_helpers_on_job_post
+ *                                         only queues since Q225; the same
+ *                                         every-minute sweep sends)
  *   2. deliver_saved_search_alert        (saved searches: called only by
  *                                         the every-minute
  *                                         saved-search-alert-queue sweep;
@@ -115,8 +117,8 @@ function liveFunctionBody(name: string): string {
 
 /** Producers discovered from the source tree, not asserted from memory. */
 const SQL_PRODUCERS = [
+  "deliver_parish_match_alert",
   "deliver_saved_search_alert",
-  "notify_helpers_on_job_post",
   "sweep_daily_job_digest",
 ];
 

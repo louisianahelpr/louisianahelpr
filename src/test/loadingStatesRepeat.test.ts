@@ -21,6 +21,8 @@
  * @mutate scripts/audit/measure-loading-states.mjs | if (DATA_RX.test(u) && !gateOpen) await new Promise((go) => held.push(go)); | if (DATA_RX.test(u)) await sleep(1200);
  * @mutate scripts/audit/measure-loading-states.mjs | if (placeholders > 0) return "capture"; | if (placeholders >= 0) return "capture";
  * @mutate scripts/audit/measure-loading-states.mjs | return booted ? "empty" : "wait"; | return "empty";
+ * @mutate scripts/audit/measure-loading-states.mjs | seedJobId = fixtureJobId = job.id; | seedJobId = job.id;
+ * @mutate scripts/audit/measure-loading-states.mjs | const job = await createPressJob(poster, process.env.GITHUB_RUN_ID ?? String(Date.now()), "", "loading-states-refresh"); | const [job] = await (await fetch("about:blank")).json();
  * @mutate scripts/audit/measure-loading-states.mjs | if (moving > 0 \|\| quietFor < settleMs) return "wait"; | if (moving > 0) return "wait";
  * @mutate scripts/audit/measure-loading-states.mjs | if (step === "capture") { | if (step === "capture" \|\| scr?.count) {
  * @mutate scripts/check-loading-state-shape.mjs | url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id") | url
@@ -111,5 +113,19 @@ describe("loading-state baseline keys name the same surface on every run", () =>
       return clusterKey({ persona: m[1], url: m[2] }, Number(m[3].slice(1))) !== k;
     });
     expect(unstable, "keys that cannot match a later run").toEqual([]);
+  });
+
+  it("/jobs/:id measures a job the run creates and removes, never 'the newest job on prod' (Q430)", () => {
+    // Run 36207939493: the newest job on prod made one page send 675 backend
+    // requests (past the 400/min ceiling alone) and changed every run, so
+    // neither the budget nor the two-way baseline could settle on /jobs/:id.
+    const src = blankComments(read(MEASURER));
+    expect(src, "the newest-job lookup must be gone").not.toMatch(/order=created_at\.desc&limit=1/);
+    const made = /seedJobId\s*=\s*fixtureJobId\s*=\s*job\.id/.exec(src);
+    expect(made, "the measured job is the one createPressJob returned").not.toBeNull();
+    expect(src.slice(0, made!.index)).toMatch(/const job = await createPressJob\(poster,/);
+    const fin = src.indexOf("} finally {");
+    expect(fin, "the fixture is removed in a finally").toBeGreaterThan(made!.index);
+    expect(src.slice(fin, fin + 400)).toMatch(/removeFixtureJob\(poster, fixtureJobId\)/);
   });
 });

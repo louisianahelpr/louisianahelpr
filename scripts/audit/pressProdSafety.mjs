@@ -180,7 +180,7 @@ export async function loadTestOwners(sessions) {
  * `parish: null` (no helper fan-out), `is_seed: true`, title carries the marker
  * so clean-up finds it whatever state a press left it in.
  */
-export async function createPressJob(poster, runId, suffix = "") {
+export async function createPressJob(poster, runId, suffix = "", source = "press-every-control") {
   // `select=id,parish` and not bare return=representation: representation
   // without a select is RETURNING *, and 20260915045110 removed
   // authenticated's table-level SELECT on jobs (offered_to_helper_id is the
@@ -191,8 +191,8 @@ export async function createPressJob(poster, runId, suffix = "") {
     headers: headers(poster, { Prefer: "return=representation" }),
     body: JSON.stringify({
       customer_id: poster.userId,
-      title: `${PRESS_MARKER} press-every-control ${runId}${suffix}`,
-      description: "Automated press-every-control fixture. Not a real job. Created by CI and removed by its clean-up; if you can read this in the app the harness has a bug.",
+      title: `${PRESS_MARKER} ${source} ${runId}${suffix}`,
+      description: `Automated ${source} fixture. Not a real job. Created by CI and removed by its clean-up; if you can read this in the app the harness has a bug.`,
       category: "cleaning",
       budget: 25,
       // A REAL street address, not a town (owner, 2026-09-19: "when i click
@@ -516,6 +516,25 @@ export async function cleanup({ sessions, since, profilesBefore }) {
     }
   }
   return { log, residue };
+}
+
+/**
+ * Remove ONE fixture job this run created (createPressJob), by the same
+ * dispositions as cleanup() uses, and nothing else: for a run whose only write
+ * is that job (measure-loading-states.mjs), cleanup()'s "everything this
+ * account made since the run began" is broader than what it made. Never
+ * throws; a job it cannot remove is residue, and its PRESS_MARKER title keeps
+ * it in reach of the marker-based sweepers.
+ */
+export async function removeFixtureJob(poster, jobId) {
+  try {
+    const [j] = await prodSelect(poster, `jobs?select=id,title,status,payment_status,stripe_session_id&id=eq.${jobId}&customer_id=eq.${poster.userId}`);
+    if (!j) return { ok: true, note: "already gone" };
+    if (!String(j.title ?? "").includes(PRESS_MARKER)) return { ok: false, note: "not a fixture job (no marker); refusing to remove it" };
+    return await unwindJob(poster, j);
+  } catch (e) {
+    return { ok: false, note: String(e.message).slice(0, 200) };
+  }
 }
 
 /** Same dispositions as scripts/e2e/prod-lifecycle-sweeper.mjs, as the poster. */

@@ -23,7 +23,8 @@
  * NO MOCK MODE (owner, said twice). Every response is a real prod response
  * from the shared test accounts; the only intervention is TIMING: data
  * requests wait at a gate until the loading frame has been measured, then go
- * to prod untouched. Holding a real request is not mocking it — the bytes that
+ * to prod untouched. The one WRITE is the /jobs/:id fixture job (see main),
+ * created and removed by the run. Holding a real request is not mocking it — the bytes that
  * arrive are the bytes prod sent.
  *
  * WHICH FRAME IS "THE LOADING FRAME". A page loads in stages: a route
@@ -58,7 +59,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
-import { mintAccounts, prodSelect } from "./pressProdSafety.mjs";
+import { createPressJob, mintAccounts, removeFixtureJob } from "./pressProdSafety.mjs";
 import { RequestMeter, ceilingFor, classify } from "../../e2e/requestMeter.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -600,119 +601,135 @@ async function main() {
   const { sessions, unavailable } = await mintAccounts(personas.filter((p) => p !== "anon"));
   for (const [p, why] of Object.entries(unavailable)) console.warn(`persona ${p} unavailable: ${why}`);
 
-  // Real ids, resolved from prod — never faked. The newest job is a different
-  // job on most runs, so check-loading-state-shape.mjs keys /jobs/<id> as
-  // /jobs/:id (stableUrl) rather than by the id.
+  // /jobs/:id MEASURES A JOB THIS RUN CREATES (owner, 2026-09-26, Q430). It
+  // used to be "the newest job on prod", a different job every run: run
+  // 36207939493's made the poster's page send 675 backend requests on its own,
+  // past the 400/min ceiling however it was paced, and its breaches changed
+  // with whatever another suite or a user had posted last, so the two-way
+  // baseline could not settle on /jobs/:id. The fixture is press-every-
+  // control's (createPressJob: open, unpaid, is_seed, parish null so no helper
+  // fan-out), the same every run, and removeFixtureJob deletes that one job in
+  // the finally below. It is this run's ONLY write to prod. The id still
+  // differs per run, so check-loading-state-shape.mjs keys it as /jobs/:id.
+  // Guarded by src/test/loadingStatesRepeat.test.ts.
   const poster = sessions.customer;
   const helper = sessions.helper;
   let seedJobId = "test";
+  let fixtureJobId = null;
   if (poster) {
-    const rows = await prodSelect(poster, "jobs?select=id&order=created_at.desc&limit=1").catch(() => []);
-    if (rows?.[0]?.id) seedJobId = rows[0].id;
+    const job = await createPressJob(poster, process.env.GITHUB_RUN_ID ?? String(Date.now()), "", "loading-states-refresh");
+    seedJobId = fixtureJobId = job.id;
   }
-  const routeSet = deriveRouteSet({
-    seedJobId,
-    helperId: helper?.userId ?? "test",
-    customerId: poster?.userId ?? "test",
-    adminViews: [],
-  }).filter((r) => !r.redirect);
+  try {
+    const routeSet = deriveRouteSet({
+      seedJobId,
+      helperId: helper?.userId ?? "test",
+      customerId: poster?.userId ?? "test",
+      adminViews: [],
+    }).filter((r) => !r.redirect);
 
-  const only = process.env.ROUTES ? process.env.ROUTES.split(",").map((s) => s.trim()) : null;
-  const targets = [];
-  for (const r of routeSet) {
-    if (only && !only.includes(r.url)) continue;
-    for (const p of personas) {
-      if (!r.personas.includes(p)) continue;
-      if (p !== "anon" && !sessions[p]) continue;
-      targets.push({ url: r.url, persona: p });
+    const only = process.env.ROUTES ? process.env.ROUTES.split(",").map((s) => s.trim()) : null;
+    const targets = [];
+    for (const r of routeSet) {
+      if (only && !only.includes(r.url)) continue;
+      for (const p of personas) {
+        if (!r.personas.includes(p)) continue;
+        if (p !== "anon" && !sessions[p]) continue;
+        targets.push({ url: r.url, persona: p });
+      }
+    }
+
+    // Two tabs at a time. One was ~70s per surface and 2.5h for the catalog,
+    // which is long enough that nobody reruns it — and a measurement nobody
+    // reruns stops being a measurement. Two is the ceiling: each tab holds the
+    // delayed responses of the other's route open, and more than two made the
+    // delays overlap enough to distort the very timings being measured.
+    const CONCURRENCY = Number(process.env.CONCURRENCY ?? 2);
+    const browser = await chromium.launch();
+    // Q104: count this run's backend requests; scripts/e2e/request-budget.mjs
+    // checks them against e2e/request-budgets.json. Flushed on exit too, so a
+    // run that dies midway still leaves its load on the record.
+    const requestMeter = new RequestMeter("loading-states");
+    requestMeter.attachBrowser(browser);
+    process.on("exit", () => requestMeter.flush());
+    // PACED under the label's ceilingPerMinute (e2e/request-budgets.json), by
+    // the same gate e2e/prodTest.ts puts in front of every Playwright spec: each
+    // surface's `page.goto` waits until the current wall-clock minute has room
+    // for the next burst (e2e/requestMeter.mjs pace). Run 36158775025 sent 3,007
+    // requests with 752 in its busiest minute, unpaced, and failed the budget
+    // step with every surface otherwise measured. The hold sits BEFORE the
+    // navigation, never between a navigation and what it measures, so a held
+    // surface measures exactly what an unheld one does.
+    //
+    // `workers: CONCURRENCY`: the two tabs share this ONE meter, and each passes
+    // the gate on the minute's shared count, so two can pass together and each
+    // then send a burst. Halving the per-gate ceiling is what keeps two
+    // simultaneous bursts inside the whole ceiling.
+    requestMeter.paceTo(ceilingFor("loading-states", resolve(REPO, "e2e", "request-budgets.json")), { workers: CONCURRENCY });
+    const results = [];
+    // ONE FRESH CONTEXT PER SURFACE, closed after it is measured. The app
+    // persists its React Query cache to IndexedDB (src/lib/queryPersister.ts),
+    // and IndexedDB lives for the whole browser context. With one context per
+    // persona, a surface measured after a sibling that had already fetched the
+    // same queries could rehydrate that data, so what it measured depended on
+    // which sibling the two workers happened to run first. A fresh context is a
+    // cold first visit every time, whatever the order. (Runs 36158775025 and
+    // 36186004139, 2026-09-25, same commit 3569359, disagreed on 21 of 139
+    // surface lines. The cause CONFIRMED by reproduction is the boot-frame race
+    // fixed in nextStage, which flipped surfaces in cold contexts too; this
+    // removes the order dependency on top of it.)
+    // Guarded by src/test/loadingStatesColdContext.test.ts.
+    const freshContext = async (persona) => {
+      const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+      await ctx.addInitScript(CLS_INIT);
+      const s = sessions[persona];
+      if (s) {
+        await ctx.addInitScript(([k, v]) => {
+          try {
+            localStorage.setItem(k, v);
+            localStorage.setItem("helpr_onboarding", JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }));
+          } catch { /* storage blocked — the run reports signed-out, never a fake pass */ }
+        }, [s.key, s.value]);
+      }
+      return ctx;
+    };
+
+    let cursor = 0;
+    const worker = async () => {
+      for (;;) {
+        const i = cursor++;
+        if (i >= targets.length) return;
+        const t = targets[i];
+        const ctx = await freshContext(t.persona);
+        // Backend requests this surface sent (its context is its own), so the
+        // log says which surface a busy minute came from: the budget step judges
+        // the busiest minute, and one heavy surface can fill it alone.
+        let sent = 0;
+        ctx.on("request", (q) => { if (classify(q.url())) sent++; });
+        const r = await measureOne(ctx, t).finally(() => ctx.close().catch(() => {}));
+        r.requests = sent;
+        results.push(r);
+        const tag = r.status === "measured"
+          ? `cl=${String(r.clustersMeasured ?? 0)}/${String(r.clusters?.length ?? 0)}  worstΔrow=${String(r.worstDeltaRowPx ?? "?").padStart(7)}px  ` +
+            `ΔrowH=${String(r.worstDeltaRowH ?? "-").padStart(5)}  Δrows=${String(r.worstDeltaRows ?? "-").padStart(4)}  shapeBad=${r.shapeMismatches}  ` +
+            `shift=${String(r.maxLandmarkShiftPx ?? "?").padStart(6)}px`
+          : `${r.status}  ${r.note ?? ""}${r.finalUrl && r.finalUrl !== t.url ? `  (at ${r.finalUrl})` : ""}`;
+        console.log(`${t.persona.padEnd(9)} ${t.url.padEnd(44)} ${tag}  req=${sent}`);
+      }
+    };
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    requestMeter.flush();
+    await browser.close();
+
+    mkdirSync(OUT, { recursive: true });
+    writeFileSync(resolve(OUT, "measurements.json"), JSON.stringify({ base: BASE, viewport: VIEWPORT, capture: "staged-gate", settleMs: SETTLE_MS, chunkDelay: CHUNK_DELAY, at: new Date().toISOString(), results }, null, 2));
+    console.log(`\n${results.length} surfaces · ${results.filter((r) => r.status === "measured").length} measured · ${OUT}/measurements.json`);
+  } finally {
+    if (fixtureJobId) {
+      const gone = await removeFixtureJob(poster, fixtureJobId);
+      console.log(`${gone.ok ? "removed" : "::warning title=fixture job residue::could not remove"} fixture job ${fixtureJobId}: ${gone.note}`);
     }
   }
-
-  // Two tabs at a time. One was ~70s per surface and 2.5h for the catalog,
-  // which is long enough that nobody reruns it — and a measurement nobody
-  // reruns stops being a measurement. Two is the ceiling: each tab holds the
-  // delayed responses of the other's route open, and more than two made the
-  // delays overlap enough to distort the very timings being measured.
-  const CONCURRENCY = Number(process.env.CONCURRENCY ?? 2);
-  const browser = await chromium.launch();
-  // Q104: count this run's backend requests; scripts/e2e/request-budget.mjs
-  // checks them against e2e/request-budgets.json. Flushed on exit too, so a
-  // run that dies midway still leaves its load on the record.
-  const requestMeter = new RequestMeter("loading-states");
-  requestMeter.attachBrowser(browser);
-  process.on("exit", () => requestMeter.flush());
-  // PACED under the label's ceilingPerMinute (e2e/request-budgets.json), by
-  // the same gate e2e/prodTest.ts puts in front of every Playwright spec: each
-  // surface's `page.goto` waits until the current wall-clock minute has room
-  // for the next burst (e2e/requestMeter.mjs pace). Run 36158775025 sent 3,007
-  // requests with 752 in its busiest minute, unpaced, and failed the budget
-  // step with every surface otherwise measured. The hold sits BEFORE the
-  // navigation, never between a navigation and what it measures, so a held
-  // surface measures exactly what an unheld one does.
-  //
-  // `workers: CONCURRENCY`: the two tabs share this ONE meter, and each passes
-  // the gate on the minute's shared count, so two can pass together and each
-  // then send a burst. Halving the per-gate ceiling is what keeps two
-  // simultaneous bursts inside the whole ceiling.
-  requestMeter.paceTo(ceilingFor("loading-states", resolve(REPO, "e2e", "request-budgets.json")), { workers: CONCURRENCY });
-  const results = [];
-  // ONE FRESH CONTEXT PER SURFACE, closed after it is measured. The app
-  // persists its React Query cache to IndexedDB (src/lib/queryPersister.ts),
-  // and IndexedDB lives for the whole browser context. With one context per
-  // persona, a surface measured after a sibling that had already fetched the
-  // same queries could rehydrate that data, so what it measured depended on
-  // which sibling the two workers happened to run first. A fresh context is a
-  // cold first visit every time, whatever the order. (Runs 36158775025 and
-  // 36186004139, 2026-09-25, same commit 3569359, disagreed on 21 of 139
-  // surface lines. The cause CONFIRMED by reproduction is the boot-frame race
-  // fixed in nextStage, which flipped surfaces in cold contexts too; this
-  // removes the order dependency on top of it.)
-  // Guarded by src/test/loadingStatesColdContext.test.ts.
-  const freshContext = async (persona) => {
-    const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
-    await ctx.addInitScript(CLS_INIT);
-    const s = sessions[persona];
-    if (s) {
-      await ctx.addInitScript(([k, v]) => {
-        try {
-          localStorage.setItem(k, v);
-          localStorage.setItem("helpr_onboarding", JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }));
-        } catch { /* storage blocked — the run reports signed-out, never a fake pass */ }
-      }, [s.key, s.value]);
-    }
-    return ctx;
-  };
-
-  let cursor = 0;
-  const worker = async () => {
-    for (;;) {
-      const i = cursor++;
-      if (i >= targets.length) return;
-      const t = targets[i];
-      const ctx = await freshContext(t.persona);
-      // Backend requests this surface sent (its context is its own), so the
-      // log says which surface a busy minute came from: the budget step judges
-      // the busiest minute, and one heavy surface can fill it alone.
-      let sent = 0;
-      ctx.on("request", (q) => { if (classify(q.url())) sent++; });
-      const r = await measureOne(ctx, t).finally(() => ctx.close().catch(() => {}));
-      r.requests = sent;
-      results.push(r);
-      const tag = r.status === "measured"
-        ? `cl=${String(r.clustersMeasured ?? 0)}/${String(r.clusters?.length ?? 0)}  worstΔrow=${String(r.worstDeltaRowPx ?? "?").padStart(7)}px  ` +
-          `ΔrowH=${String(r.worstDeltaRowH ?? "-").padStart(5)}  Δrows=${String(r.worstDeltaRows ?? "-").padStart(4)}  shapeBad=${r.shapeMismatches}  ` +
-          `shift=${String(r.maxLandmarkShiftPx ?? "?").padStart(6)}px`
-        : `${r.status}  ${r.note ?? ""}${r.finalUrl && r.finalUrl !== t.url ? `  (at ${r.finalUrl})` : ""}`;
-      console.log(`${t.persona.padEnd(9)} ${t.url.padEnd(44)} ${tag}  req=${sent}`);
-    }
-  };
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  requestMeter.flush();
-  await browser.close();
-
-  mkdirSync(OUT, { recursive: true });
-  writeFileSync(resolve(OUT, "measurements.json"), JSON.stringify({ base: BASE, viewport: VIEWPORT, capture: "staged-gate", settleMs: SETTLE_MS, chunkDelay: CHUNK_DELAY, at: new Date().toISOString(), results }, null, 2));
-  console.log(`\n${results.length} surfaces · ${results.filter((r) => r.status === "measured").length} measured · ${OUT}/measurements.json`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {

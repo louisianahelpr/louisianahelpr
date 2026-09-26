@@ -11,7 +11,9 @@ name: Loading states refresh
 # by the skeleton work could sit in the baseline indefinitely.
 #
 # This job measures the committed commit's build against prod with the shared
-# test accounts (READ-ONLY: the only intervention is holding data requests until the loading frame is measured), then
+# test accounts (the only intervention is holding data requests until the loading frame is measured; its one
+# write is the /jobs/:id fixture job it creates, is_seed with parish null, and removes: owner, 2026-09-26, Q430;
+# a run killed before that removal is swept by scripts/e2e/prod-audit-sweeper.mjs via the PRESS marker), then
 # runs scripts/check-loading-state-shape.mjs on the FRESH measurement, which
 # fails in both directions: a new breach, or a baseline entry that no longer
 # breaches. The fresh measurement and screenshots are uploaded; a red run opens

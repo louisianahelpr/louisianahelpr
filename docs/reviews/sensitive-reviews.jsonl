@@ -96,3 +96,6 @@
 {"sha":"2e0d126e735b1ccacc13e4a15df14d5438aac86c","reviewer":"lh-authz-rls","verdict":"PASS after fix: sender-can-clear-receiver-bell (low) fixed by receiver/server-only guard in the same commit; backfill uuid regex tightened","date":"2026-09-27"}
 {"sha":"fc80aea5ca6d72c3b9f4bf6b203c2e2323997a76","reviewer":"lh-money-escrow","verdict":"APPROVE WITH NOTES","date":"2026-09-27"}
 {"sha":"e1fe53bd9745d5b0e7e9d4c569f0b912853cf6d3","reviewer":"code-review","verdict":"diff read: one comment line reworded, no code or behaviour change","date":"2026-09-27"}
+{"sha":"c16cffb484b41a05fef85fd7dbdcc18fce935563","reviewer":"lh-authz-rls","verdict":"clean","date":"2026-09-27"}
+{"sha":"455ef9764339f44c19babce9b611a6673cee376a","reviewer":"lh-authz-rls","verdict":"clean","date":"2026-09-27"}
+{"sha":"cf781739de2a2236e4beae02b54eb7bddc04a863","reviewer":"lh-authz-rls","verdict":"defect: Jobs-tab split ignored is_group_job; fixed in the follow-up commit (helperShareCount + helpersNeededSplitIsGroupGated guard)","date":"2026-09-27"}

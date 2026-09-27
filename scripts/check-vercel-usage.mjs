@@ -14,10 +14,16 @@
  * src/test/checkVercelUsage.test.ts; this file is only env/IO plumbing.
  *
  * No VERCEL_TOKEN repo secret -> prints ONE skip line and exits 0 (green).
- * A 401/5xx or a network failure -> ::error and exit 1 (red), but the
- * `warn`/`summary` outputs are deliberately never written on that path, so
- * the workflow's Slack step (gated on `outputs.warn == 'true'`) cannot fire
- * — a broken token fails this step loudly without ever paging Slack.
+ * The Hobby "Plan not found" 404 (docs/OPEN.md Q720 — Hobby has no
+ * billing-cycle usage export, checked 2026-09-27, no alternative endpoint
+ * exists) -> ::warning and exits 0, with the report and summary saying
+ * UNMEASURED, never "ok"/"under quota" — a loud, non-failing gap, not a
+ * green pretending to have measured something.
+ * Any OTHER 401/404/5xx or a network failure -> ::error and exit 1 (red),
+ * but the `warn`/`summary` outputs are deliberately never written on that
+ * path, so the workflow's Slack step (gated on `outputs.warn == 'true'`)
+ * cannot fire — a broken token fails this step loudly without ever paging
+ * Slack.
  *
  * Outputs (GITHUB_OUTPUT): skip=true|false, warn=true|false, summary=<line>.
  * Writes vercel-usage-report.md always (except on the fail path, where
@@ -53,6 +59,16 @@ if (result.outcome === "skip") {
   console.log(result.message);
   writeFileSync("vercel-usage-report.md", `## Vercel ${PLAN} usage\n\nSKIPPED — ${result.message}\n`);
   writeOutputs({ skip: "true", warn: "false", summary: result.summary });
+  process.exit(0);
+}
+
+if (result.outcome === "unmeasured") {
+  console.log(`::warning::${result.message}`);
+  writeFileSync(
+    "vercel-usage-report.md",
+    `## Vercel ${PLAN} usage\n\nUNMEASURED — ${result.message}\n`,
+  );
+  writeOutputs({ skip: "false", warn: "false", summary: "UNMEASURED — " + result.message });
   process.exit(0);
 }
 

@@ -16,6 +16,7 @@
 // @mutate scripts/lib/vercelUsage.mjs | const warn = anyCritical(evals); | const warn = false;
 // @mutate scripts/lib/vercelUsage.mjs |   const scale = 30 / windowDays; |   const scale = 1;
 // @mutate scripts/lib/quotaMonitor.mjs | export const PLANS = { supabase: "Pro", vercel: "Hobby", | export const PLANS = { supabase: "Pro", vercel: "Pro",
+// @mutate scripts/lib/vercelUsage.mjs | if (isPlanNotFoundOnHobby(res.status, body)) { | if (false) {
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   METRICS,
@@ -237,6 +238,42 @@ describe("runVercelUsageCheck", () => {
     const result = await runVercelUsageCheck({ token: "tok", from: FROM, to: TO });
     if (result.outcome !== "ok") throw new Error(`expected 'ok', got ${result.outcome}`);
     expect(result.ignored.some((i) => i.serviceName === "Some Brand New Thing")).toBe(true);
+  });
+
+  /*
+   * docs/OPEN.md Q720 (2026-09-26/27, measured): GET /v1/billing/charges
+   * answers HTTP 404 {"error":{"code":"not_found","message":"Plan not
+   * found."}} for this Hobby team on every run (35425157146, 36222936567) —
+   * Hobby has no billing cycle, so it has no FOCUS billing export, and no
+   * alternative Vercel usage endpoint exists (checked against
+   * https://vercel.com/docs/rest-api). This exact 404 must never be graded
+   * as "fail" (pages nightly-red forever for a defect no fix can close) nor
+   * as "ok"/"skip" (the false green Q720 explicitly forbids) — it gets its
+   * own outcome, unmeasured: loud, non-failing, never claiming a quota.
+   */
+  it("the Hobby 'Plan not found' 404 is UNMEASURED — loud, non-failing, never 'ok'/'under quota' (Q720)", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "not_found", message: "Plan not found." } }), { status: 404 }),
+    );
+    const result = await runVercelUsageCheck({ token: "tok", from: FROM, to: TO });
+    if (result.outcome !== "unmeasured") throw new Error(`expected 'unmeasured', got ${result.outcome}`);
+    expect(result.warn).toBe(false);
+    expect(result.message).toMatch(/UNMEASURED/);
+    // The message may explain "not under quota", but must never say the
+    // check found things ok/under quota as if it had actually measured.
+    expect(result.message.toLowerCase()).not.toMatch(/\bok\b/);
+    expect(result.message.toLowerCase()).not.toMatch(/^(?!.*not ).*\bunder quota\b/);
+    expect(result.message).not.toMatch(/^ok\b/);
+  });
+
+  it("a DIFFERENT 404 (same status, different body) still fails loudly — only the exact Hobby shape is unmeasured", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "not_found", message: "Team not found." } }), { status: 404 }),
+    );
+    const result = await runVercelUsageCheck({ token: "tok", from: FROM, to: TO });
+    if (result.outcome !== "fail") throw new Error(`expected 'fail', got ${result.outcome}`);
+    expect(result.warn).toBe(false);
+    expect(result.error).toMatch(/HTTP 404/);
   });
 
   it("fails loudly on a 500 the same way", async () => {

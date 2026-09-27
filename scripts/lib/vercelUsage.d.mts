@@ -11,6 +11,7 @@ export const PLAN: string;
 export const CHARGES_URL: string;
 export const SKIP_MESSAGE: string;
 export const METRICS: VercelMetric[];
+export function isPlanNotFoundOnHobby(status: number, body: string): boolean;
 
 export interface FocusRow {
   ServiceName?: string;
@@ -67,6 +68,7 @@ export function buildReportMarkdown(args: {
 
 export type VercelUsageResult =
   | { outcome: "skip"; warn: false; summary: string; message: string }
+  | { outcome: "unmeasured"; warn: false; status: number; message: string }
   | { outcome: "fail"; warn: false; status?: number; error: string }
   | {
       outcome: "ok";

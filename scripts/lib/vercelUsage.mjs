@@ -54,6 +54,35 @@ export const SKIP_MESSAGE =
   "add it as the repo secret VERCEL_TOKEN; see docs/OPEN.md (\"Vercel usage alert\").";
 
 /**
+ * docs/OPEN.md Q720 (2026-09-26, measured): GET /v1/billing/charges answers
+ * HTTP 404 `{"code":"not_found","message":"Plan not found."}` for this Hobby
+ * team, on every run (35425157146, 36222936567) — Hobby has no billing cycle,
+ * so it has no FOCUS billing export. Checked 2026-09-27: the Vercel REST API
+ * reference (https://vercel.com/docs/rest-api) publishes no usage/metering
+ * endpoint at all — `billing/charges` and `billing/contract-commitments` are
+ * the only usage-shaped reads, both billing-cycle-only. There is no
+ * Hobby-readable replacement.
+ *
+ * THIS EXACT SHAPE (this code, this message) is not a fetch failure to
+ * escalate — it is Vercel confirming there is nothing to measure. Grading it
+ * as `fail` pages nightly-red forever for a defect no fix can close; grading
+ * it as `ok`/`skip` would be the false green Q720 explicitly forbids. So it
+ * gets its own outcome, `unmeasured`: loud (a ::warning, never silent),
+ * never "ok"/"under quota", and never fails the step. ANY OTHER non-2xx
+ * (wrong status, different body, a 404 with a different message — e.g. the
+ * team ID typo'd) still fails loudly like before.
+ */
+export function isPlanNotFoundOnHobby(status, body) {
+  if (status !== 404) return false;
+  try {
+    const parsed = JSON.parse(body);
+    return parsed?.error?.code === "not_found" && parsed?.error?.message === "Plan not found.";
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The five metrics docs/OPEN.md asks for, each with the regex that matches
  * its ServiceName in the FOCUS JSONL, its MONTHLY included amount on the
  * team's plan from PLAN_LIMITS (`null` when none is published — see
@@ -240,10 +269,11 @@ export function buildReportMarkdown({ evals, ignored, thresholdPercent, from, to
 }
 
 /**
- * The whole check: no token -> 'skip' (no fetch); non-2xx or a network
- * throw -> 'fail' with `warn` left false so the caller's Slack step (gated
- * on `warn === true`) can never fire on a broken fetch — "fail loudly, no
- * page spam" is the point, not a contradiction. Otherwise -> 'ok' with the
+ * The whole check: no token -> 'skip' (no fetch); the Hobby "Plan not found"
+ * 404 -> 'unmeasured' (see isPlanNotFoundOnHobby above); any OTHER non-2xx or
+ * a network throw -> 'fail' with `warn` left false so the caller's Slack step
+ * (gated on `warn === true`) can never fire on a broken fetch — "fail loudly,
+ * no page spam" is the point, not a contradiction. Otherwise -> 'ok' with the
  * evaluated metrics, the summary line, and the full report.
  */
 export async function runVercelUsageCheck({
@@ -268,6 +298,18 @@ export async function runVercelUsageCheck({
   }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
+    if (isPlanNotFoundOnHobby(res.status, body)) {
+      return {
+        outcome: "unmeasured",
+        warn: false,
+        status: res.status,
+        message:
+          `Vercel billing/charges returned HTTP 404 "Plan not found." for team ${teamId} — ` +
+          `Hobby teams have no billing-cycle usage export (docs/OPEN.md Q720; checked against ` +
+          "https://vercel.com/docs/rest-api 2026-09-27: no Hobby-readable usage endpoint exists). " +
+          "UNMEASURED, not under quota.",
+      };
+    }
     return {
       outcome: "fail",
       warn: false,

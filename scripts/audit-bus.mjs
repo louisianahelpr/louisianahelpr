@@ -145,7 +145,7 @@ if (cmd === "file") {
   all.sort((x, y) => rank(x) - rank(y));
   if (a.json) { console.log(JSON.stringify(all, null, 2)); }
   else if (!all.length) console.log("(no findings)");
-  else for (const f of all) console.log(`${f.launch_blocker ? "!" : " "} ${f.id.padEnd(8)} ${f.severity.padEnd(6)} ${f.status.padEnd(9)} ${f.surface.padEnd(28)} ${f.claim.slice(0, 70)}`);
+  else for (const f of all) console.log(`${f.launch_blocker ? "!" : " "} ${f.id.padEnd(8)} ${(f.severity ?? "").padEnd(6)} ${(f.status ?? "").padEnd(9)} ${(f.surface ?? "").padEnd(28)} ${(f.claim ?? "").slice(0, 70)}`);
 } else if (cmd === "show") {
   const f = fold().find((x) => x.id === a._[0]);
   if (!f) die(`no such finding: ${a._[0]}`);

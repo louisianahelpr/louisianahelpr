@@ -1454,3 +1454,7 @@ duplicate-number check).
   - `job_match_queue` rows marked 'dropped' leave `settled_at` null.
   - The seed-suppressed branch has no PGlite case.
   - OWNER: confirm that a 'dropped' row (e.g. blocked or seed) should also stop the other channel from sending.
+
+## Archived 2026-09-27 — from "AUDIT BUS — findings live in the ledger, not here"
+
+- [x] **Q767 A job nobody paid for never shows in Posts or Post a Job; Finish Paying removed.** Owner 2026-09-27: "Finish paying should not even be a thing" / "Unpaid jobs should not show in post anywhere. Even hidden." FIXED 2026-09-27: one list (src/lib/neverPaidStatuses.ts: unpaid, abandoned, failed) drives the Posts filter, the Repost query and both open-cap mirrors; the Finish Paying / Fund & Publish surfaces are gone; a cancelled checkout returns to the local draft (Load Draft); a declined card's notification links to /post-job; migration 20260927190707 stops enforce_open_job_limit counting failed jobs. Class check src/test/unpaidJobsNeverShowInPost.test.ts, red on the pre-change tree. Open: calendar-imported (is_auto_created) unpaid jobs had Fund & Publish as their only pay path (prod had 0 such rows, read-only SQL 2026-09-27); owner decided 2026-09-27: import as drafts (Q768). DONE 2026-09-27: done-when SQL measured true on prod (scripts/open-done-when.mjs READY); the calendar half is Q768. done-when: sql `SELECT pg_get_functiondef('public.enforce_open_job_limit'::regproc) LIKE '%''failed''%'` => true

@@ -211,16 +211,6 @@
       "key": "helper /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #1",
       "kind": "rows",
       "was": "2 placeholder row(s) → 4 real row(s)"
-    },
-    {
-      "key": "customer /messages #0",
-      "kind": "jump",
-      "was": "row 60px → 36px (-24px)"
-    },
-    {
-      "key": "helper /messages #0",
-      "kind": "jump",
-      "was": "row 60px → 36px (-24px)"
     }
   ],
   "byDesign": [

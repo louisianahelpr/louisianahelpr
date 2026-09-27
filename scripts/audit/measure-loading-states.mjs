@@ -221,10 +221,22 @@ const MEASURE = ([sel, probes]) => {
       scrollH: root.scrollHeight,
       elements: all.length,
       textLeaves: all.filter((e) => e.children.length === 0 && (e.textContent ?? "").trim().length > 0).length,
-      media: all.filter((e) =>
-        e.tagName === "IMG" ||
-        /avatar/i.test(String(e.className?.baseVal ?? e.className ?? "")) ||
-        (/rounded-full/.test(String(e.className)) && e.getBoundingClientRect().width >= 28)).length,
+      // One avatar is one medium. UserAvatar draws a round frame, a round
+      // initials layer and an <img> inside it, and a status pill is
+      // rounded-full too: counted per element, a real inbox row read "4
+      // media" against its skeleton's 1 bone (2026-09-27, /messages #0).
+      // So: a circle (not a pill) of at least 28px, an <img>, or an
+      // avatar-classed box, counted only when no ancestor already counted.
+      media: (() => {
+        const isMedia = (e) => {
+          if (e.tagName === "IMG" || /avatar/i.test(String(e.className?.baseVal ?? e.className ?? ""))) return true;
+          if (!/rounded-full/.test(String(e.className))) return false;
+          const b = e.getBoundingClientRect();
+          return b.width >= 28 && Math.abs(b.width - b.height) <= 4;
+        };
+        const hits = all.filter(isMedia);
+        return hits.filter((e) => !hits.some((o) => o !== e && o.contains(e))).length;
+      })(),
       controls: all.filter((e) => e.tagName === "BUTTON" || e.tagName === "A" || e.getAttribute("role") === "button").length,
       rows,
       rowH,

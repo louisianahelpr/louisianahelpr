@@ -62,8 +62,11 @@ says more.
 - Money / authz / data-model changes get a REVIEW-ONLY pass (lh-authz-rls,
   lh-silent-failure or lh-money-escrow) — say in your report what needs one.
   Record each review as a `Sensitive-Review: <reviewer>: <verdict>` trailer
-  (or `node scripts/check-sensitive-review.mjs record ...` after the fact);
-  sensitive-review.yml turns main red on an unrecorded one (Q9).
+  ON the commit itself. The after-the-fact `check-sensitive-review.mjs record`
+  can only run once land.sh has fixed the SHA, so the commit always gets one
+  red run first and files a nightly-red alert; use it only for a commit that
+  already landed without the trailer. sensitive-review.yml turns main red on
+  an unrecorded one (Q9).
 
 ## Landing
 - Commit in your worktree, then `bash scripts/land.sh`: it fetches, rebases

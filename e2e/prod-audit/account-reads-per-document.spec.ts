@@ -18,6 +18,7 @@
 // @mutate src/hooks/useDashboardData.ts |         readUserBlockRows(userId), |         supabase.from("user_blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
 import { test, expect, type Page, type Request } from "../prodTest";
 import { newUserContext, sessionFor } from "./harness";
+import { gateClientNav } from "../requestMeter.mjs";
 
 const CLASSES: Record<string, (r: Request) => boolean> = {
   "user_blocks": (r) => /\/rest\/v1\/user_blocks\b/.test(r.url()),
@@ -50,6 +51,7 @@ export const PER_DOCUMENT: Record<string, number | null> = {
 };
 
 async function clientNav(page: Page, path: string) {
+  await gateClientNav(page, path);
   await page.evaluate((to) => {
     window.history.pushState({}, "", to);
     window.dispatchEvent(new PopStateEvent("popstate"));

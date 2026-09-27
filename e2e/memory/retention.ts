@@ -9,6 +9,7 @@
  * node and listener counters (`Performance.getMetrics`). Chromium only.
  */
 import { expect, type CDPSession, type Page } from "@playwright/test";
+import { gateClientNav } from "../requestMeter.mjs";
 
 export type RetentionSample = {
   lap: number;
@@ -22,6 +23,7 @@ export type RetentionSample = {
 
 /** An in-app route change: the router's own popstate listener handles it, no reload. */
 export async function spaNavigate(page: Page, path: string): Promise<void> {
+  await gateClientNav(page, path);
   await page.evaluate((p) => {
     history.pushState({}, "", p);
     dispatchEvent(new PopStateEvent("popstate", { state: {} }));

@@ -24,12 +24,13 @@
  * @mutate e2e/requestMeter.mjs | const used = (this.minutes[m] \|\| 0) + (this.prior[m] \|\| 0); | const used = this.minutes[m] \|\| 0;
  * @mutate e2e/requestMeter.mjs |       page[name] = async (...args) => { |       page[`${name}Unpaced`] = async (...args) => {
  * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers }); | void ceilingFor;
+ * @mutate e2e/requestMeter.mjs |     page.__requestMeterGate = (path) => this.pace(pageKey(path)); |
  * @mutate e2e/prodTest.ts | if (running.timeout > 0) running.setTimeout(running.timeout + ms); | void running;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { RequestMeter, ceilingFor } from "../../e2e/requestMeter.mjs";
+import { RequestMeter, ceilingFor, gateClientNav } from "../../e2e/requestMeter.mjs";
 import { aggregate } from "../../scripts/e2e/request-budget.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -172,6 +173,35 @@ describe("the request meter paces a run under its ceiling", () => {
     }
     expect(meter.total).toBe(450);
     expect(peak(meter), "one burst per minute: the overshoot is the burst itself, nothing stacked on it").toBe(150);
+  });
+
+  it("an in-app walk gates each route through gateClientNav (route-retention 519 on /home, #1754)", async () => {
+    // One goto("/home"), then 37 routes x 4 laps by pushState, 13 requests
+    // each. Ungated, every request is one burst charged to "/home".
+    const walk = async (gated: boolean) => {
+      const clock = fakeClock(1_790_000_000_000);
+      const meter = new RequestMeter("prod-audit").paceTo(400, { prior: {}, now: clock.now, sleep: clock.sleep });
+      const page = meter.pacePage({ goto: async (_url: string) => undefined, reload: async () => undefined });
+      await page.goto("https://www.louisianahelpr.com/home");
+      for (let lap = 0; lap < 4; lap++) {
+        for (let r = 0; r < 37; r++) {
+          if (gated) await gateClientNav(page, `/route${r}?tab=x`);
+          for (let q = 0; q < 13; q++) {
+            meter.record(URL, "GET", clock.now());
+            clock.advance(60);
+          }
+        }
+      }
+      return meter;
+    };
+    const ungated = await walk(false);
+    expect(ungated.toJSON().topBursts?.["/home"], "the red: the whole walk is one burst").toBe(4 * 37 * 13);
+    const gated = await walk(true);
+    expect(gated.total).toBe(4 * 37 * 13);
+    expect(gated.toJSON().topBursts?.["/home"] ?? 0, "the walk is no longer charged to its first page").toBe(0);
+    expect(gated.toJSON().topBursts?.["/route0"], "each route carries its own burst").toBe(13);
+    expect(peak(gated)).toBeLessThanOrEqual(400);
+    expect(await gateClientNav({}, "/x"), "an unmetered page is a no-op").toBe(0);
   });
 
   it("workers share the ceiling", () => {

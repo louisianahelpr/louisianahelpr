@@ -62,3 +62,4 @@ export declare class RequestMeter {
   flush(): string;
 }
 export declare function pageKey(url: unknown): string;
+export declare function gateClientNav(page: unknown, path: string): Promise<number>;

@@ -126,6 +126,20 @@ export function priorMinutes(label, dir = REQUEST_BUDGET_DIR) {
   return out;
 }
 
+/**
+ * Gate an IN-APP navigation (history.pushState + popstate) the way goto is
+ * gated. Every route a client-side walk visits is a page load's worth of
+ * requests, and none of them passes page.goto: route-retention-signed-in
+ * walked 37 routes x 4 laps after ONE goto("/home") and sent 519 requests
+ * between two gates, all charged to "/home" (prod-audit 36298506930 read 467
+ * and 498/min against the 400 ceiling, #1754). No-op on an unmetered page.
+ * src/test/requestBudget.test.ts fails any e2e file that pushes history
+ * without calling this.
+ */
+export async function gateClientNav(page, path) {
+  return typeof page?.__requestMeterGate === "function" ? page.__requestMeterGate(path) : 0;
+}
+
 /** The gate key of a navigation: its path, without origin, query or hash. */
 export function pageKey(url) {
   if (typeof url !== "string") return "?";
@@ -216,6 +230,9 @@ export class RequestMeter {
   pacePage(page) {
     if (page.__requestMeterPaced) return page;
     page.__requestMeterPaced = true;
+    // In-app navigations (pushState + popstate) never pass goto/reload; they
+    // gate through gateClientNav, which reads this.
+    page.__requestMeterGate = (path) => this.pace(pageKey(path));
     for (const name of ["goto", "reload"]) {
       const original = page[name].bind(page);
       page[name] = async (...args) => {

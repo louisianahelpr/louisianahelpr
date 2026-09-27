@@ -7,6 +7,7 @@
  *   node src/test/pglite/autoRestrictWarnFirst.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs   # RED (old body)
  *   Q745=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs              # RED on case 7 (Q745)
+ *   Q820=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs              # RED on case 8 (Q820)
  *   node src/test/pglite/autoRestrictWarnFirst.pglite.mjs --tree               # newest definition in the tree
  *
  * pglite is loaded from ~/.lh-pglite (override with PGLITE_DIR). Applies the
@@ -22,6 +23,7 @@ const mig = (f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, imp
 const PREV = "20260903204406_auto_restrict_log_cron_defect.sql";
 const Q183 = "20260927043454_auto_restrict_warn_first.sql";
 const Q745 = "20260927222831_auto_restrict_no_profile_no_notice.sql";
+const Q820 = "20260927230819_auto_restrict_no_profile_no_final_warning.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -56,6 +58,9 @@ if (process.env.NEW_MIGRATION !== "skip") {
 }
 if (process.env.NEW_MIGRATION !== "skip" && process.env.Q745 !== "skip") {
   for (let i = 0; i < 3; i++) await db.exec(mig(Q745));
+}
+if (process.env.NEW_MIGRATION !== "skip" && process.env.Q745 !== "skip" && process.env.Q820 !== "skip") {
+  for (let i = 0; i < 3; i++) await db.exec(mig(Q820));
 }
 if (process.argv.includes("--tree")) {
   const t = newestTreeFunction("auto_restrict_repeat_violators");
@@ -140,11 +145,28 @@ check("no defect logged in any case", (await defects()) === 0);
 await reset();
 await db.exec(`DELETE FROM public.profiles;`);
 await trip("low_ratings", "1 day");
+await db.exec(`DELETE FROM public.defects;`); // the first trip's miss is case 8's (Q820)
 await trip("harassment");
 const suspendedNotices = (await db.query(`SELECT count(*)::int n FROM public.notifications
   WHERE title LIKE 'Account suspended%' OR title LIKE 'Auto-restricted%'`)).rows[0].n;
 check("no profile row: no suspension notice to the user or admins (Q745)", suspendedNotices === 0, `${suspendedNotices} sent`);
 check("  ... and the miss is logged", (await defects()) === 1, `${await defects()} defects`);
+
+// 8. Q820: no profile row on the FIRST trip. There is no strike state to
+// record, so "Final warning" must not send; the miss is logged instead.
+await reset();
+await db.exec(`DELETE FROM public.profiles;`);
+await trip("low_ratings");
+const finalWarnings = (await db.query(`SELECT count(*)::int n FROM public.notifications WHERE title = 'Final warning'`)).rows[0].n;
+check("no profile row: no Final warning notice (Q820)", finalWarnings === 0, `${finalWarnings} sent`);
+check("  ... and the miss is logged", (await defects()) === 1, `${await defects()} defects`);
+
+// 9. Q820 review: an admin Strike 1 leaves ban_status 'warned'
+// (admin-user-actions). A ladder trip must still warn that user.
+await reset();
+await db.exec(`UPDATE public.profiles SET ban_status='warned';`);
+await trip("low_ratings");
+check("'warned' profile + 1 own trip still gets the Final warning", (await own()).join("|") === "Final warning", (await own()).join("|"));
 
 const acl = (await db.query(`SELECT has_function_privilege('anon', 'public.auto_restrict_repeat_violators()', 'EXECUTE') a,
   has_function_privilege('authenticated', 'public.auto_restrict_repeat_violators()', 'EXECUTE') b`)).rows[0];

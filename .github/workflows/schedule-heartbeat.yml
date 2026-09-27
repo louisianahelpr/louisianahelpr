@@ -101,6 +101,7 @@ jobs:
           morning-page.yml:2
           nightly-red-age.yml:2
           nightly-webkit.yml:5
+          open-done-when.yml:5
           press-every-control.yml:4
           prod-audit.yml:5
           prod-deploy.yml:1

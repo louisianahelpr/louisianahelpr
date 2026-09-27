@@ -202,6 +202,73 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(close[0].args).toEqual({ _dispute_id: "disp-1", _helper_cents: 5867, _refund_cents: 3333, _refund_id: "re_crew_dispute" });
   });
 
+  const released = () =>
+    scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released");
+
+  // Money review M4: the decision is closed BEFORE the flip.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |           allRosterPaid = crewSettle.ready && await closeCrewDecision(job, crewSettle); |           allRosterPaid = crewSettle.ready;
+  it("a crew decision that cannot be closed keeps the job payout_pending (a released job would never retry the close)", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
+    seedCrewDecision(["m3"], ["m1", "m2", "m3"]);
+    scenario.rpc.mark_crew_dispute_executed = false;
+    (scenario.reads.payout_transfers as { selectOverrides: Array<{ includes: string; result: { rows: unknown[] } }> })
+      .selectOverrides[0].result.rows = [{ helper_id: "m1", amount_cents: 2934 }, { helper_id: "m2", amount_cents: 2933 }];
+    await run();
+    expect((scenario.rpcCalls ?? []).some((c) => c.name === "mark_crew_dispute_executed")).toBe(true);
+    expect(released()).toBe(false);
+  });
+
+  // Money review M4, the retry: an earlier run closed the decision and then
+  // failed the flip. The closed decision's outcomes still bind.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |              crewDecisionRows = closedRows as Array<{ id: string }>; |              crewDecisionRows = [];
+  it("a crew decision closed by an earlier run (whose flip failed) still refunds m3, never pays m3, and is not closed twice", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
+    seedCrewDecision(["m3"], ["m1", "m2", "m3"]);
+    scenario.reads.disputes = {
+      rows: [],
+      selectOverrides: [
+        { includes: "payout_split", result: { rows: [] } },
+        { includes: "executed_at", result: { rows: [{ id: "disp-1", executed_at: "2026-09-26T00:00:00Z" }] } },
+      ],
+    };
+    scenario.reads.crew_dispute_member_outcomes = {
+      rows: [{ helper_id: "m1", member_outcome: "pay" }, { helper_id: "m2", member_outcome: "pay" }, { helper_id: "m3", member_outcome: "refund" }],
+      selectOverrides: [{ includes: "dispute_id", result: { rows: [{ dispute_id: "disp-1" }] } }],
+    };
+    (scenario.reads.payout_transfers as { selectOverrides: Array<{ includes: string; result: { rows: unknown[] } }> })
+      .selectOverrides[0].result.rows = [{ helper_id: "m1", amount_cents: 2934 }, { helper_id: "m2", amount_cents: 2933 }];
+    await run();
+    // Three members, two transfers: m3 (refunded by the decision) is not paid.
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(2);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 3333 },
+      { idempotencyKey: "crew-dispute-refund-disp-1" },
+    );
+    expect((scenario.rpcCalls ?? []).some((c) => c.name === "mark_crew_dispute_executed")).toBe(false);
+    expect(released()).toBe(true);
+  });
+
+  // Money review M3: a refund the charge can no longer cover in full.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |        if (refundCents < unfilledCents) return shortRefund(refund.id, refundCents); |        if (false) return shortRefund(refund.id, refundCents);
+  it("a crew refund short of what the decision owes pages ops and leaves the decision OPEN (not closed as settled)", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
+    seedCrewDecision(["m3"], ["m1", "m2", "m3"]);
+    (scenario.reads.payout_transfers as { selectOverrides: Array<{ includes: string; result: { rows: unknown[] } }> })
+      .selectOverrides[0].result.rows = [{ helper_id: "m1", amount_cents: 2934 }, { helper_id: "m2", amount_cents: 2933 }];
+    // Only $80.00 was captured: 8000 - 5867 = 2133c left of the 3333c owed.
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount: 8000, amount_received: 8000,
+    });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_short", amount: 2133, currency: "usd" });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 2133 },
+      { idempotencyKey: "crew-dispute-refund-disp-1" },
+    );
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => /Crew refund short/.test(a.title ?? ""))).toBe(true);
+    expect((scenario.rpcCalls ?? []).some((c) => c.name === "mark_crew_dispute_executed")).toBe(false);
+  });
+
   it("a crew decision whose outcomes cannot be read pays NOBODY (fail closed: a refunded member must never be paid)", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
     seedCrewDecision(["m3"], []);

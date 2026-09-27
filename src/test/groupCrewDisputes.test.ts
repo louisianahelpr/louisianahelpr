@@ -36,7 +36,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   IF _is_group IS TRUE THEN\n    RAISE EXCEPTION 'group_dispute_needs_crew_decision' |   IF false THEN\n    RAISE EXCEPTION 'group_dispute_needs_crew_decision'
 // @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, g.share_cents, |   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, (round(_job.budget * 100) / _members)::integer,
 // @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | REVOKE ALL ON FUNCTION public.mark_crew_dispute_executed(uuid, integer, integer, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.mark_crew_dispute_executed(uuid, integer, integer, text) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |      AND COALESCE(current_setting('app.crew_fanout_settle', true), '') <> '1' THEN |      AND false THEN
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |      AND COALESCE(current_setting('app.crew_fanout_settle', true), '') <> '1'\n     AND NOT ( |      AND false\n     AND NOT (
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |     SELECT j.payment_status INTO v_pay FROM public.jobs j WHERE j.id = OLD.job_id; |     v_pay := 'chargeback';
 
 const root = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(root, "supabase/migrations");
@@ -108,7 +109,10 @@ describe("disputes on a crew (Q728)", () => {
     expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.mark_crew_dispute_executed\(uuid, integer, integer, text\) TO service_role;/);
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.rpc_decide_crew_dispute(uuid, text, uuid[]) FROM PUBLIC, anon;");
     expect(sql).toMatch(/CREATE TRIGGER trg_crew_fanout_dispute_lock\s+BEFORE UPDATE ON public\.disputes\s+FOR EACH ROW EXECUTE FUNCTION public\.enforce_crew_fanout_dispute_lock\(\)/);
-    expect(body("enforce_crew_fanout_dispute_lock")).toMatch(/NEW\.execution_status IS DISTINCT FROM OLD\.execution_status\s+AND COALESCE\(current_setting\('app\.crew_fanout_settle', true\), ''\) <> '1' THEN\s+RAISE/);
+    expect(body("enforce_crew_fanout_dispute_lock")).toMatch(/NEW\.execution_status IS DISTINCT FROM OLD\.execution_status\s+AND COALESCE\(current_setting\('app\.crew_fanout_settle', true\), ''\) <> '1'\s+AND NOT \(NEW\.execution_status = 'executed' AND v_pay IS NOT DISTINCT FROM 'chargeback'\) THEN\s+RAISE/);
+    // The one exemption (money review H1): a lost card chargeback closes a crew
+    // decision on a charged-back job, which the payout fan-out never selects.
+    expect(body("enforce_crew_fanout_dispute_lock")).toMatch(/SELECT j\.payment_status INTO v_pay FROM public\.jobs j WHERE j\.id = OLD\.job_id;/);
     // Every setter of the flag is the one writer.
     const setters = [...EFFECTIVE.entries()]
       .filter(([, d]) => /set_config\('app\.crew_fanout_settle', '1'/.test(blankSqlComments(d.stmt)))

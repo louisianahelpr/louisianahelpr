@@ -854,6 +854,9 @@ CREATE TABLE IF NOT EXISTS public.crew_dispute_member_outcomes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   dispute_id uuid NOT NULL REFERENCES public.disputes(id) ON DELETE CASCADE,
   job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
+  -- helper_id and decided_by carry no FK on purpose: an outcome is a money
+  -- record and outlives a deleted member or admin (deletion anonymises, it
+  -- does not erase what was decided), as disputes.decided_by does.
   helper_id uuid,
   slot_no integer NOT NULL,
   share_cents integer NOT NULL CHECK (share_cents >= 0),
@@ -895,7 +898,9 @@ DECLARE
   _job_id uuid;
   _job record;
   _existing_status text;
-  _refund uuid[] := COALESCE(_refund_helper_ids, '{}'::uuid[]);
+  -- Deduplicated: a member named twice is still one member (the poster's
+  -- notice counts them).
+  _refund uuid[] := COALESCE((SELECT array_agg(DISTINCT r) FROM unnest(_refund_helper_ids) AS r), '{}'::uuid[]);
   _members integer;
   _pay_cents bigint;
   _refund_cents bigint;
@@ -1045,23 +1050,25 @@ BEGIN
   IF _job.customer_id IS NOT NULL THEN
     INSERT INTO public.notifications (user_id, type, title, message, link, job_id)
     VALUES (
-      _job.customer_id, 'info', 'Dispute resolved',
+      _job.customer_id, 'info', 'Dispute decided',
       'A decision has been made on "' || COALESCE(_job.title, 'your job') || '": ' || _decision_text ||
         CASE WHEN _refund_cents > 0
              THEN ' The share of ' || cardinality(_refund)::text ||
                   CASE WHEN cardinality(_refund) = 1 THEN ' Helpr' ELSE ' Helprs' END ||
-                  ' is being returned to you.'
-             ELSE '' END,
+                  ' will be returned to you.'
+             ELSE '' END ||
+        ' The payment is still being processed; the job shows as settled once it has moved.',
       '/posts?job=' || _job_id::text, _job_id);
   END IF;
   FOR _m IN SELECT helper_id, member_outcome FROM public.crew_dispute_member_outcomes WHERE dispute_id = _dispute_id LOOP
     INSERT INTO public.notifications (user_id, type, title, message, link, job_id)
     VALUES (
-      _m.helper_id, 'info', 'Dispute resolved',
+      _m.helper_id, 'info', 'Dispute decided',
       'A decision has been made on "' || COALESCE(_job.title, 'a job you worked') || '": ' || _decision_text ||
         CASE WHEN _m.member_outcome = 'pay'
              THEN ' Your share will be paid out.'
-             ELSE ' Your share goes back to the person who posted the job.' END,
+             ELSE ' Your share goes back to the person who posted the job.' END ||
+        ' The payment is still being processed; the job shows as settled once it has moved.',
       '/jobs?job=' || _job_id::text, _job_id);
   END LOOP;
 
@@ -1115,6 +1122,11 @@ GRANT EXECUTE ON FUNCTION public.mark_crew_dispute_executed(uuid, integer, integ
 -- would then pay every member in full), nobody rewrites its split, and it is
 -- superseded only while its payout is still more than 15 minutes away (a
 -- fan-out run may otherwise be paying it at that moment).
+-- One close is allowed without the fan-out: settle_dispute_by_chargeback
+-- stamping 'executed' on a job whose payment_status is 'chargeback'. The bank
+-- has taken the whole charge back, and the fan-out selects payout_pending jobs
+-- only, so nothing will ever pay that decision (review H1: without this the
+-- lost-chargeback webhook raised on every crew dispute and retried forever).
 CREATE OR REPLACE FUNCTION public.enforce_crew_fanout_dispute_lock()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -1122,12 +1134,18 @@ SET search_path TO 'public'
 AS $function$
 DECLARE
   v_due timestamptz;
+  v_pay text;
 BEGIN
   IF OLD.execution_status IS DISTINCT FROM 'crew_fanout' THEN
     RETURN NEW;
   END IF;
   IF NEW.execution_status IS DISTINCT FROM OLD.execution_status
      AND COALESCE(current_setting('app.crew_fanout_settle', true), '') <> '1' THEN
+    SELECT j.payment_status INTO v_pay FROM public.jobs j WHERE j.id = OLD.job_id;
+  END IF;
+  IF NEW.execution_status IS DISTINCT FROM OLD.execution_status
+     AND COALESCE(current_setting('app.crew_fanout_settle', true), '') <> '1'
+     AND NOT (NEW.execution_status = 'executed' AND v_pay IS NOT DISTINCT FROM 'chargeback') THEN
     RAISE EXCEPTION 'crew_fanout_settled_by_payout_run: a crew decision is settled only by the payout fan-out (dispute_id=%)', OLD.id
       USING ERRCODE = '42501';
   END IF;
@@ -1137,10 +1155,10 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
   IF NEW.status IS DISTINCT FROM OLD.status THEN
-    -- FOR SHARE: the payout time is judged on a row nobody can move under
-    -- this decision (rpc_supersede_dispute_decision already holds it FOR
-    -- UPDATE; a direct admin write does not).
-    SELECT j.payout_scheduled_at INTO v_due FROM public.jobs j WHERE j.id = OLD.job_id FOR SHARE;
+    -- A plain read: rpc_supersede_dispute_decision already holds the job
+    -- FOR UPDATE, and taking a row lock here (after the disputes row) would
+    -- invert the jobs -> disputes lock order every dispute RPC keeps.
+    SELECT j.payout_scheduled_at INTO v_due FROM public.jobs j WHERE j.id = OLD.job_id;
   END IF;
   IF NEW.status IS DISTINCT FROM OLD.status
      AND (v_due IS NULL OR v_due <= now() + interval '15 minutes') THEN

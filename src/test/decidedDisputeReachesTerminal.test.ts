@@ -36,9 +36,10 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
  *
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await closeDecidedDisputeOnLostChargeback( | void (
  * @mutate supabase/migrations/20260926034237_chargeback_lost_closes_decided_dispute.sql | OR _disputed_cents < _charge_cents THEN | THEN
- * @mutate supabase/migrations/20260926034348_decided_dispute_says_payment_processing.sql | _customer_id,\n      'info',\n      'Dispute decided', | _customer_id,\n      'info',\n      'Dispute resolved',
+ * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | _customer_id,\n      'info',\n      'Dispute decided', | _customer_id,\n      'info',\n      'Dispute resolved',
+ * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | _job.customer_id, 'info', 'Dispute decided', | _job.customer_id, 'info', 'Dispute resolved',
  * @mutate src/components/job-card/jobStatusLine.ts | return disputeSettling(job) ? "dispute_settling" : "done_paid"; | return "done_paid";
- * @mutate supabase/migrations/20260926034348_decided_dispute_says_payment_processing.sql | IF _payment_status = 'chargeback' THEN | IF false THEN
+ * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | IF _payment_status = 'chargeback' THEN | IF false THEN
  */
 
 const REPO = resolve(__dirname, "../..");
@@ -149,12 +150,14 @@ describe("Q342 review M1: no decision is recorded that could never execute", () 
 
 describe("Q344: a decision is not announced as a settlement", () => {
   const SETTLED_WORDS = /'Dispute (resolved|settled)'/;
-  const decidesUnexecuted = (stmt: string) => /execution_status\s*=\s*COALESCE\([^)]*'pending'\)|execution_status\s*=\s*'pending'/.test(stmt);
+  const decidesUnexecuted = (stmt: string) => /execution_status\s*=\s*COALESCE\([^)]*'pending'\)|execution_status\s*=\s*'(pending|crew_fanout)'/.test(stmt);
 
   it("no function that records an unexecuted decision says 'Dispute resolved/settled'", () => {
     const defs = effectiveDefs(MIGRATIONS);
     const deciders = [...defs].filter(([, d]) => decidesUnexecuted(d.stmt)).map(([n]) => n);
     expect(deciders).toContain("rpc_decide_dispute");
+    // A crew decision (Q728) is unexecuted too until the payout fan-out runs.
+    expect(deciders).toContain("rpc_decide_crew_dispute");
     const lying = [...defs].filter(([n, d]) => deciders.includes(n) && SETTLED_WORDS.test(d.stmt)).map(([n]) => n);
     expect(lying).toEqual([]);
   });

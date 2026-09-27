@@ -68,7 +68,7 @@ const FNS = [
   "enforce_group_job_has_no_lead", "enforce_dispute_markers_server_owned", "enforce_job_status_transition",
   "set_dispute_deadline", "enforce_poster_jobs_money_lock", "enforce_dispute_opener_column_whitelist",
   "open_dispute_as", "rpc_open_dispute", "rpc_escalate_dispute", "rpc_decide_dispute", "rpc_withdraw_dispute",
-  "rpc_supersede_dispute_decision", "sweep_disputes_closed_without_payment",
+  "rpc_supersede_dispute_decision", "sweep_disputes_closed_without_payment", "settle_dispute_by_chargeback",
 ];
 const TRIGGERS = [
   "trg_group_job_has_no_lead", "trg_dispute_markers_server_owned", "trg_enforce_job_status_transition",
@@ -127,6 +127,7 @@ CREATE TABLE public.payout_transfers (id uuid PRIMARY KEY DEFAULT gen_random_uui
 CREATE TABLE public.payment_refunds (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, source text);
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text, target_id uuid, target_type text, details jsonb);
 CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, title text, message text, type text, link text, job_id uuid, read boolean DEFAULT false);
+CREATE TABLE public.gift_cards (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, status text, restored_from_job_id uuid);
 CREATE TABLE public.fraud_flags (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, job_id uuid, flag_type text, details text, resolved boolean DEFAULT false);
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
@@ -312,12 +313,13 @@ check(
     a9j.status === "completed" && a9j.payment_status === "payout_pending" && a9j.dispute_status === "resolved" && hold > 23.9 && hold < 24.1,
   a9.error ?? JSON.stringify({ out: out.map((o) => `${o.share_cents}:${o.outcome}`), r: a9.rows[0].r, d: a9d.execution_status, job: a9j, hold }),
 );
-const msgs = await all(`SELECT user_id, message FROM public.notifications WHERE title = 'Dispute resolved' ORDER BY user_id`);
+const msgs = await all(`SELECT user_id, message FROM public.notifications WHERE title = 'Dispute decided' ORDER BY user_id`);
 const msgFor = (u) => msgs.find((m) => m.user_id === u)?.message ?? "";
 check(
   "A10 each member is told their own outcome, the poster that a share is coming back",
   /Your share will be paid out/.test(msgFor(M1)) && /Your share will be paid out/.test(msgFor(M2)) &&
-    /Your share goes back to the person who posted the job/.test(msgFor(M3)) && /1 Helpr is being returned to you/.test(msgFor(POSTER)),
+    /Your share goes back to the person who posted the job/.test(msgFor(M3)) && /The share of 1 Helpr will be returned to you/.test(msgFor(POSTER)) &&
+    msgs.every((m) => /still being processed; the job shows as settled once it has moved\.$/.test(m.message)),
   JSON.stringify(msgs.map((m) => `${m.user_id.slice(-2)}:${m.message.slice(-40)}`)),
 );
 
@@ -347,6 +349,18 @@ check(
     svc2.ok && svc2.rows[0].ok === false,
   JSON.stringify({ svc: svc.error ?? svc.rows[0].ok, svcD, again: svc2.rows?.[0]?.ok }),
 );
+
+// A lost card chargeback on a decided crew: the fan-out never runs (it selects
+// payout_pending only), so the chargeback close is the one terminal writer
+// (money review H1). The lock admits 'executed' only on a charged-back job.
+await seed();
+await openAs(POSTER);
+await decideCrew(ADMIN, [M3]);
+await db.exec(`UPDATE public.jobs SET payment_status = 'chargeback' WHERE id = '${CREW}'`);
+const cb = await as("service_role", null, `SELECT public.settle_dispute_by_chargeback('${CREW}', 'dp_1', 10000, 10000) AS r`);
+const cbD = await one(`SELECT execution_status FROM public.disputes WHERE id = $1`, [await disputeId()]);
+check("A20 a lost chargeback closes a decided crew dispute (the lock admits 'executed' on a charged-back job only; A11 is the payout_pending refusal)",
+  cb.ok && cb.rows[0].r.outcome === "closed" && cbD.execution_status === "executed", cb.error ?? JSON.stringify({ r: cb.rows[0].r, cbD }));
 
 await seed({ shares: false });
 await openAs(POSTER);

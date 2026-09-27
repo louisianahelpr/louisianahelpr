@@ -192,7 +192,10 @@ serve(async (req) => {
     // its executor: it pays only the 'pay' members, refunds every other cent
     // of the budget and urgent fee in ONE refund, and then closes the dispute
     // through mark_crew_dispute_executed.
-    const crewDecisionByJob = new Map<string, { disputeId: string; refunded: Set<string> }>();
+    // `closed`: the decision was already stamped executed by an earlier run
+    // whose release flip then failed (the close runs BEFORE the flip, review
+    // M4). Its outcomes still bind this run: a refunded member is never paid.
+    const crewDecisionByJob = new Map<string, { disputeId: string; refunded: Set<string>; closed?: boolean }>();
     /** Group jobs settled (refund + flip + dispute close) this run: once each. */
     const crewSettled = new Set<string>();
     /** A PostgREST / Postgres "no such column" error (the columns are not deployed yet). */
@@ -337,8 +340,47 @@ serve(async (req) => {
           jobDefect(job.id, `crew decision ${job.id}: ${(crewDispute ?? []).length} live crew decisions`);
           continue;
         }
-        if ((crewDispute ?? []).length === 1) {
-          const disputeId = (crewDispute as Array<{ id: string }>)[0].id;
+        // No live decision: an earlier run may have CLOSED one (close before
+        // flip, review M4) and then failed the flip. Its member outcomes still
+        // bind; without them this run would pay a refunded member in full.
+        let closedCrewDecision = false;
+        let crewDecisionRows = (crewDispute ?? []) as Array<{ id: string }>;
+        if (!crewDisputeErr && crewDecisionRows.length === 0) {
+          const { data: closedRows, error: closedErr } = await supabaseAdmin
+            .from("disputes")
+            .select("id, executed_at")
+            .eq("job_id", job.id)
+            .eq("status", "decided")
+            .eq("execution_status", "executed")
+            .order("decided_at", { ascending: false })
+            .limit(1);
+          if (closedErr && !isMissingColumn(closedErr)) {
+            console.error(`[process-scheduled-payouts] closed crew decision read failed for group job ${job.id}:`, closedErr);
+            results.push({ job_id: job.id, status: "crew_decision_read_error", error: closedErr.message });
+            jobDefect(job.id, `closed crew decision read ${job.id}: ${closedErr.message}`);
+            continue;
+          }
+          if ((closedRows ?? []).length === 1) {
+            const { data: closedOutcomes, error: closedOutErr } = await supabaseAdmin
+              .from("crew_dispute_member_outcomes")
+              .select("dispute_id")
+              .eq("dispute_id", (closedRows as Array<{ id: string }>)[0].id)
+              .limit(1);
+            if (closedOutErr) {
+              results.push({ job_id: job.id, status: "crew_decision_read_error", error: closedOutErr.message });
+              jobDefect(job.id, `closed crew decision outcomes ${job.id}: ${closedOutErr.message}`);
+              continue;
+            }
+            // Only a CREW decision has member outcomes; any other executed
+            // dispute on the job is not this cron's to honour here.
+            if ((closedOutcomes ?? []).length > 0) {
+              crewDecisionRows = closedRows as Array<{ id: string }>;
+              closedCrewDecision = true;
+            }
+          }
+        }
+        if (crewDecisionRows.length === 1) {
+          const disputeId = crewDecisionRows[0].id;
           const { data: outcomes, error: outcomesErr } = await supabaseAdmin
             .from("crew_dispute_member_outcomes")
             .select("helper_id, member_outcome")
@@ -352,6 +394,7 @@ serve(async (req) => {
           }
           crewDecisionByJob.set(job.id, {
             disputeId,
+            closed: closedCrewDecision,
             refunded: new Set(
               (outcomes as Array<{ helper_id: string | null; member_outcome: string }>)
                 .filter((o) => o.member_outcome === "refund" && !!o.helper_id)
@@ -509,9 +552,31 @@ serve(async (req) => {
         jobDefect(job.id, `crew ${source} dedupe ${job.id}: ${priorErr.message}`);
         return { ok: false };
       }
+      /**
+       * The refund came up short of what the decision (or the unfilled slots)
+       * owes the poster: the charge no longer holds it (money review M3). The
+       * job still releases (the crew is paid), but the shortfall is a
+       * person's, and a crew decision is NOT closed as if it were settled.
+       */
+      const shortRefund = async (refundId: string | null, sentCents: number) => {
+        const shortCents = unfilledCents - sentCents;
+        jobDefect(job.id, `crew ${source} ${job.id}: refunded ${sentCents}c of ${unfilledCents}c owed`);
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          seed: seedJobIds.has(job.id),
+          severity: "warning",
+          title: "Crew refund short: the rest needs a manual refund",
+          message: `Group job ${job.id}: ${unfilledCents}c is owed back to the poster${decision ? ` under crew dispute ${decision.disputeId}` : " for unfilled slots"}, but only ${sentCents}c could be refunded from the charge. Return the other ${shortCents}c by hand${decision ? ", then close the dispute" : ""}.`,
+          fields: { job_id: job.id, unfilled_cents: unfilledCents, refunded_cents: sentCents, short_cents: shortCents },
+          oncePerDayKey: `crew-refund-short:${job.id}`,
+        });
+        return { ok: true, refundId, refundCents: sentCents, manual: true };
+      };
       if ((prior ?? []).length > 0) {
         const row = (prior as Array<{ stripe_refund_id: string | null; amount_cents: number | null }>)[0];
-        return { ok: true, refundId: row.stripe_refund_id, refundCents: Number(row.amount_cents ?? 0) };
+        const priorCents = Number(row.amount_cents ?? 0);
+        if (priorCents < unfilledCents) return shortRefund(row.stripe_refund_id, priorCents);
+        return { ok: true, refundId: row.stripe_refund_id, refundCents: priorCents };
       }
 
       if (a.isPifFunded || !a.paymentIntentId) {
@@ -535,8 +600,11 @@ serve(async (req) => {
         return { ok: true, manual: true };
       }
       // Never refund more than the charge still holds after the crew's transfers.
+      // The base is the budget and urgent fee only: the platform fee, sales tax
+      // and any gift on the charge are not refunded here (money review M2; an
+      // owner question beside CREW_FEE_PAYS_UNCONFIRMED, docs/OPEN.md Q729).
       const refundCents = Math.min(unfilledCents, Math.max(0, a.capturedCents - a.paidCents));
-      if (refundCents <= 0) return { ok: true, refundCents: 0 };
+      if (refundCents <= 0) return shortRefund(null, 0);
       try {
         const refund = await stripe.refunds.create(
           { payment_intent: a.paymentIntentId, amount: refundCents },
@@ -579,6 +647,7 @@ serve(async (req) => {
             link: `/posts?job=${job.id}`,
           });
         }
+        if (refundCents < unfilledCents) return shortRefund(refund.id, refundCents);
         return { ok: true, refundId: refund.id, refundCents };
       } catch (refundErr) {
         jobDefect(job.id, `crew ${source} ${job.id}: ${(refundErr as Error).message}`);
@@ -640,13 +709,20 @@ serve(async (req) => {
       return { ready: refund.ok, paidCents, refundId: refund.refundId, refundCents: refund.refundCents, manual: refund.manual };
     };
 
-    /** After the release flip: close a crew decision, once, through its one writer. */
+    /**
+     * BEFORE the release flip: close a crew decision, once, through its one
+     * writer. Returns false when the job must not be released: a released job
+     * leaves the payout_pending queue, and nothing would ever retry the close
+     * (money review M4). A decision closed by an earlier run whose flip failed
+     * is already closed; a manual one (a short or impossible refund) is left
+     * open for the person the page names, and the job releases.
+     */
     const closeCrewDecision = async (
       job: typeof jobs[number],
       settled: { paidCents: number; refundId?: string | null; refundCents?: number; manual?: boolean },
-    ) => {
+    ): Promise<boolean> => {
       const decision = crewDecisionByJob.get(job.id);
-      if (!decision || settled.manual) return;
+      if (!decision || decision.closed || settled.manual) return true;
       const { data: closed, error: closeErr } = await supabaseAdmin.rpc("mark_crew_dispute_executed", {
         _dispute_id: decision.disputeId,
         _helper_cents: settled.paidCents,
@@ -654,12 +730,16 @@ serve(async (req) => {
         _refund_id: settled.refundId ?? null,
       });
       if (closeErr || closed !== true) {
-        // The money is settled; only the record is not. The dispute stays
-        // 'crew_fanout' (unsettled in the admin queue) until a person closes it.
+        // The money is settled; only the record is not. The job is NOT
+        // released, so the next run retries the close (the transfers and the
+        // refund are deduped by the ledger and their Stripe keys).
         const why = closeErr?.message ?? "matched no crew_fanout dispute";
         console.error(`[process-scheduled-payouts] crew dispute ${decision.disputeId} on job ${job.id} settled but not closed: ${why}`);
         jobDefect(job.id, `crew dispute close ${job.id}: ${why}`);
+        return false;
       }
+      decision.closed = true;
+      return true;
     };
 
     for (const { job, helperId } of payoutTargets) {
@@ -945,11 +1025,10 @@ serve(async (req) => {
         // payout_pending with its poster's refund unsent.
         if (job.is_group_job && !crewSettled.has(job.id)) {
           const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, capturedCents });
-          if (settle.ready) {
+          if (settle.ready && await closeCrewDecision(job, settle)) {
             const healed = await flipJobToReleased(supabaseAdmin, job.id);
             if (healed.ok) {
               crewSettled.add(job.id);
-              await closeCrewDecision(job, settle);
               console.log(`[process-scheduled-payouts] every paid member of crew job ${job.id} was already paid; completed its settlement and release.`);
               results.push({ job_id: job.id, status: "already_transferred", transfer_id: blockingPayout.stripe_transfer_id, healed: true });
               continue;
@@ -1345,7 +1424,9 @@ serve(async (req) => {
           allRosterPaid = false;
         } else if (job.is_group_job) {
           crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, capturedCents });
-          allRosterPaid = crewSettle.ready;
+          // The decision is closed before the flip (review M4): a failed close
+          // keeps the job payout_pending for the next run to retry.
+          allRosterPaid = crewSettle.ready && await closeCrewDecision(job, crewSettle);
         }
 
         // The money is out. This write used to be a bare `.eq("id", job.id)`
@@ -1449,7 +1530,6 @@ serve(async (req) => {
 
         if (job.is_group_job && allRosterPaid && flip.ok && crewSettle) {
           crewSettled.add(job.id);
-          await closeCrewDecision(job, crewSettle);
         }
 
         // Note: the onboarding-fee flag was already flipped atomically

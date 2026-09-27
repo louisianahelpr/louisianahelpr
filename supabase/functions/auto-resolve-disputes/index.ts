@@ -67,9 +67,9 @@ function outcomeFromPaymentStatus(paymentStatus: unknown): "helper" | "poster" |
     case "released":
     case "payout_pending":
       return "helper";
-    // The money went back to the poster.
+    // The money went back to the poster. (jobs_payment_status_check admits no
+    // partial-refund value, so there is no such case; Q727.)
     case "refunded":
-    case "partially_refunded":
     case "chargeback":
       return "poster";
     default:

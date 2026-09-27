@@ -2,7 +2,7 @@ import { FileText } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import type { Profile } from "../adminUserHelpers";
-import { safeDocumentUrl } from "@/lib/storagePath";
+import { openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
 
 interface DocumentsTabProps {
   viewProfile: Profile;
@@ -43,7 +43,7 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
                 value is never an href. A refused one says so. */}
             {safeDocumentUrl(viewProfile.avatar_url) ? (
               <a
-                href={safeDocumentUrl(viewProfile.avatar_url) ?? undefined}
+                href={openableDocumentUrl(viewProfile.avatar_url) ?? undefined}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-ds-11 text-primary underline"
@@ -80,11 +80,11 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
                 );
               }
               return isImage ? (
-                <a key={i} href={safeDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md overflow-hidden border border-border hover:border-primary transition-colors block group">
+                <a key={i} href={openableDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md overflow-hidden border border-border hover:border-primary transition-colors block group">
                   <img loading="lazy" decoding="async" src={url} alt={`Portfolio item ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </a>
               ) : (
-                <a key={i} href={safeDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
+                <a key={i} href={openableDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
                   <FileText className="w-6 h-6 text-muted-foreground mb-1" />
                   <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
                 </a>

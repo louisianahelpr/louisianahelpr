@@ -1,5 +1,5 @@
 import { OptimizedImage } from "@/components/ui/optimized-image";
-import { safeDocumentUrl } from "@/lib/storagePath";
+import { openableDocumentUrl } from "@/lib/storagePath";
 
 interface JobCardPhotoStripProps {
   urls: string[];
@@ -35,7 +35,7 @@ export function JobCardPhotoStrip({
           key={i}
           // jobs.photos is writable by the job's poster (no shape CHECK) and
           // this strip renders on OTHER people's Applied cards: never raw.
-          href={safeDocumentUrl(url) ?? undefined}
+          href={openableDocumentUrl(url) ?? undefined}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-shrink-0"

@@ -78,7 +78,7 @@ import { JOB_CATEGORY_TAB_FRAME } from "@/components/job/cardGeometry";
  *   - THE CATEGORY TAB, which overlays the card's top-left corner and is why
  *     the title row runs `pt-6` rather than `py-2.5`.
  */
-export function CollapsedActivityCardSkeleton() {
+export function CollapsedActivityCardSkeleton({ metaLines = 2 }: { metaLines?: 1 | 2 } = {}) {
   return (
     <div className={JOB_CARD_SHELL_FRAME} aria-hidden>
       {/* Category rail — neutral olivewood while loading; the real card
@@ -128,21 +128,30 @@ export function CollapsedActivityCardSkeleton() {
         </div>
 
         <div className="mt-1.5 flex flex-col gap-y-1">
-          {/* LINE 1 — the street address, on a line of its own. 32px is the
-              press-to-map control's real box (`py-2 -my-2` on a 16px chip:
-              the hit area the app puts under every location). */}
-          <div className="flex items-center gap-1.5" style={{ height: "32px" }}>
+          {/* LINE 1 — the location. 32px is the press-to-map control's real
+              box (`py-2 -my-2` on a 16px chip: the hit area the app puts
+              under every location). On the two-line card it is the street
+              address alone; on the one-line card (Q700) the city and the
+              date share it. */}
+          <div className="flex items-center gap-1.5" style={{ height: "32px" }} data-skeleton-meta-line>
             <Skeleton
               className="h-3 w-3 rounded-full shrink-0"
               style={{ background: "hsl(var(--olivewood) / 0.14)" }}
             />
             <Skeleton
-              className="h-3 w-[70%] rounded"
+              className={metaLines === 1 ? "h-3 w-[30%] rounded" : "h-3 w-[70%] rounded"}
               style={{ background: "hsl(var(--olivewood) / 0.12)" }}
             />
+            {metaLines === 1 && (
+              <Skeleton
+                className="h-3 w-24 rounded ml-1.5"
+                style={{ background: "hsl(var(--olivewood) / 0.12)" }}
+              />
+            )}
           </div>
           {/* LINE 2 — the date, and the start time when the job has one. */}
-          <div className="flex items-center gap-x-3" style={{ height: "16px" }}>
+          {metaLines === 2 && (
+          <div className="flex items-center gap-x-3" style={{ height: "16px" }} data-skeleton-meta-line>
             <Skeleton
               className="h-3 w-3 rounded-full shrink-0"
               style={{ background: "hsl(var(--olivewood) / 0.14)" }}
@@ -156,6 +165,7 @@ export function CollapsedActivityCardSkeleton() {
               style={{ background: "hsl(var(--olivewood) / 0.10)" }}
             />
           </div>
+          )}
         </div>
       </div>
 
@@ -199,8 +209,27 @@ export function CollapsedActivityCardSkeleton() {
  * owner reported on 2026-09-21 — the same defect /jobs had, through a
  * different component.
  *
+ * Since Q700 (2026-09-27) the two tabs differ in ONE thing, the meta line
+ * count: /jobs reserves one line, /posts two (see the note below).
+ *
  * The file keeps its name (and its path, which
  * e2e/prod-audit/activity-loading-reserve.spec.ts names in an @mutate
  * directive); the drawing above is what is shared.
  */
-export const ApplicationCardSkeleton = CollapsedActivityCardSkeleton;
+export function ApplicationCardSkeleton() {
+  return <CollapsedActivityCardSkeleton metaLines={1} />;
+}
+
+/*
+ * Q700 (owner, 2026-09-27): "the /jobs collapsed-card skeleton reserves the
+ * one-line shape (~131px), /posts keeps two lines."
+ *
+ * A collapsed card is 131px when its meta prints a city (one line) and 151px
+ * when it prints a street address the reader may see (JobCardMetaRow gives an
+ * address `basis-full`, a line of its own). No static placeholder is within
+ * the 8px row budget of both. On /jobs a pending applicant sees a masked
+ * "City, ST" and done/cancelled cards print the city, so the one-line shape is
+ * what the helper's list mostly is (prod-audit 36211342059: the first 7 cards
+ * in view at 375 were all 131px). /posts (ActivityCardSkeleton) keeps the
+ * default two lines.
+ */

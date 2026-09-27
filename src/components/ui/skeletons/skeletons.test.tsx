@@ -18,6 +18,7 @@
 // measured pitch; the measured pitch is checked at 375 on the built app.
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
+import type { ReactElement } from "react";
 
 import { JobCardSkeleton, RecommendedJobCardSkeleton } from "./JobCardSkeleton";
 import { ApplicationCardSkeleton } from "./ApplicationCardSkeleton";
@@ -98,6 +99,22 @@ describe("card-matching skeletons", () => {
     expect(inner, "recommended skeleton must reuse JobCardSkeleton's frame").not.toBeNull();
   });
 
+  /*
+   * Q700 (owner, 2026-09-27): "the /jobs collapsed-card skeleton reserves the
+   * one-line shape (~131px), /posts keeps two lines." A collapsed card is 131px
+   * with a city (one meta line) or 151px with a street address (two); the two
+   * tabs' lists are mostly one shape each, so each placeholder reserves its
+   * tab's shape. jsdom computes no layout, so the LINE COUNT and the lines'
+   * declared heights are what is held here; the pixel row is measured at 375
+   * by e2e/prod-audit/activity-loading-reserve.spec.ts.
+   */
+  it("the /jobs placeholder reserves ONE meta line and the /posts placeholder TWO (Q700)", () => {
+    const lines = (el: ReactElement) =>
+      [...render(el).container.querySelectorAll<HTMLElement>("[data-skeleton-meta-line]")].map((l) => l.style.height);
+    expect(lines(<ApplicationCardSkeleton />)).toEqual(["32px"]);
+    expect(lines(<ActivityCardSkeleton />)).toEqual(["32px", "16px"]);
+  });
+
   it("every frame constant is a real class string, so the checks above can bite", () => {
     // Guard on the guard: if a constant were renamed to an empty export, the
     // equality above would compare "" to "" and pass for every skeleton.
@@ -114,3 +131,7 @@ describe("card-matching skeletons", () => {
 // Same contract on the inbox row, whose bones were once a raised glass CARD
 // at a 76px pitch standing in for a flat 64px strip.
 // @mutate src/components/ui/skeletons/MessageThreadSkeleton.tsx | <div className={CONVERSATION_ROW_FRAME} aria-hidden> | <div className="p-3 rounded-ds-md liquid-glass" aria-hidden>
+// Q700: /jobs one meta line, /posts two. Each mutation moves one tab off its shape.
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <CollapsedActivityCardSkeleton metaLines={1} />; | return <CollapsedActivityCardSkeleton metaLines={2} />;
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | export function CollapsedActivityCardSkeleton({ metaLines = 2 } | export function CollapsedActivityCardSkeleton({ metaLines = 1 }
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | {metaLines === 2 && ( | {true && (

@@ -227,6 +227,10 @@ sure someone hears it and closes it.
 
 ## MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)
 
+**Held 2026-09-27 (lead), ask once main is current:**
+- **Q317b Shrink the prod pools again?** MEASURED 2026-09-27: db_saturation_samples peaked 54/60 connections at 02:00Z on 09-26 and 09-27 (press window); cron.job_run_details shows 0 failed jobs in 48h; quota-monitor 36285625149 reads demand 67 vs 57 usable (PostgREST 14 + LISTEN 1 + pooler 11 + Auth 10 + other backends 20 under load + cron reserve 11). First fix: the press request-storm fix (#1582 lane), then re-measure. If still over: (a) cut PostgREST db_pool + pooler by 10 combined (free, may throttle real traffic) or (b) accept and widen the check's load allowance (not recommended).
+- **Supabase-usage storage orphan sweep needs repo secret SUPABASE_SERVICE_ROLE_KEY** (run 36222936567: "nothing was swept"). Credential step: `gh secret set SUPABASE_SERVICE_ROLE_KEY` from Supabase -> Settings -> API.
+
 1. **Sentry read token (Q11).** The existing SENTRY_AUTH_TOKEN is an upload
    token (403 on reading issues), so the alert ledger can't sync Sentry. You
    said "you can do it", but creating and copying an API token is a credential

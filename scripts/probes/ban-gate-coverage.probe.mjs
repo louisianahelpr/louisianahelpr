@@ -57,6 +57,7 @@ const SNAP = JSON.parse(read("./fixtures/ban-gate-inventory.live.json"));
 // rpc_settle_dispute_without_payment (20260923205812), its exemption reads as
 // stale, and this probe went red on a correct tree (2026-09-23).
 const SNAP_VERSION = SNAP.captured.replace(/\D/g, "").slice(0, 14);
+let lastBodies;
 function postSnapshotUngatedRpcs() {
   const dir = new URL("../../supabase/migrations/", import.meta.url);
   const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
@@ -72,10 +73,18 @@ function postSnapshotUngatedRpcs() {
       if (/\bauthenticated\b/i.test(m[2])) granted.add(m[1]);
     }
   }
+  lastBodies = lastBody;
   const volatile = (fn) => !/\b(STABLE|IMMUTABLE)\b/i.test((lastBody.get(fn) ?? "").replace(/\$(\w*)\$[\s\S]*?\$\1\$/, ""));
   return [...granted].filter((fn) => volatile(fn) && !/is_caller_banned\s*\(/.test(lastBody.get(fn) ?? "")).sort();
 }
-const RPCS = [...new Set([...SNAP.rpcs, ...postSnapshotUngatedRpcs()])];
+const POST_SNAPSHOT = postSnapshotUngatedRpcs();
+// A snapshot RPC whose NEWEST migration body now calls is_caller_banned()
+// leaves the universe, same rule as gatedInRepo() in
+// src/test/banGateCoverage.test.ts. Without it block_user_and_settle (gated by
+// 20260923232809, Q301) stayed an ungated stub here and the probe reported
+// 3 FAILED on a correct tree (docs/OPEN.md Q418).
+const gatedInRepo = (fn) => /is_caller_banned\s*\(/.test(lastBodies.get(fn) ?? "");
+const RPCS = [...new Set([...SNAP.rpcs.filter((fn) => !gatedInRepo(fn)), ...POST_SNAPSHOT])];
 
 const A = "0a0a0a0a-0000-4000-8000-00000000000a"; // banned (temp)
 const B = "0b0b0b0b-0000-4000-8000-00000000000b"; // active

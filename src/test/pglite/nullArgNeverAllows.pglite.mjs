@@ -91,7 +91,9 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
   cancelled_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
   has_active_dispute boolean NOT NULL DEFAULT false, dispute_resolved_at timestamptz, disputed_by uuid, disputed_at timestamptz,
   -- The CI fixture inserts start_time (jobs.start_time is NOT NULL on prod since Q-start-time).
-  is_seed boolean DEFAULT false, credential_tier integer NOT NULL DEFAULT 0, recurring_helper_id uuid, start_time time);
+  is_seed boolean DEFAULT false, credential_tier integer NOT NULL DEFAULT 0, recurring_helper_id uuid, start_time time,
+  -- job_announceable_to (20260927015010) reads p_job.parent_job_id (a vacated series visit).
+  parent_job_id uuid);
 -- job_announceable_to (Q392) reads the credential tier; its own gate is not under test here.
 CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 -- are_users_blocked (20260926034721) calls is_server_context(), a noarg; stubbed before it loads.
@@ -141,8 +143,9 @@ const sqlFile = readFileSync(`${ROOT}scripts/ci/null-arg-validators.sql`, "utf8"
 const classRows = [...sqlFile.matchAll(/^\s*\('([a-z_0-9]+)',\s*'(allow|absent|deny|classify|noarg|action)',/gm)].map((m) => ({ fn: m[1], kind: m[2] }));
 // 66 on 2026-09-26: main's file had 61 (this line still said 55, stale); Q392
 // adds job_announceable_to (allow) and deliver_job_match (action); the
-// recurring lane (Q407) adds three.
-check("the class list parses (66 entries)", classRows.length === 66, `${classRows.length}`);
+// recurring lane (Q407) adds three. 67 on 2026-09-27: 8d13bd427 added
+// series_give_up_strike (action) and this line stayed at 66 (Q418).
+check("the class list parses (67 entries)", classRows.length === 67, `${classRows.length}`);
 const real = new Set([...ALLOW, ...HELPERS, "is_server_context"]);
 for (const { fn, kind } of classRows) {
   if (real.has(fn)) continue;

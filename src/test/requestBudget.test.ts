@@ -90,7 +90,7 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
       for (const s of Object.values(METERED_SCRIPTS)) if (s.invoke.test(code)) labels.add(s.label);
       for (const label of labels) {
         const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)*(?: \\$\\{GREP:\\+--ceiling-only\\})?\\s*$`, "m").test(code) });
+        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)*(?: \\$\\{(?:GREP:\\+--ceiling-only|SCENARIO:\\+--ceiling-only --allow-empty)\\})?\\s*$`, "m").test(code) });
       }
     }
   }

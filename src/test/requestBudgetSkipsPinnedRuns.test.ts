@@ -13,8 +13,14 @@
  * scripts/e2e/request-budget.mjs must either skip a pinned run
  * (`inputs.grep == ''` in its `if`) or judge it by the load ceiling only
  * (`GREP: ${{ inputs.grep }}` plus `${GREP:+--ceiling-only}`, PR #1815).
+ *
+ * Q702 (2026-09-27): e2e-journeys pins with a `scenario` input instead, read
+ * through the job-level `SCENARIO: ${{ inputs.scenario }}`; a pinned run
+ * failed "no sample for this label". Both pinning inputs are inventoried, and
+ * the env var may sit on the step or on its job.
  */
 // @mutate .github/workflows/prod-audit.yml | ${GREP:+--ceiling-only} | 
+// @mutate .github/workflows/e2e-journeys.yml | --label journeys ${SCENARIO:+--ceiling-only --allow-empty} | --label journeys
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -25,18 +31,25 @@ const DIR = join(process.cwd(), ".github", "workflows");
 type Step = { run?: string; if?: string; env?: Record<string, string> };
 type Doc = {
   on?: { workflow_dispatch?: { inputs?: Record<string, unknown> } };
-  jobs?: Record<string, { steps?: Step[] }>;
+  jobs?: Record<string, { env?: Record<string, string>; steps?: Step[] }>;
 };
 
-function pinnableBudgetSteps(): { where: string; step: Step }[] {
-  const out: { where: string; step: Step }[] = [];
+/** Dispatch inputs that narrow a run to a subset of its tests. */
+const PIN_INPUTS = ["grep", "scenario"] as const;
+
+type Pinned = { where: string; input: string; step: Step; env: Record<string, string> };
+
+function pinnableBudgetSteps(): Pinned[] {
+  const out: Pinned[] = [];
   for (const file of readdirSync(DIR).filter((f) => /\.ya?ml$/.test(f)).sort()) {
     const doc = parse(readFileSync(join(DIR, file), "utf8")) as Doc | null;
-    if (!doc?.on?.workflow_dispatch?.inputs?.grep) continue;
-    for (const [name, job] of Object.entries(doc.jobs ?? {})) {
-      for (const step of job?.steps ?? []) {
-        if (typeof step.run === "string" && step.run.includes("scripts/e2e/request-budget.mjs")) {
-          out.push({ where: `${file}#${name}`, step });
+    const inputs = doc?.on?.workflow_dispatch?.inputs ?? {};
+    for (const input of PIN_INPUTS.filter((i) => inputs[i])) {
+      for (const [name, job] of Object.entries(doc?.jobs ?? {})) {
+        for (const step of job?.steps ?? []) {
+          if (typeof step.run === "string" && step.run.includes("scripts/e2e/request-budget.mjs")) {
+            out.push({ where: `${file}#${name}`, input, step, env: { ...(job.env ?? {}), ...(step.env ?? {}) } });
+          }
         }
       }
     }
@@ -48,18 +61,22 @@ describe("request budget never judges a grep-pinned run per test", () => {
   const steps = pinnableBudgetSteps();
 
   it("finds the pinnable budgeted workflows", () => {
-    // 2 on 2026-09-26 (prod-audit, e2e-abuse-notifications); none found means
-    // the inventory broke and every assertion below passes vacuously.
-    expect(steps.length).toBeGreaterThanOrEqual(2);
+    // 2026-09-27: prod-audit, e2e-abuse-notifications (grep) and both
+    // e2e-journeys jobs (scenario). None found means the inventory broke and
+    // every assertion below passes vacuously.
+    expect(steps.length).toBeGreaterThanOrEqual(4);
+    expect(steps.some((s) => s.input === "scenario")).toBe(true);
   });
 
   it("every such budget step skips a pinned run or judges only the ceiling", () => {
-    const skips = (s: Step) => /inputs\.grep\s*==\s*''/.test(String(s.if ?? ""));
-    const ceilingOnly = (s: Step) =>
-      /inputs\.grep/.test(String(s.env?.GREP ?? "")) && s.run!.includes("${GREP:+--ceiling-only}");
-    const ungated = steps
-      .filter(({ step }) => !skips(step) && !ceilingOnly(step))
-      .map(({ where }) => where);
+    const skips = ({ step, input }: Pinned) =>
+      new RegExp(`inputs\\.${input}\\s*==\\s*''`).test(String(step.if ?? ""));
+    const ceilingOnly = ({ step, input, env }: Pinned) =>
+      Object.entries(env).some(
+        ([k, v]) =>
+          new RegExp(`inputs\\.${input}\\b`).test(String(v)) && step.run!.includes(`\${${k}:+--ceiling-only`),
+      );
+    const ungated = steps.filter((p) => !skips(p) && !ceilingOnly(p)).map(({ where, input }) => `${where} (${input})`);
     expect(ungated).toEqual([]);
   });
 });

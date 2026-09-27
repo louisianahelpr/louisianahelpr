@@ -181,8 +181,11 @@ jobs:
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        # A `scenario` dispatch runs one journey (SCENARIO, job env): its
+        # per-test number is not the suite's and the pinned journey may meter
+        # nothing, so only the load ceiling is judged (Q702).
         if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label journeys
+        run: node scripts/e2e/request-budget.mjs --label journeys ${SCENARIO:+--ceiling-only --allow-empty}
       - name: Keep milestones, failure screenshots and traces
         if: always()
         uses: actions/upload-artifact@v7
@@ -290,8 +293,11 @@ jobs:
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        # A `scenario` dispatch runs one journey (SCENARIO, job env): its
+        # per-test number is not the suite's and the pinned journey may meter
+        # nothing, so only the load ceiling is judged (Q702).
         if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label journeys-webkit
+        run: node scripts/e2e/request-budget.mjs --label journeys-webkit ${SCENARIO:+--ceiling-only --allow-empty}
       - name: Keep milestones, failure screenshots and traces
         if: always()
         uses: actions/upload-artifact@v7

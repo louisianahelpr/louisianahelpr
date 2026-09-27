@@ -6,7 +6,6 @@
     "src/components/admin/AdminAnalytics.tsx": 639,
     "src/components/admin/AdminCredentialQueue.tsx": 601,
     "src/components/admin/AdminDisputes.tsx": 809,
-    "src/components/admin/AdminJobs.tsx": 676,
     "src/components/admin/AdminReports.tsx": 724,
     "src/components/admin/AdminSettings.tsx": 767,
     "src/components/BrowseMap.tsx": 1241,

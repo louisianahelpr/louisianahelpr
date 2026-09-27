@@ -431,7 +431,7 @@ describe("Q157/Q159/Q160: the seed boundary is honest and observable", () => {
     expect(mig).toContain("REVOKE ALL ON FUNCTION public.admin_notification_crosses_seed_boundary(uuid, uuid, text) FROM PUBLIC, anon;");
     expect(mig).toContain("GRANT EXECUTE ON FUNCTION public.admin_notification_crosses_seed_boundary(uuid, uuid, text) TO authenticated, service_role;");
     // The client asks it BEFORE the insert and treats TRUE as a skip.
-    const admin = codeOf.get(join(ROOT, "src", "components", "admin", "AdminJobs.tsx"))!;
+    const admin = codeOf.get(join(ROOT, "src", "components", "admin", "adminJobs", "notifyJobParty.ts"))!;
     const ask = admin.indexOf('"admin_notification_crosses_seed_boundary"');
     expect(ask).toBeGreaterThan(0);
     expect(ask).toBeLessThan(admin.indexOf('.from("notifications").insert(row)'));

@@ -362,7 +362,7 @@ const CLIENT_EXEMPT: Readonly<Record<string, string>> = {
     "The admin's OWN notification preference toggle; a self-service setting, not an action on anyone.",
   "src/components/admin/AdminNotifications.tsx#setMaster#table:notification_preferences":
     "The admin's OWN master notification switch; a self-service setting, not an action on anyone.",
-  "src/components/admin/AdminJobs.tsx#notifyJobParty#table:notifications":
+  "src/components/admin/adminJobs/notifyJobParty.ts#notifyJobParty#table:notifications":
     "Shared notifier: tells a party about an admin action; each caller (handleDelete, handleStatusOverride) writes that action's audit row itself.",
   "src/components/admin/adminHealth/useConfigChecks.ts#fetcher#invoke:health-check":
     "Read-only health probe (health-check changes nothing).",

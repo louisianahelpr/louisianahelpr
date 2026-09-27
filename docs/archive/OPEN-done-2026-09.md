@@ -1870,3 +1870,7 @@ duplicate-number check).
   queries a page waits on). Deliver a ranked list: what it costs now, what
   the change is, the expected gain. Each speed fix ships with a budget check
   (e.g. bundle-size budgets, a Lighthouse/LCP budget in CI) so it can't regress.
+
+## Archived 2026-09-27 — from "QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above"
+
+- [x] **Q405** (LOW, display, noticed in Q403 2026-09-25): src/pages/jobs/AppliedJobCard.tsx renders `until ${formatShortDate(job.recurrence_end_date)}`; formatShortDate parses a bare YYYY-MM-DD as UTC midnight, so in America/Chicago it prints the day BEFORE (measured: TZ=America/Chicago, new Date("2026-10-07") -> "Oct 6"). The same class may sit on other date-only columns passed to formatShortDate; a class guard should refuse a bare date column there (formatJobDate parses local). **DONE 2026-09-27 (lane 2):** fixed at the source for the whole class: src/lib/format.ts formatShortDate and formatTimestamp now parse a bare YYYY-MM-DD as the LOCAL calendar day (timestamps unchanged), so every date-only column passed to either prints the right day. GUARD: src/lib/formatDateOnly.tz.test.ts (tz-sweep project; Chicago, LA, UTC, Tokyo), vacuity 2/2 mutations killed (restoring `new Date(date)` turns it red).

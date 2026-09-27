@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 299 done, 95 partly done (fixed, protection pending), 132 open. Source of truth for work.
+- **Queue (this file):** 300 done, 95 partly done (fixed, protection pending), 131 open. Source of truth for work.
 - **Audit bus:** 18 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 18 open (1 critical, 17 error), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-27T04:06Z)_
@@ -56,7 +56,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 526 items — 299 done, 95 partly done (fixed, protection pending), 132 open.**
+**Queue: 526 items — 300 done, 95 partly done (fixed, protection pending), 131 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2002,4 +2002,3 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 
 - [ ] **Q749 Q210(b) on-session $300+ visit payments: unmeasured parts (built dd681c911, 2026-09-27).** Live-verified by lead: recurring_visit_payments exists on prod, RLS on, authenticated=r only, policy payer_id = (select auth.uid()), migration 20260927044821 recorded, export_my_data names it. NOT measured yet: (1) a real Stripe test-mode Checkout end to end (4242) through create-payment action recurring_visit -> webhook settle -> visit booked; (2) a screenshot of the "Pay $X" card (RecurringVisitPayments.tsx, PostedJobsTab) at 375 and 1440, light and dark, recorded with review:record; its "today" uses UTC; (3) export_my_data actually run for a payer with a row. Done when all three are measured and recorded here.
 - [ ] **Q750 Q210(b) deferred money edges (lh-money-escrow review, 2026-09-27).** (1) A paid visit that later falls into a skip branch stays held until the visit-date sweep refunds it; (2) refunding a future-dated visit re-parks it; (3) Stripe's answer to a retried refund after "already refunded" is unverified; (4) end_recurring_series / parent job cancel do not expire the open Checkout (a late payment is refunded by webhook or sweep); (5) a Stripe session created but not stored is orphaned. Done when each is fixed or recorded as accepted, with a test.
-- [x] **Q751** NOT A DEFECT (lead, 2026-09-27): at origin/main 3257845a7 the pipes are escaped (`\|\|`) and each of the file's 3 @mutate lines, applied by hand, turns the test red (1 failed | 4 passed each; unmutated 5 passed). Was: **src/test/trackerPrefetchCoversEveryMount.test.ts:21-22 has unescaped pipes in its @mutate lines** (reported by the Q210b agent, 2026-09-27; vacuity reports 2 failures from it). Escape them, then show `npm run vacuity:report` no longer lists them.

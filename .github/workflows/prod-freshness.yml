@@ -314,7 +314,15 @@ jobs:
   notify:
     name: Report freshness
     needs: [vercel-config, served-commit]
-    if: always() && github.event_name != 'pull_request'
+    # Report only when the leg being reported on actually ran. On a push
+    # `served-commit` is skipped, and the status below used to count that
+    # skip as success, so every push to main closed the issue a red
+    # scheduled served-commit run had just opened (stale prod reported, then
+    # erased, the #1636 pattern). A push still files when vercel-config
+    # itself fails, since that leg did run.
+    if: >-
+      always() && github.event_name != 'pull_request'
+      && (needs.served-commit.result != 'skipped' || needs.vercel-config.result != 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -325,6 +333,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: prod-freshness
-          status: ${{ (needs.vercel-config.result == 'success' && (needs.served-commit.result == 'success' || (github.event_name == 'push' && needs.served-commit.result == 'skipped'))) && 'success' || 'failure' }}
+          status: ${{ (needs.vercel-config.result == 'success' && needs.served-commit.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

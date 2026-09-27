@@ -66,7 +66,14 @@ describe("nightly-issue-sync reports are fail-closed", () => {
         /* The tell is `contains(needs.…)` deciding the verdict, or any
            `|| 'success'` tail — both mean the green branch is what happens when
            nothing matched, rather than something a named job earned. */
-        if (/contains\(\s*needs\./.test(trimmed) || /\|\|\s*'success'/.test(trimmed)) {
+        /* Also any `result == 'skipped'` inside the verdict: it counts a leg
+           that did not run as green. prod-freshness did this until 2026-09-27
+           (a push skipped served-commit and closed the stale-prod issue). */
+        if (
+          /contains\(\s*needs\./.test(trimmed) ||
+          /\|\|\s*'success'/.test(trimmed) ||
+          /result\s*==\s*'skipped'/.test(trimmed)
+        ) {
           offenders.push(`${name}: ${trimmed}`);
         }
       }
@@ -100,3 +107,6 @@ describe("nightly-issue-sync reports are fail-closed", () => {
 
 // The exact expression the money loop reported green with for fifteen days.
 // @mutate .github/workflows/e2e-real-backend.yml | status: ${{ (needs.anon-surface.result == 'success' && needs.authenticated.result == 'success' && needs.prod-lifecycle.result == 'success' && needs.gift-card-journey.result == 'success') && 'success' \|\| 'failure' }} | status: ${{ contains(needs.*.result, 'failure') && 'failure' \|\| 'success' }}
+
+// The expression that let a push close the stale-prod issue (2026-09-27).
+// @mutate .github/workflows/prod-freshness.yml | status: ${{ (needs.vercel-config.result == 'success' && needs.served-commit.result == 'success') && 'success' \|\| 'failure' }} | status: ${{ (needs.vercel-config.result == 'success' && (needs.served-commit.result == 'success' \|\| (github.event_name == 'push' && needs.served-commit.result == 'skipped'))) && 'success' \|\| 'failure' }}

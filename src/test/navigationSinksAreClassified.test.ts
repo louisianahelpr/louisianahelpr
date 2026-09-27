@@ -145,6 +145,7 @@ const CLASSIFIED: Record<string, string> = {
   "components/profile/SubscriptionTab.tsx::data.url": STRIPE_EDGE_URL,
   "hooks/useFundExistingJob.ts::url": STRIPE_EDGE_URL,
   "pages/profile/GiftCard.tsx::data.url": STRIPE_EDGE_URL,
+  "pages/posts/postedJobs/RecurringVisitPayments.tsx::url": STRIPE_EDGE_URL,
   "pages/post-job/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
 };
 

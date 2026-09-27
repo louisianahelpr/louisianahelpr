@@ -26,6 +26,7 @@ export const DB_ID_COLUMNS = {
     { table: "jobs", column: "stripe_payment_intent_id" },
     { table: "tips", column: "stripe_payment_intent_id" },
     { table: "gift_cards", column: "stripe_payment_intent_id" },
+    { table: "recurring_visit_payments", column: "stripe_payment_intent_id" },
   ],
   transfer: [
     { table: "payout_transfers", column: "stripe_transfer_id" },
@@ -49,6 +50,7 @@ export const NOT_MATCHED = {
   "jobs.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through jobs.stripe_payment_intent_id",
   "tips.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through tips.stripe_payment_intent_id",
   "gift_cards.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through gift_cards.stripe_payment_intent_id",
+  "recurring_visit_payments.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through recurring_visit_payments.stripe_payment_intent_id",
   "payment_refunds.stripe_payment_intent_id": "the PaymentIntent a refund came from, not a record of that PaymentIntent",
   "payout_transfers.stripe_account_id": "the destination connected account, not a money movement",
   "chargeback_clawbacks.stripe_account_id": "the connected account, not a money movement",

@@ -334,8 +334,8 @@ else {
 
   await q(`INSERT INTO public.user_violations (user_id, violation_type, action_taken) VALUES ('${U2}', 'low_ratings', 'warning')`);
   await q(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${U2}'`);
-  await notify("Low rating alert", `/admin?view=fraud&user=${U2}`);
-  await post("Low rating alert", `/admin?view=fraud&user=${U2}`);
+  await notify("Low rating alert", `/admin?view=people&user=${U2}`);
+  await post("Low rating alert", `/admin?view=people&user=${U2}`);
   const l = await item("Low rating alert");
   check("low rating flagged, unreviewed: TRUE", (await cond(l.id)) === true);
   await q(`DELETE FROM public.user_violations WHERE user_id = '${U2}' AND violation_type = 'low_ratings'`);

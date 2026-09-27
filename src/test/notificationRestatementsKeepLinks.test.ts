@@ -30,7 +30,7 @@
  *
  * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | v_link := '/home?job=' \|\| v_job.id::text; | v_link := '/home';
  * @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
- * @mutate supabase/migrations/20260923205635_notification_producers_carry_their_subject.sql | '/admin?view=fraud&user=' \|\| p_reviewee_id, | '/admin?view=fraud&usr=' \|\| p_reviewee_id,
+ * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=people&usr=' \|\| p_reviewee_id,
  * @mutate src/test/helpers/effectiveFunctionDefs.ts | const next = pgRegexpReplace(cur.stmt, r.pattern, r.replacement, r.flags); | const next = cur.stmt;
  */
 import { describe, it, expect } from "vitest";
@@ -98,6 +98,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // (no hold on the date) tells the poster on the SERIES card
   // ('/posts?job=' || parent_job_id), where the date can be offered again.
   "20260927012806_recurring_split_days.sql::helper_cancel_booking",
+  // Q752: the low-rating admin alert opens the flagged person
+  // ('/admin?view=people&user='), whose profile lists user_violations; the
+  // fraud dashboard it opened reads only fraud_flags.
+  "20260927060952_low_rating_alert_links_person.sql::apply_low_rating_flag",
 ]);
 
 /**

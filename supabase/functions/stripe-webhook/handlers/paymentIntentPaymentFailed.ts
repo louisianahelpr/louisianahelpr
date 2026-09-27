@@ -45,21 +45,6 @@ export async function handlePaymentIntentPaymentFailed(
   }
 
   if (failedJob) {
-    await insertNotifications(supabase, {
-      user_id: failedJob.customer_id,
-      // The subject reference: the seed boundary drops the row for a seed job,
-      // and notificationDestination keeps "/post-job" (not an Activity path).
-      job_id: failedJob.id,
-      title: "Payment failed",
-      message: `Your payment for "${failedJob.title}" could not be processed, so the job isn't posted. Open Post a Job and load your draft to try again with another card.`,
-      type: "warning",
-      // Post a Job, never My Posts: a job that was never paid for does not
-      // exist in Posts (owner, 2026-09-27: "Unpaid jobs should not show in
-      // post anywhere. Even hidden."), so `/posts?job=` opened on nothing.
-      // The draft the poster typed is kept through checkout (useJobSubmit
-      // flushes it before the redirect) and "Load Draft" brings it back.
-      link: "/post-job",
-    });
     // Must throw on failure: a silent drop here leaves the job in its pre-failure
     // state (e.g. "escrow") permanently. The outer handler rolls back the dedupe
     // row and returns 500 so Stripe retries once the DB recovers.
@@ -79,15 +64,34 @@ export async function handlePaymentIntentPaymentFailed(
       throw new Error(`Failed to mark job ${failedJob.id} as payment_failed: ${updateErr.message}`);
     }
     if (!failedUpdate) {
-      // The job already moved past unpaid — this event is stale relative to a
-      // successful charge. Acking without the write is correct; the earlier
-      // notification is the only user-visible effect, and a poster being told
-      // a payment attempt failed is true even when a later attempt succeeded.
+      // The job already moved past unpaid: a late event for a PaymentIntent
+      // that later succeeded, or a declined BOOST on a funded open job (a
+      // boost PaymentIntent carries the job_id too). Ack without writing and
+      // WITHOUT notifying: "the job isn't posted" would be false, and would
+      // send a poster whose job is live to post and pay for it again
+      // (lh-money-escrow review of 15921ea17, 2026-09-27).
       logStep("Stale payment_failed ignored — job is no longer unpaid", {
         jobId: failedJob.id,
         paymentStatus: failedJob.payment_status,
       });
+      return;
     }
+    // Only now, with the job marked failed, is "the job isn't posted" true.
+    await insertNotifications(supabase, {
+      user_id: failedJob.customer_id,
+      // The subject reference: the seed boundary drops the row for a seed job,
+      // and notificationDestination keeps "/post-job" (not an Activity path).
+      job_id: failedJob.id,
+      title: "Payment failed",
+      message: `Your payment for "${failedJob.title}" could not be processed, so the job isn't posted. Open Post a Job and load your draft to try again with another card.`,
+      type: "warning",
+      // Post a Job, never My Posts: a job that was never paid for does not
+      // exist in Posts (owner, 2026-09-27: "Unpaid jobs should not show in
+      // post anywhere. Even hidden."), so `/posts?job=` opened on nothing.
+      // The draft the poster typed is kept through checkout (useJobSubmit
+      // flushes it before the redirect) and "Load Draft" brings it back.
+      link: "/post-job",
+    });
     logStep("Notified poster of payment failure", { jobId: failedJob.id });
   }
 }

@@ -26,6 +26,7 @@
  * @mutate src/lib/neverPaidStatuses.ts | "unpaid", "abandoned", "failed" | "unpaid", "abandoned"
  * @mutate src/hooks/useRecentPostedJobs.ts | .or(`payment_status.is.null,payment_status.not.in.(${NEVER_PAID_STATUSES.join(",")})`) | .or(`payment_status.is.null,payment_status.not.in.(unpaid,abandoned)`)
  * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | link: "/post-job", | link: `/posts?job=${failedJob.id}`,
+ * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |       return; |       void 0;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -102,5 +103,18 @@ describe("a job nobody paid for never shows in Posts or Post a Job", () => {
     const src = read("supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts");
     expect(src).toMatch(/link:\s*"\/post-job"/);
     expect(src).not.toMatch(/link:\s*`\/posts\?job=/);
+  });
+
+  it("the 'job isn't posted' notice goes out only when the job was really marked failed", () => {
+    // lh-money-escrow review of 15921ea17: the notice went out BEFORE the
+    // unpaid-only guard, so a declined boost on a live, funded job told the
+    // poster to post (and pay for) it again.
+    const src = blankComments(read("supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts"));
+    const update = src.indexOf('.update({ payment_status: "failed" })');
+    const notify = src.indexOf("insertNotifications(supabase");
+    expect(update).toBeGreaterThan(0);
+    expect(notify, "notification sent before the guarded update").toBeGreaterThan(update);
+    const between = src.slice(update, notify);
+    expect(between, "a 0-row update must return before notifying").toMatch(/if \(!failedUpdate\) \{[\s\S]*?return;\s*\}/);
   });
 });

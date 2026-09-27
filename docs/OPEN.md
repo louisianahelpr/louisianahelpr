@@ -4,13 +4,13 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 309 done, 89 partly done (fixed, protection pending), 133 open. Source of truth for work.
+- **Queue (this file):** 310 done, 89 partly done (fixed, protection pending), 132 open. Source of truth for work.
 - **Audit bus:** 11 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
-- **nightly-red issues:** 11 open — `gh issue list -l nightly-red`. _(2026-09-27T06:45Z)_
-- **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T06:45Z)_
-- **Remote branches:** 107 carry patches not on main, 4 fully merged, of 114 (Q79). _(2026-09-27T06:45Z)_
+- **nightly-red issues:** 11 open — `gh issue list -l nightly-red`. _(2026-09-27T06:58Z)_
+- **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T06:58Z)_
+- **Remote branches:** 107 carry patches not on main, 4 fully merged, of 114 (Q79). _(2026-09-27T06:58Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -56,7 +56,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 531 items — 309 done, 89 partly done (fixed, protection pending), 133 open.**
+**Queue: 531 items — 310 done, 89 partly done (fixed, protection pending), 132 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1992,4 +1992,3 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q749 Q210(b) on-session $300+ visit payments: unmeasured parts (built dd681c911, 2026-09-27).** Live-verified by lead: recurring_visit_payments exists on prod, RLS on, authenticated=r only, policy payer_id = (select auth.uid()), migration 20260927044821 recorded, export_my_data names it. NOT measured yet: (1) a real Stripe test-mode Checkout end to end (4242) through create-payment action recurring_visit -> webhook settle -> visit booked; (2) a screenshot of the "Pay $X" card (RecurringVisitPayments.tsx, PostedJobsTab) at 375 and 1440, light and dark, recorded with review:record; its "today" uses UTC; (3) export_my_data actually run for a payer with a row. Done when all three are measured and recorded here.
 - [ ] **Q750 Q210(b) deferred money edges (lh-money-escrow review, 2026-09-27).** (1) A paid visit that later falls into a skip branch stays held until the visit-date sweep refunds it; (2) refunding a future-dated visit re-parks it; (3) Stripe's answer to a retried refund after "already refunded" is unverified; (4) end_recurring_series / parent job cancel do not expire the open Checkout (a late payment is refunded by webhook or sweep); (5) a Stripe session created but not stored is orphaned. Done when each is fixed or recorded as accepted, with a test.
 - [ ] **Q753 ME-008 follow-ups: first-payout fee still missing on other surfaces (fix 992149db6, reported by the fixing agent 2026-09-27, not yet re-measured by lead).** (1) the job-detail apply path hides the earnings breakdown, so it shows no fee line; (2) card prices (`computeNet` in `JobPrice.tsx`, `helperTakeHomeDollars`) omit the fee; (3) while the fee loads or its RPC fails the breakdown shows no fee, and `useOnboardingFee.ts:28` swallows the error with no log and no test; (4) a first payout at or below the fee is refused by `release-payout` (709-735) but the client still shows a take-home; (5) the client's commission % comes from the `platformFee` prop while the server uses `getHelperFeePercent`; (6) the "÷ N Helprs" summary copy addresses Helprs only. Done when each is fixed with a test or recorded as accepted.
-- [ ] **Q755 N-006 follow-up (owner decision): message notifications are counted twice in the badge sum.** Every chat message also inserts a `type='message'` notification that is not marked read when the thread is read, so badge = messages + bell counts those twice. Measured on prod 2026-09-27 (read-only SQL): 327 unread notifications, 221 of them `type='message'`, and 8 unread non-system messages. The bell shows those rows too, so today the badge agrees with the app. Owner to choose: exclude `type='message'` from the bell and the badge, or mark those rows read when the thread is read. Done when chosen and the badge guards are updated.

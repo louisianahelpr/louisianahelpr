@@ -96,6 +96,8 @@ describe("an admin alert about a user_violations flag opens a screen that shows 
   }
 
   it("finds the producers and the admin screens (not vacuous)", () => {
+    expect(producers.length).toBeGreaterThan(0);
+    expect(screens.size).toBeGreaterThan(1);
     expect(screens.get("people")).toBeTruthy();
     expect(screens.get("fraud")).toBeTruthy();
     expect(producers.some((p) => p.fn.startsWith("apply_low_rating_flag"))).toBe(true);

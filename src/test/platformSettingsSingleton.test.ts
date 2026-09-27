@@ -3,6 +3,8 @@
  * order, which is only correct while the table can hold one row. The
  * singleton index (migration 20260927060123) is what makes that true; this
  * fails if it is ever dropped or the migration removed.
+ *
+ * @mutate supabase/migrations/20260927060123_platform_settings_singleton.sql | CREATE UNIQUE INDEX IF NOT EXISTS platform_settings_singleton | CREATE INDEX IF NOT EXISTS platform_settings_singleton
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

@@ -31,7 +31,7 @@ import { useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
+import { unwrap, functionInvokeError } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -155,7 +155,7 @@ const AdminIDVReview = () => {
           bypassStrike: false,
         },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       confirmConsequential(
         decision === "manual_verify"
           ? "Approved — they can post and accept jobs now."
@@ -202,7 +202,7 @@ const AdminIDVReview = () => {
             bypassStrike: false,
           },
         });
-        if (error) throw error;
+        if (error) throw await functionInvokeError(error);
         ok++;
       } catch (err) {
         report(err, { tags: { source: "AdminIDVReview.approveSelected" } });

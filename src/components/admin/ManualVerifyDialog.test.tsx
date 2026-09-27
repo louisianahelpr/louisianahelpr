@@ -112,5 +112,5 @@ describe("ManualVerifyDialog", () => {
   });
 });
 
-// @mutate src/components/admin/ManualVerifyDialog.tsx |       if (error) throw error; |       void error;
+// @mutate src/components/admin/ManualVerifyDialog.tsx |       if (error) throw await functionInvokeError(error); |       void error;
 // @mutate src/components/admin/ManualVerifyDialog.tsx | } finally {\n      inFlight.current = false;\n      setBusy(false);\n    } | } finally {\n      setBusy(false);\n    }

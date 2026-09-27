@@ -20,6 +20,7 @@ import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
+import { functionInvokeError } from "@/lib/supabaseResult";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -57,7 +58,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
       const { data, error } = await supabase.functions.invoke("admin-delete-user", {
         body: { userId: profile.user_id },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       if (data?.error) throw new Error(data.error);
       onSuccess?.();
       setConfirmText("");

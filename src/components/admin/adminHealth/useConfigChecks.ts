@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { functionInvokeError } from "@/lib/supabaseResult";
 
 /**
  * The checks an audit would run, run continuously instead.
@@ -64,7 +65,7 @@ export const useConfigChecks = () => {
       // so this asks the admin-gated health-check endpoint for the MODE alone.
       try {
         const { data, error } = await supabase.functions.invoke("health-check");
-        if (error) throw error;
+        if (error) throw await functionInvokeError(error);
         const mode = (data as { checks?: Record<string, string> })?.checks?.stripe_mode;
         checks.push(
           mode === "live"

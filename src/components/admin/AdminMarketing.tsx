@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, Send, Users, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { userFacingError } from "@/lib/userFacingError";
+import { functionInvokeError } from "@/lib/supabaseResult";
 
 type Segment = "all" | "helpers" | "posters" | "by_parish";
 
@@ -74,7 +75,7 @@ const AdminMarketing = () => {
           test_email: asTest ? testEmail.trim() : undefined,
         },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       setLastResult({ sent: data?.sent ?? 0, failed: data?.failed ?? 0, total: data?.total ?? 0 });
     } catch (e: unknown) {
       toast.error(userFacingError(e, "Couldn't send that — try again."));

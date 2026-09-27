@@ -138,5 +138,5 @@ describe("ResetPasswordDialog — the send failed", () => {
   });
 });
 
-// @mutate src/components/admin/ResetPasswordDialog.tsx |       if (error) throw error; |       void error;
+// @mutate src/components/admin/ResetPasswordDialog.tsx |       if (error) throw await functionInvokeError(error); |       void error;
 // @mutate src/components/admin/ResetPasswordDialog.tsx | } finally {\n      inFlight.current = false;\n      setBusy(false);\n    } | } finally {\n      setBusy(false);\n    }

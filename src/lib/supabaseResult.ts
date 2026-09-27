@@ -81,3 +81,26 @@ export async function functionErrorBody(
   }
   return null;
 }
+
+/**
+ * functionInvokeError — what to THROW when `functions.invoke` fails (Q631).
+ *
+ * `if (error) throw error` throws the SDK's FunctionsHttpError, whose `.message`
+ * is "Edge Function returned a non-2xx status code". A catch that then shows
+ * `userFacingError(err, fallback)` prints its generic fallback, and the
+ * function's own refusal (admin-delete-user's 409 about an active job or held
+ * escrow) never reaches the reader. When the response body carries
+ * `{ error: "…" }`, this returns an Error with THAT sentence as its message,
+ * keeping `context` and `cause` so a caller that reads the Response still can.
+ * With no such body it returns the original error unchanged, so every other
+ * catch behaves exactly as before.
+ *
+ *   if (error) throw await functionInvokeError(error);
+ */
+export async function functionInvokeError(error: unknown): Promise<unknown> {
+  const body = await functionErrorBody(error);
+  const said = body && typeof body.error === "string" ? body.error.trim() : "";
+  if (!said) return error;
+  const context = (error as { context?: unknown } | null)?.context;
+  return Object.assign(new Error(said), { cause: error, context });
+}

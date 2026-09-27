@@ -12,7 +12,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { functionErrorMessage } from "@/lib/supabaseResult";
+import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult";
 import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
@@ -87,7 +87,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       // appeared, and the user was left believing their membership had been
       // checked. CLAUDE.md: never drop the Supabase `error`.
       const { error } = await supabase.functions.invoke("check-pro-subscription");
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
       // Consequential: it re-reads billing state held at Stripe, and when the
       // membership is unchanged the screen looks identical before and after —

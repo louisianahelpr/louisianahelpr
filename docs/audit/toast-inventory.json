@@ -912,7 +912,7 @@
     },
     {
       "file": "src/components/ReferralSection.tsx",
-      "line": 70,
+      "line": 71,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -922,7 +922,7 @@
     },
     {
       "file": "src/components/ReferralSection.tsx",
-      "line": 142,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -932,7 +932,7 @@
     },
     {
       "file": "src/components/ReferralSection.tsx",
-      "line": 149,
+      "line": 150,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1306,7 +1306,7 @@
     },
     {
       "file": "src/components/admin/AdminBanReview.tsx",
-      "line": 213,
+      "line": 214,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -1326,7 +1326,7 @@
     },
     {
       "file": "src/components/admin/AdminBanReview.tsx",
-      "line": 219,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1932,7 +1932,7 @@
     },
     {
       "file": "src/components/admin/AdminMarketing.tsx",
-      "line": 42,
+      "line": 43,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1942,7 +1942,7 @@
     },
     {
       "file": "src/components/admin/AdminMarketing.tsx",
-      "line": 46,
+      "line": 47,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1952,7 +1952,7 @@
     },
     {
       "file": "src/components/admin/AdminMarketing.tsx",
-      "line": 50,
+      "line": 51,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1962,7 +1962,7 @@
     },
     {
       "file": "src/components/admin/AdminMarketing.tsx",
-      "line": 80,
+      "line": 81,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2472,7 +2472,7 @@
     },
     {
       "file": "src/components/admin/DeleteUserDialog.tsx",
-      "line": 66,
+      "line": 67,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2522,7 +2522,7 @@
     },
     {
       "file": "src/components/admin/FormalWarningDialog.tsx",
-      "line": 80,
+      "line": 81,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2532,7 +2532,7 @@
     },
     {
       "file": "src/components/admin/ManualVerifyDialog.tsx",
-      "line": 60,
+      "line": 61,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2542,7 +2542,7 @@
     },
     {
       "file": "src/components/admin/ResetPasswordDialog.tsx",
-      "line": 57,
+      "line": 58,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2602,7 +2602,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 44,
+      "line": 45,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2612,7 +2612,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 67,
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2622,7 +2622,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 96,
+      "line": 97,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2632,7 +2632,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 115,
+      "line": 116,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4784,7 +4784,7 @@
     },
     {
       "file": "src/pages/info/legal/DataExportCard.tsx",
-      "line": 107,
+      "line": 108,
       "kind": "toast.error",
       "title": {
         "form": "literal",

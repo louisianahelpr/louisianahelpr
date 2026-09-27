@@ -14,6 +14,7 @@ import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import type { Profile } from "../adminUserHelpers";
 import { userFacingError } from "@/lib/userFacingError";
+import { functionInvokeError } from "@/lib/supabaseResult";
 
 interface ActionDeps {
   loadProfiles: () => void;
@@ -37,7 +38,7 @@ export const makeAdminUserActions = ({
       const { data, error } = await supabase.functions.invoke("admin-resend-verification", {
         body: { userId: profile.user_id },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       if (data?.error) throw new Error(data.error);
       loadProfiles();
     } catch (err) {

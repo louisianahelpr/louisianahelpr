@@ -17,6 +17,7 @@ import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { formatPriceExact } from "@/lib/format";
 import { referralEarningsBreakdown } from "@/lib/referralEarnings";
 import { userFacingError } from "@/lib/userFacingError";
+import { functionInvokeError } from "@/lib/supabaseResult";
 
 /**
  * Single-screen referral dashboard. Backed by React Query (60s staleTime)
@@ -137,7 +138,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       const { data: result, error } = await supabase.functions.invoke("cash-out-credits", {
         body: { attemptId: cashOutAttemptId.current },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       if (result?.error) {
         toast.error(result.error);
       } else {

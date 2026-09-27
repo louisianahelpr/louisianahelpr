@@ -29,6 +29,7 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { TestTag } from "@/components/admin/TestTag";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
+import { functionInvokeError } from "@/lib/supabaseResult";
 
 /**
  * Ban Review — the human half of EVERY consequence ladder.
@@ -209,7 +210,7 @@ const BanReviewInner = () => {
           note: note.trim(),
         },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       confirmConsequential(confirming ? "Account permanently banned." : "Restriction lifted.");
       qc.invalidateQueries({ queryKey });
       setConfirmTarget(null);

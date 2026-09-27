@@ -9,7 +9,7 @@ import { formatPriceExact } from "@/lib/format";
 import { CheckCircle2, AlertTriangle, History, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
-import { functionErrorMessage } from "@/lib/supabaseResult";
+import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { logAdminAction } from "@/lib/adminAudit";
 import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
@@ -303,14 +303,14 @@ const AdminDisputes = () => {
         const { data, error } = await supabase.functions.invoke("create-payment", {
           body: { action: "admin_release_dispute", jobId: job.id },
         });
-        if (error) throw error;
+        if (error) throw await functionInvokeError(error);
         if (data?.error) throw new Error(data.error);
       } else {
         // Refund to customer — cancel the payment intent
         const { data, error } = await supabase.functions.invoke("create-payment", {
           body: { action: "admin_refund_dispute", jobId: job.id },
         });
-        if (error) throw error;
+        if (error) throw await functionInvokeError(error);
         if (data?.error) throw new Error(data.error);
       }
       loadDisputes();

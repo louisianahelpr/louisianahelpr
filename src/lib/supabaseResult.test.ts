@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { unwrap, functionErrorMessage, functionErrorBody } from "./supabaseResult";
+import { unwrap, functionErrorMessage, functionErrorBody, functionInvokeError } from "./supabaseResult";
 
 describe("unwrap", () => {
   it("returns the data half when there is no error", () => {
@@ -151,9 +151,29 @@ describe("functionErrorBody", () => {
   });
 });
 
+describe("functionInvokeError (Q631)", () => {
+  it("throws the function's own sentence, keeping context and cause", async () => {
+    const original = invokeError({ error: "This user has an active job." });
+    const thrown = (await functionInvokeError(original)) as Error & { context?: unknown; cause?: unknown };
+    expect(thrown).toBeInstanceOf(Error);
+    expect(thrown.message).toBe("This user has an active job.");
+    expect(thrown.cause).toBe(original);
+    expect(thrown.context).toBe((original as { context?: unknown }).context);
+  });
+
+  it("returns the original error when the body has no usable sentence", async () => {
+    for (const original of [invokeError("<html>502</html>"), invokeError({ error: "   " }), invokeError({ ok: false })]) {
+      await expect(functionInvokeError(original)).resolves.toBe(original);
+    }
+    const relay = new Error("Failed to send a request to the Edge Function");
+    await expect(functionInvokeError(relay)).resolves.toBe(relay);
+  });
+});
+
 // Dropping the error half is the defect this whole module exists to prevent —
 // and it is the same line `error-state-sweep` targets.
 // @mutate src/lib/supabaseResult.ts | if (error) { | if (false) {
 // Losing the body's message degrades EVERY edge-function refusal in the app to
 // "please try again", with nothing red.
 // @mutate src/lib/supabaseResult.ts | if (body && typeof body.error === "string" && body.error.trim()) { | if (false) {
+// @mutate src/lib/supabaseResult.ts | if (!said) return error; | return error;

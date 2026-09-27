@@ -32,7 +32,14 @@
  *
  * The fix in both shapes is `functionErrorMessage(error, fallback)`.
  *
+ *   C. (Q631) the invoke error is thrown raw (`if (error) throw error`) and the
+ *      enclosing catch never reads the function's body. admin DeleteUserDialog
+ *      toasted `userFacingError(err, "Couldn't delete that account")` over
+ *      admin-delete-user's 409 explaining the active job / held escrow; 19 such
+ *      sites on 2026-09-27. Fix: `throw await functionInvokeError(error)`.
+ *
  * @mutate src/pages/post-job/useJobSubmit.ts | (paymentError ? await functionErrorMessage(paymentError, "Payment setup failed") : "Payment setup failed") | (paymentError?.message ?? "Payment setup failed")
+ * @mutate src/components/admin/DeleteUserDialog.tsx | if (error) throw await functionInvokeError(error); | if (error) throw error;
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -124,6 +131,43 @@ function findRawFunctionErrors(file: string, src: string): string[] {
     ts.forEachChild(n, visitB);
   };
   visitB(sf);
+
+  // Shape C (Q631) — the invoke error itself is thrown raw. Whatever catches it
+  // sees only "Edge Function returned a non-2xx status code"; `userFacingError`
+  // then prints its generic fallback and the server's sentence is lost. Fine
+  // only when the enclosing catch recovers the body (functionErrorMessage /
+  // functionErrorBody of the caught value, or any `.context` read), or has no
+  // binding at all (it deliberately discards the error). A raw throw with no
+  // enclosing try escapes to an unknown caller and is a finding too.
+  const visitC = (n: ts.Node, names: Set<string>) => {
+    if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke(n.initializer, sf)) {
+      for (const el of n.name.elements) if ((el.propertyName ?? el.name).getText(sf) === "error") names.add(el.name.getText(sf));
+    }
+    if (ts.isThrowStatement(n) && n.expression && ts.isIdentifier(n.expression) && names.has(n.expression.text)) {
+      let child: ts.Node = n;
+      let p: ts.Node | undefined = n.parent;
+      let verdict = "is thrown raw with no enclosing try";
+      while (p && !ts.isFunctionLike(p)) {
+        if (ts.isTryStatement(p) && p.tryBlock === child && p.catchClause) {
+          const v = p.catchClause.variableDeclaration;
+          if (!v) verdict = "";
+          else {
+            const c = v.name.getText(sf);
+            const body = p.catchClause.block.getText(sf);
+            verdict = new RegExp(`functionError(?:Message|Body)\\(\\s*${c}\\b`).test(body) || /\.context\b/.test(body)
+              ? ""
+              : `is thrown raw and the catch (${c}) never reads the function's body`;
+          }
+          break;
+        }
+        child = p;
+        p = p.parent;
+      }
+      if (verdict) at(n, `throw ${n.expression.text} ${verdict}; use \`throw await functionInvokeError(${n.expression.text})\``);
+    }
+    ts.forEachChild(n, (c) => visitC(c, ts.isFunctionLike(c) ? new Set(names) : names));
+  };
+  visitC(sf, new Set());
   return out;
 }
 
@@ -132,9 +176,26 @@ describe("an edge function's refusal reaches the user in its own words (run 3581
     const a = `async function f() { const { data, error } = await supabase.functions.invoke("create-payment", {}); const m = data?.error || error?.message; toast.error(m); }`;
     expect(findRawFunctionErrors("a.ts", a)).toHaveLength(1);
     const b = `async function g() { try { const { data, error } = await supabase.functions.invoke("x", {}); if (error) throw error; } catch (err) { const msg = err instanceof Error ? err.message : "x"; toast.error(msg); } }`;
-    expect(findRawFunctionErrors("b.ts", b)).toHaveLength(1);
+    // Shape B, and (since the catch never reads the body) shape C as well.
+    expect(findRawFunctionErrors("b.ts", b)).toHaveLength(2);
     const fixed = `async function h() { try { const { data, error } = await supabase.functions.invoke("x", {}); if (error) throw new Error(await functionErrorMessage(error, "x")); } catch (err) { toast.error(err instanceof Error ? err.message : "x"); } }`;
     expect(findRawFunctionErrors("c.ts", fixed)).toHaveLength(0);
+  });
+
+  it("shape C (Q631): a raw throw is caught unless the catch reads the body", () => {
+    const raw = `async function d() { try { const { error } = await supabase.functions.invoke("admin-delete-user", {}); if (error) throw error; } catch (err) { toast.error(userFacingError(err, "Couldn't delete")); } }`;
+    expect(findRawFunctionErrors("d.ts", raw)).toHaveLength(1);
+    const noTry = `async function e() { const { error } = await supabase.functions.invoke("x", {}); if (error) throw error; }`;
+    expect(findRawFunctionErrors("e.ts", noTry)).toHaveLength(1);
+    const fixed = raw.replace("throw error;", "throw await functionInvokeError(error);");
+    expect(findRawFunctionErrors("f.ts", fixed)).toHaveLength(0);
+    const readsBody = `async function g() { try { const { error } = await supabase.functions.invoke("x", {}); if (error) throw error; } catch (err) { toast.error(await functionErrorMessage(err, "x")); } }`;
+    expect(findRawFunctionErrors("g.ts", readsBody)).toHaveLength(0);
+    const discards = `async function h() { try { const { error } = await supabase.functions.invoke("x", {}); if (error) throw error; } catch { return null; } }`;
+    expect(findRawFunctionErrors("h.ts", discards)).toHaveLength(0);
+    // A throw inside the CATCH is not caught by that try.
+    const inCatch = `async function i() { const { error } = await supabase.functions.invoke("x", {}); try { foo(); } catch (e) { throw error; } }`;
+    expect(findRawFunctionErrors("i.ts", inCatch)).toHaveLength(1);
   });
 
   it("no call site in src/ shows supabase-js's wrapper instead of the function's error", () => {

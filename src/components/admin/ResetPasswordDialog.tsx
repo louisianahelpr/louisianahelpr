@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { userFacingError } from "@/lib/userFacingError";
+import { functionInvokeError } from "@/lib/supabaseResult";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -50,7 +51,7 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
           bypassStrike: false,
         },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       onSuccess?.();
       onClose();
     } catch (err) {

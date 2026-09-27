@@ -9,6 +9,7 @@ import { hapticError } from "@/lib/haptics";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { toast } from "sonner";
 import { DATA_EXPORT_ANCHOR, dataRightsTarget } from "./dataExportAnchor";
+import { functionInvokeError } from "@/lib/supabaseResult";
 
 /** The card's anchor: on the Legal tab's Privacy panel when signed in,
  *  `/privacy` when signed out (see dataRightsTarget). */
@@ -78,7 +79,7 @@ export function DataExportCard() {
       // and adds signed links to the person's stored files. It fails closed:
       // an error, never a file that silently leaves part of the account out.
       const { data, error } = await supabase.functions.invoke("export-my-data");
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       if (!data || typeof data !== "object" || !("exported_at" in data)) {
         throw new Error("export-my-data returned no export");
       }

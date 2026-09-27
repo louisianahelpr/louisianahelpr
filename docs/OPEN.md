@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 303 done, 92 partly done (fixed, protection pending), 131 open. Source of truth for work.
-- **Audit bus:** 15 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 14 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
 - **nightly-red issues:** 12 open — `gh issue list -l nightly-red`. _(2026-09-27T06:04Z)_
@@ -1996,3 +1996,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 
 - [ ] **Q749 Q210(b) on-session $300+ visit payments: unmeasured parts (built dd681c911, 2026-09-27).** Live-verified by lead: recurring_visit_payments exists on prod, RLS on, authenticated=r only, policy payer_id = (select auth.uid()), migration 20260927044821 recorded, export_my_data names it. NOT measured yet: (1) a real Stripe test-mode Checkout end to end (4242) through create-payment action recurring_visit -> webhook settle -> visit booked; (2) a screenshot of the "Pay $X" card (RecurringVisitPayments.tsx, PostedJobsTab) at 375 and 1440, light and dark, recorded with review:record; its "today" uses UTC; (3) export_my_data actually run for a payer with a row. Done when all three are measured and recorded here.
 - [ ] **Q750 Q210(b) deferred money edges (lh-money-escrow review, 2026-09-27).** (1) A paid visit that later falls into a skip branch stays held until the visit-date sweep refunds it; (2) refunding a future-dated visit re-parks it; (3) Stripe's answer to a retried refund after "already refunded" is unverified; (4) end_recurring_series / parent job cancel do not expire the open Checkout (a late payment is refunded by webhook or sweep); (5) a Stripe session created but not stored is orphaned. Done when each is fixed or recorded as accepted, with a test.
+- [ ] **Q752 'Low rating alert' opens a screen that does not show the flag (split from Q355 part 2, live-verified 2026-09-27).** Prod: apply_low_rating_flag inserts into user_violations and its admin notification links /admin?view=fraud; AdminFraudDashboard.tsx:92 reads only fraud_flags, so the admin lands on a list without the person. Fix: link the person's admin user page (where useOpenProfile reads user_violations), restated in a migration; guard: every admin notification link's view reads the table its producer writes.

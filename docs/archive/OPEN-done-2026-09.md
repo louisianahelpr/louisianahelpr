@@ -1377,3 +1377,12 @@ duplicate-number check).
   (AdminJobs.tsx 1 -> 0, scripts/any-baseline.json). Guard: src/test/raceClassGuard.test.ts "admin status override
   (Q760)" + check-race-class; with the predicate removed the CLI reports NEW HIT ...AdminJobs.tsx::opaque:updates
   and 5 raceClassGuard tests fail; with the old cast restored the new test and anyRatchet fail.
+
+## Archived 2026-09-27 — from "AUDIT BUS — findings live in the ledger, not here"
+
+- [x] **Q758 Admin bulk "Pay selected" can never pay.** FIXED 2026-09-27: the bulk run now calls releaseBatchJobs (src/components/admin/adminPayoutBatches/releaseBatchJobs.ts), the same get_payout_batch_job_ids + release-payout path as Send Payout. GUARD: src/components/admin/AdminPayoutBatches.test.tsx "Q758: the bulk run pays through release-payout per job" + its @mutate registration (red on the old code: 0 of 2 release-payout calls). Stripe test-mode live proof not done here, split out as Q763. Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). AdminPayoutBatches.tsx:319-347
+  triggerBulkPayout invokes stripe-payouts with {helper_id}; that function only reads the caller's own balance
+  (stripe.balance.retrieve, index.ts:95) and transfers nothing, so assertTransferHappened throws and every batch toasts
+  "Couldn't process". The single-batch path (lines 222-260) already uses get_payout_batch_job_ids + release-payout.
+  Done when bulk goes through release-payout, a test fails if triggerBulkPayout invokes anything else, and a Stripe
+  test-mode bulk run creates transfers.

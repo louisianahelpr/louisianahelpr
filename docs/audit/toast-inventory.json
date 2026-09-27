@@ -18,8 +18,8 @@
     },
     "copyPiecesByForm": {
       "literal": 313,
-      "template": 74,
-      "dynamic": 212,
+      "template": 73,
+      "dynamic": 213,
       "jsx": 0
     }
   },
@@ -2002,7 +2002,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 211,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2012,7 +2012,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 289,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2022,11 +2022,11 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 342,
+      "line": 276,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Couldn't process the payout for ${batch.helper_name} — try again?"
+        "form": "dynamic",
+        "text": "userFacingError(err, `Couldn't process the payout for ${batch.helper_name} — try again?`)"
       },
       "renders": true
     },

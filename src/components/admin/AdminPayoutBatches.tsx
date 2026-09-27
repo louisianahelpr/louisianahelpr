@@ -36,39 +36,7 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
-
-/**
- * Guard against a SILENT NO-OP on the money path.
- *
- * "Send Payout" and "Bulk Approve" invoke the `stripe-payouts` edge function
- * with `{ helper_id }`. That function never reads `helper_id`, and it never
- * calls `stripe.transfers.create` — it looks up THE CALLER'S OWN
- * `profiles.stripe_account_id` and returns a read-only Connect balance summary
- * (`{ connected, payouts_enabled, available, pending, payouts }`). It is the
- * same endpoint a Helpr's own Earnings tab calls with an empty body.
- *
- * An admin has no `stripe_account_id`, so the function returns
- * `{ connected:false, payouts:[] }` with HTTP 200 and NO `error` field. The old
- * code's `if (error) throw error` therefore never fired: after a Face ID
- * prompt and a confirm dialog reading "This moves real money and can't be
- * undone", the UI wrote an `admin_audit_log` row claiming the payout was
- * triggered, closed the dialog, and moved on — while zero cents moved and the
- * batch stayed in the queue.
- *
- * Until the backend gains a real admin batch-payout endpoint (the working
- * per-job transfer lives in the `release-payout` function, which takes a
- * `job_id`; `get_payout_batches()` does not currently return job ids, so the
- * client cannot call it), this makes the no-op LOUD instead of silent: the
- * admin sees a real error and the audit log is not falsified.
- */
-function assertTransferHappened(data: unknown): void {
-  const d = data as Record<string, unknown> | null | undefined;
-  if (d && ("connected" in d || "payouts_enabled" in d)) {
-    throw new Error(
-      "Payout not sent. The endpoint this button calls only reads a Connect balance — it never creates a transfer, so no money moved. Escrow release still runs automatically; this batch is unchanged.",
-    );
-  }
-}
+import { releaseBatchJobs } from "./adminPayoutBatches/releaseBatchJobs";
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -219,51 +187,7 @@ const AdminPayoutBatches = () => {
     if (!ok) return;
     setPaying(batch.helper_id);
     try {
-      // `release-payout` is what actually transfers, and it takes a JOB id.
-      // get_payout_batches() aggregates by helper and returns no job ids,
-      // which is why the old call went to `stripe-payouts` — a function that
-      // never reads helper_id and only reports the CALLER's own balance. It
-      // answered 200 with no `error`, so this handler logged a payout that
-      // never happened. get_payout_batch_job_ids (20260831213026) shares that
-      // RPC's predicate exactly, so what we pay is what the batch counted.
-      const { data: jobRows, error: jobsErr } = await supabase.rpc(
-        "get_payout_batch_job_ids",
-        { p_helper_id: batch.helper_id },
-      );
-      if (jobsErr) throw jobsErr;
-      const jobIds = (jobRows ?? []).map((r) => r.job_id);
-      if (jobIds.length === 0) {
-        // Zero rows is also what a non-admin sees, by design in the RPC.
-        throw new Error(
-          "Nothing left to pay in this batch — it may have settled already. Refresh to re-check.",
-        );
-      }
-
-      // One job at a time, and a partial success is reported as one. The claim
-      // protocol in release-payout means a job already paid answers cleanly
-      // rather than double-paying, so a retry after a partial failure is safe.
-      const failures: string[] = [];
-      for (const jobId of jobIds) {
-        const { data, error } = await supabase.functions.invoke("release-payout", {
-          body: { job_id: jobId },
-        });
-        if (error) { failures.push(jobId); continue; }
-        try {
-          assertTransferHappened(data);
-        } catch (err) {
-          // NOT silent: release-payout answered without a transfer. The admin
-          // sees this job in the failure count, but a count is not a diagnosis
-          // — and a payout that reports success while moving no money is the
-          // single worst failure this screen can have. Record it with the job
-          // id so it can be reconciled against Stripe afterwards.
-          report(err, {
-            severity: "error",
-            tags: { area: "payout", op: "releaseBatch.assertTransfer" },
-            context: { jobId },
-          });
-          failures.push(jobId);
-        }
-      }
+      const { jobIds, failures } = await releaseBatchJobs(batch.helper_id);
 
       const paid = jobIds.length - failures.length;
       // Log what ACTUALLY moved, not what was attempted. The whole reason this
@@ -327,19 +251,29 @@ const AdminPayoutBatches = () => {
     setBulkPaying(true);
     for (const batch of selectedBatches) {
       try {
-        const { data, error } = await supabase.functions.invoke("stripe-payouts", {
-          body: { helper_id: batch.helper_id },
-        });
-        if (error) throw error;
-        assertTransferHappened(data);
-        await logAdminAction("trigger_payout", "user", batch.helper_id, {
-          job_count: batch.job_count,
-          total_payout: batch.total_payout,
-          bulk: true,
-        });
+        // Same path as the per-batch button (Q758): job ids, then
+        // release-payout per job. `stripe-payouts` only reads a balance.
+        const { jobIds, failures } = await releaseBatchJobs(batch.helper_id);
+        const paid = jobIds.length - failures.length;
+        // Log what ACTUALLY moved, not what was attempted.
+        if (paid > 0) {
+          await logAdminAction("trigger_payout", "user", batch.helper_id, {
+            jobs_attempted: jobIds.length,
+            jobs_paid: paid,
+            jobs_failed: failures.length,
+            total_payout: batch.total_payout,
+            bulk: true,
+          });
+        }
+        if (failures.length > 0) {
+          throw new Error(
+            `Paid ${paid} of ${jobIds.length} for ${batch.helper_name}. ${failures.length} could not be released — ` +
+              `they stay in the batch, and retrying is safe.`,
+          );
+        }
       } catch (err: unknown) {
         report(err, { tags: { source: "AdminPayoutBatches.triggerBulkPayout" } });
-        toast.error(`Couldn't process the payout for ${batch.helper_name} — try again?`);
+        toast.error(userFacingError(err, `Couldn't process the payout for ${batch.helper_name} — try again?`));
       }
     }
     setBulkPaying(false);

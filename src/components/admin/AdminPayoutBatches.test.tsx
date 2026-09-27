@@ -179,6 +179,46 @@ describe("AdminPayoutBatches — the bulk payout run", () => {
     expect(requireBiometricMock).toHaveBeenCalledTimes(1);
   });
 
+  it("Q758: the bulk run pays through release-payout per job — never any other function", async () => {
+    // The bulk run used to invoke `stripe-payouts` with { helper_id }: a
+    // Connect BALANCE read that never creates a transfer, so every bulk batch
+    // failed. It must take the per-batch path: job ids, then release-payout
+    // once per job.
+    const jobs = ["job-a", "job-b"];
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_payout_batches"
+        ? { data: [batch], error: null }
+        : { data: jobs.map((job_id) => ({ job_id })), error: null },
+    );
+    const send = await reachBulkSend();
+    fireEvent.click(send);
+
+    await waitFor(() =>
+      expect(invokeMock.mock.calls.filter(([fn]) => fn === "release-payout")).toHaveLength(jobs.length),
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    const invoked = invokeMock.mock.calls.map(([fn]) => fn as string);
+    // Floor: the run made real calls, so "every call is release-payout" is not vacuous.
+    expect(invoked.length).toBeGreaterThan(1);
+    expect(invoked.filter((fn) => fn !== "release-payout")).toEqual([]);
+    for (const job_id of jobs) {
+      expect(invokeMock).toHaveBeenCalledWith("release-payout", { body: { job_id } });
+    }
+    expect(rpcMock).toHaveBeenCalledWith("get_payout_batch_job_ids", { p_helper_id: HELPER_ID });
+    expect(requireBiometricMock).toHaveBeenCalledTimes(1);
+    // The audit row records what moved, flagged as a bulk run.
+    expect(logAdminActionMock).toHaveBeenCalledWith(
+      "trigger_payout",
+      "user",
+      HELPER_ID,
+      expect.objectContaining({ jobs_paid: 2, jobs_failed: 0, bulk: true }),
+    );
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
   it("a refused Face ID prompt cancels the WHOLE run — zero transfers, not one", async () => {
     // The bulk gate is a single prompt in front of every selected transfer, so
     // a refusal that leaked even one through would be the worst kind of
@@ -208,3 +248,5 @@ describe("AdminPayoutBatches — the bulk payout run", () => {
 // the mocked refusals above can see either line go missing.
 // @mutate src/components/admin/AdminPayoutBatches.tsx | if (!ok) return;\n    setPaying(batch.helper_id); | setPaying(batch.helper_id);
 // @mutate src/components/admin/AdminPayoutBatches.tsx | if (!ok) return;\n    setBulkPaying(true); | setBulkPaying(true);
+// Q758: the bulk run must pay through release-payout, not the stripe-payouts balance read.
+// @mutate src/components/admin/AdminPayoutBatches.tsx | const { jobIds, failures } = await releaseBatchJobs(batch.helper_id);\n        const paid | await supabase.functions.invoke("stripe-payouts", { body: { helper_id: batch.helper_id } });\n        const jobIds = [batch.helper_id]; const failures: string[] = [];\n        const paid

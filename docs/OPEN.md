@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 312 done, 89 partly done (fixed, protection pending), 136 open. Source of truth for work.
+- **Queue (this file):** 313 done, 89 partly done (fixed, protection pending), 137 open. Source of truth for work.
 - **Audit bus:** 11 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
@@ -56,7 +56,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 537 items — 312 done, 89 partly done (fixed, protection pending), 136 open.**
+**Queue: 539 items — 313 done, 89 partly done (fixed, protection pending), 137 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1998,12 +1998,8 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   that is why the agent found none on Perry's /posts?filter=done). Record with review:record. (2) lh-money-escrow note:
   a completed job with payment_status refunded would also read "payout pending"; none exist in prod today (measured by
   the reviewer: completed rows are payout_pending 50, released 22). Decide its label before one can exist.
-- [ ] **Q758 Admin bulk "Pay selected" can never pay.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). AdminPayoutBatches.tsx:319-347
-  triggerBulkPayout invokes stripe-payouts with {helper_id}; that function only reads the caller's own balance
-  (stripe.balance.retrieve, index.ts:95) and transfers nothing, so assertTransferHappened throws and every batch toasts
-  "Couldn't process". The single-batch path (lines 222-260) already uses get_payout_batch_job_ids + release-payout.
-  Done when bulk goes through release-payout, a test fails if triggerBulkPayout invokes anything else, and a Stripe
-  test-mode bulk run creates transfers.
+- [ ] **Q763 Prove Q758 live: a Stripe test-mode bulk payout run creates transfers.** Split from Q758 2026-09-27. The fix and its vitest guard landed, but no bulk run has been driven on prod: this worktree has no PLAYWRIGHT_ADMIN_EMAIL/PASSWORD. Done when an admin-account run of Bulk Approve on a test-owned is_seed helper with a completed payout_pending job produces a payout_transfers row with a Stripe test-mode transfer id, then the records are cleaned up.
+- [ ] **Q764 Payout holds are per-device only; release-payout has no server-side hold check.** Found by the lh-money-escrow review of Q758, 2026-09-27, by reading the code (not measured live). AdminPayoutBatches keeps holds in localStorage ("(this device)"), and supabase/functions/release-payout/index.ts has no hold/freeze check, so one admin's hold does not stop another admin's Send Payout or (now working) Bulk Approve. Done when a hold is stored server-side and release-payout refuses a held helper, with a test that fails without the check.
 - [ ] **Q759 Admin user-detail "Earned (Worked)" gives each helper a group job's whole budget.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item).
   JobsTab divides by helpers_needed, but useOpenProfile.ts:73-74 does not select it, so the divisor is always 1. Done
   when the column is selected, the type makes it required, and a test fails if any column calcEarning reads is missing.

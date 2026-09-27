@@ -1,0 +1,55 @@
+name: Rollback drill
+
+# Q69 (owner decision 2026-09-27 night): the LIVE web rollback drill runs here,
+# on repo secrets, only when dispatched (`gh workflow run rollback-drill.yml`).
+# It moves production traffic to the previous production deployment, times it,
+# then ALWAYS promotes the original back. Script: scripts/rollback/drill-web.mjs.
+# Guard: src/test/rollbackDrillWorkflow.test.ts. Runbook: docs/RUNBOOK-rollback.md.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # The same group as prod-deploy.yml: no batched deploy may land mid-drill.
+  group: prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  web:
+    name: Web rollback drill (live)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Drill
+        id: drill
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: node scripts/rollback/drill-web.mjs
+
+      - name: Restore (the drill died before its own restore)
+        if: failure() && steps.drill.outputs.current != '' && steps.drill.outputs.restored != 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: node scripts/rollback/drill-web.mjs --restore "${{ steps.drill.outputs.current }}" "${{ steps.drill.outputs.current_sha }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Web rollback drill"
+            echo "- serving before: \`${{ steps.drill.outputs.current_sha || '-' }}\` (\`${{ steps.drill.outputs.current || '-' }}\`)"
+            echo "- rollback request -> live: ${{ steps.drill.outputs.rollback_s || '-' }} s"
+            echo "- restore request -> live: ${{ steps.drill.outputs.restore_s || '-' }} s"
+            echo "- restored: ${{ steps.drill.outputs.restored || 'NO' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

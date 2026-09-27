@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 559,
-    "files": 141,
+    "files": 142,
     "rendering": 537,
     "suppressedByPolicy": 22,
     "byKind": {
@@ -1852,27 +1852,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 105,
-      "kind": "toast.message",
-      "title": {
-        "form": "template",
-        "text": "That change is saved. ${who === \"the poster\" ? \"The poster\" : \"The Helpr\"} was not notified: this is a test job and they are a real account, and test jobs never notify real people."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/admin/AdminJobs.tsx",
-      "line": 128,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "mutationErrorMessage( err, `That change is saved, but ${who} couldn't be notified — tell them directly.`, )"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/AdminJobs.tsx",
-      "line": 196,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1882,7 +1862,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 353,
+      "line": 245,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1892,7 +1872,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 369,
+      "line": 261,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1902,7 +1882,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 411,
+      "line": 303,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1912,7 +1892,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 503,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2557,6 +2537,26 @@
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage(err, \"Couldn't apply that restriction — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminJobs/notifyJobParty.ts",
+      "line": 84,
+      "kind": "toast.message",
+      "title": {
+        "form": "template",
+        "text": "That change is saved. ${who === \"the poster\" ? \"The poster\" : \"The Helpr\"} was not notified: this is a test job and they are a real account, and test jobs never notify real people."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminJobs/notifyJobParty.ts",
+      "line": 107,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage( err, `That change is saved, but ${who} couldn't be notified — tell them directly.`, )"
       },
       "renders": true
     },

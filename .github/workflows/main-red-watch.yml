@@ -10,7 +10,8 @@ name: Main red watch
 # This watches every push-on-main workflow (the list is enforced by
 # src/test/everyPushWorkflowIsWatched.test.ts, so a new one cannot ship
 # unwatched). On a red run it opens ONE `nightly-red` issue titled
-# `nightly-red: main: <workflow>` — which the session-start check, the
+# `nightly-red: main: <workflow>`, or the workflow's own issue when it syncs one
+# (scripts/ci/nightly-slug.mjs) — which the session-start check, the
 # "Nightly reds nobody read" gate and nightly-red-age all already read — and
 # posts to Slack only when that issue is NEW (a red streak does not spam).
 # The next green run of the same workflow on main closes it.
@@ -66,20 +67,44 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # One issue per workflow (2026-09-27: "main: staleness watch" and
+      # "staleness-watch" were both open for the same red). A workflow that
+      # syncs its own issue keeps it; see scripts/ci/nightly-slug.mjs.
+      - name: Which issue does this red belong under?
+        id: slug
+        env:
+          NAME: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+          J=$(node scripts/ci/nightly-slug.mjs "$NAME")
+          echo "slug=$(jq -r .slug <<<"$J")" >> "$GITHUB_OUTPUT"
+          echo "self_files=$(jq -r .selfFiles <<<"$J")" >> "$GITHUB_OUTPUT"
+          echo "self_files_on_push=$(jq -r .selfFilesOnPush <<<"$J")" >> "$GITHUB_OUTPUT"
+
       - name: Is this red new?
         id: prior
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TITLE: "nightly-red: main: ${{ github.event.workflow_run.name }}"
+          TITLE: "nightly-red: ${{ steps.slug.outputs.slug }}"
+          STARTED: ${{ github.event.workflow_run.run_started_at }}
         run: |
           set -euo pipefail
+          # Only an issue opened BEFORE this run counts: a workflow that files
+          # on push has already opened it by now, and that is still a new red.
           OPEN=$(gh issue list --repo "${{ github.repository }}" --label nightly-red --state open \
-            --search "in:title \"${TITLE}\"" --json title --jq "[.[] | select(.title == env.TITLE)] | length" || echo 0)
+            --search "in:title \"${TITLE}\"" --json title,createdAt \
+            --jq "[.[] | select(.title == env.TITLE and .createdAt < env.STARTED)] | length" || echo 0)
           echo "open=${OPEN}" >> "$GITHUB_OUTPUT"
 
+      # selfFilesOnPush: the watched run already filed or closed its own issue.
+      # selfFiles (schedule-only): file the push red there, never close it; a
+      # green push can skip jobs only the scheduled run has.
       - uses: ./.github/actions/nightly-issue-sync
+        if: >-
+          steps.slug.outputs.self_files_on_push != 'true' &&
+          (steps.slug.outputs.self_files != 'true' || github.event.workflow_run.conclusion != 'success')
         with:
-          workflow-name: "main: ${{ github.event.workflow_run.name }}"
+          workflow-name: ${{ steps.slug.outputs.slug }}
           status: ${{ github.event.workflow_run.conclusion == 'success' && 'success' || 'failure' }}
           run-url: ${{ github.event.workflow_run.html_url }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -92,6 +117,7 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           NAME: ${{ github.event.workflow_run.name }}
+          SLUG: ${{ steps.slug.outputs.slug }}
           SHA: ${{ github.event.workflow_run.head_sha }}
           URL: ${{ github.event.workflow_run.html_url }}
         run: |
@@ -99,7 +125,7 @@ jobs:
           # ledger item stays open until this workflow's own re-run is green.
           # Recorded FIRST so a missing webhook cannot skip it; never fails the step.
           node scripts/ops-alert-ledger.mjs record --source-kind nightly_red --source "nightly-red" \
-            --title "nightly-red: main: ${NAME}" --severity error --verify-ref "${NAME}" \
+            --title "nightly-red: ${SLUG}" --severity error --verify-ref "${NAME}" \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
           # A missing webhook must not turn this job red and hide the issue it
           # just filed; say so in the log instead.

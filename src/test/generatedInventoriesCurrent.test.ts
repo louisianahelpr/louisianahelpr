@@ -1,4 +1,5 @@
 // @mutate scripts/burndown-score.mjs | r.files++; | r.files += 2;
+// @mutate scripts/check-generated-current.mjs | return after.every((text, k) => text === before[k]); | return false;
 /*
  * Every committed inventory is current (OPEN.md Q36; owner, 2026-09-23:
  * "nothing at all should ever be stale").
@@ -21,6 +22,7 @@ import {
   discoverDeclaredGenerated,
   discoverWriters,
   firstDiff,
+  generatorFailed,
   normalise,
   // @ts-expect-error — plain .mjs script, no declaration file
 } from "../../scripts/check-generated-current.mjs";
@@ -79,5 +81,25 @@ describe("generated inventories are current", () => {
         expect(why.length, k).toBeGreaterThan(8);
       }
     }
+  });
+});
+
+// 2026-09-27: vacuity-report opts into a non-zero exit (the gate being red),
+// and a crash with no node_modules also exits 1 — refresh called it
+// "unchanged" and Staleness watch went red on main instead.
+describe("a generator that crashes is a failure even when it may exit non-zero", () => {
+  const opted = { allowNonZeroExit: true };
+  const strict = {};
+  it("exit 0 is never a failure", () => {
+    expect(generatorFailed(strict, { status: 0 }, ["a"], ["a"])).toBe(false);
+  });
+  it("a non-zero exit fails a generator that did not opt in", () => {
+    expect(generatorFailed(strict, { status: 1 }, ["a"], ["b"])).toBe(true);
+  });
+  it("an opted-in generator that rewrote its output passes", () => {
+    expect(generatorFailed(opted, { status: 1 }, ["old"], ["new"])).toBe(false);
+  });
+  it("an opted-in generator that wrote nothing (a crash) fails", () => {
+    expect(generatorFailed(opted, { status: 1 }, ["same"], ["same"])).toBe(true);
   });
 });

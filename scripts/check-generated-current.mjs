@@ -352,6 +352,20 @@ export function firstDiff(a, b) {
 }
 
 /**
+ * A non-zero exit is failure unless the generator opted in with
+ * allowNonZeroExit AND actually rewrote an output. A crash (e.g. a missing
+ * `typescript` in a tree without node_modules) also exits 1 but writes
+ * nothing, and was once read as "unchanged" (2026-09-27, vacuity-report).
+ * Every opted-in generator stamps a volatile `generated` time, so a real
+ * write always changes the bytes.
+ */
+export function generatorFailed(g, run, before, after) {
+  if (run.status === 0) return false;
+  if (!g.allowNonZeroExit) return true;
+  return after.every((text, k) => text === before[k]);
+}
+
+/**
  * Run one generator, compare, and RESTORE the committed bytes whatever
  * happens, so running the check never edits the working tree.
  */
@@ -369,7 +383,7 @@ export function checkGenerator(g) {
     }
   }
   const refresh = g.cmd.join(" ");
-  if (run.status !== 0 && !g.allowNonZeroExit) {
+  if (generatorFailed(g, run, g.outputs.map((o) => saved.get(o)), g.outputs.map((o) => produced.get(o)))) {
     return [`${g.id}: generator failed (exit ${run.status}) — ${refresh}\n${(run.stderr || run.stdout || "").trim().split("\n").slice(-5).join("\n")}`];
   }
   const problems = [];
@@ -416,7 +430,12 @@ function main() {
     for (const g of GENERATED) {
       const before = g.outputs.map((o) => (existsSync(join(REPO, o)) ? readFileSync(join(REPO, o), "utf8") : ""));
       const run = spawnSync(g.cmd[0], g.cmd.slice(1), { cwd: REPO, encoding: "utf8", maxBuffer: 1 << 26 });
-      if (run.status !== 0 && !g.allowNonZeroExit) { console.error(`✗ ${g.id}: ${g.cmd.join(" ")} exited ${run.status}`); process.exitCode = 1; continue; }
+      const afterAll = g.outputs.map((o) => (existsSync(join(REPO, o)) ? readFileSync(join(REPO, o), "utf8") : ""));
+      if (generatorFailed(g, run, before, afterAll)) {
+        console.error(`✗ ${g.id}: ${g.cmd.join(" ")} exited ${run.status} without rewriting its output\n${(run.stderr || run.stdout || "").trim().split("\n").slice(-5).join("\n")}`);
+        process.exitCode = 1;
+        continue;
+      }
       g.outputs.forEach((o, k) => {
         const after = readFileSync(join(REPO, o), "utf8");
         const moved = normalise(before[k], g.volatile) !== normalise(after, g.volatile);

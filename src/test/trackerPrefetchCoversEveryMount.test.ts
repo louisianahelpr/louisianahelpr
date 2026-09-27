@@ -18,8 +18,8 @@
  * deriveAppliedJobCardState), not a list written here.
  *
  * @mutate src/hooks/useActivityData.ts | trackedIds: postedJobs.filter(postedCardTrackerQueries) | trackedIds: postedJobs.filter((j) => isActiveStatus(j.status))
- * @mutate src/components/job-card/trackerMounts.ts |     s === "revision_requested" || |     false ||
- * @mutate src/pages/posts/PostedJobCard.tsx | const showsTracker = postedCardShowsTracker(job); | const showsTracker = postedCardShowsTracker(job) || job.status === "cancelled";
+ * @mutate src/components/job-card/trackerMounts.ts | s === "open" \|\| | false \|\|
+ * @mutate src/pages/posts/PostedJobCard.tsx | const showsTracker = postedCardShowsTracker(job); | const showsTracker = postedCardShowsTracker(job) \|\| job.status === "cancelled";
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";

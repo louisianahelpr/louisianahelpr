@@ -38,6 +38,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
+import { AXE_TAGS } from "./axeTags";
 import {
   test,
   expect,
@@ -516,7 +517,7 @@ async function probeRoute(page: Page, route: string): Promise<void> {
         // happens to see it, which is exactly how a gate teaches people to
         // ignore it.
         .include("[data-sweep-target]")
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .withTags(AXE_TAGS)
         .analyze();
       violations = axe.violations.map((v) => ({
         id: v.id,

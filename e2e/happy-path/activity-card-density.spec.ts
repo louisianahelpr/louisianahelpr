@@ -31,6 +31,7 @@ import {
   type MockRule,
 } from "./fixtures";
 import { settleAnimations } from "./auditRoutes";
+import { AXE_TAGS } from "./axeTags";
 import { SEED_JOBS, SEED_APPLICATIONS, CUSTOMER_ID, HELPER_ID } from "./seedData";
 /* THE TAB VOCABULARY COMES FROM THE APP, NEVER FROM A COPY IN HERE.
    Two words exist per bucket and which one is painted depends on the viewport
@@ -151,7 +152,7 @@ async function recordContrast(page: Page, tag: string) {
     );
     const results = await new AxeBuilder({ page })
       .include("[data-probe]")
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .withTags(AXE_TAGS)
       .analyze();
     const scan = (bucket: unknown[], outcome: string) => {
       for (const rule of bucket as { id: string; nodes: { any: { data?: Record<string, unknown> }[] }[] }[]) {
@@ -319,7 +320,7 @@ async function assertOneH1(page: Page) {
  */
 async function assertNoAxeViolations(page: Page, label: string) {
   const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .withTags(AXE_TAGS)
     .analyze();
   const detail = results.violations
     .map((v) => `[${v.impact}] ${v.id}: ${v.help}\n  ${v.nodes.map((n) => n.failureSummary?.replace(/\n/g, " ")).join("\n  ")}`)

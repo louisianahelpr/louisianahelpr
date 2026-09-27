@@ -95,6 +95,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
+import { AXE_TAGS } from "./axeTags";
 import {
   test,
   expect,
@@ -505,7 +506,7 @@ async function auditFailingScreen(
     result.probe = await probeRender(page);
 
     const axe = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .withTags(AXE_TAGS)
       .analyze();
     const order = { critical: 0, serious: 1, moderate: 2, minor: 3 } as const;
     result.axe = [...axe.violations]

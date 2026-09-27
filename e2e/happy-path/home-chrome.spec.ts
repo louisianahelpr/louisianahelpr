@@ -9,6 +9,7 @@ import { measureLayout, settleAnimations } from "./auditRoutes";
 import type { Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdirSync } from "node:fs";
+import { AXE_TAGS } from "./axeTags";
 
 const SHOT_DIR = "/tmp/ui-review";
 mkdirSync(SHOT_DIR, { recursive: true });
@@ -249,7 +250,7 @@ for (const variant of [
 
     // --- a11y -----------------------------------------------------------
     const axe = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .withTags(AXE_TAGS)
       .analyze();
     expect(
       axe.violations.map((v) => `${v.id} (${v.impact}, ${v.nodes.length} nodes)`),

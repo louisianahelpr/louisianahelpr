@@ -44,6 +44,7 @@ import {
 } from "./fixtures";
 import { settleAnimations } from "./auditRoutes";
 import { SEED_JOBS, CUSTOMER_ID, HELPER_ID } from "./seedData";
+import { AXE_TAGS } from "./axeTags";
 
 const SHOTS = "/tmp/ui-review/device-pass";
 mkdirSync(SHOTS, { recursive: true });
@@ -345,7 +346,7 @@ async function assertOneH1(page: Page, label: string) {
 
 async function assertNoAxeViolations(page: Page, label: string) {
   const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .withTags(AXE_TAGS)
     .analyze();
   const detail = results.violations
     .map((v) => `[${v.impact}] ${v.id}: ${v.help}\n  ${v.nodes.map((n) => n.failureSummary?.replace(/\n/g, " ")).join("\n  ")}`)
@@ -377,7 +378,7 @@ async function recordStripeContrast(page: Page, variant: string, record: (r: Row
     await page.evaluate((n) => document.querySelectorAll("[data-status-stripe]")[n]?.setAttribute("data-probe", "1"), i);
     const results = await new AxeBuilder({ page })
       .include("[data-probe]")
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .withTags(AXE_TAGS)
       .analyze();
     const scan = (bucket: unknown[], outcome: string) => {
       for (const rule of bucket as { id: string; nodes: { any: { data?: Record<string, unknown> }[] }[] }[]) {

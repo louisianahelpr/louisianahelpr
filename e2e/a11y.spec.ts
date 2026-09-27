@@ -1,5 +1,6 @@
 import { test, expect } from "./prodTest";
 import AxeBuilder from "@axe-core/playwright";
+import { AXE_TAGS } from "./happy-path/axeTags";
 
 // Accessibility sweep on the two highest-friction public surfaces:
 // /signup (every new user must clear it) and /post (the core action
@@ -23,7 +24,7 @@ const skippedRules = STRICT ? [] : ["color-contrast", "region"];
 async function runAxe(page: import("@playwright/test").Page, surfaceName: string) {
   const results = await new AxeBuilder({ page })
     .disableRules(skippedRules)
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .withTags(AXE_TAGS)
     .analyze();
 
   const critical = results.violations.filter(

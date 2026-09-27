@@ -23,6 +23,15 @@
  *      helper). Titles copied from another row (charge-recurring-visits copies
  *      the parent's) are already inside the CHECK.
  *
+ *   4. Raw SQL writers (`INSERT INTO [public.]jobs (...) VALUES|SELECT`) in
+ *      CI workflows, scripts, supabase/seed*.sql and e2e: a literal title or
+ *      description at the column's position fits. FOUND 2026-09-27: the first
+ *      db-deploy after the CHECK went red because db-smoke.yml's smoke insert
+ *      titled its job '[CI smoke] post-job trigger check' (33), and
+ *      supabase/seed.sql / seed-demo-data.sql held 9 more over 32.
+ *      src/test/pglite is out of scope: each of those loads hand-picked
+ *      migrations, never the CHECK.
+ *
  * e2e/happy-path is excluded: it mocks Supabase and never reaches Postgres.
  *
  * @mutate supabase/migrations/20260927211133_jobs_title_description_length_checks.sql | CHECK (char_length(title) <= 32) | CHECK (char_length(title) <= 40)
@@ -31,6 +40,8 @@
  * @mutate scripts/probes/completion-race.prod.mjs | title: fitJobTitle(`RACE-COMPLETE ${label} ${tag()}`), | title: `RACE-COMPLETE ${label} ${tag()}`,
  * @mutate e2e/journeys/abuse/idor-and-authz.spec.ts | fitJobTitle(`${E2E_TITLE_MARKER} idor ${runTag(runId, 7)}`) | `${E2E_TITLE_MARKER} idor ${runTag(runId, 7)}`
  * @mutate supabase/functions/str-ical-sync/index.ts | ${propName}`).slice(0, 32) | ${propName}`).slice(0, 40)
+ * @mutate .github/workflows/db-smoke.yml | '[CI smoke] post-job triggers', | '[CI smoke] post-job trigger check',
+ * @mutate supabase/seed.sql | 'QA: Payout pending past due', | 'QA: Payout pending well past its scheduled time',
  */
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
@@ -154,6 +165,88 @@ const NOT_A_JOB_TITLE = new Set<string>([
   `supabase/functions/charge-recurring-visits/index.ts|"We couldn't charge for your next visit"`,
 ]);
 
+/** Split a SQL tuple body at top-level commas, up to its closing `)`. */
+function sqlTuple(s: string): { values: string[]; end: number } {
+  const values: string[] = [];
+  let depth = 0;
+  let inQuote = false;
+  let cur = "";
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inQuote) {
+      cur += c;
+      if (c === "'") {
+        if (s[i + 1] === "'") cur += s[++i];
+        else inQuote = false;
+      }
+      continue;
+    }
+    if (c === "'") inQuote = true;
+    else if (c === "(") depth++;
+    else if (c === ")") {
+      if (depth === 0) return { values: [...values, cur.trim()], end: i };
+      depth--;
+    } else if (c === "," && depth === 0) {
+      values.push(cur.trim());
+      cur = "";
+      continue;
+    }
+    cur += c;
+  }
+  return { values: [...values, cur.trim()], end: s.length };
+}
+
+interface SqlHit { file: string; line: number; column: string; length: number; text: string }
+
+const SQL_INSERT = /insert\s+into\s+(?:public\.)?"?jobs"?\s*\(([^)]*)\)\s*(values|select)\s*/gi;
+
+/** Every raw-SQL jobs insert in files that reach a Postgres carrying the CHECKs. */
+function sqlWriters(): { files: string[]; inserts: number; hits: SqlHit[] } {
+  const files = execFileSync("git", ["ls-files", ".github/workflows", "scripts", "supabase", "e2e"], { cwd: REPO, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => f && !f.startsWith("supabase/migrations/") && !f.startsWith("e2e/happy-path/"))
+    .filter((f) => /\.(?:ya?ml|sql|mjs|ts|js)$/.test(f) && !/\.d\.m?ts$/.test(f));
+  const hits: SqlHit[] = [];
+  const writers: string[] = [];
+  let inserts = 0;
+  for (const file of files) {
+    const code = readFileSync(join(REPO, file), "utf8");
+    let found = false;
+    for (const m of code.matchAll(SQL_INSERT)) {
+      const cols = m[1].split(",").map((c) => c.trim().replace(/"/g, "").toLowerCase());
+      const line = code.slice(0, m.index).split("\n").length;
+      let rest = code.slice(m.index + m[0].length);
+      const tuples: string[][] = [];
+      if (m[2].toLowerCase() === "values") {
+        while (/^\s*\(/.test(rest)) {
+          rest = rest.replace(/^\s*\(/, "");
+          const t = sqlTuple(rest);
+          tuples.push(t.values);
+          rest = rest.slice(t.end + 1);
+          if (!/^\s*,\s*\(/.test(rest)) break;
+          rest = rest.replace(/^\s*,/, "");
+        }
+      } else tuples.push(sqlTuple(rest).values);
+      if (cols.includes("title") || cols.includes("description")) {
+        found = true;
+        inserts++;
+      }
+      for (const [column, max] of [["title", JOB_TITLE_MAX], ["description", JOB_DESCRIPTION_MAX]] as const) {
+        const idx = cols.indexOf(column);
+        if (idx < 0) continue;
+        for (const t of tuples) {
+          const lit = /^'((?:[^']|'')*)'$/.exec(t[idx] ?? "");
+          if (!lit) continue;
+          const text = lit[1].replace(/''/g, "'");
+          if (charLength(text) > max) hits.push({ file, line, column, length: charLength(text), text });
+        }
+      }
+    }
+    if (found) writers.push(file);
+  }
+  return { files: writers, inserts, hits };
+}
+
 describe("Q782: every jobs writer fits jobs_title_length / jobs_description_length", () => {
   it("the newest CHECKs, the form and jobTextBounds agree", () => {
     const title = newestCheckBound("jobs_title_length", "title");
@@ -183,5 +276,15 @@ describe("Q782: every jobs writer fits jobs_title_length / jobs_description_leng
     expect(unexplained.map((h) => `${h.file}:${h.line} ${h.problem}: ${h.value}`)).toEqual([]);
     const stale = [...NOT_A_JOB_TITLE].filter((k) => !hits.some((h) => `${h.file}|${h.value}` === k));
     expect(stale, "NOT_A_JOB_TITLE entries that no longer match anything").toEqual([]);
+  });
+
+  it("raw SQL writers (CI smoke, seeds, probes) put a fitting literal title/description", () => {
+    const { files, inserts, hits } = sqlWriters();
+    // Floor, not a count: 2026-09-27 found these. Fewer means the scan stopped matching.
+    expect(files).toContain(".github/workflows/db-smoke.yml");
+    expect(files).toContain("supabase/seed.sql");
+    expect(files).toContain("scripts/ci/race-runner.mjs");
+    expect(inserts).toBeGreaterThan(20);
+    expect(hits.map((h) => `${h.file}:${h.line} ${h.column} is ${h.length} characters: ${h.text}`)).toEqual([]);
   });
 });

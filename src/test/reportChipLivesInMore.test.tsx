@@ -75,6 +75,7 @@ describe("every Report a Problem / Dispute chip on either card is keyed into Mor
   }
 
   it("finds both cards' chips (the inventory is not empty)", () => {
+    expect(found.length).toBeGreaterThan(1);
     expect(found.map((f) => f.file).sort()).toEqual([
       "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
       "src/pages/posts/postedJobCard/steps/InProgressStep.tsx",

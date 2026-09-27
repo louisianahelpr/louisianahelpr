@@ -743,6 +743,8 @@ export const GAPS: Record<string, string> = {
   "src/hooks/useComboboxKeyboard.ts": "false positive — a keyboard hook; the scanner matched `<input type=\"search\">` in a comment, it renders nothing",
   "src/components/postjob/CheckoutStep.tsx": "checkboxes only (save-card, confirm-details) — the 'input×1' is a comment naming the raw `<input type=\"checkbox\">` it replaced; no typed text",
   "src/components/DisputeTimelineDialog.tsx": "file input only (evidence upload) — no typed text",
+  "src/components/series/SeriesDatesPanel.tsx": "checkboxes only (visit dates to pick up or give up, Q407 5/6) — no typed text",
+  "src/components/schedule/ScheduleChangeControl.tsx": "a native date picker and time picker only (type=date / type=time, Q407 8), on a BOOKED one-time job the explore does not create — no typed text; the RPC refuses a past or unchanged date/time",
   // Reached only through a control the explore is FORBIDDEN to press.
   // `NEVER_PRESS` in harness.ts matches /delete (my )?account/, so the button
   // that opens this dialog is refused before the dialog can exist. That is not

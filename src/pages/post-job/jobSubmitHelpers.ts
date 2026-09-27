@@ -42,6 +42,8 @@ export interface BuildJobInsertPayloadInput {
   recurrenceDays?: number[];
   /** How many weeks the series runs. */
   recurrenceWeeks?: number;
+  /** Q407 (4): OK to split the days between Helprs (jobs.series_split_ok). */
+  seriesSplitOk?: boolean;
   isGroupJob: boolean;
   helpersNeeded: string;
   isUrgent: boolean;
@@ -106,6 +108,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     recurrenceEndDate,
     recurrenceDays,
     recurrenceWeeks,
+    seriesSplitOk,
     isGroupJob,
     helpersNeeded,
     isUrgent,
@@ -180,6 +183,11 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
       ? ({
           recurrence_days: seriesDays,
           recurrence_weeks: seriesWeeks,
+          // Sent ONLY when the poster chose to split: the column defaults to
+          // false (one Helpr for every visit), and a key the database does not
+          // have yet would fail the whole post in the minutes between the web
+          // deploy and db-deploy (20260925160645).
+          ...(seriesSplitOk ? { series_split_ok: true } : {}),
         } as Record<string, unknown>)
       : {}),
     // Group jobs are WITHDRAWN (see GROUP_JOBS_ENABLED in

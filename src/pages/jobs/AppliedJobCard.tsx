@@ -32,6 +32,10 @@ import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { helperStatusLine, withDisputeSettling } from "../../components/job-card/jobStatusLine";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
+import { EndSeriesControl } from "@/components/series/EndSeriesControl";
+import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
+import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
+import { formatJobDate } from "@/lib/dateUtils";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -847,10 +851,49 @@ function AppliedJobCardInner({
               {job.is_recurring && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <RefreshCw className="w-3 h-3 text-primary" />
-                  <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
+                  <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}{job.series_ended_on && ` · ended ${formatJobDate(job.series_ended_on)}`}</span>
+                  {/* The standing Helpr's way out of a running series parent:
+                      end_recurring_series called by a Helpr LEAVES the series
+                      (their upcoming dates go back to it; owner decision 6). */}
+                  {!job.parent_job_id && (job.recurrence_days?.length ?? 0) > 0 && !!userId &&
+                    job.recurring_helper_id === userId && job.helper_id === userId &&
+                    !job.series_ended_on && job.status !== "cancelled" && (
+                    <span className="ml-auto">
+                      <EndSeriesControl jobId={job.id} jobTitle={job.title} userId={userId} mode="leave" />
+                    </span>
+                  )}
                 </div>
               )}
+              {/* Visit dates: yours, and any you can pick (Q407 5/6). Renders
+                  nothing when the viewer has none and can pick none. */}
+              {job.is_recurring && !job.parent_job_id && (job.recurrence_days?.length ?? 0) > 0 &&
+                !!job.recurrence_weeks && !!job.date_needed && !job.series_ended_on && job.status !== "cancelled" && (
+                <SeriesDatesPanel
+                  inset={false}
+                  jobId={job.id}
+                  jobTitle={job.title}
+                  dateNeeded={job.date_needed}
+                  recurrenceDays={job.recurrence_days ?? []}
+                  recurrenceWeeks={job.recurrence_weeks}
+                  userId={userId ?? null}
+                  isPoster={false}
+                  firstHelpr={job.recurring_helper_id && job.recurring_helper_id === job.helper_id ? job.recurring_helper_id : null}
+                  splitOk={!!job.series_split_ok}
+                />
+              )}
             </div>
+          )}
+          {/* A booked one-time job's date/time changes only by a request the
+              person who posted it accepts (Q407 8). */}
+          {!!userId && job.helper_id === userId && job.status === "accepted" && !job.helper_completed_at &&
+            !job.parent_job_id && !(job.recurrence_days?.length) && !job.is_group_job && !!job.date_needed && (
+            <ScheduleChangeControl
+              jobId={job.id}
+              jobTitle={job.title}
+              userId={userId}
+              dateNeeded={job.date_needed}
+              startTime={job.start_time}
+            />
           )}
           {/* WHAT THIS CARD IS WAITING ON — one sentence, at the card's bottom
               edge (owner, 2026-09-19: "should show what we are waiting on...

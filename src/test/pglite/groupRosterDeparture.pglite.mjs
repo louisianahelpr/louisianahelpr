@@ -36,6 +36,7 @@ try {
   process.exit(2);
 }
 import { readFileSync, readdirSync } from "node:fs";
+import { loadTreeHelperCancel } from "./treeFunction.mjs";
 
 const mig = (f) =>
   readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8");
@@ -53,9 +54,11 @@ const NEWEST = {
   helper_award_block_reason: "20260908001056_identity_always_required.sql",
   enforce_helper_award_gate: "20260915101102_null_uid_is_not_server.sql",
   enforce_job_funded_before_award: "20260915101102_null_uid_is_not_server.sql",
-  enforce_helper_jobs_column_whitelist: "20260915101102_null_uid_is_not_server.sql",
+  // 20260925052841 (recurring series end, docs/OPEN.md Q403) sorts before
+  // this migration and restates these two with the app.series_end_rpc flag.
+  enforce_helper_jobs_column_whitelist: "20260925052841_recurring_series_end.sql",
   enforce_hire_columns_rpc_only: "20260924044812_recurring_helper_rpc_only.sql",
-  enforce_ban_gate: "20260923185224_ban_enforcement_everywhere.sql",
+  enforce_ban_gate: "20260925052841_recurring_series_end.sql",
   enforce_poster_jobs_money_lock: "20260915101102_null_uid_is_not_server.sql",
   prevent_job_field_escalation: "20260915101102_null_uid_is_not_server.sql",
   enforce_job_status_transition: "20260828020000_cancellation_requires_rpc.sql",
@@ -342,6 +345,12 @@ for (let i = 1; i <= times; i++) {
   }
 }
 console.log("\n── AFTER (migration applied) ────────────────────────────────────");
+// --tree (docs/OPEN.md Q414): run the AFTER cases on helper_cancel_booking
+// as the WHOLE migrations tree leaves it, so a later restatement that drops
+// this proof's crew branch is red here (src/test/pglite/treeFunction.mjs).
+if (process.argv.includes("--tree")) {
+  console.log(`--tree: helper_cancel_booking from ${await loadTreeHelperCancel(db)}`);
+}
 
 // D1
 await seed({ status: "open", funded: true, members: [LEAD, M2, M3], needed: 4 });

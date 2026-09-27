@@ -53,6 +53,24 @@ describe("SQL cancel paths price the fee on commitment, not assignment", () => {
     expect(callers.length).toBeGreaterThanOrEqual(2);
   });
 
+  /**
+   * Cancel paths whose commitment is NOT helper_confirmed_at, each with why.
+   * Exact both ways (an entry that stops calling the ladder fails below).
+   */
+  const COMMITTED_OTHERWISE: Record<string, string> = {
+    // 20260925160645 (Q407 6): the strike for handing back series visit dates.
+    // Its only callers hand back dates the caller HOLDS (series_visit_holds):
+    // a hold exists only after the Helpr confirmed the series (one person,
+    // trg_series_holds_on_hire fires on the confirmation stamp) or picked the
+    // date themselves (claim_series_dates). The hold is the commitment; the
+    // call passes `true` for it, never the assignment test.
+    series_give_up_strike: "a series visit date is committed by its hold, not by helper_confirmed_at",
+  };
+
+  it("the COMMITTED_OTHERWISE list is exact (every entry still calls the ladder)", () => {
+    expect(Object.keys(COMMITTED_OTHERWISE).filter((n) => !callers.some((c) => c.name === n))).toEqual([]);
+  });
+
   it.each(callers.map((c) => [c.name, c] as const))("%s gates the ladder on helper_confirmed_at", (_name, c) => {
     for (const call of c.calls) {
       expect(
@@ -60,6 +78,7 @@ describe("SQL cancel paths price the fee on commitment, not assignment", () => {
         `${c.name} (${c.file}) calls ${call.fn}(${call.arg}, …) — assignment is not commitment`,
       ).toBe(false);
     }
+    if (COMMITTED_OTHERWISE[c.name]) return;
     expect(/\bhelper_confirmed_at\b/.test(c.body), `${c.name} (${c.file}) never reads helper_confirmed_at`).toBe(true);
   });
 });

@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { WEEKDAY_LABELS, upcomingVisitDates, visitCount } from "@/lib/recurringSchedule";
+import { WEEKDAY_LABELS, recurringVisitDates } from "@/lib/recurringSchedule";
 import { formatJobDate } from "@/lib/dateUtils";
+import { todayYmd } from "@/lib/jobDate";
+import { EndSeriesControl } from "@/components/series/EndSeriesControl";
 
 /**
  * SeriesStrip — the recurring series, made visible (owner, 2026-08-24: the
@@ -49,12 +51,22 @@ export function SeriesStrip({
   recurrenceWeeks,
   dateNeeded,
   seriesHelperCommitted,
+  seriesEndedOn = null,
+  canEnd = false,
+  jobTitle = null,
+  userId = null,
 }: {
   jobId: string;
   recurrenceDays: number[] | null | undefined;
   recurrenceWeeks: number | null | undefined;
   dateNeeded: string | null;
   seriesHelperCommitted: boolean;
+  /** jobs.series_ended_on: the last date an ended series runs; null = running. */
+  seriesEndedOn?: string | null;
+  /** Show "End series" (a running series the viewer is a party to). */
+  canEnd?: boolean;
+  jobTitle?: string | null;
+  userId?: string | null;
 }) {
   const isSeries = !!recurrenceDays && recurrenceDays.length > 0 && !!recurrenceWeeks;
 
@@ -74,14 +86,21 @@ export function SeriesStrip({
 
   if (!isSeries || !dateNeeded) return null;
 
-  const total = visitCount(dateNeeded, recurrenceDays!, recurrenceWeeks!);
+  const allDates = recurringVisitDates(dateNeeded, recurrenceDays!, recurrenceWeeks!);
   // +1: the parent row IS the first visit; children are the rest.
-  const created = Math.min(total, (createdCount ?? 0) + 1);
-  // UTC, deliberately — `charge-recurring-visits` compares against `todayUtc()`,
-  // so the client has to answer "is this visit inside the funding horizon?" on
-  // the same calendar the cron does.
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = upcomingVisitDates(dateNeeded, recurrenceDays!, recurrenceWeeks!).filter((d) => d >= today);
+  const createdVisits = (createdCount ?? 0) + 1;
+  // An ENDED series gets no new visit at all (the cron skips it and the DB
+  // refuses the insert), so its total is the visits that exist — not the
+  // schedule's dates through series_ended_on, which would count a gap the
+  // cron failed to fund earlier as a visit still to come.
+  const total = seriesEndedOn ? createdVisits : allDates.length;
+  const created = Math.min(total, createdVisits);
+  // Today in America/Chicago. The cron runs at 06:06 UTC (00:06 CST / 01:06
+  // CDT), so the run for date D happens early on Chicago day D: a charge dated
+  // today has run, one dated tomorrow has not. The UTC date runs ahead of that
+  // from 18:00 CST / 19:00 CDT to midnight and would skip tomorrow's charge.
+  const today = todayYmd();
+  const upcoming = allDates.slice(1).filter((d) => d >= today);
   const next = upcoming.length > 0 ? upcoming[0] : null;
   // The next visit whose charge has NOT already been attempted. Everything
   // inside the horizon was funded on an earlier run, so its money has already
@@ -108,7 +127,9 @@ export function SeriesStrip({
         <span className="truncate">
           <span className="font-semibold">{dayList} × {recurrenceWeeks} wk{recurrenceWeeks === 1 ? "" : "s"}</span>
           {" · "}{created}/{total} visits
-          {next
+          {seriesEndedOn
+            ? " · ended, no new visits"
+            : next
             ? seriesHelperCommitted
               ? nextFundDate
                 ? ` · next funds ${formatJobDate(nextFundDate)}`
@@ -119,6 +140,11 @@ export function SeriesStrip({
               : " · paused until a Helpr books"
             : " · complete"}
         </span>
+        {canEnd && !seriesEndedOn && next && (
+          <span className="ml-auto">
+            <EndSeriesControl jobId={jobId} jobTitle={jobTitle} userId={userId} />
+          </span>
+        )}
       </p>
     </div>
   );

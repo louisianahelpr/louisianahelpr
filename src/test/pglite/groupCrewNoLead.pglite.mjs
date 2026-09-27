@@ -45,6 +45,7 @@ try {
   process.exit(2);
 }
 import { readFileSync, readdirSync } from "node:fs";
+import { loadTreeHelperCancel } from "./treeFunction.mjs";
 
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const mig = (f) => readFileSync(DIR + f, "utf8");
@@ -467,6 +468,12 @@ for (let i = 1; i <= times; i++) {
 }
 failuresTableExists = !!(await one(`SELECT to_regclass('public.crew_cancellation_fee_shares') AS t`)).t;
 console.log("\n── AFTER (migration applied) ────────────────────────────────────");
+// --tree (docs/OPEN.md Q414): run the AFTER cases on helper_cancel_booking
+// as the WHOLE migrations tree leaves it, so a later restatement that drops
+// this proof's crew branch is red here (src/test/pglite/treeFunction.mjs).
+if (process.argv.includes("--tree")) {
+  console.log(`--tree: helper_cancel_booking from ${await loadTreeHelperCancel(db)}`);
+}
 
 const legacy = await all(`SELECT j.id, j.helper_id,
     (SELECT array_agg(g.helper_id::text ORDER BY g.helper_id) FROM public.group_job_helpers g WHERE g.job_id = j.id) AS roster

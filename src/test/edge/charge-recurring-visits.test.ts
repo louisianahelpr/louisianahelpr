@@ -7,12 +7,11 @@
  * organised around the four ways it can move it WRONGLY, each of which was live
  * in the source before this pass:
  *
- *   1. A dropped Supabase `error` on the `recurring_visit_releases` read. An
- *      errored read produced `data: null`, which collapsed to an empty Set,
- *      which is indistinguishable from "the helper released nothing" — so the
- *      poster was charged and a helper booked onto a date they had explicitly
- *      given up. Somebody drives to a house on a morning they said they could
- *      not work.
+ *   1. A dropped Supabase `error` on a pre-flight read. An errored read
+ *      produced `data: null`, which collapsed to an empty Set. It was the
+ *      `recurring_visit_releases` read; since 20260925160645 the per-date
+ *      HOLDER comes from `series_visit_holds` (a date nobody holds is not
+ *      charged), and a failed holds read skips the series as a defect.
  *
  *   2. An unbounded, unordered series scan. PostgREST caps a read at
  *      `db-max-rows = 1000` AFTER the ORDER BY (measured against prod
@@ -49,17 +48,36 @@
 // Registered mutations - each turns this guard RED on its own:
 //   A per-call idempotency key means the retry after a no-answer failure is a
 //   SECOND real charge instead of Stripe replaying the first.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | `recurring-visit:${parent.id}:${visitDate}`, | `recurring-visit:${parent.id}:${visitDate}:${Math.random()}`,
-//   Q356: the cron books a standing helper nobody hired.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | if (!parent.helper_id \|\| parent.recurring_helper_id !== parent.helper_id) { | if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts | `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, | `recurring-visit:${parent.id}:${visitDate}:${hold.id}:${Math.random()}`,
+//   20260925160645: the cron charges a date nobody holds / books someone other than its holder.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!hold) { |         if (false && !hold) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |             helper_id: holderId, |             helper_id: parent.recurring_helper_id,
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (holdsRes.error) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, |           `recurring-visit:${parent.id}:${visitDate}`,
+//   Money audit 2026-09-25: chargeback, pre-charge re-read, holder changed mid-run.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if ((chargebackRes.data ?? []).length > 0) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (parent.payment_status === "chargeback" \|\| parent.dispute_status === "stripe_chargeback") { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |         if ((liveParent.data as { series_ended_on: string \| null }).series_ended_on) { |         if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!nowHold \|\| nowHold.id !== hold.id \|\| nowHold.helper_id !== holderId) { |         if (!nowHold) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           if (holderChangedMidRun) { |           if (false) {
 //   Q347: the cron books and charges across a block.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | if (blocked === true) { | if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |         if (blocked === true) blockedHolders.add(helperId); |         if (false) blockedHolders.add(helperId);
+//   Review 2026-09-25: the cron charges a banned poster / books a banned Helpr.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (banned.ids.has(parent.customer_id as string)) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |         if (banned.ids.has(holderId)) { |         if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (banned.error) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |     if (status === "temp_banned" && row.auto_suspended_until && Date.parse(row.auto_suspended_until) <= now) continue; |     if (false) continue;
 //   Q347: an unknown block answer books anyway.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (blockErr) { | if (false) {
 //   ME-014: tax charged on a visit never reaches Stripe Tax's filing reports.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (taxCalculationId && taxCents > 0) { |         if (false) {
 //   ME-014: the fee floor ignores the tax on the same charge.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | posterServiceFeeCents(budgetCents, feePercent, taxCents); | posterServiceFeeCents(budgetCents, feePercent, 0);
+// Ended series: dropping the ended check funds a gap (or any date) after the series ended.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (parent.series_ended_on) { |       if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
+// Ended mid-run: a refunded series_ended refusal is reported as a defect (red run for a designed outcome).
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seriesEndedMidRun) { |           if (false) {
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -75,8 +93,10 @@ const HELPER_ID = "helper-1";
 const POSTER_ID = "poster-1";
 /** The visit these tests follow through its three-run funding window. */
 const VISIT_DATE = "2026-09-04";
-/** `recurring-visit:<series>:<date>` — the key whose reach is 24h, not 3 days. */
-const CHARGE_KEY = `recurring-visit:${PARENT_ID}:${VISIT_DATE}`;
+/** The claim of VISIT_DATE by HELPER_ID (series_visit_holds.id). */
+const HOLD_ID = "hold-1";
+/** `recurring-visit:<series>:<date>:<claim>` — the key whose reach is 24h, not 3 days. */
+const CHARGE_KEY = `recurring-visit:${PARENT_ID}:${VISIT_DATE}:${HOLD_ID}`;
 
 /** A series parent that has exactly one due visit inside the window. */
 function seriesParent(overrides: Record<string, unknown> = {}) {
@@ -141,20 +161,35 @@ function wireJobsReads(opts: {
   series: TableResult;
   existing?: TableResult;
   winner?: TableResult;
+  chargeback?: TableResult;
+  live?: TableResult;
 }) {
+  const firstSeries = (opts.series.rows ?? [])[0] as Record<string, unknown> | undefined;
   scenario.reads.jobs = {
     ...(opts.existing ?? { rows: [] }),
     selectOverrides: [
       { includes: "recurrence_days", result: opts.series },
       { includes: "stripe_payment_intent_id", result: opts.winner ?? { rows: [] } },
+      // The chargeback check on the series' visits.
+      { includes: "dispute_status", result: opts.chargeback ?? { rows: [] } },
+      // The pre-charge re-read of the parent (money audit LOW-10).
+      {
+        includes: "id, series_ended_on",
+        result: opts.live ?? { rows: [{ id: firstSeries?.id ?? PARENT_ID, series_ended_on: firstSeries?.series_ended_on ?? null }] },
+      },
     ],
   };
+}
+
+/** Who holds which date (series_visit_holds). Default: HELPER_ID holds VISIT_DATE. */
+function wireHolds(rows: Array<{ id: string; visit_date: string; helper_id: string }> | { error: { message: string; code: string } }) {
+  scenario.reads.series_visit_holds = Array.isArray(rows) ? { rows } : rows;
 }
 
 /** The happy-path world: one due visit, no releases, a poster with one card. */
 function seedHappyPath() {
   wireJobsReads({ series: { rows: [seriesParent()] } });
-  scenario.reads.recurring_visit_releases = { rows: [] };
+  wireHolds([{ id: HOLD_ID, visit_date: VISIT_DATE, helper_id: HELPER_ID }]);
   scenario.reads.profiles = {
     rows: [{ email: "poster@example.com", subscription_tier: null, subscription_expires_at: null }],
   };
@@ -275,45 +310,128 @@ describe("charge-recurring-visits edge function", () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Finding 1 — the dropped `recurring_visit_releases` error
+  // Finding 1, now per HOLDER (20260925160645): a date nobody holds is not charged
   // ═══════════════════════════════════════════════════════════════════════
 
-  it("does not charge for a date the helper released", async () => {
+  it("does not charge for a date nobody holds (never picked, or given up and not picked up)", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
-    scenario.reads.recurring_visit_releases = { rows: [{ visit_date: VISIT_DATE }] };
+    wireHolds([]);
 
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
 
-    expect(b.skippedReleased).toBe(1);
+    expect(b.skippedUnfilled).toBe(1);
     expect(b.funded).toBe(0);
+    expect(b.errors).toBe(0);
     expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
     expect(insertedVisits()).toHaveLength(0);
   });
 
-  it("skips the whole series when the releases read FAILS — never charges into an empty release set", async () => {
+  it("books and pays the date's HOLDER, not the series' first Helpr", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
-    // The exact shape the bug needed: the read errors, so `data` is null. With
-    // the error destructured away that collapsed to "nothing was released".
-    scenario.reads.recurring_visit_releases = {
-      error: { message: "connection reset by peer", code: "08006" },
+    // A split series: the first hired Helpr is HELPER_ID, the date is held by another.
+    wireHolds([{ id: "hold-9", visit_date: VISIT_DATE, helper_id: "helper-2" }]);
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(b.funded).toBe(1);
+    const [charge, opts] = stripeMock.paymentIntents.create.mock.calls[0];
+    expect(charge.metadata.helper_id).toBe("helper-2");
+    expect(opts.idempotencyKey).toBe(`recurring-visit:${PARENT_ID}:${VISIT_DATE}:hold-9`);
+    expect((insertedVisits()[0]?.payload as Record<string, unknown>).helper_id).toBe("helper-2");
+    const app = scenario.writes.find((w) => w.table === "applications");
+    expect((app?.payload as Record<string, unknown>).helper_id).toBe("helper-2");
+    const notes = scenario.writes.filter((w) => w.table === "notifications").flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload])) as Array<Record<string, unknown>>;
+    expect(notes.map((n) => n.user_id)).toContain("helper-2");
+    expect(notes.map((n) => n.user_id)).not.toContain(HELPER_ID);
+  });
+
+  it("skips the whole series when the holds read FAILS — a defect, never a guess", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireHolds({ error: { message: "connection reset by peer", code: "08006" } });
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+    expect(b.funded).toBe(0);
+    expect(res.status).toBe(500);
+    expect(b.ok).toBe(false);
+    expect(reasons(b)).toContain("holds read failed");
+    expect(reasons(b)).toContain(PARENT_ID);
+  });
+
+  it("a chargeback on the parent or on any visit stops the series (money audit MEDIUM-7)", async () => {
+    for (const setup of ["parent", "visit"] as const) {
+      resetStripeMock();
+      resetSupabaseMock();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      if (setup === "parent") {
+        wireJobsReads({ series: { rows: [seriesParent({ dispute_status: "stripe_chargeback" })] } });
+      } else {
+        wireJobsReads({ series: { rows: [seriesParent()] }, chargeback: { rows: [{ id: "visit-0", payment_status: "chargeback" }] } });
+      }
+      const res = await runOn(fn, "2026-09-01");
+      const b = await body(res);
+      expect(b.skippedChargeback).toBe(1);
+      expect(b.funded).toBe(0);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it("re-reads right before charging: ended or changed hands since the scan means no charge (money audit LOW-10)", async () => {
+    for (const change of ["ended", "handed"] as const) {
+      resetStripeMock();
+      resetSupabaseMock();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      if (change === "ended") {
+        wireJobsReads({ series: { rows: [seriesParent()] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-09-01" }] } });
+      } else {
+        // The scan saw hold-1; by the charge the date was given up and re-claimed.
+        scenario.reads.series_visit_holds = {
+          rows: [{ id: HOLD_ID, visit_date: VISIT_DATE, helper_id: HELPER_ID }],
+          selectOverrides: [],
+        };
+        const orig = scenario.reads.series_visit_holds;
+        let n = 0;
+        scenario.reads.series_visit_holds = new Proxy(orig, {
+          get(t, k) {
+            if (k === "rows") return n++ === 0 ? orig.rows : [{ id: "hold-2", visit_date: VISIT_DATE, helper_id: "helper-2" }];
+            return Reflect.get(t, k);
+          },
+        });
+      }
+      const res = await runOn(fn, "2026-09-01");
+      const b = await body(res);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(b.funded).toBe(0);
+      expect(change === "ended" ? b.skippedEnded : b.skippedUnfilled).toBe(1);
+    }
+  });
+
+  it("a date that changed hands after the charge: the refused insert is refunded, and it is not a defect", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.writeErrors.jobs = {
+      message: `series_date_unheld: ${PARENT_ID} on ${VISIT_DATE} is not held by this Helpr`,
+      code: "23514",
     };
 
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
 
-    // NO money moved, and no visit was booked onto a possibly-released date.
-    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
-    expect(insertedVisits()).toHaveLength(0);
-    expect(b.funded).toBe(0);
-
-    // And the run says so, loudly enough for the cron sweep to page.
-    expect(res.status).toBe(500);
-    expect(b.ok).toBe(false);
-    expect(reasons(b)).toContain("release read failed");
-    expect(reasons(b)).toContain(PARENT_ID);
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(200);
+    expect(b.skippedUnfilled).toBe(1);
+    expect(b.errors).toBe(0);
   });
 
   it("skips the series when the existing-visit read FAILS — an empty set must not read as 'no visit yet'", async () => {
@@ -845,32 +963,20 @@ describe("charge-recurring-visits edge function", () => {
     expect(call?.args).toEqual({ _user_a: POSTER_ID, _user_b: HELPER_ID });
   });
 
-  it("skips (and reports) a series whose recurring_helper_id is not the helper hired on it", async () => {
+  it("books nobody when the series' recurring_helper_id points at a stranger but no hold names them (Q356 moved to the holds)", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
     // The Q356 attack shape: recurring_helper_id pointed at someone who never
-    // applied, while the parent's hired helper is someone else.
+    // applied. Holds are written only by definer RPCs, so the stranger holds
+    // nothing and nothing is booked for them.
     wireJobsReads({ series: { rows: [seriesParent({ recurring_helper_id: "stranger-9" })] } });
+    wireHolds([]);
 
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
 
     expectNothingBooked(b);
-    expect(b.skippedUnhired).toBe(1);
-    expect(res.status).toBe(500);
-    expect(reasons(b)).toContain(`series ${PARENT_ID}: recurring_helper_id does not match the parent helper_id`);
-  });
-
-  it("skips a series whose parent has no hired helper at all", async () => {
-    const fn = await loadConfigured();
-    seedHappyPath();
-    wireJobsReads({ series: { rows: [seriesParent({ helper_id: null })] } });
-
-    const res = await runOn(fn, "2026-09-01");
-    const b = await body(res);
-
-    expectNothingBooked(b);
-    expect(b.skippedUnhired).toBe(1);
+    expect(b.skippedUnfilled).toBe(1);
   });
 
   it("skips a series across a block: no charge, no booking, not a defect", async () => {
@@ -884,6 +990,61 @@ describe("charge-recurring-visits edge function", () => {
     expectNothingBooked(b);
     expect(b.skippedBlocked).toBe(1);
     expect(res.status).toBe(200);
+  });
+
+  it("skips a series whose poster or standing Helpr is banned: no charge, no booking, not a defect (review 2026-09-25)", async () => {
+    for (const who of [POSTER_ID, HELPER_ID]) {
+      resetStripeMock();
+      resetSupabaseMock();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      scenario.reads.profiles = {
+        ...scenario.reads.profiles,
+        selectOverrides: [
+          { includes: "ban_status", result: { rows: [{ user_id: who, ban_status: "permanently_banned", auto_suspended_until: null }] } },
+        ],
+      };
+
+      const res = await runOn(fn, "2026-09-01");
+      const b = await body(res);
+
+      expectNothingBooked(b);
+      expect(b.skippedBanned).toBe(1);
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it("a LAPSED temp ban does not skip the series", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.reads.profiles = {
+      ...scenario.reads.profiles,
+      selectOverrides: [
+        { includes: "ban_status", result: { rows: [{ user_id: HELPER_ID, ban_status: "temp_banned", auto_suspended_until: "2026-08-01T00:00:00Z" }] } },
+      ],
+    };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(b.funded).toBe(1);
+    expect(b.skippedBanned).toBe(0);
+  });
+
+  it("skips the series when the ban check itself fails — an unknown answer never books", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.reads.profiles = {
+      ...scenario.reads.profiles,
+      selectOverrides: [{ includes: "ban_status", result: { error: { message: "connection reset", code: "08006" } } }],
+    };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expectNothingBooked(b);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("ban check failed");
   });
 
   it("skips the series when the block check itself fails — an unknown answer never books", async () => {
@@ -932,5 +1093,94 @@ describe("charge-recurring-visits edge function", () => {
     const [charge] = stripeMock.paymentIntents.create.mock.calls[0];
     expect(posterServiceFeeCents(200, pct, 20)).not.toBe(posterServiceFeeCents(200, pct, 0));
     expect(charge.amount).toBe(200 + 20 + posterServiceFeeCents(200, pct, 20));
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Ended series — end_recurring_series sets series_ended_on
+  // ═══════════════════════════════════════════════════════════════════════
+
+  it("funds nothing after an ENDED series' last date: no charge, no visit, not a defect", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // Ended the day before the one due visit.
+    wireJobsReads({ series: { rows: [seriesParent({ series_ended_on: "2026-09-03" })] } });
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.ok).toBe(true);
+    expect(b.seriesConsidered).toBe(1);
+    expect(b.funded).toBe(0);
+    expect(b.errors).toBe(0);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+  });
+
+  it("funds NOTHING for an ended series, even a gap dated on or before its end (review 2026-09-25)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // The end date is at or after the last created visit, so VISIT_DATE with no
+    // visit is a gap the cron failed to fund earlier. Ending must stop it too.
+    wireJobsReads({ series: { rows: [seriesParent({ series_ended_on: VISIT_DATE })] } });
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.funded).toBe(0);
+    expect(b.skippedEnded).toBe(1);
+    expect(b.errors).toBe(0);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    // Skipped before any work for the series, not caught by the pre-charge re-read.
+    expect(stripeMock.customers.list).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+  });
+
+  it("a series ended after this run read it: the refused visit is refunded and the run stays green", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    // trg_series_visit_within_end's refusal, as PostgREST returns it.
+    scenario.writeErrors.jobs = {
+      message: "series_ended: the series ended on 2026-09-03; no new visit (2026-09-04)",
+      code: "23514",
+    };
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][1].idempotencyKey).toBe("recurring-visit-refund:pi_day1");
+    expect(res.status).toBe(200);
+    expect(b.errors).toBe(0);
+    expect(b.skippedEnded).toBe(1);
+    expect(b.funded).toBe(0);
+  });
+
+  it("a series ended mid-run whose refund FAILS is still a defect", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.writeErrors.jobs = {
+      message: "series_ended: the series ended on 2026-09-03; no new visit (2026-09-04)",
+      code: "23514",
+    };
+    stripeMock.refunds.create.mockRejectedValue(new Error("stripe down"));
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("visit insert failed after charge");
+  });
+
+  it("the booking notification names the Helpr's real way out (no per-date release control exists)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+
+    await runOn(fn, "2026-09-01");
+    const notes = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert");
+    const text = JSON.stringify(notes.map((n) => n.payload));
+    expect(text).toContain("Cancel this visit from My Jobs");
+    expect(text).not.toMatch(/Release the date/i);
   });
 });

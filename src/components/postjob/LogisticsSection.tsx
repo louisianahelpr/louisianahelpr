@@ -112,6 +112,9 @@ interface LogisticsSectionProps {
   setRecurrenceDays: (v: number[]) => void;
   recurrenceWeeks: number;
   setRecurrenceWeeks: (v: number) => void;
+  /** Q407 (4): one Helpr for every visit, or OK to split the days. */
+  seriesSplitOk: boolean;
+  setSeriesSplitOk: (v: boolean) => void;
   isGroupJob: boolean;
   setIsGroupJob: (v: boolean) => void;
   helpersNeeded: string;
@@ -166,6 +169,8 @@ export function LogisticsSection({
   setRecurrenceDays,
   recurrenceWeeks,
   setRecurrenceWeeks,
+  seriesSplitOk,
+  setSeriesSplitOk,
   isGroupJob,
   setIsGroupJob,
   helpersNeeded,
@@ -360,6 +365,8 @@ export function LogisticsSection({
             setWeeks={setRecurrenceWeeks}
             startDate={dateNeeded}
             budget={budgetNum}
+            splitOk={seriesSplitOk}
+            setSplitOk={setSeriesSplitOk}
           />
         )}
 

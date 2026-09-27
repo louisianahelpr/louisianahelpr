@@ -258,10 +258,12 @@ serve(async (req) => {
   const results = {
     seriesConsidered: 0,
     funded: 0,
-    skippedReleased: 0,
+    skippedUnfilled: 0,
     skippedExisting: 0,
-    skippedUnhired: 0,
     skippedBlocked: 0,
+    skippedEnded: 0,
+    skippedBanned: 0,
+    skippedChargeback: 0,
     declined: 0,
     errors: 0,
     capped: false,
@@ -287,9 +289,11 @@ serve(async (req) => {
     defects.record(reason);
   };
 
-  // Active series: a day-set, a standing helper, and not cancelled. No standing
-  // helper means nobody has accepted the first visit yet — there is nothing to
-  // fund, because we never charge for a visit nobody is committed to.
+  // Active series: a day-set and not cancelled. Each visit date is funded only
+  // when a Helpr HOLDS it (series_visit_holds, 20260925160645): the Helpr hired
+  // on a one-person series holds every date, a split series' Helprs hold the
+  // dates they picked. A date nobody holds is never charged, because we never
+  // charge for a visit nobody is committed to.
   //
   // PAGED, ORDERED AND COUNT-CHECKED. This is the one read here whose result
   // set has no natural bound — every filter on it is satisfied by more rows as
@@ -324,15 +328,23 @@ serve(async (req) => {
     supabase
       .from("jobs")
       .select(
-        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status",
+        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status",
         countOpt,
       )
       // Offset paging over an unordered result is sampling, not paging.
       .order("id", { ascending: true })
       .gte("date_needed", addDays(today, -SERIES_LOOKBACK_DAYS))
       .not("recurrence_days", "is", null)
-      .not("recurring_helper_id", "is", null)
+      // NOT filtered on recurring_helper_id any more (20260925160645): who is
+      // booked on a date is the date's HOLDER in series_visit_holds, and a
+      // split series can have holders after its first Helpr has left. A series
+      // nobody holds a date on has no holds and funds nothing.
       .is("parent_job_id", null)
+      // A series whose poster deleted their account has customer_id NULL
+      // (purge_user_data anonymises, it does not cancel). Nobody is left to
+      // charge or to notify, so it is out of scope rather than a daily
+      // "poster profile unreadable" defect.
+      .not("customer_id", "is", null)
       // jobs.status is the `job_status` ENUM, and its ONLY members are: open,
       // accepted, in_progress, completed, cancelled, revision_requested,
       // disputed, pending_approval. This filter previously named 'expired',
@@ -390,53 +402,45 @@ serve(async (req) => {
       // second, separately-charged job for a visit the poster already funded at
       // checkout.
       const parentDate = parent.date_needed as string;
+      //
+      // An ENDED series (end_recurring_series set `series_ended_on`) gets no new
+      // visit at all, whatever the date. Not "nothing after the end date": the
+      // end date is at or after the last created visit, so the only dates at or
+      // before it with no visit are GAPS this cron failed to fund earlier (a
+      // declined card, no saved card), and funding one after the end charged the
+      // poster for a series they had just ended (money/authz review
+      // 2026-09-25). trg_series_visit_within_end refuses any new visit of an
+      // ended series too, so a run that read the series just before it ended is
+      // refunded by the insert-failure branch below.
+      if (parent.series_ended_on) {
+        results.skippedEnded++;
+        continue;
+      }
       const due = dates.filter((d) => d > parentDate && d > today && d <= horizon);
       if (due.length === 0) continue;
 
-      // ── Q356/Q347: the standing helper must be the one HIRED, and not blocked ──
-      //
-      // Everything below books `recurring_helper_id` onto a visit (helper_id,
-      // status accepted, an accepted application) and charges the poster for
-      // it, as the service role, past every trigger. So the column is a hire,
-      // and this cron is the last place to refuse a bad one:
-      //
-      //   * It must equal the parent's own helper_id. The only legitimate
-      //     writer (stamp_recurring_series_helper) copies helper_id, which only
-      //     a hire RPC can set. Anything else was pointed at someone who never
-      //     applied or agreed — the direct-PATCH door 20260924044812 closed, or
-      //     a row written before it. A mismatch is a defect (it pages): after
-      //     the DB fix it cannot happen honestly.
-      //   * The pair must not be blocked. Hiring RPCs refuse across a block
-      //     (Q345), but block_user_and_settle does not end a series, so without
-      //     this the cron keeps putting a blocked person on the poster's
-      //     doorstep and charging for it. Skipped quietly: a block is a real
-      //     state, not a fault.
-      //
-      // Either way: no charge, no job, no application, no notification.
-      if (!parent.helper_id || parent.recurring_helper_id !== parent.helper_id) {
-        console.warn(
-          `[charge-recurring-visits] series ${parent.id}: recurring_helper_id is not the helper hired on the series; skipping (no charge, no visit)`,
-        );
-        results.skippedUnhired++;
-        fail(`series ${parent.id}: recurring_helper_id does not match the parent helper_id; skipped`);
+      // ── A chargeback stops the series (money audit 2026-09-25, MEDIUM-7) ──
+      // A poster who disputed a charge with their bank must not keep being
+      // charged off-session for the next visits. The parent or any visit
+      // under a chargeback skips the whole series; an unreadable answer skips
+      // it too (fail closed) and is a defect.
+      if (parent.payment_status === "chargeback" || parent.dispute_status === "stripe_chargeback") {
+        results.skippedChargeback++;
         continue;
       }
-      const { data: blocked, error: blockErr } = await supabase.rpc("are_users_blocked", {
-        _user_a: parent.customer_id,
-        _user_b: parent.recurring_helper_id,
-      });
-      if (blockErr) {
-        // No safe default: an unknown answer must not book a possibly-blocked
-        // person. The window reopens tomorrow.
-        console.error(`[charge-recurring-visits] block check failed for series ${parent.id}; skipping the series`, blockErr);
-        fail(`series ${parent.id}: block check failed (${blockErr.message})`);
+      const chargebackRes = await supabase
+        .from("jobs")
+        .select("id, payment_status, dispute_status")
+        .eq("parent_job_id", parent.id)
+        .or("payment_status.eq.chargeback,dispute_status.eq.stripe_chargeback")
+        .limit(1);
+      if (chargebackRes.error) {
+        console.error(`[charge-recurring-visits] chargeback check failed for series ${parent.id}; skipping the series`, chargebackRes.error);
+        fail(`series ${parent.id}: chargeback check failed (${chargebackRes.error.message})`);
         continue;
       }
-      if (blocked === true) {
-        console.warn(
-          `[charge-recurring-visits] series ${parent.id}: poster and standing helper are blocked; skipping (no charge, no visit)`,
-        );
-        results.skippedBlocked++;
+      if ((chargebackRes.data ?? []).length > 0) {
+        results.skippedChargeback++;
         continue;
       }
 
@@ -455,22 +459,23 @@ serve(async (req) => {
       //               and the 23505 branch declines to refund. Poster charged
       //               twice, nobody told.
       //
-      //   `released`  empty means "the helper gave up no dates". Wrong, and the
-      //               cost is physical: the poster is charged and a helper is
-      //               booked onto a date they explicitly released. Somebody
-      //               drives to a house on a morning they said they could not
-      //               work.
+      //   `holds`     who is booked on each date (series_visit_holds). It
+      //               replaced the `recurring_visit_releases` read: a date
+      //               nobody holds (never picked, or given up and not picked
+      //               up) is not charged. An empty answer from a failed read
+      //               would skip every date, which is safe for money but drops
+      //               the series silently, so a failed read is a defect.
       //
       // Neither read has a safe default, so there is no "carry on carefully"
       // option — the only correct move on a failed read is to fund nothing for
       // this series this run and say so. A skipped series is recoverable: the
       // date stays inside FUND_LEAD_DAYS for up to two more daily runs. A
       // wrongly-charged visit is not.
-      const [existingRes, releasedRes] = await Promise.all([
+      const [existingRes, holdsRes] = await Promise.all([
         supabase.from("jobs").select("date_needed").eq("parent_job_id", parent.id).in("date_needed", due),
         supabase
-          .from("recurring_visit_releases")
-          .select("visit_date")
+          .from("series_visit_holds")
+          .select("id, visit_date, helper_id")
           .eq("parent_job_id", parent.id)
           .in("visit_date", due),
       ]);
@@ -482,29 +487,80 @@ serve(async (req) => {
         fail(`series ${parent.id}: existing-visit read failed (${existingRes.error.message})`);
         continue;
       }
-      if (releasedRes.error) {
+      if (holdsRes.error) {
         console.error(
-          `[charge-recurring-visits] release read failed for series ${parent.id}; skipping the series rather than booking a released date`,
-          releasedRes.error,
+          `[charge-recurring-visits] holds read failed for series ${parent.id}; skipping the series rather than booking the wrong Helpr`,
+          holdsRes.error,
         );
-        fail(`series ${parent.id}: release read failed (${releasedRes.error.message})`);
+        fail(`series ${parent.id}: holds read failed (${holdsRes.error.message})`);
         continue;
       }
       const alreadyThere = new Set(
         ((existingRes.data ?? []) as Array<{ date_needed: string }>).map((r) => r.date_needed),
       );
-      const releasedDates = new Set(
-        ((releasedRes.data ?? []) as Array<{ visit_date: string }>).map((r) => r.visit_date),
-      );
+      const holders = new Map<string, { id: string; helper_id: string }>();
+      for (const h of (holdsRes.data ?? []) as Array<{ id: string; visit_date: string; helper_id: string }>) {
+        if (due.includes(h.visit_date)) holders.set(h.visit_date, { id: h.id, helper_id: h.helper_id });
+      }
+
+      // ── Q347 and the ban (review 2026-09-25): per HOLDER, not per series ──
+      // A banned poster skips the whole series. A holder who is banned, or
+      // blocked with the poster, skips only their dates. Nothing here charges,
+      // books, applies or notifies. An unknown answer never books.
+      const banned = await bannedAmong(supabase, [
+        parent.customer_id as string,
+        ...[...holders.values()].map((h) => h.helper_id),
+      ]);
+      if (banned.error) {
+        console.error(`[charge-recurring-visits] ban check failed for series ${parent.id}; skipping the series`, banned.error);
+        fail(`series ${parent.id}: ban check failed (${banned.error})`);
+        continue;
+      }
+      if (banned.ids.has(parent.customer_id as string)) {
+        console.warn(`[charge-recurring-visits] series ${parent.id}: the poster is suspended or banned; skipping (no charge, no visit)`);
+        results.skippedBanned++;
+        continue;
+      }
+      const blockedHolders = new Set<string>();
+      let blockCheckFailed = false;
+      for (const helperId of new Set([...holders.values()].map((h) => h.helper_id))) {
+        const { data: blocked, error: blockErr } = await supabase.rpc("are_users_blocked", {
+          _user_a: parent.customer_id,
+          _user_b: helperId,
+        });
+        if (blockErr) {
+          // No safe default: an unknown answer must not book a possibly-blocked
+          // person. The window reopens tomorrow.
+          console.error(`[charge-recurring-visits] block check failed for series ${parent.id}; skipping the series`, blockErr);
+          fail(`series ${parent.id}: block check failed (${blockErr.message})`);
+          blockCheckFailed = true;
+          break;
+        }
+        if (blocked === true) blockedHolders.add(helperId);
+      }
+      if (blockCheckFailed) continue;
 
       for (const visitDate of due) {
         if (alreadyThere.has(visitDate)) { results.skippedExisting++; continue; }
-        if (releasedDates.has(visitDate)) {
-          // The standing helper gave this date up. We do NOT charge and do NOT
-          // post it: nobody is committed to it, and funding a visit on the hope
-          // a stranger takes it is how the poster ends up paying for work that
-          // never happened. The poster was told when it was released.
-          results.skippedReleased++;
+        const hold = holders.get(visitDate);
+        if (!hold) {
+          // Nobody holds this date (never picked on a split series, or given
+          // up and not picked up). We do NOT charge and do NOT post it: nobody
+          // is committed to it, and funding a visit on the hope someone takes
+          // it is how the poster ends up paying for work that never happened
+          // (owner decision 5: an unfilled date is not charged).
+          results.skippedUnfilled++;
+          continue;
+        }
+        const holderId = hold.helper_id;
+        if (banned.ids.has(holderId)) {
+          console.warn(`[charge-recurring-visits] series ${parent.id} ${visitDate}: the Helpr holding it is suspended or banned; skipping`);
+          results.skippedBanned++;
+          continue;
+        }
+        if (blockedHolders.has(holderId)) {
+          console.warn(`[charge-recurring-visits] series ${parent.id} ${visitDate}: poster and holder are blocked; skipping`);
+          results.skippedBlocked++;
           continue;
         }
         if (results.funded >= MAX_CHARGES_PER_RUN) {
@@ -517,7 +573,7 @@ serve(async (req) => {
           // was the one signal nothing was watching.
           //
           // Recorded once. The outer loop keeps walking so the remaining series
-          // still produce accurate skippedExisting/skippedReleased counts, and
+          // still produce accurate skippedExisting/skippedUnfilled counts, and
           // without this guard every subsequent series would record the same
           // reason again.
           if (!results.capped) {
@@ -643,7 +699,7 @@ serve(async (req) => {
         // derived from DEFAULT_TIER_FEE_PERCENT rather than a literal.
         const helperFeePercent = await getHelperFeePercent(
           supabase as never,
-          parent.recurring_helper_id as string,
+          holderId,
           DEFAULT_TIER_FEE_PERCENT,
         );
         // Use the shared commission helper, not the unrounded
@@ -719,8 +775,39 @@ serve(async (req) => {
         }
 
         if (!customerId || !paymentMethodId) {
-          (await notifyPosterCardProblem(supabase, parent, visitDate, "no_saved_card")).forEach(fail);
+          (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "no_saved_card")).forEach(fail);
           results.declined++;
+          continue;
+        }
+
+        // ── Re-read right before the charge (money audit LOW-10) ──────────
+        // The series may have ended, or the date changed hands, since this run
+        // read it. Charging and then refunding on the insert refusal loses the
+        // Stripe fee, so ask again here. The DB trigger still refuses the
+        // insert if either changes after this read (and the charge is
+        // refunded); this only narrows that window.
+        const [liveParent, liveHold] = await Promise.all([
+          supabase.from("jobs").select("id, series_ended_on").eq("id", parent.id).maybeSingle(),
+          supabase
+            .from("series_visit_holds")
+            .select("id, visit_date, helper_id")
+            .eq("parent_job_id", parent.id)
+            .eq("visit_date", visitDate)
+            .maybeSingle(),
+        ]);
+        if (liveParent.error || liveHold.error || !liveParent.data) {
+          fail(
+            `series ${parent.id} ${visitDate}: pre-charge re-read failed (${liveParent.error?.message ?? liveHold.error?.message ?? "series row missing"})`,
+          );
+          continue;
+        }
+        if ((liveParent.data as { series_ended_on: string | null }).series_ended_on) {
+          results.skippedEnded++;
+          continue;
+        }
+        const nowHold = liveHold.data as { id: string; helper_id: string } | null;
+        if (!nowHold || nowHold.id !== hold.id || nowHold.helper_id !== holderId) {
+          results.skippedUnfilled++;
           continue;
         }
 
@@ -744,10 +831,14 @@ serve(async (req) => {
               parent_job_id: String(parent.id),
               visit_date: visitDate,
               customer_id: String(parent.customer_id),
-              helper_id: String(parent.recurring_helper_id),
+              helper_id: String(holderId),
+              hold_id: String(hold.id),
             },
           },
-          // Keyed on (series, date) — the natural unique key for a visit.
+          // Keyed on (series, date, CLAIM). The hold id is one per claim of
+          // the date (20260925160645): a date given up after a refunded charge
+          // and re-claimed within 24h gets a NEW charge, never Stripe's replay
+          // of the refunded intent (which reports `succeeded`).
           //
           // ITS REACH IS 24 HOURS, NOT THE FUNDING WINDOW. A Stripe-level
           // retry, an overlapping cron run or a manual re-trigger WITHIN A DAY
@@ -760,7 +851,7 @@ serve(async (req) => {
           // pre-flight read plus the `jobs_one_visit_per_series_date` index,
           // whose 23505 branch below now proves which intent backs the
           // surviving row before it decides whether a refund is owed.
-          `recurring-visit:${parent.id}:${visitDate}`,
+          `recurring-visit:${parent.id}:${visitDate}:${hold.id}`,
         );
 
         if (outcome.kind !== "ok") {
@@ -770,7 +861,7 @@ serve(async (req) => {
           // The operative fact is the same either way and it is TRUE either way:
           // this date is not booked, so the helper must not head out for it. It
           // is the ops side that differs.
-          (await notifyPosterCardProblem(supabase, parent, visitDate, outcome.message.slice(0, 120)))
+          (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, outcome.message.slice(0, 120)))
             .forEach(fail);
           results.declined++;
 
@@ -786,7 +877,7 @@ serve(async (req) => {
               severity: "critical",
               title: "Recurring visit charge outcome UNKNOWN",
               message:
-                `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on one idempotency key, so a PaymentIntent may be holding this poster's money with no visit behind it. Check Stripe for key ${`recurring-visit:${parent.id}:${visitDate}`} BEFORE tomorrow's run, which will charge again on a fresh key.`,
+                `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on one idempotency key, so a PaymentIntent may be holding this poster's money with no visit behind it. Check Stripe for key ${`recurring-visit:${parent.id}:${visitDate}:${hold.id}`} BEFORE tomorrow's run, which will charge again on a fresh key.`,
               fields: {
                 parentJobId: String(parent.id),
                 visitDate,
@@ -804,7 +895,7 @@ serve(async (req) => {
         const intent = outcome.intent;
 
         if (intent.status !== "succeeded") {
-          (await notifyPosterCardProblem(supabase, parent, visitDate, `intent_${intent.status}`)).forEach(fail);
+          (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, `intent_${intent.status}`)).forEach(fail);
           results.declined++;
           continue;
         }
@@ -831,9 +922,10 @@ serve(async (req) => {
             photos: parent.photos,
             is_flexible_schedule: parent.is_flexible_schedule,
             parent_job_id: parent.id,
-            // The standing helper holds it. Not 'open' — this visit is not up
-            // for grabs, which is the entire point of booking a series.
-            helper_id: parent.recurring_helper_id,
+            // The date's HOLDER (trg_series_visit_within_end refuses anyone
+            // else). Not 'open' — this visit is not up for grabs, which is the
+            // entire point of booking a series. Its payout follows helper_id.
+            helper_id: holderId,
             status: "accepted",
             helper_confirmed_at: new Date().toISOString(),
             payment_status: "escrow",
@@ -972,6 +1064,13 @@ serve(async (req) => {
           // holding a poster's money for a visit that does not exist is the
           // worst outcome available here, and it is silent unless we act.
           console.error(`[charge-recurring-visits] insert failed after charge ${intent.id}`, childErr);
+          // trg_series_visit_within_end refused the row: the series was ended
+          // (end_recurring_series) after this run read it. Once the refund
+          // below goes through that is the designed outcome, not a defect.
+          const seriesEndedMidRun = String(childErr?.message ?? "").startsWith("series_ended:");
+          // trg_series_visit_within_end: the date changed hands (given up or
+          // taken over) after this run read it. Refunded below, then a skip.
+          const holderChangedMidRun = String(childErr?.message ?? "").startsWith("series_date_unheld:");
           try {
             await stripe.refunds.create(
               { payment_intent: intent.id },
@@ -993,6 +1092,24 @@ serve(async (req) => {
               message: `PaymentIntent ${intent.id} is holding a poster's money for a visit that was never created. Refund by hand.`,
               fields: { parentJobId: String(parent.id), visitDate, intent: intent.id, error: String(refundErr) },
             });
+            fail(
+              `series ${parent.id} ${visitDate}: visit insert failed after charge ${intent.id} (${childErr?.message ?? "no row returned"})`,
+            );
+            continue;
+          }
+          if (seriesEndedMidRun) {
+            console.log(
+              `[charge-recurring-visits] series ${parent.id} ended before ${visitDate} was booked; charge ${intent.id} refunded.`,
+            );
+            results.skippedEnded++;
+            continue;
+          }
+          if (holderChangedMidRun) {
+            console.log(
+              `[charge-recurring-visits] ${visitDate} on series ${parent.id} changed hands before it was booked; charge ${intent.id} refunded.`,
+            );
+            results.skippedUnfilled++;
+            continue;
           }
           fail(
             `series ${parent.id} ${visitDate}: visit insert failed after charge ${intent.id} (${childErr?.message ?? "no row returned"})`,
@@ -1034,7 +1151,7 @@ serve(async (req) => {
         // 2026-09-01: `applications?select=id` → 200). A zero-row result is
         // the same defect as an error and is handled by the same branch.
         const { data: appRows, error: appErr } = await supabase.from("applications").upsert(
-          { job_id: child.id, helper_id: parent.recurring_helper_id, status: "accepted", message: null },
+          { job_id: child.id, helper_id: holderId, status: "accepted", message: null },
           { onConflict: "job_id,helper_id" },
         ).select("id");
         if (appErr || !appRows || appRows.length === 0) {
@@ -1054,7 +1171,7 @@ serve(async (req) => {
             fields: {
               parentJobId: String(parent.id),
               visitJobId: String(child.id),
-              helperId: String(parent.recurring_helper_id),
+              helperId: String(holderId),
               visitDate,
               error: appErr?.message ?? "upsert returned zero rows",
             },
@@ -1063,10 +1180,10 @@ serve(async (req) => {
 
         const bookingRows = [
           {
-            user_id: parent.recurring_helper_id,
+            user_id: holderId,
             job_id: child.id,
             title: "Your next visit is booked",
-            message: `"${parent.title}" on ${visitDate} is confirmed and paid. Can't make it? Release the date from My Jobs.`,
+            message: `"${parent.title}" on ${visitDate} is confirmed and paid. Can't make it? Cancel this visit from My Jobs.`,
             type: "job_updates",
             // THIS visit, not the My Jobs default bucket — a confirmed booking
             // is `scheduled`, and /jobs opens on "Needs you".
@@ -1191,6 +1308,33 @@ serve(async (req) => {
 });
 
 /**
+ * Which of `ids` are suspended or banned RIGHT NOW: the same predicate as
+ * public.is_caller_banned() (a temp ban counts until auto_suspended_until).
+ * `error` is set when the answer cannot be read; the caller fails closed.
+ */
+async function bannedAmong(
+  supabase: AdminClient,
+  ids: string[],
+): Promise<{ ids: Set<string>; error: string | null }> {
+  const wanted = [...new Set(ids.filter(Boolean))];
+  if (wanted.length === 0) return { ids: new Set(), error: null };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_id, ban_status, auto_suspended_until")
+    .in("user_id", wanted);
+  if (error) return { ids: new Set(), error: error.message };
+  const now = Date.now();
+  const out = new Set<string>();
+  for (const row of (data ?? []) as Array<{ user_id: string; ban_status: string | null; auto_suspended_until: string | null }>) {
+    const status = row.ban_status ?? "";
+    if (!["banned", "temp_banned", "permanently_banned"].includes(status)) continue;
+    if (status === "temp_banned" && row.auto_suspended_until && Date.parse(row.auto_suspended_until) <= now) continue;
+    out.add(row.user_id);
+  }
+  return { ids: out, error: null };
+}
+
+/**
  * A declined card means no visit. Say so while there is still time to fix it —
  * FUND_LEAD_DAYS is chosen so this notification lands before the helper would
  * have turned up.
@@ -1222,6 +1366,7 @@ serve(async (req) => {
 async function notifyPosterCardProblem(
   supabase: AdminClient,
   parent: Record<string, unknown>,
+  holderId: string | null,
   visitDate: string,
   reason: string,
 ): Promise<string[]> {
@@ -1257,10 +1402,10 @@ async function notifyPosterCardProblem(
     );
   }
 
-  // The standing helper is only known once the series has one. A parent with a
-  // null `recurring_helper_id` is never selected by this cron at all
-  // (`.not("recurring_helper_id", "is", null)`), so this is belt-and-braces.
-  const helperId = parent.recurring_helper_id as string | null | undefined;
+  // The Helpr who HOLDS this date (series_visit_holds) is the one who would
+  // have gone; the cron only reaches a charge for a held date, so this is
+  // belt-and-braces.
+  const helperId = holderId;
   if (!helperId) return failures;
   const { data: helperRows, error: helperErr } = await supabase.from("notifications").insert({
     user_id: helperId,

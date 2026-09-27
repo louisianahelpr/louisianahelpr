@@ -1,0 +1,75 @@
+name: Seed payout fire drill
+
+# docs/OPEN.md Q93 / Q92(a): one `process-scheduled-payouts?include_seed=1`
+# run, so seed jobs reach the transfer leg on real Stripe TEST mode and any
+# seed failure is shown to write no admin notification. Owner approved
+# (2026-09-27 night): test mode only, is_seed records only.
+#
+# Fail-closed before anything is paid:
+#   1. the repo variable E2E_STRIPE_MODE must be `test` (stripe-sandbox-off.sh
+#      sets it to `live` FIRST, so this can never run after launch);
+#   2. no NON-seed job may be payout_pending and due: `include_seed=1` selects
+#      real jobs too, and this drill must only ever touch seed rows.
+# Manual only: no schedule, no push trigger.
+#
+# Afterwards (read-only SQL, recorded in docs/OPEN.md Q93):
+#   SELECT count(*) FROM notifications WHERE type='admin_alert'
+#     AND job_id IN (SELECT id FROM jobs WHERE is_seed) AND created_at > <START>;
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seed-payout-fire-drill
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    name: include_seed payout run (Stripe test mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Refuse unless Stripe is in test mode and only seed jobs are due
+        env:
+          STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ "$STRIPE_MODE" != "test" ]; then
+            echo "::error::E2E_STRIPE_MODE is '$STRIPE_MODE', not 'test'; refusing to run a payout drill"; exit 1
+          fi
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_PROJECT_REF or SUPABASE_SERVICE_ROLE_KEY secret is empty"; exit 1
+          fi
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          REST="https://${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/jobs"
+          Q="select=id&status=eq.completed&payment_status=eq.payout_pending&payout_scheduled_at=lte.${NOW}"
+          REAL=$(curl -sS --fail-with-body -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" "${REST}?${Q}&is_seed=eq.false" | jq 'length')
+          SEED=$(curl -sS --fail-with-body -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" "${REST}?${Q}&is_seed=eq.true" | jq 'length')
+          echo "due payout_pending jobs at ${NOW}: real=${REAL} seed=${SEED}"
+          if [ "$REAL" != "0" ]; then
+            echo "::error::${REAL} real job(s) are due; an include_seed run would pay them too. Refusing."; exit 1
+          fi
+
+      - name: Run process-scheduled-payouts?include_seed=1
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET secret is empty"; exit 1
+          fi
+          echo "START $(date -u +%Y-%m-%dT%H:%M:%S.%NZ)"
+          STATUS=$(curl -sS -o body.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Type: application/json" -d '{}' \
+            "https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/process-scheduled-payouts?include_seed=1")
+          echo "END $(date -u +%Y-%m-%dT%H:%M:%S.%NZ) http=${STATUS}"
+          jq '{success, processed, defects, seedDefects, statuses: ([.results[]?.status] | group_by(.) | map({(.[0]): length}) | add)}' body.json
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::process-scheduled-payouts answered HTTP ${STATUS}"; exit 1
+          fi

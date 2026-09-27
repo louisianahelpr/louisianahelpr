@@ -38,6 +38,7 @@
  */
 // @mutate src/components/profile/CredentialsTab.tsx | text-ds-13 text-primary underline break-words | text-ds-13 text-primary underline truncate
 // @mutate src/components/messages/ConversationRow.tsx | title={c.jobTitle} | data-q116-mutant={c.jobTitle}
+// @mutate src/test/truncatedActionLabel.test.ts | ?.label":\n    "MEASURED NOT CLIPPED | ?.label":\n    "Q119 not yet measured
 // @mutate src/components/policy/CollapsedPolicy.tsx | <span className="text-ds-13 font-semibold text-foreground leading-snug"> | <span className="text-ds-13 font-semibold text-foreground line-clamp-2 leading-snug">
 // @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | <span className="truncate" title={q}>{q}</span> | <span className="truncate">{q}</span>
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -59,35 +60,47 @@ const CLIP_RE = /(^|\s)(?:[a-z0-9-]+:)*(truncate|text-ellipsis|line-clamp-(?:\d+
  *
  * MEASURED NOT CLIPPED: scrollWidth/clientWidth (line-clamp: scrollHeight/
  * clientHeight) at 320, 375 and 1440 as poster-e2e on 2026-09-23.
- * UNMEASURED: surfaced when Q116 widened the scan; clipping on screen is not
- * yet measured. Tracked as Q119 in docs/OPEN.md. The on-screen sweep for the
- * default state of every route is e2e/prod-audit/clipped-labels.spec.ts.
+ * Every entry carries its dated measurement; a new offender may not stand as
+ * "not yet measured". Q119 measured the last eleven on 2026-09-27, including
+ * opened states the default-state sweep cannot reach (long-press menus, the
+ * job dialog, post-job, admin). The on-screen sweep for the default state of
+ * every route is e2e/prod-audit/clipped-labels.spec.ts.
  *
  * Q119 (2026-09-26): the eight that print USER DATA (a city, a search, an
  * address, a pet's breed line, a draft's title, a saved search's summary) now
  * carry a `title`, since input of any length can clip; the policy item TITLE
  * clipped on /rules at 320 ("…$1,000…", sh 54 > ch 36) and now wraps unclamped.
  */
-const UNMEASURED = "Q119: not yet measured on screen (found by the Q116 widening, 2026-09-23)";
 // @two-way src/test/truncatedActionLabel.test.ts:expect([...offenders].sort()).toEqual(Object.keys(KNOWN).sort());
 const KNOWN: Record<string, string> = {
   "src/components/profile/LegalTab.tsx:TabsTrigger:{TAB_LABELS[key]}":
     "MEASURED NOT CLIPPED 2026-09-23: Terms/Rules/Privacy sw==cw (35/31/41px) at 320 and 375, 41/37/49 at 1440",
   "src/components/profile/profileLanding/SettingsSection.tsx:button:{item.desc}":
     "MEASURED NOT CLIPPED 2026-09-23: all 19 descriptions sh==ch (<=2 lines) at 320, 375 and 1440",
-  "src/components/DatePickerField.tsx:button:{formatted}": UNMEASURED,
-  "src/components/DesktopSidebarNav.tsx:button:{label}": UNMEASURED,
-  "src/components/TimeRangeField.tsx:button:{display}": UNMEASURED,
-  "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:Apply Now": UNMEASURED,
-  "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:{guestCtaLabel}": UNMEASURED,
-  'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:button:{(job.credential_tier ?? 0) === 1 ? "Get Verified to Apply" ': UNMEASURED,
-  "src/components/mobileNav/NavQuickMenu.tsx:button:{label}": UNMEASURED,
-  "src/components/mobileNav/NavQuickMenu.tsx:button:{sub}": UNMEASURED,
+  "src/components/DatePickerField.tsx:button:{formatted}":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Select a date\" sw==cw on /post-job (Start Fresh) at 320, 375 and 1440 as poster-e2e",
+  "src/components/DesktopSidebarNav.tsx:button:{label}":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): all 25 admin sub-nav labels sw==cw on /admin at 1440 as admin-e2e (the sub-nav renders only at desktop)",
+  "src/components/TimeRangeField.tsx:button:{display}":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"9 AM – 5 PM\" sw==cw 89/89 at 320 on the availability editor as poster-e2e",
+  "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:Apply Now":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Apply Now\" whole on the /browse job dialog at 320 (p3-poster-dialog-320); the footer row is 254px at 320, a 182px text box against the label's 79px",
+  "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:{guestCtaLabel}":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Sign Up to Apply\" sw==cw 146/146 on guest /browse?job=<id> at 320, 375 and 1440",
+  'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:button:{(job.credential_tier ?? 0) === 1 ? "Get Verified to Apply" ':
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): no credential_tier>0 open job on prod, so this button's markup was injected alone into the real footer row (254px at 320, 309 at 375, 726 at 1440): \"Get Verified to Apply\" 149, \"Licensed Pros Only\" 138, \"Licensed & Insured Only\" 174, sw==cw at all three",
+  "src/components/mobileNav/NavQuickMenu.tsx:button:{label}":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): long-press Posts quick filters (Needs You/Waiting/Scheduled/Done/Cancelled) and Messages recent chats sw==cw at 320 and 375 as poster-e2e",
+  "src/components/mobileNav/NavQuickMenu.tsx:button:{sub}":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): recent-chat subtitles (\"Helper reply ...\") sw==cw 194/194 at 320 as poster-e2e",
   "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(subtitle, query) : subtitle}":
     "MEASURED NOT CLIPPED 2026-09-26 (Q119): all 23 section subtitles on /legal, /terms, /privacy, /rules sh==ch at 320, 375 and 1440 (guest, local build on prod)",
-  "src/components/job-card/ActivitySectionedView.tsx:button:{sectionLabels[key]}": UNMEASURED,
-  "src/pages/profile/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label": UNMEASURED,
-  "src/pages/post-job/FormStep.tsx:Button:{submitLabel}": UNMEASURED,
+  "src/components/job-card/ActivitySectionedView.tsx:button:{sectionLabels[key]}":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): Active/Completed/Cancelled section headers sw==cw on /posts?filter=all at 320, 375 and 1440 as poster-e2e",
+  "src/pages/profile/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): species line sw==cw 166/166 at 320 on the pets page as poster-e2e",
+  "src/pages/post-job/FormStep.tsx:Button:{submitLabel}":
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Add a Title to Continue\" sw==cw on /post-job (Start Fresh) at 320, 375 and 1440 as poster-e2e",
 };
 
 function walk(dir: string): string[] {
@@ -210,5 +223,10 @@ describe("truncated action labels (Q108)", () => {
 
   it("no clipped action label without its full text, exactly the KNOWN list", () => {
     expect([...offenders].sort()).toEqual(Object.keys(KNOWN).sort());
+  });
+
+  it("every KNOWN entry records a dated on-screen measurement (Q119)", () => {
+    const unmeasured = Object.entries(KNOWN).filter(([, why]) => !/^MEASURED NOT CLIPPED \d{4}-\d{2}-\d{2}\b.*\d/.test(why));
+    expect(unmeasured).toEqual([]);
   });
 });

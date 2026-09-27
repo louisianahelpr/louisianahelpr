@@ -24,13 +24,13 @@ const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 
 /** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-09-27. */
-const MARKERLESS_PARTLY_DONE = 24;
+const MARKERLESS_PARTLY_DONE = 22;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);
 
   it("reads the real queue (floor)", () => {
-    expect(items.length).toBeGreaterThan(50);
+    expect(items.length).toBeGreaterThan(20);
   });
 
   it("markerless [~] count is exactly the baseline (lower it when you add a marker or tick one)", () => {

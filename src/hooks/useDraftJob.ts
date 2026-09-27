@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 
 export const DRAFT_KEY = "helpr_draft_job";
+/**
+ * The job the kept draft was last sent to Checkout for (Q769). Post a Job
+ * reads that job before offering "Load Draft": paid means the draft is spent,
+ * a live Checkout Session means the poster may already have paid.
+ */
+export const DRAFT_CHECKOUT_JOB_KEY = "helpr_draft_checkout_job";
 // Debounce window for persisting drafts. Long enough that fast typists
 // don't hammer localStorage on every keystroke, short enough that the user
 // won't lose meaningful work if the tab dies. A `beforeunload` /
@@ -164,7 +170,10 @@ export function useDraftJob() {
     dirty.current = false;
     setDraft(emptyDraft);
     setHasDraft(false);
-    try { safeStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    try {
+      safeStorage.removeItem(DRAFT_KEY);
+      safeStorage.removeItem(DRAFT_CHECKOUT_JOB_KEY);
+    } catch { /* ignore */ }
   }, []);
 
   return { draft, hasDraft, saveDraft, flushDraft, clearDraft };

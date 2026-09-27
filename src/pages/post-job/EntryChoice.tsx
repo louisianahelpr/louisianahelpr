@@ -12,6 +12,7 @@ import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
+import { useDraftCheckoutState } from "./useDraftCheckoutState";
 
 /**
  * The entry column while its data rows settle: five collapsed-card shells, the
@@ -74,6 +75,9 @@ export function EntryChoice({ form }: EntryChoiceProps) {
      be a thing." A job exists for the poster only once it is paid; a checkout
      they back out of returns them to their own local draft (useJobSubmit keeps
      it until /payment-success), never to a server row to pay for. */
+  // Q769: the kept draft's last checkout — paid hides "Load Draft", a live
+  // session warns that the poster may already have paid.
+  const draftCheckout = useDraftCheckoutState(form.hasDraft);
   // Quick-start templates pre-fill the form in one tap. We show the first
   // four by default and reveal the rest on "Show all" — the full set now
   // lives entirely on this entry step (the in-form template picker was
@@ -193,8 +197,9 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
       </button>
 
-      {/* 2 — LOAD DRAFT (only when a saved draft exists) */}
-      {form.hasDraft && (
+      {/* 2 — LOAD DRAFT (only when a saved draft exists, and never for a
+          draft whose job is already paid; Q769 warns while its checkout is live) */}
+      {form.hasDraft && draftCheckout !== "paid" && (
         <button
           type="button"
           onClick={form.loadDraftAndContinue}
@@ -215,8 +220,14 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             >
               Pick Up Your Draft
             </span>
-            <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Continue the request you saved earlier.
+            <span
+              className="block font-sans mt-0.5 text-ds-11"
+              style={{ color: draftCheckout === "open" ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)" }}
+              data-testid="draft-checkout-note"
+            >
+              {draftCheckout === "open"
+                ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
+                : "Continue the request you saved earlier."}
             </span>
           </span>
           <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />

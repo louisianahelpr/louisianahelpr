@@ -1,5 +1,6 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { insertNotifications } from "../../_shared/insertNotifications.ts";
 
 // A recipient started paying the shortfall on a gift card (their
 // credit was smaller than the job budget), so create-payment's gift card branch
@@ -45,8 +46,10 @@ export async function handleCheckoutSessionExpired(
       .update({ stripe_session_id: null })
       .eq("id", jobId)
       .eq("stripe_session_id", session.id)
-      .eq("payment_status", "unpaid")
-      .select("id")
+      // 'failed' too (Q769): a declined card leaves the job failed with this
+      // session's hold still stamped, and expiry is when that hold ends.
+      .in("payment_status", ["unpaid", "failed"])
+      .select("id, payment_status, customer_id, title")
       .maybeSingle();
     if (releaseErr) {
       // Throw for the same reason the gift card branch below does: a plain return
@@ -62,6 +65,25 @@ export async function handleCheckoutSessionExpired(
         : "Expired checkout — job already funded or session superseded, hold left alone",
       { jobId, sessionId: session.id },
     );
+    // Q769: the "not posted" notice for a declined card lives HERE, not in
+    // payment_intent.payment_failed. Only now can the session no longer be
+    // paid, so only now is "the job isn't posted" true. A job that was merely
+    // abandoned (still 'unpaid') gets no notice: the poster walked away.
+    if (released && released.payment_status === "failed" && released.customer_id) {
+      await insertNotifications(supabase, {
+        user_id: released.customer_id,
+        // The subject reference: the seed boundary drops the row for a seed job,
+        // and notificationDestination keeps "/post-job" (not an Activity path).
+        job_id: released.id,
+        title: "Payment failed",
+        message: `Your payment for "${released.title}" didn't go through, so the job isn't posted. Open Post a Job and load your draft to try again with another card.`,
+        type: "warning",
+        // Post a Job, never My Posts: a never-paid job does not exist in Posts
+        // (owner, 2026-09-27), and the draft is kept through checkout.
+        link: "/post-job",
+      });
+      logStep("Notified poster: declined checkout expired, job not posted", { jobId });
+    }
   }
 
   // ── An abandoned gift PURCHASE ──

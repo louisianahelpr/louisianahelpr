@@ -401,7 +401,9 @@ describe("stripe-webhook edge function", () => {
   });
 
   describe("payment_intent.payment_failed", () => {
-    it("marks the linked job failed and notifies the poster", async () => {
+    // Q769: a decline is retryable inside the open Checkout Session, so the
+    // "job isn't posted" notice waits for checkout.session.expired.
+    it("marks the linked job failed and does not notify the poster yet", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_fail",
@@ -430,7 +432,36 @@ describe("stripe-webhook edge function", () => {
         "failed",
       );
       const notif = scenario.writes.find((w) => w.table === "notifications");
-      expect((notif?.payload as Record<string, unknown>).type).toBe("warning");
+      expect(notif).toBeUndefined();
+    });
+
+    it("the session expiring on a still-failed job tells the poster it isn't posted", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_expired_failed",
+        type: "checkout.session.expired",
+        data: { object: { id: "cs_1", metadata: { job_id: "job-1" } } },
+      });
+      scenario.writeSelectRows.jobs = [
+        { id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "failed" },
+      ];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const notif = scenario.writes.find((w) => w.table === "notifications");
+      expect((notif?.payload as Record<string, unknown>).link).toBe("/post-job");
+    });
+
+    it("the session expiring on an abandoned (unpaid) job sends nothing", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_expired_unpaid",
+        type: "checkout.session.expired",
+        data: { object: { id: "cs_1", metadata: { job_id: "job-1" } } },
+      });
+      scenario.writeSelectRows.jobs = [
+        { id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "unpaid" },
+      ];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(scenario.writes.find((w) => w.table === "notifications")).toBeUndefined();
     });
 
     // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (pi.metadata?.type === "tip") return; | 

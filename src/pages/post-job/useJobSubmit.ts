@@ -32,6 +32,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure";
 import { endSentence } from "@/lib/endSentence";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
+import { DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
 
 /**
  * Remove a job whose payment setup failed, and PROVE it went.
@@ -757,6 +758,10 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // /post-job, where "Load Draft" brings the form back; PaymentSuccess
       // clears it once the job is actually paid.
       flushDraft();
+      // Q769: remember which job this draft is paying for, so Post a Job can
+      // tell a paid or still-payable checkout apart from a cancelled one
+      // before it offers "Load Draft" again (useDraftCheckoutState).
+      safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId);
       // The instant-job-match fan-out USED to happen here. It has moved to
       // stripe-webhook's checkoutSessionCompleted, because "escrow is set up"
       // was never true at this point: create-payment only mints a Checkout

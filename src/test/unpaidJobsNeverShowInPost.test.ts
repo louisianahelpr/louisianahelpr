@@ -99,22 +99,24 @@ describe("a job nobody paid for never shows in Posts or Post a Job", () => {
     for (const s of NEVER_PAID_STATUSES) expect(notIn, `${latest} counts '${s}' jobs toward the cap`).toContain(`'${s}'`);
   });
 
+  // Q769: the notice moved from payment_intent.payment_failed (a decline is
+  // retryable inside the open session) to checkout.session.expired.
   it("a declined card sends the poster to Post a Job, not to a hidden post", () => {
-    const src = read("supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts");
+    const src = read("supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts");
     expect(src).toMatch(/link:\s*"\/post-job"/);
     expect(src).not.toMatch(/link:\s*`\/posts\?job=/);
   });
 
   it("the 'job isn't posted' notice goes out only when the job was really marked failed", () => {
     // lh-money-escrow review of 15921ea17: the notice went out BEFORE the
-    // unpaid-only guard, so a declined boost on a live, funded job told the
-    // poster to post (and pay for) it again.
-    const src = blankComments(read("supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts"));
-    const update = src.indexOf('.update({ payment_status: "failed" })');
+    // state guard, so a declined boost on a live, funded job told the poster
+    // to post (and pay for) it again. The expiry handler notifies only off
+    // the row its guarded update returned, and only when that row is failed.
+    const src = blankComments(read("supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts"));
+    const update = src.indexOf('.in("payment_status", ["unpaid", "failed"])');
     const notify = src.indexOf("insertNotifications(supabase");
     expect(update).toBeGreaterThan(0);
     expect(notify, "notification sent before the guarded update").toBeGreaterThan(update);
-    const between = src.slice(update, notify);
-    expect(between, "a 0-row update must return before notifying").toMatch(/if \(!failedUpdate\) \{[\s\S]*?return;\s*\}/);
+    expect(src.slice(update, notify)).toMatch(/if \(released && released\.payment_status === "failed"/);
   });
 });

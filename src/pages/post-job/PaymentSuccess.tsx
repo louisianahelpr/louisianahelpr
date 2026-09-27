@@ -28,7 +28,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
 import { safeStorage } from "@/lib/safeStorage";
-import { DRAFT_KEY } from "@/hooks/useDraftJob";
+import { DRAFT_KEY, DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
 // formatPriceExact, not formatPrice: the sentences below state a sum of money
 // that is ACTUALLY SITTING IN ESCROW. See the note at the render site.
 import { formatPriceExact } from "@/lib/format";
@@ -336,6 +336,7 @@ const PaymentSuccess = () => {
       celebrated.current = true;
       hapticSuccess();
       safeStorage.removeItem(DRAFT_KEY); // paid: drop the draft kept through checkout; a cancel keeps "Load Draft"
+      safeStorage.removeItem(DRAFT_CHECKOUT_JOB_KEY);
     }
   }, [isHeld]);
 

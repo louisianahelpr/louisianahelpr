@@ -1,6 +1,5 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
-import { insertNotifications } from "../../_shared/insertNotifications.ts";
 
 export async function handlePaymentIntentPaymentFailed(
   event: Stripe.Event,
@@ -76,22 +75,12 @@ export async function handlePaymentIntentPaymentFailed(
       });
       return;
     }
-    // Only now, with the job marked failed, is "the job isn't posted" true.
-    await insertNotifications(supabase, {
-      user_id: failedJob.customer_id,
-      // The subject reference: the seed boundary drops the row for a seed job,
-      // and notificationDestination keeps "/post-job" (not an Activity path).
-      job_id: failedJob.id,
-      title: "Payment failed",
-      message: `Your payment for "${failedJob.title}" could not be processed, so the job isn't posted. Open Post a Job and load your draft to try again with another card.`,
-      type: "warning",
-      // Post a Job, never My Posts: a job that was never paid for does not
-      // exist in Posts (owner, 2026-09-27: "Unpaid jobs should not show in
-      // post anywhere. Even hidden."), so `/posts?job=` opened on nothing.
-      // The draft the poster typed is kept through checkout (useJobSubmit
-      // flushes it before the redirect) and "Load Draft" brings it back.
-      link: "/post-job",
-    });
-    logStep("Notified poster of payment failure", { jobId: failedJob.id });
+    // NO notice here (Q769). A decline inside a still-open Checkout Session
+    // is not the end of the payment: the poster can try another card on the
+    // same page, the retry succeeds and the job goes failed -> escrow. "The
+    // job isn't posted, load your draft" sent now would send them to post
+    // and pay a second time. checkoutSessionExpired sends it, once the
+    // session can no longer be paid and the job is still failed.
+    logStep("Job marked failed; poster is told on session expiry", { jobId: failedJob.id });
   }
 }

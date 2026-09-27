@@ -17,6 +17,8 @@
 // @mutate src/lib/userBlocks.ts | now - held.settledAt <= BLOCK_READ_REUSE_MS | true
 // @mutate src/lib/userBlocks.ts |   forgetBlockRead(blockerId);\n  return { ok: true, | \n  return { ok: true,
 // @mutate src/hooks/useDashboardData.ts |         readUserBlockRows(userId), |         supabase.from("user_blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
+// @mutate src/hooks/useDashboardData.ts |     if (blocksRes.error) throw blocksRes.error; |     void blocksRes;
+// @mutate src/hooks/useDashboardData.ts | ctxData?.blockedUserIds ?? (user ? await withTimeout(getBlockedUserIds(user.id), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out") : new Set<string>()) | ctxData?.blockedUserIds ?? new Set<string>()
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -118,5 +120,18 @@ describe("user_blocks: one read per moment, never a cache (Q330)", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../hooks/useDashboardData.ts"), "utf8"));
     expect(src).toMatch(/readUserBlockRows\(userId\)/);
     expect(src).not.toMatch(/\.from\("user_blocks"\)/);
+  });
+
+  // Q573: an empty block list reads as "nobody is blocked". A failed
+  // user_blocks read must never become that on the dashboard feed.
+  it("the dashboard feed fails closed when the block list cannot be read (Q573)", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../hooks/useDashboardData.ts"), "utf8"));
+    expect(src, "fetchDashboardContext must throw on a user_blocks error").toMatch(/if \(blocksRes\.error\) throw blocksRes\.error;/);
+    expect(src, "a missing ctx must not default the feed's block list to empty").not.toMatch(
+      /ctxData\?\.blockedUserIds \?\? new Set/,
+    );
+    expect(src, "with no ctx, the feed re-reads the block list via getBlockedUserIds (which throws)").toMatch(
+      /ctxData\?\.blockedUserIds \?\? \(user \? await withTimeout\(getBlockedUserIds\(user\.id\)/,
+    );
   });
 });

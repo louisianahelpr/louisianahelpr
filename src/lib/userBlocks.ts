@@ -37,8 +37,8 @@ const blockReads = new Map<string, BlockRead>();
  *     who blocked never sees their own block late (found by the
  *     lh-silent-failure review of this change);
  *   - a failed read is never reused: the next caller asks again and gets its
- *     own error (getBlockedUserIds throws; the dashboard feed reports and
- *     continues, see Q573).
+ *     own error (getBlockedUserIds throws; the dashboard feed fails closed
+ *     too, see Q573).
  * The one thing that can arrive up to 2 s later than before is a block made
  * by the OTHER person, well inside the time realtime takes to say so. A read
  * that hangs is joined for at most BLOCK_READ_JOIN_MAX_MS.

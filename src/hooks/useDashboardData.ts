@@ -8,7 +8,7 @@ import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@t
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
-import { readUserBlockRows } from "@/lib/userBlocks";
+import { getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
@@ -154,7 +154,14 @@ async function fetchDashboardContext(
     }
     // Don't throw on sub-errors — degrade gracefully. Empty defaults
     // below give the user a usable dashboard (no availability flag, no
-    // blocks, etc.) instead of an outright error state.
+    // applied set, etc.) instead of an outright error state.
+    //
+    // EXCEPT the block list (Q573). An empty default there reads as "nobody
+    // is blocked" and puts jobs from people the viewer blocked (or who
+    // blocked them) back in the feed. Fail closed: the ctx query errors, and
+    // the feed re-reads the block list itself (getBlockedUserIds, which
+    // throws) instead of filtering with nothing.
+    if (blocksRes.error) throw blocksRes.error;
 
     const feeRow = Array.isArray(feeRes.data) ? (feeRes.data)[0] : null;
     // Fall back to the canonical FREE-tier rate (12%), not a magic 10 — a
@@ -346,7 +353,11 @@ export function useDashboardData() {
 
       // Both rounds are done by now — join them here, not before the fetch.
       const ctxData = await ctxSettled;
-      const blockedUserIds = ctxData?.blockedUserIds ?? new Set<string>();
+      // A failed ctx costs the fee / applied filters, never the block filter
+      // (Q573): with no ctx, read the block list directly. getBlockedUserIds
+      // throws on a failed read, so the feed shows its error state rather
+      // than jobs from people the viewer blocked.
+      const blockedUserIds = ctxData?.blockedUserIds ?? (user ? await withTimeout(getBlockedUserIds(user.id), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out") : new Set<string>());
       const appliedJobIds = ctxData?.appliedJobIds ?? new Set<string>();
 
       const { rows: rawJobs, hasMore } = splitFeedPage(

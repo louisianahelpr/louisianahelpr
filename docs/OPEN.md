@@ -1933,7 +1933,7 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   - (b) `/posts` #1 ROWS went from 2 to 5 (helper view). The cause is not yet known and it needs a look.
   - (c) A real regression: on `/user/:id`, #1 JUMP went from 18 to 44 and ROWS from 2 to 4. ProfileHeroSkeleton reserves one chip row, but since #1797 (3bf782e83) the loaded hero has two badge groups. Fix the skeleton (agent-sized).
   - (d) Should the guard keep failing both ways, so stale allows are also red?
-- [ ] **Q723 Q392 reviewer follow-ups (parish half, b9e7ee8e7, live-verified).**
+- [x] **Q723 Q392 reviewer follow-ups (parish half, b9e7ee8e7, live-verified).** DONE 2026-09-27 (20260927162805): every dropped row is settled (CHECK `(status='queued') = (settled_at IS NULL)`); seed-suppressed case in PGlite §7c; owner chose "blocked/seed stay silent, errors retry" — errors back off 5/10/20/40 min and give up at attempt 5 with an error log. Harness 65 PASS, 8 FAIL with skip-q723; lh-silent-failure APPROVE.
   - `job_match_queue` rows marked 'dropped' leave `settled_at` null.
   - The seed-suppressed branch has no PGlite case.
   - OWNER: confirm that a 'dropped' row (e.g. blocked or seed) should also stop the other channel from sending.

@@ -31,7 +31,7 @@
  * Behaviour is proven in PGlite: src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs
  * (RED on the previous definitions with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
  * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     AND p_job.customer_id IS NOT NULL\n |
@@ -39,14 +39,14 @@
  * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier), | OR true),
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |              AND public.early_access_visible_at(q.user_id, j.created_at) > now()); | );
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |   IF v_job.parish IS NULL OR NOT public.job_announceable_to(v_job, p_user_id) THEN | IF v_job.parish IS NULL THEN
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |   IF v_job.parish IS NULL OR NOT public.job_announceable_to(v_job, p_user_id) THEN | IF v_job.parish IS NULL THEN
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
  * @mutate supabase/functions/instant-job-match/index.ts | supabase.rpc("enqueue_instant_job_match", { | supabase.rpc("enqueue_instant_job_match_v0", {
  * @mutate supabase/functions/daily-match-digest/index.ts | supabase.rpc("job_match_digest_rows", { p_queue_ids: allIds }) | supabase.rpc("job_match_digest_rows_v0", { p_queue_ids: allIds })
  */
@@ -245,7 +245,10 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(src).toMatch(/windowMs: 10 \* 60_000, maxRequests: 1, keyPrefix: `instant-job-match:job:\$\{jobId\}`/);
     const enq = body("enqueue_instant_job_match");
     expect(enq).toContain("CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid);");
-    expect(enq).toContain("ON CONFLICT (user_id, job_id) DO NOTHING");
+    // Q723: only a row an error dropped is re-queued; any other row still wins.
+    expect(enq).toContain(
+      "ON CONFLICT (user_id, job_id) DO UPDATE SET source = 'instant', notify_at = EXCLUDED.notify_at, title = EXCLUDED.title, message = EXCLUDED.message, link = EXCLUDED.link, send_email = false, status = 'queued', drop_reason = NULL, settled_at = NULL, attempts = 0, retry_after = NULL WHERE public.job_match_queue.status = 'dropped' AND public.job_match_queue.drop_reason LIKE 'error:%' RETURNING id INTO v_id;",
+    );
     expect(enq).toContain("IF public.early_access_visible_at(v_uid, v_job.created_at) <= now() THEN");
   });
 
@@ -280,7 +283,10 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(b).toContain(
       "WHERE (b.blocker_id = NEW.customer_id AND b.blocked_id = c.user_id) OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id)",
     );
-    expect(b).toContain("AND NOT EXISTS ( SELECT 1 FROM public.job_match_queue l WHERE l.user_id = c.user_id AND l.job_id = NEW.id )");
+    // Q723: an error-dropped ledger row does not count; it retries.
+    expect(b).toContain(
+      "AND NOT EXISTS ( SELECT 1 FROM public.job_match_queue l WHERE l.user_id = c.user_id AND l.job_id = NEW.id AND NOT (l.status = 'dropped' AND COALESCE(l.drop_reason, '') LIKE 'error:%') )",
+    );
   });
 
   it("the parish send calls the gate, refuses a block either way, and claims the shared ledger (never twice)", () => {
@@ -289,12 +295,17 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(d).toContain(
       "WHERE (b.blocker_id = v_job.customer_id AND b.blocked_id = p_user_id) OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) ) THEN RETURN false;",
     );
-    // Any ledger row, from either source and in any status, refuses the send.
-    expect(d).toContain("SELECT 1 FROM public.job_match_queue l WHERE l.user_id = p_user_id AND l.job_id = p_job_id ) THEN RETURN false;");
+    // Any ledger row, from either source and in any status, refuses the send,
+    // except one an error dropped (Q723: nothing was delivered, so it retries).
+    expect(d).toContain(
+      "SELECT 1 FROM public.job_match_queue l WHERE l.user_id = p_user_id AND l.job_id = p_job_id AND NOT (l.status = 'dropped' AND COALESCE(l.drop_reason, '') LIKE 'error:%') ) THEN RETURN false;",
+    );
     // The claim comes before the notification, under the (user, job) unique key.
     const claim = d.indexOf("INSERT INTO public.job_match_queue (user_id, job_id, source, notify_at, title, message, link, send_email, status, settled_at) VALUES (p_user_id, v_job.id, 'parish',");
     expect(claim).toBeGreaterThan(0);
-    const conflict = d.indexOf("ON CONFLICT (user_id, job_id) DO NOTHING RETURNING id INTO v_ledger; IF v_ledger IS NULL THEN RETURN false;");
+    const conflict = d.indexOf(
+      "WHERE public.job_match_queue.status = 'dropped' AND public.job_match_queue.drop_reason LIKE 'error:%' RETURNING id INTO v_ledger; IF v_ledger IS NULL THEN RETURN false;",
+    );
     expect(conflict).toBeGreaterThan(claim);
     expect(d.indexOf("INSERT INTO public.notifications")).toBeGreaterThan(conflict);
     expect(d).toContain("IF v_notified IS NULL THEN UPDATE public.job_match_queue SET status = 'dropped'");

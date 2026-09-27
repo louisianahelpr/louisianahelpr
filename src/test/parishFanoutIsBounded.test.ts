@@ -13,12 +13,12 @@
  * src/test/pglite/parishMatchAlertsWaitForEarlyAccess.pglite.mjs (GREEN 21/21
  * applied 3x; NEW_MIGRATION=skip -> 15 FAIL on the previous fan-out).
  *
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) |     PERFORM public.deliver_parish_match_alert(helper_record.helper_id, NEW.id);\n    INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |      ) >= 10\n  THEN |      ) >= 1000\n  THEN
- * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |       DELETE FROM public.parish_match_alert_queue WHERE id = r.id;\n      IF public.deliver_parish_match_alert | IF public.deliver_parish_match_alert
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql | ) < 10  -- N-007 hourly cap | ) >= 0  -- N-007 hourly cap
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at) |     PERFORM public.deliver_parish_match_alert(helper_record.helper_id, NEW.id);\n    INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |      ) >= 10\n  THEN |      ) >= 1000\n  THEN
+ * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |       DELETE FROM public.parish_match_alert_queue WHERE id = r.id;\n      IF public.deliver_parish_match_alert | IF public.deliver_parish_match_alert
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -79,7 +79,8 @@ describe("the parish fan-out waits for early access (Q225 / V-008)", () => {
   it("the every-minute sweep sends the parish queue: delete before send, due rows only, never waits", () => {
     const b = body("sweep_saved_search_alert_queue");
     expect(b).toContain(
-      "FROM public.parish_match_alert_queue q JOIN public.jobs j ON j.id = q.job_id WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now() ORDER BY q.user_id, q.id LIMIT 1000 FOR UPDATE OF q SKIP LOCKED",
+      // Q723: a row inside its retry backoff is not due yet.
+      "FROM public.parish_match_alert_queue q JOIN public.jobs j ON j.id = q.job_id WHERE (q.retry_after IS NULL OR q.retry_after <= now()) AND public.early_access_visible_at(q.user_id, j.created_at) <= now() ORDER BY q.user_id, q.id LIMIT 1000 FOR UPDATE OF q SKIP LOCKED",
     );
     expect(b).toContain("DELETE FROM public.parish_match_alert_queue WHERE id = r.id; IF public.deliver_parish_match_alert(r.user_id, r.job_id) THEN");
   });

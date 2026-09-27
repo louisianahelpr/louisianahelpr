@@ -1679,6 +1679,7 @@ export type Database = {
       }
       job_match_queue: {
         Row: {
+          attempts: number
           created_at: string
           drop_reason: string | null
           id: string
@@ -1686,6 +1687,7 @@ export type Database = {
           link: string
           message: string
           notify_at: string
+          retry_after: string | null
           send_email: boolean
           settled_at: string | null
           source: string
@@ -1694,6 +1696,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attempts?: number
           created_at?: string
           drop_reason?: string | null
           id?: string
@@ -1701,6 +1704,7 @@ export type Database = {
           link: string
           message: string
           notify_at: string
+          retry_after?: string | null
           send_email?: boolean
           settled_at?: string | null
           source: string
@@ -1709,6 +1713,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attempts?: number
           created_at?: string
           drop_reason?: string | null
           id?: string
@@ -1716,6 +1721,7 @@ export type Database = {
           link?: string
           message?: string
           notify_at?: string
+          retry_after?: string | null
           send_email?: boolean
           settled_at?: string | null
           source?: string
@@ -3236,24 +3242,30 @@ export type Database = {
       }
       parish_match_alert_queue: {
         Row: {
+          attempts: number
           created_at: string
           id: string
           job_id: string
           notify_at: string
+          retry_after: string | null
           user_id: string
         }
         Insert: {
+          attempts?: number
           created_at?: string
           id?: string
           job_id: string
           notify_at: string
+          retry_after?: string | null
           user_id: string
         }
         Update: {
+          attempts?: number
           created_at?: string
           id?: string
           job_id?: string
           notify_at?: string
+          retry_after?: string | null
           user_id?: string
         }
         Relationships: [

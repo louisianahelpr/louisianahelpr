@@ -7,6 +7,12 @@
  *   node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs                             # GREEN
  *   NEW_MIGRATION=skip node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs          # RED: main before the parish half
  *   NEW_MIGRATION=skip-instant node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs  # RED: main before either half
+ *   NEW_MIGRATION=skip-q723 node src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs     # RED: main before Q723
+ *
+ * Q723 (20260927162805) is applied 3x after both halves: a send that raises
+ * is retried with backoff (a warning per failed attempt) and only the 5th
+ * failure drops it (an error); an error-dropped ledger row is reclaimable;
+ * every settled ledger row carries settled_at (a CHECK now holds that).
  *
  * The base is main's migrations before the instant file: 20260926041132
  * (the parish queue, deliver_parish_match_alert, the queue-only
@@ -33,10 +39,14 @@ const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathna
 const NEW_FILE = "20260926193006_q392_instant_job_matches_wait_for_early_access.sql";
 const PARISH_FILE = "20260926041132_parish_match_alerts_wait_for_early_access.sql";
 const LEDGER_FILE = "20260926195608_q392_parish_matches_block_gate_ledger.sql";
+const Q723_FILE = "20260927162805_q723_job_match_errors_retry_and_settle.sql";
 /** RED: main before the instant half (no ledger table, no enqueue). */
 const RED = process.env.NEW_MIGRATION === "skip-instant";
 /** PARISH_RED: main before the parish half (the instant half applied). */
 const PARISH_RED = RED || process.env.NEW_MIGRATION === "skip";
+/** Q723_RED: main before Q723 (errors dropped at once, seed drop unsettled). */
+const Q723_RED = PARISH_RED || process.env.NEW_MIGRATION === "skip-q723";
+if (Q723_RED && !PARISH_RED) console.log("NEW_MIGRATION=skip-q723: running the PREVIOUS definitions (expect FAILs)");
 if (PARISH_RED) console.log(`NEW_MIGRATION=${process.env.NEW_MIGRATION}: running the PREVIOUS definitions (expect FAILs)`);
 
 /** The newest `CREATE OR REPLACE FUNCTION public.<name>(` statement in migrations before `before`. */
@@ -127,7 +137,7 @@ for (const fn of ["early_access_delay_minutes", "early_access_visible_at", "noti
   "sweep_saved_search_alert_queue", "sweep_daily_job_digest"]) {
   await db.exec(previousDefinition(fn, NEW_FILE).text);
 }
-for (const [file, skip] of [[NEW_FILE, RED], [LEDGER_FILE, PARISH_RED]]) {
+for (const [file, skip] of [[NEW_FILE, RED], [LEDGER_FILE, PARISH_RED], [Q723_FILE, Q723_RED]]) {
   if (skip) continue;
   const sql = readFileSync(MIG_DIR + file, "utf8");
   for (let i = 0; i < 3; i++) await db.exec(sql);
@@ -359,7 +369,7 @@ const ledgerI = await ledger(jobI);
 check("... and writes no second ledger row", JSON.stringify(ledgerI) === JSON.stringify(["free:instant:queued"]), JSON.stringify(ledgerI));
 await sweep();
 
-// ── 7. an instant send that raises is logged and dropped; the rest still send
+// ── 7. an instant send that raises is retried with backoff, then dropped (Q723)
 const job10 = await postJob("Paint a fence");
 await enqueue(job10, [U.free, U.pro]);
 await db.exec(`CREATE FUNCTION public.raise_for_free() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -371,15 +381,106 @@ await db.exec(`CREATE FUNCTION public.raise_for_free() RETURNS trigger LANGUAGE 
 await ageJob(job10, 21);
 await sweep();
 check("a raising send: the other waiting user is still told", (await notifiedAbout(U.pro, job10)) === 1 && (await notifiedAbout(U.free, job10)) === 0);
-const logged = await q(`SELECT tags->>'source' AS src FROM public.error_logs WHERE tags->>'job_id' = $1`, [job10]);
-check("a raising send: logged once to error_logs, row dropped (not retried every minute)",
-  logged.length === 1 && logged[0].src === "job-match-queue"
-    && (RED ? false : (await q(`SELECT status FROM public.job_match_queue WHERE job_id = $1 AND user_id = $2`, [job10, U.free]))[0]?.status === "dropped"),
-  JSON.stringify(logged));
+const logs10 = async () => (await q(`SELECT severity, tags->>'source' AS src FROM public.error_logs WHERE tags->>'job_id' = $1`, [job10]))
+  .map((r) => `${r.severity}:${r.src}`);
+const row10 = async () => RED ? null : (await q(`SELECT status, drop_reason, settled_at IS NOT NULL AS settled, ${Q723_RED ? "0 AS attempts, false AS backoff" : "attempts, retry_after > now() AS backoff, round(extract(epoch FROM retry_after - now()) / 60)::int AS wait_min"}
+  FROM public.job_match_queue WHERE job_id = $1 AND user_id = $2`, [job10, U.free]))[0];
+let r10 = await row10();
+check("a raising send: the row stays queued with a backoff, one warning logged (Q723)",
+  r10?.status === "queued" && r10?.attempts === 1 && r10?.backoff === true
+    && JSON.stringify(await logs10()) === JSON.stringify(["warning:job-match-queue"]), JSON.stringify([r10, await logs10()]));
 await sweep();
-check("a raising send: not retried on the next run",
-  (await q(`SELECT count(*)::int n FROM public.error_logs WHERE tags->>'job_id' = $1`, [job10]))[0].n === 1 && logged.length === 1);
+check("a raising send: not retried inside its backoff", (await logs10()).length === 1, JSON.stringify(await logs10()));
+const waits10 = [r10?.wait_min];
+for (let i = 0; i < 4; i++) {
+  if (!Q723_RED) await db.query(`UPDATE public.job_match_queue SET retry_after = now() - interval '1 second' WHERE job_id = $1 AND user_id = $2`, [job10, U.free]);
+  await sweep();
+  if (i < 3) waits10.push((await row10())?.wait_min);
+}
+check("the backoff doubles: 5, 10, 20, 40 minutes", JSON.stringify(waits10) === "[5,10,20,40]", JSON.stringify(waits10));
+r10 = await row10();
+check("the 5th failure drops it with 'error: ...' and settles it; 4 warnings then 1 error",
+  r10?.status === "dropped" && /^error: /.test(r10?.drop_reason ?? "") && r10?.settled && r10?.attempts === 5
+    && JSON.stringify(await logs10()) === JSON.stringify([...Array(4).fill("warning:job-match-queue"), "error:job-match-queue"]),
+  JSON.stringify([r10, await logs10()]));
 await db.exec(`DROP TRIGGER raise_for_free ON public.notifications; DROP FUNCTION public.raise_for_free();`);
+// An error delivered nothing, so a later match may reclaim the slot; the send goes once.
+const re10 = await enqueue(job10, [U.free, U.pro]);
+await sweep();
+check("an error-dropped row is reclaimed by the next instant match; free told once, pro not twice",
+  re10?.queued === 1 && re10?.already === 1 && (await notifiedAbout(U.free, job10)) === 1 && (await notifiedAbout(U.pro, job10)) === 1,
+  JSON.stringify(re10));
+
+// ── 7a. a failed immediate send inside the enqueue is attempt 1, with a warning (Q723)
+const job11i = await postJob("Wash a car");
+await ageJob(job11i, 21);
+await db.exec(`CREATE FUNCTION public.raise_for_free() RETURNS trigger LANGUAGE plpgsql AS $$
+  BEGIN
+    IF NEW.user_id = '${U.free}' THEN RAISE EXCEPTION 'simulated insert failure'; END IF;
+    RETURN NEW;
+  END $$;
+  CREATE TRIGGER raise_for_free BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.raise_for_free();`);
+await enqueue(job11i, [U.free]);
+const r11i = RED ? null : (await q(`SELECT status, ${Q723_RED ? "0 AS attempts, false AS backoff" : "attempts, retry_after > now() AS backoff"}
+  FROM public.job_match_queue WHERE job_id = $1 AND user_id = $2`, [job11i, U.free]))[0];
+const l11i = (await q(`SELECT severity FROM public.error_logs WHERE tags->>'job_id' = $1`, [job11i])).map((r) => r.severity);
+check("a failed immediate send stays queued as attempt 1 with a backoff and one warning",
+  r11i?.status === "queued" && r11i?.attempts === 1 && r11i?.backoff === true && JSON.stringify(l11i) === '["warning"]',
+  JSON.stringify([r11i, l11i]));
+await db.exec(`DROP TRIGGER raise_for_free ON public.notifications; DROP FUNCTION public.raise_for_free();`);
+
+// ── 7b. the parish sweep retries a raising send too, then deletes it (Q723)
+const job10p = await postJob("Rake leaves", { parish: "Orleans" });
+await ageJob(job10p, 21);
+await db.exec(`CREATE FUNCTION public.raise_for_elite() RETURNS trigger LANGUAGE plpgsql AS $$
+  BEGIN
+    IF NEW.user_id = '${U.elite}' THEN RAISE EXCEPTION 'simulated insert failure'; END IF;
+    RETURN NEW;
+  END $$;
+  CREATE TRIGGER raise_for_elite BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.raise_for_elite();`);
+const plogs = async () => (await q(`SELECT severity FROM public.error_logs WHERE tags->>'job_id' = $1 AND tags->>'source' = 'parish-match-alert-queue'`, [job10p]))
+  .map((r) => r.severity);
+await parishSweep();
+check("parish: a raising send stays queued, one warning, no ledger row (the claim rolled back)",
+  JSON.stringify(await parishQueued(job10p)) === JSON.stringify(["elite"]) && JSON.stringify(await plogs()) === JSON.stringify(["warning"])
+    && !(await ledger(job10p)).some((l) => l.startsWith("elite:")) && (await notifiedAbout(U.free, job10p)) === 1,
+  JSON.stringify([await parishQueued(job10p), await plogs(), await ledger(job10p)]));
+await parishSweep();
+check("parish: not retried inside its backoff", (await plogs()).length === 1, JSON.stringify(await plogs()));
+for (let i = 0; i < 4; i++) {
+  if (!Q723_RED) await db.query(`UPDATE public.parish_match_alert_queue SET retry_after = now() - interval '1 second' WHERE job_id = $1`, [job10p]);
+  await parishSweep();
+}
+check("parish: the 5th failure deletes the row; 4 warnings then 1 error",
+  (await parishQueued(job10p)).length === 0
+    && JSON.stringify(await plogs()) === JSON.stringify(["warning", "warning", "warning", "warning", "error"]), JSON.stringify(await plogs()));
+await db.exec(`DROP TRIGGER raise_for_elite ON public.notifications; DROP FUNCTION public.raise_for_elite();`);
+
+// ── 7c. a seed-boundary drop is settled and stays silent (Q723)
+// trg_notifications_seed_boundary returns NULL for a seed job and a real recipient.
+await db.exec(`CREATE FUNCTION public.suppress_for_pro() RETURNS trigger LANGUAGE plpgsql AS $$
+  BEGIN IF NEW.user_id = '${U.pro}' THEN RETURN NULL; END IF; RETURN NEW; END $$;
+  CREATE TRIGGER suppress_for_pro BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.suppress_for_pro();`);
+const jobS = await postJob("Seed boundary", { parish: "Orleans" });
+await ageJob(jobS, 21);
+await parishSweep();
+const seedRow = RED ? null : (await q(`SELECT status, drop_reason, settled_at IS NOT NULL AS settled FROM public.job_match_queue WHERE job_id = $1 AND user_id = $2`, [jobS, U.pro]))[0];
+check("parish: a seed-suppressed send is dropped AND settled (settled_at set)",
+  seedRow?.status === "dropped" && seedRow?.drop_reason === "suppressed by the seed boundary" && seedRow?.settled === true, JSON.stringify(seedRow));
+await db.exec(`DROP TRIGGER suppress_for_pro ON public.notifications; DROP FUNCTION public.suppress_for_pro();`);
+const reS = await enqueue(jobS, [U.pro]);
+await sweep();
+check("a seed drop is not reclaimable: the instant match stands down, pro never told", reS?.already === 1 && (await notifiedAbout(U.pro, jobS)) === 0, JSON.stringify(reS));
+
+// ── 7d. every ledger writer, present and future: settled iff not queued (Q723)
+const violates = async (sql) => { try { await db.exec(`SAVEPOINT v; ${sql}`); await db.exec(`ROLLBACK TO SAVEPOINT v`); return false; } catch { await db.exec(`ROLLBACK TO SAVEPOINT v`).catch(() => {}); return true; } };
+await db.exec(`BEGIN`);
+const bad = RED ? [false, false] : [
+  await violates(`UPDATE public.job_match_queue SET status = 'dropped', settled_at = NULL WHERE job_id = '${job10}'`),
+  await violates(`UPDATE public.job_match_queue SET status = 'queued' WHERE job_id = '${job10}' AND settled_at IS NOT NULL`),
+];
+await db.exec(`ROLLBACK`);
+check("CHECK: a settled row without settled_at, or a queued row with one, is refused", bad[0] && bad[1], JSON.stringify(bad));
 
 // ── 8. the daily parish digest counts only what the recipient can see ─────
 await db.exec(`DELETE FROM public.notifications; UPDATE public.jobs SET status = 'accepted';`);

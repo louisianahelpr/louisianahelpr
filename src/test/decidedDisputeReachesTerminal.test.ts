@@ -38,7 +38,7 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
  * @mutate supabase/migrations/20260926034237_chargeback_lost_closes_decided_dispute.sql | OR _disputed_cents < _charge_cents THEN | THEN
  * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | _customer_id,\n      'info',\n      'Dispute decided', | _customer_id,\n      'info',\n      'Dispute resolved',
  * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | _job.customer_id, 'info', 'Dispute decided', | _job.customer_id, 'info', 'Dispute resolved',
- * @mutate src/components/job-card/jobStatusLine.ts | return disputeSettling(job) ? "dispute_settling" : "done_paid"; | return "done_paid";
+ * @mutate src/components/job-card/jobStatusLine.ts | case "completed":\n      if (disputeSettling(job)) return "dispute_settling";\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid"; | case "completed":\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid";
  * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | IF _payment_status = 'chargeback' THEN | IF false THEN
  */
 
@@ -169,7 +169,11 @@ describe("Q344: a decision is not announced as a settlement", () => {
 
   const base = {
     id: "job-q344", status: "completed", helper_id: "h", customer_id: "p",
-    payment_status: "escrow", dispute_status: "resolved",
+    // Q451: "the ordinary finish" this fixture falls back to when the dispute
+    // is executed (not in `settling`) means the payout has actually settled,
+    // not merely that it isn't blocked by a dispute — so `released`, not
+    // `escrow`, which Q451's own guard now correctly reads as not-yet-paid.
+    payment_status: "released", dispute_status: "resolved",
   } as unknown as Job;
   const settling = new Set(["job-q344"]);
 

@@ -52,6 +52,7 @@
  * @mutate src/components/job-card/jobStatusLine.ts | confirm_arrival: { detail: "Confirm they arrived", eyebrow: BUCKET_LABEL.needs_you, tone: "you" }, | confirm_arrival: { detail: "Confirm they have arrived at the job and started work", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
  * @mutate src/components/job-card/JobStatusStrip.tsx | className="px-4 py-2 flex items-center gap-1.5 flex-wrap" | className="px-4 py-2 flex items-center gap-1.5 flex-nowrap"
  * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <JobStatusStrip | {(true) && (\n              <JobStatusStrip
+ * @mutate src/components/job-card/jobStatusLine.ts | return "done_both_open";\n      }\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid"; | return "done_both_open";\n      }\n      return "done_paid";
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -289,6 +290,13 @@ const POSTER_FIXTURES: Record<
     job: job({ status: "completed", helper_id: HELPER, payment_status: "escrow", dispute_status: "resolved", dispute_settling: true }),
     completion: { tipped: true, reviewed: true },
   },
+  /* Q451: approved but the transfer hasn't settled yet — still `payout_pending`,
+     not `released`. Same completion meta as done_paid; only payment_status
+     differs, which is exactly the column the fix reads. */
+  done_payout_pending: {
+    job: job({ status: "completed", helper_id: HELPER, payment_status: "payout_pending" }),
+    completion: { tipped: true, reviewed: true },
+  },
   done_paid: {
     job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
     completion: { tipped: true, reviewed: true },
@@ -356,6 +364,8 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
     status: "open", payment_status: "failed", direct_offer_status: "pending", offered_to_helper_id: HELPER,
   }),
   dispute_settling: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "escrow", dispute_status: "resolved", dispute_settling: true }),
+  /* Q451: the helper's half of done_payout_pending. */
+  done_payout_pending: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "payout_pending" }),
   done_paid: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "released" }),
 };
 
@@ -435,6 +445,72 @@ describe("every state a collapsed card can be in has a sentence", () => {
     for (const s of STATUSES.filter((x) => x !== "pending_approval")) {
       expect(helperStatuses.has(s), `no helper fixture is in status ${s}`).toBe(true);
     }
+  });
+});
+
+/* ═══════════ 1B — PAYOUT PENDING IS NEVER CALLED PAID (Q451) ════════════
+ *
+ * Owner, 2026-09-27: "a completed job whose payout has not been sent yet
+ * must read 'Done · payout pending' instead of 'Done · paid and closed' /
+ * 'Paid out'. Once the payout is actually sent it keeps the existing paid
+ * wording."
+ *
+ * `jobs.payment_status` reaching a `completed`, non-disputed job is one of
+ * the values in the `jobs_payment_status_check` constraint
+ * (supabase/migrations/20260824210000_r19_r20_latent_leaks_and_cancelling_status.sql):
+ * unpaid, escrow, payout_pending, released, refunded, cancelled, abandoned,
+ * failed, chargeback, cancelling. `released` is the only one of those that
+ * means the transfer actually settled —
+ * supabase/migrations/20260825053000_reviews_allow_payout_pending.sql's own
+ * comment states approval sets `payout_pending` first and the row "only
+ * becomes released when the payout actually settles, hours later". This
+ * guard drives every OTHER value through the real derivations and asserts
+ * neither side ever reports the paid state for it — the whole class Q451
+ * named, not just the one `payout_pending` example.
+ *
+ * `chargeback` AND `failed` are excluded from the loop below: both are
+ * intercepted earlier, by `problemWait(job)` (Q360's `bank_dispute` /
+ * `payment_failed` states), before `case "completed":` is ever reached — a
+ * `completed` job with either status never derives `done_paid` today, and
+ * never could, so looping them here would assert a code path this guard
+ * cannot exercise rather than a gap in the Q451 fix itself. */
+describe("a completed job whose payout has not settled is never called paid (Q451)", () => {
+  const NOT_YET_SETTLED = [
+    "unpaid", "escrow", "payout_pending", "refunded",
+    "cancelled", "abandoned", "cancelling",
+  ] as const;
+
+  it("Posts: no not-yet-settled status derives done_paid", () => {
+    for (const payment_status of NOT_YET_SETTLED) {
+      const id = derivePosterWait(
+        job({ status: "completed", helper_id: HELPER, payment_status }),
+        0,
+        undefined,
+        { tipped: true, reviewed: true },
+      );
+      expect(id, `payment_status "${payment_status}" derived "${id}"`).toBe("done_payout_pending");
+    }
+  });
+
+  it("Jobs: no not-yet-settled status derives done_paid", () => {
+    for (const payment_status of NOT_YET_SETTLED) {
+      const id = deriveHelperWait(makeApp({}, { status: "completed", helper_id: HELPER, payment_status }));
+      expect(id, `payment_status "${payment_status}" derived "${id}"`).toBe("done_payout_pending");
+    }
+  });
+
+  it("a settled payout keeps the existing paid wording, on both sides", () => {
+    expect(
+      derivePosterWait(
+        job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
+        0,
+        undefined,
+        { tipped: true, reviewed: true },
+      ),
+    ).toBe("done_paid");
+    expect(
+      deriveHelperWait(makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "released" })),
+    ).toBe("done_paid");
   });
 });
 

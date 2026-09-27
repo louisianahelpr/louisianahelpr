@@ -161,6 +161,7 @@ export type PosterWait =
   | "bank_dispute"
   | "payment_failed"
   | "dispute_settling"
+  | "done_payout_pending"
   | "done_paid"
   | "done_tip_open"
   | "done_review_open"
@@ -245,6 +246,16 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      one row now, and the check is reserved for the state that has earned it.
      Clock rather than alert on the open ones: the work is finished and paid, so
      nothing is wrong — something is merely outstanding. */
+  /* PAYOUT PENDING IS NOT PAID (Q451, owner 2026-09-27): "a completed job whose
+     payout has not been sent yet must read 'Done · payout pending' instead of
+     'Done · paid and closed' / 'Paid out'." Approving completion sets
+     payment_status = 'payout_pending' immediately; it only becomes 'released'
+     once the transfer actually settles, hours to days later (see
+     supabase/migrations/20260825053000_reviews_allow_payout_pending.sql). This
+     card said "paid and closed" for that whole window over money that had not
+     moved — the same class of bug `dispute_settling` (Q344) fixed above, for
+     the ordinary case instead of the disputed one. */
+  done_payout_pending: { detail: "Done · payout pending" },
   done_paid: { detail: "Done · paid and closed" },
   done_tip_open: { detail: "Reviewed — tip still open", tone: "them" },
   done_review_open: { detail: "Tip left — review still open", tone: "them" },
@@ -263,6 +274,27 @@ export type DisputeSettlingFlag = { dispute_settling?: boolean };
 
 function disputeSettling(job: object): boolean {
   return (job as DisputeSettlingFlag).dispute_settling === true;
+}
+
+/**
+ * Q451: a completed job's payout has not actually been sent yet.
+ *
+ * `jobs.payment_status` reaches this point (a `completed` job, not disputed
+ * and not a chargeback/decline — those are handled earlier) at one of the
+ * MOVING values from the `jobs_payment_status_check` constraint
+ * (supabase/migrations/20260824210000_r19_r20_latent_leaks_and_cancelling_status.sql):
+ * `'payout_pending'`, `'released'`, `'refunded'`, `'chargeback'`, `'cancelling'`,
+ * or occasionally still `'escrow'` for a job whose approval write hasn't
+ * landed yet. `'released'` is the ONLY one of those that means the transfer to
+ * the Helpr has actually settled — see
+ * supabase/migrations/20260825053000_reviews_allow_payout_pending.sql, whose
+ * comment states plainly that approval sets `payout_pending` first and the
+ * row only becomes `released` "when the payout actually settles, hours
+ * later". Anything else reaching here (including a null/missing value) is
+ * treated as "not yet paid out" — the safer default for a money label.
+ */
+function payoutNotSettled(job: { payment_status?: string | null }): boolean {
+  return job.payment_status !== "released";
 }
 
 /** The job, flagged when its dispute is decided but not yet executed. */
@@ -316,7 +348,7 @@ export function derivePosterWait(
         if (completion.tipped) return "done_review_open";
         return "done_both_open";
       }
-      return "done_paid";
+      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid";
     case "disputed":
       return (job as { dispute_status?: string | null }).dispute_status === "escalated"
         ? "dispute_escalated"
@@ -420,6 +452,7 @@ export type HelperWait =
   | "bank_dispute"
   | "payment_failed"
   | "dispute_settling"
+  | "done_payout_pending"
   | "done_paid";
 
 /**
@@ -465,6 +498,11 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   ...problemCopy(),
   /* Q344, the Helpr's half: see POSTER_WAIT.dispute_settling. */
   dispute_settling: { detail: "Decided — payment processing", eyebrow: "Dispute decided", tone: "them" },
+  /* Q451, the Helpr's half: see POSTER_WAIT.done_payout_pending. Same
+     condition (`payoutNotSettled`), same not-actually-paid window; the
+     existing "Paid out" line claimed the transfer had happened the moment the
+     poster approved, which is up to a few days early. */
+  done_payout_pending: { detail: "Done · payout pending" },
   done_paid: { detail: "Paid out" },
 };
 
@@ -491,7 +529,8 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
     case "cancelled":
       return disputeSettling(job) ? "dispute_settling" : "cancelled";
     case "completed":
-      return disputeSettling(job) ? "dispute_settling" : "done_paid";
+      if (disputeSettling(job)) return "dispute_settling";
+      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid";
     case "disputed":
       return (job as { dispute_status?: string | null }).dispute_status === "escalated"
         ? "dispute_escalated"

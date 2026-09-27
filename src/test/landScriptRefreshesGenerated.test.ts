@@ -16,6 +16,15 @@
  * record", which land.sh never ran.
  *
  * @mutate .claude/AGENT-BRIEF.md | then `bash scripts/land.sh` | then `git push --no-verify origin HEAD:main`
+ *
+ * --pr (Q44): with strict protection + enforce_admins a direct push is
+ * refused, so land.sh can land the same verified HEAD through a PR with
+ * REBASE auto-merge (a squash would drop per-commit Sensitive-Review trailers).
+ *
+ * @mutate scripts/land.sh |     gh pr merge "$BR" --rebase --auto |     gh pr merge "$BR" --squash --auto
+ * @mutate scripts/land.sh |     git push --no-verify --force origin "HEAD:refs/heads/$BR" |     git push --no-verify --force origin "HEAD:main"
+ * @mutate scripts/land.sh |     --pr) PR=1 ;; |     --pr) PR=0 ;;
+ * @mutate .claude/AGENT-BRIEF.md | land with `bash scripts/land.sh --pr` | land with `git push origin HEAD:main`
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -44,6 +53,21 @@ describe("scripts/land.sh keeps generated files current on main", () => {
       at(/git push --no-verify origin HEAD:main/),
     ];
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it("--pr lands the same checked HEAD through a PR with rebase auto-merge (Q44)", () => {
+    expect(code).toMatch(/^\s*--pr\) PR=1 ;;$/m);
+    const pr = code.slice(at(/^\s*if \[ "\$PR" = 1 \]; then$/m));
+    // The PR branch is pushed only after check:generated and the review check.
+    expect(at(/^\s*if \[ "\$PR" = 1 \]; then$/m)).toBeGreaterThan(
+      at(/^\s*node scripts\/check-sensitive-review\.mjs --range origin\/main\.\.HEAD --strict$/m),
+    );
+    expect(pr).toMatch(/git push --no-verify --force origin "HEAD:refs\/heads\/\$BR"/);
+    expect(pr).toMatch(/BR="land\/\$\(git rev-parse --abbrev-ref HEAD\)"/);
+    expect(pr).toMatch(/gh pr merge "\$BR" --rebase --auto/);
+    expect(pr).not.toMatch(/--squash/);
+    const brief = readFileSync(resolve(ROOT, ".claude/AGENT-BRIEF.md"), "utf8");
+    expect(brief).toMatch(/land with `bash scripts\/land\.sh --pr`/);
   });
 
   it("never uses git stash and refuses a dirty tracked tree", () => {

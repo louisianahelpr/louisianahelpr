@@ -3,6 +3,16 @@
 #
 #   bash scripts/land.sh            # fetch, rebase, refresh, commit, verify, push
 #   bash scripts/land.sh --dry-run  # everything except the push
+#   bash scripts/land.sh --pr       # same, but land through a PR with auto-merge
+#
+# --pr (Q44): once main's protection is strict with enforce_admins, a direct
+# push to main is refused. --pr pushes the same verified HEAD to the branch
+# land/<current branch> (force: it is this worktree's own branch), opens a PR
+# for it if none is open, and turns on auto-merge with REBASE (not squash: a
+# squash rewrites the messages and drops per-commit Sensitive-Review trailers).
+# Strict protection needs the branch up to date with main, so if main moves
+# before the checks finish, re-run `bash scripts/land.sh --pr`: it rebases
+# and force-pushes the branch again.
 #
 # Why (2026-09-27): agents land with `git push --no-verify origin HEAD:main`,
 # which skips the pre-commit hook that regenerates the inventories. One new
@@ -17,7 +27,14 @@
 set -euo pipefail
 
 DRY=0
-[ "${1:-}" = "--dry-run" ] && DRY=1
+PR=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY=1 ;;
+    --pr) PR=1 ;;
+    *) echo "land: unknown argument $arg (use --dry-run, --pr)" >&2; exit 1 ;;
+  esac
+done
 
 cd "$(git rev-parse --show-toplevel)"
 
@@ -69,6 +86,18 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
   if [ "$DRY" = 1 ]; then
     echo "land: --dry-run, not pushing. HEAD $(git rev-parse --short HEAD)"
+    exit 0
+  fi
+
+  if [ "$PR" = 1 ]; then
+    BR="land/$(git rev-parse --abbrev-ref HEAD)"
+    git push --no-verify --force origin "HEAD:refs/heads/$BR"
+    if ! gh pr view "$BR" --json state --jq .state 2>/dev/null | grep -qx OPEN; then
+      gh pr create --base main --head "$BR" --fill-first
+    fi
+    gh pr merge "$BR" --rebase --auto
+    echo "land: $(git rev-parse --short HEAD) is on $BR with auto-merge on; it lands when the required checks pass."
+    echo "land: if main moves first (strict protection), re-run bash scripts/land.sh --pr."
     exit 0
   fi
 

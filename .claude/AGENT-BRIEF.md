@@ -74,6 +74,12 @@ says more.
   regenerated, proves `check:generated` green, then
   `git push --no-verify origin HEAD:main`. A bare `--no-verify` push skips the
   hook that refreshes them and leaves main red (503fd193c, 2026-09-27).
+- Once main's protection requires checks with enforce_admins (Q44), a direct
+  push is refused: land with `bash scripts/land.sh --pr` instead. It does the
+  same rebase, refresh and checks, then pushes `land/<your branch>`, opens a
+  PR and turns on rebase auto-merge. If main moves before the checks pass,
+  re-run it. Your work is not landed until the PR shows MERGED
+  (`gh pr view land/<your branch> --json state`).
 - End commits with the Co-Authored-By line from CLAUDE.md.
 - If a rebase stops on a conflict, resolve it (for generated files: take
   origin's version, then regenerate) and `git rebase --continue`. Never

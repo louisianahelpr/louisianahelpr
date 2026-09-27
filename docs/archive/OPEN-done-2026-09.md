@@ -1978,3 +1978,7 @@ duplicate-number check).
   Decide: skip the insert for seed jobs, or tag it. Also: a failed profile
   REPAIR write on a seed profile in subscription-reconciliation still counts
   as a defect (500) — a broken write, deliberately left counted; confirm. STATUS 2026-09-27 (lane A): live process-scheduled-payouts has `is_seed === true` x4, but no include_seed fire drill has run: no seed admin_alert titled "Scheduled payout failed"/"Payout blocked" in the last 4 days, so an sql marker would be vacuous. Needs a money fire drill (plant a seed payout failure, dispatch with include_seed). Seed jobs still reach the admin inbox via the stalled/dispute-stuck SQL producers (Q139).
+
+## Archived 2026-09-27 — from "QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above"
+
+- [x] **Q821 35 nightly reporters still run on always() (2026-09-27, gap noticed by lanes).** 35 nightly reporter steps use `if: always()`, so they also run on a cancelled workflow. Switch them to `!cancelled()`, or report cancelled as its own red. GUARD when built: a workflow lint that counts `always()` reporters, with the count set exactly. DONE 2026-09-27: 35 notify jobs switched to `!cancelled()`; uptime.yml's in-job step stays on `always()` as the one named exception. Guard `src/test/nightlyReportersSkipCancelledRuns.test.ts` (exact list; vacuity 3/3 killed).

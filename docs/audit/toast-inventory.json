@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 559,
+    "calls": 560,
     "files": 142,
-    "rendering": 537,
+    "rendering": 538,
     "suppressedByPolicy": 22,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 445,
+      "toast.error": 446,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 27,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 313,
       "template": 73,
-      "dynamic": 213,
+      "dynamic": 214,
       "jsx": 0
     }
   },
@@ -2302,11 +2302,21 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 343,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage(err, \"Couldn't update that ticket — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSupport.tsx",
+      "line": 531,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
       },
       "renders": true
     },
@@ -3683,7 +3693,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 183,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3693,7 +3703,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 224,
+      "line": 219,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

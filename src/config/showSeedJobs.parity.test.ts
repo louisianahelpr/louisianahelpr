@@ -243,6 +243,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.end_series_for_banned_account", "server-only ban path over the banned account's own series; 'open' marks visits to cancel or hand back"],
     ["public.offer_series_dates", "one series the caller posted; 'open' marks a vacated visit"],
     ["public.series_release_dates", "one series' visits; 'open' marks a vacated visit"],
+    // Q327, 20260927012042: the ban trigger's settlement over the banned
+    // account's own one-off jobs; 'open' is a status it settles, not a feed.
+    ["public.settle_one_off_jobs_for_banned_account", "server-only ban path over the banned account's own one-off jobs; 'open' is a status to settle"],
     ["public.report_helper_no_show", "single-job mutation; status is a precondition"],
     ["public.rpc_open_dispute", "single-job mutation; status is a precondition"],
     // The shared body rpc_open_dispute now delegates to, so the platform's own

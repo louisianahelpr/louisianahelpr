@@ -12,11 +12,18 @@
  *        --title <text> --severity critical|error|warning|info [--sample <text>] \
  *        [--verify-ref <workflow file>] [--run-url <url>]
  *       What a workflow Slack step runs next to its curl. Never exits non-zero.
+ *       --source-kind nightly_red for a self-recording workflow records nothing.
  *
  *   node scripts/ops-alert-ledger.mjs sync
  *       Hourly, from prod-errors.yml:
  *        1. every OPEN GitHub issue labelled nightly-red / prod-down /
- *           prod-errors / supabase-usage becomes (or bumps) a ledger item;
+ *           prod-errors / supabase-usage becomes (or bumps) a ledger item,
+ *           EXCEPT a workflow that records its own item on every red
+ *           (selfRecordingWorkflows) whose newest red run is covered by those
+ *           items (redRunCovered): one red, one item. Uncovered = fail safe,
+ *           the generic item is recorded as before;
+ *        2b. a nightly_red item of such a workflow closes as superseded once
+ *           it re-ran after the item's last occurrence and that run is covered;
  *        2. a nightly_red item whose issue was CLOSED BY github-actions[bot] —
  *           i.e. by that workflow's own green run — closes, evidence = the
  *           issue; closed by a person does NOT close it (not a re-run);
@@ -37,7 +44,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, lit, newestNightlyIssueByTitle, recordOpsAlert, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
+import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 
 const [, , cmd, ...rest] = process.argv;
@@ -54,6 +61,32 @@ function gh(args) {
 }
 
 const newestIssueByTitle = (repo, title) => newestNightlyIssueByTitle(repo, title, gh);
+
+const WORKFLOW_DIR = ".github/workflows";
+function workflowFiles() {
+  return readdirSync(WORKFLOW_DIR).filter((f) => /\.ya?ml$/.test(f)).map((f) => ({ file: f, text: readFileSync(join(WORKFLOW_DIR, f), "utf8") }));
+}
+const readScript = (p) => {
+  try {
+    return readFileSync(p, "utf8");
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The workflow a generic nightly_red item (or issue title) belongs to, when that
+ * workflow records its own item on every red (selfRecordingWorkflows), else null.
+ */
+function selfRecordingContext() {
+  const files = workflowFiles();
+  const aliases = workflowAliases(files);
+  const self = selfRecordingWorkflows(files, readScript);
+  return { aliases, self, of: (title) => {
+    const k = ledgerWorkflowKey({ source_kind: "nightly_red", title }, aliases);
+    return k && self.has(k) ? k : null;
+  } };
+}
 
 async function list() {
   const brief = flag("brief");
@@ -96,10 +129,7 @@ async function list() {
         `\n    first ${r.first_seen}  last ${r.last_seen}  verify ${r.verify_kind}${r.verify_ref ? `(${r.verify_ref})` : ""}${r.verify_note ? `  — ${r.verify_note}` : ""}`,
     );
   }
-  const dir = ".github/workflows";
-  const aliases = workflowAliases(
-    readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).map((f) => ({ file: f, text: readFileSync(join(dir, f), "utf8") })),
-  );
+  const aliases = workflowAliases(workflowFiles());
   const dupes = duplicateGroups(rows, aliases);
   if (dupes.length) {
     console.log(`\nPOSSIBLE DUPLICATES: ${dupes.length} workflow(s) open more than once (one red, counted twice; close the extra once its detector is green):`);
@@ -116,8 +146,18 @@ async function record() {
     console.log("::warning::ops-alert-ledger record: --title is required; nothing recorded");
     return;
   }
+  const sourceKind = opt("source-kind", "workflow");
+  const own = sourceKind === "nightly_red" ? selfRecordingContext().of(title) : null;
+  if (own) {
+    // Its own checks recorded a specific item for this red; a generic one
+    // would count it twice (2026-09-27 quota-monitor pair). The nightly-red
+    // issue is untouched, and `sync` records the generic item after all if
+    // the red run turns out NOT covered (redRunCovered).
+    console.log(`ops-alert-ledger record: ${own}.yml records its own item on every red; generic nightly_red item "${title}" not recorded`);
+    return;
+  }
   await recordOpsAlert({
-    sourceKind: opt("source-kind", "workflow"),
+    sourceKind,
     source: opt("source", process.env.GITHUB_WORKFLOW ?? "unknown"),
     title,
     severity: opt("severity", "error"),
@@ -131,6 +171,31 @@ async function record() {
 async function sync() {
   const repo = process.env.GITHUB_REPOSITORY ?? gh(["repo", "view", "--json", "nameWithOwner"]).nameWithOwner;
   const log = [];
+
+  // Self-recording workflows (selfRecordingWorkflows): each red job records its
+  // own item. Their newest completed main run is COVERED when every failed job
+  // did; only then is a generic nightly_red item skipped (1) or retired (2b).
+  const selfRec = selfRecordingContext();
+  const coverage = new Map();
+  const coverageOf = async (wf) => {
+    if (coverage.has(wf)) return coverage.get(wf);
+    let c = { covered: false, run: null, why: "no completed main run" };
+    const runs = gh(["run", "list", "--repo", repo, "--workflow", `${wf}.yml`, "--branch", "main", "--limit", "5",
+      "--json", "databaseId,conclusion,status,createdAt,url"]);
+    const run = runs.find((r) => r.status === "completed");
+    if (run && run.conclusion !== "success") {
+      const jobs = gh(["run", "view", String(run.databaseId), "--repo", repo, "--json", "jobs"]).jobs ?? [];
+      const failedJobs = jobs.filter((j) => j.conclusion === "failure").length;
+      const items = await sql(`SELECT id, source, sample_ref FROM public.ops_alert_ledger
+                                WHERE status <> 'closed' AND source_kind = 'workflow' AND verify_ref = ${lit(`${wf}.yml`)}`);
+      const ids = items.filter((r) => redRunCovered({ runId: run.databaseId, failedJobs: 1, items: [r] })).map((r) => String(r.id).slice(0, 8));
+      c = { covered: redRunCovered({ runId: run.databaseId, failedJobs, items }), run, why: `${failedJobs} failed job(s); own items ${ids.join(", ") || "none"}` };
+    } else if (run) {
+      c = { covered: false, run, why: "newest run is green" };
+    }
+    coverage.set(wf, c);
+    return c;
+  };
 
   // 1. open tracked issues -> items (one per issue title). An issue counts as a
   // new occurrence only when it changed (a "still red" comment bumps
@@ -146,6 +211,15 @@ async function sync() {
     for (const i of issues) {
       const seen = known.get(String(i.number));
       if (seen && seen >= new Date(i.updatedAt)) continue;
+      const own = selfRec.of(i.title);
+      if (own) {
+        const c = await coverageOf(own);
+        if (c.covered) {
+          log.push(`${label}: "${i.title}" not recorded as nightly_red: ${own}.yml run ${c.run.url} recorded its own item per failed job (${c.why})`);
+          continue;
+        }
+        log.push(`${label}: "${i.title}" recorded as nightly_red (fail-safe): ${own}.yml's newest red is not covered by its own items (${c.why})`);
+      }
       await recordOpsAlert({
         sourceKind: "nightly_red", source: label, title: i.title, severity: label === "prod-down" ? "critical" : "error",
         sample: `${i.title} — ${i.url}`, sampleRef: { issue: i.number, url: i.url },
@@ -190,6 +264,17 @@ async function sync() {
       if (done?.conclusion === "success" && new Date(done.createdAt) > new Date(it.last_seen)) {
         evidence = `${it.verify_ref} re-ran green on main after the last alert: ${done.url}`;
         rerunAt = done.createdAt;
+      }
+    }
+    const own = it.source_kind === "nightly_red" && !evidence ? selfRec.of(it.title) : null;
+    if (own) {
+      // 2b. The workflow re-ran after this generic item's last occurrence and
+      // every job that failed recorded its own item: the red is carried there
+      // (one red, one item), and those close on a green run (step 3).
+      const c = await coverageOf(own);
+      if (c.covered && new Date(c.run.createdAt) > new Date(it.last_seen)) {
+        evidence = `superseded: ${own}.yml re-ran at ${c.run.createdAt} (${c.run.url}), after this item's last occurrence; it is red and ${c.why}, which stay open until a green run`;
+        rerunAt = c.run.createdAt;
       }
     }
     if (evidence) {

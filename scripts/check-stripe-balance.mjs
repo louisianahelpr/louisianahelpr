@@ -25,7 +25,7 @@ import {
   LOW_TITLE, MULTIPLIER, TOP_UP_HOW, UNREADABLE_TITLE, UPCOMING_SQL, WINDOW_HOURS,
   dollars, evaluateBalance, lowSample, parseAvailableUsdCents,
 } from "./lib/stripeBalanceMonitor.mjs";
-import { recordOpsAlert } from "./lib/opsAlertLedger.mjs";
+import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 
 const env = process.env;
 const STRIPE = env.LH_STRIPE_API_BASE ?? "https://api.stripe.com";
@@ -102,7 +102,7 @@ async function main() {
 
   if (res.status === "unreadable") {
     const sample = `${balanceError}. Nothing can warn before payouts fail until this reads. If the key lacks "Balance: read", add it to the restricted key. ${TOP_UP_HOW}`;
-    if (!noLedger) await recordOpsAlert({ ...common, title: UNREADABLE_TITLE, severity: "error", sample, sampleRef: { run_url: runUrl } });
+    if (!noLedger) await recordOpsAlert({ ...common, title: UNREADABLE_TITLE, severity: "error", sample, sampleRef: failingRunRef() });
     console.error(`::error title=Stripe balance unreadable::${balanceError}`);
     console.error("::error::The Stripe TEST balance could not be read — this run is red on purpose.");
     process.exit(1);

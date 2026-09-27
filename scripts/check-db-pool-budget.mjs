@@ -24,9 +24,17 @@
  * not state (PostgREST db_pool null = a server default nobody can read) is a
  * red run, never a pass.
  *
+ * Every red path records its OWN ops alert ledger item (source db-pool-budget,
+ * verify-ref quota-monitor.yml) before exiting, so the red has exactly one item
+ * and `ops-alert-ledger.mjs sync` closes it after a green quota-monitor run
+ * (2026-09-27: this job's red was in the ledger only as the generic
+ * nightly_red item 79f3fe46). --no-ledger skips the write (local runs).
+ *
  * Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF. Test seam: LH_SUPABASE_API_BASE.
  * Wired into .github/workflows/quota-monitor.yml (job db_pool_budget).
  */
+import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
+
 const env = process.env;
 const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
 const REF = env.SUPABASE_PROJECT_REF;
@@ -52,8 +60,19 @@ SELECT current_setting('max_connections')::int AS max_conns,
            WHERE start_time > now() - interval '2 days'
            GROUP BY date_trunc('minute', start_time)) m)::int AS cron_peak_minute`;
 
-function die(msg) {
+const noLedger = process.argv.includes("--no-ledger");
+/** Stable ledger titles: one item per kind of red, not one per reading. */
+export const OVER_BUDGET_TITLE = "Postgres connection budget exceeded: pg_cron will be refused under load (Q317)";
+export const UNREADABLE_TITLE = "Postgres connection budget cannot be read (Q317)";
+
+async function die(msg, title = UNREADABLE_TITLE) {
   console.error(`::error title=db pool budget::${msg}`);
+  if (!noLedger) {
+    await recordOpsAlert({
+      sourceKind: "workflow", source: "db-pool-budget", title, severity: "error", sample: msg,
+      sampleRef: failingRunRef(), verifyKind: "workflow", verifyRef: "quota-monitor.yml",
+    });
+  }
   process.exit(1);
 }
 
@@ -70,7 +89,7 @@ async function getJson(path, init) {
 const isCount = (v) => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
 async function main() {
-  if (!TOKEN || !REF) die("could not read the pool config: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
+  if (!TOKEN || !REF) await die("could not read the pool config: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
 
   let rows, postgrest, pooler, auth;
   try {
@@ -78,7 +97,7 @@ async function main() {
     postgrest = await getJson("/postgrest");
     pooler = await getJson("/config/database/pooler");
   } catch (e) {
-    die(`could not read the pool config: ${e?.message ?? e}`);
+    await die(`could not read the pool config: ${e?.message ?? e}`);
   }
   try {
     auth = await getJson("/config/auth");
@@ -87,7 +106,7 @@ async function main() {
   }
 
   const r = Array.isArray(rows) ? rows[0] : null;
-  if (!r || !isCount(r.max_conns) || r.max_conns === 0) die("the connection SQL returned no row — refusing to report clean");
+  if (!r || !isCount(r.max_conns) || r.max_conns === 0) await die("the connection SQL returned no row — refusing to report clean");
 
   const dbPool = postgrest && typeof postgrest === "object" && !Array.isArray(postgrest) ? postgrest.db_pool : undefined;
   // Every raw reading first, so a red run still records what prod is set to.
@@ -97,13 +116,13 @@ async function main() {
   console.log(`read: sql ${JSON.stringify(r)}`);
   console.log(`read: postgrest db_pool ${JSON.stringify(dbPool)}; pooler ${JSON.stringify(poolerRaw)}; auth db_max_pool_size ${JSON.stringify(auth?.db_max_pool_size)}`);
   if (!isCount(dbPool)) {
-    die(`PostgREST db_pool is ${JSON.stringify(dbPool)}: unset means a server default the API does not state — refusing to report clean. Set it explicitly (Management API PATCH /postgrest).`);
+    await die(`PostgREST db_pool is ${JSON.stringify(dbPool)}: unset means a server default the API does not state — refusing to report clean. Set it explicitly (Management API PATCH /postgrest).`);
   }
 
   const pools = Array.isArray(pooler) ? pooler : pooler ? [pooler] : [];
   const poolSizes = pools.map((p) => p?.default_pool_size);
   if (!poolSizes.length || !poolSizes.every(isCount)) {
-    die(`pooler config read as ${JSON.stringify(poolSizes)} — refusing to report clean`);
+    await die(`pooler config read as ${JSON.stringify(poolSizes)} — refusing to report clean`);
   }
   const poolerTotal = poolSizes.reduce((a, b) => a + b, 0);
 
@@ -120,7 +139,7 @@ async function main() {
   console.log(
     `demand  = PostgREST db_pool ${dbPool} + its LISTEN ${POSTGREST_LISTENER} + pooler ${poolSizes.join("+")} + Auth ${authPool} + other backends now ${r.other_conns} + cron reserve ${cronReserve} (peak minute ${r.cron_peak_minute}) = ${demand}`,
   );
-  if (demand > usable) die(`pools may hold ${demand} connections but only ${usable} are usable: pg_cron will be refused under load (Q317)`);
+  if (demand > usable) await die(`pools may hold ${demand} connections but only ${usable} are usable: pg_cron will be refused under load (Q317)`, OVER_BUDGET_TITLE);
   console.log(`OK: ${usable - demand} connection(s) of headroom`);
 }
 

@@ -36,7 +36,7 @@
  */
 import { appendFileSync } from "node:fs";
 import { QUOTAS, alertTitle, evaluateQuotas, unreadableTitle } from "./lib/quotaMonitor.mjs";
-import { recordOpsAlert } from "./lib/opsAlertLedger.mjs";
+import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
 
 const env = process.env;
@@ -306,7 +306,7 @@ async function main() {
     for (const r of res.unreadable) {
       await recordOpsAlert({
         sourceKind: "workflow", source: "quota-monitor", title: unreadableTitle(r), severity: "error",
-        sample: r.note, sampleRef: { run_url: runUrl, quota: r.q.id }, verifyKind: "workflow", verifyRef: "quota-monitor.yml",
+        sample: r.note, sampleRef: { ...failingRunRef(), quota: r.q.id }, verifyKind: "workflow", verifyRef: "quota-monitor.yml",
       });
     }
   }

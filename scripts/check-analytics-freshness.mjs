@@ -16,7 +16,7 @@
  */
 import { appendFileSync } from "node:fs";
 import { KEY_EVENTS, alertTitle, evaluateFreshness, freshnessSql } from "./lib/analyticsFreshness.mjs";
-import { recordOpsAlert } from "./lib/opsAlertLedger.mjs";
+import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 
 const env = process.env;
 const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
@@ -64,7 +64,7 @@ async function main() {
       await recordOpsAlert({
         sourceKind: "workflow", source: "analytics-freshness", title: "Analytics freshness monitor cannot read analytics_events",
         severity: "error", sample: readError ?? `unreadable: ${res.unreadable.map((r) => r.k.event).join(", ")}`,
-        sampleRef: { run_url: runUrl }, verifyKind: "workflow", verifyRef: "quota-monitor.yml",
+        sampleRef: failingRunRef(), verifyKind: "workflow", verifyRef: "quota-monitor.yml",
       });
     }
   }

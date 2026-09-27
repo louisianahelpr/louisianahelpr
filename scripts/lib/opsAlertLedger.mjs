@@ -164,15 +164,17 @@ export function workflowAliases(files) {
  * `workflow` items of one workflow are distinct alerts, e.g. two quotas).
  * Returns [{ workflow, items }].
  */
+export function ledgerWorkflowKey(r, aliases) {
+  let k;
+  if (r.source_kind === "nightly_red") k = String(r.title).replace(/^(nightly-red:\s*|main:\s*)+/i, "");
+  else if (r.source_kind === "workflow") k = /([^/\s]+)\.ya?ml\b/.exec(String(r.verify_ref ?? ""))?.[1] ?? r.source;
+  else return null;
+  k = String(k).trim().toLowerCase();
+  return aliases.get(k) ?? k;
+}
+
 export function duplicateGroups(rows, aliases) {
-  const keyOf = (r) => {
-    let k;
-    if (r.source_kind === "nightly_red") k = String(r.title).replace(/^(nightly-red:\s*|main:\s*)+/i, "");
-    else if (r.source_kind === "workflow") k = /([^/\s]+)\.ya?ml\b/.exec(String(r.verify_ref ?? ""))?.[1] ?? r.source;
-    else return null;
-    k = String(k).trim().toLowerCase();
-    return aliases.get(k) ?? k;
-  };
+  const keyOf = (r) => ledgerWorkflowKey(r, aliases);
   const groups = new Map();
   for (const r of rows) {
     const k = keyOf(r);
@@ -183,4 +185,66 @@ export function duplicateGroups(rows, aliases) {
   return [...groups]
     .filter(([, items]) => items.length > 1 && items.some((r) => r.source_kind === "nightly_red"))
     .map(([workflow, items]) => ({ workflow, items }));
+}
+
+/**
+ * The sampleRef for an item recorded on a path that turns the run RED
+ * (process.exit(1) next). `fails_run` + `job` let `ops-alert-ledger.mjs sync`
+ * prove every failed job of a run recorded its own item (redRunCovered)
+ * before it drops the generic nightly_red item for that workflow.
+ */
+export function failingRunRef(env = process.env) {
+  const run_url = env.GITHUB_RUN_ID ? `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}` : null;
+  return { run_url, job: env.GITHUB_JOB ?? null, fails_run: true };
+}
+
+// Steps a self-recording workflow may run besides its checks: none can turn a
+// run red on a finding, so none needs an item of its own.
+const SELF_RECORDING_USES = /^(actions\/checkout@|actions\/setup-node@|\.\/\.github\/actions\/nightly-issue-sync$)/;
+
+/**
+ * Workflows that record their OWN ledger item on every red (2026-09-27, the
+ * quota-monitor pair). Derived, never listed: every `run:` step of the
+ * workflow is exactly `node scripts/<x>.mjs` (no flags, so no --no-ledger),
+ * every other step is checkout / setup-node / nightly-issue-sync, and every
+ * such script calls failingRunRef() and records with verifyRef "<file>.yml".
+ * For these, a generic nightly_red item would count each red twice.
+ * `files` is [{ file, text }]; `readScript(path)` returns the script text or null.
+ * Returns a Set of workflow file bases.
+ */
+export function selfRecordingWorkflows(files, readScript) {
+  const out = new Set();
+  for (const { file, text } of files) {
+    const base = String(file).replace(/^.*\//, "").replace(/\.ya?ml$/, "");
+    const src = String(text);
+    const runs = [...src.matchAll(/^\s*(?:-\s+)?run:\s*(.*)$/gm)].map((m) => m[1].trim());
+    const uses = [...src.matchAll(/^\s*(?:-\s+)?uses:\s*["']?([^"'\s#]+)/gm)].map((m) => m[1]);
+    if (!runs.length || !uses.every((u) => SELF_RECORDING_USES.test(u))) continue;
+    const scripts = runs.map((r) => /^node (scripts\/[\w./-]+\.mjs)$/.exec(r)?.[1] ?? null);
+    if (scripts.some((p) => !p)) continue;
+    const ok = scripts.every((p) => {
+      const body = readScript(p);
+      return typeof body === "string" && body.includes("failingRunRef(") && body.includes(`"${base}.yml"`);
+    });
+    if (ok) out.add(base);
+  }
+  return out;
+}
+
+/**
+ * Did every failed job of red run `runId` record its own item? True only when
+ * at least one job failed and the open items with fails_run for that run name
+ * at least as many distinct jobs as failed. `items` are ledger rows already
+ * filtered to the workflow. False keeps the generic nightly_red item (fail safe).
+ */
+export function redRunCovered({ runId, failedJobs, items }) {
+  if (!(failedJobs > 0)) return false;
+  const jobs = new Set();
+  for (const r of items) {
+    const ref = typeof r.sample_ref === "string" ? JSON.parse(r.sample_ref) : r.sample_ref ?? {};
+    if (!ref.fails_run) continue;
+    if (/\/actions\/runs\/(\d+)/.exec(String(ref.run_url ?? ""))?.[1] !== String(runId)) continue;
+    jobs.add(ref.job ?? r.source);
+  }
+  return jobs.size >= failedJobs;
 }

@@ -16,7 +16,7 @@
  * which is a coin-toss dressed as a proof. Registerable only once the link set
  * is pinned to a fixture this spec owns.
  *
- * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the stranger refusal, the Q223 no-caller-copy rule and the per-template job-party gate directly. GAP, stated plainly: that edge test does NOT cover the notification-preference round-trip or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns.
+ * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the stranger refusal, the Q223 no-caller-copy rule and the per-template job-party gate directly. GAP, stated plainly: that edge test does NOT cover the notification-preference round-trip or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns. The five Q230 "...is not exercised here" tests are bare skipUncovered() calls with nothing to mutate; src/test/notificationsSpecNamesUncoveredLegs.test.ts guards them and carries the @mutate.
  */
 import { test, expect, getSession, rest, newUserContext, sessionsAvailable, assertHealthy, SUPABASE_URL, ANON, announceUncovered, skipUncovered } from "../fixtures";
 
@@ -37,8 +37,11 @@ import { test, expect, getSession, rest, newUserContext, sessionsAvailable, asse
  *      in-app row AND an email_send_log row — guarded to a funded thread the
  *      lifecycle spec leaves behind, else reported uncovered rather than funded.
  *
- * Legs needing a third account or a paid tip are annotated uncovered, never
- * silently skipped (owner: no silent passes).
+ * Legs needing a third account, a matched fixture or a paid tip are annotated
+ * uncovered, never silently skipped (owner: no silent passes): direct offer,
+ * saved-search match, job-match fan-out, tip and cron notifications each have
+ * their own named test below saying why (Q230). Guard:
+ * src/test/notificationsSpecNamesUncoveredLegs.test.ts.
  */
 
 const avail = sessionsAvailable();
@@ -163,6 +166,52 @@ test.describe("notifications & email", () => {
       await journey.milestone(page, `link${row.link.replace(/[^a-z0-9]+/gi, "_")}`);
     }
     await ctx.close();
+  });
+
+  /*
+   * Q230: five notification legs had no test and no annotation, so nothing told
+   * them apart from a leg nobody had thought of. Each is named here with why the
+   * two shared accounts cannot drive it. Trigger and cron names were read live
+   * on prod (pg_trigger / cron.job, 2026-09-27).
+   */
+  test("direct-offer notification is not exercised here", async () => {
+    skipUncovered(
+      "Direct-offer notification uncovered",
+      "notify_helper_on_direct_offer runs from trg_notify_helper_on_direct_offer on public.jobs when a job is offered " +
+        "to one Helpr. This spec does not drive the direct-offer flow; it needs that client path, verified live.",
+    );
+  });
+
+  test("saved-search-match notification is not exercised here", async () => {
+    skipUncovered(
+      "Saved-search-match notification uncovered",
+      "notify_saved_searches_on_new_job runs from trg_notify_saved_searches_funded_insert/_update on public.jobs when a " +
+        "job becomes funded. It needs a funded test job plus a saved_searches row it matches, which this spec does not set up.",
+    );
+  });
+
+  test("job-match fan-out notification is not exercised here", async () => {
+    skipUncovered(
+      "Job-match fan-out notification uncovered",
+      "notify_helpers_on_job_post runs from trg_notify_helpers_funded_insert/_update on public.jobs when a job becomes " +
+        "funded, fanning out to matching accounts. It needs a funded test job and an account guaranteed to match it.",
+    );
+  });
+
+  test("tip notification is not exercised here", async () => {
+    skipUncovered(
+      "Tip notification uncovered",
+      "notify_helper_on_tip runs from trg_notify_helper_tip on public.tips. A real tip needs a completed job and a " +
+        "Stripe test-mode charge, which the money journeys own, not this spec.",
+    );
+  });
+
+  test("cron notifications are not exercised here", async () => {
+    skipUncovered(
+      "Cron notifications uncovered",
+      "sweep_job_start_reminders, sweep_no_show_alerts, sweep_daily_job_digest, sweep_dayof_confirm_reminders and " +
+        "sweep_release_last_chance run only on pg_cron's schedule; a normal signed-in account cannot invoke them.",
+    );
   });
 
   test("a message on a funded thread writes the recipient's row and an email_send_log row", async ({ request }) => {

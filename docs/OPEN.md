@@ -4,13 +4,13 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 284 done, 103 partly done (fixed, protection pending), 126 open. Source of truth for work.
+- **Queue (this file):** 284 done, 103 partly done (fixed, protection pending), 127 open. Source of truth for work.
 - **Audit bus:** 18 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Ops alert ledger:** 16 open (16 error), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-27T03:34Z)_
-- **nightly-red issues:** 14 open — `gh issue list -l nightly-red`. _(2026-09-27T03:32Z)_
-- **Workflows on main:** 14 red, 8 stale, 1 unknown, 37 green of 60 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T03:32Z)_
-- **Remote branches:** 110 carry patches not on main, 4 fully merged, of 118 (Q79). _(2026-09-27T03:32Z)_
+- **Ops alert ledger:** 16 open (16 error), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-27T04:02Z)_
+- **nightly-red issues:** 14 open — `gh issue list -l nightly-red`. _(2026-09-27T04:00Z)_
+- **Workflows on main:** 12 red, 9 stale, 1 unknown, 38 green of 60 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T04:00Z)_
+- **Remote branches:** 110 carry patches not on main, 4 fully merged, of 118 (Q79). _(2026-09-27T04:00Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -1965,3 +1965,4 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q736** (recurring review leftover, 2026-09-27): request_job_schedule_change has no cap on pending requests per job and no clash check against the Helpr's other booked jobs at the proposed time. Fix: one pending request per job + reject a proposed start overlapping the Helpr's booked jobs. GUARD: a case in src/test/pglite/jobScheduleChange.pglite.mjs, red first.
 - [ ] **Q737** (recurring review leftover, 2026-09-27): series_release_dates takes no lock on the series parent, so a release racing claim_series_dates/offer_series_dates on the same parent relies on row locks of the visits alone. Fix: SELECT ... FOR UPDATE on the parent first, same order as claim. GUARD: scripts/probes/series-claim-race.embedded-pg.mjs extended to release vs claim.
 - [ ] **Q738** (recurring review leftover, 2026-09-27): a poster-cancel fee owed to a Helpr who is banned, on a cancelled series visit, is withheld silently with no admin alert. Fix: raise an ops alert / error_logs row when a fee is withheld for a banned payee. GUARD: a case in src/test/edge/void-cancelled-payments.banSettle.test.ts, red first.
+- [ ] **Q739** (export review leftover, 2026-09-27): export_my_data exports series_date_offers, series_visit_holds and crew_dispute_member_outcomes only where the caller is the Helpr; the poster's own rows on their jobs (readable via RLS) are not exported. Fix: add poster-side sections (no counterpart PII). GUARD: dataExportCoversEveryUserTable asserts each party column of each table is covered.

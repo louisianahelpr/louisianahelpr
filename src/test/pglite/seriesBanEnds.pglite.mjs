@@ -196,6 +196,65 @@ check("... nor insert a job carrying it", !r.ok && /series_ban_cancelled_at/.tes
   check("LOW-3 a visit whose start has passed is left alone (a no-show question, not ours)", gone.status === "accepted", JSON.stringify(gone));
 }
 
+// ── Money review 2026-09-27 HIGH-1 ──────────────────────────────────────────
+// (a)/(b) the settlement matrix sends only a not-started or cancelled series
+// row to the series lane; a finished visit in escrow and a disputed one take
+// the one-off matrix (admin review / escalation).
+{
+  const act = async (st, pay, started) =>
+    (await db.query(`select public.ban_settlement_action('helpr', '${st}', '${pay}', ${started}, false, true) a`)).rows[0].a;
+  check("HIGH-1a a banned Helpr's finished series visit still in escrow goes to admin review", (await act("completed", "escrow", true)) === "admin_review");
+  check("HIGH-1b a disputed series visit is escalated", (await act("disputed", "escrow", true)) === "escalate_dispute");
+  check("HIGH-1 a started series visit is held for a dispute like any job", (await act("accepted", "escrow", true)) === "hold_dispute");
+  check("HIGH-1 a not-started or cancelled series visit stays the series lane's",
+    (await act("accepted", "escrow", false)) === "series_lane" && (await act("open", "escrow", false)) === "series_lane" && (await act("cancelled", "escrow", false)) === "series_lane");
+  r = await as(db, "authenticated", A, `select has_function_privilege('authenticated', 'public.ban_settlement_action(text, text, text, boolean, boolean, boolean)', 'execute') as x`);
+  check("HIGH-1 clients cannot call ban_settlement_action", r.ok && r.rows[0].x === false, r.err);
+}
+// (c) a Helpr is banned with a visit still ahead on a series the poster has
+// already ended (end_recurring_series keeps booked visits up to the end date).
+// (d) a Helpr is banned who holds only a visit on a one-person series they are
+// not the standing Helpr of. Either way THEIR visit is cancelled and refunded
+// (the ban marker); nothing else on the series changes.
+{
+  const S = J(60), SV = J(61), T = J(62), TV = J(63), TA = J(64);
+  await db.exec(`update public.profiles set ban_status = 'active' where user_id in ('${A}', '${B}', '${C}', '${X}')`);
+  await db.exec(`insert into public.jobs (id, title, customer_id, status, date_needed, start_time, recurrence_days, recurrence_weeks)
+    values ('${S}', 'Ended series', '${C}', 'open', current_date - 7, '09:00', '{0,1,2,3,4,5,6}', 4),
+           ('${T}', 'Legacy series', '${C}', 'open', current_date + 1, '09:00', '{0,1,2,3,4,5,6}', 3)`);
+  await server(db, `update public.jobs set helper_id = '${B}', status = 'completed' where id = '${S}'`);
+  await server(db, `update public.jobs set helper_id = '${B}', status = 'accepted', helper_confirmed_at = now() where id = '${T}'`);
+  // Visits are created against holds; (d)'s hold is then dropped, which is
+  // how a legacy visit (booked before per-date holds) looks.
+  await server(db, `insert into public.series_visit_holds (parent_job_id, visit_date, helper_id) values
+    ('${S}', current_date + 4, '${X}'), ('${T}', current_date + 6, '${X}'), ('${T}', current_date + 7, '${B}')
+    on conflict (parent_job_id, visit_date) do update set helper_id = excluded.helper_id`);
+  r = await server(db, `insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, parent_job_id, payment_status) values
+    ('${SV}', 'Ended series', '${C}', '${X}', 'accepted', current_date + 4, '09:00', '${S}', 'escrow'),
+    ('${TV}', 'Legacy series', '${C}', '${X}', 'accepted', current_date + 6, '09:00', '${T}', 'escrow'),
+    ('${TA}', 'Legacy series', '${C}', '${B}', 'accepted', current_date + 7, '09:00', '${T}', 'escrow')`);
+  check("HIGH-1c/d fixtures", r.ok, r.err);
+  await server(db, `delete from public.series_visit_holds where parent_job_id = '${T}' and helper_id = '${X}'`);
+  await db.exec(`update public.jobs set series_ended_on = current_date + 10 where id = '${S}'`);
+  r = await server(db, `update public.profiles set ban_status = 'permanently_banned' where user_id = '${X}'`);
+  const sv = (await db.query(`select status::text, cancellation_reason, cancellation_fee, series_ban_cancelled_at is not null m from public.jobs where id='${SV}'`)).rows[0];
+  check("HIGH-1c the banned Helpr's visit on an already-ended series is cancelled, marked, no fee",
+    r.ok && sv.status === "cancelled" && sv.cancellation_reason === "series_ended_account_banned" && Number(sv.cancellation_fee) === 0 && sv.m === true, `${r.err ?? ""} ${JSON.stringify(sv)}`);
+  n = (await db.query(`select count(*)::int c from public.series_visit_holds where parent_job_id='${S}' and helper_id='${X}'`)).rows[0].c;
+  check("HIGH-1c ... and that visit's hold is released", n === 0, String(n));
+  const se = (await db.query(`select series_ended_on - current_date as d from public.jobs where id='${S}'`)).rows[0];
+  check("HIGH-1c the series keeps the end date its poster chose", se.d === 10, JSON.stringify(se));
+  const tv = (await db.query(`select status::text, series_ban_cancelled_at is not null m from public.jobs where id='${TV}'`)).rows[0];
+  check("HIGH-1d the banned Helpr's visit on a series they are not the standing Helpr of is cancelled and marked", tv.status === "cancelled" && tv.m === true, JSON.stringify(tv));
+  const t = (await db.query(`select series_ended_on::text e, status::text from public.jobs where id='${T}'`)).rows[0];
+  const ta = (await db.query(`select status::text, helper_id from public.jobs where id='${TA}'`)).rows[0];
+  check("HIGH-1d ... the series keeps going with its own Helpr", t.e === null && t.status === "accepted" && ta.status === "accepted" && ta.helper_id === B, `${JSON.stringify(t)} ${JSON.stringify(ta)}`);
+  n = (await db.query(`select job_id, title, message from public.notifications where user_id='${C}' and job_id in ('${S}', '${T}') and title like '%cancelled'`)).rows;
+  check("HIGH-1c/d the poster is told, refunded less the card processing fee", n.length === 2 && n.every((x) => /refunded, less the card processing fee/.test(x.message)), JSON.stringify(n));
+  n = (await db.query(`select count(*)::int c from public.notifications where user_id='${B}' and job_id in ('${S}', '${T}')`)).rows[0].c;
+  check("HIGH-1c/d the other Helpr is not told their series ended", n === 0, String(n));
+}
+
 // ── A failure inside one series never blocks the ban; it is logged ────────
 {
   const S = J(50);

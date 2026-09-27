@@ -51,7 +51,7 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts | `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, | `recurring-visit:${parent.id}:${visitDate}:${hold.id}:${Math.random()}`,
 //   20260927012806: the cron charges a date nobody holds / books someone other than its holder.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!hold) { |         if (false && !hold) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |             helper_id: holderId, |             helper_id: parent.recurring_helper_id,
+// @mutate supabase/functions/charge-recurring-visits/index.ts | payout follows helper_id.\n            helper_id: holderId, | payout follows helper_id.\n            helper_id: parent.recurring_helper_id,
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (holdsRes.error) { |       if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, |           `recurring-visit:${parent.id}:${visitDate}`,
 //   Money audit 2026-09-25: chargeback, pre-charge re-read, holder changed mid-run.

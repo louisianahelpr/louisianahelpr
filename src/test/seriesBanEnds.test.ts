@@ -13,12 +13,14 @@
  * src/test/edge/void-cancelled-payments.seriesRefund.test.ts.
  *
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |     WHEN (NEW.ban_status IN ('banned', 'permanently_banned') |     WHEN (NEW.ban_status IN ('nobody')
- * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |             OR (j.recurring_helper_id = p_user AND j.helper_id = p_user)\n            OR EXISTS | OR EXISTS
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |            ((j.recurring_helper_id = p_user AND j.helper_id = p_user)\n            OR EXISTS |            ((false)\n            OR EXISTS
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |                 AND ((j.recurring_helper_id = p_user AND j.helper_id = p_user)\n                     OR EXISTS |                 AND ((false)\n                     OR EXISTS
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       ELSIF v_p.customer_id = p_user OR (v_p.live AND v_p.main_helpr) THEN |       ELSIF v_p.customer_id = p_user OR v_p.main_helpr THEN
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.status::text IN ('open', 'accepted') |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.date_needed > (now() AT TIME ZONE 'America/Chicago')::date\n             AND c.status::text IN ('open', 'accepted')
- * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.series_split_ok THEN |       IF false THEN
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.live AND v_p.series_split_ok THEN |       IF false THEN
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |     EXCEPTION WHEN OTHERS THEN\n      RAISE WARNING | EXCEPTION WHEN division_by_zero THEN\n      RAISE WARNING
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       IF changed_col IN ('series_ban_cancelled_at', | IF changed_col IN ('nothing',
- * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |      WHERE u.uid IS NOT NULL AND u.uid <> p_user; |      WHERE u.uid IS NOT NULL;
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |          WHERE u.uid IS NOT NULL AND u.uid <> p_user |          WHERE u.uid IS NOT NULL
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon;
  */
 import { readFileSync } from "node:fs";
@@ -37,8 +39,12 @@ describe("a permanent ban ends the account's recurring series (Q407 9)", () => {
   });
 
   it("covers every series the account posts, is the standing Helpr on, or holds a date on", () => {
-    expect(sql).toMatch(/AND \(j\.customer_id = p_user\s+OR \(j\.recurring_helper_id = p_user AND j\.helper_id = p_user\)\s+OR EXISTS \(SELECT 1 FROM public\.series_visit_holds h/);
-    expect(sql).toMatch(/UPDATE public\.jobs SET series_ended_on = v_today WHERE id = v_p\.id;/);
+    expect(sql).toMatch(/AND \(j\.customer_id = p_user\s+OR \(j\.series_ended_on IS NULL AND j\.status::text <> 'cancelled'\s+AND \(\(j\.recurring_helper_id = p_user AND j\.helper_id = p_user\)\s+OR EXISTS \(SELECT 1 FROM public\.series_visit_holds h/);
+    // Money review HIGH-1: any series with a live visit of theirs, ended or not.
+    expect(sql).toMatch(/OR EXISTS \(SELECT 1 FROM public\.jobs c\s+WHERE \(c\.parent_job_id = j\.id OR c\.id = j\.id\)\s+AND c\.helper_id = p_user\s+AND c\.status::text IN \('open', 'accepted'\)/);
+    expect(sql).toMatch(/\(\(j\.recurring_helper_id = p_user AND j\.helper_id = p_user\)\s+OR EXISTS \(SELECT 1 FROM public\.series_visit_holds h\s+WHERE h\.parent_job_id = j\.id AND h\.helper_id = p_user AND h\.visit_date >= v_today\)\) AS main_helpr/);
+    expect(sql).toContain("ELSIF v_p.customer_id = p_user OR (v_p.live AND v_p.main_helpr) THEN");
+    expect(sql).toMatch(/UPDATE public\.jobs SET series_ended_on = v_today\s+WHERE id = v_p\.id AND series_ended_on IS NULL/);
   });
 
   it("cancels every visit whose start is still ahead (today's included, LOW-3), visit one included, with no fee and the server marker", () => {
@@ -49,13 +55,15 @@ describe("a permanent ban ends the account's recurring series (Q407 9)", () => {
   });
 
   it("tells everyone else on the series, never the banned account; clients cannot call it", () => {
-    expect(sql).toMatch(/WHERE u\.uid IS NOT NULL AND u\.uid <> p_user;/);
+    expect(sql).toMatch(/WHERE u\.uid IS NOT NULL AND u\.uid <> p_user\s+AND \(v_newly OR v_cancelled > 0\);/);
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon, authenticated;");
   });
 
   it("Q407 (10): a split series keeps going; only the banned Helpr's dates go back, as the poster's to offer", () => {
-    expect(sql).toMatch(/IF v_p\.customer_id IS DISTINCT FROM p_user AND v_p\.series_split_ok THEN/);
-    const split = sql.slice(sql.indexOf("IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.series_split_ok THEN"), sql.indexOf("ELSE", sql.indexOf("v_back := v_p.date_needed || v_back;")));
+    const head = "IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.live AND v_p.series_split_ok THEN";
+    expect(sql).toContain(head);
+    const split = sql.slice(sql.indexOf(head), sql.indexOf("ELSIF v_p.customer_id = p_user"));
+    expect(split.length).toBeGreaterThan(head.length);
     expect(split).not.toMatch(/series_ended_on/);
     expect(split).not.toMatch(/recurring_visit_releases|series_release_dates/);
     expect(split).toMatch(/DELETE FROM public\.series_visit_holds h\s+WHERE h\.parent_job_id = v_p\.id\s+AND h\.helper_id = p_user/);

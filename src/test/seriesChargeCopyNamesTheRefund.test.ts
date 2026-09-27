@@ -49,28 +49,28 @@ function unqualified(text: string): string[] {
 
 describe("series copy: 'not charged' always names the refund of a paid date (LOW-4, Q407 12)", () => {
   it("UI", () => {
-    let seen = 0;
+    const seen: string[] = [];
     const bad: string[] = [];
     for (const f of UI) {
       const code = blankComments(readFileSync(f, "utf8"));
-      seen += (code.match(NOT_CHARGED) ?? []).length;
+      seen.push(...(code.match(NOT_CHARGED) ?? []));
       bad.push(...unqualified(code).map((s) => `${f}: ${s}`));
     }
-    expect(seen).toBeGreaterThanOrEqual(2);
+    expect(seen.length).toBeGreaterThanOrEqual(2);
     expect(bad).toEqual([]);
   });
 
   it("SQL notifications", () => {
     const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
-    let seen = 0;
+    const seen: string[] = [];
     const bad: string[] = [];
     for (const n of SQL) {
       const body = blankSqlComments(defs.get(n)?.stmt ?? "");
       expect(body, `${n} is not defined`).not.toBe("");
-      seen += (body.match(NOT_CHARGED) ?? []).length;
+      seen.push(...(body.match(NOT_CHARGED) ?? []));
       bad.push(...unqualified(body).map((s) => `${n}: ${s}`));
     }
-    expect(seen).toBeGreaterThanOrEqual(2);
+    expect(seen.length).toBeGreaterThanOrEqual(2);
     expect(bad).toEqual([]);
   });
 });

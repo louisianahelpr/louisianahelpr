@@ -8,7 +8,7 @@
  * @mutate src/lib/jobSeriesState.ts |   return code === "42703" \|\| code === "PGRST204" \|\| |   return code === "PGRST204" \|\|
  * @mutate src/lib/jobSeriesState.ts |     if (!isMissingColumnError(error)) { |     if (true) {
  * @mutate src/lib/jobColumns.ts |   "sales_tax_rate", |   "sales_tax_rate", "series_ended_on",
- * @mutate src/hooks/useActivityData.ts |   const seriesState = await fetchJobSeriesState( |   const seriesState = new Map<string, Record<string, string | null>>(); void (
+ * @mutate src/hooks/useActivityData.ts |   const seriesState = await fetchJobSeriesState( |   const seriesState = new Map<string, Record<string, string \| null>>(); void (
  */
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";

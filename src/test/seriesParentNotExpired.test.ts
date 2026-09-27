@@ -40,6 +40,7 @@ describe("every sweep that cancels open jobs skips a live series parent", () => 
     .filter(({ src }) => /\.eq\("status", "open"\)/.test(src) && /status: "cancelled"/.test(src) && /\.lt\("date_needed"/.test(src));
 
   it("the inventory is not empty (auto-expire-jobs is in it)", () => {
+    expect(sweeps.length).toBeGreaterThanOrEqual(1);
     expect(sweeps.map((s) => s.f)).toContain("auto-expire-jobs");
   });
   for (const { f } of sweeps) {

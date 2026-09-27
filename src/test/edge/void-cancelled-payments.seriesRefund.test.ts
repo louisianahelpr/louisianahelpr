@@ -28,7 +28,8 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           const nonRefundableCents = fullSeriesRefund\n            ? actualOrEstimatedFeeCents(pi, capturedCents) |           const nonRefundableCents = false\n            ? actualOrEstimatedFeeCents(pi, capturedCents)
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             ? actualOrEstimatedFeeCents(pi, capturedCents)\n            : Math.max | ? 0\n            : Math.max
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (markerErr && !isMissingColumn(markerErr)) { |         if (false) {
- * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |              series_ban_cancelled_at = now(), |              series_ban_cancelled_at = NULL,
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | visit one included.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = now(), | visit one included.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = NULL,
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | Nothing else on the series changes.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = now(), | Nothing else on the series changes.\n        WITH gone AS (\n          UPDATE public.jobs c\n             SET status = 'cancelled',\n                 cancelled_at = now(),\n                 cancellation_reason = 'series_ended_account_banned',\n                 series_ban_cancelled_at = NULL,
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -191,7 +192,11 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
 
   it("the ban migration sets the marker on every visit it cancels", () => {
     const sql = blankSqlComments(readFileSync("supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql", "utf8"));
-    expect(sql).toMatch(/SET status = 'cancelled',[\s\S]{0,200}series_ban_cancelled_at = now\(\),/);
+    // Each cancelling UPDATE (the series-end branch and the banned Helpr's
+    // own-visits branch) carries the marker.
+    const sites = sql.split(/SET status = 'cancelled',/).slice(1);
+    expect(sites.length).toBeGreaterThanOrEqual(2);
+    for (const after of sites) expect(after.slice(0, 200)).toMatch(/series_ban_cancelled_at = now\(\),/);
   });
 });
 

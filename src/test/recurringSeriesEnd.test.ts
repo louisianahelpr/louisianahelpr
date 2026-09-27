@@ -22,7 +22,7 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   -- ── A Helpr leaves: their future dates go back (owner decision 6) ──────\n  IF v_uid IS DISTINCT FROM v_job.customer_id THEN |   IF false THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |  OR v_uid IS DISTINCT FROM v_job.helper_id) THEN | ) THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC;
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF v_ended IS NOT NULL THEN | IF v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF TG_OP = 'INSERT' AND v_ended IS NOT NULL THEN |   IF TG_OP = 'INSERT' AND v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |    WHERE j.id = NEW.parent_job_id\n   FOR SHARE; |    WHERE j.id = NEW.parent_job_id;
  * @mutate supabase/migrations/20260927012804_recurring_series_end.sql |      AND current_setting('app.series_end_rpc', true) IS DISTINCT FROM '1' THEN |      THEN
  * @mutate src/pages/jobs/AppliedJobCard.tsx | job.recurring_helper_id === userId && job.helper_id === userId && | job.recurring_helper_id === userId &&

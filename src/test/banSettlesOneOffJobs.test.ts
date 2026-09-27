@@ -1,10 +1,11 @@
-// @mutate supabase/migrations/20260927012042_permanent_ban_settles_one_off_jobs.sql | 'chargeback'))                                                         -- MOVING | 'chargebak'))                                                         -- MOVING
-// @mutate supabase/migrations/20260927012042_permanent_ban_settles_one_off_jobs.sql | WHEN p_status = 'disputed' THEN 'escalate_dispute' | WHEN p_status = 'disputed_x' THEN 'escalate_dispute'
+// @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | 'chargeback'))                                                         -- MOVING | 'chargebak'))                                                         -- MOVING
+// @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | WHEN p_status = 'disputed' THEN 'escalate_dispute' | WHEN p_status = 'disputed_x' THEN 'escalate_dispute'
 // @mutate supabase/migrations/20260927012042_permanent_ban_settles_one_off_jobs.sql |                dispute_status = 'escalated'\n         WHERE id = v_job.id\n           AND status::text = v_job.status\n           AND payment_status = 'escrow'; |                dispute_status = 'open'\n         WHERE id = v_job.id\n           AND status::text = v_job.status\n           AND payment_status = 'escrow';
 // @mutate supabase/migrations/20260927012042_permanent_ban_settles_one_off_jobs.sql | WHEN (NEW.ban_status IN ('banned', 'permanently_banned') | WHEN (NEW.ban_status IN ('permanently_banned')
 // @mutate supabase/migrations/20260927012042_permanent_ban_settles_one_off_jobs.sql | v_percent := public.cancellation_fee_percent(v_committed, v_hours); | v_percent := 25;
-// @mutate supabase/migrations/20260927012042_permanent_ban_settles_one_off_jobs.sql |     ELSE 'unhandled'\n  END\n$fn$; |     ELSE 'none_finished'\n  END\n$fn$;
+// @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |     ELSE 'unhandled'\n  END\n$fn$; |     ELSE 'none_finished'\n  END\n$fn$;
 // @mutate supabase/migrations/20260927012042_permanent_ban_settles_one_off_jobs.sql |     EXCEPTION WHEN OTHERS THEN\n      -- Only this job's writes roll back | EXCEPTION WHEN division_by_zero THEN\n      -- Only this job's writes roll back
+// @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |     WHEN p_is_series\n         AND |     WHEN p_is_series\n         OR
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -70,6 +71,14 @@ describe("Q327: a permanent ban settles every live one-off job (class guard)", (
       [...action.matchAll(/p_status (?:= '([a-z_]+)'|IN \(([^)]*)\))/g)].flatMap((x) => (x[1] ? [x[1]] : literals(x[2]))),
     );
     expect(JOB_STATUSES.filter((s) => !named.has(s))).toEqual([]);
+  });
+
+  it("only a not-started or cancelled series row is the series lane (money review 2026-09-27 HIGH-1)", () => {
+    // A finished-in-escrow, disputed or started series visit takes the
+    // matrix; end_series_for_banned_account never settles those.
+    expect(action).toMatch(
+      /WHEN p_is_series AND \(\(p_status IN \('open', 'accepted'\) AND NOT COALESCE\(p_work_started, false\)\) OR p_status = 'cancelled'\) THEN 'series_lane'/,
+    );
   });
 
   it("an unknown combination is 'unhandled', and the settle function pages admins on it instead of passing", () => {

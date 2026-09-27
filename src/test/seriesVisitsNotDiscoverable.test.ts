@@ -37,6 +37,7 @@ describe("series visits are never a public listing (SQL surfaces)", () => {
   );
 
   it("the inventory finds the known surfaces", () => {
+    expect(surfaces.length).toBeGreaterThanOrEqual(5);
     const keys = surfaces.map(([k]) => k);
     for (const k of [
       "view:open_jobs_browse",
@@ -70,6 +71,7 @@ describe("series visits are never a public listing (edge functions)", () => {
     );
 
   it("the inventory is not empty (instant-job-match is in it)", () => {
+    expect(announcers.length).toBeGreaterThanOrEqual(1);
     expect(announcers.map((a) => a.f)).toContain("instant-job-match");
   });
   for (const { f, src } of announcers) {

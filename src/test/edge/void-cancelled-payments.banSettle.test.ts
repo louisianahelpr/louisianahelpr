@@ -1,5 +1,5 @@
-// @mutate supabase/functions/void-cancelled-payments/index.ts | const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)); | const nonRefundableCents = serviceFeeCents;
-// @mutate supabase/functions/void-cancelled-payments/index.ts | jobCancellationFee = computeCancellationFee(job); | jobCancellationFee = 0;
+// @mutate supabase/functions/void-cancelled-payments/index.ts | : Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents)); | : serviceFeeCents;
+// @mutate supabase/functions/void-cancelled-payments/index.ts | jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job); | jobCancellationFee = refundsSeriesVisitInFull(job) ? 0 : 0;
 /**
  * Q327: a job the permanent-ban path cancels is settled by
  * void-cancelled-payments exactly like a poster's own cancel, and the platform

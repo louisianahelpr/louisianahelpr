@@ -221,6 +221,8 @@ DECLARE
   v_cancelled integer;
   v_back date[];
   v_list text;
+  v_live boolean;
+  v_newly boolean;
   -- Restored after each series: the ban may fire inside an RPC that set
   -- them itself (the ladder inside end_recurring_series, a cancel RPC).
   v_series_flag text := current_setting('app.series_end_rpc', true);
@@ -232,16 +234,32 @@ BEGIN
 
   FOR v_p IN
     SELECT j.id, j.title, j.customer_id, j.recurring_helper_id, j.helper_id, j.series_split_ok,
-           j.status::text AS status, j.date_needed, j.start_time, j.helper_completed_at, j.is_seed
+           j.status::text AS status, j.date_needed, j.start_time, j.helper_completed_at, j.is_seed,
+           j.series_ended_on,
+           (j.series_ended_on IS NULL AND j.status::text <> 'cancelled') AS live,
+           ((j.recurring_helper_id = p_user AND j.helper_id = p_user)
+            OR EXISTS (SELECT 1 FROM public.series_visit_holds h
+                        WHERE h.parent_job_id = j.id AND h.helper_id = p_user AND h.visit_date >= v_today)) AS main_helpr
       FROM public.jobs j
      WHERE j.parent_job_id IS NULL
        AND j.recurrence_days IS NOT NULL
-       AND j.series_ended_on IS NULL
-       AND j.status::text <> 'cancelled'
+       -- Money review 2026-09-27 HIGH-1: every series with a live visit the
+       -- banned account is on, ended or not. ban_settlement_action leaves
+       -- open/accepted unstarted series visits (and cancelled ones) to THIS
+       -- function, so one this does not select would be settled by nobody:
+       -- (c) a Helpr's booked visit on a series that had already ended, and
+       -- (d) a Helpr on legacy visits only (no hold, not the standing Helpr).
        AND (j.customer_id = p_user
-            OR (j.recurring_helper_id = p_user AND j.helper_id = p_user)
-            OR EXISTS (SELECT 1 FROM public.series_visit_holds h
-                        WHERE h.parent_job_id = j.id AND h.helper_id = p_user AND h.visit_date >= v_today))
+            OR (j.series_ended_on IS NULL AND j.status::text <> 'cancelled'
+                AND ((j.recurring_helper_id = p_user AND j.helper_id = p_user)
+                     OR EXISTS (SELECT 1 FROM public.series_visit_holds h
+                                 WHERE h.parent_job_id = j.id AND h.helper_id = p_user AND h.visit_date >= v_today)))
+            OR EXISTS (SELECT 1 FROM public.jobs c
+                        WHERE (c.parent_job_id = j.id OR c.id = j.id)
+                          AND c.helper_id = p_user
+                          AND c.status::text IN ('open', 'accepted')
+                          AND c.helper_completed_at IS NULL
+                          AND ((c.date_needed + COALESCE(c.start_time, '00:00'::time)) AT TIME ZONE 'America/Chicago') > now()))
      ORDER BY j.id
        FOR UPDATE
   LOOP
@@ -256,8 +274,10 @@ BEGIN
       -- series.
       PERFORM set_config('app.series_end_rpc', '1', true);
       PERFORM set_config('app.sanctioned_cancel', 'on', true);
+      v_newly := false;
+      v_cancelled := 0;
 
-      IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.series_split_ok THEN
+      IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.live AND v_p.series_split_ok THEN
         -- ── Owner decision Q407 (10): a SPLIT series keeps going. Only the
         -- banned Helpr's dates go back to the poster to offer again; the
         -- other Helprs keep theirs. Not given-up dates: no release rows, so
@@ -336,10 +356,13 @@ BEGIN
                    CASE WHEN cardinality(v_back) = 1 THEN 'it' ELSE 'them' END),
             'job_updates', '/posts?job=' || v_p.id::text);
         END IF;
-      ELSE
+      ELSIF v_p.customer_id = p_user OR (v_p.live AND v_p.main_helpr) THEN
         -- ── The poster is banned, or a one-person series loses its Helpr:
-        -- the series ends (owner decision Q407 (9)).
-        UPDATE public.jobs SET series_ended_on = v_today WHERE id = v_p.id;
+        -- the series ends (owner decision Q407 (9)). A series that already
+        -- ended keeps its date; its visits still ahead are cancelled below.
+        UPDATE public.jobs SET series_ended_on = v_today
+         WHERE id = v_p.id AND series_ended_on IS NULL AND status::text <> 'cancelled';
+        v_newly := FOUND;
 
         -- Every visit whose start is still ahead (review LOW-3: today's
         -- later visit included), visit one included.
@@ -360,7 +383,8 @@ BEGIN
         )
         SELECT count(*) INTO v_cancelled FROM gone;
 
-        -- Tell everyone else on the series (before their holds go).
+        -- Tell everyone else on the series (before their holds go), only
+        -- when something changed: a second ban write tells nobody again.
         INSERT INTO public.notifications (user_id, job_id, title, message, type, link)
         SELECT DISTINCT u.uid, v_p.id,
                'Recurring series ended',
@@ -377,7 +401,8 @@ BEGIN
             UNION SELECT h.helper_id FROM public.series_visit_holds h
                    WHERE h.parent_job_id = v_p.id AND h.visit_date >= v_today
           ) AS u
-         WHERE u.uid IS NOT NULL AND u.uid <> p_user;
+         WHERE u.uid IS NOT NULL AND u.uid <> p_user
+           AND (v_newly OR v_cancelled > 0);
 
         -- Holds from today on, except a date whose visit is still live
         -- (started): the cron will not fund anything on an ended series.
@@ -388,7 +413,53 @@ BEGIN
                               AND c.status::text <> 'cancelled'
                             FOR SHARE);
         DELETE FROM public.series_date_offers o WHERE o.parent_job_id = v_p.id;
-        v_ended := v_ended + 1;
+        IF v_newly THEN
+          v_ended := v_ended + 1;
+        END IF;
+      ELSE
+        -- ── Money review 2026-09-27 HIGH-1 (c)/(d): a Helpr is banned who
+        -- still has visits ahead on a series that already ended, or holds
+        -- only visits on a one-person series they are not the standing Helpr
+        -- of. Nobody can take those dates back, so each of THEIR visits still
+        -- ahead is cancelled exactly as the end branch cancels one (the ban
+        -- marker, no fee, refunded less the card processing fee), and the
+        -- poster is told. Nothing else on the series changes.
+        WITH gone AS (
+          UPDATE public.jobs c
+             SET status = 'cancelled',
+                 cancelled_at = now(),
+                 cancellation_reason = 'series_ended_account_banned',
+                 series_ban_cancelled_at = now(),
+                 late_cancellation = false,
+                 cancellation_fee = 0,
+                 cancellation_fee_status = NULL
+           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)
+             AND c.helper_id = p_user
+             AND c.status::text IN ('open', 'accepted')
+             AND c.helper_completed_at IS NULL
+             AND ((c.date_needed + COALESCE(c.start_time, '00:00'::time)) AT TIME ZONE 'America/Chicago') > now()
+          RETURNING c.date_needed
+        )
+        SELECT COALESCE(array_agg(date_needed ORDER BY date_needed), ARRAY[]::date[]) INTO v_back FROM gone;
+        DELETE FROM public.series_visit_holds h
+         WHERE h.parent_job_id = v_p.id AND h.helper_id = p_user AND h.visit_date >= v_today
+           AND NOT EXISTS (SELECT 1 FROM public.jobs c
+                            WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id) AND c.date_needed = h.visit_date
+                              AND c.helper_id = p_user AND c.status::text <> 'cancelled'
+                            FOR SHARE);
+        DELETE FROM public.series_date_offers o WHERE o.parent_job_id = v_p.id AND o.helper_id = p_user;
+
+        IF cardinality(v_back) > 0 AND v_p.customer_id IS NOT NULL THEN
+          SELECT string_agg(to_char(d, 'FMDy FMMon FMDD'), ', ' ORDER BY d) INTO v_list FROM unnest(v_back) AS d;
+          INSERT INTO public.notifications (user_id, job_id, title, message, type, link)
+          VALUES (
+            v_p.customer_id, v_p.id,
+            CASE WHEN cardinality(v_back) = 1 THEN 'A visit is cancelled' ELSE 'Visits are cancelled' END,
+            format('The Helpr on "%s" is no longer available for %s, so Louisiana Helpr cancelled %s. Any you already paid for are refunded, less the card processing fee.',
+                   COALESCE(v_p.title, 'your series'), v_list,
+                   CASE WHEN cardinality(v_back) = 1 THEN 'that visit' ELSE 'those visits' END),
+            'job_updates', '/posts?job=' || v_p.id::text);
+        END IF;
       END IF;
 
       PERFORM set_config('app.series_end_rpc', COALESCE(v_series_flag, '0'), true);
@@ -447,3 +518,68 @@ $trg$;
 -- The marker column is readable like every other non-private jobs column
 -- (authenticated holds column-level SELECT grants on jobs).
 SELECT public.sync_jobs_select_grants();
+
+-- ── Money review 2026-09-27 HIGH-1 (a)/(b). The ban settlement matrix
+-- (20260927012042) sent EVERY series row to 'series_lane', which the series
+-- lane above never handles once work has started: a banned Helpr's finished
+-- visit still in escrow got no admin review, and a disputed visit was never
+-- escalated. Restated whole with the series branch narrowed.
+CREATE OR REPLACE FUNCTION public.ban_settlement_action(
+  p_seat text,              -- 'poster' | 'helpr'
+  p_status text,            -- jobs.status
+  p_payment_status text,    -- jobs.payment_status (NULL = never paid)
+  p_work_started boolean,
+  p_is_crew boolean,
+  p_is_series boolean
+)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO ''
+AS $fn$
+  SELECT CASE
+    -- Money review 2026-09-27 HIGH-1: only what end_series_for_banned_account
+    -- owns is the series lane: a visit (or the series) not yet started, and a
+    -- cancelled one (refunded by the series_ban_cancelled_at marker). A
+    -- banned Helpr's finished visit still in escrow, a disputed visit and a
+    -- started one take the one-off matrix below, like any job.
+    WHEN p_is_series
+         AND ((p_status IN ('open', 'accepted') AND NOT COALESCE(p_work_started, false))
+              OR p_status = 'cancelled')
+      THEN 'series_lane'
+    WHEN p_seat IS NULL OR p_seat NOT IN ('poster', 'helpr') THEN 'unhandled'
+    -- The money buckets. Every jobs_payment_status_check value is in exactly
+    -- one of NO_MONEY / HELD / MOVING; any other value is 'unhandled'.
+    WHEN NOT (COALESCE(p_payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'failed', 'cancelled')        -- NO_MONEY
+              OR p_payment_status IN ('escrow')                                                              -- HELD
+              OR p_payment_status IN ('cancelling', 'payout_pending', 'released', 'refunded',
+                                      'chargeback'))                                                         -- MOVING
+      THEN 'unhandled'
+    WHEN p_status = 'disputed' THEN 'escalate_dispute'
+    WHEN p_status = 'completed' THEN
+      CASE WHEN p_seat = 'helpr' AND p_payment_status IN ('escrow', 'payout_pending')
+           THEN 'admin_review' ELSE 'none_finished' END
+    WHEN p_status = 'cancelled' THEN
+      CASE WHEN p_seat = 'helpr' AND p_payment_status = 'escrow'
+           THEN 'admin_review' ELSE 'none_settling' END
+    WHEN p_status IN ('open', 'pending_approval', 'accepted', 'in_progress', 'revision_requested') THEN
+      CASE
+        WHEN COALESCE(p_is_crew, false) THEN 'admin_review'
+        WHEN p_payment_status IN ('cancelling', 'payout_pending', 'released', 'refunded',
+                                  'chargeback') THEN 'admin_review'
+        WHEN p_payment_status = 'escrow' AND COALESCE(p_work_started, false)
+             AND p_status IN ('accepted', 'in_progress', 'revision_requested') THEN 'hold_dispute'
+        WHEN p_seat = 'poster' THEN
+          CASE WHEN p_payment_status = 'escrow' THEN 'cancel_priced' ELSE 'cancel_no_money' END
+        -- helpr: enforce_job_status_transition has no edge from
+        -- pending_approval or revision_requested to open, and neither holds a
+        -- Helpr with no work and no money in practice, so a person looks.
+        WHEN p_status IN ('pending_approval', 'revision_requested') THEN 'admin_review'
+        ELSE 'reopen'
+      END
+    ELSE 'unhandled'
+  END
+$fn$;
+
+REVOKE ALL ON FUNCTION public.ban_settlement_action(text, text, text, boolean, boolean, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ban_settlement_action(text, text, text, boolean, boolean, boolean) TO service_role;

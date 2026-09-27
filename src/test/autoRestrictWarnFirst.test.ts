@@ -19,13 +19,19 @@
  * final_warning UPDATE changed a row. PGlite case 8 is red on 20260927222831
  * (Q820=skip: 1 sent, 0 defects) and green after.
  *
- * @mutate supabase/migrations/20260927230819_auto_restrict_no_profile_no_final_warning.sql |       IF NOT profile_found THEN | IF false THEN
- * @mutate supabase/migrations/20260927230819_auto_restrict_no_profile_no_final_warning.sql |     profile_found := FOUND; |     profile_found := true;
- * @mutate supabase/migrations/20260927230819_auto_restrict_no_profile_no_final_warning.sql |         GET DIAGNOSTICS warned_rows = ROW_COUNT; |         warned_rows := 1;
- * @mutate supabase/migrations/20260927230819_auto_restrict_no_profile_no_final_warning.sql |       AND created_at >= NOW() - INTERVAL '7 days'; |       ;
- * @mutate supabase/migrations/20260927230819_auto_restrict_no_profile_no_final_warning.sql |     WHERE user_id = NEW.user_id\n      AND violation_type NOT IN ( |     WHERE user_id = NEW.user_id\n      AND violation_type IN (
- * @mutate supabase/migrations/20260927230819_auto_restrict_no_profile_no_final_warning.sql | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;\n      GET DIAGNOSTICS suspended_rows = ROW_COUNT; | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;
- * @mutate supabase/migrations/20260927230819_auto_restrict_no_profile_no_final_warning.sql | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC;
+ * Q834: the violation_count >= 4 "Repeat offender" admin notice gets the same
+ * profile_found gate. PGlite case 10 is red on 20260927230819 (Q834=skip)
+ * and green after.
+ *
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | (as Q745 does for the suspensions).\n      IF NOT profile_found THEN | (as Q745 does for the suspensions).\n      IF false THEN
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | log the miss, as Q820 does.\n      IF NOT profile_found THEN | log the miss, as Q820 does.\n      IF false THEN
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;\n        RETURN NEW; | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql |     profile_found := FOUND; |     profile_found := true;
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql |         GET DIAGNOSTICS warned_rows = ROW_COUNT; |         warned_rows := 1;
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql |       AND created_at >= NOW() - INTERVAL '7 days'; |       ;
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql |     WHERE user_id = NEW.user_id\n      AND violation_type NOT IN ( |     WHERE user_id = NEW.user_id\n      AND violation_type IN (
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;\n      GET DIAGNOSTICS suspended_rows = ROW_COUNT; | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;
+ * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -110,6 +116,22 @@ describe("auto_restrict_repeat_violators is warn-first (Q183)", () => {
     expect(upd, "GET DIAGNOSTICS + IF <n> = 0 ... RETURN NEW after the final_warning UPDATE").not.toBeNull();
     expect(upd![2]).toBe(upd![1]);
     expect(upd!.index! + upd![0].length).toBeLessThan(notice);
+  });
+
+  it("sends no Repeat offender notice without a profile row (Q834)", () => {
+    const { body } = newestBody();
+    const found = /FROM\s+public\.profiles\s+WHERE\s+user_id\s*=\s*NEW\.user_id\s*;\s*(\w+)\s*:=\s*FOUND\s*;/i.exec(body);
+    expect(found, "<var> := FOUND right after the profile SELECT").not.toBeNull();
+    const start = body.search(/IF\s+violation_count\s*>=\s*4\s+THEN/i);
+    expect(start).toBeGreaterThan(-1);
+    const branch = body.slice(start, start + body.slice(start).search(/ELSIF\s+violation_count\s*=\s*3\s+THEN/i));
+    const notice = branch.search(/'Repeat offender:/);
+    expect(notice).toBeGreaterThan(-1);
+    const gate = new RegExp(`IF\\s+NOT\\s+${found![1]}\\s+THEN([\\s\\S]*?)END\\s+IF\\s*;`, "i").exec(branch);
+    expect(gate, "IF NOT <found> THEN ... END IF before the notice").not.toBeNull();
+    expect(gate!.index!).toBeLessThan(notice);
+    expect(gate![1]).toMatch(/log_cron_defect/);
+    expect(gate![1]).toMatch(/RETURN\s+NEW\s*;/i);
   });
 
   it("stays closed to clients", () => {

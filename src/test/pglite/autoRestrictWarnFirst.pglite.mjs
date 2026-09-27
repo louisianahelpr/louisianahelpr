@@ -8,6 +8,7 @@
  *   NEW_MIGRATION=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs   # RED (old body)
  *   Q745=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs              # RED on case 7 (Q745)
  *   Q820=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs              # RED on case 8 (Q820)
+ *   Q834=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs              # RED on case 10 (Q834)
  *   node src/test/pglite/autoRestrictWarnFirst.pglite.mjs --tree               # newest definition in the tree
  *
  * pglite is loaded from ~/.lh-pglite (override with PGLITE_DIR). Applies the
@@ -24,6 +25,7 @@ const PREV = "20260903204406_auto_restrict_log_cron_defect.sql";
 const Q183 = "20260927043454_auto_restrict_warn_first.sql";
 const Q745 = "20260927222831_auto_restrict_no_profile_no_notice.sql";
 const Q820 = "20260927230819_auto_restrict_no_profile_no_final_warning.sql";
+const Q834 = "20260927231939_auto_restrict_repeat_offender_no_profile.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -61,6 +63,9 @@ if (process.env.NEW_MIGRATION !== "skip" && process.env.Q745 !== "skip") {
 }
 if (process.env.NEW_MIGRATION !== "skip" && process.env.Q745 !== "skip" && process.env.Q820 !== "skip") {
   for (let i = 0; i < 3; i++) await db.exec(mig(Q820));
+}
+if (process.env.NEW_MIGRATION !== "skip" && process.env.Q745 !== "skip" && process.env.Q820 !== "skip" && process.env.Q834 !== "skip") {
+  for (let i = 0; i < 3; i++) await db.exec(mig(Q834));
 }
 if (process.argv.includes("--tree")) {
   const t = newestTreeFunction("auto_restrict_repeat_violators");
@@ -167,6 +172,30 @@ await reset();
 await db.exec(`UPDATE public.profiles SET ban_status='warned';`);
 await trip("low_ratings");
 check("'warned' profile + 1 own trip still gets the Final warning", (await own()).join("|") === "Final warning", (await own()).join("|"));
+
+// 10. Q834: no profile row on the 4th trip in 7 days. There is no account for
+// an admin to review, so "Repeat offender" must not send; the miss is logged.
+await reset();
+await db.exec(`DELETE FROM public.profiles;`);
+await trip("low_ratings", "3 days");
+await trip("harassment", "2 days");
+await trip("spam", "1 day");
+await db.exec(`DELETE FROM public.defects; DELETE FROM public.notifications;`);
+await trip("low_ratings");
+const repeat = (await db.query(`SELECT count(*)::int n FROM public.notifications WHERE title LIKE 'Repeat offender%'`)).rows[0].n;
+check("no profile row: no Repeat offender notice to admins (Q834)", repeat === 0, `${repeat} sent`);
+check("  ... and the miss is logged", (await defects()) === 1, `${await defects()} defects`);
+
+// 11. Q834 control: WITH a profile row (ban reversed early), the 4th trip
+// still alerts the admins, with the user's name.
+await reset();
+await trip("low_ratings", "3 days");
+await trip("harassment", "2 days");
+await trip("spam", "1 day");
+await db.exec(`UPDATE public.profiles SET ban_status='active', auto_suspended_until=NULL; DELETE FROM public.notifications;`);
+await trip("low_ratings");
+const repeatOk = (await db.query(`SELECT title FROM public.notifications WHERE user_id='${ADMIN}'`)).rows.map((r) => r.title).join("|");
+check("profile present: 4th trip still sends 'Repeat offender: Test User'", repeatOk === "Repeat offender: Test User", repeatOk);
 
 const acl = (await db.query(`SELECT has_function_privilege('anon', 'public.auto_restrict_repeat_violators()', 'EXECUTE') a,
   has_function_privilege('authenticated', 'public.auto_restrict_repeat_violators()', 'EXECUTE') b`)).rows[0];

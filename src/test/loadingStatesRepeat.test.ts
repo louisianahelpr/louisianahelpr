@@ -27,6 +27,7 @@
  * @mutate scripts/audit/measure-loading-states.mjs | if (moving > 0 \|\| quietFor < settleMs) return "wait"; | if (moving > 0) return "wait";
  * @mutate scripts/audit/measure-loading-states.mjs | if (step === "capture") { | if (step === "capture" \|\| scr?.count) {
  * @mutate scripts/check-loading-state-shape.mjs | url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id") | url
+ * @mutate scripts/audit/measure-loading-states.mjs | const el = document.elementsFromPoint(pr.px, pr.py).find((e) => !e.closest("[data-sonner-toaster]")); | const el = document.elementFromPoint(pr.px, pr.py);
  * @mutate docs/audit/loading-states/baseline.json | "key": "customer /jobs/:id #0", | "key": "customer /jobs/c9b3bd7a-9db4-48bf-a2d8-0477f6746524 #0",
  */
 import { describe, it, expect } from "vitest";
@@ -128,6 +129,16 @@ describe("loading-state baseline keys name the same surface on every run", () =>
     const fin = src.indexOf("} finally {");
     expect(fin, "the fixture is removed in a finally").toBeGreaterThan(made!.index);
     expect(src.slice(fin, fin + 400)).toMatch(/removeFixtureJob\(poster, fixtureJobId\)/);
+  });
+
+  it("the loaded frame looks through a toast to the page beneath it (run 36342002299)", () => {
+    // The helper's /jobs/:id shows an error toast over the bottom nav; probing
+    // the topmost element measured the toast as the nav and failed only the
+    // runs that captured before it faded.
+    const src = blankComments(read(MEASURER));
+    const probes = [...src.matchAll(/document\.elements?FromPoint\(pr\.px, pr\.py\)[^\n]*/g)].map((m) => m[0]);
+    expect(probes.length, "the probe lookup was not found — guard rotted").toBe(1);
+    expect(probes[0]).toMatch(/^document\.elementsFromPoint\(pr\.px, pr\.py\)\.find\(\(e\) => !e\.closest\("\[data-sonner-toaster\]"\)\)/);
   });
 
   it("fails the run when another suite deleted the fixture job mid-run (run 36214822852)", () => {

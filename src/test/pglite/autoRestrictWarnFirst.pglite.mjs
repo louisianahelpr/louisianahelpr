@@ -6,6 +6,7 @@
  *
  *   node src/test/pglite/autoRestrictWarnFirst.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs   # RED (old body)
+ *   Q745=skip node src/test/pglite/autoRestrictWarnFirst.pglite.mjs              # RED on case 7 (Q745)
  *   node src/test/pglite/autoRestrictWarnFirst.pglite.mjs --tree               # newest definition in the tree
  *
  * pglite is loaded from ~/.lh-pglite (override with PGLITE_DIR). Applies the
@@ -20,6 +21,7 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const mig = (f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8");
 const PREV = "20260903204406_auto_restrict_log_cron_defect.sql";
 const Q183 = "20260927043454_auto_restrict_warn_first.sql";
+const Q745 = "20260927222831_auto_restrict_no_profile_no_notice.sql";
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -51,6 +53,9 @@ await db.exec(`CREATE TRIGGER auto_restrict_repeat_violators_tg AFTER INSERT ON 
   FOR EACH ROW EXECUTE FUNCTION public.auto_restrict_repeat_violators();`);
 if (process.env.NEW_MIGRATION !== "skip") {
   for (let i = 0; i < 3; i++) await db.exec(mig(Q183));
+}
+if (process.env.NEW_MIGRATION !== "skip" && process.env.Q745 !== "skip") {
+  for (let i = 0; i < 3; i++) await db.exec(mig(Q745));
 }
 if (process.argv.includes("--tree")) {
   const t = newestTreeFunction("auto_restrict_repeat_violators");
@@ -128,6 +133,18 @@ await trip("low_ratings");
 check("permanently_banned stays permanently_banned", (await status()).s === "permanently_banned");
 
 check("no defect logged in any case", (await defects()) === 0);
+
+// 7. Q745: no profile row. The suspension UPDATE changes nothing, so neither
+// the user's "Account suspended" nor the admins' "Auto-restricted" may send;
+// the miss is logged instead.
+await reset();
+await db.exec(`DELETE FROM public.profiles;`);
+await trip("low_ratings", "1 day");
+await trip("harassment");
+const suspendedNotices = (await db.query(`SELECT count(*)::int n FROM public.notifications
+  WHERE title LIKE 'Account suspended%' OR title LIKE 'Auto-restricted%'`)).rows[0].n;
+check("no profile row: no suspension notice to the user or admins (Q745)", suspendedNotices === 0, `${suspendedNotices} sent`);
+check("  ... and the miss is logged", (await defects()) === 1, `${await defects()} defects`);
 
 const acl = (await db.query(`SELECT has_function_privilege('anon', 'public.auto_restrict_repeat_violators()', 'EXECUTE') a,
   has_function_privilege('authenticated', 'public.auto_restrict_repeat_violators()', 'EXECUTE') b`)).rows[0];

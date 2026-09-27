@@ -10,9 +10,14 @@
  * ALL PASS on the new one, migration applied 3x). This file pins the shape of
  * the NEWEST definition, so a later restatement that drops a clause fails.
  *
- * @mutate supabase/migrations/20260927043454_auto_restrict_warn_first.sql |       AND created_at >= NOW() - INTERVAL '7 days'; |       ;
- * @mutate supabase/migrations/20260927043454_auto_restrict_warn_first.sql |     WHERE user_id = NEW.user_id\n      AND violation_type NOT IN ( |     WHERE user_id = NEW.user_id\n      AND violation_type IN (
- * @mutate supabase/migrations/20260927043454_auto_restrict_warn_first.sql | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC;
+ * Q745: each suspension UPDATE must read its row count and send no notice when
+ * it changed nothing (no profile row). PGlite case 7 in the same proof is red
+ * on 20260927043454 (Q745=skip: 2 notices sent, 0 defects) and green after.
+ *
+ * @mutate supabase/migrations/20260927222831_auto_restrict_no_profile_no_notice.sql |       AND created_at >= NOW() - INTERVAL '7 days'; |       ;
+ * @mutate supabase/migrations/20260927222831_auto_restrict_no_profile_no_notice.sql |     WHERE user_id = NEW.user_id\n      AND violation_type NOT IN ( |     WHERE user_id = NEW.user_id\n      AND violation_type IN (
+ * @mutate supabase/migrations/20260927222831_auto_restrict_no_profile_no_notice.sql | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;\n      GET DIAGNOSTICS suspended_rows = ROW_COUNT; | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;
+ * @mutate supabase/migrations/20260927222831_auto_restrict_no_profile_no_notice.sql | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -63,6 +68,22 @@ describe("auto_restrict_repeat_violators is warn-first (Q183)", () => {
     expect(two).toBeGreaterThan(-1);
     expect(one).toBeGreaterThan(two);
     expect(body.slice(one)).not.toMatch(/temp_banned/);
+  });
+
+  it("sends no suspension notice when the suspension UPDATE changed no row (Q745)", () => {
+    const { body } = newestBody();
+    const updates = [...body.matchAll(/UPDATE\s+public\.profiles\s+SET\s+ban_status\s*=\s*'temp_banned'[\s\S]*?;/gi)];
+    expect(updates.length).toBe(2);
+    for (const u of updates) {
+      const after = body.slice(u.index! + u[0].length);
+      const notice = after.search(/INSERT\s+INTO\s+public\.notifications/i);
+      const guard = /^\s*GET\s+DIAGNOSTICS\s+(\w+)\s*=\s*ROW_COUNT\s*;\s*(?:--[^\n]*\n\s*)*IF\s+(\w+)\s*=\s*0\s+THEN([\s\S]*?)END\s+IF\s*;/i.exec(after);
+      expect(guard, "GET DIAGNOSTICS + IF <n> = 0 right after the suspension UPDATE").not.toBeNull();
+      expect(guard![2]).toBe(guard![1]);
+      expect(guard!.index! + guard![0].length).toBeLessThan(notice);
+      expect(guard![3]).toMatch(/log_cron_defect/);
+      expect(guard![3]).toMatch(/RETURN\s+NEW\s*;/i);
+    }
   });
 
   it("stays closed to clients", () => {

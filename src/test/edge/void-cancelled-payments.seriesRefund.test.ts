@@ -39,6 +39,8 @@ import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { blankSqlComments } from "../helpers/blankNonCode";
+import { effectiveDefs } from "../helpers/effectiveFunctionDefs";
+import { join } from "node:path";
 
 const CRON_SECRET = "cron-secret-void";
 
@@ -191,7 +193,10 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
   });
 
   it("the ban migration sets the marker on every visit it cancels", () => {
-    const sql = blankSqlComments(readFileSync("supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql", "utf8"));
+    // The migration holding the NEWEST end_series_for_banned_account.
+    const def = effectiveDefs(join(process.cwd(), "supabase/migrations")).get("end_series_for_banned_account");
+    expect(def, "end_series_for_banned_account has no definition").toBeTruthy();
+    const sql = blankSqlComments(readFileSync(join(process.cwd(), "supabase/migrations", def!.file), "utf8"));
     // Each cancelling UPDATE (the series-end branch and the banned Helpr's
     // own-visits branch) carries the marker.
     const sites = sql.split(/SET status = 'cancelled',/).slice(1);

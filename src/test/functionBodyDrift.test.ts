@@ -157,7 +157,7 @@ describe("function-body drift — in-place rewrites are replayed", () => {
   it("inventories the rewritten functions (a parser that finds none must not pass)", () => {
     // EXACT (2026-09-27): 7 of 20260925143327's 11. 20260925154606 re-created
     // notify_on_job_update and poster_cancel_job with the new copy already in
-    // them; 20260927012806 re-created helper_cancel_booking and 20260927012241
+    // them; 20260927012806 (then 20260927220819, Q402) re-created helper_cancel_booking and 20260927012241
     // re-created sweep_no_show_alerts, both with the new copy written in; the
     // older link rewrites (20260831232514, 20260901021929) were all superseded
     // by later CREATEs.
@@ -187,7 +187,7 @@ describe("function-body drift — in-place rewrites are replayed", () => {
 
   // helper_abort_job's newest CREATE (20260924220318) still says "Tell the
   // poster why"; only the in-place rewrite changes it. (helper_cancel_booking
-  // was the subject here until 20260927012806 re-created it with the new copy.)
+  // was the subject here until 20260927012806 re-created it with the new copy; 20260927220819 restates that text.)
   it("helper_abort_job is expected to carry 20260925143327's copy, not the text its newest CREATE wrote", () => {
     const e = expected.get("helper_abort_job(uuid,text)")!;
     expect(e.state).toBe("defined");
@@ -199,7 +199,7 @@ describe("function-body drift — in-place rewrites are replayed", () => {
   it("helper_cancel_booking is expected at its newest CREATE, which carries the new copy itself", () => {
     const e = expected.get("helper_cancel_booking(uuid)")!;
     expect(e.state).toBe("defined");
-    expect(e.version).toBe("20260927012806");
+    expect(e.version).toBe("20260927220819");
     expect(e.body).toContain("Message the person who posted it or open a dispute.");
     expect(e.body).not.toContain("Message the poster or open a dispute.");
   });

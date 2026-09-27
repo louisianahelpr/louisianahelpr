@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.status::text IN ('open', 'accepted') |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.date_needed > (now() AT TIME ZONE 'America/Chicago')::date\n             AND c.status::text IN ('open', 'accepted')
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.live AND v_p.series_split_ok THEN |       IF false THEN
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |     EXCEPTION WHEN OTHERS THEN\n      RAISE WARNING | EXCEPTION WHEN division_by_zero THEN\n      RAISE WARNING
- * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       IF changed_col IN ('series_ban_cancelled_at', | IF changed_col IN ('nothing',
+ * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |       IF changed_col IN ('series_ban_cancelled_at', | IF changed_col IN ('nothing',
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |          WHERE u.uid IS NOT NULL AND u.uid <> p_user |          WHERE u.uid IS NOT NULL
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon;
  */
@@ -29,7 +29,10 @@ import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
-const sql = blankSqlComments(readFileSync("supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql", "utf8"));
+// The migration holding the NEWEST end_series_for_banned_account (its trigger
+// and grants live beside it), never a pinned file (guardsReadTheNewestMigration).
+const banDef = effectiveDefs(join(process.cwd(), "supabase/migrations")).get("end_series_for_banned_account");
+const sql = blankSqlComments(readFileSync(join(process.cwd(), "supabase/migrations", banDef?.file ?? "missing.sql"), "utf8"));
 
 describe("a permanent ban ends the account's recurring series (Q407 9)", () => {
   it("fires on a PERMANENT ban only (a temporary one pauses in the cron)", () => {

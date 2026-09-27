@@ -36,7 +36,7 @@ try {
   process.exit(2);
 }
 import { readFileSync, readdirSync } from "node:fs";
-import { loadTreeHelperCancel } from "./treeFunction.mjs";
+import { loadTreeHelperCancel, newestTreeFunction } from "./treeFunction.mjs";
 
 const mig = (f) =>
   readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8");
@@ -348,8 +348,13 @@ console.log("\n── AFTER (migration applied) ──────────�
 // --tree (docs/OPEN.md Q414): run the AFTER cases on helper_cancel_booking
 // as the WHOLE migrations tree leaves it, so a later restatement that drops
 // this proof's crew branch is red here (src/test/pglite/treeFunction.mjs).
-if (process.argv.includes("--tree")) {
+const TREE = process.argv.includes("--tree");
+if (TREE) {
   console.log(`--tree: helper_cancel_booking from ${await loadTreeHelperCancel(db)}`);
+  // Q402: the single-helper cancel's reminder reset needs the tree whitelist too.
+  const wl = newestTreeFunction("enforce_helper_jobs_column_whitelist");
+  await db.exec(wl.sql);
+  console.log(`--tree: enforce_helper_jobs_column_whitelist from ${wl.file}`);
 }
 
 // D1
@@ -545,14 +550,37 @@ check(
   a24.ok ? `status=${a24j.status}, helper=${a24j.helper_id}` : a24.error,
 );
 
-// ── Not this fix: the single-helper path as it stands on prod ────────────────
+// ── The single-helper path after a day-of reminder (Q402) ───────────────────
 await seed({ status: "accepted", needed: 2 });
-await db.exec(`UPDATE public.jobs SET dayof_confirm_reminder_sent_at = now() WHERE id='${SJOB}'`);
+await db.exec(`UPDATE public.jobs SET dayof_confirm_reminder_sent_at = now(), start_reminder_sent_at = now() WHERE id='${SJOB}'`);
 const l1 = await leave(LEAD, SJOB);
-console.log(
-  `NOTE  L1 single-helper cancel after a day-of reminder was sent: ${l1.ok ? "succeeds" : `refused (${l1.error})`}` +
-    " — the column whitelist does not list the reminder sent-ats helper_cancel_booking clears (Q402).",
-);
+const l1j = await job(SJOB);
+if (TREE) {
+  check(
+    "L1 single-helper cancel after a day-of reminder succeeds, reopens the job and clears the reminder stamps (Q402)",
+    l1.ok && l1j.status === "open" && l1j.helper_id === null && lanesClear(l1j),
+    l1.ok ? JSON.stringify(l1j) : l1.error,
+  );
+  // The flag only clears: a Helpr's own PATCH may neither clear nor stamp them.
+  await seed({ status: "accepted", needed: 2 });
+  await db.exec(`UPDATE public.jobs SET dayof_confirm_reminder_sent_at = now() WHERE id='${SJOB}'`);
+  const l2 = await asUser(LEAD, `UPDATE public.jobs SET dayof_confirm_reminder_sent_at = NULL WHERE id='${SJOB}';`);
+  const l3 = await asUser(LEAD, `UPDATE public.jobs SET start_reminder_sent_at = now() WHERE id='${SJOB}';`);
+  const l4 = await asUser(
+    LEAD,
+    `SELECT set_config('app.helper_cancel_rpc', '1', true); UPDATE public.jobs SET start_reminder_sent_at = now() WHERE id='${SJOB}';`,
+  );
+  check(
+    "L2 a Helpr's direct PATCH of a reminder stamp is still refused (clear, stamp, and stamp under the flag)",
+    !l2.ok && !l3.ok && !l4.ok && /may not modify/.test(`${l2.error}${l3.error}${l4.error}`),
+    JSON.stringify({ l2: l2.error ?? "allowed", l3: l3.error ?? "allowed", l4: l4.error ?? "allowed" }),
+  );
+} else {
+  console.log(
+    `NOTE  L1 single-helper cancel after a day-of reminder was sent: ${l1.ok ? "succeeds" : `refused (${l1.error})`}` +
+      " — before 20260927220819 the whitelist refused the reminder sent-ats helper_cancel_booking clears (Q402); --tree proves the fix.",
+  );
+}
 
 const acl = await one(`SELECT
   has_function_privilege('anon', 'public.helper_cancel_booking(uuid)', 'EXECUTE') AS anon_cancel,

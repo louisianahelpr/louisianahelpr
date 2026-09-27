@@ -36,7 +36,7 @@ import { walkSource } from "./helpers/walkSource";
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
 
 // Functions whose effective definition calls are_users_blocked (pg_proc on
-// prod matched exactly these, 2026-09-26). The RPC-style ones pass auth.uid()
+// prod matched exactly these, 2026-09-27: 9 incl. the two series RPCs). The RPC-style ones pass auth.uid()
 // as one argument, or pin one to auth.uid() before the call; the two triggers
 // (enforce_block_on_message_insert, enforce_application_job_state) get the real
 // answer through the pg_trigger_depth() arm, because insert_job_status_system_message
@@ -45,9 +45,13 @@ const EXPECTED_CALLERS = [
   "accept_application",
   "accept_group_application",
   "can_send_message_to_in_job",
+  // Both pass v_uid := auth.uid() (never reassigned) as one argument
+  // (20260927012806): the claimer vs the poster, and the poster vs the offeree.
+  "claim_series_dates",
   "enforce_application_job_state",
   "enforce_block_on_message_insert",
   "get_my_saved_helpers",
+  "offer_series_dates",
   "respond_to_direct_offer",
 ];
 

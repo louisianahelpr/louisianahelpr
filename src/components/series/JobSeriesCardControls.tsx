@@ -1,0 +1,119 @@
+import { RefreshCw } from "lucide-react";
+import { SeriesDatesPanel } from "@/components/series/SeriesDatesPanel";
+import { EndSeriesControl } from "@/components/series/EndSeriesControl";
+import { ScheduleChangeControl } from "@/components/schedule/ScheduleChangeControl";
+import { formatRecurrenceInterval, formatShortDate } from "@/lib/format";
+import { formatJobDate } from "@/lib/dateUtils";
+
+/**
+ * The two Q407 controls BOTH job cards carry (the poster's PostedJobCard and
+ * the Helpr's AppliedJobCard), with the rule for when each shows written
+ * once instead of twice. Each renders nothing when its rule says no.
+ */
+export type SeriesCardJob = {
+  id: string;
+  title: string | null;
+  status: string;
+  parent_job_id?: string | null;
+  recurrence_days?: number[] | null;
+  recurrence_weeks?: number | null;
+  date_needed?: string | null;
+  start_time?: string | null;
+  series_ended_on?: string | null;
+  series_split_ok?: boolean | null;
+  recurring_helper_id?: string | null;
+  helper_id?: string | null;
+  helper_completed_at?: string | null;
+  is_group_job?: boolean | null;
+  recurrence_interval?: string | null;
+  recurrence_end_date?: string | null;
+};
+
+/**
+ * Who has each upcoming visit date, and the open ones the viewer can offer
+ * (poster) or pick (Helpr) (Q407 5/6). Series parents that are still running.
+ */
+export function SeriesDatesForJob({
+  job,
+  userId,
+  isPoster,
+  inset,
+}: {
+  job: SeriesCardJob;
+  userId: string | null | undefined;
+  isPoster: boolean;
+  inset?: boolean;
+}) {
+  if (job.parent_job_id || !(job.recurrence_days?.length) || !job.recurrence_weeks || !job.date_needed) return null;
+  if (job.series_ended_on || job.status === "cancelled") return null;
+  return (
+    <SeriesDatesPanel
+      inset={inset}
+      jobId={job.id}
+      jobTitle={job.title}
+      dateNeeded={job.date_needed}
+      recurrenceDays={job.recurrence_days}
+      recurrenceWeeks={job.recurrence_weeks}
+      userId={userId ?? null}
+      isPoster={isPoster}
+      firstHelpr={job.recurring_helper_id && job.recurring_helper_id === job.helper_id ? job.recurring_helper_id : null}
+      splitOk={!!job.series_split_ok}
+    />
+  );
+}
+
+/**
+ * A booked one-time job's date/time changes only by a request the other
+ * party accepts (Q407 8). `viewer: "helper"` additionally requires the viewer
+ * to be the hired Helpr; the poster's card is already the poster's own job.
+ */
+export function ScheduleChangeForJob({
+  job,
+  userId,
+  viewer,
+}: {
+  job: SeriesCardJob;
+  userId: string | null | undefined;
+  viewer: "poster" | "helper";
+}) {
+  if (!userId || job.status !== "accepted" || !job.helper_id || job.helper_completed_at) return null;
+  if (viewer === "helper" && job.helper_id !== userId) return null;
+  if (job.parent_job_id || job.recurrence_days?.length || job.is_group_job || !job.date_needed) return null;
+  return (
+    <ScheduleChangeControl
+      jobId={job.id}
+      jobTitle={job.title}
+      userId={userId}
+      dateNeeded={job.date_needed}
+      startTime={job.start_time ?? null}
+    />
+  );
+}
+
+/**
+ * The Helpr card's recurring footer (AppliedJobCard, recurring jobs only): the
+ * interval line, the standing Helpr's way out of a running series parent, and
+ * the visit dates they hold or can pick.
+ */
+export function HelperSeriesRow({ job, userId }: { job: SeriesCardJob; userId: string | null | undefined }) {
+  return (
+    <>
+      <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
+        <RefreshCw className="w-3 h-3 text-primary" />
+        <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}{job.series_ended_on && ` · ended ${formatJobDate(job.series_ended_on)}`}</span>
+        {/* end_recurring_series called by a Helpr LEAVES the series (their
+            upcoming dates go back to it; owner decision 6). Only the standing
+            Helpr who is STILL hired on the parent (review 2026-09-25). */}
+        {!job.parent_job_id && (job.recurrence_days?.length ?? 0) > 0 && !!userId &&
+          job.recurring_helper_id === userId && job.helper_id === userId &&
+          !job.series_ended_on && job.status !== "cancelled" && (
+          <span className="ml-auto">
+            <EndSeriesControl jobId={job.id} jobTitle={job.title} userId={userId} mode="leave" />
+          </span>
+        )}
+      </div>
+      {/* Visit dates: yours, and any you can pick (Q407 5/6). */}
+      <SeriesDatesForJob job={job} userId={userId} isPoster={false} inset={false} />
+    </>
+  );
+}

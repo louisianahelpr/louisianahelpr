@@ -6,8 +6,9 @@
  *
  * @mutate src/lib/scheduleChange.ts |   if (!row \|\| Date.parse(row.expires_at) <= now.getTime()) return null; |   if (!row) return null;
  * @mutate src/components/schedule/ScheduleChangeControl.tsx |   const askedOfMe = !!pending && pending.responder_id === userId; |   const askedOfMe = !!pending;
- * @mutate src/pages/posts/PostedJobCard.tsx |               <ScheduleChangeControl | <span data-x
- * @mutate src/pages/jobs/AppliedJobCard.tsx |             <ScheduleChangeControl | <span data-x
+ * @mutate src/pages/posts/PostedJobSeriesControls.tsx | <ScheduleChangeForJob job={job} userId={userId} viewer="poster" /> | <span data-x />
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | <ScheduleChangeForJob job={job} userId={userId} viewer="helper" /> | <span data-x />
+ * @mutate src/components/series/JobSeriesCardControls.tsx |     <ScheduleChangeControl | <span data-x
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -86,7 +87,10 @@ describe("ScheduleChangeControl", () => {
   });
 
   it("both parties' cards carry it", () => {
-    expect(readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8")).toMatch(/<ScheduleChangeControl\s/);
-    expect(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8")).toMatch(/<ScheduleChangeControl\s/);
+    // PostedJobCard renders the poster's Q407 controls through PostedJobSeriesControls.
+    expect(readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8")).toMatch(/<PostedJobSeriesControls job=\{job\}/);
+    expect(readFileSync("src/pages/posts/PostedJobSeriesControls.tsx", "utf8")).toMatch(/<ScheduleChangeForJob job=\{job\} userId=\{userId\} viewer="poster"/);
+    expect(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8")).toMatch(/<ScheduleChangeForJob job=\{job\} userId=\{userId\} viewer="helper"/);
+    expect(readFileSync("src/components/series/JobSeriesCardControls.tsx", "utf8")).toMatch(/<ScheduleChangeControl\s/);
   });
 });

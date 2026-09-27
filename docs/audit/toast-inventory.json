@@ -3930,7 +3930,7 @@
     },
     {
       "file": "src/components/schedule/ScheduleChangeControl.tsx",
-      "line": 58,
+      "line": 59,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -3940,30 +3940,17 @@
     },
     {
       "file": "src/components/schedule/ScheduleChangeControl.tsx",
-      "line": 62,
+      "line": 63,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "err instanceof Error ? err.message : \"Something went wrong. Please try again.\"",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "literal",
-            "text": "Something went wrong. Please try again."
-          }
-        ]
+        "text": "userFacingError(err, \"Couldn't update the date change. Check your connection and try again.\")"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/series/EndSeriesControl.tsx",
-      "line": 66,
+      "line": 67,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -3983,30 +3970,17 @@
     },
     {
       "file": "src/components/series/EndSeriesControl.tsx",
-      "line": 85,
+      "line": 86,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "err instanceof Error ? err.message : \"Couldn't end the series — please try again\"",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "literal",
-            "text": "Couldn't end the series — please try again"
-          }
-        ]
+        "text": "userFacingError( err, mode === \"leave\" ? \"Couldn't leave the series. Check your connection and try again.\" : \"Couldn't end the series. Check your connection and try again.\", )"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/components/series/SeriesDatesPanel.tsx",
-      "line": 113,
+      "line": 114,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4016,26 +3990,13 @@
     },
     {
       "file": "src/components/series/SeriesDatesPanel.tsx",
-      "line": 117,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "err instanceof Error ? err.message : \"Something went wrong. Please try again.\"",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "err.message"
-          },
-          {
-            "form": "literal",
-            "text": "Something went wrong. Please try again."
-          }
-        ]
+        "text": "userFacingError(err, \"Couldn't update your visit dates. Check your connection and try again.\")"
       },
-      "renders": true,
-      "rawError": [
-        "title: err.message"
-      ]
+      "renders": true
     },
     {
       "file": "src/hooks/useDeleteAccount.ts",

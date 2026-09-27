@@ -69,8 +69,8 @@ async function cluster(port, extra = "") {
   // A split series: A (first Helpr) holds one date and gave another up; B and
   // C each hold a date, so both are on the series and may pick it up.
   await admin.query(`
-    insert into public.jobs (id, title, customer_id, status, date_needed, start_time, recurrence_days, recurrence_weeks, series_split_ok)
-    values ('${S}', 'Dog walks', '${P}', 'open', current_date + 3, '09:00', '{0,1,2,3,4,5,6}', 3, true)`);
+    insert into public.jobs (id, title, customer_id, status, date_needed, start_time, recurrence_days, recurrence_weeks, series_split_ok, is_seed)
+    values ('${S}', 'Dog walks', '${P}', 'open', current_date + 3, '09:00', '{0,1,2,3,4,5,6}', 3, true, true)`);
   await admin.query(`set role service_role; update public.jobs set helper_id = '${A}', status = 'accepted', helper_confirmed_at = now() where id = '${S}'; reset role;`);
   await admin.query(`
     insert into public.series_visit_holds (parent_job_id, visit_date, helper_id) values

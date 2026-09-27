@@ -6,6 +6,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError } from "@/lib/haptics";
+import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * "End series" — the way out of a recurring series for BOTH parties: the
@@ -82,7 +83,14 @@ export function EndSeriesControl({
       }
     } catch (err) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "Couldn't end the series — please try again");
+      toast.error(
+        userFacingError(
+          err,
+          mode === "leave"
+            ? "Couldn't leave the series. Check your connection and try again."
+            : "Couldn't end the series. Check your connection and try again.",
+        ),
+      );
     } finally {
       setEnding(false);
     }

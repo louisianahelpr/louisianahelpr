@@ -69,6 +69,9 @@ const EXACT: Record<string, string> = {
   job_has_no_owner: "The person who posted this job has closed their account.",
   // Status moved off `open` — filled, cancelled, already in progress.
   job_not_open: "This job isn't accepting applications anymore.",
+  // A visit inside a recurring series goes only to Helprs already on it.
+  series_visit_not_open:
+    "This visit is part of a recurring series, so only Helprs already on that series can take it.",
   // A direct offer to a specific Helpr is pending. It reopens if they decline
   // or it expires, so this is the one refusal worth coming back for.
   job_reserved_for_another_helper:

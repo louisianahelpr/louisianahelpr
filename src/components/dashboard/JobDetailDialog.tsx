@@ -20,6 +20,7 @@ import { JobStatTiles } from "./jobDetailDialog/JobStatTiles";
 import { JobDetailFooter } from "./jobDetailDialog/JobDetailFooter";
 import { askQuestionCounterpart } from "./jobDetailDialog/askQuestionCounterpart";
 import { SeriesTermsLine } from "@/components/series/SeriesTermsLine";
+import { recurrenceShapeLabel } from "@/lib/recurringSchedule";
 
 interface JobDetailDialogProps {
   job: EnrichedJob | null;
@@ -847,26 +848,11 @@ const JobDetailDialog = ({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[hsl(var(--burnt-sienna)/0.08)] text-[hsl(var(--burnt-sienna))] text-ds-10 font-semibold uppercase tracking-wider border border-[hsl(var(--burnt-sienna)/0.2)]">
                 <Repeat className="w-3 h-3" strokeWidth={2.25} />
-                {/* The SHAPE, not just the word (owner, 2026-08-24: a sitter
-                    deciding whether to take a series needs "Mon, Wed, Fri ×
-                    6 wks", not "weekly"). Falls back to the interval word for
-                    legacy rows without a day set. */}
-                {(() => {
-                  const days = (job as { recurrence_days?: number[] | null }).recurrence_days;
-                  const weeks = (job as { recurrence_weeks?: number | null }).recurrence_weeks;
-                  if (days && days.length > 0 && weeks) {
-                    const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                    return `${days.map((d) => names[d]).join(", ")} × ${weeks} wk${weeks === 1 ? "" : "s"}`;
-                  }
-                  return job.recurrence_interval || "Recurring";
-                })()}
+                {recurrenceShapeLabel(job as Parameters<typeof recurrenceShapeLabel>[0])}
               </span>
               {/* The series terms, before applying (Q407 4). */}
               {!(job as { parent_job_id?: string | null }).parent_job_id && (
-                <SeriesTermsLine
-                  jobId={job.id}
-                  known={(job as { series_split_ok?: boolean | null }).series_split_ok}
-                />
+                <SeriesTermsLine jobId={job.id} known={(job as { series_split_ok?: boolean | null }).series_split_ok} />
               )}
           </div>
         )}

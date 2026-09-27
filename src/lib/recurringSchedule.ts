@@ -96,3 +96,21 @@ export function seriesTotalDollars(
   if (!(budgetPerVisit > 0)) return 0;
   return budgetPerVisit * visitCount(startDate, days, weeks);
 }
+
+/**
+ * A series' SHAPE, not just the word (owner, 2026-08-24: a sitter deciding
+ * whether to take a series needs "Mon, Wed, Fri × 6 wks", not "weekly").
+ * Falls back to the interval word for legacy rows without a day set.
+ */
+export function recurrenceShapeLabel(job: {
+  recurrence_days?: readonly number[] | null;
+  recurrence_weeks?: number | null;
+  recurrence_interval?: string | null;
+}): string {
+  const days = job.recurrence_days;
+  const weeks = job.recurrence_weeks;
+  if (days && days.length > 0 && weeks) {
+    return `${days.map((d) => WEEKDAY_LABELS[d]).join(", ")} × ${weeks} wk${weeks === 1 ? "" : "s"}`;
+  }
+  return job.recurrence_interval || "Recurring";
+}

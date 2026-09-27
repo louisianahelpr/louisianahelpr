@@ -26,13 +26,13 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF TG_OP = 'INSERT' AND v_ended IS NOT NULL THEN |   IF TG_OP = 'INSERT' AND v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |    WHERE j.id = NEW.parent_job_id\n   FOR SHARE; |    WHERE j.id = NEW.parent_job_id;
  * @mutate supabase/migrations/20260927012804_recurring_series_end.sql |      AND current_setting('app.series_end_rpc', true) IS DISTINCT FROM '1' THEN |      THEN
- * @mutate src/pages/jobs/AppliedJobCard.tsx | job.recurring_helper_id === userId && job.helper_id === userId && | job.recurring_helper_id === userId &&
+ * @mutate src/components/series/JobSeriesCardControls.tsx | job.recurring_helper_id === userId && job.helper_id === userId && | job.recurring_helper_id === userId &&
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |       SELECT v_job.recurring_helper_id WHERE v_job.recurring_helper_id = v_job.helper_id |       SELECT v_job.recurring_helper_id
  * @mutate supabase/functions/charge-recurring-visits/index.ts | .not("customer_id", "is", null) | .not("id", "is", null)
  * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status", | recurring_helper_id, helper_id, status, payment_status, dispute_status",
  * @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
- * @mutate src/pages/jobs/AppliedJobCard.tsx | <EndSeriesControl jobId={job.id} | <span data-x={job.id}
- * @mutate src/pages/posts/PostedJobCard.tsx | canEnd={!!job.recurring_helper_id && job.status !== "cancelled"} | canEnd={false}
+ * @mutate src/components/series/JobSeriesCardControls.tsx | <EndSeriesControl jobId={job.id} | <span data-x={job.id}
+ * @mutate src/pages/posts/PostedJobSeriesControls.tsx | canEnd={!!job.recurring_helper_id && job.status !== "cancelled"} | canEnd={false}
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -144,11 +144,15 @@ describe("recurring series: end + schedule lock", () => {
   });
 
   it("both parties have the control: the poster's series strip and the standing Helpr's card", () => {
-    const posted = blankComments(readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8"));
+    // The poster's card renders its series controls; they carry the strip's End.
+    expect(blankComments(readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8"))).toMatch(/<PostedJobSeriesControls job=\{job\}/);
+    const posted = blankComments(readFileSync("src/pages/posts/PostedJobSeriesControls.tsx", "utf8"));
     expect(posted).toMatch(/<SeriesStrip[\s\S]*?canEnd=\{!!job\.recurring_helper_id && job\.status !== "cancelled"\}/);
     const strip = blankComments(readFileSync("src/pages/posts/SeriesStrip.tsx", "utf8"));
     expect(strip).toMatch(/canEnd && !seriesEndedOn && next && \([\s\S]*?<EndSeriesControl/);
-    const applied = blankComments(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8"));
+    // The Helpr's card renders the recurring footer row, which carries Leave.
+    expect(blankComments(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8"))).toMatch(/job\.is_recurring && <HelperSeriesRow job=\{job\}/);
+    const applied = blankComments(readFileSync("src/components/series/JobSeriesCardControls.tsx", "utf8"));
     // Review 2026-09-25: only the standing Helpr who is STILL hired on the parent.
     expect(applied).toMatch(/job\.recurring_helper_id === userId && job\.helper_id === userId[\s\S]{0,200}<EndSeriesControl jobId=\{job\.id\}/);
     const control = blankComments(readFileSync("src/components/series/EndSeriesControl.tsx", "utf8"));

@@ -7,6 +7,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatName } from "@/lib/utils";
 import { hapticError } from "@/lib/haptics";
+import { userFacingError } from "@/lib/userFacingError";
 import {
   claimSeriesDates,
   fetchSeriesDates,
@@ -114,7 +115,7 @@ export function SeriesDatesPanel({
       await refresh();
     } catch (err) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      toast.error(userFacingError(err, "Couldn't update your visit dates. Check your connection and try again."));
     } finally {
       setBusy(false);
     }

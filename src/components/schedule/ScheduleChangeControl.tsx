@@ -6,6 +6,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { hapticError } from "@/lib/haptics";
+import { userFacingError } from "@/lib/userFacingError";
 import { queryKeys } from "@/lib/queryKeys";
 import { fetchPendingScheduleChange, requestScheduleChange, respondScheduleChange } from "@/lib/scheduleChange";
 
@@ -59,7 +60,7 @@ export function ScheduleChangeControl({
       await settle();
     } catch (err) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      toast.error(userFacingError(err, "Couldn't update the date change. Check your connection and try again."));
     } finally {
       setBusy(false);
     }

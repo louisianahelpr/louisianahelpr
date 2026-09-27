@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 551,
-    "files": 137,
-    "rendering": 531,
-    "suppressedByPolicy": 20,
+    "calls": 557,
+    "files": 140,
+    "rendering": 535,
+    "suppressedByPolicy": 22,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 440,
+      "toast.error": 443,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 24,
+      "toast.success": 27,
       "toast.warning": 20
     },
     "copyPiecesByForm": {
       "literal": 312,
       "template": 73,
-      "dynamic": 206,
+      "dynamic": 212,
       "jsx": 0
     }
   },
@@ -3929,6 +3929,115 @@
       "renders": true
     },
     {
+      "file": "src/components/schedule/ScheduleChangeControl.tsx",
+      "line": 58,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "await fn()"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/schedule/ScheduleChangeControl.tsx",
+      "line": 62,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "err instanceof Error ? err.message : \"Something went wrong. Please try again.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.message"
+          },
+          {
+            "form": "literal",
+            "text": "Something went wrong. Please try again."
+          }
+        ]
+      },
+      "renders": true,
+      "rawError": [
+        "title: err.message"
+      ]
+    },
+    {
+      "file": "src/components/series/EndSeriesControl.tsx",
+      "line": 66,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "result.action === \"left\" ? `You left the series. ${(result.released ?? []).length} upcoming date${(result.released ?? []).length === 1 ? \" goes\" : \"s go\"} back to it.${result.strike ? \" One started within 24 hours, so it counts as a reliability strike.\" : \"\"}` : \"Series ended. No new visits will be booked or charged.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "You left the series. ${(result.released ?? []).length} upcoming date${(result.released ?? []).length === 1 ? \" goes\" : \"s go\"} back to it.${result.strike ? \" One started within 24 hours, so it counts as a reliability strike.\" : \"\"}"
+          },
+          {
+            "form": "literal",
+            "text": "Series ended. No new visits will be booked or charged."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/series/EndSeriesControl.tsx",
+      "line": 85,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "err instanceof Error ? err.message : \"Couldn't end the series — please try again\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.message"
+          },
+          {
+            "form": "literal",
+            "text": "Couldn't end the series — please try again"
+          }
+        ]
+      },
+      "renders": true,
+      "rawError": [
+        "title: err.message"
+      ]
+    },
+    {
+      "file": "src/components/series/SeriesDatesPanel.tsx",
+      "line": 113,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "await action()"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/series/SeriesDatesPanel.tsx",
+      "line": 117,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "err instanceof Error ? err.message : \"Something went wrong. Please try again.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.message"
+          },
+          {
+            "form": "literal",
+            "text": "Something went wrong. Please try again."
+          }
+        ]
+      },
+      "renders": true,
+      "rawError": [
+        "title: err.message"
+      ]
+    },
+    {
       "file": "src/hooks/useDeleteAccount.ts",
       "line": 125,
       "kind": "toast.error",
@@ -5214,7 +5323,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 217,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5224,7 +5333,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 224,
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5234,7 +5343,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 233,
+      "line": 236,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5244,7 +5353,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 235,
+      "line": 238,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5254,7 +5363,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 238,
+      "line": 241,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5264,7 +5373,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 240,
+      "line": 243,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5274,7 +5383,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 241,
+      "line": 244,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5284,7 +5393,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 245,
+      "line": 248,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5294,7 +5403,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 246,
+      "line": 249,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5304,7 +5413,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 247,
+      "line": 250,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5314,7 +5423,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 248,
+      "line": 251,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5324,7 +5433,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 249,
+      "line": 252,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5334,7 +5443,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 254,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5344,7 +5453,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 255,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5354,7 +5463,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 264,
+      "line": 267,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5364,7 +5473,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 277,
+      "line": 280,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5374,7 +5483,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 278,
+      "line": 281,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5384,7 +5493,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 279,
+      "line": 282,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5394,7 +5503,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 283,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5404,7 +5513,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 290,
+      "line": 293,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5414,7 +5523,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 334,
+      "line": 337,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5424,7 +5533,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 343,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5434,7 +5543,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 363,
+      "line": 366,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5444,7 +5553,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 392,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5454,7 +5563,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 398,
+      "line": 401,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5464,7 +5573,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 552,
+      "line": 556,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5504,7 +5613,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 589,
+      "line": 593,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5518,7 +5627,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 740,
+      "line": 744,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5538,7 +5647,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 793,
+      "line": 797,
       "kind": "toast.error",
       "title": {
         "form": "literal",

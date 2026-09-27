@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-27T01:43:07.629Z",
-  "guards": 1175,
-  "registered": 1175,
+  "generated": "2026-09-27T02:55:55.386Z",
+  "guards": 1192,
+  "registered": 1192,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -336,6 +336,15 @@
       ],
       "parents": [
         "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/series/SeriesTermsLine.tsx",
+      "tests": [
+        "src/pages/post-job/seriesSplitChoice.test.tsx"
+      ],
+      "parents": [
+        "src/components/dashboard/JobDetailDialog.tsx"
       ]
     },
     {

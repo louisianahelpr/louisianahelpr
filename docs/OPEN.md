@@ -234,11 +234,11 @@ sure someone hears it and closes it.
 - Q317b: re-measure after the press-storm fix and ask again only if still over budget.
 - MQ 31 group crews: (A) yes, (B) yes, both confirmed as built. (C) NEW: return the platform fee, sales tax and gift card PRO-RATA with a returned share. To build in process-scheduled-payouts (lh-money-escrow review).
 - Q57: DONE. The lead set it via `gh api` (default_workflow_permissions=write, can_approve_pull_request_reviews=true, re-read).
-- Q11 SENTRY_READ_TOKEN and SUPABASE_SERVICE_ROLE_KEY: owner will set them; steps given in the transcript.
+- Q11 SENTRY_READ_TOKEN and SUPABASE_SERVICE_ROLE_KEY: NOTHING TO DO, both held items were stale. `gh secret list` shows SENTRY_READ_TOKEN (set 2026-09-23) and SUPABASE_SERVICE_ROLE_KEY (2026-09-14). prod-errors run on 2026-09-27 01:53Z logged "sentry: 0 issue(s) ... synced". supabase-usage run 36222936567 logged "storage orphan sweep: 0 files, 0.0 MB removed (238 objects, 8.9 MB total)"; the "nothing was swept" line was the echoed script source, not output.
 
 **Held 2026-09-27 (lead), ask once main is current:**
 - **Q317b Shrink the prod pools again?** MEASURED 2026-09-27: db_saturation_samples peaked 54/60 connections at 02:00Z on 09-26 and 09-27 (press window); cron.job_run_details shows 0 failed jobs in 48h; quota-monitor 36285625149 reads demand 67 vs 57 usable (PostgREST 14 + LISTEN 1 + pooler 11 + Auth 10 + other backends 20 under load + cron reserve 11). First fix: the press request-storm fix (#1582 lane), then re-measure. If still over: (a) cut PostgREST db_pool + pooler by 10 combined (free, may throttle real traffic) or (b) accept and widen the check's load allowance (not recommended).
-- **Supabase-usage storage orphan sweep needs repo secret SUPABASE_SERVICE_ROLE_KEY** (run 36222936567: "nothing was swept"). Credential step: `gh secret set SUPABASE_SERVICE_ROLE_KEY` from Supabase -> Settings -> API.
+- DONE 2026-09-27 (stale; the secret exists and run 36222936567 swept 238 objects, 0 orphans): ~~**Supabase-usage storage orphan sweep needs repo secret SUPABASE_SERVICE_ROLE_KEY**~~ (run 36222936567: "nothing was swept"). Credential step: `gh secret set SUPABASE_SERVICE_ROLE_KEY` from Supabase -> Settings -> API.
 
 1. **Sentry read token (Q11).** The existing SENTRY_AUTH_TOKEN is an upload
    token (403 on reading issues), so the alert ledger can't sync Sentry. You

@@ -525,7 +525,7 @@ describe("charge-recurring-visits edge function", () => {
     const b = await body(res);
 
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
-    expect(slackAlerts.filter((a) => a.severity === "critical")).toEqual([]);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toEqual([]);
     expect(b.skippedUnfilled).toBe(1);
     expect(b.errors).toBe(0);
   });
@@ -550,7 +550,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.list).toHaveBeenCalledWith({ payment_intent: "pi_day1", limit: 100 });
     // The earlier run already told the poster what went back; this run's figures are not it.
     expect(scenario.writes.filter((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("We refunded"))).toEqual([]);
-    expect(slackAlerts.filter((a) => a.severity === "critical")).toEqual([]);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toEqual([]);
     expect(b.skippedUnfilled).toBe(1);
     expect(b.errors).toBe(0);
   });
@@ -567,7 +567,7 @@ describe("charge-recurring-visits edge function", () => {
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
 
-    expect(slackAlerts.filter((a) => a.severity === "critical")).toHaveLength(1);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(1);
     expect(b.errors).toBe(1);
   });
 
@@ -1542,7 +1542,7 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(visitPaymentWrites("update")).toEqual([]);
-    const pages = slackAlerts.filter((a) => a.severity === "critical");
+    const pages = slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical");
     expect(pages).toHaveLength(1);
     expect(JSON.stringify(pages[0])).toContain("$25.00 of the $100.00 owed");
     expect(b.errors).toBe(1);
@@ -1565,7 +1565,7 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
-    expect(slackAlerts.filter((a) => a.severity === "critical")).toHaveLength(0);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(0);
     expect(b.errors).toBe(0);
   });
 
@@ -1598,7 +1598,7 @@ describe("charge-recurring-visits edge function", () => {
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
-    const pages = slackAlerts.filter((a) => a.severity === "critical");
+    const pages = slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical");
     expect(pages).toHaveLength(1);
     expect(JSON.stringify(pages[0])).toContain("$96.80 (the card fee is withheld)");
     expect(visitPaymentWrites("update")).toEqual([]);
@@ -1620,7 +1620,7 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
-    expect(slackAlerts.filter((a) => a.severity === "critical")).toHaveLength(0);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(0);
     expect(b.errors).toBe(0);
   });
 
@@ -1634,7 +1634,7 @@ describe("charge-recurring-visits edge function", () => {
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
-    const pages = slackAlerts.filter((a) => a.severity === "critical");
+    const pages = slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical");
     expect(pages).toHaveLength(1);
     expect(JSON.stringify(pages[0])).toContain("$96.80 (the card fee is withheld)");
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
@@ -1652,7 +1652,7 @@ describe("charge-recurring-visits edge function", () => {
 
     await body(await runOn(fn, "2026-09-01"));
 
-    const pages = slackAlerts.filter((a) => a.severity === "critical");
+    const pages = slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical");
     expect(pages).toHaveLength(1);
     expect(JSON.stringify(pages[0])).toContain("in full");
   });
@@ -1701,7 +1701,7 @@ describe("charge-recurring-visits edge function", () => {
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
-    expect(slackAlerts.filter((a) => a.severity === "critical")).toHaveLength(1);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(1);
     expect(b.errors).toBe(1);
   });
 
@@ -1756,7 +1756,7 @@ describe("charge-recurring-visits edge function", () => {
     const b = await body(await runOn(fn, "2026-09-01"));
 
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
-    expect(slackAlerts.filter((a) => a.severity === "critical")).toHaveLength(1);
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(1);
     expect(b.errors).toBe(1);
   });
 

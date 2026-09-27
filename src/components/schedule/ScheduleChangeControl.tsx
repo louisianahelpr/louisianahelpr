@@ -69,7 +69,7 @@ export function ScheduleChangeControl({
   // The form opens on the job's own date and time; sending that unchanged is
   // refused by the RPC (schedule_change_same), so the button waits for a
   // change instead of offering a press that can only fail (press run
-  // 36297439015, Q770).
+  // 36297439015, Q772).
   const unchanged = date === dateNeeded && time === (startTime ?? "").slice(0, 5);
   const askedOfMe = !!pending && pending.responder_id === userId;
   const askedByMe = !!pending && pending.requested_by === userId;

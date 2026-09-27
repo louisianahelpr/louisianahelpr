@@ -88,7 +88,7 @@ describe("ScheduleChangeControl", () => {
     );
   });
 
-  it("Send waits for a change: the job's own date and time cannot be sent (Q770, the RPC refuses schedule_change_same)", async () => {
+  it("Send waits for a change: the job's own date and time cannot be sent (Q772, the RPC refuses schedule_change_same)", async () => {
     row.value = null;
     renderIt(POSTER);
     fireEvent.click(await screen.findByRole("button", { name: "Ask for a new date or time" }));

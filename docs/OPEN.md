@@ -121,6 +121,24 @@ sure someone hears it and closes it.
 - Q57: DONE. The lead set it via `gh api` (default_workflow_permissions=write, can_approve_pull_request_reviews=true, re-read).
 - Q11 SENTRY_READ_TOKEN and SUPABASE_SERVICE_ROLE_KEY: NOTHING TO DO, both held items were stale. `gh secret list` shows SENTRY_READ_TOKEN (set 2026-09-23) and SUPABASE_SERVICE_ROLE_KEY (2026-09-14). prod-errors run on 2026-09-27 01:53Z logged "sentry: 0 issue(s) ... synced". supabase-usage run 36222936567 logged "storage orphan sweep: 0 files, 0.0 MB removed (238 objects, 8.9 MB total)"; the "nothing was swept" line was the echoed script source, not output.
 
+**ANSWERED 2026-09-27 night (owner pop-ups, held questions round 3):**
+- Q430: CAP the default-expanded completed cards (keep today's untipped/unreviewed rule, open at most the newest 3 by default); owner did not pick the collapse-once-reviewed option. To build, with a request-count budget for /posts?filter=done.
+- Q700: (a) match each tab: the /jobs skeleton reserves the one-line shape, /posts keeps two lines.
+- Q390: yes, before launch: move the native session mirror to Keychain/Keystore in the next native build, with the real-device check.
+- Q729: an unconfirmed crew member's offer EXPIRES like a single offer (spot returns to the poster); a block between the poster and ONE member settles only that member's share, the rest of the crew keeps working.
+- Q552: yes, one switch: extend seed_jobs_hidden_publicly() to search_profiles_by_name, get_public_profile_stats, get_safe_profiles, get_parish_activity and the reviews read policy (lh-authz-rls review).
+- Q651: yes: a CSS-only, filter-free thin olive progress bar in #boot-loader.
+- Q807: YES (against the recommendation): add a server-side refusal of writes from a session whose email is unconfirmed; data-model change with its own lh-authz-rls review.
+- Q652: yes, prerender /, /login, /signup and the /browse shell; hero pixel-identical; tighten the LCP/FCP budgets.
+- Q721: recovery wins: `resolveDependencies: () => []`, re-baseline critical-path.mjs.
+- Q590: the owner adds a REFRESH_PR_TOKEN secret (fine-grained PAT, contents + pull-requests write).
+- Q44: require `Lint, type-check, build, test` and Vacuity checks and turn strict on; keep admin bypass ON (direct landing continues).
+- Q707: hide the date/time fields in Edit once a crew has a booked member (repost to move the date).
+- Q805 / Q763: run the Stripe chargeback drill and the bulk-payout proof as workflow_dispatch jobs on repo secrets.
+- Q747: triage each remaining branch: land what still applies and is green, bundle then abandon what main superseded.
+- Q349 / Q69: run the same-bytes avatar re-upload and the live rollback drill as workflow_dispatch jobs on repo secrets.
+- Q93: yes, run the seed payout fire drill in Stripe test mode on is_seed records only, clean up after.
+
 **Held 2026-09-27 (lead), ask once main is current:**
 - **Q317b Shrink the prod pools again?** MEASURED 2026-09-27: db_saturation_samples peaked 54/60 connections at 02:00Z on 09-26 and 09-27 (press window); cron.job_run_details shows 0 failed jobs in 48h; quota-monitor 36285625149 reads demand 67 vs 57 usable (PostgREST 14 + LISTEN 1 + pooler 11 + Auth 10 + other backends 20 under load + cron reserve 11). First fix: the press request-storm fix (#1582 lane), then re-measure. If still over: (a) cut PostgREST db_pool + pooler by 10 combined (free, may throttle real traffic) or (b) accept and widen the check's load allowance (not recommended). LEDGER 2026-09-27 (opsdupe lane): until now a pool-budget red recorded NO ledger item of its own (its only trace was the generic nightly_red 79f3fe46 from issue #1890); scripts/check-db-pool-budget.mjs now records "Postgres connection budget exceeded: pg_cron will be refused under load (Q317)" (source db-pool-budget, verify quota-monitor.yml, fails_run) on the over-budget red and a separate "cannot be read" item on an unreadable red; both close when quota-monitor re-runs green (guard: src/test/dbPoolBudget.test.ts). RE-MEASURED 2026-09-27 05:52Z (quota-monitor 36298460377, off-peak): demand 58 vs 57 usable (other backends 11; live 07:30Z they are 8, all supabase_admin realtime/exporter), so over by 1 even off-peak. Press-storm re-measure still owed (next 02:00Z press window); if still over, ask (a) above as a pop-up.
 - DONE 2026-09-27 (stale; the secret exists and run 36222936567 swept 238 objects, 0 orphans): ~~**Supabase-usage storage orphan sweep needs repo secret SUPABASE_SERVICE_ROLE_KEY**~~ (run 36222936567: "nothing was swept"). Credential step: `gh secret set SUPABASE_SERVICE_ROLE_KEY` from Supabase -> Settings -> API.

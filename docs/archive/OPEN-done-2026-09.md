@@ -1440,3 +1440,7 @@ duplicate-number check).
 ## Archived 2026-09-27 — from "NEW — LOW (from the same pass)"
 
 - [x] Seed rot: two proof-photo storage URLs on job e7e09075 return HTTP 400 — DONE 2026-09-27. Measured live: e7e09075 is cancelled, is_seed, and its proof arrays are empty. The same query found the SOURCE of the class: seed job c9a6a3a0 (created 2026-09-26) still held 365-day signed URLs, written by scripts/e2e/settleForward.mjs `uploadProof`. It now stores the path, and src/test/noPersistedSignedUrlsInHarness.test.ts (e2e/, scripts/, supabase/functions, REST + SDK signing) is shown red on the old writer. (archive L6636)
+
+## Archived 2026-09-27 — from "CARRIED — the 2026-09-02 ledger (docs/audit/OPEN_ITEMS.md, retired 2026-09-23)"
+
+- [x] **HYGIENE #9**: submit-partner-application function absent; write path revoked. DONE 2026-09-27: already dropped. Migration 20260630000000_drop_partner_applications.sql drops the table; live `to_regclass('public.partner_applications')` = null, 0 pg_proc names match `%partner%`, no submit-partner-application in list_edge_functions, and `git grep` finds no reference outside docs/migrations.

@@ -408,7 +408,19 @@ type YJob = {
   "timeout-minutes"?: unknown;
   concurrency?: unknown;
   strategy?: { "max-parallel"?: unknown; matrix?: unknown };
+  steps?: { run?: unknown }[];
 };
+
+/**
+ * The shared-accounts queue job (Q743, scripts/e2e/wait-shared-accounts.mjs)
+ * counts as 0 minutes. It waits only while ANOTHER run is at the account lock;
+ * scheduled runs are already one-at-a-time in prod-load, so on a schedule it
+ * waits only for dispatched runs, which this model has never counted (before
+ * Q743 the same wait happened as untimed "pending" time on the locked job).
+ * Its 350-min timeout is a stop, not a run length.
+ */
+const isAccountQueue = (j: YJob) =>
+  (j.steps ?? []).some((st) => String(st?.run ?? "").includes("scripts/e2e/wait-shared-accounts.mjs"));
 
 function matrixEntries(matrix: unknown): number {
   if (matrix === undefined) return 1;
@@ -440,7 +452,11 @@ export function worstCaseMinutes(src: string): number {
     visiting.add(name);
     const needs = j.needs === undefined ? [] : Array.isArray(j.needs) ? j.needs : [j.needs];
     const start = needs.reduce((mx, n) => Math.max(mx, endOf(n)), 0);
-    const t = typeof j["timeout-minutes"] === "number" ? j["timeout-minutes"] : GITHUB_DEFAULT_TIMEOUT;
+    const t = isAccountQueue(j)
+      ? 0
+      : typeof j["timeout-minutes"] === "number"
+        ? j["timeout-minutes"]
+        : GITHUB_DEFAULT_TIMEOUT;
     const entries = matrixEntries(j.strategy?.matrix);
     const mp = typeof j.strategy?.["max-parallel"] === "number" ? j.strategy["max-parallel"] : entries;
     const perWave = j.concurrency ? 1 : Math.max(1, Math.min(mp, entries));

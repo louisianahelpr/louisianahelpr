@@ -64,9 +64,36 @@ jobs:
             echo "- **Abuse & notifications: NOT COVERED** — shared E2E account secrets missing." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+  wait-accounts:
+    # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
+    # per concurrency group and CANCELS it when a third arrives (press 36297157445,
+    # e2e-journeys 36215839785 / 36215921402 / 36217255758). This lock-free job
+    # waits its turn first and joins the group only when that bumps nobody
+    # (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountLockQueues.test.ts).
+    name: Wait for the shared accounts (queue)
+    needs: preflight
+    if: needs.preflight.outputs.have_accounts == 'true'
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the longest holder (press) is 330.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   suites:
     name: Abuse & notifications (${{ matrix.project }})
-    needs: preflight
+    needs: [preflight, wait-accounts]
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60

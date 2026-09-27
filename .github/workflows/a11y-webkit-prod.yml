@@ -85,6 +85,32 @@ jobs:
             exit 1
           fi
 
+  wait-accounts:
+    # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
+    # per concurrency group and CANCELS it when a third arrives (press 36297157445,
+    # e2e-journeys 36215839785 / 36215921402 / 36217255758). This lock-free job
+    # waits its turn first and joins the group only when that bumps nobody
+    # (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountLockQueues.test.ts).
+    name: Wait for the shared accounts (queue)
+    needs: preflight
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the longest holder (press) is 330.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   fixtures:
     # The job-status fixtures the sweep renders and nothing else keeps alive
     # (nightly-red #1794, run 36148473443: no is_seed `accepted` job, an
@@ -95,7 +121,7 @@ jobs:
     # writes to the shared E2E accounts, so besides prod-load it holds their
     # one lock (Q326).
     name: Job-status fixtures
-    needs: preflight
+    needs: [preflight, wait-accounts]
     runs-on: ubuntu-latest
     concurrency:
       group: prod-lifecycle-shared-accounts

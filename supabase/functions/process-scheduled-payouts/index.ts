@@ -79,7 +79,7 @@ serve(async (req) => {
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
     let jobQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, is_seed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, is_seed")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       // Never pay out a job under dispute. A CREW whose dispute CLOSED
@@ -517,6 +517,7 @@ serve(async (req) => {
       job: typeof jobs[number];
       paymentIntentId: string | null | undefined;
       isPifFunded: boolean;
+      giftAppliedCents: number;
       capturedCents: number;
       paidCents: number;
     }): Promise<{ ok: boolean; refundId?: string | null; refundCents?: number; manual?: boolean }> => {
@@ -538,10 +539,109 @@ serve(async (req) => {
       const urgentCents = Math.round(Number(job.urgent_fee ?? 0) * 100);
       const paidBudget = paying.reduce((sum, m) => sum + (m.shareCents as number), 0);
       const paidUrgent = paying.reduce((sum, m) => sum + allocateCents(urgentCents, needed, m.slotNo as number), 0);
-      const unfilledCents = Math.max(0, budgetCents - paidBudget) + Math.max(0, urgentCents - paidUrgent);
+      const unpaidBudgetCents = Math.max(0, budgetCents - paidBudget);
+      const unfilledCents = unpaidBudgetCents + Math.max(0, urgentCents - paidUrgent);
       if (unfilledCents <= 0) return { ok: true, refundCents: 0 };
+      // ── The rest of the charge goes back PRO-RATA (owner, MQ31(C), 2026-09-27) ──
+      // The poster's service fee and sales tax come back in proportion to the
+      // unpaid share of the BUDGET (the fee is a % of the budget and only the
+      // budget line is taxed; the urgent tip carries neither). The one-time
+      // onboarding fee is a per-account charge, not this job's, and is kept.
+      // When the Stripe-cost floor set the fee, the pro-rata includes part of
+      // that floor; Stripe keeps its processing fee on a refund, so the
+      // platform absorbs it (the owner's rule is "the fee, pro-rata").
+      // Rounding: each component is FLOORED to the cent, so the sub-cent
+      // remainder stays with the platform; the numbers are a pure function of
+      // the job row and the frozen shares, so a re-run owes the same cents,
+      // and what is refunded plus what is kept is the charge, to the cent.
+      const feeCents = Math.max(0, Math.round(Number(job.customer_fee_amount ?? 0) * 100));
+      const taxCents = Math.max(0, Math.round(Number(job.sales_tax_amount ?? 0) * 100));
+      const feeReturnCents = budgetCents > 0 ? Math.floor((feeCents * unpaidBudgetCents) / budgetCents) : 0;
+      const taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
+      const owedCents = unfilledCents + feeReturnCents + taxReturnCents;
 
       const source = decision ? "crew_dispute_refund" : "crew_unfilled_refund";
+
+      // ── A gift on the escrow goes back to the gift balance, pro-rata ──────
+      // A gift paid (part of) the budget + urgent fee (redeem_gift_card), so
+      // the unfilled share of what it applied is restored as gift credit, by
+      // the same RPC execute-dispute-split uses. It is keyed on the job
+      // (gift_cards.restored_from_job_id is UNIQUE), so a re-run reads back
+      // `already_restored` and the same cents. The RPC floors
+      // applied * bps / 10000; the bps is the largest that does not overshoot
+      // the floored target, so the gift never returns more than its share.
+      let giftRestoredCents = 0;
+      if (a.isPifFunded) {
+        const applied = Math.max(0, Math.floor(a.giftAppliedCents));
+        const baseCents = budgetCents + urgentCents;
+        const giftTarget = baseCents > 0 ? Math.floor((applied * Math.min(unfilledCents, baseCents)) / baseCents) : 0;
+        if (giftTarget > 0) {
+          const bps = Math.min(10000, Math.floor(((giftTarget + 1) * 10000 - 1) / applied));
+          const { data: restoreData, error: restoreErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
+            p_job_id: job.id,
+            p_share_bps: bps,
+            p_dry_run: false,
+          });
+          if (restoreErr) {
+            jobDefect(job.id, `crew ${source} gift restore ${job.id}: ${restoreErr.message}`);
+            return { ok: false };
+          }
+          const restore = (restoreData ?? null) as { outcome?: string; restore_cents?: number } | null;
+          const outcome = restore?.outcome;
+          // One restore per job (restored_from_job_id is UNIQUE): an
+          // `already_restored` is only this event's if it is the amount this
+          // bps gives; any other amount was an earlier, different return.
+          const expectedCents = Math.floor((applied * bps) / 10000);
+          const restoreCentsRaw = Math.round(Number(restore?.restore_cents ?? 0));
+          const known = outcome === "restored" || outcome === "nothing_to_restore"
+            || (outcome === "already_restored" && restoreCentsRaw === expectedCents);
+          if (known) {
+            giftRestoredCents = Math.max(0, Math.round(Number(restore?.restore_cents ?? 0)));
+          } else {
+            // Not an answer this path knows (or a restore made by another
+            // path): a person returns all of it.
+            jobDefect(job.id, `crew ${source} gift restore ${job.id}: unrecognised outcome ${JSON.stringify(restore)}`);
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              seed: seedJobIds.has(job.id),
+              severity: "warning",
+              title: "Crew gift share could not be restored",
+              message: `Group job ${job.id}: ${owedCents}c is owed back to the poster${decision ? ` under crew dispute ${decision.disputeId}` : " for unfilled slots"} (${giftTarget}c of it as gift credit), but restore_gift_card_for_job answered ${JSON.stringify(restore)}. Return it by hand${decision ? ", then close the dispute" : ""}.`,
+              fields: { job_id: job.id, owed_cents: owedCents, gift_target_cents: giftTarget },
+              oncePerDayKey: `crew-gift-restore:${job.id}`,
+            });
+            return { ok: true, refundCents: 0, manual: true };
+          }
+        }
+      }
+      // What the card still owes once the gift's share is back.
+      const cardOwedCents = Math.max(0, owedCents - giftRestoredCents);
+      const notifyPoster = async (cardCents: number) => {
+        if (!job.customer_id || cardCents + giftRestoredCents <= 0) return;
+        const parts = [
+          cardCents > 0 ? `$${formatPayoutDollars(cardCents / 100)} is being refunded to your card` : null,
+          giftRestoredCents > 0 ? `$${formatPayoutDollars(giftRestoredCents / 100)} is back on your gift card balance` : null,
+        ].filter(Boolean).join(" and ");
+        const feeTaxClause = feeReturnCents > 0 && taxReturnCents > 0
+          ? ", including that share of the service fee and tax"
+          : feeReturnCents > 0 ? ", including that share of the service fee"
+          : taxReturnCents > 0 ? ", including that share of the tax" : "";
+        await insertNotifications(supabaseAdmin, {
+          user_id: job.customer_id,
+          job_id: job.id,
+          title: "Part of your payment is on its way back",
+          message: decision
+            ? `Following the dispute decision on "${job.title}", ${parts}${feeTaxClause}.`
+            : `"${job.title}" was finished by fewer Helprs than you paid for, so for the unfilled spots ${parts}${feeTaxClause}.`,
+          type: "payment",
+          link: `/posts?job=${job.id}`,
+        });
+      };
+      if (cardOwedCents <= 0) {
+        await notifyPoster(0);
+        return { ok: true, refundId: null, refundCents: giftRestoredCents };
+      }
+
       const { data: prior, error: priorErr } = await supabaseAdmin
         .from("payment_refunds")
         .select("stripe_refund_id, amount_cents")
@@ -558,32 +658,35 @@ serve(async (req) => {
        * job still releases (the crew is paid), but the shortfall is a
        * person's, and a crew decision is NOT closed as if it were settled.
        */
-      const shortRefund = async (refundId: string | null, sentCents: number) => {
-        const shortCents = unfilledCents - sentCents;
-        jobDefect(job.id, `crew ${source} ${job.id}: refunded ${sentCents}c of ${unfilledCents}c owed`);
+      const shortRefund = async (refundId: string | null, sentCents: number, fresh = true) => {
+        const shortCents = cardOwedCents - sentCents;
+        // Tell the poster what did go back (card and/or gift); a re-run that
+        // only reads the prior row back does not tell them again.
+        if (fresh) await notifyPoster(sentCents);
+        jobDefect(job.id, `crew ${source} ${job.id}: refunded ${sentCents}c of ${cardOwedCents}c owed`);
         await postSlackOpsAlert({
           kind: "money_at_risk",
           seed: seedJobIds.has(job.id),
           severity: "warning",
           title: "Crew refund short: the rest needs a manual refund",
-          message: `Group job ${job.id}: ${unfilledCents}c is owed back to the poster${decision ? ` under crew dispute ${decision.disputeId}` : " for unfilled slots"}, but only ${sentCents}c could be refunded from the charge. Return the other ${shortCents}c by hand${decision ? ", then close the dispute" : ""}.`,
-          fields: { job_id: job.id, unfilled_cents: unfilledCents, refunded_cents: sentCents, short_cents: shortCents },
+          message: `Group job ${job.id}: ${cardOwedCents}c is owed back to the poster's card${decision ? ` under crew dispute ${decision.disputeId}` : " for unfilled slots"} (the share plus that share of the service fee and tax${giftRestoredCents > 0 ? `; ${giftRestoredCents}c more went back as gift credit` : ""}), but only ${sentCents}c could be refunded from the charge. Return the other ${shortCents}c by hand${decision ? ", then close the dispute" : ""}.`,
+          fields: { job_id: job.id, owed_cents: cardOwedCents, refunded_cents: sentCents, short_cents: shortCents, gift_restored_cents: giftRestoredCents },
           oncePerDayKey: `crew-refund-short:${job.id}`,
         });
-        return { ok: true, refundId, refundCents: sentCents, manual: true };
+        return { ok: true, refundId, refundCents: sentCents + giftRestoredCents, manual: true };
       };
       if ((prior ?? []).length > 0) {
         const row = (prior as Array<{ stripe_refund_id: string | null; amount_cents: number | null }>)[0];
         const priorCents = Number(row.amount_cents ?? 0);
-        if (priorCents < unfilledCents) return shortRefund(row.stripe_refund_id, priorCents);
-        return { ok: true, refundId: row.stripe_refund_id, refundCents: priorCents };
+        if (priorCents < cardOwedCents) return shortRefund(row.stripe_refund_id, priorCents, false);
+        return { ok: true, refundId: row.stripe_refund_id, refundCents: priorCents + giftRestoredCents };
       }
 
-      if (a.isPifFunded || !a.paymentIntentId) {
-        // A gift-funded escrow has no charge to refund to; a person decides.
-        // On a crew decision the dispute is left open ('crew_fanout') so the
-        // admin queue keeps it as unsettled until that person has.
-        jobDefect(job.id, `crew ${source} ${job.id}: no charge to refund ${unfilledCents}c to`);
+      if (!a.paymentIntentId) {
+        // No card charge to refund the rest to; a person decides. On a crew
+        // decision the dispute is left open ('crew_fanout') so the admin queue
+        // keeps it as unsettled until that person has.
+        jobDefect(job.id, `crew ${source} ${job.id}: no charge to refund ${cardOwedCents}c to`);
         await postSlackOpsAlert({
           kind: "money_at_risk",
           seed: seedJobIds.has(job.id),
@@ -592,18 +695,37 @@ serve(async (req) => {
             ? "Crew dispute — refunded members' shares need a manual refund"
             : "Under-filled crew — unfilled shares need a manual refund",
           message: decision
-            ? `Group job ${job.id}: the crew dispute decision ${decision.disputeId} returns ${unfilledCents}c to the poster, but the job has no card charge to refund it to (gift-funded or no payment intent). Return it by hand, then close the dispute.`
-            : `Group job ${job.id} completed under-filled; ${unfilledCents}c of its escrow belonged to unfilled slots, but it has no card charge to refund it to (gift-funded or no payment intent). Return it to the poster by hand.`,
-          fields: { job_id: job.id, unfilled_cents: unfilledCents },
+            ? `Group job ${job.id}: the crew dispute decision ${decision.disputeId} returns ${cardOwedCents}c to the poster${giftRestoredCents > 0 ? ` beyond the ${giftRestoredCents}c restored as gift credit` : ""}, but the job has no card charge to refund it to. Return it by hand, then close the dispute.`
+            : `Group job ${job.id} completed under-filled; ${cardOwedCents}c of its escrow (unfilled shares plus that share of the service fee and tax${giftRestoredCents > 0 ? `, beyond the ${giftRestoredCents}c restored as gift credit` : ""}) is owed back, but it has no card charge to refund it to. Return it to the poster by hand.`,
+          fields: { job_id: job.id, owed_cents: cardOwedCents, gift_restored_cents: giftRestoredCents },
           oncePerDayKey: `${decision ? "crew-dispute-manual" : "crew-unfilled-manual"}:${job.id}`,
         });
-        return { ok: true, manual: true };
+        await notifyPoster(0);
+        return { ok: true, refundCents: giftRestoredCents, manual: true };
       }
-      // Never refund more than the charge still holds after the crew's transfers.
-      // The base is the budget and urgent fee only: the platform fee, sales tax
-      // and any gift on the charge are not refunded here (money review M2; an
-      // owner question beside CREW_FEE_PAYS_UNCONFIRMED, docs/OPEN.md Q729).
-      const refundCents = Math.min(unfilledCents, Math.max(0, a.capturedCents - a.paidCents));
+      // Never refund more than the charge still holds after the crew's
+      // transfers. A gift-funded crew was paid from the platform balance
+      // (a plain transfer, no source_transaction), so its card difference
+      // holds what the escrow (charge + gift) has left after the transfers
+      // and the gift restore, and never more than the charge itself.
+      // A gift-funded job skips the PI read in the main loop (capturedCents is
+      // 0 there), so a partial gift with a card difference reads its charge
+      // here, or its card share could never refund automatically.
+      let capturedCents = a.capturedCents;
+      if (a.isPifFunded && capturedCents === 0) {
+        try {
+          const pi = await stripe.paymentIntents.retrieve(a.paymentIntentId);
+          const captured = resolveCapturedEscrow(pi);
+          capturedCents = pi.status === "succeeded" && captured.kind === "captured" ? captured.cents : 0;
+        } catch (e) {
+          jobDefect(job.id, `crew ${source} PI read ${job.id}: ${(e as Error).message}`);
+          return { ok: false };
+        }
+      }
+      const chargeLeftCents = a.isPifFunded
+        ? Math.min(capturedCents, Math.max(0, capturedCents + a.giftAppliedCents - a.paidCents - giftRestoredCents))
+        : Math.max(0, a.capturedCents - a.paidCents);
+      const refundCents = Math.min(cardOwedCents, chargeLeftCents);
       if (refundCents <= 0) return shortRefund(null, 0);
       try {
         const refund = await stripe.refunds.create(
@@ -619,8 +741,8 @@ serve(async (req) => {
           currency: refund.currency ?? "usd",
           is_partial: true,
           reason: decision
-            ? "crew dispute: the refunded members' shares (and any unfilled slots)"
-            : "under-filled crew: the unfilled slots' shares",
+            ? "crew dispute: the refunded members' shares (and any unfilled slots), with that share of the service fee and tax"
+            : "under-filled crew: the unfilled slots' shares, with that share of the service fee and tax",
           source,
           initiated_by_user_id: null,
         }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
@@ -635,20 +757,9 @@ serve(async (req) => {
             fields: { job_id: job.id, refund_id: refund.id, db_error: ledgerErr.message.slice(0, 200) },
           });
         }
-        if (job.customer_id) {
-          await insertNotifications(supabaseAdmin, {
-            user_id: job.customer_id,
-            job_id: job.id,
-            title: "Part of your payment is on its way back",
-            message: decision
-              ? `Following the dispute decision on "${job.title}", $${formatPayoutDollars(refundCents / 100)} is being refunded to you.`
-              : `"${job.title}" was finished by fewer Helprs than you paid for, so $${formatPayoutDollars(refundCents / 100)} for the unfilled spots is being refunded to you.`,
-            type: "payment",
-            link: `/posts?job=${job.id}`,
-          });
-        }
-        if (refundCents < unfilledCents) return shortRefund(refund.id, refundCents);
-        return { ok: true, refundId: refund.id, refundCents };
+        await notifyPoster(refundCents);
+        if (refundCents < cardOwedCents) return shortRefund(refund.id, refundCents);
+        return { ok: true, refundId: refund.id, refundCents: refundCents + giftRestoredCents };
       } catch (refundErr) {
         jobDefect(job.id, `crew ${source} ${job.id}: ${(refundErr as Error).message}`);
         return { ok: false };
@@ -667,6 +778,7 @@ serve(async (req) => {
       job: typeof jobs[number];
       paymentIntentId: string | null | undefined;
       isPifFunded: boolean;
+      giftAppliedCents: number;
       capturedCents: number;
     }): Promise<{ ready: boolean; paidCents: number; refundId?: string | null; refundCents?: number; manual?: boolean }> => {
       const { job } = a;
@@ -1024,7 +1136,7 @@ serve(async (req) => {
         // run: before it, nothing ever asked again and the job sat
         // payout_pending with its poster's refund unsent.
         if (job.is_group_job && !crewSettled.has(job.id)) {
-          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, capturedCents });
+          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents });
           if (settle.ready && await closeCrewDecision(job, settle)) {
             const healed = await flipJobToReleased(supabaseAdmin, job.id);
             if (healed.ok) {
@@ -1423,7 +1535,7 @@ serve(async (req) => {
           // Settled (refund, flip, dispute close) earlier in THIS run: once.
           allRosterPaid = false;
         } else if (job.is_group_job) {
-          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, capturedCents });
+          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents });
           // The decision is closed before the flip (review M4): a failed close
           // keeps the job payout_pending for the next run to retry.
           allRosterPaid = crewSettle.ready && await closeCrewDecision(job, crewSettle);

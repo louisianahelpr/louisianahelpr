@@ -249,7 +249,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   });
 
   // Money review M3: a refund the charge can no longer cover in full.
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts |        if (refundCents < unfilledCents) return shortRefund(refund.id, refundCents); |        if (false) return shortRefund(refund.id, refundCents);
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |        if (refundCents < cardOwedCents) return shortRefund(refund.id, refundCents); |        if (false) return shortRefund(refund.id, refundCents);
   it("a crew refund short of what the decision owes pages ops and leaves the decision OPEN (not closed as settled)", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
     seedCrewDecision(["m3"], ["m1", "m2", "m3"]);
@@ -293,5 +293,116 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
+  });
+
+  // ── MQ31(C) (owner, 2026-09-27): the unpaid share of the service fee and
+  // sales tax (and of any gift) goes back too, not just the base price.
+  // Rounding: each of fee and tax is floored to the cent, pro-rata on the
+  // unpaid share of the budget; the sub-cent remainder stays with the platform.
+
+  const setJob = (patch: Record<string, unknown>) => {
+    const rows = (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows;
+    Object.assign(rows[0], patch);
+  };
+  const shortPages = () =>
+    (slackAlerts as Array<{ title?: string }>).filter((a) => /Crew refund short/.test(a.title ?? "")).length;
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const feeReturnCents = budgetCents > 0 ? Math.floor((feeCents * unpaidBudgetCents) / budgetCents) : 0; | const feeReturnCents = 0;
+  it("MQ31(C): 2 of 3 filled, $12 fee + $9 tax: the poster gets 3333 + floor(1200*3333/10000)=399 + floor(900*3333/10000)=299 = 4031c, recorded at 4031", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob({ customer_fee_amount: 12, sales_tax_amount: 9 });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 4031, currency: "usd" });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 4031 },
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
+    const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+    expect(ledger?.payload).toEqual(expect.objectContaining({ source: "crew_unfilled_refund", amount_cents: 4031 }));
+    expect(shortPages()).toBe(0);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (priorCents < cardOwedCents) return shortRefund(row.stripe_refund_id, priorCents, false); | if (false) return shortRefund(row.stripe_refund_id, priorCents, false);
+  it("MQ31(C) re-run: a prior refund at the full 4031c is not sent again and does not page; one at the old base-only 3333c pages as short", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob({ customer_fee_amount: 12, sales_tax_amount: 9 });
+    scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: "re_prev", amount_cents: 4031 }] };
+    await run();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(shortPages()).toBe(0);
+
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob({ customer_fee_amount: 12, sales_tax_amount: 9 });
+    scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: "re_prev", amount_cents: 3333 }] };
+    await run();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(shortPages()).toBe(1);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (a.isPifFunded) { | if (false) {
+  it("MQ31(C): a gift-funded crew (2 of 3) gets the unfilled share back as gift credit (3333 bps of a 10000c gift), with no card refund and no manual page", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob({ stripe_payment_intent_id: null, stripe_session_id: null });
+    scenario.reads.gift_cards = { rows: [{ id: "gc-1" }] };
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
+      const a = args as { p_share_bps: number; p_dry_run: boolean };
+      return a.p_dry_run
+        ? { outcome: "would_restore", applied_cents: 10000 }
+        : { outcome: "restored", restore_cents: Math.floor((10000 * a.p_share_bps) / 10000) };
+    };
+    await run();
+    const restores = (scenario.rpcCalls ?? []).filter(
+      (c) => c.name === "restore_gift_card_for_job" && (c.args as { p_dry_run: boolean }).p_dry_run === false,
+    );
+    expect(restores).toHaveLength(1);
+    expect(restores[0].args).toEqual({ p_job_id: "job-crew", p_share_bps: 3333, p_dry_run: false });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => /manual refund|could not be restored|Crew refund short/i.test(a.title ?? ""))).toBe(false);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | capturedCents = pi.status === "succeeded" && captured.kind === "captured" ? captured.cents : 0; | capturedCents = 0;
+  it("MQ31(C) review #1: a partial-gift crew (4000c gift + 6000c card, 2 of 3) restores 1333c as gift credit and refunds the other 2000c to the card, no manual page", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    scenario.reads.gift_cards = { rows: [{ id: "gc-1" }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount: 6000, amount_received: 6000,
+    });
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
+      const a = args as { p_share_bps: number; p_dry_run: boolean };
+      return a.p_dry_run
+        ? { outcome: "would_restore", applied_cents: 4000 }
+        : { outcome: "restored", restore_cents: Math.floor((4000 * a.p_share_bps) / 10000) };
+    };
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 2000, currency: "usd" });
+    await run();
+    const restores = (scenario.rpcCalls ?? []).filter(
+      (c) => c.name === "restore_gift_card_for_job" && (c.args as { p_dry_run: boolean }).p_dry_run === false,
+    );
+    expect(restores).toHaveLength(1);
+    expect(restores[0].args).toEqual({ p_job_id: "job-crew", p_share_bps: 3334, p_dry_run: false });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_1", amount: 2000 },
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => /manual refund|could not be restored|Crew refund short/i.test(a.title ?? ""))).toBe(false);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | (outcome === "already_restored" && restoreCentsRaw === expectedCents); | (outcome === "already_restored");
+  it("MQ31(C) review #2: an already_restored gift of a different amount (another path's return) pages a person instead of being booked as this share", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob({ stripe_payment_intent_id: null, stripe_session_id: null });
+    scenario.reads.gift_cards = { rows: [{ id: "gc-1" }] };
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
+      const a = args as { p_dry_run: boolean };
+      return a.p_dry_run
+        ? { outcome: "would_restore", applied_cents: 10000 }
+        : { outcome: "already_restored", restore_cents: 5000 };
+    };
+    await run();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect((slackAlerts as Array<{ title?: string }>).filter((a) => /could not be restored/i.test(a.title ?? ""))).toHaveLength(1);
   });
 });

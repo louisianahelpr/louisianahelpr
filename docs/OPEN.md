@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 285 done, 105 partly done (fixed, protection pending), 128 open. Source of truth for work.
+- **Queue (this file):** 285 done, 105 partly done (fixed, protection pending), 130 open. Source of truth for work.
 - **Audit bus:** 18 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 18 open (1 critical, 17 error), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-27T04:06Z)_
@@ -46,7 +46,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 518 items — 285 done, 105 partly done (fixed, protection pending), 128 open.**
+**Queue: 520 items — 285 done, 105 partly done (fixed, protection pending), 130 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1982,3 +1982,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q739** (export review leftover, 2026-09-27): export_my_data exports series_date_offers, series_visit_holds and crew_dispute_member_outcomes only where the caller is the Helpr; the poster's own rows on their jobs (readable via RLS) are not exported. Fix: add poster-side sections (no counterpart PII). GUARD: dataExportCoversEveryUserTable asserts each party column of each table is covered.
 - [~] **Q740** (nightly-red #1794 a11y-webkit-prod + #1654 loading-states-refresh, 2026-09-27): the pacer's single learned reserve. Capped at half the per-worker share (100 of 200), a list page's burst landed on a part-filled minute: a11y-prod-webkit busiest minute 439/400 (run 36263866330). Uncapped (0d0010181), one burst over the 200 share made EVERY gate wait for an empty minute, one page per minute: both a11y legs cancelled at the 60-min job timeout at test ~330/368 (36271541309) and loading-states cancelled the same way (36272891811). FIX: e2e/requestMeter.mjs learns the burst PER PAGE (gate key = path): a known page reserves its own burst, an unknown one min(half share, largest burst); samples carry `topBursts`, printed by the budget step. Guard src/test/requestMeterPacing.test.ts (8/8 mutations killed). 36218568850 (cancelled) never started a job: cancelled in the queue. OPEN until a dispatched run of each workflow completes green (busiest minute <= 400, inside 60 min, loading-states baseline re-prove passes).
 - [ ] **Q742** (follow-up to Q741 / #1582, 2026-09-26): the app-wide request-budget overage is not explained yet. e2e-journeys run 36217255758 (at dd331d851): perTest 83.2 against the 51.9 budget (calibrated 2026-09-23, e26631de7), busiest minute 439 against a 400 ceiling. `git log --since=2026-09-24 -G 'refetchInterval|setInterval|staleTime|refetchOnWindowFocus|refetchOnMount|user_blocks|user_roles|invalidateQueries' -- src/` names no introducing commit (8d13bd427, 2adf846b2, f5bead45b, 3bf782e83 checked). Q741 removed 134 requests per /posts load, but its effect on journeys is NOT measured. Next: re-run e2e-journeys after Q741 deploys, then bisect by per-test request count if still over. Also confirm the next press-every-control run reaches every row. GUARD: scripts/e2e/request-budget.mjs (the budget itself; must stay exact).
+- [ ] **Q744** (Q183 review leftover, 2026-09-27): two violations inserted at the same moment in separate transactions each count 1 in `auto_restrict_repeat_violators`, so both give a final warning and neither suspends. Fix: take a per-user advisory lock (or `SELECT ... FOR UPDATE` on the profile) before counting. GUARD: a two-connection PGlite/prod-xmin race case, red first.
+- [ ] **Q745** (Q183 review leftover, 2026-09-27): when the violator has no profile row, the suspension UPDATE changes nothing but the "suspended" notice still sends. Fix: check the UPDATE row count (GET DIAGNOSTICS) and skip the notice (log to error_logs) when it is 0. GUARD: a case in src/test/pglite/autoRestrictWarnFirst.pglite.mjs, red first.

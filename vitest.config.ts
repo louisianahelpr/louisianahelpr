@@ -92,6 +92,19 @@ export default defineConfig({
       VITE_SUPABASE_URL: "https://unit-test.invalid",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP",
     },
+    // Q184 (owner, 2026-09-27): a CI coverage floor. Off unless `--coverage`
+    // is passed; vitest.yml passes it and scripts/check-coverage-floor.mjs
+    // compares coverage/coverage-summary.json with scripts/coverage-baseline.json.
+    coverage: {
+      provider: "v8",
+      include: ["src/lib/**/*.{ts,tsx}", "src/hooks/**/*.{ts,tsx}"],
+      exclude: ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/*.d.ts"],
+      reporter: ["json-summary", "text-summary"],
+      reportsDirectory: "coverage",
+      // The coverage job reports even when a test fails; failures are the
+      // plain vitest job's verdict, the floor is this one's.
+      reportOnFailure: true,
+    },
     projects: [
       {
         extends: true,

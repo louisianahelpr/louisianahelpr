@@ -160,6 +160,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/component-size-baseline.json": {
     files: "scripts/component-size-baseline.mjs:SHRANK from",
   },
+  "scripts/coverage-baseline.json": {
+    areas: "scripts/check-coverage-floor.mjs:ROSE past the floor",
+  },
   "scripts/deadcode-baseline.json": {
     exports: "src/test/deadcodeRatchet.test.ts:FELL from",
     types: "src/test/deadcodeRatchet.test.ts:FELL from",

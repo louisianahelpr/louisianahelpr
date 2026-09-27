@@ -79,3 +79,40 @@ jobs:
         # `--passWithNoTests` would mask "I deleted every test" bugs, so
         # we deliberately do NOT pass it.
         run: npx vitest run --reporter=default
+
+  coverage:
+    # Q184 (owner, 2026-09-27): a line-coverage floor for src/lib + src/hooks.
+    # Its own job, in parallel, because v8 instrumentation slows the suite by
+    # ~30% (measured on run 36349571652: 1106s vs 846s) and pushed two 20s
+    # tests past their timeout. Test FAILURES are the job above's to report;
+    # this job's verdict is the floor, so the run step may fail (continue-on-
+    # error) but coverage is still written (reportOnFailure in vitest.config.ts)
+    # and the floor step fails closed when the summary is missing.
+    name: Coverage floor
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Run Vitest with coverage
+        id: vitest_cov
+        continue-on-error: true
+        run: npx vitest run --reporter=dot --coverage --testTimeout=60000
+
+      - name: Coverage floor (Q184)
+        env:
+          # Read back so a failed test run shows in this job's log; the tests'
+          # pass/fail verdict belongs to the Vitest job above.
+          TESTS_OUTCOME: ${{ steps.vitest_cov.outcome }}
+        run: node scripts/check-coverage-floor.mjs

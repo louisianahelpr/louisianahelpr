@@ -98,16 +98,6 @@
       "was": "row 614px → 477px (-137px)"
     },
     {
-      "key": "customer /post-job #0",
-      "kind": "jump",
-      "was": "row 568px → 922px (+354px)"
-    },
-    {
-      "key": "customer /post-job #0",
-      "kind": "media",
-      "was": "5 avatar/media bone(s) → 8 real"
-    },
-    {
       "key": "customer /jobs #1",
       "kind": "jump",
       "was": "row 52px → 154px (+102px)"
@@ -116,26 +106,6 @@
       "key": "customer /posts #1",
       "kind": "rows",
       "was": "2 placeholder row(s) → 5 real row(s)"
-    },
-    {
-      "key": "customer /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #0",
-      "kind": "media",
-      "was": "4 avatar/media bone(s) → 8 real"
-    },
-    {
-      "key": "helper /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #0",
-      "kind": "media",
-      "was": "4 avatar/media bone(s) → 8 real"
-    },
-    {
-      "key": "customer /user/71c56dfb-b326-4010-b960-b18dd3966e7f #0",
-      "kind": "media",
-      "was": "4 avatar/media bone(s) → 8 real"
-    },
-    {
-      "key": "helper /user/71c56dfb-b326-4010-b960-b18dd3966e7f #0",
-      "kind": "media",
-      "was": "4 avatar/media bone(s) → 8 real"
     },
     {
       "key": "customer /jobs/:id #0",
@@ -148,19 +118,9 @@
       "was": "row 743px → 910px (+167px)"
     },
     {
-      "key": "helper /profile?tab=referral #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 2 real"
-    },
-    {
       "key": "customer /profile?tab=referral #0",
       "kind": "jump",
       "was": "row 736px → 910px (+174px)"
-    },
-    {
-      "key": "customer /profile?tab=referral #0",
-      "kind": "media",
-      "was": "0 avatar/media bone(s) → 3 real"
     },
     {
       "key": "customer /profile?tab=saved_helpers #0",
@@ -211,16 +171,6 @@
       "key": "helper /user/437de07d-1bd7-46c8-a451-6b46aa3bcad5 #1",
       "kind": "rows",
       "was": "2 placeholder row(s) → 4 real row(s)"
-    },
-    {
-      "key": "customer /messages #0",
-      "kind": "jump",
-      "was": "row 60px → 36px (-24px)"
-    },
-    {
-      "key": "helper /messages #0",
-      "kind": "jump",
-      "was": "row 60px → 36px (-24px)"
     }
   ],
   "byDesign": [

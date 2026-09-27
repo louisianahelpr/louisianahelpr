@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260925052841_recurring_series_end (docs/OPEN.md, recurring
+ * PGlite proof for 20260927012804_recurring_series_end (docs/OPEN.md, recurring
  * series end + schedule lock).
  *
  *   node src/test/pglite/recurringSeriesEnd.pglite.mjs
@@ -32,7 +32,7 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const repo = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.url));
 const read = (f) => readFileSync(repo + f, "utf8");
 
-const MIGRATION = read("20260925052841_recurring_series_end.sql");
+const MIGRATION = read("20260927012804_recurring_series_end.sql");
 /** The newest CREATE of public.<name>() in a migration file, verbatim. */
 const fnFrom = (file, name) => {
   const src = read(file);

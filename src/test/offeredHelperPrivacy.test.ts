@@ -305,7 +305,7 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
   it("open_jobs_browse nulls the offeree for everyone but the poster and the offeree", () => {
     const def = latestDefinitions().get("view:open_jobs_browse");
     const text = def!.code.replace(/\s+/g, " ");
-    // The offer-privacy migration or a later restatement of it (20260925160645
+    // The offer-privacy migration or a later restatement of it (20260927012806
     // appended the series terms and restated the CASE verbatim).
     expect(def!.file >= FIX_MIGRATION, "the latest view definition must be the offer-privacy one or later").toBe(true);
     expect(

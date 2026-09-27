@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260925160645_recurring_split_days (docs/OPEN.md Q407 (4),
+ * PGlite proof for 20260927012806_recurring_split_days (docs/OPEN.md Q407 (4),
  * (5), (6) and the pick-up addendum).
  *
  *   PGLITE_DIR=~/.lh-pglite-probe node src/test/pglite/recurringSplitDays.pglite.mjs
  *
  * World: src/test/pglite/seriesWorld.mjs (the real trigger chain on jobs, read
  * from the newest migrations). The migration chain under test,
- * 20260925052841, 20260925160644 and 20260925160645, is applied verbatim
+ * 20260927012804, 20260927012805 and 20260927012806, is applied verbatim
  * THREE times.
  *
  * OLD STATE (052841 only): a one-person series has no per-date holder, the
@@ -25,9 +25,9 @@
 import { recurringVisitDates } from "../../lib/recurringSchedule.ts";
 import { PGlite, readMigration, baseSchema, as, checker, refused, USERS } from "./seriesWorld.mjs";
 
-const END = readMigration("20260925052841_recurring_series_end.sql");
-const LOCK = readMigration("20260925160644_hired_job_schedule_lock.sql");
-const SPLIT = readMigration("20260925160645_recurring_split_days.sql");
+const END = readMigration("20260927012804_recurring_series_end.sql");
+const LOCK = readMigration("20260927012805_hired_job_schedule_lock.sql");
+const SPLIT = readMigration("20260927012806_recurring_split_days.sql");
 const { P, A, B, C, X } = USERS;
 const { check, failures, fail } = checker();
 
@@ -47,7 +47,7 @@ const dateAt = async (db, n) => (await db.query(`select ${d(n)}::text as v`)).ro
 // ── OLD STATE ──────────────────────────────────────────────────────────────
 {
   const db = new PGlite();
-  await db.exec(baseSchema("20260925052841"));
+  await db.exec(baseSchema("20260927012804"));
   await db.exec(END);
   const hasSplit = (await db.query(`select 1 from information_schema.columns where table_name='jobs' and column_name='series_split_ok'`)).rows.length > 0;
   await db.exec(`insert into public.jobs (id, title, customer_id, status, date_needed, start_time, recurrence_days, recurrence_weeks)
@@ -62,11 +62,11 @@ const dateAt = async (db, n) => (await db.query(`select ${d(n)}::text as v`)).ro
   await db.close();
 }
 
-// ── LOW-1 / LOW-8: series ALREADY RUNNING when 20260925160645 deploys ───────
+// ── LOW-1 / LOW-8: series ALREADY RUNNING when 20260927012806 deploys ───────
 {
   let r, n;
   const bdb = new PGlite();
-  await bdb.exec(baseSchema("20260925052841"));
+  await bdb.exec(baseSchema("20260927012804"));
   await bdb.exec(END);
   await bdb.exec(LOCK);
   const RUN = J(70), BOOKED = J(71), ODD = J(72);
@@ -108,7 +108,7 @@ const dateAt = async (db, n) => (await db.query(`select ${d(n)}::text as v`)).ro
 
 // ── NEW STATE ──────────────────────────────────────────────────────────────
 const db = new PGlite();
-await db.exec(baseSchema("20260925052841"));
+await db.exec(baseSchema("20260927012804"));
 for (let i = 0; i < 3; i++) {
   await db.exec(END);
   await db.exec(LOCK);

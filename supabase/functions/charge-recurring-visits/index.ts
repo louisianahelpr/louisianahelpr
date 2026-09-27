@@ -290,7 +290,7 @@ serve(async (req) => {
   };
 
   // Active series: a day-set and not cancelled. Each visit date is funded only
-  // when a Helpr HOLDS it (series_visit_holds, 20260925160645): the Helpr hired
+  // when a Helpr HOLDS it (series_visit_holds, 20260927012806): the Helpr hired
   // on a one-person series holds every date, a split series' Helprs hold the
   // dates they picked. A date nobody holds is never charged, because we never
   // charge for a visit nobody is committed to.
@@ -335,7 +335,7 @@ serve(async (req) => {
       .order("id", { ascending: true })
       .gte("date_needed", addDays(today, -SERIES_LOOKBACK_DAYS))
       .not("recurrence_days", "is", null)
-      // NOT filtered on recurring_helper_id any more (20260925160645): who is
+      // NOT filtered on recurring_helper_id any more (20260927012806): who is
       // booked on a date is the date's HOLDER in series_visit_holds, and a
       // split series can have holders after its first Helpr has left. A series
       // nobody holds a date on has no holds and funds nothing.
@@ -836,7 +836,7 @@ serve(async (req) => {
             },
           },
           // Keyed on (series, date, CLAIM). The hold id is one per claim of
-          // the date (20260925160645): a date given up after a refunded charge
+          // the date (20260927012806): a date given up after a refunded charge
           // and re-claimed within 24h gets a NEW charge, never Stripe's replay
           // of the refunded intent (which reports `succeeded`).
           //

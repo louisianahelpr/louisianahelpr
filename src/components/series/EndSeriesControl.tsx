@@ -28,7 +28,7 @@ export function EndSeriesControl({
   userId: string | null | undefined;
   /**
    * "end": the person who posted it ends the series. "leave": a Helpr on it
-   * leaves (20260925160645, owner decision 6): the same RPC hands their
+   * leaves (20260927012806, owner decision 6): the same RPC hands their
    * upcoming dates back to the series and ends nothing for anyone else.
    */
   mode?: "end" | "leave";

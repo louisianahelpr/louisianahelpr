@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260925170555_permanent_ban_ends_recurring_series (owner
+ * PGlite proof for 20260927012808_permanent_ban_ends_recurring_series (owner
  * decision Q407 (9)).
  *
  *   PGLITE_DIR=~/.lh-pglite-probe node src/test/pglite/seriesBanEnds.pglite.mjs
  *
  * World: seriesWorld.mjs (the real jobs trigger chain, incl. the cancellation
- * RPC gate and the ban gate). Chain: 20260925052841, 20260925160644,
- * 20260925160645, 20260925165200, then this migration, 3x.
+ * RPC gate and the ban gate). Chain: 20260927012804, 20260927012805,
+ * 20260927012806, 20260927012807, then this migration, 3x.
  *
  * OLD STATE (without this migration): permanently banning the poster leaves
  * the series running and its future booked visit live. "OLD STATE RED".
@@ -20,12 +20,12 @@
 import { PGlite, readMigration, baseSchema, as, checker, USERS } from "./seriesWorld.mjs";
 
 const CHAIN = [
-  "20260925052841_recurring_series_end.sql",
-  "20260925160644_hired_job_schedule_lock.sql",
-  "20260925160645_recurring_split_days.sql",
-  "20260925165200_job_schedule_change_requests.sql",
+  "20260927012804_recurring_series_end.sql",
+  "20260927012805_hired_job_schedule_lock.sql",
+  "20260927012806_recurring_split_days.sql",
+  "20260927012807_job_schedule_change_requests.sql",
 ].map(readMigration);
-const BAN = readMigration("20260925170555_permanent_ban_ends_recurring_series.sql");
+const BAN = readMigration("20260927012808_permanent_ban_ends_recurring_series.sql");
 const { P, A, B, C, X } = USERS;
 const { check, failures, fail } = checker();
 const J = (n) => `d0000000-0000-0000-0000-0000000000${String(n).padStart(2, "0")}`;
@@ -52,7 +52,7 @@ const row = async (db, id) => (await db.query(`select status::text, series_ended
 
 {
   const db = new PGlite();
-  await db.exec(baseSchema("20260925052841"));
+  await db.exec(baseSchema("20260927012804"));
   for (const m of CHAIN) await db.exec(m);
   await seed(db);
   await server(db, `update public.profiles set ban_status = 'permanently_banned' where user_id = '${P}'`);
@@ -64,7 +64,7 @@ const row = async (db, id) => (await db.query(`select status::text, series_ended
 }
 
 const db = new PGlite();
-await db.exec(baseSchema("20260925052841"));
+await db.exec(baseSchema("20260927012804"));
 for (let i = 0; i < 3; i++) {
   for (const m of CHAIN) await db.exec(m);
   await db.exec(BAN);

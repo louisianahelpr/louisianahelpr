@@ -3,7 +3,7 @@
 -- Money audit 2026-09-25 (lh-money-escrow, HIGH-2, PGlite + code read, NOT
 -- reproduced live): date_needed and start_time stayed poster-writable after a
 -- hire and even after a cancel, on one-off jobs, crew jobs and recurring child
--- visits. 20260925052841 locked only a hired SERIES PARENT.
+-- visits. 20260927012804 locked only a hired SERIES PARENT.
 --   - a $100 job with a confirmed Helpr ~10h out: moving the date +3 days
 --     before cancelling drops the late-cancel fee from $25 to $0
 --     (poster_cancel_job prices from the live columns);
@@ -20,7 +20,7 @@
 -- which are SECURITY DEFINER and pass this lock).
 --
 -- enforce_series_columns_client_lock is restated from its newest definition
--- (20260925052841) with that block added; everything else is verbatim.
+-- (20260927012804) with that block added; everything else is verbatim.
 
 -- Is anyone on this job's crew? SECURITY DEFINER so the lock (which runs as
 -- the client) does not depend on the client's RLS view of the roster. It

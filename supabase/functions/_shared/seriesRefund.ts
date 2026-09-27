@@ -11,7 +11,7 @@
  *     is not charged).
  *   - A visit a PERMANENT BAN cancelled: jobs.series_ban_cancelled_at, a
  *     SERVER-OWNED marker that only end_series_for_banned_account
- *     (20260925170555) sets and no client role can write
+ *     (20260927012808) sets and no client role can write
  *     (trg_series_ban_marker_server_owned). Never the free-text
  *     cancellation_reason: poster_cancel_job copies the caller's p_reason
  *     verbatim, so any poster could type it (money review HIGH-1). The marker

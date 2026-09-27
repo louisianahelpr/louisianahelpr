@@ -12,7 +12,7 @@
  *
  * WHICH visit a ban ended is read from a SERVER-OWNED marker,
  * jobs.series_ban_cancelled_at (set only by end_series_for_banned_account,
- * 20260925170555), never from the free-text cancellation_reason: a poster's
+ * 20260927012808), never from the free-text cancellation_reason: a poster's
  * poster_cancel_job copies their own p_reason verbatim, so a reason-based
  * rule let ANY poster type the ban reason and take a full refund off a
  * committed Helpr's late fee (money review 2026-09-25 HIGH-1). The class
@@ -27,7 +27,7 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           const nonRefundableCents = fullSeriesRefund\n            ? actualOrEstimatedFeeCents(pi, capturedCents) |           const nonRefundableCents = false\n            ? actualOrEstimatedFeeCents(pi, capturedCents)
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             ? actualOrEstimatedFeeCents(pi, capturedCents)\n            : Math.max | ? 0\n            : Math.max
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (markerErr && !isMissingColumn(markerErr)) { |         if (false) {
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |              series_ban_cancelled_at = now(), |              series_ban_cancelled_at = NULL,
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |              series_ban_cancelled_at = now(), |              series_ban_cancelled_at = NULL,
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -189,7 +189,7 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
   });
 
   it("the ban migration sets the marker on every visit it cancels", () => {
-    const sql = blankSqlComments(readFileSync("supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql", "utf8"));
+    const sql = blankSqlComments(readFileSync("supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql", "utf8"));
     expect(sql).toMatch(/SET status = 'cancelled',[\s\S]{0,200}series_ban_cancelled_at = now\(\),/);
   });
 });

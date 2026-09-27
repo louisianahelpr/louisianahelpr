@@ -927,7 +927,7 @@ serve(async (req) => {
       }
 
       // ── Was this visit cancelled by a permanent ban? ─────────────────────
-      // jobs.series_ban_cancelled_at is server-owned (20260925170555): only
+      // jobs.series_ban_cancelled_at is server-owned (20260927012808): only
       // end_series_for_banned_account sets it. Read apart from the sweep's
       // select so a function deployed before that migration still settles
       // every other job: before the column exists no visit can carry it

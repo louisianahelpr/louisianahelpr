@@ -1,6 +1,6 @@
 -- Recurring series: split days, per-date Helprs, pick-up, and leaving a series.
 -- Owner decisions 2026-09-25 (docs/OPEN.md Q407 (4), (5), (6) and the pick-up
--- addendum). Builds on 20260925052841_recurring_series_end.
+-- addendum). Builds on 20260927012804_recurring_series_end.
 --
 -- (4) At posting time the poster chooses 'one person for every visit' or 'OK to
 --     split the days': jobs.series_split_ok (default false = one person). Locked
@@ -187,7 +187,7 @@ BEGIN
       OR public.is_series_party(parent_job_id)
     );
   COMMENT ON TABLE public.recurring_visit_releases IS
-    'A series visit date a Helpr gave up that nobody has picked up yet (one row per date; deleted when someone claims it). Written only by definer functions (20260925160645).';
+    'A series visit date a Helpr gave up that nobody has picked up yet (one row per date; deleted when someone claims it). Written only by definer functions (20260927012806).';
 END
 $releases$;
 
@@ -496,7 +496,7 @@ BEGIN
             HINT = 'This job is not available to you.';
   END IF;
 
-  -- C11 (20260925160645, money review MEDIUM-1). claim_series_dates hands a
+  -- C11 (20260927012806, money review MEDIUM-1). claim_series_dates hands a
   -- VACATED series visit (still funded) to the Helpr who claimed its date: it
   -- books the visit, then records their accepted application. By then the
   -- visit is no longer 'open' and it may still be in its Early Access window,
@@ -883,7 +883,7 @@ REVOKE ALL ON FUNCTION public.give_up_series_dates(uuid, date[]) FROM PUBLIC, an
 GRANT EXECUTE ON FUNCTION public.give_up_series_dates(uuid, date[]) TO authenticated, service_role;
 
 -- ── end_recurring_series: the poster ends it; a Helpr leaves it ───────────
--- Restated from 20260925052841. Poster side: unchanged, except that every Helpr
+-- Restated from 20260927012804. Poster side: unchanged, except that every Helpr
 -- on the series is told (holders from today on, and the standing Helpr while
 -- still hired on the parent). Helpr side (owner decision 6): hands back that
 -- Helpr's future dates instead of ending the poster's series, with the 24-hour
@@ -1027,7 +1027,7 @@ REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.end_recurring_series(uuid) TO authenticated, service_role;
 
 -- ── A visit is created only for the Helpr who holds its date ──────────────
--- Restated from 20260925052841 (no new visit once ended) plus the holder rule.
+-- Restated from 20260927012804 (no new visit once ended) plus the holder rule.
 -- FOR SHARE on the parent, then on the hold: a give-up (parent FOR UPDATE,
 -- then DELETE of the hold) either finishes first, and this insert is refused
 -- (the cron refunds), or waits for it.
@@ -1273,7 +1273,7 @@ REVOKE ALL ON FUNCTION public.helper_cancel_booking(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.helper_cancel_booking(uuid) TO authenticated, service_role;
 
 -- ── Client lock: + the split choice once a Helpr is hired ─────────────────
--- Restated from 20260925160644 (newest) with series_split_ok added.
+-- Restated from 20260927012805 (newest) with series_split_ok added.
 CREATE OR REPLACE FUNCTION public.enforce_series_columns_client_lock()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -1405,7 +1405,7 @@ BEGIN
   END IF;
   INSERT INTO public.error_logs (severity, message, tags, context)
   SELECT 'error',
-         format('Recurring series %s has standing Helpr %s but a different Helpr (or none) hired on it, so no visit dates were assigned when split days shipped (20260925160645). Nothing will be booked or charged for it until a person ends it or re-hires it.',
+         format('Recurring series %s has standing Helpr %s but a different Helpr (or none) hired on it, so no visit dates were assigned when split days shipped (20260927012806). Nothing will be booked or charged for it until a person ends it or re-hires it.',
                 j.id, j.recurring_helper_id),
          jsonb_build_object('source', 'recurring_split_days_backfill', 'area', 'recurring-series'),
          jsonb_build_object('parent_job_id', j.id, 'recurring_helper_id', j.recurring_helper_id, 'helper_id', j.helper_id)

@@ -9,7 +9,7 @@
  *
  *   1. A dropped Supabase `error` on a pre-flight read. An errored read
  *      produced `data: null`, which collapsed to an empty Set. It was the
- *      `recurring_visit_releases` read; since 20260925160645 the per-date
+ *      `recurring_visit_releases` read; since 20260927012806 the per-date
  *      HOLDER comes from `series_visit_holds` (a date nobody holds is not
  *      charged), and a failed holds read skips the series as a defect.
  *
@@ -49,7 +49,7 @@
 //   A per-call idempotency key means the retry after a no-answer failure is a
 //   SECOND real charge instead of Stripe replaying the first.
 // @mutate supabase/functions/charge-recurring-visits/index.ts | `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, | `recurring-visit:${parent.id}:${visitDate}:${hold.id}:${Math.random()}`,
-//   20260925160645: the cron charges a date nobody holds / books someone other than its holder.
+//   20260927012806: the cron charges a date nobody holds / books someone other than its holder.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!hold) { |         if (false && !hold) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             helper_id: holderId, |             helper_id: parent.recurring_helper_id,
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (holdsRes.error) { |       if (false) {
@@ -310,7 +310,7 @@ describe("charge-recurring-visits edge function", () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Finding 1, now per HOLDER (20260925160645): a date nobody holds is not charged
+  // Finding 1, now per HOLDER (20260927012806): a date nobody holds is not charged
   // ═══════════════════════════════════════════════════════════════════════
 
   it("does not charge for a date nobody holds (never picked, or given up and not picked up)", async () => {

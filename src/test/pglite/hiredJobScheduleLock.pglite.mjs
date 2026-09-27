@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260925160644_hired_job_schedule_lock (money audit
+ * PGlite proof for 20260927012805_hired_job_schedule_lock (money audit
  * 2026-09-25, HIGH-2).
  *
  *   PGLITE_DIR=~/.lh-pglite-probe node src/test/pglite/hiredJobScheduleLock.pglite.mjs
  *
  * World: seriesWorld.mjs (the real jobs trigger chain from the newest
- * migrations before 20260925160644), plus 20260925052841.
+ * migrations before 20260927012805), plus 20260927012804.
  *
  * OLD STATE: the poster moves the date / start time of a hired one-off job, a
  * crew job, a recurring child visit and a CANCELLED job (each rows=1): that is
@@ -16,8 +16,8 @@
  */
 import { PGlite, readMigration, baseSchema, as, checker, refused, USERS } from "./seriesWorld.mjs";
 
-const END = readMigration("20260925052841_recurring_series_end.sql");
-const LOCK = readMigration("20260925160644_hired_job_schedule_lock.sql");
+const END = readMigration("20260927012804_recurring_series_end.sql");
+const LOCK = readMigration("20260927012805_hired_job_schedule_lock.sql");
 const { P, A, B } = USERS;
 const { check, failures, fail } = checker();
 const J = (n) => `b0000000-0000-0000-0000-0000000000${String(n).padStart(2, "0")}`;
@@ -43,7 +43,7 @@ const move = (db, id, col) => as(db, "authenticated", P,
 
 {
   const db = new PGlite();
-  await db.exec(baseSchema("20260925160644"));
+  await db.exec(baseSchema("20260927012805"));
   await db.exec(END);
   await db.exec(SEED);
   await db.exec(CHILD);
@@ -59,7 +59,7 @@ const move = (db, id, col) => as(db, "authenticated", P,
 }
 
 const db = new PGlite();
-await db.exec(baseSchema("20260925160644"));
+await db.exec(baseSchema("20260927012805"));
 await db.exec(END);
 for (let i = 0; i < 3; i++) await db.exec(LOCK);
 await db.exec(SEED);

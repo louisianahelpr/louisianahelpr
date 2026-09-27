@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * TRUE concurrency proof for the two-claimers race on a given-up series date
- * (owner addendum to Q407 (5), 20260925160645 claim_series_dates).
+ * (owner addendum to Q407 (5), 20260927012806 claim_series_dates).
  *
  * PGlite is one backend, so src/test/pglite/recurringSplitDays.pglite.mjs can
  * only run the two claims one after the other. This runs a real, throwaway
@@ -41,9 +41,9 @@ try {
 }
 
 const CHAIN = [
-  "20260925052841_recurring_series_end.sql",
-  "20260925160644_hired_job_schedule_lock.sql",
-  "20260925160645_recurring_split_days.sql",
+  "20260927012804_recurring_series_end.sql",
+  "20260927012805_hired_job_schedule_lock.sql",
+  "20260927012806_recurring_split_days.sql",
 ].map(readMigration);
 const { P, A, B, C } = USERS;
 const S = "e0000000-0000-0000-0000-000000000001";
@@ -63,7 +63,7 @@ async function cluster(port, extra = "") {
   const conn = () => new pg.Client({ host: "localhost", port, user: "postgres", password: "pw", database: "postgres" });
   const admin = conn();
   await admin.connect();
-  await admin.query(baseSchema("20260925052841"));
+  await admin.query(baseSchema("20260927012804"));
   for (const m of CHAIN) await admin.query(m);
   if (extra) await admin.query(extra);
   // A split series: A (first Helpr) holds one date and gave another up; B and
@@ -119,7 +119,7 @@ async function race({ conn, admin }, holdMs = 1500) {
 
 // ── RED: the same race without the parent lock / ON CONFLICT ───────────────
 {
-  const src = readMigration("20260925160645_recurring_split_days.sql");
+  const src = readMigration("20260927012806_recurring_split_days.sql");
   const start = src.indexOf("CREATE OR REPLACE FUNCTION public.claim_series_dates(");
   const end = src.indexOf("$fn$;", src.indexOf("AS $fn$", start) + 7) + "$fn$;".length;
   let unlocked = src.slice(start, end);

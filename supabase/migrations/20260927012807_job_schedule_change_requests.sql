@@ -5,7 +5,7 @@
 --     OTHER side can accept or decline.
 --   - Nothing changes until it is accepted. The direct client write of
 --     date_needed / start_time on a booked job is already refused
---     (20260925160644, schedule_locked); respond_job_schedule_change is the
+--     (20260927012805, schedule_locked); respond_job_schedule_change is the
 --     one writer, SECURITY DEFINER, and it passes that lock.
 --   - Declined or unanswered: the original date and time stay, and the normal
 --     cancellation rules and fees apply (no waiver for a declined request).
@@ -18,10 +18,10 @@
 --   - The other party is told of each request and of each outcome.
 --
 -- Scope: a booked ONE-TIME job (no parent series, not a series parent, not a
--- crew job). A series' dates are its own flow (20260925160645).
+-- crew job). A series' dates are its own flow (20260927012806).
 --
 -- enforce_helper_jobs_column_whitelist is restated from its newest definition
--- (20260925052841) with one carve-out, app.schedule_change_rpc, set only by
+-- (20260927012804) with one carve-out, app.schedule_change_rpc, set only by
 -- respond_job_schedule_change after its party check: without it a Helpr who
 -- accepts the poster's request would be refused by their own whitelist.
 

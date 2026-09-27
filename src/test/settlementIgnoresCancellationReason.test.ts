@@ -19,7 +19,7 @@
  *
  * @mutate supabase/functions/_shared/seriesRefund.ts |   if (inSeries && !!job.series_ban_cancelled_at) return true; |   if (inSeries && (job as { cancellation_reason?: string }).cancellation_reason === "series_ended_account_banned") return true;
  * @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_percent, is_group_job, helpers_needed, parent_job_id, recurrence_days") | helper_fee_percent, is_group_job, helpers_needed, parent_job_id, recurrence_days, cancellation_reason")
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |        AND c.helper_completed_at IS NULL |        AND c.helper_completed_at IS NULL AND c.cancellation_reason IS NULL
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |        AND c.helper_completed_at IS NULL |        AND c.helper_completed_at IS NULL AND c.cancellation_reason IS NULL
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

@@ -92,7 +92,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   instant_book_claim: "instant book is single-helper; the no-lead trigger refuses it on a group job",
   mark_helper_arrival: "single-helper arrival; a crew uses rpc_group_member_mark_arrival",
   prevent_job_field_escalation: "a crew member cannot write jobs at all",
-  request_job_schedule_change: "refuses a group job outright (20260925165200); a crew's date is locked once anyone is hired (job_has_crew)",
+  request_job_schedule_change: "refuses a group job outright (20260927012807); a crew's date is locked once anyone is hired (job_has_crew)",
   rpc_helper_mark_done: "single-helper Done; a crew uses rpc_group_member_mark_done",
   save_weekly_availability: "matches helper_availability.helper_id (the caller's own weekly hours), not jobs: nothing crew-specific (re-read for Q728)",
   user_has_pending_application: "a pending application, not a hire",

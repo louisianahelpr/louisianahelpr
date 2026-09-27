@@ -1,11 +1,11 @@
 -- A booked job's date / time change the Helpr asked for and the POSTER accepts
--- (owner decision Q407 (8), respond_job_schedule_change, 20260925165200) was
+-- (owner decision Q407 (8), respond_job_schedule_change, 20260927012807) was
 -- refused by the Q423 poster lock (20260925231810): its locked_when_booked
 -- raises for any write with auth.uid() = the poster once a Helpr is booked,
 -- and the RPC's UPDATE runs as the accepting poster (is_server_context() is
 -- false). The Helpr-accepts direction was never affected (the poster lock
 -- judges the poster only; the Helpr's whitelist has the same carve-out since
--- 20260925165200).
+-- 20260927012807).
 --
 -- THE FIX: enforce_poster_jobs_money_lock, restated from 20260925231810
 -- verbatim, lets date_needed / start_time through locked_when_booked ONLY
@@ -148,9 +148,9 @@ BEGIN
       WHERE n.value IS DISTINCT FROM o.value
     LOOP
       IF changed_col = ANY (locked_when_booked) THEN
-        -- ADDED 20260925233954 (Q407 (8)): a new date / start time the Helpr
+        -- ADDED 20260927012809 (Q407 (8)): a new date / start time the Helpr
         -- ASKED for and this poster ACCEPTED. Its only writer is
-        -- respond_job_schedule_change (20260925165200), which sets this
+        -- respond_job_schedule_change (20260927012807), which sets this
         -- transaction-local flag only after checking that the caller is the
         -- party the request is addressed to and the request is still live,
         -- and clears it right after its one UPDATE. Only the schedule columns

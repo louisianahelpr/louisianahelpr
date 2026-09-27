@@ -12,14 +12,14 @@
  * chain, OLD STATE RED, chain 3x). The full refund of those visits is
  * src/test/edge/void-cancelled-payments.seriesRefund.test.ts.
  *
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |     WHEN (NEW.ban_status IN ('banned', 'permanently_banned') |     WHEN (NEW.ban_status IN ('nobody')
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |             OR (j.recurring_helper_id = p_user AND j.helper_id = p_user)\n            OR EXISTS | OR EXISTS
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.status::text IN ('open', 'accepted') |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.date_needed > (now() AT TIME ZONE 'America/Chicago')::date\n             AND c.status::text IN ('open', 'accepted')
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |       IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.series_split_ok THEN |       IF false THEN
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |     EXCEPTION WHEN OTHERS THEN\n      RAISE WARNING | EXCEPTION WHEN division_by_zero THEN\n      RAISE WARNING
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |       IF changed_col IN ('series_ban_cancelled_at', | IF changed_col IN ('nothing',
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql |      WHERE u.uid IS NOT NULL AND u.uid <> p_user; |      WHERE u.uid IS NOT NULL;
- * @mutate supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon;
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |     WHEN (NEW.ban_status IN ('banned', 'permanently_banned') |     WHEN (NEW.ban_status IN ('nobody')
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |             OR (j.recurring_helper_id = p_user AND j.helper_id = p_user)\n            OR EXISTS | OR EXISTS
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.status::text IN ('open', 'accepted') |           WHERE (c.parent_job_id = v_p.id OR c.id = v_p.id)\n             AND c.date_needed > (now() AT TIME ZONE 'America/Chicago')::date\n             AND c.status::text IN ('open', 'accepted')
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       IF v_p.customer_id IS DISTINCT FROM p_user AND v_p.series_split_ok THEN |       IF false THEN
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |     EXCEPTION WHEN OTHERS THEN\n      RAISE WARNING | EXCEPTION WHEN division_by_zero THEN\n      RAISE WARNING
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |       IF changed_col IN ('series_ban_cancelled_at', | IF changed_col IN ('nothing',
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |      WHERE u.uid IS NOT NULL AND u.uid <> p_user; |      WHERE u.uid IS NOT NULL;
+ * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.end_series_for_banned_account(uuid) FROM PUBLIC, anon;
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -27,7 +27,7 @@ import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
-const sql = blankSqlComments(readFileSync("supabase/migrations/20260925170555_permanent_ban_ends_recurring_series.sql", "utf8"));
+const sql = blankSqlComments(readFileSync("supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql", "utf8"));
 
 describe("a permanent ban ends the account's recurring series (Q407 9)", () => {
   it("fires on a PERMANENT ban only (a temporary one pauses in the cron)", () => {
@@ -73,7 +73,7 @@ describe("a permanent ban ends the account's recurring series (Q407 9)", () => {
 
   it("the executable PGlite proof exists", () => {
     const probe = readFileSync("src/test/pglite/seriesBanEnds.pglite.mjs", "utf8");
-    expect(probe).toContain("20260925170555_permanent_ban_ends_recurring_series.sql");
+    expect(probe).toContain("20260927012808_permanent_ban_ends_recurring_series.sql");
     expect(probe).toContain("OLD STATE RED");
   });
 });

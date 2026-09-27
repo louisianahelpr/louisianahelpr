@@ -6,7 +6,7 @@
  * The collision (review 2026-09-25): respond_job_schedule_change's UPDATE runs
  * with auth.uid() = the accepting poster, and enforce_poster_jobs_money_lock's
  * locked_when_booked raised 42501, so every poster-accepted change failed.
- * 20260925233954 lets date_needed / start_time through locked_when_booked only
+ * 20260927012809 lets date_needed / start_time through locked_when_booked only
  * under the transaction-local app.schedule_change_rpc flag.
  *
  * Pinned here, on the definitions the database holds (effectiveDefs):
@@ -22,9 +22,9 @@
  * src/test/pglite/posterFeeInputsLocked.pglite.mjs with NEW_MIGRATION_FILE =
  * 231810 + 233954 (every Q423 case still holds).
  *
- * @mutate supabase/migrations/20260925233954_poster_lock_lets_accepted_schedule_change.sql |         IF current_setting('app.schedule_change_rpc', true) = '1' THEN\n          CONTINUE;\n        END IF;\n        RAISE EXCEPTION |         RAISE EXCEPTION
- * @mutate supabase/migrations/20260925165200_job_schedule_change_requests.sql |     PERFORM set_config('app.schedule_change_rpc', '0', true);\n    v_status := 'accepted'; |     v_status := 'accepted';
- * @mutate supabase/migrations/20260925233954_poster_lock_lets_accepted_schedule_change.sql |   IF public.is_server_context()\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN | IF public.is_server_context() OR current_setting('app.schedule_change_rpc', true) = '1'\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN
+ * @mutate supabase/migrations/20260927012809_poster_lock_lets_accepted_schedule_change.sql |         IF current_setting('app.schedule_change_rpc', true) = '1' THEN\n          CONTINUE;\n        END IF;\n        RAISE EXCEPTION |         RAISE EXCEPTION
+ * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |     PERFORM set_config('app.schedule_change_rpc', '0', true);\n    v_status := 'accepted'; |     v_status := 'accepted';
+ * @mutate supabase/migrations/20260927012809_poster_lock_lets_accepted_schedule_change.sql |   IF public.is_server_context()\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN | IF public.is_server_context() OR current_setting('app.schedule_change_rpc', true) = '1'\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -38,7 +38,7 @@ const FLAG_ON = /set_config\('app\.schedule_change_rpc',\s*'1',\s*true\)/;
 describe("the poster lock lets an accepted schedule change through, and nothing else (Q407 8 x Q423)", () => {
   it("the carve-out is inside locked_when_booked only", () => {
     const lock = body("enforce_poster_jobs_money_lock");
-    expect(DEFS.get("enforce_poster_jobs_money_lock")?.file).toBe("20260925233954_poster_lock_lets_accepted_schedule_change.sql");
+    expect(DEFS.get("enforce_poster_jobs_money_lock")?.file).toBe("20260927012809_poster_lock_lets_accepted_schedule_change.sql");
     const booked = lock.indexOf("IF changed_col = ANY (locked_when_booked) THEN");
     expect(booked).toBeGreaterThan(-1);
     const flags = [...lock.matchAll(/current_setting\('app\.schedule_change_rpc', true\) = '1'/g)].map((m) => m.index!);

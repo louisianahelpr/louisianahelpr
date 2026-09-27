@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260925165200_job_schedule_change_requests (owner decision
+ * PGlite proof for 20260927012807_job_schedule_change_requests (owner decision
  * Q407 (8), finalised 2026-09-25).
  *
  *   PGLITE_DIR=~/.lh-pglite-probe node src/test/pglite/jobScheduleChange.pglite.mjs
  *
  * World: seriesWorld.mjs (the real jobs trigger chain from the newest
  * migrations, the helper column whitelist included). Chain under test:
- * 20260925052841, 20260925160644, 20260925160645, 20260925165200, 3x.
+ * 20260927012804, 20260927012805, 20260927012806, 20260927012807, 3x.
  *
- * OLD STATE (20260925052841 only): the poster moves a booked one-time job's
+ * OLD STATE (20260927012804 only): the poster moves a booked one-time job's
  * date with a plain PATCH (rows=1) and there is no request flow. "OLD STATE RED".
  * NEW STATE: the PATCH is refused; either side can ask; only the OTHER side
  * answers; accept moves the job (a Helpr accepting passes their own column
@@ -19,10 +19,10 @@
 import { PGlite, readMigration, baseSchema, newestFunctionSql, as, checker, refused, USERS } from "./seriesWorld.mjs";
 
 const CHAIN = [
-  "20260925052841_recurring_series_end.sql",
-  "20260925160644_hired_job_schedule_lock.sql",
-  "20260925160645_recurring_split_days.sql",
-  "20260925165200_job_schedule_change_requests.sql",
+  "20260927012804_recurring_series_end.sql",
+  "20260927012805_hired_job_schedule_lock.sql",
+  "20260927012806_recurring_split_days.sql",
+  "20260927012807_job_schedule_change_requests.sql",
 ].map(readMigration);
 const { P, A, X } = USERS;
 const { check, failures, fail } = checker();
@@ -39,7 +39,7 @@ const job = async (db, id) => (await db.query(`select date_needed::text d, start
 
 {
   const db = new PGlite();
-  await db.exec(baseSchema("20260925052841"));
+  await db.exec(baseSchema("20260927012804"));
   await db.exec(CHAIN[0]);
   await db.exec(SEED);
   const patch = await as(db, "authenticated", P, `update public.jobs set date_needed = date_needed + 2 where id='${J(1)}'`);
@@ -51,7 +51,7 @@ const job = async (db, id) => (await db.query(`select date_needed::text d, start
 }
 
 const db = new PGlite();
-await db.exec(baseSchema("20260925052841"));
+await db.exec(baseSchema("20260927012804"));
 for (let i = 0; i < 3; i++) for (const m of CHAIN) await db.exec(m);
 await db.exec(SEED);
 check("migration chain applies 3x (replay-safe)", true);
@@ -129,12 +129,12 @@ check("the Helpr's own PATCH of the date is still refused", !r.ok, r.err);
 await db.close();
 
 // ── The Q423 poster lock (20260925231810) and the accept carve-out ────────
-// (20260925233954). The poster lock's locked_when_booked judged the POSTER'S
+// (20260927012809). The poster lock's locked_when_booked judged the POSTER'S
 // accept of a change the Helpr asked for like a bare PATCH.
 {
-  const CARVE = "20260925233954_poster_lock_lets_accepted_schedule_change.sql";
+  const CARVE = "20260927012809_poster_lock_lets_accepted_schedule_change.sql";
   const pdb = new PGlite();
-  await pdb.exec(baseSchema("20260925052841"));
+  await pdb.exec(baseSchema("20260927012804"));
   for (const m of CHAIN) await pdb.exec(m);
   const lock = newestFunctionSql("enforce_poster_jobs_money_lock", CARVE);
   check(`the poster lock before the carve-out is 20260925231810's (${lock.file})`, lock.file === "20260925231810_poster_cannot_move_fee_inputs.sql");
@@ -157,7 +157,7 @@ await db.close();
   q = await as(pdb, "authenticated", P, `select public.respond_job_schedule_change('${await ask(pdb, F, 7)}', true) as v`);
   const moved = await job(pdb, F);
   check("the poster accepting the Helpr's request on a funded booking moves it", q.ok && q.rows[0].v.status === "accepted" && moved.t === "11:00:00", `${q.err ?? JSON.stringify(q.rows)} ${JSON.stringify(moved)}`);
-  // The poster lock alone (the series client lock, 20260925160644, refuses
+  // The poster lock alone (the series client lock, 20260927012805, refuses
   // these too; switched off here so this proves the carve-out opened nothing).
   await pdb.exec(`alter table public.jobs disable trigger trg_enforce_series_columns_client_lock`);
   q = await as(pdb, "authenticated", P, `update public.jobs set date_needed = date_needed + 3 where id='${G}'`);

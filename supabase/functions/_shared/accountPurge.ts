@@ -192,7 +192,7 @@ async function findRunningSeries(admin: PurgeCapableClient, userId: string): Pro
   };
   let posted: PostgrestLike<SeriesRow[]> = await postedSeries(true);
   // DEPLOY ORDER (review LOW-5): delete-own-account / admin-delete-user can
-  // ship before db-deploy adds jobs.series_ended_on (20260925052841). Until it
+  // ship before db-deploy adds jobs.series_ended_on (20260927012804). Until it
   // exists no series can have been ended, so the same check without that
   // filter is exact. Only that missing column falls back; any other error
   // fails closed below.
@@ -222,7 +222,7 @@ async function findRunningSeries(admin: PurgeCapableClient, userId: string): Pro
     .gte("visit_date", today)
     .limit(201);
   if (holds.error) {
-    // The table arrives with 20260925160645; before db-deploy there is
+    // The table arrives with 20260927012806; before db-deploy there is
     // nothing to hold. Any other failure fails closed.
     if (/does not exist|42P01|PGRST205/i.test(`${holds.error.code ?? ""} ${holds.error.message}`)) {
       return { ok: true, active: false };

@@ -5,7 +5,7 @@
 -- running series (a parent with recurrence_days, not cancelled, not ended)
 -- the account posted, is the standing Helpr on, or holds a date on from today:
 --   - series_ended_on := today (America/Chicago): the cron funds no new visit
---     and trg_series_visit_within_end refuses one (20260925052841);
+--     and trg_series_visit_within_end refuses one (20260927012804);
 --   - every visit dated after today that has not started (open or accepted,
 --     not marked done), visit one included, is cancelled with
 --     cancellation_reason = 'series_ended_account_banned', no late flag and no
@@ -21,7 +21,7 @@
 --
 -- A TEMPORARY ban (temp_banned) does NOT end a series: charge-recurring-visits
 -- skips the series (poster banned) or the date (holder banned) while it lasts
--- (20260925052841 review fix), and the series resumes when it lifts. That split
+-- (20260927012804 review fix), and the series resumes when it lifts. That split
 -- (permanent ends, temporary pauses) is the lead's default; docs/OPEN.md asks
 -- the owner to confirm it.
 --
@@ -34,7 +34,7 @@
 -- ── The server-owned marker (money review HIGH-1) ─────────────────────────
 ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS series_ban_cancelled_at timestamptz;
 COMMENT ON COLUMN public.jobs.series_ban_cancelled_at IS
-  'Set only by end_series_for_banned_account (20260925170555) on a series visit a permanent ban cancelled; void-cancelled-payments refunds such a visit in full. No client role writes it (trg_series_ban_marker_server_owned).';
+  'Set only by end_series_for_banned_account (20260927012808) on a series visit a permanent ban cancelled; void-cancelled-payments refunds such a visit in full. No client role writes it (trg_series_ban_marker_server_owned).';
 
 -- No client writes the marker, and no client writes the reason the ban path
 -- uses (it is reserved): a direct PATCH, poster_cancel_job's p_reason and any
@@ -83,7 +83,7 @@ CREATE TRIGGER trg_series_ban_marker_server_owned
   FOR EACH ROW EXECUTE FUNCTION public.enforce_series_ban_marker_server_owned();
 
 -- ── The helper column whitelist: the ban path's own writes ────────────────
--- Restated from 20260925165200 (newest) with ONE carve-out: under
+-- Restated from 20260927012807 (newest) with ONE carve-out: under
 -- app.series_end_rpc the ban path may write the marker and reset the day-of
 -- stamps of a visit it vacates, even when auth.uid() is the banned Helpr.
 CREATE OR REPLACE FUNCTION public.enforce_helper_jobs_column_whitelist()
@@ -171,7 +171,7 @@ BEGIN
         CONTINUE;
       END IF;
       -- A permanent ban handing back or cancelling the banned Helpr's own
-      -- visits (end_series_for_banned_account, 20260925170555) may run inside
+      -- visits (end_series_for_banned_account, 20260927012808) may run inside
       -- that Helpr's own request (the consequence ladder). Its only writes of
       -- these columns are the server-owned ban marker and the day-of stamps a
       -- vacated visit resets; it sets app.series_end_rpc around them.

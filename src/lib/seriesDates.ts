@@ -4,7 +4,7 @@ import { todayYmd } from "@/lib/jobDate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 /**
- * Who holds each visit date of a recurring series (20260925160645,
+ * Who holds each visit date of a recurring series (20260927012806,
  * docs/OPEN.md Q407 (5)/(6)).
  *
  * The schedule comes from recurringVisitDates (the cron's own module); each

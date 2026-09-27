@@ -13,20 +13,20 @@
  * definition of each object, so a later migration that drops a clause fails.
  *
  * The newest definitions of end_recurring_series, enforce_series_visit_within_end
- * and enforce_series_columns_client_lock live in 20260925160645 (split days);
- * enforce_ban_gate and the helper whitelist in 20260925052841.
+ * and enforce_series_columns_client_lock live in 20260927012806 (split days);
+ * enforce_ban_gate and the helper whitelist in 20260927012804.
  *
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql | OR NEW.date_needed IS DISTINCT FROM OLD.date_needed | OR false
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   AND (NEW.recurrence_weeks IS DISTINCT FROM OLD.recurrence_weeks | AND (false
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF NEW.series_ended_on IS DISTINCT FROM OLD.series_ended_on THEN | IF false THEN
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   -- ── A Helpr leaves: their future dates go back (owner decision 6) ──────\n  IF v_uid IS DISTINCT FROM v_job.customer_id THEN |   IF false THEN
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |  OR v_uid IS DISTINCT FROM v_job.helper_id) THEN | ) THEN
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC;
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF v_ended IS NOT NULL THEN | IF v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |    WHERE j.id = NEW.parent_job_id\n   FOR SHARE; |    WHERE j.id = NEW.parent_job_id;
- * @mutate supabase/migrations/20260925052841_recurring_series_end.sql |      AND current_setting('app.series_end_rpc', true) IS DISTINCT FROM '1' THEN |      THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | OR NEW.date_needed IS DISTINCT FROM OLD.date_needed | OR false
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   AND (NEW.recurrence_weeks IS DISTINCT FROM OLD.recurrence_weeks | AND (false
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.series_ended_on IS DISTINCT FROM OLD.series_ended_on THEN | IF false THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   -- ── A Helpr leaves: their future dates go back (owner decision 6) ──────\n  IF v_uid IS DISTINCT FROM v_job.customer_id THEN |   IF false THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |  OR v_uid IS DISTINCT FROM v_job.helper_id) THEN | ) THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.end_recurring_series(uuid) FROM PUBLIC;
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF v_ended IS NOT NULL THEN | IF v_ended IS NOT NULL AND NEW.date_needed > v_ended THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |    WHERE j.id = NEW.parent_job_id\n   FOR SHARE; |    WHERE j.id = NEW.parent_job_id;
+ * @mutate supabase/migrations/20260927012804_recurring_series_end.sql |      AND current_setting('app.series_end_rpc', true) IS DISTINCT FROM '1' THEN |      THEN
  * @mutate src/pages/jobs/AppliedJobCard.tsx | job.recurring_helper_id === userId && job.helper_id === userId && | job.recurring_helper_id === userId &&
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |       SELECT v_job.recurring_helper_id WHERE v_job.recurring_helper_id = v_job.helper_id |       SELECT v_job.recurring_helper_id
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |       SELECT v_job.recurring_helper_id WHERE v_job.recurring_helper_id = v_job.helper_id |       SELECT v_job.recurring_helper_id
  * @mutate supabase/functions/charge-recurring-visits/index.ts | .not("customer_id", "is", null) | .not("id", "is", null)
  * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status", | recurring_helper_id, helper_id, status, payment_status, dispute_status",
  * @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
@@ -87,7 +87,7 @@ describe("recurring series: end + schedule lock", () => {
     const { body, file } = newestFunction("end_recurring_series");
     expect(body).toMatch(/SECURITY DEFINER/);
     // The poster ends it; anyone else must hold a future date or be the
-    // standing Helpr still hired on the parent (20260925160645: a Helpr's call
+    // standing Helpr still hired on the parent (20260927012806: a Helpr's call
     // LEAVES the series, owner decision 6).
     expect(body).toMatch(/IF v_uid IS DISTINCT FROM v_job\.customer_id THEN/);
     expect(body).toMatch(
@@ -136,7 +136,7 @@ describe("recurring series: end + schedule lock", () => {
 
   it("the executable PGlite proof exists and runs this migration", () => {
     const probe = readFileSync("src/test/pglite/recurringSeriesEnd.pglite.mjs", "utf8");
-    expect(probe).toContain('read("20260925052841_recurring_series_end.sql")');
+    expect(probe).toContain('read("20260927012804_recurring_series_end.sql")');
     expect(probe).toContain("OLD STATE RED");
   });
 

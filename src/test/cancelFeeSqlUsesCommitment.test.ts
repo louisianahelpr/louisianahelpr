@@ -58,7 +58,7 @@ describe("SQL cancel paths price the fee on commitment, not assignment", () => {
    * Exact both ways (an entry that stops calling the ladder fails below).
    */
   const COMMITTED_OTHERWISE: Record<string, string> = {
-    // 20260925160645 (Q407 6): the strike for handing back series visit dates.
+    // 20260927012806 (Q407 6): the strike for handing back series visit dates.
     // Its only callers hand back dates the caller HOLDS (series_visit_holds):
     // a hold exists only after the Helpr confirmed the series (one person,
     // trg_series_holds_on_hire fires on the confirmation stamp) or picked the

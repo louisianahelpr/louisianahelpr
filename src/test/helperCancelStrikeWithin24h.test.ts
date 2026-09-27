@@ -3,7 +3,7 @@
  * strike ONLY within 24 hours of the start (owner decisions Q407 (6) for series
  * visits and (11) for one-time jobs, 2026-09-25), and helper_cancel_booking
  * keeps BOTH branches that earlier restatements gave it: the crew branch
- * (20260925140148, Q393) and the series-visit return (20260925160645).
+ * (20260925140148, Q393) and the series-visit return (20260927012806).
  *
  * Class: every function the migrations leave in the database that calls the
  * strike ladder (apply_job_denial_consequence) is inventoried two-way below.
@@ -18,10 +18,10 @@
  * groupCrewNoLead.pglite.mjs --tree (every crew-leave case on the tree's
  * helper_cancel_booking).
  *
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |     -- Owner decision Q407 (11): a strike only within 24 hours of the start.\n    IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |     IF true THEN
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |   IF v_job.is_group_job IS TRUE\n     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |   IF false THEN
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql |     v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled', |     v_released := public.series_visit_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |     -- Owner decision Q407 (11): a strike only within 24 hours of the start.\n    IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |     IF true THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF v_job.is_group_job IS TRUE\n     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |   IF false THEN
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |     v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled', |     v_released := public.series_visit_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -77,7 +77,7 @@ describe("a before-start give-up strikes only within 24 hours (Q407 6, 11)", () 
     expect(give).toMatch(/IF\s+v_late\s+IS\s+NULL\s+THEN\s+RETURN\s+false;/);
   });
 
-  it("helper_cancel_booking keeps the crew branch (20260925140148) and the series return (20260925160645)", () => {
+  it("helper_cancel_booking keeps the crew branch (20260925140148) and the series return (20260927012806)", () => {
     const hcb = body("helper_cancel_booking");
     expect(hcb).toMatch(/IF\s+v_job\.is_group_job\s+IS\s+TRUE\s+AND\s+\(v_slot_id\s+IS\s+NOT\s+NULL\s+OR\s+v_job\.helper_id\s+IS\s+DISTINCT\s+FROM\s+auth\.uid\(\)\)\s+THEN/);
     expect(hcb).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_slot_id;/);

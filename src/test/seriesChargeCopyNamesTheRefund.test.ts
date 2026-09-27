@@ -13,7 +13,7 @@
  *
  * @mutate src/components/series/SeriesDatesPanel.tsx | Different Helprs can take different dates. A date nobody takes isn't charged, or is refunded less the card processing fee if it was already paid. | Different Helprs can take different dates. A date nobody takes is not charged.
  * @mutate src/components/postjob/RecurringSchedulePicker.tsx | A date nobody takes isn't charged, or is refunded less the card processing fee if it was already paid." | A date nobody takes isn't charged."
- * @mutate supabase/migrations/20260925160645_recurring_split_days.sql | A date nobody takes isn''t charged, or is refunded less the card processing fee if you already paid for it. | A date nobody takes is not charged.
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | A date nobody takes isn''t charged, or is refunded less the card processing fee if you already paid for it. | A date nobody takes is not charged.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

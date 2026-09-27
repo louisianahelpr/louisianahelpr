@@ -186,7 +186,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
           // Sent ONLY when the poster chose to split: the column defaults to
           // false (one Helpr for every visit), and a key the database does not
           // have yet would fail the whole post in the minutes between the web
-          // deploy and db-deploy (20260925160645).
+          // deploy and db-deploy (20260927012806).
           ...(seriesSplitOk ? { series_split_ok: true } : {}),
         } as Record<string, unknown>)
       : {}),

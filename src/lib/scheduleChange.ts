@@ -4,7 +4,7 @@ import { isNotDeployedYet } from "@/lib/seriesDates";
 
 /**
  * A booked one-time job's date/time change request (Q407 (8),
- * 20260925165200). Either party asks; only the other answers; nothing changes
+ * 20260927012807). Either party asks; only the other answers; nothing changes
  * until it is accepted; it expires at the job's original start.
  */
 export interface ScheduleChangeRequest {

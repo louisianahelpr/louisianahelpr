@@ -9,7 +9,7 @@
  * taken over. Waits up to LH_BROWSER_LOCK_WAIT_MIN (default 90) minutes.
  * Skipped in CI, where each job has its own machine. LH_BROWSER_LOCK=0 bypasses.
  */
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -32,6 +32,46 @@ const LOCK = join(process.env.LH_BROWSER_LOCK_DIR ?? homedir(), ".lh-browser.loc
 const OWNER = join(LOCK, "owner.json");
 
 /**
+ * Q816 (2026-09-27): lanes waiting on the lock STARVED. Every waiter polled
+ * every 5s and whichever polled first after a release won, so a lane could
+ * lose every race for the whole 90-minute wait while one holder kept the lock.
+ *
+ *   - QUEUE: each waiter drops a ticket `<ms>-<pid>` in `${LOCK}.queue`; only
+ *     the oldest ticket whose pid is alive may take the lock (first come,
+ *     first served). Dead waiters' tickets are pruned.
+ *   - MAX HOLD: a lock held longer than LH_BROWSER_LOCK_MAX_HOLD_MIN (default
+ *     60) is taken over even when its pid is alive: one wedged run must not
+ *     hold every browser lane on the machine.
+ *   - LOG: every acquire, takeover and release is appended to `${LOCK}.log`,
+ *     so "who holds it, since when" is answerable after the fact.
+ */
+const QUEUE = `${LOCK}.queue`;
+const LOG = `${LOCK}.log`;
+const MAX_HOLD_MS = Number(process.env.LH_BROWSER_LOCK_MAX_HOLD_MIN ?? 60) * 60_000;
+
+function log(event: string, detail = ""): void {
+  try {
+    appendFileSync(LOG, `${new Date().toISOString()} ${event} pid=${process.pid} cwd=${process.cwd()} ${detail}\n`);
+  } catch { /* the log is diagnostics only; a failed append must never block a browser run */ }
+}
+
+/** True when this ticket is the oldest live one in the queue. */
+function atHeadOfQueue(ticket: string): boolean {
+  let names: string[];
+  try { names = readdirSync(QUEUE); } catch { /* queue dir gone: nobody is ahead of us */ return true; }
+  const live = names
+    .map((n) => ({ n, ms: Number(n.split("-")[0]), pid: Number(n.split("-")[1]) }))
+    .filter((t) => {
+      if (t.n === ticket) return true;
+      if (Number.isFinite(t.pid) && alive(t.pid)) return true;
+      rmSync(join(QUEUE, t.n), { force: true });
+      return false;
+    })
+    .sort((a, b) => a.ms - b.ms || a.pid - b.pid);
+  return live.length === 0 || live[0].n === ticket;
+}
+
+/**
  * How long a lock directory may exist with no `owner.json` before it is treated
  * as debris rather than as a live acquirer mid-handshake. Overridable so the
  * test does not have to wait it out.
@@ -50,16 +90,42 @@ export async function acquireBrowserLock(): Promise<void> {
   if (lockDisabled()) return;
   const deadline = Date.now() + Number(process.env.LH_BROWSER_LOCK_WAIT_MIN ?? 90) * 60_000;
   let announced = false;
+  const ticket = `${Date.now()}-${process.pid}`;
+  mkdirSync(QUEUE, { recursive: true });
+  writeFileSync(join(QUEUE, ticket), "");
+  const leaveQueue = () => rmSync(join(QUEUE, ticket), { force: true });
   for (;;) {
+    if (!atHeadOfQueue(ticket)) {
+      if (Date.now() > deadline) {
+        leaveQueue();
+        throw new Error(`Browser lock ${LOCK}: still queued behind an earlier waiter past the wait limit.`);
+      }
+      if (!announced) {
+        console.log(`[browser-lock] queued behind an earlier waiter (first come, first served)…`);
+        announced = true;
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+      continue;
+    }
     try {
       mkdirSync(LOCK);
       writeFileSync(OWNER, JSON.stringify({ pid: process.pid, cwd: process.cwd(), at: new Date().toISOString() }));
+      leaveQueue();
+      log("acquire");
       return;
     } catch {
-      let owner: { pid?: number; cwd?: string } = {};
+      let owner: { pid?: number; cwd?: string; at?: string } = {};
       let ownerReadable = false;
       try { owner = JSON.parse(readFileSync(OWNER, "utf8")); ownerReadable = true; } catch { /* owner file not written yet — see the orphan branch below */ }
       if (owner.pid && !alive(owner.pid)) {
+        log("takeover-dead", `from pid=${owner.pid}`);
+        rmSync(LOCK, { recursive: true, force: true });
+        continue;
+      }
+      const heldMs = Date.now() - Date.parse(owner.at ?? "");
+      if (owner.pid && heldMs > MAX_HOLD_MS) {
+        console.log(`[browser-lock] pid ${owner.pid} in ${owner.cwd} has held the lock ${Math.round(heldMs / 60_000)} min, past the ${MAX_HOLD_MS / 60_000} min limit — taking it over.`);
+        log("takeover-overheld", `from pid=${owner.pid} cwd=${owner.cwd} heldMin=${Math.round(heldMs / 60_000)}`);
         rmSync(LOCK, { recursive: true, force: true });
         continue;
       }
@@ -92,6 +158,7 @@ export async function acquireBrowserLock(): Promise<void> {
         }
       }
       if (Date.now() > deadline) {
+        leaveQueue();
         throw new Error(`Browser lock ${LOCK} held by pid ${owner.pid} (${owner.cwd}) past the wait limit.`);
       }
       if (!announced) {
@@ -107,6 +174,9 @@ export function releaseBrowserLock(): void {
   if (lockDisabled()) return;
   try {
     const owner = JSON.parse(readFileSync(OWNER, "utf8"));
-    if (owner.pid === process.pid) rmSync(LOCK, { recursive: true, force: true });
+    if (owner.pid === process.pid) {
+      rmSync(LOCK, { recursive: true, force: true });
+      log("release");
+    }
   } catch { /* nothing held — already released or never taken */ }
 }

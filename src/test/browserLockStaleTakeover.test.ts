@@ -23,7 +23,7 @@
  *
  * @mutate e2e/browserLock.ts |       if (owner.pid && !alive(owner.pid)) { |       if (false) {
  * @mutate e2e/browserLock.ts |         if (ageMs > ORPHAN_GRACE_MS) { |         if (false) {
- * @mutate e2e/browserLock.ts |     if (owner.pid === process.pid) rmSync(LOCK, { recursive: true, force: true }); |     rmSync(LOCK, { recursive: true, force: true });
+ * @mutate e2e/browserLock.ts |     if (owner.pid === process.pid) { |     if (true) {
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
@@ -62,9 +62,10 @@ async function freshLock() {
 describe("the browser lock", () => {
   it("takes over a lock whose owner pid is dead", async () => {
     mkdirSync(lockPath(), { recursive: true });
-    writeFileSync(ownerPath(), JSON.stringify({ pid: DEAD_PID, cwd: "/gone", at: "2026-09-20T00:00:00Z" }));
+    writeFileSync(ownerPath(), JSON.stringify({ pid: DEAD_PID, cwd: "/gone", at: new Date().toISOString() }));
     const { acquireBrowserLock } = await freshLock();
 
+    // `at` is fresh so the max-hold takeover (Q816) cannot mask this one.
     // Without takeover this waits out LH_BROWSER_LOCK_WAIT_MIN and throws.
     process.env.LH_BROWSER_LOCK_WAIT_MIN = "0.001";
     await acquireBrowserLock();

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 /**
  * Q281 parity guard: a banned account is refused on every client write path
@@ -30,6 +31,9 @@ const CHECK = blankSqlComments(read("scripts/ci/ban-gate-coverage.sql"));
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 const MIG_FILE = readdirSync(MIGRATIONS).find((f) => f.endsWith("_ban_enforcement_everywhere.sql"))!;
 const MIG = blankSqlComments(readFileSync(resolve(MIGRATIONS, MIG_FILE), "utf8"));
+// enforce_ban_gate is restated by later migrations (20260927012804, the series-end
+// carve-out), so its assertions read the NEWEST definition, not the Q281 one.
+const GATE = blankSqlComments(effectiveDefs(MIGRATIONS).get("enforce_ban_gate")?.stmt ?? "");
 const SNAP = JSON.parse(read("scripts/probes/fixtures/ban-gate-inventory.live.json")) as {
   writable: { tbl: string; op: string }[];
   gated: { tbl: string; op: string; tgname: string; proname: string }[];
@@ -176,14 +180,14 @@ describe("Q281 ban gate: every client write path is gated or exempt with a reaso
   it("the enforce_ban_gate rewrite returns OLD on DELETE", () => {
     // Returning NEW (NULL) from a BEFORE DELETE trigger cancels the delete for
     // EVERY caller, banned or not.
-    expect(MIG).toMatch(/IF TG_OP = 'DELETE' THEN\s+RETURN OLD;/);
+    expect(GATE).toMatch(/IF TG_OP = 'DELETE' THEN\s+RETURN OLD;/);
   });
 
   it("a ban started in the request does not roll the request back (the 3rd-strike cancel)", () => {
     // lh-authz-rls on Q281: helper_cancel_booking bans the caller through the
     // ladder and THEN writes jobs/applications; without this carve-out the gate
     // refused those writes and the whole transaction, ban included, rolled back.
-    expect(MIG).toMatch(/current_setting\('app\.ban_started_in_txn', true\) IS DISTINCT FROM auth\.uid\(\)::text THEN\s+RAISE EXCEPTION 'account_restricted'/);
+    expect(GATE).toMatch(/IF auth\.uid\(\) IS NOT NULL AND public\.is_caller_banned\(\)[^;]*?AND current_setting\('app\.ban_started_in_txn', true\) IS DISTINCT FROM auth\.uid\(\)::text[^;]*?THEN\s+RAISE EXCEPTION 'account_restricted'/);
     expect(MIG).toMatch(/AFTER UPDATE OF ban_status, auto_suspended_until ON public\.profiles\s+FOR EACH ROW EXECUTE FUNCTION public\.mark_ban_started_in_txn\(\)/);
     // ...the profile lock honours it too, and the marker is TRANSACTION-local:
     // a session-level one would outlive the request on a pooled connection.

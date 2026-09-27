@@ -37,6 +37,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { join, resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
@@ -66,6 +67,7 @@ function newestBody(re: RegExp, label: string): string {
  */
 const MARKERS: Record<string, RegExp> = {
   "ownerless job (poster deleted their account)": /customer_id\s+IS\s+NOT\s+NULL/i,
+  "series visit (re-offered only inside its series, Q407)": /parent_job_id\s+IS\s+NULL/i,
   "the viewer's own post": /auth\.uid\(\)/i,
   "unfunded escrow": /payment_status/i,
   "credential tier above the viewer": /credential_tier/i,
@@ -77,7 +79,10 @@ const MARKERS: Record<string, RegExp> = {
 
 describe("the map and the browse view cull the same jobs", () => {
   const view = newestBody(/create\s+(or\s+replace\s+)?view\s+(public\.)?open_jobs_browse/i, "open_jobs_browse");
-  const map = newestBody(/function\s+(public\.)?get_open_jobs_for_map/i, "get_open_jobs_for_map");
+  // The FUNCTION body alone, not its whole migration file: 20260927015010 also
+  // restates other functions that cull ownerless jobs, and a file-level read let
+  // the map lose its own cull while a neighbour's kept the marker matching.
+  const map = blankSqlComments(effectiveDefs(MIGRATIONS).get("get_open_jobs_for_map")?.stmt ?? "");
 
   it("both objects were found and are substantial (a check that finds nothing cannot fail)", () => {
     expect(view.length).toBeGreaterThan(400);
@@ -129,3 +134,4 @@ describe("the map and the browse view cull the same jobs", () => {
 // REACHED both surfaces; mapFilterParity and dashboardSurfaceExclusionParity
 // cover the client halves.
 // @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n    AND j.customer_id IS NOT NULL\n | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n
+// @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n    AND j.customer_id IS NOT NULL\n | AND j.customer_id IS NOT NULL\n

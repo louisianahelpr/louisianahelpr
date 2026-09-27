@@ -77,11 +77,20 @@ export const STRIPE_LISTS = {
 export const MONEY_PI_STATUSES = new Set(["succeeded", "requires_capture", "processing"]);
 
 /**
+ * Single PaymentIntents made by hand, which no rule below can recognise (no
+ * metadata, no description). Exact ids only; each names where it is recorded.
+ */
+export const KNOWN_ONE_OFF_PIS = {
+  pi_3UIpdrKp2H4b7tEC1666cTsf: "Q145 $500 TEST balance top-up, 2026-09-23 12:51Z, via the temporary tmp-q145-test-topup function (docs/archive/OPEN-done-2026-09.md Q145)",
+};
+
+/**
  * PaymentIntents the app creates WITHOUT writing their id to any row, keyed by
  * how to recognise them. They are listed for a human, never graded missing.
  */
 export function unlinkableReason(pi) {
   const md = pi?.metadata ?? {};
+  if (pi?.id && Object.hasOwn(KNOWN_ONE_OFF_PIS, pi.id)) return KNOWN_ONE_OFF_PIS[pi.id];
   if (pi?.invoice) return "subscription invoice (reconciled by subscription-reconciliation)";
   if (md.kind === "job_boost") return "job boost (create-boost-payment records no PaymentIntent id)";
   if (md.kind === "background_check") return "background-check fee (create-bgc-payment records no PaymentIntent id)";

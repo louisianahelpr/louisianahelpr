@@ -15,6 +15,7 @@
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     if (dbIds.has(o.id)) { |     if (true) {
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     if (!/^(sk\|rk)_test_/.test(key)) throw | if (false) throw
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (md.kind === "platform_topup" \|\| | if (false &&
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (pi?.id && Object.hasOwn(KNOWN_ONE_OFF_PIS, pi.id)) | if (false)
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -72,12 +73,13 @@ describe("gradeKind", () => {
         { id: "pi_onb", status: "succeeded", amount: 500, created: 1, metadata: { kind: "onboarding_fee" } },
         { id: "pi_topup", status: "succeeded", amount: 50000, created: 1, metadata: { kind: "platform_topup" } },
         { id: "pi_topup_old", status: "succeeded", amount: 50000, created: 1, description: "TEST-mode platform balance top-up (stripe-test-topup.yml)", metadata: {} },
+        { id: "pi_3UIpdrKp2H4b7tEC1666cTsf", status: "succeeded", amount: 50000, created: 1, metadata: {} },
         { id: "pi_job", status: "requires_capture", amount: 10000, created: 1, metadata: { job_id: "j2" } },
       ],
       new Set(),
     );
     expect(g.ignored).toBe(1);
-    expect(g.unlinkable.map((u) => u.id)).toEqual(["pi_boost", "pi_sub", "pi_onb", "pi_topup", "pi_topup_old"]);
+    expect(g.unlinkable.map((u) => u.id)).toEqual(["pi_boost", "pi_sub", "pi_onb", "pi_topup", "pi_topup_old", "pi_3UIpdrKp2H4b7tEC1666cTsf"]);
     expect(g.missing.map((m) => m.id)).toEqual(["pi_job"]);
   });
 

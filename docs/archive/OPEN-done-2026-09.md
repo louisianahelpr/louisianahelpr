@@ -1366,3 +1366,14 @@ duplicate-number check).
 ## Archived 2026-09-27 — from "AUDIT BUS — findings live in the ledger, not here"
 
 - [x] **Q451 A completed job whose payout has not gone out reads "Done · paid and closed" / "Paid out" (found fixing Q344, 2026-09-26, from code: derivePosterWait/deriveHelperWait return done_paid for any completed job whatever its payment_status, e.g. payout_pending in its 3-day wait).** Owner (2026-09-27): "must read 'Done · payout pending' instead ... once the payout is actually sent it keeps the existing paid wording." Fixed: new `done_payout_pending` state/copy in `src/components/job-card/jobStatusLine.ts` (both `POSTER_WAIT`/`HELPER_WAIT`), gated by `payoutNotSettled(job)` — `payment_status !== "released"` (the only value meaning the transfer actually settled, per `supabase/migrations/20260825053000_reviews_allow_payout_pending.sql`). Guard: `src/test/collapsedStatusSentence.test.tsx`'s new "1B — PAYOUT PENDING IS NEVER CALLED PAID (Q451)" describe block, shown red pre-fix (8 failing assertions) and green post-fix, with a killed `@mutate`.
+
+## Archived 2026-09-27 — from "AUDIT BUS — findings live in the ledger, not here"
+
+- [x] **Q760 Admin status override writes jobs.status with no status predicate.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). AdminJobs.tsx:445
+  `(supabase.from("jobs").update as any)(updates).eq("id", …)`; the `as any` hides it from check-race-class. Done when
+  it carries .eq("status", prev), the cast is gone, the any baseline drops by 1, and raceClassGuard covers the call.
+  DONE 2026-09-27: typed `.update(updates).eq("id").eq("status", previousStatus).select("id")`; zero rows throws
+  (WriteRejectedError, "someone changed this job, reload") before any notify/audit/local update. any 47 -> 46
+  (AdminJobs.tsx 1 -> 0, scripts/any-baseline.json). Guard: src/test/raceClassGuard.test.ts "admin status override
+  (Q760)" + check-race-class; with the predicate removed the CLI reports NEW HIT ...AdminJobs.tsx::opaque:updates
+  and 5 raceClassGuard tests fail; with the old cast restored the new test and anyRatchet fail.

@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 311 done, 89 partly done (fixed, protection pending), 137 open. Source of truth for work.
+- **Queue (this file):** 312 done, 89 partly done (fixed, protection pending), 136 open. Source of truth for work.
 - **Audit bus:** 11 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
@@ -2006,14 +2006,6 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q759 Admin user-detail "Earned (Worked)" gives each helper a group job's whole budget.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item).
   JobsTab divides by helpers_needed, but useOpenProfile.ts:73-74 does not select it, so the divisor is always 1. Done
   when the column is selected, the type makes it required, and a test fails if any column calcEarning reads is missing.
-- [x] **Q760 Admin status override writes jobs.status with no status predicate.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). AdminJobs.tsx:445
-  `(supabase.from("jobs").update as any)(updates).eq("id", …)`; the `as any` hides it from check-race-class. Done when
-  it carries .eq("status", prev), the cast is gone, the any baseline drops by 1, and raceClassGuard covers the call.
-  DONE 2026-09-27: typed `.update(updates).eq("id").eq("status", previousStatus).select("id")`; zero rows throws
-  (WriteRejectedError, "someone changed this job, reload") before any notify/audit/local update. any 47 -> 46
-  (AdminJobs.tsx 1 -> 0, scripts/any-baseline.json). Guard: src/test/raceClassGuard.test.ts "admin status override
-  (Q760)" + check-race-class; with the predicate removed the CLI reports NEW HIT ...AdminJobs.tsx::opaque:updates
-  and 5 raceClassGuard tests fail; with the old cast restored the new test and anyRatchet fail.
 - [ ] **Q761 Nine axe calls in 8 e2e specs skip WCAG 2.2 AA.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). They hardcode the 4-tag wcag21aa literal
   instead of AXE_TAGS from e2e/happy-path/axeTags.ts. Done when a source scan fails on any withTags literal outside
   axeTags.ts, shown red on one planted literal.

@@ -1582,7 +1582,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] Unfloored guards (classA_noInventoryFloor) not closed down — Still open: 25 guards (was 20) still pass on an empty inventory per current vacuity-report.json. (archive L6582)
 - [ ] 38 mount-wiring gaps reported, not gated — Still open: mount-wiring gaps (incl. PostedJobCard/AppliedJobCard) remain reported, not gated. (archive L6583)
 - [ ] Class (e) literal-vs-semantic mutation quality is not statically decidable — Open by design: a weak mutation can still 'kill' a guard; not mechanically detectable. (archive L6586)
-- [ ] write-contract.snapshot.json carries no metadata for deploy-lag detection — Duplicate — see line 6492. (see also line 6492) (archive L6588)
+- [x] write-contract.snapshot.json carries no metadata for deploy-lag detection — CLOSED as duplicate 2026-09-27: tracked by the open "needs appliedMigrations metadata" line directly above in this section. (see also line 6492) (archive L6588)
 - [ ] 7 edge functions still leak error detail (EF5 ratchet) — Still open: 7 edge functions still leak error detail into responses (ratcheted, unfixed). (archive L6590)
 
 ### NEW — LOW (from the same pass)
@@ -1666,7 +1666,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ### STILL OPEN from this correction
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] A feed-level 'you're far from these jobs' line was never built (only per-job detail shows real distance) — Open: no feed-level distance banner built; still per-card/per-job only. (archive L7325)
-- [ ] BrowseTasksFeed.tsx:323-328 drops the `approximate` flag, now live signal again — Duplicate — see line 7110/7115. (see also line 7110) (archive L7329)
+- [x] BrowseTasksFeed.tsx:323-328 drops the `approximate` flag, now live signal again — CLOSED as duplicate 2026-09-27: same item as the open "JobTracking … BrowseTasksFeed discarding `approximate` are same family" line above (archive L7327-7331 is the one finding). (see also line 7110) (archive L7329)
 
 ### Handed back / still open
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -1689,7 +1689,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ### Still open for the owner
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] Profile LANDING sits at a different gutter (x=145) than its own tabs (x=72) — Open: Profile landing gutter still differs from its tabs; deliberately not changed pending being named. (archive L7485)
-- [ ] TAB_TITLES.wrapped drifts ("Helpr Wrapped" vs "Your 2026 so far") — Not reached / still open per doc. (archive L7495)
+- [x] TAB_TITLES.wrapped drifts ("Helpr Wrapped" vs "Your 2026 so far") — DONE (verified 2026-09-27): `TAB_TITLES.wrapped` is `Your ${wrappedSeasonLabel().title}`, HelprWrapped.tsx:450 reads it back, and src/pages/profile/types.test.ts:33-61 guards both halves (passes on main 0a04dc0db). (archive L7495)
 - [ ] /jobs applied-card pitch unverified — both test accounts had zero live applications — Not reached — needs a live journey with a real applied-card to verify. (archive L7497)
 - [ ] vacuityGate.test.ts races discardedQueryFilters.test.ts over a fixture in src/ — Not reached — test-flakiness claim not re-verified (vitest excluded from this pass). (archive L7498)
 

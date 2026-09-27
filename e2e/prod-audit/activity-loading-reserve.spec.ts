@@ -23,6 +23,9 @@
  *              first card y   95px → 138px  (real 138px)   jump +43px →  0px
  *              4th card y    785px → 624px  (real 627px)   jump -195px → -3px
  *
+ *   Q700 (2026-09-27): /jobs placeholder 150px → 130px (one meta line), real
+ *              shapes 131px x8 / 151px x7, nearest 131px, jump 1px.
+ *
  *   /posts  first card y   95px → 138px  (real 202px)   jump +107px → +64px
  *              row height   106px → the shared card (expected 150px against a
  *                           real 151px, NOT re-measured — see the note below)
@@ -182,8 +185,14 @@ const SURFACES: Surface[] = [
        (2026-09-27, helper-e2e at 375) measured 50 done cards in THREE shapes,
        293px x22, 160px x18, 204px x10, against the 150px placeholder; the
        nearest is 160, a 10px jump, 2px over budget. No static card is near
-       all three. Held at the measured 10 until the owner answers Q700. */
-    rowJump: { px: 10, owner: "docs/OPEN.md Q700 (done cards: 160/204/293px shapes)" },
+       all three.
+       Q700 answered (owner, 2026-09-27): /jobs reserves the ONE-line shape.
+       That placeholder is 130px, so this bucket's nearest shape (160) is now
+       30px away — measured locally against prod 2026-09-27 (helper-e2e at
+       375: 160px x20, 293px x24, 204px x6; /jobs itself 130 vs 131, 1px).
+       The owner's answer named /jobs as a whole; a done-bucket placeholder of
+       its own is filed as a follow-up in docs/OPEN.md Q833, not guessed. */
+    rowJump: { px: 30, owner: "docs/OPEN.md Q833 (one-line /jobs placeholder; done cards: 160/204/293px shapes)" },
   },
   {
     name: "posts",

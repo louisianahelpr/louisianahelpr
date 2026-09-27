@@ -25,6 +25,13 @@ const mockAwardBlockReason = vi.fn<() => string | null>(() => null);
 vi.mock("@/hooks/useAwardBlockReason", () => ({
   useAwardBlockReason: () => mockAwardBlockReason(),
 }));
+// The earnings block also reads the viewer's first-payout fee (ME-008), which
+// needs the profile and a platform_settings query. 0 = fee already paid, the
+// state every test here assumed; the fee line itself is covered by
+// ApplyEarningsBreakdown.test.tsx.
+vi.mock("@/hooks/useFirstPayoutFee", () => ({
+  useFirstPayoutFeeCents: () => 0,
+}));
 
 function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
   return {

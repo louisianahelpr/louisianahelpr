@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ShieldCheck, ChevronDown } from "lucide-react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
 // formatPriceExact: this component IS the arithmetic — budget, fee, urgent
 // bonus, take-home. Whole-dollar rounding is right for a headline price and
 // wrong for the lines that justify it, where the column has to add up.
@@ -41,7 +42,13 @@ export function ApplyEarningsBreakdown({
   // the roster like the budget (#114), so the "+ urgent bonus" line and the
   // Take-home total both equal what the edge transfers to each helper.
   const netUrgent = netUrgentFeeDollars(confirmApplyJob.urgent_fee) / helpers;
-  const payout = perHelper - commission + netUrgent;
+  const beforeFirstPayoutFee = perHelper - commission + netUrgent;
+  // ME-008: an account whose `onboarding_fee_paid` is not true loses the
+  // one-time setup fee from its FIRST payout (release-payout /
+  // process-scheduled-payouts). The take-home shown here must not read higher
+  // than what lands, so it comes off the total and gets its own line.
+  const firstPayoutFee = useFirstPayoutFeeCents() / 100;
+  const payout = beforeFirstPayoutFee - firstPayoutFee;
   const hasUrgent = (confirmApplyJob.urgent_fee ?? 0) > 0;
 
   // The plain-words summary. Same facts as the receipt, one line, no columns.
@@ -50,6 +57,7 @@ export function ApplyEarningsBreakdown({
     helpers > 1 ? `÷ ${helpers} Helprs` : null,
     `− ${platformFee}% fee`,
     hasUrgent ? "+ urgent bonus" : null,
+    firstPayoutFee > 0 ? "− one-time fee" : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -115,6 +123,12 @@ export function ApplyEarningsBreakdown({
             <div className="flex justify-between">
               <span className="font-sans" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
               <span className="font-sans tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${formatPrice(netUrgent)}</span>
+            </div>
+          )}
+          {firstPayoutFee > 0 && (
+            <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <span className="font-sans">− One-time setup fee (first payout only)</span>
+              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(firstPayoutFee)}</span>
             </div>
           )}
           <div

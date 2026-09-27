@@ -1412,3 +1412,15 @@ duplicate-number check).
   axeTags.ts, shown red on one planted literal.
   Fixed 2026-09-27: all 9 call sites across 7 e2e specs switched to `.withTags(AXE_TAGS)`. Guard:
   `src/test/axeWithTagsUsesSharedConstant.test.ts` (AST scan, RED-proven on a planted literal).
+
+## Archived 2026-09-27 — from "STILL OPEN from the checking work"
+
+- [x] write-contract.snapshot.json carries no metadata for deploy-lag detection — CLOSED as duplicate 2026-09-27: tracked by the open "needs appliedMigrations metadata" line directly above in this section. (see also line 6492) (archive L6588)
+
+## Archived 2026-09-27 — from "STILL OPEN from this correction"
+
+- [x] BrowseTasksFeed.tsx:323-328 drops the `approximate` flag, now live signal again — CLOSED as duplicate 2026-09-27: same item as the open "JobTracking … BrowseTasksFeed discarding `approximate` are same family" line above (archive L7327-7331 is the one finding). (see also line 7110) (archive L7329)
+
+## Archived 2026-09-27 — from "Still open for the owner"
+
+- [x] TAB_TITLES.wrapped drifts ("Helpr Wrapped" vs "Your 2026 so far") — DONE (verified 2026-09-27): `TAB_TITLES.wrapped` is `Your ${wrappedSeasonLabel().title}`, HelprWrapped.tsx:450 reads it back, and src/pages/profile/types.test.ts:33-61 guards both halves (passes on main 0a04dc0db). (archive L7495)

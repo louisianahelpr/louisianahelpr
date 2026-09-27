@@ -74,3 +74,15 @@
 {"sha":"9d674ad02b4b790fded3c5ef845b0a598a71a742","reviewer":"lh-authz-rls","verdict":"changes needed (reviewed as origin/main..d937cb161), findings M1 M2 L3 L4 fixed in 7893ed170","date":"2026-09-27"}
 {"sha":"7893ed17047c56bee48696f55e88394ea1b289c8","reviewer":"lh-money-escrow","verdict":"fix commit for its own findings H1 M3 M4 L5; not re-reviewed, proven by PGlite A20 and edge tests","date":"2026-09-27"}
 {"sha":"7893ed17047c56bee48696f55e88394ea1b289c8","reviewer":"lh-authz-rls","verdict":"fix commit for its own findings M1 M2 L3 L4; not re-reviewed","date":"2026-09-27"}
+{"sha":"3ee22bd672e943e47682e8d0b688e7a82efa2587","reviewer":"lh-money-escrow","verdict":"no blocker; HIGH-1 MED-2 MED-3 LOW-4 fixed in this range (Q733); lh-scheduling-time MEDIUM-1..3 fixed/documented","date":"2026-09-27"}
+{"sha":"3ee22bd672e943e47682e8d0b688e7a82efa2587","reviewer":"lh-authz-rls","verdict":"changes needed then fixed: HIGH/MEDIUM/LOW fixed in this range (Q733)","date":"2026-09-27"}
+{"sha":"369d5cbfa801b80088bf0b396d8b030c9675ba55","reviewer":"lh-money-escrow","verdict":"no blocker; HIGH-1 MED-2 MED-3 LOW-4 fixed in this range (Q733); lh-scheduling-time MEDIUM-1..3 fixed/documented","date":"2026-09-27"}
+{"sha":"369d5cbfa801b80088bf0b396d8b030c9675ba55","reviewer":"lh-authz-rls","verdict":"changes needed then fixed: HIGH/MEDIUM/LOW fixed in this range (Q733)","date":"2026-09-27"}
+{"sha":"d63111f18c4b5e1b11241470b54883a6f63bde16","reviewer":"lh-money-escrow","verdict":"no blocker; HIGH-1 MED-2 MED-3 LOW-4 fixed in this range (Q733); lh-scheduling-time MEDIUM-1..3 fixed/documented","date":"2026-09-27"}
+{"sha":"d63111f18c4b5e1b11241470b54883a6f63bde16","reviewer":"lh-authz-rls","verdict":"changes needed then fixed: HIGH/MEDIUM/LOW fixed in this range (Q733)","date":"2026-09-27"}
+{"sha":"4f2e3c5f005c263015ad57cdb54a1c980ddfd7ec","reviewer":"lh-money-escrow","verdict":"no blocker; HIGH-1 MED-2 MED-3 LOW-4 fixed in this range (Q733); lh-scheduling-time MEDIUM-1..3 fixed/documented","date":"2026-09-27"}
+{"sha":"4f2e3c5f005c263015ad57cdb54a1c980ddfd7ec","reviewer":"lh-authz-rls","verdict":"changes needed then fixed: HIGH/MEDIUM/LOW fixed in this range (Q733)","date":"2026-09-27"}
+{"sha":"b3f0520b85dabdfc8b3346d0d8de671898d7203f","reviewer":"lh-money-escrow","verdict":"no blocker; HIGH-1 MED-2 MED-3 LOW-4 fixed in this range (Q733); lh-scheduling-time MEDIUM-1..3 fixed/documented","date":"2026-09-27"}
+{"sha":"b3f0520b85dabdfc8b3346d0d8de671898d7203f","reviewer":"lh-authz-rls","verdict":"changes needed then fixed: HIGH/MEDIUM/LOW fixed in this range (Q733)","date":"2026-09-27"}
+{"sha":"8d13bd427157dd688068a811ea369697cc58c974","reviewer":"lh-money-escrow","verdict":"no blocker; HIGH-1 MED-2 MED-3 LOW-4 fixed in this range (Q733); lh-scheduling-time MEDIUM-1..3 fixed/documented","date":"2026-09-27"}
+{"sha":"8d13bd427157dd688068a811ea369697cc58c974","reviewer":"lh-authz-rls","verdict":"changes needed then fixed: HIGH/MEDIUM/LOW fixed in this range (Q733)","date":"2026-09-27"}

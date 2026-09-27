@@ -99,3 +99,4 @@
 {"sha":"c16cffb484b41a05fef85fd7dbdcc18fce935563","reviewer":"lh-authz-rls","verdict":"clean","date":"2026-09-27"}
 {"sha":"455ef9764339f44c19babce9b611a6673cee376a","reviewer":"lh-authz-rls","verdict":"clean","date":"2026-09-27"}
 {"sha":"cf781739de2a2236e4beae02b54eb7bddc04a863","reviewer":"lh-authz-rls","verdict":"defect: Jobs-tab split ignored is_group_job; fixed in the follow-up commit (helperShareCount + helpersNeededSplitIsGroupGated guard)","date":"2026-09-27"}
+{"sha":"37ba1c1d02d02ea88afeb97bf9349c4b8bf3e10b","reviewer":"lh-money-escrow","verdict":"code fix correct (split gated by helperShareCount, matches release-payout); defect: class guard read only ternaries, widened to every divisor shape in f6aebcf07","date":"2026-09-27"}

@@ -20,6 +20,8 @@ import { resolve } from "node:path";
 import { parse } from "yaml";
 
 const DIR = resolve(__dirname, "../../.github/workflows");
+// Exact equality below: a stale entry (uptime.yml moved off always()) fails too.
+// @two-way src/test/nightlyReportersSkipCancelledRuns.test.ts:expect(onAlways).toEqual(ALWAYS_ALLOWED);
 const ALWAYS_ALLOWED = ["uptime.yml"];
 
 type Reporter = { file: string; job: string; cond: string };

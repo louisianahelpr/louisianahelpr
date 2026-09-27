@@ -52,7 +52,7 @@ export async function checkUnsettledDispute(
   opts: { crewFanout?: boolean } = {},
 ): Promise<UnsettledDisputeCheck> {
   // `crewFanout`: ONLY process-scheduled-payouts, and only for a group job.
-  // A crew decision (rpc_decide_crew_dispute, 20260925234055) is recorded with
+  // A crew decision (rpc_decide_crew_dispute, 20260927012240) is recorded with
   // execution_status 'crew_fanout': it is settled BY that cron's per-member
   // fan-out, so it must not block the one path that executes it. Every other
   // caller still reads it as decided-unexecuted and refuses (a single-helper

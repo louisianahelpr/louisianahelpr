@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260925234055_group_crew_disputes (docs/OPEN.md Q409 and
+ * PGlite proof for 20260927012240_group_crew_disputes (docs/OPEN.md Q727 and
  * the SQL half of Q396(c); owner rules Q407: a crew has no lead, every hired
  * member is equal, each member's share is frozen in cents at hire).
  *
@@ -37,7 +37,7 @@ import { blankSqlComments } from "../helpers/blankNonCode.ts";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const THIS = "20260925234055_group_crew_disputes.sql";
+const THIS = "20260927012240_group_crew_disputes.sql";
 const read = (f) => readFileSync(DIR + f, "utf8");
 const MIGRATION = process.env.NEW_MIGRATION_FILE ? readFileSync(process.env.NEW_MIGRATION_FILE, "utf8") : read(THIS);
 const REPLAY = process.argv.includes("--replay");

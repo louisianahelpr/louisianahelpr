@@ -14,9 +14,9 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * `IF _uid <> _customer AND _uid <> _helper THEN RAISE` never raises on a
  * crew. open_dispute_as and rpc_escalate_dispute were exactly that: ANY
  * signed-in account could open or escalate a dispute on any booked crew job
- * and freeze its escrow (docs/OPEN.md Q409; red on the before state in
+ * and freeze its escrow (docs/OPEN.md Q727; red on the before state in
  * src/test/pglite/groupCrewDisputes.pglite.mjs R1/R2). The fix
- * (20260925234055) checks the roster, NULL-safe, and gives a crew its own
+ * (20260927012240) checks the roster, NULL-safe, and gives a crew its own
  * decision: each member's FROZEN share is paid or refunded
  * (rpc_decide_crew_dispute), executed only by process-scheduled-payouts' crew
  * fan-out and closed only by mark_crew_dispute_executed.
@@ -31,16 +31,16 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  *   5. the PGlite proof runs the effective definitions, red-before.
  */
 
-// @mutate supabase/migrations/20260925234055_group_crew_disputes.sql |   IF NOT _system\n     AND _uid IS DISTINCT FROM _customer\n     AND (_helper IS NULL OR _uid IS DISTINCT FROM _helper)\n     AND NOT _on_crew THEN |   IF NOT _system AND _uid <> _customer AND _uid <> _helper THEN
-// @mutate supabase/migrations/20260925234055_group_crew_disputes.sql |   _on_crew := _is_group IS TRUE AND EXISTS (\n    SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = _job_id AND g.helper_id = _uid); |   _on_crew := false;
-// @mutate supabase/migrations/20260925234055_group_crew_disputes.sql |   IF _is_group IS TRUE THEN\n    RAISE EXCEPTION 'group_dispute_needs_crew_decision' |   IF false THEN\n    RAISE EXCEPTION 'group_dispute_needs_crew_decision'
-// @mutate supabase/migrations/20260925234055_group_crew_disputes.sql |   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, g.share_cents, |   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, (round(_job.budget * 100) / _members)::integer,
-// @mutate supabase/migrations/20260925234055_group_crew_disputes.sql | REVOKE ALL ON FUNCTION public.mark_crew_dispute_executed(uuid, integer, integer, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.mark_crew_dispute_executed(uuid, integer, integer, text) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20260925234055_group_crew_disputes.sql |      AND COALESCE(current_setting('app.crew_fanout_settle', true), '') <> '1' THEN |      AND false THEN
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   IF NOT _system\n     AND _uid IS DISTINCT FROM _customer\n     AND (_helper IS NULL OR _uid IS DISTINCT FROM _helper)\n     AND NOT _on_crew THEN |   IF NOT _system AND _uid <> _customer AND _uid <> _helper THEN
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   _on_crew := _is_group IS TRUE AND EXISTS (\n    SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = _job_id AND g.helper_id = _uid); |   _on_crew := false;
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   IF _is_group IS TRUE THEN\n    RAISE EXCEPTION 'group_dispute_needs_crew_decision' |   IF false THEN\n    RAISE EXCEPTION 'group_dispute_needs_crew_decision'
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, g.share_cents, |   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, (round(_job.budget * 100) / _members)::integer,
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | REVOKE ALL ON FUNCTION public.mark_crew_dispute_executed(uuid, integer, integer, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.mark_crew_dispute_executed(uuid, integer, integer, text) FROM PUBLIC, anon;
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |      AND COALESCE(current_setting('app.crew_fanout_settle', true), '') <> '1' THEN |      AND false THEN
 
 const root = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(root, "supabase/migrations");
-const THIS = "20260925234055_group_crew_disputes.sql";
+const THIS = "20260927012240_group_crew_disputes.sql";
 const EFFECTIVE = effectiveDefs(MIGRATIONS);
 const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "");
 const thisSql = () => blankSqlComments(readFileSync(resolve(MIGRATIONS, THIS), "utf8"));
@@ -57,10 +57,10 @@ const CALLER_DISTINCT_FROM_HELPER = /\b_uid IS DISTINCT FROM _helper\b/;
  */
 const NOT_A_JOB_HELPER: Record<string, string> = {
   get_helper_earnings_export:
-    "`auth.uid() <> _helper_id` compares the caller to its own _helper_id ARGUMENT; a NULL argument passes the check but its `helper_id = _helper_id` query matches no rows (a NULL-argument finding, docs/OPEN.md Q427, not a crew hole)",
+    "`auth.uid() <> _helper_id` compares the caller to its own _helper_id ARGUMENT; a NULL argument passes the check but its `helper_id = _helper_id` query matches no rows (a NULL-argument finding, docs/OPEN.md Q728, not a crew hole)",
 };
 
-describe("disputes on a crew (Q409)", () => {
+describe("disputes on a crew (Q727)", () => {
   it("1. no function compares a caller to a helper with <> / != (NULL on a crew), and the dispute party checks read the roster", () => {
     const offenders = [...EFFECTIVE.entries()]
       .filter(([, d]) => CALLER_NOT_HELPER.test(blankSqlComments(d.stmt)))

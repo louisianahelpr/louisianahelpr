@@ -1,5 +1,7 @@
--- A crew's reminders, auto-start and counts (docs/OPEN.md Q408; owner rules
--- Q407: a crew has NO lead, every hired member is equal).
+-- A crew's reminders, auto-start and counts (docs/OPEN.md Q727, the Q396(c)
+-- follow-up; owner rules Q407: a crew has NO lead, every hired member is equal).
+-- Landed from wip/backup-group-followups, where it was numbered Q408/Q409;
+-- those numbers belong to other items on main.
 --
 -- jobs.helper_id is NULL on every group job (20260925154606), so every cron
 -- and count that finds "the booked Helpr" through it silently skips a crew.
@@ -9,7 +11,7 @@
 -- `j.helper_id = <user>`. On a crew that meant: no "Still on for tomorrow?",
 -- no "Starting soon", no no-show check for any member, the poster never told a
 -- member had not confirmed, the job never auto-started, and a Helpr's crew
--- jobs missing from their completed count, parish badge and public profile.
+-- jobs missing from their completed count and public profile.
 --
 -- What this installs (each restated from its EFFECTIVE definition; the single
 -- paths are unchanged, the crew paths are added beside them):
@@ -24,18 +26,22 @@
 --   auto_start_due_jobs            a fully staffed crew ('accepted') whose
 --       EVERY member confirmed starts at its start time, as a confirmed single
 --       booking does. A crew with an unconfirmed member stays manual.
---   get_helper_completed_counts, get_helper_parish_badges,
---   get_public_profile_stats       a crew member's completed crew jobs count.
+--   get_helper_completed_counts,
+--   get_public_profile_stats         a crew member's completed crew jobs count.
 --
--- NOT built here (owner questions, written into Q408): an unanswered-offer
+-- NOT built here (owner questions, written into Q727): an unanswered-offer
 -- deadline for a crew member (expire_unanswered_offers), and what a block
 -- between the poster and ONE crew member settles (block_user_and_settle).
 --
--- Grants: the sweeps and auto-start stay server-only; get_helper_parish_badges
--- stays service_role; get_public_profile_stats keeps its deliberate anon
--- EXECUTE (public profiles; CREATE OR REPLACE keeps grants); the one change is
--- get_helper_completed_counts, which never revoked PUBLIC and is now
--- authenticated-only.
+-- Grants: the sweeps and auto-start stay server-only; get_public_profile_stats
+-- keeps its deliberate anon EXECUTE (public profiles; CREATE OR REPLACE keeps
+-- grants); get_helper_completed_counts is authenticated-only (prod proacl on
+-- 2026-09-26 already held only authenticated and service_role; the REVOKE
+-- restates it so a replay cannot re-open it).
+--
+-- get_helper_parish_badges is NOT restated: it was dropped with the parish
+-- badges (20260915191403), and the branch copy of this migration would have
+-- re-created it.
 --
 -- REPLAY-SAFETY: CREATE OR REPLACE only, grants re-stated. Applied 3x in PGlite
 -- (src/test/pglite/groupCrewReminders.pglite.mjs --replay).
@@ -96,7 +102,7 @@ BEGIN
     END;
   END LOOP;
 
-  -- Pass 1c (Q408): a CREW. No lead (Q407), so the single pass above never
+  -- Pass 1c (Q727): a CREW. No lead (Q407), so the single pass above never
   -- matches it (helper_id IS NULL): every hired member who has not confirmed
   -- for the day is reminded on their own roster row, and the poster once.
   -- Same window, same grace (a member hired inside the window is not
@@ -178,7 +184,7 @@ BEGIN
     END;
   END LOOP;
 
-  -- Pass 2c (Q408): T-12h and a crew member still hasn't answered — tell the
+  -- Pass 2c (Q727): T-12h and a crew member still hasn't answered — tell the
   -- poster once, with how many.
   FOR rec IN
     SELECT j.id, j.title, j.customer_id,
@@ -288,7 +294,7 @@ BEGIN
       RAISE NOTICE 'sweep_job_start_reminders: job % failed: %', rec.id, SQLERRM;
     END;
   END LOOP;
-  -- Q408: a CREW (no lead, helper_id NULL): the poster and every hired member.
+  -- Q727: a CREW (no lead, helper_id NULL): the poster and every hired member.
   FOR rec IN
     SELECT j.id, j.title, j.customer_id
     FROM public.jobs j
@@ -403,7 +409,7 @@ BEGIN
       RAISE NOTICE 'sweep_no_show_alerts: job % failed: %', rec.id, SQLERRM;
     END;
   END LOOP;
-  -- Q408: a CREW (no lead, helper_id NULL). Each hired member who has not
+  -- Q727: a CREW (no lead, helper_id NULL). Each hired member who has not
   -- arrived is asked, and the poster is asked once, only while someone on the
   -- crew has not arrived. A crew is in_progress as soon as ONE member sets
   -- out, so both states are read here.
@@ -479,7 +485,7 @@ BEGIN
        -- in. Auto-starting the former would start a job nobody agreed to.
        AND (
             (j.helper_id IS NOT NULL AND j.helper_confirmed_at IS NOT NULL)
-            -- Q408: a CREW has no lead (helper_id NULL, Q407). It is booked
+            -- Q727: a CREW has no lead (helper_id NULL, Q407). It is booked
             -- when it is fully staffed ('accepted') and EVERY hired member has
             -- confirmed; a crew with an unconfirmed member stays manual, the
             -- same way an unconfirmed single booking does.
@@ -536,7 +542,7 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
   -- A job counts for the Helpr who did it: the single Helpr (jobs.helper_id)
-  -- or, on a crew (no lead, Q407), every member on its roster (Q408). A user
+  -- or, on a crew (no lead, Q407), every member on its roster (Q727). A user
   -- with none is absent, as before.
   SELECT u.id, COUNT(DISTINCT j.id)::bigint
   FROM unnest(p_user_ids) AS u(id)
@@ -547,39 +553,6 @@ AS $$
               SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = u.id)))
   GROUP BY u.id;
 $$;
-
-CREATE OR REPLACE FUNCTION public.get_helper_parish_badges(_user_id uuid)
- RETURNS TABLE(home_parish text, is_verified_local boolean, is_top_helper_in_parish boolean, parish_completed_jobs integer)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  WITH p AS (
-    SELECT user_id, parish FROM public.profiles WHERE user_id = _user_id LIMIT 1
-  ),
-  parish_jobs AS (
-    SELECT COUNT(*)::int AS n
-    FROM public.jobs j, p
-    WHERE (j.helper_id = _user_id
-           -- Q408: a crew member's completed crew jobs count too (no lead, Q407).
-           OR (j.is_group_job IS TRUE AND EXISTS (
-                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = _user_id)))
-      AND j.status = 'completed'
-      AND j.parish = p.parish
-  ),
-  top10 AS (
-    SELECT 1
-    FROM public.get_top_helpers_by_parish((SELECT parish FROM p), 10) t
-    WHERE t.user_id = _user_id
-  )
-  SELECT
-    p.parish AS home_parish,
-    (p.parish IS NOT NULL AND COALESCE((SELECT n FROM parish_jobs), 0) >= 3) AS is_verified_local,
-    EXISTS (SELECT 1 FROM top10) AS is_top_helper_in_parish,
-    COALESCE((SELECT n FROM parish_jobs), 0) AS parish_completed_jobs
-  FROM p;
-$function$;
-
 
 CREATE OR REPLACE FUNCTION public.get_public_profile_stats(p_user_ids uuid[])
  RETURNS TABLE(user_id uuid, review_count integer, avg_rating numeric, poster_review_count integer, poster_avg_rating numeric, completed_jobs_as_helper integer, completed_jobs_total integer, posted_jobs_total integer, jobs_total integer, cancelled_jobs integer, cancellation_rate numeric, on_time_sample integer, on_time_rate numeric, revision_sample integer, revision_rate numeric, repeat_client_sample integer, repeat_hire_percent numeric, is_id_verified boolean, has_stripe_account boolean, is_background_checked boolean, has_pending_credentials boolean)
@@ -640,7 +613,7 @@ AS $function$
   job_agg AS (
     SELECT
       t.user_id,
-      -- The Helpr side: the single Helpr, or (Q408) a crew member, who is joined
+      -- The Helpr side: the single Helpr, or (Q727) a crew member, who is joined
       -- below through the roster and is never the job's poster.
       COUNT(*) FILTER (WHERE j.customer_id IS DISTINCT FROM t.user_id AND j.status = 'completed')::integer AS completed_as_helper,
       COUNT(DISTINCT j.id) FILTER (WHERE j.status = 'completed')::integer AS completed_total,
@@ -650,7 +623,7 @@ AS $function$
     FROM target t
     LEFT JOIN public.jobs j
       ON j.customer_id = t.user_id OR j.helper_id = t.user_id
-      -- Q408: a crew has no lead (Q407), so a crew member's jobs are found
+      -- Q727: a crew has no lead (Q407), so a crew member's jobs are found
       -- through the roster.
       OR (j.is_group_job IS TRUE AND EXISTS (
             SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = t.user_id))
@@ -764,5 +737,3 @@ REVOKE ALL ON FUNCTION public.sweep_no_show_alerts() FROM PUBLIC, anon, authenti
 REVOKE ALL ON FUNCTION public.auto_start_due_jobs() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_helper_completed_counts(uuid[]) TO authenticated, service_role;
-REVOKE ALL ON FUNCTION public.get_helper_parish_badges(uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.get_helper_parish_badges(uuid) TO service_role;

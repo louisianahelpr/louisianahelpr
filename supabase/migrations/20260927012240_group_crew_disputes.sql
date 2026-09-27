@@ -1,4 +1,4 @@
--- Disputes on a crew (docs/OPEN.md Q409, with Q396(c); owner rules Q407).
+-- Disputes on a crew (docs/OPEN.md Q727, with Q396(c); owner rules Q407).
 --
 -- A crew has no lead (20260925154606): jobs.helper_id is NULL on every group
 -- job. Every dispute rule keyed on helper_id therefore changed meaning on a
@@ -39,7 +39,7 @@
 --      fee (unfilled slots and 'refund' members alike) in ONE refund. Refunding
 --      every member is a full refund, which the existing Full refund action
 --      does; this RPC refuses it. A member with no frozen share refuses too.
---      PRODUCT QUESTION (owner, Q409): a member's share is all-or-nothing
+--      PRODUCT QUESTION (owner, Q727): a member's share is all-or-nothing
 --      here. Whether an admin may award a member PART of their share, and
 --      whether the poster's service fee on a refunded share is returned (the
 --      unfilled-slot refund today returns budget + urgent only, never fees),
@@ -124,7 +124,7 @@ BEGIN
 
   -- The platform is not a party to the job, so there is no membership to
   -- check on that branch. Every human caller still is.
-  -- NULL-safe (Q409): this read `_uid <> _customer AND _uid <> _helper`, and
+  -- NULL-safe (Q727): this read `_uid <> _customer AND _uid <> _helper`, and
   -- on a crew `_uid <> NULL` is NULL, so the IF never fired and ANY signed-in
   -- account could open a dispute on any booked crew job, freezing its escrow.
   IF NOT _system
@@ -523,7 +523,7 @@ BEGIN
     RAISE EXCEPTION 'job not found';
   END IF;
 
-  -- NULL-safe and roster-aware (Q409): on a crew jobs.helper_id is NULL, so
+  -- NULL-safe and roster-aware (Q727): on a crew jobs.helper_id is NULL, so
   -- `_uid <> _helper` was NULL and ANY signed-in account could escalate a
   -- crew's dispute (which stops the 72h sweep and holds the crew's pay).
   _on_crew := _is_group IS TRUE AND EXISTS (
@@ -630,6 +630,7 @@ DECLARE
   _poster_share numeric;
   _helper_share numeric;
   _new_job_status text;
+  _payment_status text;
   _is_group boolean;
 BEGIN
   IF _uid IS NULL THEN
@@ -660,8 +661,8 @@ BEGIN
   -- Quick Release / Quick Refund / sweep either committed its claim first
   -- (visible, refused) or waits behind this decision (and then finds the job
   -- no longer disputed). Lock order jobs -> disputes.
-  SELECT customer_id, helper_id, title, is_group_job
-    INTO _customer_id, _helper_id, _job_title, _is_group
+  SELECT customer_id, helper_id, title, payment_status, is_group_job
+    INTO _customer_id, _helper_id, _job_title, _payment_status, _is_group
     FROM public.jobs
    WHERE id = _job_id
      FOR UPDATE;
@@ -670,13 +671,13 @@ BEGIN
     RAISE EXCEPTION 'job not found';
   END IF;
 
-  -- A crew (Q409). This function records ONE fraction for "the Helpr" and
-  -- execute-dispute-split moves it to jobs.helper_id, which is NULL on every
-  -- crew: a crew decision recorded here could never execute, and it froze the
-  -- escrow behind a decided-unexecuted dispute that every payout path then
-  -- refuses. A crew is decided member by member (rpc_decide_crew_dispute), or
-  -- refunded in full with the existing Full refund action. Refused BEFORE any
-  -- write.
+  -- A crew (Q727, was the branch's Q409; see Q710). This function records ONE
+  -- fraction for "the Helpr" and execute-dispute-split moves it to
+  -- jobs.helper_id, which is NULL on every crew: a crew decision recorded here
+  -- could never execute, and it froze the escrow behind a decided-unexecuted
+  -- dispute that every payout path then refuses. A crew is decided member by
+  -- member (rpc_decide_crew_dispute), or refunded in full with the existing
+  -- Full refund action. Refused BEFORE any write.
   IF _is_group IS TRUE THEN
     RAISE EXCEPTION 'group_dispute_needs_crew_decision'
       USING HINT = 'This is a crew job: decide each member (rpc_decide_crew_dispute) or use Full refund.';
@@ -721,6 +722,18 @@ BEGIN
       USING HINT = 'This dispute''s payment is being settled right now, so it can''t be decided. Refresh in a few minutes.';
   END IF;
 
+  -- Q342 follow-on (lh-money-escrow review M1): a decision on a job the card
+  -- holder's bank has charged back can never be executed (the split, supersede
+  -- and the no-payment close all refuse 'chargeback'), so recording it only
+  -- manufactures a decided dispute that is stuck forever. The bank's ruling
+  -- comes first: a LOST one is paged by the stripe-webhook
+  -- (settle_dispute_by_chargeback answers needs_human for an open dispute on a
+  -- charged-back job), a WON one is Q449. Read by the FOR UPDATE above.
+  IF _payment_status = 'chargeback' THEN
+    RAISE EXCEPTION 'dispute_job_charged_back'
+      USING HINT = 'The card holder''s bank is holding this payment in a card dispute, so no split could move it. Settle it by hand once the bank rules.';
+  END IF;
+
   _poster_share := COALESCE((_payout_split->>'poster')::numeric, 0.5);
   _helper_share := COALESCE((_payout_split->>'helper')::numeric, 0.5);
   IF _poster_share > 1 OR _helper_share > 1 THEN
@@ -760,8 +773,8 @@ BEGIN
     VALUES (
       _customer_id,
       'info',
-      'Dispute resolved',
-      'A decision has been made on "' || COALESCE(_job_title, 'your job') || '": ' || _decision_text,
+      'Dispute decided',
+      'A decision has been made on "' || COALESCE(_job_title, 'your job') || '": ' || _decision_text || ' The payment is still being processed; the job shows as settled once it has moved.',
       '/posts?job=' || _job_id::text,
       false
     );
@@ -772,8 +785,8 @@ BEGIN
     VALUES (
       _helper_id,
       'info',
-      'Dispute resolved',
-      'A decision has been made on "' || COALESCE(_job_title, 'a job you worked') || '": ' || _decision_text,
+      'Dispute decided',
+      'A decision has been made on "' || COALESCE(_job_title, 'a job you worked') || '": ' || _decision_text || ' The payment is still being processed; the job shows as settled once it has moved.',
       '/jobs?job=' || _job_id::text,
       false
     );
@@ -1190,7 +1203,7 @@ BEGIN
        -- The funds are still held. A job already refunded or paid out is
        -- settled by some other path and is not owed anything here.
        AND j.payment_status IN ('escrow', 'payout_pending')
-       -- Q396(c), 20260925234055: a CREW whose dispute closed (resolved /
+       -- Q396(c), 20260927012240: a CREW whose dispute closed (resolved /
        -- auto_resolved) is paid by process-scheduled-payouts' fan-out, so it
        -- is not a strand; a single-Helpr job still is (that cron still
        -- excludes it), and stays watched.

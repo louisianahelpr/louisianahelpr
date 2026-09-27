@@ -266,7 +266,7 @@ serve(async (req) => {
           // automated close for a group dispute until the roster fan-out
           // exists; naming the release here would send an admin at a 409.
           // A crew is decided member by member with rpc_decide_crew_dispute
-          // (20260925234055, Q409) and settled by process-scheduled-payouts'
+          // (20260927012240, Q727) and settled by process-scheduled-payouts'
           // fan-out; rpc_decide_dispute now refuses a crew before recording
           // anything, so this is reachable only for a decision recorded
           // before that migration.

@@ -366,9 +366,9 @@ serve(async (req) => {
       // latter's CHECK admits only open/decided/withdrawn/superseded, so mirroring it
       // there would throw and abort the sweep.
       // A CREW has no helper_id (Q407): its Helpr side is every hired member,
-      // and a member can file (open_dispute_as, 20260925234055). A crew
+      // and a member can file (open_dispute_as, 20260927012240). A crew
       // dispute filed by anyone but the poster is the Helpr side's filing, and
-      // must escalate exactly like a single Helpr's (docs/OPEN.md Q409):
+      // must escalate exactly like a single Helpr's (docs/OPEN.md Q727):
       // otherwise one member's silence would auto-release the whole crew's pay.
       const helprSideFiled = !!job.disputed_by && (
         (!!job.helper_id && job.disputed_by === job.helper_id) ||

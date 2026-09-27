@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260925235506_group_crew_reminders_and_counts (docs/OPEN.md
- * Q408; owner rules Q407: a crew has no lead, every hired member is equal).
+ * PGlite proof for 20260927012241_group_crew_reminders_and_counts (docs/OPEN.md
+ * Q727; owner rules Q407: a crew has no lead, every hired member is equal).
  *
  *   PGLITE_DIR=~/.lh-pglite-probe npx tsx src/test/pglite/groupCrewReminders.pglite.mjs [--replay]
  *   (or node --experimental-strip-types with a resolver for extensionless .ts imports)
@@ -10,15 +10,15 @@
  * this one (src/test/helpers/effectiveFunctionDefs.ts), never a pinned file;
  * the crew's NULL helper_id is held by the REAL trg_group_job_has_no_lead and
  * every status write runs the real transition matrix. Stubs (not under test):
- * log_cron_defect, identity_is_verified, get_top_helpers_by_parish.
+ * log_cron_defect, identity_is_verified.
  *
  * RED-BEFORE (this migration NOT applied): on a booked crew of three
  *   R1  nobody on the crew gets "Still on for tomorrow?";
  *   R2  nobody on the crew gets "Starting soon";
  *   R3  nobody gets a no-show check, the poster included;
  *   R4  a fully confirmed crew past its start never auto-starts;
- *   R5  a Helpr's completed crew jobs count nowhere: completed counts, parish
- *       badge, public profile.
+ *   R5  a Helpr's completed crew jobs count nowhere: completed counts and
+ *       the public profile.
  * AFTER: A1..A9 below.
  */
 import { readFileSync } from "node:fs";
@@ -29,7 +29,7 @@ import { blankSqlComments } from "../helpers/blankNonCode.ts";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const THIS = "20260925235506_group_crew_reminders_and_counts.sql";
+const THIS = "20260927012241_group_crew_reminders_and_counts.sql";
 const read = (f) => readFileSync(DIR + f, "utf8");
 const MIGRATION = process.env.NEW_MIGRATION_FILE ? readFileSync(process.env.NEW_MIGRATION_FILE, "utf8") : read(THIS);
 const REPLAY = process.argv.includes("--replay");
@@ -57,7 +57,7 @@ function triggerStmt(name) {
 const FNS = [
   "is_server_context", "has_role", "enforce_group_job_has_no_lead", "enforce_job_status_transition",
   "sweep_dayof_confirm_reminders", "sweep_job_start_reminders", "sweep_no_show_alerts", "auto_start_due_jobs",
-  "get_helper_completed_counts", "get_helper_parish_badges", "get_public_profile_stats",
+  "get_helper_completed_counts", "get_public_profile_stats",
 ];
 const TRIGGERS = ["trg_group_job_has_no_lead", "trg_enforce_job_status_transition"];
 
@@ -110,7 +110,6 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 CREATE FUNCTION public.log_cron_defect(p_fn text, p_key text, p_err text, p_ctx jsonb) RETURNS void LANGUAGE sql AS
   $$ INSERT INTO public.cron_defects VALUES (p_fn, p_key, p_err) $$;
 CREATE FUNCTION public.identity_is_verified(text, boolean) RETURNS boolean LANGUAGE sql AS $$ SELECT coalesce($2, false) $$;
-CREATE FUNCTION public.get_top_helpers_by_parish(text, int) RETURNS TABLE(user_id uuid) LANGUAGE sql AS $$ SELECT NULL::uuid WHERE false $$;
 
 ${FNS.map(fnStmt).join("\n\n")}
 
@@ -163,10 +162,9 @@ async function seedHistory() {
 }
 const counts = async () => {
   const c = (await one(`SELECT completed_jobs::int AS n FROM public.get_helper_completed_counts(ARRAY['${M1}']::uuid[])`))?.n ?? 0;
-  const b = await one(`SELECT parish_completed_jobs AS n, is_verified_local AS v FROM public.get_helper_parish_badges('${M1}')`);
   const p = await one(`SELECT completed_jobs_as_helper AS h, jobs_total AS t FROM public.get_public_profile_stats(ARRAY['${M1}']::uuid[])`);
   const pp = await one(`SELECT completed_jobs_as_helper AS h, posted_jobs_total AS posted FROM public.get_public_profile_stats(ARRAY['${POSTER}']::uuid[])`);
-  return { counts: c, parish: b?.n, verifiedLocal: b?.v, profile: p?.h, profileTotal: p?.t, posterAsHelper: pp?.h, posterPosted: pp?.posted };
+  return { counts: c, profile: p?.h, profileTotal: p?.t, posterAsHelper: pp?.h, posterPosted: pp?.posted };
 };
 
 await db.exec(SCHEMA);
@@ -198,7 +196,7 @@ check("R4 a fully confirmed crew past its start never auto-starts (the single bo
 
 await seedHistory();
 const r5 = await counts();
-check("R5 M1's two completed crew jobs count nowhere: completed 1, parish 1, profile 1 (the single job only)", r5.counts === 1 && r5.parish === 1 && r5.profile === 1, JSON.stringify(r5));
+check("R5 M1's two completed crew jobs count nowhere: completed 1, profile 1 (the single job only)", r5.counts === 1 && r5.profile === 1, JSON.stringify(r5));
 
 // ════════════════════════════════════════════════════════════════════════════
 for (let i = 1; i <= (REPLAY ? 3 : 1); i++) {
@@ -267,8 +265,8 @@ check(
 await seedHistory();
 const a8 = await counts();
 check(
-  "A8 M1's two crew jobs count: completed 3, parish 3 (verified local), profile 3; the poster's own numbers are unchanged (0 as Helpr, 3 posted)",
-  a8.counts === 3 && a8.parish === 3 && a8.verifiedLocal === true && a8.profile === 3 && a8.posterAsHelper === 0 && a8.posterPosted === 3,
+  "A8 M1's two crew jobs count: completed 3, profile 3; the poster's own numbers are unchanged (0 as Helpr, 3 posted)",
+  a8.counts === 3 && a8.profile === 3 && a8.posterAsHelper === 0 && a8.posterPosted === 3,
   JSON.stringify(a8),
 );
 
@@ -276,10 +274,9 @@ const grants = await one(`SELECT
   has_function_privilege('anon', 'public.get_helper_completed_counts(uuid[])', 'EXECUTE') AS anon_counts,
   has_function_privilege('authenticated', 'public.get_helper_completed_counts(uuid[])', 'EXECUTE') AS auth_counts,
   has_function_privilege('authenticated', 'public.sweep_dayof_confirm_reminders()', 'EXECUTE') AS auth_sweep,
-  has_function_privilege('authenticated', 'public.auto_start_due_jobs()', 'EXECUTE') AS auth_start,
-  has_function_privilege('authenticated', 'public.get_helper_parish_badges(uuid)', 'EXECUTE') AS auth_badges`);
-check("A9 grants: counts authenticated-only (not anon); sweeps, auto-start and badges not client-callable",
-  !grants.anon_counts && grants.auth_counts && !grants.auth_sweep && !grants.auth_start && !grants.auth_badges, JSON.stringify(grants));
+  has_function_privilege('authenticated', 'public.auto_start_due_jobs()', 'EXECUTE') AS auth_start`);
+check("A9 grants: counts authenticated-only (not anon); sweeps and auto-start not client-callable",
+  !grants.anon_counts && grants.auth_counts && !grants.auth_sweep && !grants.auth_start, JSON.stringify(grants));
 const defects = await all(`SELECT * FROM public.cron_defects`);
 check("A10 no cron defect was logged by any run", defects.length === 0, JSON.stringify(defects));
 

@@ -5779,15 +5779,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_helper_parish_badges: {
-        Args: { _user_id: string }
-        Returns: {
-          home_parish: string
-          is_top_helper_in_parish: boolean
-          is_verified_local: boolean
-          parish_completed_jobs: number
-        }[]
-      }
       get_helper_repeat_hire_percents: {
         Args: { p_user_ids: string[] }
         Returns: {

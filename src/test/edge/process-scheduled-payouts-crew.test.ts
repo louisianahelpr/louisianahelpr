@@ -150,7 +150,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
   });
 
-  // ── docs/OPEN.md Q409 + Q396(c): a crew dispute decided member by member ──
+  // ── docs/OPEN.md Q727 + Q396(c): a crew dispute decided member by member ──
   /** A live crew decision on job-crew: `refunded` members' shares go back to the poster. */
   function seedCrewDecision(refunded: string[], outcomesFor: string[]) {
     scenario.reads.disputes = {

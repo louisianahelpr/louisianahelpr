@@ -133,3 +133,54 @@ export function newestNightlyIssueByTitle(repo, title, run) {
   const same = found.filter((i) => String(i.title).trim().toLowerCase() === want).sort((a, b) => b.number - a.number);
   return same.length ? run(["api", `repos/${repo}/issues/${same[0].number}`]) : null;
 }
+
+/**
+ * Every name a workflow goes by, lower-cased, mapped to its file base
+ * (`quota-monitor.yml` -> `quota-monitor`): the file base itself, its
+ * top-level `name:`, and the `workflow-name:` it hands nightly-issue-sync
+ * (the nightly-red issue title). `files` is [{ file, text }].
+ */
+export function workflowAliases(files) {
+  const map = new Map();
+  for (const { file, text } of files) {
+    const base = String(file).replace(/^.*\//, "").replace(/\.ya?ml$/, "");
+    const names = [base, /^name:\s*["']?(.+?)["']?\s*$/m.exec(text)?.[1]];
+    for (const m of String(text).matchAll(/workflow-name:\s*["']?([^"'\s#]+)/g)) names.push(m[1]);
+    for (const n of names) if (n) map.set(n.trim().toLowerCase(), base);
+  }
+  return map;
+}
+
+/**
+ * One workflow alerting TWICE in the ledger (2026-09-27: quota-monitor was
+ * open as `nightly_red` 79f3fe46 from its nightly-red issue AND as
+ * `workflow` d2df1e5e from its own record step). Each closes on a different
+ * detector, so the same red counts twice and can half-close.
+ *
+ * Key: a nightly_red item's title minus "nightly-red: " / "main: "; a
+ * workflow item's verify_ref file base, else its source. Both go through
+ * `aliases` (workflowAliases) to the workflow file base. A group is a possible
+ * duplicate when it has 2+ open items and at least one is nightly_red (two
+ * `workflow` items of one workflow are distinct alerts, e.g. two quotas).
+ * Returns [{ workflow, items }].
+ */
+export function duplicateGroups(rows, aliases) {
+  const keyOf = (r) => {
+    let k;
+    if (r.source_kind === "nightly_red") k = String(r.title).replace(/^(nightly-red:\s*|main:\s*)+/i, "");
+    else if (r.source_kind === "workflow") k = /([^/\s]+)\.ya?ml\b/.exec(String(r.verify_ref ?? ""))?.[1] ?? r.source;
+    else return null;
+    k = String(k).trim().toLowerCase();
+    return aliases.get(k) ?? k;
+  };
+  const groups = new Map();
+  for (const r of rows) {
+    const k = keyOf(r);
+    if (!k) continue;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  }
+  return [...groups]
+    .filter(([, items]) => items.length > 1 && items.some((r) => r.source_kind === "nightly_red"))
+    .map(([workflow, items]) => ({ workflow, items }));
+}

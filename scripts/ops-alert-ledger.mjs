@@ -2,9 +2,11 @@
 /**
  * The ops alert ledger CLI (docs/OPEN.md Q1; table public.ops_alert_ledger).
  *
- *   node scripts/ops-alert-ledger.mjs list [--limit 10] [--brief]
+ *   node scripts/ops-alert-ledger.mjs list [--limit 10] [--brief] [--fail-on-dupes]
  *       Open items, worst first. --brief is the session-start one-liner form;
- *       it never exits non-zero.
+ *       it never exits non-zero. The full form ends with POSSIBLE DUPLICATES:
+ *       one workflow open both as a nightly_red item and again (duplicateGroups);
+ *       --fail-on-dupes exits 1 when there are any (prod-errors.yml).
  *
  *   node scripts/ops-alert-ledger.mjs record --source-kind workflow --source <name> \
  *        --title <text> --severity critical|error|warning|info [--sample <text>] \
@@ -33,7 +35,9 @@
  *       the database unless the re-run started after the last occurrence.
  */
 import { execFileSync } from "node:child_process";
-import { OPEN_ITEMS_SQL, PENDING_SQL, lit, newestNightlyIssueByTitle, recordOpsAlert, sql, unreadableReason } from "./lib/opsAlertLedger.mjs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, lit, newestNightlyIssueByTitle, recordOpsAlert, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 
 const [, , cmd, ...rest] = process.argv;
@@ -91,6 +95,18 @@ async function list() {
       `${r.id}  ${r.severity.padEnd(8)} ${r.status.padEnd(9)} ${String(r.count).padStart(5)}x  ${r.source_kind}/${r.source}: ${r.title}` +
         `\n    first ${r.first_seen}  last ${r.last_seen}  verify ${r.verify_kind}${r.verify_ref ? `(${r.verify_ref})` : ""}${r.verify_note ? `  — ${r.verify_note}` : ""}`,
     );
+  }
+  const dir = ".github/workflows";
+  const aliases = workflowAliases(
+    readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).map((f) => ({ file: f, text: readFileSync(join(dir, f), "utf8") })),
+  );
+  const dupes = duplicateGroups(rows, aliases);
+  if (dupes.length) {
+    console.log(`\nPOSSIBLE DUPLICATES: ${dupes.length} workflow(s) open more than once (one red, counted twice; close the extra once its detector is green):`);
+    for (const g of dupes) {
+      console.log(`  ${g.workflow}.yml: ${g.items.map((r) => `${String(r.id).slice(0, 8)} ${r.source_kind}/${r.source}`).join(" + ")}`);
+    }
+    if (flag("fail-on-dupes")) process.exit(1);
   }
 }
 

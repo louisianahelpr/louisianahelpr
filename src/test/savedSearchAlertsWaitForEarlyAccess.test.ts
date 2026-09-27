@@ -28,16 +28,16 @@
  *   - the early-access tier ladder has ONE definition, early_access_delay_minutes,
  *     which both the feed cutoff and the alert delay read.
  *
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |       INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids) |       PERFORM public.deliver_saved_search_alert(match_record.user_id, NEW.id, match_record.search_name, match_record.matched_search_ids);\n      INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      OR v_job.customer_id IS NULL\n |
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |      OR (COALESCE(v_job.credential_tier, 0) <> 0 | OR (false
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |       INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids) |       PERFORM public.deliver_saved_search_alert(match_record.user_id, NEW.id, match_record.search_name, match_record.matched_search_ids);\n      INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |      OR v_job.customer_id IS NULL\n |
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |      OR (COALESCE(v_job.credential_tier, 0) <> 0 | OR (false
  * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |      DELETE FROM public.saved_search_alert_queue WHERE id = r.id;\n      IF public.deliver |      IF public.deliver
  * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql | FROM public.saved_search_alert_queue q\n      JOIN public.jobs j ON j.id = q.job_id\n     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()\n     ORDER BY q.user_id, q.id\n     LIMIT 1000\n       FOR UPDATE OF q SKIP LOCKED | FROM public.saved_search_alert_queue q\n      JOIN public.jobs j ON j.id = q.job_id\n     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()\n     ORDER BY q.user_id, q.id\n     LIMIT 1000\n       FOR UPDATE OF q
  * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql | FROM public.saved_search_alert_queue q\n      JOIN public.jobs j ON j.id = q.job_id\n     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()\n     ORDER BY q.user_id, q.id | FROM public.saved_search_alert_queue q\n      JOIN public.jobs j ON j.id = q.job_id\n     WHERE public.early_access_visible_at(q.user_id, j.created_at) <= now()\n     ORDER BY q.id
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql | WHERE id = p_job_id FOR SHARE NOWAIT; | WHERE id = p_job_id FOR SHARE;
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | WHERE id = p_job_id FOR SHARE NOWAIT; | WHERE id = p_job_id FOR SHARE;
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |   SELECT now() - make_interval(mins => public.early_access_delay_minutes((SELECT auth.uid()))); |   SELECT now() - make_interval(mins => 20 - COALESCE((SELECT CASE WHEN p.subscription_tier = 'elite' THEN 20 WHEN p.subscription_tier = 'plus' THEN 15 WHEN p.subscription_tier = 'pro' THEN 10 WHEN p.subscription_tier = 'basic' THEN 5 ELSE 0 END FROM public.profiles p WHERE p.user_id = (SELECT auth.uid())), 0));
- * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql |          FOR UPDATE\n    ) x; |     ) x;
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |          FOR UPDATE\n    ) x; |     ) x;
  * @mutate supabase/migrations/20260926041132_parish_match_alerts_wait_for_early_access.sql |       WHEN OTHERS THEN\n        -- One row |       WHEN division_by_zero THEN\n        -- One row
  * @mutate supabase/migrations/20260925053412_saved_search_alerts_wait_for_early_access.sql | REVOKE ALL ON TABLE public.saved_search_alert_queue FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.saved_search_alert_queue TO authenticated;
  */
@@ -105,7 +105,8 @@ describe("saved-search alerts wait for early access (V-008)", () => {
       expect(b.indexOf(write), `${file}: ${write} before the visibility refusal`).toBeGreaterThan(refuse);
     }
     // The job must still be open and funded when a deferred alert goes out.
-    expect(b).toMatch(/IF v_job\.status <> 'open' OR COALESCE\(v_job\.payment_status, ''\) <> ALL/);
+    // ...and not a series visit, which is re-offered only inside its series (Q407, 20260927015010).
+    expect(b).toMatch(/IF v_job\.status <> 'open' (?:-- [^.]*\(\d+\)\. )?OR v_job\.parent_job_id IS NOT NULL OR COALESCE\(v_job\.payment_status, ''\) <> ALL/);
   });
 
   it("deliver refuses an ownerless job and a job above the recipient's credential tier (open_jobs_browse's gates)", () => {

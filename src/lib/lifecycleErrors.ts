@@ -238,6 +238,7 @@ export const RPC_ERROR_COPY = {
   // SeriesDatesPanel — handing dates back (Q407 6).
   give_up_series_dates: {
     not_your_dates: "Those dates aren't yours to give up, or their visits are already booked. Cancel a booked visit from its own card.",
+    not_authorized: "Only someone on this series can give up its dates. Refresh and check.",
     not_a_series: "This job isn't a recurring series. Refresh and check.",
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to give up dates.",

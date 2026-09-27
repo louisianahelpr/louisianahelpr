@@ -55,8 +55,8 @@ const migGated = [...(MIG.match(/FOREACH v_pair IN ARRAY ARRAY\[([\s\S]*?)\]/)?.
 // @mutate scripts/ci/ban-gate-coverage.sql | ('reports', 'INSERT', 'a banned user can still be a victim; admins see the reporter is banned when triaging'), |
 // @mutate scripts/ci/ban-gate-coverage.sql | ('toggle_thread_mute', 'muting is protective and only reduces what the account is sent'), |
 // @mutate scripts/ci/ban-gate-coverage.sql | UNION ALL SELECT rule, object, detail FROM stale_rpc | UNION ALL SELECT rule, object, detail FROM rpc_offenders WHERE false
-// @mutate supabase/migrations/20260923185224_ban_enforcement_everywhere.sql | IF TG_OP = 'DELETE' THEN | IF false THEN
-// @mutate supabase/migrations/20260923185224_ban_enforcement_everywhere.sql |      AND current_setting('app.ban_started_in_txn', true) IS DISTINCT FROM auth.uid()::text THEN\n    RAISE EXCEPTION 'account_restricted' |  THEN\n    RAISE EXCEPTION 'account_restricted'
+// @mutate supabase/migrations/20260927012804_recurring_series_end.sql | IF TG_OP = 'DELETE' THEN | IF false THEN
+// @mutate supabase/migrations/20260927012804_recurring_series_end.sql |      AND current_setting('app.ban_started_in_txn', true) IS DISTINCT FROM auth.uid()::text\n |
 // @mutate scripts/ci/ban-gate-coverage.sql | UNION ALL SELECT rule, object, detail FROM auth_ban_set\n |
 // @mutate scripts/ci/ban-gate-coverage.sql |   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),\n |
 // @mutate supabase/migrations/20260923185224_ban_enforcement_everywhere.sql | NEW.user_id::text, true); | NEW.user_id::text, false);

@@ -128,4 +128,4 @@ describe("the map and the browse view cull the same jobs", () => {
 // a prod object hand-applied outside the migration tree. It proves a rule
 // REACHED both surfaces; mapFilterParity and dashboardSurfaceExclusionParity
 // cover the client halves.
-// @mutate supabase/migrations/20260921201657_map_boosted_means_still_active.sql | AND j.customer_id IS NOT NULL |
+// @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n    AND j.customer_id IS NOT NULL\n | -- A series visit is re-offered only inside its series (20260927015010).\n    AND j.parent_job_id IS NULL\n

@@ -24,7 +24,7 @@
  *     out. The clock is early_access_visible_at() compared with now().
  *   - Edge functions: every file that names the type or the queue RPC is
  *     classified, exactly (two-way). A producer must reach the database's gate.
- *   - The view itself: its WHERE has exactly the seven conjuncts mirrored here,
+ *   - The view itself: its WHERE has exactly the eight conjuncts mirrored here,
  *     so a gate added to the feed later fails this file until every
  *     announcement applies it too.
  *
@@ -34,8 +34,9 @@
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
- * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |     AND p_job.customer_id IS NOT NULL\n |
- * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier), | OR true),
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     AND p_job.customer_id IS NOT NULL\n |
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     AND p_job.parent_job_id IS NULL\n |
+ * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier), | OR true),
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |              AND public.early_access_visible_at(q.user_id, j.created_at) > now()); | );
  * @mutate supabase/migrations/20260926195608_q392_parish_matches_block_gate_ledger.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
@@ -94,6 +95,8 @@ const writesJobMatch = (b: string) =>
 const PIECES: Record<string, RegExp> = {
   open: /status\s*<>\s*'open'|status\s*=\s*'open'/,
   ownerless: /customer_id IS (?:NOT )?NULL/,
+  // A series visit is re-offered only inside its series (Q407, 20260927015010).
+  series: /parent_job_id IS (?:NOT )?NULL/,
   funded: /payment_status[^;]{0,80}ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text\]/,
   offer: /offered_to_helper_id IS (?:NOT )?NULL[^;]{0,160}'declined', 'expired'/,
   fixture: /is_seed[^;]{0,60}seed_jobs_hidden_publicly\(\)/,
@@ -193,7 +196,7 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(all).not.toMatch(/GRANT [^;]*public\.job_announceable_to\b[^;]*\b(?:anon|authenticated)\b/i);
   });
 
-  it("open_jobs_browse's WHERE is exactly the seven conjuncts the gate mirrors", () => {
+  it("open_jobs_browse's WHERE is exactly the eight conjuncts the gate mirrors", () => {
     const view = migrations.filter((m) => /CREATE (?:OR REPLACE )?VIEW public\.open_jobs_browse\b/.test(m.sql)).pop();
     expect(view, "no migration creates open_jobs_browse").toBeTruthy();
     const def = ws(view!.sql.slice(view!.sql.search(/CREATE (?:OR REPLACE )?VIEW public\.open_jobs_browse\b/)));
@@ -212,6 +215,7 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     const parts = conjuncts(where);
     const MIRRORED: Array<[string, RegExp]> = [
       ["open", /^status = 'open'::job_status$/],
+      ["series", /^parent_job_id IS NULL$/],
       ["ownerless", /^customer_id IS NOT NULL$/],
       ["funded", /payment_status = ANY \(ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text\]\)/],
       ["offer", /offered_to_helper_id IS NULL OR \(direct_offer_status = ANY \(ARRAY\['declined'::text, 'expired'::text\]\)\)/],

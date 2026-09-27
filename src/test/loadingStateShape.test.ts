@@ -118,7 +118,7 @@ describe("loading states: a baselined entry that was not measured is not 'fixed'
 
   it("an entry without a path keeps the strict rule", async () => {
     const { staleEntries } = await load();
-    const { path: _p, ...bare } = entry;
+    const bare = { ...entry, path: undefined };
     expect(staleEntries([result("nav.bottom-nav")], [bare], []).stale).toEqual(["customer /post-job #0|jump"]);
   });
 });

@@ -1399,3 +1399,16 @@ duplicate-number check).
 ## Archived 2026-09-27 — from "Low-alpha AA batch — landed 8aff7b8cc, three things left open (2026-09-20)"
 
 - [x] Contrast inventory scanner misses Tailwind slash-opacity syntax — DONE 2026-09-27: `low-alpha-text-inventory.mjs` now reads `text-<colour>/<N>` (and resolves `--muted-foreground: var(--stormy-sky)` aliases). Failing count 17 → 47; the 30 new ones are pinned exactly as PENDING_FIX_Q765 (Q765). New test "sees Tailwind slash opacity" shown red with the tw-slash shape removed. (archive L2242)
+
+## Archived 2026-09-27 — from "AUDIT BUS — findings live in the ledger, not here"
+
+- [x] **Q759 Admin user-detail "Earned (Worked)" gives each helper a group job's whole budget.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item).
+  JobsTab divides by helpers_needed, but useOpenProfile.ts:73-74 does not select it, so the divisor is always 1. Done
+  when the column is selected, the type makes it required, and a test fails if any column calcEarning reads is missing.
+  Fixed 2026-09-27: `helpers_needed` added to the select and made a required field of `AdminProfileJob` (no more
+  `Partial<Pick<...>>`). Guard: `src/test/jobsTabEarningsColumnsAreSelected.test.ts`.
+- [x] **Q761 Nine axe calls in 8 e2e specs skip WCAG 2.2 AA.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). They hardcode the 4-tag wcag21aa literal
+  instead of AXE_TAGS from e2e/happy-path/axeTags.ts. Done when a source scan fails on any withTags literal outside
+  axeTags.ts, shown red on one planted literal.
+  Fixed 2026-09-27: all 9 call sites across 7 e2e specs switched to `.withTags(AXE_TAGS)`. Guard:
+  `src/test/axeWithTagsUsesSharedConstant.test.ts` (AST scan, RED-proven on a planted literal).

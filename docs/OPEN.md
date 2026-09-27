@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 313 done, 89 partly done (fixed, protection pending), 137 open. Source of truth for work.
+- **Queue (this file):** 315 done, 89 partly done (fixed, protection pending), 135 open. Source of truth for work.
 - **Audit bus:** 11 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
@@ -1997,15 +1997,5 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   the reviewer: completed rows are payout_pending 50, released 22). Decide its label before one can exist.
 - [ ] **Q763 Prove Q758 live: a Stripe test-mode bulk payout run creates transfers.** Split from Q758 2026-09-27. The fix and its vitest guard landed, but no bulk run has been driven on prod: this worktree has no PLAYWRIGHT_ADMIN_EMAIL/PASSWORD. Done when an admin-account run of Bulk Approve on a test-owned is_seed helper with a completed payout_pending job produces a payout_transfers row with a Stripe test-mode transfer id, then the records are cleaned up.
 - [ ] **Q764 Payout holds are per-device only; release-payout has no server-side hold check.** Found by the lh-money-escrow review of Q758, 2026-09-27, by reading the code (not measured live). AdminPayoutBatches keeps holds in localStorage ("(this device)"), and supabase/functions/release-payout/index.ts has no hold/freeze check, so one admin's hold does not stop another admin's Send Payout or (now working) Bulk Approve. Done when a hold is stored server-side and release-payout refuses a held helper, with a test that fails without the check.
-- [x] **Q759 Admin user-detail "Earned (Worked)" gives each helper a group job's whole budget.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item).
-  JobsTab divides by helpers_needed, but useOpenProfile.ts:73-74 does not select it, so the divisor is always 1. Done
-  when the column is selected, the type makes it required, and a test fails if any column calcEarning reads is missing.
-  Fixed 2026-09-27: `helpers_needed` added to the select and made a required field of `AdminProfileJob` (no more
-  `Partial<Pick<...>>`). Guard: `src/test/jobsTabEarningsColumnsAreSelected.test.ts`.
-- [x] **Q761 Nine axe calls in 8 e2e specs skip WCAG 2.2 AA.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). They hardcode the 4-tag wcag21aa literal
-  instead of AXE_TAGS from e2e/happy-path/axeTags.ts. Done when a source scan fails on any withTags literal outside
-  axeTags.ts, shown red on one planted literal.
-  Fixed 2026-09-27: all 9 call sites across 7 e2e specs switched to `.withTags(AXE_TAGS)`. Guard:
-  `src/test/axeWithTagsUsesSharedConstant.test.ts` (AST scan, RED-proven on a planted literal).
 - [ ] **Q762 Real p95 page load (web and app) is unmeasured.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). scripts/slo.mjs:42,49 mark both
   page-load SLOs notMeasured. Done when both have a real measurement and sloTargetsTwoWay passes.

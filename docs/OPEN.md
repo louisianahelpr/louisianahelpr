@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 348 done, 63 partly done (fixed, protection pending), 146 open. Source of truth for work.
+- **Queue (this file):** 354 done, 63 partly done (fixed, protection pending), 140 open. Source of truth for work.
 - **Audit bus:** 11 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
@@ -56,7 +56,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 557 items — 348 done, 63 partly done (fixed, protection pending), 146 open.**
+**Queue: 557 items — 354 done, 63 partly done (fixed, protection pending), 140 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -110,11 +110,6 @@ sure someone hears it and closes it.
 - [~] **Q8 Unused exports — ratchet DONE (baseline 96 exports / 11 types on 2026-09-24, scripts/deadcode-baseline.json, enforced by deadcodeRatchet.test.ts; red if it rises). Remaining: review them with the owner.** Was: 160 at baseline, 63 dropped by e16ebdcc3.
   Lower scripts/deadcode-baseline.json to match. The ratchet test fails if the
   count rises. Review the rest with the owner (a report, not auto-delete).
-- [ ] **Q9 The required review of money/authz/data-model diffs is skipped.**
-  Agents skipped it (that is how the javascript: href reached main). Add
-  something that CATCHES a data-model/authz commit landing without a recorded
-  review, e.g. a review-log entry that CI checks for commits touching
-  supabase/migrations or RLS-sensitive files. It reports; it does not block.
 - [ ] **Q10 Owner-side, carried over:** (from Q242, 2026-09-24: dashboard-only cleanup — Slack #new-channel/#social and the Lovable/"Helpr Op" Slack apps; Checkr/Certificial/Browserbase keys and webhooks in their dashboards; extra Supabase API keys / auth providers; Stripe Connect settings.) release dispute 9756a585's payout;
   **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL — DONE 2026-09-23 by Claude in the owner's Chrome (Settings > Payouts > Manual payouts, saved, re-read after reload; no test-mode banner, so the live account); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; Louisiana IS registered and collecting (checked in the Stripe dashboard 2026-09-23: Tax > Locations, 1 registration, collecting); filing is NOT set up there ('Set up filing') — OWNER: decide whether Stripe files the returns); right-panel overlap: owner asked Claude to audit it (Q151).
   set Stripe payouts to manual; decide Louisiana sales tax; send a screenshot
@@ -139,14 +134,6 @@ sure someone hears it and closes it.
   - 6 tables have RLS enabled with no policies (deny-all; fine if server-only).
     Confirm each.
   - [DONE by Q149: leaked-password (HIBP) protection is ON.]
-- [ ] **Q16 This file is 7,600+ lines with ~205 open checkboxes.** The one
-  open-work list has become unreadable. Triage it: close what's done (verified),
-  archive history to docs/archive/, keep OPEN.md to live items.
-- [ ] **Q18 Agent isolation leak.** A worktree-isolated agent reported its cwd was
-  swapped to the SHARED main checkout mid-task (FormSpec lane, 2026-09-23). It
-  noticed and moved, but a less careful one would have committed from the shared
-  tree. Detect it: the commit hook refuses when the committing process's worktree
-  isn't the one it started in, or at least warns.
 - [ ] **Q19 Wider product/UX gap pass.** STATUS 2026-09-26 (cloud/open-audits): NOT RUN this session (time went to measurable items); still open, no change. Run lh-suggester (core-loop friction,
   missing product, growth) and an lh-audit pass on the screens touched tonight,
   then queue what they find.
@@ -389,11 +376,6 @@ sure someone hears it and closes it.
   supabase/migrations/** or scripts/vacuity/** runs `npm run gate` (or the
   relevant CI job) before it lands. Measure it: count main-red runs per day
   before and after.
-- [ ] **Q47 Sessions work in their own worktree, not the shared checkout.** On
-  2026-09-23 two sessions' commits made each other's trees lag, and an agent
-  found itself in the shared checkout mid-task. Make the session-start hook
-  create or enter a per-session worktree (or warn loudly), and treat the main
-  checkout as read-only for sessions.
 - [~] **Q119 22 clipped control labels the Q116 widening found. PROGRESS 2026-09-26: 9 closed, 13 left, and an on-screen sweep for every route.** MEASURED (built app against prod, guest, 320/375/1440): 0 clipped control labels on all 17 guest routes, except /rules at 320, where two CollapsedPolicy item TITLES clipped at their two-line clamp (sh 54 > ch 36: "Job budget limits — $10 minimum, $1,000…", "No-show — final warning, then admin…"). FIXED: the title is policy copy, so it wraps unclamped (after: 0 clipped; screenshots rules-320-before/after reviewed). The section SUBTITLES measured unclipped on /legal, /terms, /privacy, /rules at all three widths (23 of 23), recorded in KNOWN with that date. The 8 that print USER DATA now carry a `title` with the full text, since input of any length can clip: JobCardMetaRow city, BrowseSearchBar recent search, SavedSearches summary, both AddressAutocomplete lines, PetPicker breed line, PetRailRow meta, EntryChoice draft title. GUARDS: src/test/truncatedActionLabel.test.ts KNOWN drops those 9, with two new @mutate lines red (the reverted clamp, the dropped title). NEW e2e/prod-audit/clipped-labels.spec.ts measures every clipped control label on every catalog route (guest + poster-e2e) at 320/375/1440 on prod and fails on one without its full text; its detector was shown able to fail on a planted clip (252 > 80). STILL OPEN (UI copy on signed-in or interaction-only screens, still UNMEASURED in KNOWN): DatePickerField, DesktopSidebarNav, TimeRangeField, JobDetailFooter x3, NavQuickMenu x2, PetCard species, ActivitySectionedView, EntryChoice "Finish Paying", FormStep submit. The default-state ones are covered by the clipped-labels spec's first prod run (dispatched on PR #1822); menus and dialogs (NavQuickMenu, JobDetailFooter) need an opened-state pass.
 - [ ] **Q51 A regression check for the notification-panel jump.** It was fixed
   (f40193ae7: largest one-frame move 100px -> 13px) but only measured once, by
@@ -548,13 +530,6 @@ sure someone hears it and closes it.
   storage objects have built up; purge anything past a retention window on
   a schedule (dry run first); prove no real user ever sees seed data (the
   browse views already exclude it; verify every other surface).
-- [ ] **Q66 Targets ("SLOs") on the scoreboard.** **STATUS 2026-09-26 (cloud/open-ops):** scoreboard.yml measures every SLO daily and is green (run 36196711145, 2026-09-25 22:26Z), but its numbers never reach docs/SCOREBOARD.md: the live section on main is still dated 2026-09-23T06:08Z because the Q57 refresh PR #1722 (bot/refresh/scoreboard, open since 09-23, auto-merge on, every dispatched check green) is BLOCKED: GitHub holds the pull_request runs the bot's push triggers at `action_required` (8 suites on its head, e.g. Vitest 36196893503). Root cause and owner fix: Q590. Tick when a scoreboard refresh PR merges and the SLO rows show a verdict. STATUS 2026-09-23 (landed from cloud/q66-q67-slo-morning): scripts/slo.mjs defines each target with its source; live rows on the scoreboard (not-measured metrics say why); guard src/test/sloTargetsTwoWay.test.ts. Tick after the scoreboard workflow measures them on CI. Define "working" as numbers:
-  p95 page load (web + app), API error rate, uptime, payment success rate,
-  notification delivery rate, time to a payout. Show each with its target on
-  the Q59 scoreboard, red when missed.
-- [ ] **Q67 An automatic morning page.** **STATUS 2026-09-26 (cloud/open-ops):** morning-page.yml runs green daily (36162942485, 2026-09-25 16:46Z) but no page reaches main: its refresh PR #1774 (bot/refresh/morning-page, open since 09-24) is blocked the same way as #1722, by bot-triggered pull_request runs held at `action_required`. Owner fix in Q590. Tick when the first docs/morning/ page lands on main. STATUS 2026-09-23 (landed): scripts/morning-page.mjs + .github/workflows/morning-page.yml write docs/morning/YYYY-MM-DD.md daily (shipped / red / new alerts / owner decisions); guard src/test/morningPage.test.ts. The lead ran it locally and it produced a correct page. Tick after the first scheduled run commits one (needs Q57 wiring). Generated daily: what shipped (commits
-  grouped), what's red (scoreboard), new alerts, and the decisions waiting on
-  the owner. The owner should never have to ask "what happened overnight".
 - [~] **Q69 Rollback drill.** DRILLED 2026-09-26 (cloud/open-audits), recorded in docs/RUNBOOK-rollback.md's drill log: `rollback.mjs plan` dry run (29 ms, 16 steps, 0 mutating calls); the MIGRATION path end to end in PGlite on the newest migration 20260925155322 (down SQL = the previous run_missed_cron_catch_up body + grants; bad x1, revert x3: 11.9 s wall). Guard unchanged: src/test/rollbackDryRunNeverMutates.test.ts. OWNER / LEAD TO-DO (these move production, so not done from a cloud session): (1) in a quiet hour run `node scripts/rollback/rollback.mjs web --execute` with LH_ROLLBACK_CONFIRM set, time it, then `vercel promote` back; (2) the `function` path on a harmless function (e.g. brand-asset); (3) App Store Connect: time an expedited-review request or "Remove from sale" on a test build (owner only). Add each timing to the drill log; tick after (1). Re-drill quarterly. Was: Practise and time the three undo paths: a Vercel
   rollback to the previous deploy, reverting a migration (write the down
   migration, apply it in PGlite, and document the prod steps), and pulling or

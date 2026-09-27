@@ -804,6 +804,36 @@ export function renderLiveScoreboard(live) {
   return `**Live rows measured at ${live.at}.**\n\n${table(live.rows)}`;
 }
 
+/**
+ * A local `--write` without CI's secrets (SUPABASE_ACCESS_TOKEN, the linked
+ * CLI) measures many rows as UNKNOWN. On 2026-09-27 two such runs (07:06Z,
+ * 07:11Z) replaced scoreboard.yml's measured SLO verdicts (PASS 99.00% etc.,
+ * 3f08262f2) with UNKNOWN. A freshly UNKNOWN row now keeps the committed row
+ * for the same signal when that one was measured (not UNKNOWN) within
+ * MAX_LIVE_HOURS; its own measured-at column still says how old it is. Past
+ * that window the UNKNOWN stands, so a real, lasting failure still shows.
+ */
+export function carryForwardMeasured(freshLive, committed, now = new Date()) {
+  if (!committed) return freshLive;
+  const cells = (l) => l.split(/(?<!\\)\|/).slice(1, -1).map((s) => s.trim());
+  const key = (c) => `${c[0]}|${c[1]}`;
+  const kept = new Map();
+  for (const l of committed.split("\n")) {
+    if (!/^\| (?!group \||---)/.test(l)) continue;
+    const c = cells(l);
+    if (c.length !== 10 || c[2].replace(/\*/g, "") === "UNKNOWN") continue;
+    const at = /^(\d{4}-\d\d-\d\dT\d\d:\d\dZ)$/.exec(c[7]);
+    if (!at || (now - new Date(at[1])) / 36e5 > MAX_LIVE_HOURS) continue;
+    kept.set(key(c), l);
+  }
+  return freshLive.split("\n").map((l) => {
+    if (!/^\| (?!group \||---)/.test(l)) return l;
+    const c = cells(l);
+    if (c.length !== 10 || c[2].replace(/\*/g, "") !== "UNKNOWN") return l;
+    return kept.get(key(c)) ?? l;
+  }).join("\n");
+}
+
 export function renderOpenBlock(local, liveBlock) {
   const q = local.find((r) => r.signal.startsWith("OPEN.md queue"));
   const bus = local.find((r) => r.signal.startsWith("audit bus"));
@@ -920,7 +950,7 @@ async function main() {
     const dir = join(REPO, "test-results", "slo");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `slo-${live.slo.measuredAt.slice(0, 10)}.json`), JSON.stringify(live.slo, null, 2) + "\n");
-    sbLive = renderLiveScoreboard(live);
+    sbLive = carryForwardMeasured(renderLiveScoreboard(live), committedLive(sbText));
     openLive = renderLiveOpen(live);
   } else if (argv.includes("--live-from")) {
     // Q57 refresh PR: .github/workflows/scoreboard.yml measured the live rows

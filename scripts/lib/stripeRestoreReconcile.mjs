@@ -86,6 +86,8 @@ export function unlinkableReason(pi) {
   if (md.kind === "job_boost") return "job boost (create-boost-payment records no PaymentIntent id)";
   if (md.kind === "background_check") return "background-check fee (create-bgc-payment records no PaymentIntent id)";
   if (md.kind === "onboarding_fee") return "onboarding fee (pay-onboarding-fee records only profiles.onboarding_fee_paid)";
+  // TEST balance top-ups: metadata since Q425; the description matches the ones made before it.
+  if (md.kind === "platform_topup" || /^TEST-mode platform balance top-up/.test(pi?.description ?? "")) return "platform balance top-up (stripe-test-topup.yml; no DB row by design)";
   return null;
 }
 

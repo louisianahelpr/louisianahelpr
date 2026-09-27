@@ -44,6 +44,8 @@ async function main() {
     "automatic_payment_methods[enabled]": "true",
     "automatic_payment_methods[allow_redirects]": "never",
     description: "TEST-mode platform balance top-up (stripe-test-topup.yml)",
+    // restore-reconcile lists this as unlinkable (no DB row by design), never missing.
+    "metadata[kind]": "platform_topup",
   });
   const pi = await fetch(`${base}/v1/payment_intents`, { method: "POST", headers, body, signal: AbortSignal.timeout(30_000) });
   const piJson = await pi.json();

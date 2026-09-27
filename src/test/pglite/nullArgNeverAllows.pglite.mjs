@@ -94,6 +94,8 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
   is_seed boolean DEFAULT false, credential_tier integer NOT NULL DEFAULT 0, recurring_helper_id uuid, start_time time);
 -- job_announceable_to (Q392) reads the credential tier; its own gate is not under test here.
 CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
+-- are_users_blocked (20260926034721) calls is_server_context(), a noarg; stubbed before it loads.
+CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 -- is_series_party (recurring split days) reads these two.
 CREATE TABLE public.series_visit_holds (parent_job_id uuid, visit_date date, helper_id uuid);
 CREATE TABLE public.series_date_offers (parent_job_id uuid, helper_id uuid);
@@ -141,7 +143,7 @@ const classRows = [...sqlFile.matchAll(/^\s*\('([a-z_0-9]+)',\s*'(allow|absent|d
 // adds job_announceable_to (allow) and deliver_job_match (action); the
 // recurring lane (Q407) adds three.
 check("the class list parses (66 entries)", classRows.length === 66, `${classRows.length}`);
-const real = new Set([...ALLOW, ...HELPERS]);
+const real = new Set([...ALLOW, ...HELPERS, "is_server_context"]);
 for (const { fn, kind } of classRows) {
   if (real.has(fn)) continue;
   const args = kind === "noarg" ? "" : "x text";

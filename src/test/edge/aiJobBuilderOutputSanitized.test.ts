@@ -8,6 +8,8 @@
  * @mutate supabase/functions/ai-job-builder/index.ts | const jobData = sanitizeJob(JSON.parse(toolCall.function.arguments)); | const jobData = JSON.parse(toolCall.function.arguments);
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | ? r.category : "other", | ? r.category : r.category,
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | Math.min(hi, Math.max(lo, v)) | v
+ * @mutate supabase/functions/ai-job-builder/sanitize.ts | if (out.length + ch.length > max) break; | if (Array.from(out).length >= max) break;
+ * @mutate supabase/functions/ai-job-builder/sanitize.ts | for (const ch of v) { | for (const ch of v.split("")) {
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | "storm_prep", "events", "other", | "storm_prep", "other",
  * @mutate supabase/functions/ai-job-builder/index.ts | " ").trim().slice(0, 80) | " ").trim()
  */
@@ -28,6 +30,15 @@ describe("ai-job-builder output is whitelisted and bounded (A-002)", () => {
     const src = readFileSync("supabase/functions/ai-job-builder/index.ts", "utf8");
     expect(src).toContain('rawLocation.replace(/[\\r\\n]+/g, " ").trim().slice(0, 80)');
     expect(src).not.toMatch(/\$\{jobContext\.location/);
+  });
+
+  it("a cut never halves an emoji and never exceeds the form's .length cap", () => {
+    const title = (sanitizeJob({ ...base, title: "x".repeat(31) + "🔧🔧" })?.title ?? "") as string;
+    expect(title).toBe("x".repeat(31));
+    expect(title.length).toBeLessThanOrEqual(32);
+    const desc = (sanitizeJob({ ...base, description: "🔧".repeat(600) })?.description ?? "") as string;
+    expect(desc).toBe("🔧".repeat(500));
+    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(desc + title)).toBe(false);
   });
 
   it("every canonical category survives; anything else becomes 'other'", () => {

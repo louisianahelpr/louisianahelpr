@@ -21,7 +21,16 @@ const MAX_BUDGET = 1000;
 const MAX_HELPERS = 10;
 
 function str(v: unknown, max: number): string | undefined {
-  return typeof v === "string" ? v.slice(0, max).trimEnd() : undefined;
+  if (typeof v !== "string") return undefined;
+  // Cut at max UTF-16 units (the form counts .length, and that is never less
+  // than Postgres char_length), but never inside a code point: slice() alone
+  // can halve an emoji and leave a lone surrogate.
+  let out = "";
+  for (const ch of v) {
+    if (out.length + ch.length > max) break;
+    out += ch;
+  }
+  return out.trimEnd();
 }
 
 function num(v: unknown, lo: number, hi: number): number | undefined {

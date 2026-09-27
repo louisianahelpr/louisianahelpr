@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { safeStorage } from "@/lib/safeStorage";
 import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
-import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
+import { TITLE_MAX, DESCRIPTION_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { report } from "@/lib/errorLogger";
 import { requireOnline } from "@/lib/requireOnline";
 import { assertWritable } from "@/hooks/useImpersonation";
@@ -238,6 +238,13 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       if (titleLeak) { toast.error(titleLeak); scrollToField("title"); return; }
     }
     if (!description.trim()) { toast.error("Add a description."); scrollToField("description"); return; }
+    // Same reason as the title: a prefill can pass the textarea's maxLength,
+    // and the DB refuses over DESCRIPTION_MAX (jobs_description_length, Q782).
+    if (description.length > DESCRIPTION_MAX) {
+      toast.error(`Shorten your description to ${DESCRIPTION_MAX} characters — it's ${description.length - DESCRIPTION_MAX} too long.`);
+      scrollToField("description");
+      return;
+    }
     {
       const descLeak = contactLeakFieldError(description, "job description");
       if (descLeak) { toast.error(descLeak); scrollToField("description"); return; }

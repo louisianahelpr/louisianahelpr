@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 564,
+    "calls": 565,
     "files": 141,
-    "rendering": 542,
+    "rendering": 543,
     "suppressedByPolicy": 22,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 450,
+      "toast.error": 451,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 27,
@@ -18,7 +18,7 @@
     },
     "copyPiecesByForm": {
       "literal": 311,
-      "template": 72,
+      "template": 73,
       "dynamic": 221,
       "jsx": 0
     }
@@ -5364,7 +5364,17 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 243,
+      "line": 244,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Shorten your description to ${DESCRIPTION_MAX} characters — it's ${description.length - DESCRIPTION_MAX} too long."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 250,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5374,7 +5384,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 245,
+      "line": 252,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5384,7 +5394,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 246,
+      "line": 253,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5394,7 +5404,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 250,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5404,7 +5414,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 251,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5414,7 +5424,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 252,
+      "line": 259,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5424,7 +5434,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 253,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5434,7 +5444,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 254,
+      "line": 261,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5444,7 +5454,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 259,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5454,7 +5464,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 260,
+      "line": 267,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5464,7 +5474,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 269,
+      "line": 276,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5474,7 +5484,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 282,
+      "line": 289,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5484,7 +5494,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 283,
+      "line": 290,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5494,7 +5504,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 284,
+      "line": 291,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5504,7 +5514,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 288,
+      "line": 295,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5514,7 +5524,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 295,
+      "line": 302,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5524,7 +5534,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 339,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5534,7 +5544,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 348,
+      "line": 355,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5544,7 +5554,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 368,
+      "line": 375,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5554,7 +5564,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 397,
+      "line": 404,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5564,7 +5574,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 403,
+      "line": 410,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5574,7 +5584,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 558,
+      "line": 565,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5614,7 +5624,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 595,
+      "line": 602,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5628,7 +5638,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 746,
+      "line": 753,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5648,7 +5658,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 807,
+      "line": 814,
       "kind": "toast.error",
       "title": {
         "form": "literal",

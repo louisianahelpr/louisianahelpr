@@ -1,5 +1,5 @@
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
-import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
+import { TITLE_MAX, DESCRIPTION_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
 
 /**
@@ -17,6 +17,10 @@ export function detailsBlocker(f: { title: string; description: string; category
   if (!f.title.trim()) return "Add a Title to Continue";
   if (f.title.length > TITLE_MAX) return "Shorten the Title to Continue";
   if (!f.description.trim()) return "Add a Description to Continue";
+  // The DB refuses a description over 1000 (jobs_description_length, Q782);
+  // a prefill (Repost, AI builder, draft) can carry one past the textarea's
+  // maxLength, so name it here instead of failing at checkout.
+  if (f.description.length > DESCRIPTION_MAX) return "Shorten the Description to Continue";
   if (!f.category) return "Pick a Category to Continue";
   if (hasUnfilledPlaceholders(f.description)) return "Replace the [Placeholders] to Continue";
   if (contactLeakFieldError(f.title, "job title") || contactLeakFieldError(f.description, "job description"))

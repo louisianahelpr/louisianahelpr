@@ -5,7 +5,7 @@
 // description with no placeholders.
 import { describe, it, expect } from "vitest";
 import { detailsBlocker } from "./detailsBlocker";
-import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
+import { TITLE_MAX, DESCRIPTION_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 
 const ok = { title: "Deep clean a 3-bed", description: "Empty house, full turnover clean.", category: "cleaning" };
 
@@ -13,6 +13,7 @@ const CASES: [string, Partial<typeof ok>, RegExp][] = [
   ["no title", { title: "  " }, /Title/],
   ["over-long title", { title: "x".repeat(TITLE_MAX + 1) }, /Shorten the Title/],
   ["no description", { description: "" }, /Description/],
+  ["over-long description", { description: "x".repeat(DESCRIPTION_MAX + 1) }, /Shorten the Description/],
   ["no category", { category: "" }, /Category/],
   ["unfilled placeholder", { description: "Clean the [room]" }, /Placeholders/],
   ["phone number in description", { description: "Call me at 225-555-0142 about it" }, /Contact Details/],
@@ -22,9 +23,10 @@ describe("detailsBlocker names the real reason (Q353)", () => {
   it("a complete Details section has no blocker", () => {
     expect(detailsBlocker(ok)).toBeNull();
     expect(detailsBlocker({ ...ok, title: "x".repeat(TITLE_MAX) })).toBeNull();
+    expect(detailsBlocker({ ...ok, description: "x".repeat(DESCRIPTION_MAX) })).toBeNull();
   });
-  it("covers every reason (floor: 6 on 2026-09-24)", () => {
-    expect(CASES.length).toBeGreaterThanOrEqual(6);
+  it("covers every reason (7 on 2026-09-27)", () => {
+    expect(CASES.length).toBe(7);
   });
   for (const [name, patch, want] of CASES) {
     it(`${name} → ${want}`, () => {
@@ -36,3 +38,4 @@ describe("detailsBlocker names the real reason (Q353)", () => {
 });
 
 // @mutate src/pages/post-job/detailsBlocker.ts | if (f.title.length > TITLE_MAX) return "Shorten the Title to Continue"; | void TITLE_MAX;
+// @mutate src/pages/post-job/detailsBlocker.ts | if (f.description.length > DESCRIPTION_MAX) return "Shorten the Description to Continue"; | void DESCRIPTION_MAX;

@@ -61,6 +61,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # The same check CI runs; red here stops the push.
   npm run -s check:generated
 
+  # A money/authz/data-model commit with no recorded review turns main red on
+  # the "Sensitive review record" workflow (15921ea17, 2026-09-27). Check only
+  # the commits this push adds; record the review first
+  # (node scripts/check-sensitive-review.mjs record <sha> <reviewer> <verdict>).
+  node scripts/check-sensitive-review.mjs --range origin/main..HEAD --strict
+
   if [ "$DRY" = 1 ]; then
     echo "land: --dry-run, not pushing. HEAD $(git rev-parse --short HEAD)"
     exit 0

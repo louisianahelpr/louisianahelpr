@@ -9,6 +9,12 @@
  * @mutate scripts/land.sh |   npm run -s inventories:refresh |   true
  * @mutate scripts/land.sh |   npm run -s check:generated |   true
  * @mutate scripts/land.sh |     git commit -q --no-verify -m "chore: refresh generated inventories | git commit -q --no-verify --allow-empty -m "chore: refresh generated inventories
+ * @mutate scripts/land.sh |   node scripts/check-sensitive-review.mjs --range origin/main..HEAD --strict |   true
+ *
+ * Also refuses to push a money/authz/data-model commit with no recorded review:
+ * 15921ea17 (2026-09-27) landed that way and main went red on "Sensitive review
+ * record", which land.sh never ran.
+ *
  * @mutate .claude/AGENT-BRIEF.md | then `bash scripts/land.sh` | then `git push --no-verify origin HEAD:main`
  */
 import { describe, expect, it } from "vitest";
@@ -34,6 +40,7 @@ describe("scripts/land.sh keeps generated files current on main", () => {
       at(/^\s*npm run -s inventories:refresh$/m),
       at(/^\s*git commit -q --no-verify -m "chore: refresh generated inventories$/m),
       at(/^\s*npm run -s check:generated$/m),
+      at(/^\s*node scripts\/check-sensitive-review\.mjs --range origin\/main\.\.HEAD --strict$/m),
       at(/git push --no-verify origin HEAD:main/),
     ];
     expect([...order].sort((a, b) => a - b)).toEqual(order);

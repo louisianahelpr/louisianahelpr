@@ -1121,7 +1121,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### OPEN (RETRACTED as an upload bug; 33 dangling seed rows remain) — the press sweep's proof-photo 400s are failed SIGNING (2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [x] **DONE 2026-09-27 (lead): measured in press run 36275729414 (2026-09-27T03:01Z), step 'check every proof-photo reference resolves': `96 stored references checked, 96 resolved, 0 DANGLING`; the checker is wired nightly in press-every-control.yml:300.** 33 dangling is_seed proof-photo references still 400 on sign, no nightly guard wired — 33 dangling is_seed proof-photo refs still uncleared as of this entry; nightly wiring for the checker not confirmed done. (see also line 379 (#1582, says cleared to 62 refs 0 on real jobs)) (archive L30)
 
 ### CLOSED 2026-09-22 — the Messages disclosure chevron is SHIPPED BUT UNSEEN (2026-09-22, e28d5f55f)
 Reconciled 2026-09-23; detail in the archive at the line shown.

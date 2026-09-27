@@ -1391,3 +1391,7 @@ duplicate-number check).
 
 - [x] **DONE 2026-09-27 (lead): #1595 closed on green run 35796081270, #1618 closed on green run 35947190080 (issue closing comments); #1582 is still red and stays tracked by its open nightly-red issue and the press line below.** Three nightlies diagnosed; re-runs to confirm green were pending at time of writing — Diagnoses landed for #1618/#1582/#1595 causes; confirming green re-runs pending — see consolidated table at line 1948. (see also line 1948) (archive L359)
 - [x] **DONE 2026-09-27 (lead): the re-run was green, run 35796081270 closed #1595 on 2026-09-22T23:37Z.** #1595 e2e-journeys — single failure's fix (6fb3335fa) landed after the run; re-run pending — Fix 6fb3335fa landed after the failing run; the actual re-run (with new findings) is tracked at line 1275. (see also line 1275) (archive L405)
+
+## Archived 2026-09-27 — from "OPEN (RETRACTED as an upload bug; 33 dangling seed rows remain) — the press sweep's proof-photo 400s are failed SIGNING (2026-09-22)"
+
+- [x] **DONE 2026-09-27 (lead): measured in press run 36275729414 (2026-09-27T03:01Z), step 'check every proof-photo reference resolves': `96 stored references checked, 96 resolved, 0 DANGLING`; the checker is wired nightly in press-every-control.yml:300.** 33 dangling is_seed proof-photo references still 400 on sign, no nightly guard wired — 33 dangling is_seed proof-photo refs still uncleared as of this entry; nightly wiring for the checker not confirmed done. (see also line 379 (#1582, says cleared to 62 refs 0 on real jobs)) (archive L30)

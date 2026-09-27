@@ -1,24 +1,24 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 557,
-    "files": 140,
-    "rendering": 535,
+    "calls": 559,
+    "files": 141,
+    "rendering": 537,
     "suppressedByPolicy": 22,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 443,
+      "toast.error": 445,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 27,
       "toast.warning": 20
     },
     "copyPiecesByForm": {
-      "literal": 312,
-      "template": 73,
+      "literal": 313,
+      "template": 74,
       "dynamic": 212,
       "jsx": 0
     }
@@ -5723,6 +5723,26 @@
       "title": {
         "form": "literal",
         "text": "Dispute resolved — payment released to your Helpr."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/postedJobs/RecurringVisitPayments.tsx",
+      "line": 85,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't start payment: ${message}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/postedJobs/RecurringVisitPayments.tsx",
+      "line": 93,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't set up payment just yet. Please try again."
       },
       "renders": true
     },

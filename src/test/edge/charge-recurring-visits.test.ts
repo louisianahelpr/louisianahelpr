@@ -3,6 +3,12 @@
  * daily cron that funds the next visits of a recurring series by charging the
  * poster's saved card off-session, then creates the job row.
  *
+ * Q210(b): a visit of $300 or more is never charged off-session; it is parked
+ * for the payer to pay on-session. Each mutation below restores the old
+ * behaviour and must turn this file red.
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) { | if (false) {
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | if (visitPayment?.status === "pending") { | if (false) {
+ *
  * This function moves REAL MONEY with nobody present, so the tests below are
  * organised around the four ways it can move it WRONGLY, each of which was live
  * in the source before this pass:
@@ -93,6 +99,8 @@ const HELPER_ID = "helper-1";
 const POSTER_ID = "poster-1";
 /** The visit these tests follow through its three-run funding window. */
 const VISIT_DATE = "2026-09-04";
+/** The instant most runs pin the clock to (runOn(fn, "2026-09-01")). */
+const RUN_NOW = new Date("2026-09-01T06:00:00Z");
 /** The claim of VISIT_DATE by HELPER_ID (series_visit_holds.id). */
 const HOLD_ID = "hold-1";
 /** `recurring-visit:<series>:<date>:<claim>` — the key whose reach is 24h, not 3 days. */
@@ -121,7 +129,10 @@ function seriesParent(overrides: Record<string, unknown> = {}) {
     special_requirements: null,
     photos: null,
     is_flexible_schedule: false,
-    date_needed: jobLocalDateISO(-23),
+    // Relative to the pinned run date (2026-09-01), never the real clock: the
+    // runs below freeze time there, so a real-clock offset aged into the
+    // horizon and the whole file went red on 2026-09-27.
+    date_needed: jobLocalDateISO(-23, RUN_NOW),
     recurrence_days: [5],
     recurrence_weeks: 4,
     recurring_helper_id: HELPER_ID,
@@ -140,7 +151,7 @@ function seriesParent(overrides: Record<string, unknown> = {}) {
 function inertSeries(id: string) {
   return seriesParent({
     id,
-    date_needed: jobLocalDateISO(-50),
+    date_needed: jobLocalDateISO(-50, RUN_NOW),
     recurrence_days: [6],
     recurrence_weeks: 1,
   });
@@ -1182,5 +1193,170 @@ describe("charge-recurring-visits edge function", () => {
     const text = JSON.stringify(notes.map((n) => n.payload));
     expect(text).toContain("Cancel this visit from My Jobs");
     expect(text).not.toMatch(/Release the date/i);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Q210(b): $300+ visits are paid ON-SESSION (owner, 2026-09-27)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /** Pre-flight rows (column list has budget_cents) and sweep rows (payer_id). */
+  function wireVisitPayments(opts: { preflight?: TableResult; sweep?: TableResult }) {
+    scenario.reads.recurring_visit_payments = {
+      rows: [],
+      selectOverrides: [
+        { includes: "budget_cents", result: opts.preflight ?? { rows: [] } },
+        { includes: "payer_id", result: opts.sweep ?? { rows: [] } },
+      ],
+    };
+  }
+
+  function visitPaymentWrites(op: "insert" | "update") {
+    return scenario.writes.filter((w) => w.table === "recurring_visit_payments" && w.op === op);
+  }
+
+  it("a $300 visit is NOT charged off-session: it is parked pending and the payer is asked to pay", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({});
+
+    const res = await runOn(fn, "2026-09-01");
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.awaitingPayment).toBe(1);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+
+    const parked = visitPaymentWrites("insert");
+    expect(parked).toHaveLength(1);
+    const row = parked[0].payload as Record<string, unknown>;
+    expect(row).toMatchObject({
+      parent_job_id: PARENT_ID,
+      visit_date: VISIT_DATE,
+      hold_id: HOLD_ID,
+      payer_id: POSTER_ID,
+      helper_id: HELPER_ID,
+      budget_cents: 30000,
+      status: "pending",
+    });
+    expect(row.amount_cents as number).toBeGreaterThanOrEqual(30000);
+    expect(row.amount_cents).toBe(
+      (row.budget_cents as number) + (row.fee_cents as number) + (row.tax_cents as number),
+    );
+
+    const asks = scenario.writes.filter(
+      (w) => w.table === "notifications" && w.op === "insert" &&
+        JSON.stringify(w.payload).includes("Tap to pay for your next visit"),
+    );
+    expect(asks).toHaveLength(1);
+    expect((asks[0].payload as Record<string, unknown>).user_id).toBe(POSTER_ID);
+  });
+
+  it("a visit under $300 is still charged off-session exactly as before", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 250 })] } });
+    wireVisitPayments({});
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.paymentIntents.create.mock.calls[0][0].amount).toBeLessThan(30000);
+    expect(b.awaitingPayment).toBe(0);
+    expect(visitPaymentWrites("insert")).toHaveLength(0);
+    expect(insertedVisits()).toHaveLength(1);
+  });
+
+  it("a visit still waiting on the payer is neither charged nor re-parked", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { rows: [{ id: "vp-1", visit_date: VISIT_DATE, status: "pending" }] } });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(b.awaitingPayment).toBe(1);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("insert")).toHaveLength(0);
+    expect(insertedVisits()).toHaveLength(0);
+  });
+
+  it("a visit paid on-session is booked on the payer's PaymentIntent with no new charge, then marked funded", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({
+      preflight: {
+        rows: [{
+          id: "vp-1",
+          visit_date: VISIT_DATE,
+          status: "paid",
+          budget_cents: 30000,
+          fee_cents: 1500,
+          tax_cents: 0,
+          amount_cents: 31500,
+          fee_percent: 5,
+          tax_calculation_id: null,
+          stripe_payment_intent_id: "pi_onsession",
+        }],
+      },
+    });
+
+    await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    const visits = insertedVisits();
+    expect(visits).toHaveLength(1);
+    const visit = visits[0].payload as Record<string, unknown>;
+    expect(visit.stripe_payment_intent_id).toBe("pi_onsession");
+    expect(visit.budget).toBe(300);
+    const funded = visitPaymentWrites("update").find(
+      (w) => (w.payload as Record<string, unknown>).status === "funded",
+    );
+    expect(funded).toBeTruthy();
+    expect(funded!.filters).toEqual(
+      expect.arrayContaining([expect.objectContaining({ column: "status", value: "paid" })]),
+    );
+  });
+
+  it("a failed visit-payment read skips the series instead of charging it", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({ preflight: { error: { message: "boom", code: "XX000" } } });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(reasons(b)).toContain("visit-payment read failed");
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+  });
+
+  it("the sweep expires an unpaid visit on its date and refunds a paid one that was never booked", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({
+      sweep: {
+        rows: [
+          { id: "vp-late", parent_job_id: PARENT_ID, visit_date: "2026-09-01", status: "pending", payer_id: POSTER_ID, stripe_payment_intent_id: null, stripe_session_id: "cs_late" },
+          { id: "vp-orphan", parent_job_id: PARENT_ID, visit_date: "2026-09-01", status: "paid", payer_id: POSTER_ID, stripe_payment_intent_id: "pi_orphan" },
+        ],
+      },
+    });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+
+    await body(await runOn(fn, "2026-09-01"));
+
+    const statuses = visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status);
+    expect(statuses).toEqual(expect.arrayContaining(["expired", "refunded"]));
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_orphan" },
+      { idempotencyKey: "recurring-visit-refund:pi_orphan" },
+    );
+    // Review item 1B: the expired visit's Checkout link is closed too, so it can no longer take money.
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_late");
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
   });
 });

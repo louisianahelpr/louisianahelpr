@@ -1,0 +1,136 @@
+import type Stripe from "https://esm.sh/stripe@18.5.0";
+import type { WebhookContext } from "../context.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+
+/**
+ * Q210(b): the payer paid a $300+ recurring visit on-session.
+ *
+ * charge-recurring-visits never charges a visit of THREE_D_SECURE_MIN_CENTS or
+ * more off-session (owner, 2026-09-27); it parks the visit in
+ * recurring_visit_payments as 'pending' and create-payment opens a Checkout for
+ * it (kind "recurring_visit"). This flips that row pending -> paid with the
+ * PaymentIntent, then asks charge-recurring-visits to book the visit on it now
+ * (narrowed to this series). If the kick is lost, the next daily run books it.
+ *
+ * Money in, nothing booked is the failure this guards: a row that is no longer
+ * pending (expired by the visit-date sweep, or a mismatched amount) gets its
+ * PaymentIntent refunded and ops is paged. A DB error throws so Stripe retries.
+ */
+export async function settleRecurringVisitCheckout(
+  session: Stripe.Checkout.Session,
+  { stripe, supabase, logStep }: WebhookContext,
+): Promise<void> {
+  const meta = session.metadata as Record<string, string> | null;
+  const rowId = meta?.recurring_visit_payment_id;
+  if (session.payment_status !== "paid") {
+    logStep("Recurring visit checkout completed unpaid — nothing to settle", { sessionId: session.id, status: session.payment_status });
+    return;
+  }
+  const pi = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+  if (!pi) {
+    await postSlackOpsAlert({
+      kind: "custom",
+      severity: "critical",
+      title: "Recurring visit checkout paid with no PaymentIntent",
+      message: "A recurring-visit Checkout was paid but carries no PaymentIntent, so it can neither be booked nor refunded automatically. Reconcile and refund by hand.",
+      fields: { session_id: session.id, row: rowId ?? "(none)" },
+    });
+    return;
+  }
+
+  // No row id: nothing can be booked for it, so it is refunded below.
+  const { data: row, error: readErr } = rowId
+    ? await supabase
+      .from("recurring_visit_payments")
+      .select("id, parent_job_id, visit_date, status, amount_cents, payer_id, stripe_payment_intent_id")
+      .eq("id", rowId)
+      .maybeSingle()
+    : { data: null, error: null };
+  if (readErr) throw new Error(`recurring_visit_payments read failed for ${rowId}: ${readErr.message}`);
+
+  // Duplicate delivery: already settled on this same PaymentIntent.
+  if (row && row.stripe_payment_intent_id === pi && row.status !== "pending") {
+    logStep("Recurring visit payment already recorded (duplicate delivery)", { rowId, pi });
+    return;
+  }
+
+  let refundReason: string | null = null;
+  if (!rowId) refundReason = "session carries no recurring_visit_payment_id";
+  else if (!row) refundReason = "payment row not found";
+  else if (row.status !== "pending") refundReason = `payment row is '${row.status}', not pending`;
+  else if (session.amount_total !== row.amount_cents) {
+    refundReason = `amount paid ${session.amount_total} != amount owed ${row.amount_cents}`;
+  } else if ((session.currency ?? "").toLowerCase() !== "usd") {
+    refundReason = `currency is '${session.currency}', not usd`;
+  } else if (meta?.payer_id !== row.payer_id) {
+    refundReason = "session payer is not the row's payer";
+  }
+
+  if (!refundReason) {
+    const now = new Date().toISOString();
+    const { data: flipped, error: flipErr } = await supabase
+      .from("recurring_visit_payments")
+      .update({ status: "paid", stripe_payment_intent_id: pi, paid_at: now, updated_at: now })
+      .eq("id", rowId)
+      .eq("status", "pending")
+      .select("id");
+    if (flipErr) throw new Error(`recurring_visit_payments paid flip failed for ${rowId}: ${flipErr.message}`);
+    if (!flipped || flipped.length === 0) {
+      // Lost a race with the visit-date sweep (expired) between the read and here.
+      refundReason = "payment row left pending before it could be marked paid";
+    }
+  }
+
+  if (refundReason) {
+    logStep("ERROR: recurring visit paid but cannot be booked — refunding", { rowId, pi, refundReason });
+    try {
+      await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `recurring-visit-refund:${pi}` });
+    } catch (e) {
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Recurring visit paid, cannot be booked, and the refund failed",
+        message: `The payer paid ${pi} for a recurring visit that cannot be booked (${refundReason}) and the refund failed. Refund ${pi} by hand.`,
+        fields: { session_id: session.id, payment_intent: pi, row: rowId, error: (e as Error).message },
+      });
+      throw e;
+    }
+    await postSlackOpsAlert({
+      kind: "custom",
+      severity: "warning",
+      title: "Recurring visit paid but not bookable — refunded",
+      message: `A recurring-visit Checkout was paid but ${refundReason}, so ${pi} was refunded in full.`,
+      fields: { session_id: session.id, payment_intent: pi, row: rowId },
+    });
+    return;
+  }
+
+  logStep("Recurring visit paid on-session", { rowId, pi, parent: row!.parent_job_id, visitDate: row!.visit_date });
+  kickVisitBooking(String(row!.parent_job_id), logStep);
+}
+
+type EdgeRuntimeLike = { waitUntil?: (p: Promise<unknown>) => void };
+
+/** Best effort: the daily charge-recurring-visits run books it if this fails. */
+function kickVisitBooking(parentJobId: string, logStep: WebhookContext["logStep"]): void {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    logStep("No SUPABASE_URL or service key; the daily run will book the paid visit", { parentJobId });
+    return;
+  }
+  const run = fetch(`${url}/functions/v1/charge-recurring-visits?parentJobId=${encodeURIComponent(parentJobId)}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: "{}",
+    signal: AbortSignal.timeout(55_000),
+  })
+    .then(async (res) => {
+      if (!res.ok) logStep("Visit booking kick answered non-OK; the daily run will book it", { parentJobId, status: res.status, body: (await res.text()).slice(0, 200) });
+    })
+    .catch((err) => {
+      logStep("Visit booking kick failed; the daily run will book it", { parentJobId, error: err instanceof Error ? err.message : String(err) });
+    });
+  const rt = (globalThis as { EdgeRuntime?: EdgeRuntimeLike }).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(run);
+}

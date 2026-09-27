@@ -19,6 +19,7 @@ import { BulkDismissibleWrapper } from "./postedJobs/BulkDismissibleWrapper";
 import { useApplicantSignals } from "./postedJobs/useApplicantSignals";
 import { useJobAnalytics } from "./postedJobs/useJobAnalytics";
 import { ApplicantsPanel } from "./postedJobs/ApplicantsPanel";
+import { RecurringVisitPayments } from "./postedJobs/RecurringVisitPayments";
 
 interface PostedJobsTabProps {
   jobs: Job[];
@@ -408,7 +409,10 @@ export const PostedJobsTab = ({
   };
 
   if (jobs.length === 0) {
+    // A fragment, not a wrapper: with nothing waiting the DOM is unchanged.
     return (
+      <>
+      <RecurringVisitPayments userId={userId} />
       <EmptyState
         variant="inline"
         icon={Wrench}
@@ -421,6 +425,7 @@ export const PostedJobsTab = ({
           </Button>
         }
       />
+      </>
     );
   }
 
@@ -491,6 +496,8 @@ export const PostedJobsTab = ({
        and the tail stopped 245px short of the bottom (measured). A flex `gap`
        produces the identical rhythm without touching margins. */
     <div className="flex flex-col gap-section flex-1">
+      {/* Q210(b): $300+ recurring visits the payer must confirm on-session. */}
+      <RecurringVisitPayments userId={userId} />
       {/* Only with cards on screen to point at — see LocationPressHint. */}
       {!locationHintSeen && visibleJobs.length > 0 && (
         <LocationPressHint onDismiss={dismissLocationHint} />

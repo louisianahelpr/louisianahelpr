@@ -79,7 +79,7 @@ export const IDENTITY_BUCKETS = ["avatars", "user-documents", "application-attac
 
 /**
  * Top-level sections of the "Download My Data" JSON: the keys export_my_data()
- * returns (newest definition: supabase/migrations/20260927034827_export_my_data_series_and_crew_outcomes.sql) plus the
+ * returns (newest definition: supabase/migrations/20260927044821_recurring_visit_on_session_payments.sql) plus the
  * `storage_objects` the export-my-data edge function adds. Kept equal to them by
  * src/test/dataExportCoversEveryUserTable.test.ts.
  */
@@ -94,7 +94,7 @@ export const EXPORT_SECTIONS = [
   "chargeback_clawbacks", "tips", "gift_cards", "referral_codes", "referral_credits", "referrals",
   "reports", "user_blocks", "user_bans", "user_strikes", "user_violations", "user_roles",
   "legal_acceptances", "login_history", "email_tracking", "email_send_log", "suppressed_emails",
-  "job_checkins", "job_tracking", "group_job_helpers", "recurring_visit_releases", "job_revisions",
+  "job_checkins", "job_tracking", "group_job_helpers", "recurring_visit_releases", "recurring_visit_payments", "job_revisions",
   "job_completion_nudges", "job_match_queue", "disputes", "job_views", "profile_views", "pet_profiles",
   "str_calendar_connections", "thread_archives", "thread_mutes", "thread_pins", "nps_responses",
   "analytics_events", "error_logs", "admin_user_notes", "fraud_flags", "helper_shadowbans",

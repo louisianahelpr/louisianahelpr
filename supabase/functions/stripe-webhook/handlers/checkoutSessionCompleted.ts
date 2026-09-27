@@ -13,6 +13,7 @@ import { ONE_TIME_PASS_DAYS } from "../../_shared/proTiers.ts";
 import { sendGiftCardEmail } from "../../_shared/giftCardEmail.ts";
 import { giftEmailCrossesSeedBoundary } from "../../_shared/seedBoundary.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
+import { settleRecurringVisitCheckout } from "./settleRecurringVisitCheckout.ts";
 import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
 import {
   type SubscriptionLinkage,
@@ -27,6 +28,12 @@ export async function handleCheckoutSessionCompleted(
   { stripe, supabase, logStep }: WebhookContext,
 ): Promise<void> {
   const session = event.data.object as Stripe.Checkout.Session;
+  // Q210(b): a $300+ recurring visit paid on-session. Settled before the
+  // email/tier logic below, which it shares nothing with and must not depend on.
+  if ((session.metadata as Record<string, string> | null)?.kind === "recurring_visit") {
+    await settleRecurringVisitCheckout(session, { stripe, supabase, logStep });
+    return;
+  }
   const customerEmail = session.customer_email || session.customer_details?.email;
   if (!customerEmail) { logStep("No email on checkout session"); return; }
 
@@ -279,10 +286,11 @@ export async function handleCheckoutSessionCompleted(
   // that payment captured. Created from create-boost-payment.
   const kind = (session.metadata as any)?.kind;
   // Every metadata.kind a checkout writer sets (create-boost-payment,
-  // pay-onboarding-fee, create-bgc-payment, create-gift-card-checkout). A paid
+  // pay-onboarding-fee, create-bgc-payment, create-gift-card-checkout, and
+  // create-payment action "recurring_visit", settled at the top). A paid
   // session carrying any other kind matches no branch below and would be
   // skipped silently — money in, nothing delivered. Alert instead.
-  const KNOWN_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "gift_card_purchase"]);
+  const KNOWN_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "background_check", "gift_card_purchase", "recurring_visit"]);
   if (typeof kind === "string" && kind !== "" && !KNOWN_CHECKOUT_KINDS.has(kind)) {
     logStep("ERROR: checkout session with unknown metadata.kind — no handler", { kind, sessionId: session.id });
     await postSlackOpsAlert({

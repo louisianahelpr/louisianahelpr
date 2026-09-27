@@ -3942,6 +3942,115 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_visit_payments: {
+        Row: {
+          amount_cents: number
+          budget_cents: number
+          child_job_id: string | null
+          created_at: string
+          fee_cents: number
+          fee_percent: number
+          helper_id: string | null
+          hold_id: string | null
+          id: string
+          paid_at: string | null
+          parent_job_id: string
+          payer_id: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          tax_calculation_id: string | null
+          tax_cents: number
+          updated_at: string
+          visit_date: string
+        }
+        Insert: {
+          amount_cents: number
+          budget_cents: number
+          child_job_id?: string | null
+          created_at?: string
+          fee_cents: number
+          fee_percent: number
+          helper_id?: string | null
+          hold_id?: string | null
+          id?: string
+          paid_at?: string | null
+          parent_job_id: string
+          payer_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          tax_calculation_id?: string | null
+          tax_cents?: number
+          updated_at?: string
+          visit_date: string
+        }
+        Update: {
+          amount_cents?: number
+          budget_cents?: number
+          child_job_id?: string | null
+          created_at?: string
+          fee_cents?: number
+          fee_percent?: number
+          helper_id?: string | null
+          hold_id?: string | null
+          id?: string
+          paid_at?: string | null
+          parent_job_id?: string
+          payer_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          tax_calculation_id?: string | null
+          tax_cents?: number
+          updated_at?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_visit_payments_child_job_id_fkey"
+            columns: ["child_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_visit_payments_child_job_id_fkey"
+            columns: ["child_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_visit_payments_child_job_id_fkey"
+            columns: ["child_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_visit_payments_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_visit_payments_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_visit_payments_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_visit_releases: {
         Row: {
           created_at: string

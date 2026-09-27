@@ -85,7 +85,11 @@ const PATHS: Record<string, Protection> = {
   },
   "supabase/functions/charge-recurring-visits/index.ts": {
     kind: "not-job-escrow",
-    why: "refunds only the PaymentIntent it just created when the visit row did not land",
+    why: "refunds only a PaymentIntent no visit job holds: the one it just created when the visit row did not land, or a payer's on-session visit payment (Q210b) whose visit was never booked",
+  },
+  "supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts": {
+    kind: "not-job-escrow",
+    why: "refunds a payer's on-session recurring-visit Checkout (Q210b) that no pending visit payment row can take; no visit job exists for it yet",
   },
   "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts": {
     kind: "not-job-escrow",

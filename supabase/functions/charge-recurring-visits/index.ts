@@ -67,6 +67,7 @@ import {
   helperCommissionDollars,
 } from "../_shared/helperFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
 import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -100,6 +101,8 @@ const corsHeaders = {
  * flight.
  */
 const FUND_LEAD_DAYS = 3;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Per-run ceiling on charges. See the note in the loop. */
 const MAX_CHARGES_PER_RUN = 200;
@@ -243,6 +246,17 @@ serve(async (req) => {
   if (unauthorized) return unauthorized;
 
   const dryRun = new URL(req.url).searchParams.get("dryRun") === "1";
+  // Q210(b): the stripe-webhook calls this with ?parentJobId=<series> right
+  // after a payer pays a $300+ visit on-session, so the visit books at once
+  // instead of at the next daily run. Only narrows the scan; every check
+  // below still runs.
+  const onlyParentId = new URL(req.url).searchParams.get("parentJobId");
+  if (onlyParentId !== null && !UUID_RE.test(onlyParentId)) {
+    return new Response(JSON.stringify({ error: "parentJobId must be a uuid" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -265,6 +279,8 @@ serve(async (req) => {
     skippedBanned: 0,
     skippedChargeback: 0,
     declined: 0,
+    // Q210(b): $300+ visits parked for the payer to pay on-session.
+    awaitingPayment: 0,
     errors: 0,
     capped: false,
   };
@@ -324,8 +340,8 @@ serve(async (req) => {
   // churn in a money path, not safety.
   // deno-lint-ignore no-explicit-any
   type SeriesRow = Record<string, any>;
-  const seriesScan = await scanAll<SeriesRow>("recurring series", (countOpt) =>
-    supabase
+  const seriesScan = await scanAll<SeriesRow>("recurring series", (countOpt) => {
+    const q = supabase
       .from("jobs")
       .select(
         "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status",
@@ -366,7 +382,10 @@ serve(async (req) => {
       // 'completed' deliberately stays IN scope — the parent row IS visit one, so
       // it flips to completed as soon as that visit is done while visits 2..N are
       // still owed. Excluding it would end every series after its first visit.
-      .not("status", "in", "(cancelled,disputed)"));
+      .not("status", "in", "(cancelled,disputed)");
+    // Q210(b): narrowed to one series when the webhook asks.
+    return onlyParentId ? q.eq("id", onlyParentId) : q;
+  });
 
   const seriesDefect = scanDefect("recurring series", seriesScan);
   if (seriesDefect) {
@@ -374,6 +393,130 @@ serve(async (req) => {
     fail(seriesDefect);
   }
   const series = seriesScan.rows;
+
+  // Q210(b) sweep: an on-session visit payment whose date has arrived is
+  // settled here, because the loop below only looks at dates after today.
+  //   pending -> expired (never paid; nothing to refund) and the payer is told.
+  //   paid    -> funded when the visit's job row exists on that PaymentIntent,
+  //              otherwise refunded: the payer paid for a visit that was
+  //              never booked (series ended, holder left, insert refused).
+  // Skipped on a dry run and on a webhook-narrowed run (the daily run owns it).
+  if (!dryRun && !onlyParentId) {
+    const { data: stale, error: staleErr } = await supabase
+      .from("recurring_visit_payments")
+      .select("id, parent_job_id, visit_date, status, payer_id, stripe_payment_intent_id, stripe_session_id")
+      .in("status", ["pending", "paid"])
+      .lte("visit_date", today)
+      .order("visit_date", { ascending: true })
+      .limit(500);
+    if (staleErr) {
+      fail(`visit-payment sweep read failed: ${staleErr.message}`);
+    }
+    // A full page means more are waiting than one run settles: say so rather
+    // than draining a backlog one day at a time in silence.
+    if ((stale ?? []).length >= 500) {
+      fail("visit-payment sweep read a full page of 500; the rest settle on later runs");
+    }
+    for (const row of stale ?? []) {
+      if (row.status === "pending") {
+        const { data: exp, error: expErr } = await supabase
+          .from("recurring_visit_payments")
+          .update({ status: "expired", updated_at: new Date().toISOString() })
+          .eq("id", row.id)
+          .eq("status", "pending")
+          .select("id");
+        if (expErr) {
+          fail(`visit payment ${row.id}: could not expire (${expErr.message})`);
+          continue;
+        }
+        // Zero rows: the webhook marked it paid a moment ago. Tomorrow's sweep
+        // settles it as a paid row.
+        if (!exp || exp.length === 0) continue;
+        // Close its Checkout so it can no longer be paid. Best effort: an
+        // already expired/complete session refuses, and a payment that still
+        // lands is refunded by the webhook (the row is no longer pending).
+        if (row.stripe_session_id) {
+          try {
+            await stripe.checkout.sessions.expire(String(row.stripe_session_id));
+          } catch (e) {
+            console.warn(`[charge-recurring-visits] visit payment ${row.id}: Checkout not expired (${(e as Error).message})`);
+          }
+        }
+        if (row.payer_id) {
+          const link = "/posts";
+          const { data: n, error: nErr } = await supabase.from("notifications").insert({
+            user_id: row.payer_id,
+            job_id: row.parent_job_id,
+            title: "A visit wasn't booked",
+            message: `The visit on ${row.visit_date} wasn't paid in time, so it wasn't booked and you weren't charged.`,
+            type: "job_updates",
+            link,
+          }).select("id");
+          if (
+            nErr || !n ||
+            (n.length === 0 &&
+              (await seedBoundaryDropsRow(supabase, { user_id: row.payer_id, job_id: row.parent_job_id, link })) !== true)
+          ) {
+            fail(`visit payment ${row.id}: payer was not told the visit expired (${nErr?.message ?? "zero rows"})`);
+          }
+        }
+        continue;
+      }
+
+      // status === 'paid'
+      const pi = String(row.stripe_payment_intent_id);
+      const { data: booked, error: bookedErr } = await supabase
+        .from("jobs")
+        .select("id")
+        .eq("parent_job_id", row.parent_job_id)
+        .eq("date_needed", row.visit_date)
+        .eq("stripe_payment_intent_id", pi)
+        .limit(1);
+      if (bookedErr) {
+        fail(`visit payment ${row.id}: could not check whether its visit was booked (${bookedErr.message})`);
+        continue;
+      }
+      if (booked && booked.length > 0) {
+        (await settleVisitPayment(supabase, row.id, "funded", String(booked[0].id))).forEach(fail);
+        continue;
+      }
+      try {
+        await stripe.refunds.create(
+          { payment_intent: pi },
+          { idempotencyKey: `recurring-visit-refund:${pi}` },
+        );
+      } catch (e) {
+        fail(`visit payment ${row.id}: paid visit was never booked and the refund of ${pi} failed (${(e as Error).message})`);
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "critical",
+          title: "Paid recurring visit was never booked and the refund failed",
+          message: `The payer paid ${pi} on-session for the visit on ${row.visit_date}, the visit was never booked, and the refund did not go through. Refund ${pi} by hand.`,
+          fields: { payment_intent: pi, parent_job_id: String(row.parent_job_id), visit_date: String(row.visit_date) },
+        });
+        continue;
+      }
+      (await settleVisitPayment(supabase, row.id, "refunded", null)).forEach(fail);
+      if (row.payer_id) {
+        const link = "/posts";
+        const { data: n, error: nErr } = await supabase.from("notifications").insert({
+          user_id: row.payer_id,
+          job_id: row.parent_job_id,
+          title: "Your visit payment was refunded",
+          message: `The visit on ${row.visit_date} couldn't be booked, so we refunded what you paid for it.`,
+          type: "job_updates",
+          link,
+        }).select("id");
+        if (
+          nErr || !n ||
+          (n.length === 0 &&
+            (await seedBoundaryDropsRow(supabase, { user_id: row.payer_id, job_id: row.parent_job_id, link })) !== true)
+        ) {
+          fail(`visit payment ${row.id}: payer was not told of the refund (${nErr?.message ?? "zero rows"})`);
+        }
+      }
+    }
+  }
 
   for (const parent of series) {
     // Already at the ceiling: every remaining series would do two pre-flight
@@ -471,13 +614,25 @@ serve(async (req) => {
       // this series this run and say so. A skipped series is recoverable: the
       // date stays inside FUND_LEAD_DAYS for up to two more daily runs. A
       // wrongly-charged visit is not.
-      const [existingRes, holdsRes] = await Promise.all([
+      //
+      //   `visitPayments` (Q210b) the live on-session payment rows for these
+      //               dates. Empty from a failed read would mean "no row", and a
+      //               $300+ visit with no row gets a SECOND pending row asked of
+      //               the payer (refused by the unique index, but a paid row read
+      //               as absent would also skip booking the money it holds).
+      const [existingRes, holdsRes, visitPaymentsRes] = await Promise.all([
         supabase.from("jobs").select("date_needed").eq("parent_job_id", parent.id).in("date_needed", due),
         supabase
           .from("series_visit_holds")
           .select("id, visit_date, helper_id")
           .eq("parent_job_id", parent.id)
           .in("visit_date", due),
+        supabase
+          .from("recurring_visit_payments")
+          .select("id, visit_date, status, budget_cents, fee_cents, tax_cents, amount_cents, fee_percent, tax_calculation_id, stripe_payment_intent_id")
+          .eq("parent_job_id", parent.id)
+          .in("visit_date", due)
+          .in("status", ["pending", "paid"]),
       ]);
       if (existingRes.error) {
         console.error(
@@ -495,6 +650,16 @@ serve(async (req) => {
         fail(`series ${parent.id}: holds read failed (${holdsRes.error.message})`);
         continue;
       }
+      if (visitPaymentsRes.error) {
+        console.error(
+          `[charge-recurring-visits] visit-payment read failed for series ${parent.id}; skipping the series`,
+          visitPaymentsRes.error,
+        );
+        fail(`series ${parent.id}: visit-payment read failed (${visitPaymentsRes.error.message})`);
+        continue;
+      }
+      const visitPayments = new Map<string, VisitPaymentRow>();
+      for (const r of (visitPaymentsRes.data ?? []) as VisitPaymentRow[]) visitPayments.set(r.visit_date, r);
       const alreadyThere = new Set(
         ((existingRes.data ?? []) as Array<{ date_needed: string }>).map((r) => r.date_needed),
       );
@@ -585,8 +750,24 @@ serve(async (req) => {
           break;
         }
 
+        // ── Q210(b): $300+ visits are paid ON-SESSION, never off it ─────────
+        // A pending row: the payer has been asked and has not paid yet. No
+        // charge, no visit. A paid row: the payer paid through Checkout (3DS
+        // could run), so the visit is booked on THAT PaymentIntent below, at
+        // the amounts they were shown, and nothing is charged here.
+        const visitPayment = visitPayments.get(visitDate);
+        if (visitPayment?.status === "pending") {
+          results.awaitingPayment++;
+          continue;
+        }
+        const paidRow = visitPayment?.status === "paid" && visitPayment.stripe_payment_intent_id
+          ? visitPayment
+          : null;
+
         // ── What this visit costs ──────────────────────────────────────────
-        const budgetCents = Math.round(Number(parent.budget) * 100);
+        const budgetCents = paidRow
+          ? paidRow.budget_cents
+          : Math.round(Number(parent.budget) * 100);
 
         const { data: posterProfile, error: posterErr } = await supabase
           .from("profiles")
@@ -599,7 +780,7 @@ serve(async (req) => {
           continue;
         }
 
-        const feePercent = posterFeePercentForTier(
+        const feePercent = paidRow ? Number(paidRow.fee_percent) : posterFeePercentForTier(
           posterProfile.subscription_tier as string | null,
           posterProfile.subscription_expires_at as string | null,
         );
@@ -625,12 +806,13 @@ serve(async (req) => {
         // `tax.calculations` is the exact call `calculate-tax` makes for the
         // checkout quote, with the same labor tax_code, so the recurring visit
         // and the first visit are computed from identical inputs.
-        let taxCents = 0;
+        let taxCents = paidRow ? paidRow.tax_cents : 0;
         // ME-014: kept so the calculation can be committed as a Stripe Tax
         // transaction once the visit exists (off-session PaymentIntents get no
         // automatic_tax, so nothing else ever reports this tax).
-        let taxCalculationId: string | null = null;
-        if (isLaborTaxable(parent.category as string)) {
+        let taxCalculationId: string | null = paidRow ? paidRow.tax_calculation_id : null;
+        // A paid row carries the tax the payer was charged; no new calculation.
+        if (!paidRow && isLaborTaxable(parent.category as string)) {
           try {
             const calc = await stripe.tax.calculations.create({
               currency: "usd",
@@ -666,8 +848,33 @@ serve(async (req) => {
 
         // ME-014: the fee's Stripe-cost floor must cover the WHOLE charge,
         // tax included (posterFees.ts), so it is computed after the tax.
-        const feeCents = posterServiceFeeCents(budgetCents, feePercent, taxCents);
+        const computedFeeCents = posterServiceFeeCents(budgetCents, feePercent, taxCents);
+        const feeCents = paidRow ? paidRow.fee_cents : computedFeeCents;
         const totalCents = budgetCents + feeCents + taxCents;
+
+        // $300 and up: park it for the payer to pay on-session (owner decision
+        // 2026-09-27). An off-session charge cannot answer a 3D Secure
+        // challenge, so it is never attempted at this size. Under $300 nothing
+        // below changes.
+        if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) {
+          if (dryRun) {
+            results.awaitingPayment++;
+            continue;
+          }
+          const parked = await parkForOnSessionPayment(supabase, parent, {
+            visitDate,
+            holdId: hold.id,
+            holderId,
+            budgetCents,
+            feeCents,
+            taxCents,
+            feePercent,
+            taxCalculationId,
+          });
+          parked.failures.forEach(fail);
+          if (parked.parked) results.awaitingPayment++;
+          continue;
+        }
 
         // The HELPER's commission, which is a different number in a different
         // column from the poster's service fee above. `create-payment` sets the
@@ -710,7 +917,7 @@ serve(async (req) => {
         // real commission — but it is what admin reporting and the helper's
         // estimate read until then, so it must round like money.
         const helperFeeAmount = helperCommissionDollars(
-          Number(parent.budget),
+          budgetCents / 100,
           helperFeePercent,
         );
 
@@ -746,7 +953,8 @@ serve(async (req) => {
         // byte the old behaviour: the same card on the same customer, or the
         // same `no_saved_card` decline. It only differs where the old code was
         // wrong.
-        const customers = await stripe.customers.list({
+        // Q210(b): a paid row already holds the money; no card is looked up.
+        const customers = paidRow ? { data: [] as Array<{ id: string }> } : await stripe.customers.list({
           email: posterProfile.email as string,
           limit: MAX_CUSTOMER_RECORDS,
         });
@@ -774,7 +982,7 @@ serve(async (req) => {
           }
         }
 
-        if (!customerId || !paymentMethodId) {
+        if (!paidRow && (!customerId || !paymentMethodId)) {
           (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "no_saved_card")).forEach(fail);
           results.declined++;
           continue;
@@ -813,7 +1021,13 @@ serve(async (req) => {
 
         // ONE call site, but up to TWO attempts on the SAME key — see
         // `attemptVisitCharge`. A network fault here is not a decline.
-        const outcome = await attemptVisitCharge(
+        // Q210(b): a visit the payer paid on-session books on that intent.
+        const outcome: ChargeOutcome = paidRow
+          ? {
+            kind: "ok",
+            intent: { id: paidRow.stripe_payment_intent_id, status: "succeeded" } as Stripe.PaymentIntent,
+          }
+          : await attemptVisitCharge(
           stripe,
           {
                 amount: totalCents,
@@ -909,7 +1123,9 @@ serve(async (req) => {
             title: parent.title,
             description: parent.description,
             category: parent.category,
-            budget: parent.budget,
+            // budgetCents is parent.budget in cents, or the budget the payer
+            // paid on-session for a Q210(b) visit.
+            budget: budgetCents / 100,
             date_needed: visitDate,
             start_time: parent.start_time,
             location: parent.location,
@@ -1001,6 +1217,9 @@ serve(async (req) => {
               console.log(
                 `[charge-recurring-visits] visit ${parent.id} ${visitDate} was created by a concurrent run on this same PaymentIntent; skipping (no refund — it backs that row).`,
               );
+              if (paidRow) {
+                (await settleVisitPayment(supabase, paidRow.id, "funded", String(winner.id))).forEach(fail);
+              }
               results.skippedExisting++;
               continue;
             }
@@ -1020,6 +1239,9 @@ serve(async (req) => {
                 fail(
                   `series ${parent.id} ${visitDate}: duplicate charge ${intent.id} refunded (visit already funded by ${String(winner.stripe_payment_intent_id)})`,
                 );
+                if (paidRow) {
+                  (await settleVisitPayment(supabase, paidRow.id, "refunded", null)).forEach(fail);
+                }
               } catch (refundErr) {
                 await postSlackOpsAlert({
                   kind: "custom",
@@ -1097,6 +1319,10 @@ serve(async (req) => {
             );
             continue;
           }
+          // Q210(b): the on-session payment was given back; its row says so.
+          if (paidRow) {
+            (await settleVisitPayment(supabase, paidRow.id, "refunded", null)).forEach(fail);
+          }
           if (seriesEndedMidRun) {
             console.log(
               `[charge-recurring-visits] series ${parent.id} ended before ${visitDate} was booked; charge ${intent.id} refunded.`,
@@ -1115,6 +1341,11 @@ serve(async (req) => {
             `series ${parent.id} ${visitDate}: visit insert failed after charge ${intent.id} (${childErr?.message ?? "no row returned"})`,
           );
           continue;
+        }
+
+        // Q210(b): the on-session payment now backs a visit.
+        if (paidRow) {
+          (await settleVisitPayment(supabase, paidRow.id, "funded", String(child.id))).forEach(fail);
         }
 
         // ME-014: the charge stands and the visit exists, so the tax collected
@@ -1430,4 +1661,109 @@ async function notifyPosterCardProblem(
   }
 
   return failures;
+}
+
+// ── Q210(b): on-session payment for $300+ visits ─────────────────────────────
+
+type VisitPaymentRow = {
+  id: string;
+  visit_date: string;
+  status: string;
+  budget_cents: number;
+  fee_cents: number;
+  tax_cents: number;
+  amount_cents: number;
+  fee_percent: number | string;
+  tax_calculation_id: string | null;
+  stripe_payment_intent_id: string | null;
+};
+
+/** paid -> funded/refunded. Conditional on 'paid' so two runs cannot both settle. */
+async function settleVisitPayment(
+  supabase: AdminClient,
+  id: string,
+  status: "funded" | "refunded",
+  childJobId: string | null,
+): Promise<string[]> {
+  const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+  if (childJobId) patch.child_job_id = childJobId;
+  const { data, error } = await supabase
+    .from("recurring_visit_payments")
+    .update(patch)
+    .eq("id", id)
+    .eq("status", "paid")
+    .select("id");
+  if (error || !data || data.length === 0) {
+    return [`visit payment ${id}: could not mark ${status} (${error?.message ?? "zero rows"})`];
+  }
+  return [];
+}
+
+/**
+ * A visit costing THREE_D_SECURE_MIN_CENTS or more is never charged off-session
+ * (owner, 2026-09-27): 3DS needs the payer present. Park it as a pending
+ * payment and tell the payer to pay it on-session.
+ */
+async function parkForOnSessionPayment(
+  supabase: AdminClient,
+  parent: Record<string, unknown>,
+  v: {
+    visitDate: string;
+    holdId: string;
+    holderId: string | null;
+    budgetCents: number;
+    feeCents: number;
+    taxCents: number;
+    feePercent: number;
+    taxCalculationId: string | null;
+  },
+): Promise<{ parked: boolean; failures: string[] }> {
+  const failures: string[] = [];
+  const amountCents = v.budgetCents + v.feeCents + v.taxCents;
+  const { data, error } = await supabase.from("recurring_visit_payments").insert({
+    parent_job_id: parent.id,
+    visit_date: v.visitDate,
+    hold_id: v.holdId,
+    payer_id: parent.customer_id,
+    helper_id: v.holderId,
+    budget_cents: v.budgetCents,
+    fee_cents: v.feeCents,
+    tax_cents: v.taxCents,
+    amount_cents: amountCents,
+    fee_percent: v.feePercent,
+    tax_calculation_id: v.taxCalculationId,
+    status: "pending",
+  }).select("id");
+  if (error) {
+    // A live row already exists for this date: another run parked it first.
+    if ((error as { code?: string }).code === "23505") return { parked: true, failures };
+    failures.push(`series ${parent.id} ${v.visitDate}: could not park $300+ visit for on-session payment (${error.message})`);
+    return { parked: false, failures };
+  }
+  if (!data || data.length === 0) {
+    failures.push(`series ${parent.id} ${v.visitDate}: parking the $300+ visit returned zero rows`);
+    return { parked: false, failures };
+  }
+
+  const dollars = (amountCents / 100).toFixed(2);
+  const { data: rows, error: nErr } = await supabase.from("notifications").insert({
+    user_id: parent.customer_id,
+    job_id: parent.id,
+    title: "Tap to pay for your next visit",
+    message: `"${parent.title}" on ${v.visitDate} is $${dollars}. Payments this size need you to confirm them, so tap to pay and we'll book the visit.`,
+    type: "job_updates",
+    link: "/posts",
+  }).select("id");
+  if (
+    nErr || !rows ||
+    (rows.length === 0 &&
+      (await seedBoundaryDropsRow(supabase, {
+        user_id: parent.customer_id as string,
+        job_id: parent.id as string,
+        link: "/posts",
+      })) !== true)
+  ) {
+    failures.push(`series ${parent.id} ${v.visitDate}: payer was not told to pay the visit (${nErr?.message ?? "zero rows"})`);
+  }
+  return { parked: true, failures };
 }

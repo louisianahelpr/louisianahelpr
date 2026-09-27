@@ -22,7 +22,7 @@ const REPO = resolve(__dirname, "../../..");
  * key to auth.users or profiles (fkUserColumns).
  */
 const USER_COLUMN_RE =
-  /^(?:user_id|\w+_user_id|customer_id|helper_id|\w+_helper_id|reviewer_id|reviewee_id|sender_id|receiver_id|recipient_id|donor_id|tipper_id|opener_id|owner_id|reporter_id|reported_id|blocker_id|blocked_id|referrer_id|referred_id|admin_id|applicant_id|viewer_id|searcher_id|\w+_by|email|\w+_email|email_sha256|assigned_to)$/;
+  /^(?:user_id|\w+_user_id|customer_id|helper_id|\w+_helper_id|reviewer_id|reviewee_id|sender_id|receiver_id|recipient_id|donor_id|tipper_id|payer_id|opener_id|owner_id|reporter_id|reported_id|blocker_id|blocked_id|referrer_id|referred_id|admin_id|applicant_id|viewer_id|searcher_id|\w+_by|email|\w+_email|email_sha256|assigned_to)$/;
 
 /** table → columns, from the `public.Tables` block of the generated types only (views excluded). */
 export function publicTables(): Map<string, Set<string>> {
@@ -121,6 +121,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   job_tracking: { by: ["helper_id"] },
   group_job_helpers: { by: ["helper_id"] },
   recurring_visit_releases: { by: ["helper_id"] },
+  recurring_visit_payments: { by: ["payer_id", "helper_id"] },
   job_revisions: { by: ["requested_by"] },
   job_completion_nudges: { by: ["resolved_by"] },
   disputes: { by: ["opener_id"] },

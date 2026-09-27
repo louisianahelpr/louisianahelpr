@@ -28,6 +28,7 @@
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | payment_method_options: threeDSecureOptions(chargeCents), | payment_method_options: undefined,
  * @mutate supabase/functions/create-payment/index.ts | const abandonedChallenge = prior.status === "open" && priorPi?.status === "requires_action"; | const abandonedChallenge = false;
  * @mutate supabase/functions/create-payment/index.ts |               await stripe.paymentIntents.cancel(priorPi.id); |               void priorPi;
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) { | if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -59,7 +60,17 @@ const EXEMPT: Record<string, { maxCents: number; why: string }> = {
   "pay-onboarding-fee": { maxCents: ONBOARDING_FEE_CENTS, why: "one-time $2 onboarding fee" },
 };
 
-function functionSources(): Array<{ fn: string; src: string }> {
+/**
+ * Every edge function that charges a saved card off-session (no payer present,
+ * so no 3DS challenge can run). Owner 2026-09-27 (Q210b): recurring visits of
+ * $300+ go to an on-session Checkout instead; auto-tips stay off-session.
+ */
+const OFF_SESSION: Record<string, { kind: "gated" } | { kind: "exempt"; why: string }> = {
+  "charge-recurring-visits": { kind: "gated" },
+  "auto-tip-charge": { kind: "exempt", why: "owner 2026-09-27 (Q210b): auto-tips stay off-session" },
+};
+
+function functionSources():Array<{ fn: string; src: string }> {
   return readdirSync(FN_DIR)
     .filter((d) => !d.startsWith("_") && statSync(join(FN_DIR, d)).isDirectory())
     .flatMap((d) => {
@@ -125,6 +136,24 @@ describe("3D Secure on large card charges (Q202)", () => {
     for (const [fn, ex] of Object.entries(EXEMPT)) {
       expect(ex.maxCents, `${fn} (${ex.why}) can charge $300+, so it needs 3DS`).toBeLessThan(THREE_D_SECURE_MIN_CENTS);
     }
+  });
+
+  it("every off-session charge is gated below $300 (on-session Checkout above) or owner-exempt (Q210b)", () => {
+    const found: string[] = [];
+    for (const { fn, src } of functionSources()) {
+      const at = src.search(/off_session:\s*true/);
+      if (at < 0) continue;
+      found.push(fn);
+      const rule = OFF_SESSION[fn];
+      expect(rule, `${fn} charges off-session with no 3DS rule: gate it at THREE_D_SECURE_MIN_CENTS or list it in OFF_SESSION`).toBeDefined();
+      if (rule?.kind === "gated") {
+        const gate = src.search(/totalCents\s*>=\s*THREE_D_SECURE_MIN_CENTS\)\s*\{[\s\S]{0,400}?parkForOnSessionPayment\(/);
+        expect(gate, `${fn}: no $300 gate routing to the on-session payment`).toBeGreaterThanOrEqual(0);
+        expect(gate, `${fn}: the $300 gate must come before the off-session charge`).toBeLessThan(at);
+      }
+    }
+    // Exact both ways: a stale entry fails too.
+    expect(found.sort()).toEqual(Object.keys(OFF_SESSION).sort());
   });
 
   it("no client code confirms a PaymentIntent itself: requires_action is handled by hosted Checkout on web and native", () => {

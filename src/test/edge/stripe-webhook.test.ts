@@ -20,7 +20,7 @@
  * Runs the REAL function source via the edge harness; only Stripe, Supabase,
  * the Slack alerter, and the Deno runtime are doubled.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
@@ -1841,3 +1841,109 @@ describe("stripe-webhook edge function", () => {
 // "bad signature" case red. A webhook whose signature verification can be
 // removed with every test still green is the worst possible hollow guard.
 // @mutate supabase/functions/stripe-webhook/index.ts | return await stripe.webhooks.constructEventAsync(body, sig, secret); | return JSON.parse(body) as Stripe.Event;
+
+/*
+ * Q210(b): a $300+ recurring visit is paid on-session through a Checkout of
+ * kind "recurring_visit". Money that cannot be booked is refunded, never kept.
+ *
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   else if (!row) refundReason = "payment row not found"; |   else if (false) refundReason = "payment row not found";
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   } else if (meta?.payer_id !== row.payer_id) { |   } else if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   } else if ((session.currency ?? "").toLowerCase() !== "usd") { |   } else if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   else if (row.status !== "pending") refundReason | else if (false) refundReason
+ */
+describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  const ROW = {
+    id: "rvp-1",
+    parent_job_id: "parent-1",
+    visit_date: "2026-10-01",
+    status: "pending",
+    amount_cents: 31500,
+    payer_id: "poster-1",
+    stripe_payment_intent_id: null,
+  };
+
+  async function deliver(meta: Record<string, string>, over: Record<string, unknown> = {}) {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: `evt_rv_${Math.random()}`,
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_rv",
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: "pi_rv",
+          amount_total: 31500,
+          currency: "usd",
+          metadata: { kind: "recurring_visit", ...meta },
+          ...over,
+        },
+      },
+    });
+    return fn.fetch(webhookRequest(fn, "{}"));
+  }
+
+  const flips = () =>
+    scenario.writes.filter((w) => w.table === "recurring_visit_payments" && w.op === "update");
+
+  it("marks a pending row paid when payer, amount and currency match", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.writeSelectRows.recurring_visit_payments = [{ id: "rvp-1" }];
+    const kick = vi.fn(async () => new Response("{}"));
+    vi.stubGlobal("fetch", kick);
+    try {
+      const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+      expect(res.status).toBe(200);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect((flips()[0]?.payload as Record<string, unknown>).status).toBe("paid");
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    // Books the paid visit now, narrowed to this series.
+    expect(String((kick.mock.calls[0] as unknown[])?.[0])).toContain("/functions/v1/charge-recurring-visits?parentJobId=parent-1");
+  });
+
+  it("refunds a paid session that carries no row id", async () => {
+    await deliver({ payer_id: "poster-1" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_rv" },
+      { idempotencyKey: "recurring-visit-refund:pi_rv" },
+    );
+    expect(flips()).toHaveLength(0);
+  });
+
+  it("refunds a paid session whose row id matches no row", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [] };
+    await deliver({ recurring_visit_payment_id: "rvp-missing", payer_id: "poster-1" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(flips()).toHaveLength(0);
+  });
+
+  it("refunds when the session's payer is not the row's payer", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "someone-else" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(flips()).toHaveLength(0);
+  });
+
+  it("refunds a non-usd payment", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" }, { currency: "eur" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(flips()).toHaveLength(0);
+  });
+
+  it("refunds a payment for a row the sweep already expired", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(flips()).toHaveLength(0);
+  });
+});

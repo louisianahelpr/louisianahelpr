@@ -1345,6 +1345,158 @@ serve(async (req) => {
       });
     }
 
+    // ─── RECURRING VISIT: on-session payment for a $300+ visit (Q210b) ───
+    // charge-recurring-visits never charges a visit of THREE_D_SECURE_MIN_CENTS
+    // or more off-session (owner, 2026-09-27): 3D Secure needs the payer there.
+    // It parks the visit in recurring_visit_payments as 'pending'; this opens a
+    // Checkout for exactly that row's amount. The webhook marks it 'paid' and
+    // the cron books the visit on that PaymentIntent.
+    if (action === "recurring_visit") {
+      const paymentId = typeof body.paymentId === "string" ? body.paymentId : "";
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentId)) {
+        throw new PublicError("Missing visit payment");
+      }
+      const { data: row, error: rowErr } = await supabaseAdmin
+        .from("recurring_visit_payments")
+        .select("id, parent_job_id, visit_date, payer_id, status, budget_cents, fee_cents, tax_cents, amount_cents, stripe_session_id")
+        .eq("id", paymentId)
+        .maybeSingle();
+      if (rowErr) {
+        console.error("[create-payment] recurring_visit — row read failed:", rowErr);
+        throw new PublicError("Could not load this visit payment — please try again");
+      }
+      if (!row || row.payer_id !== user.id) throw new PublicError("Visit payment not found");
+      if (row.status !== "pending") throw new PublicError("This visit is no longer waiting for payment");
+      const todayUtc = new Date().toISOString().slice(0, 10);
+      if (String(row.visit_date) <= todayUtc) throw new PublicError("This visit's payment window has closed");
+
+      const { data: parent, error: parentErr } = await supabaseAdmin
+        .from("jobs")
+        .select("id, title, status, series_ended_on, customer_id")
+        .eq("id", row.parent_job_id)
+        .maybeSingle();
+      if (parentErr) {
+        console.error("[create-payment] recurring_visit — series read failed:", parentErr);
+        throw new PublicError("Could not load this series — please try again");
+      }
+      if (!parent || parent.customer_id !== user.id || parent.series_ended_on || parent.status === "cancelled") {
+        throw new PublicError("This series has ended");
+      }
+
+      // Reuse the open session so a double tap or a return visit never opens a
+      // second Checkout for the same visit. A prior session that is not reused
+      // is EXPIRED before a new one exists, and if that cannot be confirmed no
+      // new one is made: two payable sessions for one visit is a double charge.
+      if (row.stripe_session_id) {
+        let prior: Stripe.Checkout.Session | null = null;
+        try {
+          prior = await stripe.checkout.sessions.retrieve(row.stripe_session_id);
+        } catch (e) {
+          console.warn("[create-payment] recurring_visit — could not read the prior session:", e);
+        }
+        if (prior?.status === "open" && prior.url) {
+          return new Response(JSON.stringify({ url: prior.url }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+          });
+        }
+        if (prior?.status === "complete") throw new PublicError("This visit is already paid");
+        if (prior?.status !== "expired") {
+          try {
+            await stripe.checkout.sessions.expire(row.stripe_session_id);
+          } catch (e) {
+            console.error("[create-payment] recurring_visit — prior session not expired, refusing a second:", e);
+            throw new PublicError("Could not start this payment — please try again");
+          }
+        }
+      }
+
+      // Stripe needs at least 30 minutes; close it by the visit date at the
+      // latest (the cron expires the row that day) and within 24 hours. Built
+      // from a 10-minute bucket so a retry sends the SAME params under the same
+      // idempotency key (a changed expires_at would be refused for 24h).
+      const bucketSec = Math.floor(Date.now() / 1000 / 600) * 600;
+      const visitStartSec = Math.floor(Date.parse(`${row.visit_date}T00:00:00Z`) / 1000);
+      // Too close to the visit to pay before it: the payment would be refunded.
+      if (visitStartSec - bucketSec < 40 * 60) throw new PublicError("This visit's payment window has closed");
+      const expiresAt = Math.min(bucketSec + 24 * 60 * 60, visitStartSec);
+
+      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+        {
+          price_data: {
+            currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
+            product_data: { name: `Visit — ${parent.title} on ${row.visit_date}`, tax_code: NONTAXABLE_TAX_CODE },
+            unit_amount: row.budget_cents,
+          },
+          quantity: 1,
+        },
+      ];
+      if (row.fee_cents > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
+            product_data: { name: "Service fee", tax_code: NONTAXABLE_TAX_CODE },
+            unit_amount: row.fee_cents,
+          },
+          quantity: 1,
+        });
+      }
+      if (row.tax_cents > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
+            product_data: { name: "Sales tax", tax_code: NONTAXABLE_TAX_CODE },
+            unit_amount: row.tax_cents,
+          },
+          quantity: 1,
+        });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        line_items: lineItems,
+        mode: "payment",
+        payment_method_types: ["card"],
+        // The reason this path exists: 3D Secure from $300 (Q202).
+        payment_method_options: threeDSecureOptions(row.amount_cents),
+        payment_intent_data: {
+          description: `Helpr recurring visit — ${parent.title} on ${row.visit_date}`,
+          // No transfer_data: escrow, exactly like the off-session visit charge.
+          // No job_id: paymentIntentPaymentFailed reads pi.metadata.job_id as
+          // "this job's escrow charge failed".
+          metadata: {
+            type: "recurring_visit",
+            parent_job_id: String(row.parent_job_id),
+            visit_date: String(row.visit_date),
+            recurring_visit_payment_id: row.id,
+          },
+        },
+        expires_at: expiresAt,
+        success_url: buildRedirectUrl(`/posts?visit=paid`, isNative),
+        cancel_url: buildRedirectUrl(`/posts`, isNative),
+        metadata: { kind: "recurring_visit", recurring_visit_payment_id: row.id, payer_id: user.id },
+      }, {
+        idempotencyKey: `recurring-visit-checkout:${row.id}:${row.stripe_session_id ?? "first"}:${bucketSec}`,
+      });
+
+      const { data: stored, error: storeErr } = await supabaseAdmin
+        .from("recurring_visit_payments")
+        .update({ stripe_session_id: session.id, updated_at: new Date().toISOString() })
+        .eq("id", row.id)
+        .eq("status", "pending")
+        .select("id");
+      if (storeErr || !stored || stored.length === 0) {
+        console.error("[create-payment] recurring_visit — session id not stored:", storeErr ?? "zero rows");
+        throw new PublicError("Could not start this payment — please try again");
+      }
+
+      return new Response(JSON.stringify({ url: session.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+      });
+    }
+
     // ─── CANCEL ESCROW ───
     if (action === "cancel_escrow") {
       const { jobId } = body;

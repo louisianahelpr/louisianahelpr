@@ -13,7 +13,7 @@
  * (auth, ownership checks, idempotency guards, fee math, payout scheduling)
  * is exercised exactly as it runs in production.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
@@ -3004,3 +3004,97 @@ describe("create-payment edge function", () => {
 //   × tags the Quick Release transfer with the job's transfer_group …
 //   AssertionError: expected { amount: 8800, … } to match object { transfer_group: 'job_job-1' }
 // @mutate supabase/functions/create-payment/index.ts | answered (round 3, H2).\n      transfer_group: `job_${jobId}`, | answered (round 3, H2).
+
+/*
+ * Q210(b): a $300+ recurring visit is paid on-session. The payer's "Pay"
+ * button opens a Checkout for exactly the parked row; never two payable
+ * sessions for one visit, never one that cannot finish before the visit.
+ *
+ * @mutate supabase/functions/create-payment/index.ts |             throw new PublicError("Could not start this payment — please try again");\n          }\n        }\n      } |             console.warn("swallowed");\n          }\n        }\n      }
+ * @mutate supabase/functions/create-payment/index.ts |       if (visitStartSec - bucketSec < 40 * 60) throw | if (false) throw
+ * @mutate supabase/functions/create-payment/index.ts |       if (!row \|\| row.payer_id !== user.id) throw | if (!row) throw
+ * @mutate supabase/functions/create-payment/index.ts |         payment_method_options: threeDSecureOptions(row.amount_cents), |
+ */
+describe("create-payment: recurring_visit (Q210b)", () => {
+  const PAYMENT_ID = "11111111-2222-4333-8444-555555555555";
+  const ROW = {
+    id: PAYMENT_ID,
+    parent_job_id: "parent-1",
+    visit_date: "2026-10-02",
+    payer_id: POSTER.id,
+    status: "pending",
+    budget_cents: 30000,
+    fee_cents: 1500,
+    tax_cents: 0,
+    amount_cents: 31500,
+    stripe_session_id: null as string | null,
+  };
+
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-01T12:00:00Z"));
+    seedAuth(scenario, POSTER);
+    scenario.reads.jobs = {
+      rows: [{ id: "parent-1", title: "Weekly clean", status: "in_progress", series_ended_on: null, customer_id: POSTER.id }],
+    };
+    scenario.writeSelectRows.recurring_visit_payments = [{ id: PAYMENT_ID }];
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_new", url: "https://checkout.stripe.test/cs_new" });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function pay() {
+    const fn = await load();
+    return fn.fetch(fn.request({ headers: AUTH, body: { action: "recurring_visit", paymentId: PAYMENT_ID } }));
+  }
+
+  it("opens a 3D Secure Checkout for the row's exact amount", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    const res = await pay();
+    expect(res.status).toBe(200);
+    expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_new");
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0] as [Record<string, unknown>];
+    const lines = params.line_items as Array<{ price_data: { unit_amount: number } }>;
+    expect(lines.reduce((a, l) => a + l.price_data.unit_amount, 0)).toBe(31500);
+    expect(params.payment_method_options).toEqual({ card: { request_three_d_secure: "any" } });
+    expect((params.metadata as Record<string, string>).payer_id).toBe(POSTER.id);
+  });
+
+  it("refuses another payer's visit", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, payer_id: "someone-else" }] };
+    const res = await pay();
+    expect(res.status).not.toBe(200);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a second session when the prior one cannot be expired", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, stripe_session_id: "cs_old" }] };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_old", status: "open", url: null });
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("stripe down"));
+    const res = await pay();
+    expect(res.status).not.toBe(200);
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_old");
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("reuses the prior session while it is still open", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, stripe_session_id: "cs_old" }] };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_old", status: "open", url: "https://checkout.stripe.test/cs_old" });
+    const res = await pay();
+    expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_old");
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses less than 40 minutes before the visit", async () => {
+    vi.setSystemTime(new Date("2026-10-01T23:30:00Z"));
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    const res = await pay();
+    expect(res.status).not.toBe(200);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+});

@@ -34,7 +34,7 @@ export const STALE_FRACTION = 0.5;
 export function aggregate(samples) {
   const by = {};
   for (const s of samples) {
-    const a = (by[s.label] ??= { label: s.label, total: 0, byClass: {}, signIns: 0, duplicates: 0, tests: 0, minutes: {}, topDuplicates: {}, samples: 0, paceWaitMs: 0 });
+    const a = (by[s.label] ??= { label: s.label, total: 0, byClass: {}, signIns: 0, duplicates: 0, tests: 0, minutes: {}, topDuplicates: {}, topBursts: {}, samples: 0, paceWaitMs: 0 });
     a.samples++;
     a.paceWaitMs += s.paceWaitMs ?? 0;
     a.total += s.total;
@@ -44,6 +44,8 @@ export function aggregate(samples) {
     for (const [k, v] of Object.entries(s.byClass ?? {})) a.byClass[k] = (a.byClass[k] ?? 0) + v;
     for (const [k, v] of Object.entries(s.minutes ?? {})) a.minutes[k] = (a.minutes[k] ?? 0) + v;
     for (const [k, v] of Object.entries(s.topDuplicates ?? {})) a.topDuplicates[k] = (a.topDuplicates[k] ?? 0) + v;
+    // A burst is one page load's requests: the largest across workers, not a sum.
+    for (const [k, v] of Object.entries(s.topBursts ?? {})) a.topBursts[k] = Math.max(a.topBursts[k] ?? 0, v);
   }
   for (const a of Object.values(by)) {
     a.peakPerMinute = Math.max(0, ...Object.values(a.minutes));
@@ -194,6 +196,11 @@ function main(argv) {
     ...aggs.flatMap((a) => {
       const top = topShapes(a.topDuplicates);
       return top.length ? [`Top repeated GETs (${a.label}): ${top.map(([k, v]) => `\`${k.slice(0, 200)}\` ×${v}`).join(", ")}`, ""] : [];
+    }),
+    // Which page's burst a busiest minute is made of (nightly-red #1794).
+    ...aggs.flatMap((a) => {
+      const top = Object.entries(a.topBursts).sort((x, y) => y[1] - x[1]).slice(0, 5);
+      return top.length ? [`Largest bursts between pacing gates (${a.label}): ${top.map(([k, v]) => `\`${k || "(test start)"}\` ${v}`).join(", ")}`, ""] : [];
     }),
     ...notes.map((n) => `- note: ${n}`),
     ...failures.map((f) => `- **FAIL**: ${f}`),

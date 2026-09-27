@@ -75,10 +75,26 @@ export const DUPLICATE_WINDOW_MS = 2_000;
  * minute boundary. Measurement never happens inside a hold: the hold sits
  * BEFORE a navigation, never between a navigation and what a spec reads.
  *
- * `reserve` is the largest burst seen between two gates so far (at least
- * PACE_MIN_RESERVE, uncapped). An empty minute admits any gate. It used to be
- * capped at half the ceiling, which let a list page's burst land on top of a
- * part-filled minute: a11y-prod-webkit hit 439 of 400 (nightly-red #1794).
+ * The burst a gate reserves room for is LEARNED PER PAGE. Each gate carries a
+ * key (the navigation's path; "" for a test's start), and the requests sent
+ * between it and the next gate are that key's burst. A key seen before
+ * reserves its own largest burst (at least PACE_MIN_RESERVE); a key never seen
+ * reserves the largest burst of any key (`reserve`), capped at half the
+ * ceiling. An empty minute admits any gate.
+ *
+ * Why per page (nightly-red #1794, measured 2026-09-26). With ONE learned
+ * reserve for every gate:
+ *  - capped at half the ceiling, a list page's burst landed on a part-filled
+ *    minute every time it came round: a11y-prod-webkit hit 439 of 400
+ *    (run 36263866330, 200/min per worker, reserve capped at 100);
+ *  - uncapped (0d0010181), one burst bigger than the per-worker ceiling made
+ *    EVERY gate wait for an empty minute, so every page cost a minute: both
+ *    a11y legs were cancelled at 60 min at test ~330/368 (36271541309; the
+ *    run before, 36263866330, took 42 and 49 min), and loading-states at 60 min
+ *    (36272891811; the run before, 36267409284, took 25 min).
+ * Per page, only the big page waits for room it needs; the small ones pack.
+ * A never-seen page can still overshoot once, by at most its burst minus half
+ * the ceiling; `topBursts` in the sample names the page when it does.
  */
 export const PACE_MIN_RESERVE = 40;
 /** Lands a released gate safely inside the next minute rather than on its edge. */
@@ -110,6 +126,16 @@ export function priorMinutes(label, dir = REQUEST_BUDGET_DIR) {
   return out;
 }
 
+/** The gate key of a navigation: its path, without origin, query or hash. */
+export function pageKey(url) {
+  if (typeof url !== "string") return "?";
+  try {
+    return new URL(url, "http://x").pathname;
+  } catch {
+    return url;
+  }
+}
+
 export class RequestMeter {
   /** @param {string} label the run it belongs to (Playwright project, or script name) */
   constructor(label) {
@@ -130,6 +156,9 @@ export class RequestMeter {
     this.prior = {};
     this.reserve = PACE_MIN_RESERVE;
     this.sinceGate = 0;
+    /** largest burst per gate key (see PACING), and the key of the last gate */
+    this.bursts = {};
+    this.lastKey = null;
     this.paceWaitMs = 0;
     this.clock = { now: () => Date.now(), sleep: (ms) => new Promise((r) => setTimeout(r, ms)) };
     /** Called with each hold's length before it sleeps (the fixture extends the test's timeout by it). */
@@ -149,10 +178,17 @@ export class RequestMeter {
     return this;
   }
 
-  /** Hold until the current minute has room for the next burst. Resolves with the ms held. */
-  async pace() {
+  /**
+   * Hold until the current minute has room for the burst `key` is expected to
+   * send. `key` is the page about to load (its path), "" for a test's start.
+   * Resolves with the ms held.
+   */
+  async pace(key = "") {
     if (!this.ceiling) return 0;
+    if (this.lastKey !== null) this.bursts[this.lastKey] = Math.max(this.bursts[this.lastKey] ?? 0, this.sinceGate);
     this.reserve = Math.max(this.reserve, this.sinceGate);
+    const known = this.bursts[key];
+    const need = known === undefined ? Math.min(Math.floor(this.ceiling / 2), this.reserve) : Math.max(PACE_MIN_RESERVE, known);
     let held = 0;
     for (;;) {
       const t = this.clock.now();
@@ -160,12 +196,13 @@ export class RequestMeter {
       const used = (this.minutes[m] || 0) + (this.prior[m] || 0);
       // An empty minute always admits: a burst bigger than the whole share
       // cannot be split by a gate in front of it, and waiting would never end.
-      if (used + this.reserve <= this.ceiling || used === 0) break;
+      if (used + need <= this.ceiling || used === 0) break;
       const ms = (m + 1) * 60_000 - t + PACE_EDGE_MS;
       if (this.onPaceWait) this.onPaceWait(ms);
       await this.clock.sleep(ms);
       held += ms;
     }
+    this.lastKey = key;
     this.sinceGate = 0;
     this.paceWaitMs += held;
     return held;
@@ -178,7 +215,7 @@ export class RequestMeter {
     for (const name of ["goto", "reload"]) {
       const original = page[name].bind(page);
       page[name] = async (...args) => {
-        await this.pace();
+        await this.pace(pageKey(name === "goto" ? args[0] : page.url?.()));
         return original(...args);
       };
     }
@@ -283,6 +320,11 @@ export class RequestMeter {
       tests: this.tests,
       minutes: this.minutes,
       topDuplicates: Object.fromEntries(topDup),
+      topBursts: Object.fromEntries(
+        Object.entries({ ...this.bursts, ...(this.lastKey !== null ? { [this.lastKey]: Math.max(this.bursts[this.lastKey] ?? 0, this.sinceGate) } : {}) })
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5),
+      ),
       paceWaitMs: this.paceWaitMs,
       startedAt: this.startedAt,
       endedAt: Date.now(),

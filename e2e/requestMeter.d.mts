@@ -26,6 +26,8 @@ export interface RequestSample {
   topDuplicates: Record<string, number>;
   /** ms the pacer held navigations; absent in samples written before pacing. */
   paceWaitMs?: number;
+  /** largest burst between two gates, per gate key (page path), top 5; absent before #1794. */
+  topBursts?: Record<string, number>;
   startedAt: number;
   endedAt: number;
 }
@@ -40,13 +42,14 @@ export declare class RequestMeter {
   minutes: Record<string, number>;
   ceiling: number;
   reserve: number;
+  bursts: Record<string, number>;
   paceWaitMs: number;
   onPaceWait: ((ms: number) => void) | null;
   paceTo(
     ceilingPerMinute: number,
     opts?: { workers?: number; prior?: Record<string, number>; now?: () => number; sleep?: (ms: number) => Promise<unknown> },
   ): this;
-  pace(): Promise<number>;
+  pace(key?: string): Promise<number>;
   pacePage<P extends { goto: (...a: never[]) => unknown; reload: (...a: never[]) => unknown }>(page: P): P;
   record(url: string, method: string, now?: number, seen?: Map<string, number>): RequestClass | null;
   attach(context: BrowserContext): BrowserContext;
@@ -55,3 +58,4 @@ export declare class RequestMeter {
   toJSON(): RequestSample;
   flush(): string;
 }
+export declare function pageKey(url: unknown): string;

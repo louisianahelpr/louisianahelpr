@@ -17,8 +17,10 @@
  * load the profile spec measured, and proves the same load UNGATED breaks the
  * ceiling, so the scenario is a real one.
  *
- * @mutate e2e/requestMeter.mjs | if (used + this.reserve <= this.ceiling \|\| used === 0) break; | break;
- * @mutate e2e/requestMeter.mjs | this.reserve = Math.max(this.reserve, this.sinceGate); | this.reserve = Math.min(Math.floor(this.ceiling / 2), Math.max(this.reserve, this.sinceGate));
+ * @mutate e2e/requestMeter.mjs | if (used + need <= this.ceiling \|\| used === 0) break; | break;
+ * @mutate e2e/requestMeter.mjs | const need = known === undefined ? Math.min(Math.floor(this.ceiling / 2), this.reserve) : Math.max(PACE_MIN_RESERVE, known); | const need = this.reserve;
+ * @mutate e2e/requestMeter.mjs | const need = known === undefined ? Math.min(Math.floor(this.ceiling / 2), this.reserve) : Math.max(PACE_MIN_RESERVE, known); | const need = Math.min(Math.floor(this.ceiling / 2), this.reserve);
+ * @mutate e2e/requestMeter.mjs | await this.pace(pageKey(name === "goto" ? args[0] : page.url?.())); | await this.pace();
  * @mutate e2e/requestMeter.mjs | const used = (this.minutes[m] \|\| 0) + (this.prior[m] \|\| 0); | const used = this.minutes[m] \|\| 0;
  * @mutate e2e/requestMeter.mjs |       page[name] = async (...args) => { |       page[`${name}Unpaced`] = async (...args) => {
  * @mutate e2e/prodTest.ts | meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers }); | void ceilingFor;
@@ -112,28 +114,52 @@ describe("the request meter paces a run under its ceiling", () => {
     expect(Math.floor(clock.now() / 60_000)).toBe(minute + 1);
   });
 
-  it("a burst bigger than half a worker's share still fits (a11y-prod-webkit 439 > 400, #1794)", async () => {
-    // Two CI workers each get 200 of the 400 ceiling. A page that sends 130
-    // requests between two gates used to be admitted at 100 used (the reserve
-    // was capped at half the share), landing 230 in a 200 share.
+  it("a page whose burst is bigger than half a worker's share still fits (a11y-prod-webkit 439 > 400, #1794)", async () => {
+    // Two CI workers each get 200 of the 400 ceiling. A list page that sends
+    // 130 requests between two gates, admitted at 100 used (the old reserve,
+    // capped at half the share for every page), put 230 in a 200 share each
+    // time it came round. The a11y sweep visits every path once per role and
+    // variant, so a page's burst is known from its second visit on.
     const clock = fakeClock(1_790_000_000_000);
     const meter = new RequestMeter("a11y-prod-webkit").paceTo(400, { workers: 2, prior: {}, now: clock.now, sleep: clock.sleep });
-    const page = meter.pacePage({ goto: async () => undefined, reload: async () => undefined });
-    // Small pages (20 each) fill part of a minute, then a list page sends 130.
-    const bursts = Array.from({ length: 10 }, () => [20, 20, 20, 20, 130]).flat();
-    for (const n of bursts) {
-      await page.goto();
+    const page = meter.pacePage({ goto: async (_url: string) => undefined, reload: async () => undefined });
+    const visits = Array.from({ length: 10 }, () => [["/a", 20], ["/b", 20], ["/c", 20], ["/d", 20], ["/jobs?tab=open", 130]] as const).flat();
+    for (const [url, n] of visits) {
+      await page.goto(url);
       for (let r = 0; r < n; r++) {
         meter.record(URL, "GET", clock.now());
         clock.advance(20);
       }
     }
     expect(meter.total).toBe(2100);
-    // The first 130 lands before the reserve has seen one (210); every burst
-    // after it is held to an emptier minute. The old half-share cap put 210 in
-    // EVERY minute.
+    // Only the first visit to the list page, before its burst is known, may
+    // overshoot; one reserve for every page put 210 in EVERY minute.
     const over = Object.values(meter.minutes).filter((n) => n > 200);
     expect(over, "only the learning minute may exceed the share").toEqual([210]);
+    expect(meter.toJSON().topBursts?.["/jobs"], "the sample names the page and its burst").toBe(130);
+  });
+
+  it("one big page does not make every other page wait for an empty minute (a11y legs cancelled at 60 min, #1794)", async () => {
+    // One reserve for every page, uncapped (0d0010181): a single burst over
+    // the per-worker share made every later gate wait for an empty minute, one
+    // page per minute, and both a11y legs hit their 60-minute timeout at test
+    // ~330 of 368 (run 36271541309).
+    const clock = fakeClock(1_790_000_000_000);
+    const start = clock.now();
+    const meter = new RequestMeter("a11y-prod").paceTo(400, { workers: 2, prior: {}, now: clock.now, sleep: clock.sleep });
+    const page = meter.pacePage({ goto: async (_url: string) => undefined, reload: async () => undefined });
+    const visits: [string, number][] = [["https://louisianahelpr.com/big", 339], ...Array.from({ length: 40 }, (_, i) => [`/p${i}`, 20] as [string, number])];
+    for (const [url, n] of visits) {
+      await page.goto(url);
+      for (let r = 0; r < n; r++) {
+        meter.record(URL, "GET", clock.now());
+        clock.advance(20);
+      }
+    }
+    expect(meter.total).toBe(339 + 800);
+    const minutes = (clock.now() - start) / 60_000;
+    expect(minutes, "40 small pages pack several to a minute (one per minute would take 40)").toBeLessThan(10);
+    expect(Object.values(meter.minutes).filter((n) => n > 200), "only the big page's own minute exceeds the share").toEqual([339]);
   });
 
   it("a burst bigger than the whole share is still admitted by a fresh minute (no deadlock)", async () => {

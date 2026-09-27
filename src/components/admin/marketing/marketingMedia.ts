@@ -10,6 +10,7 @@
 // then `getPublicUrl`, permanent URL) rather than the signed-URL pattern used
 // for private buckets like `proof-photos`.
 
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { supabase } from "@/integrations/supabase/client";
 
 const MARKETING_MEDIA_BUCKET = "marketing-media";
@@ -92,7 +93,7 @@ export async function uploadMarketingMedia(file: File): Promise<string> {
 
   const { error: uploadError } = await supabase.storage
     .from(MARKETING_MEDIA_BUCKET)
-    .upload(path, file, { contentType: file.type });
+    .upload(path, file, { contentType: file.type, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
   if (uploadError) throw uploadError;
 
   const { data: urlData } = supabase.storage.from(MARKETING_MEDIA_BUCKET).getPublicUrl(path);

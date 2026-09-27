@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -269,7 +270,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         // at view time via openDoc() below.
         const { error: upErr } = await supabase.storage
           .from("user-documents")
-          .upload(path, draft.file, { upsert: true, contentType: draft.file.type });
+          .upload(path, draft.file, { upsert: true, contentType: draft.file.type, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
         if (upErr) throw upErr;
         uploaded.push({ kind, path });
       }

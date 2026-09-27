@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { supabase } from "@/integrations/supabase/client";
 import { isStorageObjectPath } from "@/lib/storagePath";
 
@@ -92,6 +93,7 @@ export async function uploadMessageAttachment(
     .upload(path, blob, {
       contentType: file.type,
       upsert: false,
+      cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
     });
 
   if (error) return { error: error.message };
@@ -198,7 +200,7 @@ export async function uploadVoiceNote(
 
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, blob, { contentType: mime, upsert: false });
+    .upload(path, blob, { contentType: mime, upsert: false, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
 
   if (error) return { error: error.message };
   return { path, mime, size: blob.size };

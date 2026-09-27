@@ -14,6 +14,7 @@
  * when the row hasn't been written (e.g. dispute filed before the
  * migration shipped to production). Either way the UI is the same.
  */
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useEffect, useState } from "react";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import {
@@ -169,7 +170,7 @@ export const DisputeTimelineDialog = ({
         const rawExt = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
         const ext = rawExt || "jpg";
         const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file);
+        const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
         if (uploadError) {
           report(uploadError, { tags: { source: "DisputeTimelineDialog.upload" } });
           failedUploads += 1;

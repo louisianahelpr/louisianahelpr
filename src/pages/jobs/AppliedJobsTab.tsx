@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -165,7 +166,7 @@ export const AppliedJobsTab = ({
     setUploadingAttachment(appId);
     const ext = file.name.split('.').pop();
     const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
+    const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
     if (uploadErr) { hapticError(); toast.error("Couldn't upload that file — try again?"); setUploadingAttachment(null); return; }
     const newUrls = [...currentUrls, path];
     // `.select()` for the same reason it is on every other write in this file:

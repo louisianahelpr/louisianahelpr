@@ -15,6 +15,7 @@
  * falls back gracefully to the legacy `revision_note` + status update
  * path that already exists on the jobs row.
  */
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useState } from "react";
 import { CheckCircle2, ChevronLeft, RotateCcw, X, Upload, AlertTriangle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -126,7 +127,7 @@ export function CompletionChoiceSheet({
         // survived because nothing in the repo checks upload paths against the
         // policy that governs them.
         const path = `${jobId}/revisions/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("proof-photos").upload(path, file);
+        const { error: upErr } = await supabase.storage.from("proof-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
         if (upErr) {
           uploadFailed = true;
           report(upErr, { tags: { source: "CompletionChoiceSheet.uploadPhoto" } });

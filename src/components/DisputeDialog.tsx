@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useRef, useState } from "react";
 import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import {
@@ -141,7 +142,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
         const rawExt = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
         const ext = rawExt || "jpg";
         const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file);
+        const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
         if (uploadError) {
           report(uploadError, { tags: { source: "DisputeDialog.uploadEvidence" } });
           failedUploads += 1;

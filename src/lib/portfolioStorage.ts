@@ -83,6 +83,7 @@
 // re-lists the folder afterwards and reports by name anything still present. An
 // unreadable folder is reported as still-exposed, never as clean.
 
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { report } from "@/lib/errorLogger";
 import { AVATAR_MIME_EXT } from "@/lib/avatarStorage";
 
@@ -243,7 +244,7 @@ export interface PortfolioStorageClient {
       upload(
         path: string,
         body: File | Blob | ArrayBuffer | ArrayBufferView | string,
-        opts?: { upsert?: boolean; contentType?: string },
+        opts?: { upsert?: boolean; contentType?: string; cacheControl?: string },
       ): PromiseLike<{ error: { message: string } | null }>;
       list(
         prefix: string,
@@ -288,7 +289,7 @@ export async function uploadPortfolioImage(
   const bucket = client.storage.from(PORTFOLIO_BUCKET);
   const path = newPortfolioObjectKey(userId, contentType);
 
-  const { error } = await bucket.upload(path, file, { upsert: false, contentType });
+  const { error } = await bucket.upload(path, file, { upsert: false, contentType, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
   if (error) throw error;
 
   return { path, publicUrl: bucket.getPublicUrl(path).data.publicUrl };

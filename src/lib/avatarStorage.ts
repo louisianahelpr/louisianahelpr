@@ -88,6 +88,7 @@
 // the field cannot make it silent), and is handed back for the caller to
 // surface to the person whose document it is.
 
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { report } from "@/lib/errorLogger";
 
 /** The public bucket. Public by design — avatars are marketplace-visible. */
@@ -226,7 +227,7 @@ export interface AvatarStorageClient {
       upload(
         path: string,
         body: File | Blob | ArrayBuffer | ArrayBufferView | string,
-        opts?: { upsert?: boolean; contentType?: string },
+        opts?: { upsert?: boolean; contentType?: string; cacheControl?: string },
       ): PromiseLike<{ error: { message: string } | null }>;
       list(
         prefix: string,
@@ -274,6 +275,8 @@ export async function replaceAvatarObject(
   const { error: uploadError } = await bucket.upload(path, file, {
     upsert: true,
     contentType,
+    // Same key on every replace, but the stored URL carries ?t= (below).
+    cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
   });
   if (uploadError) throw uploadError;
 

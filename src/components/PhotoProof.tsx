@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
     for (const file of files) {
       const ext = file.name.split(".").pop();
       const path = `${jobId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("proof-photos").upload(path, file);
+      const { error } = await supabase.storage.from("proof-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
       if (error) {
         failedUploads += 1;
         report(error, { tags: { source: "PhotoProof.upload", proof_type: type } });

@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useState, useRef } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
@@ -149,7 +150,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       for (const file of photoFiles) {
         const ext = file.name.split(".").pop() || "jpg";
         const path = `${user.id}/reviews/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("job-photos").upload(path, file);
+        const { error: upErr } = await supabase.storage.from("job-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
         if (upErr) {
           uploadFailed = true;
           report(upErr, { tags: { source: "ReviewForm.uploadPhoto" } });

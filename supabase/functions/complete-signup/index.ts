@@ -455,6 +455,8 @@ serve(async (req) => {
         .upload(avatarPath, avatarBytes, {
           contentType: resolvedType,
           upsert: true,
+          // Fixed key, unversioned URL: an hour, not a year (Q655).
+          cacheControl: "3600",
         });
 
       if (avatarErr) {
@@ -483,6 +485,7 @@ serve(async (req) => {
         .upload(licensePath, licenseBytes, {
           contentType: licenseDoc.contentType,
           upsert: true,
+          cacheControl: "31536000", // unique key per upload (Q655)
         });
       if (licErr) {
         console.error("License upload error:", licErr);
@@ -500,6 +503,7 @@ serve(async (req) => {
         .upload(insurancePath, insuranceBytes, {
           contentType: insuranceDoc.contentType,
           upsert: true,
+          cacheControl: "31536000", // unique key per upload (Q655)
         });
       if (insErr) {
         console.error("Insurance upload error:", insErr);

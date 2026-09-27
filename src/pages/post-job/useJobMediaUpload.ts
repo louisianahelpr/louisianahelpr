@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL, MUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -146,7 +147,7 @@ export function useJobMediaUpload() {
       // callback, so we report a coarse 0 → 1 transition per file. It's
       // enough for the per-image bar to visibly advance and the user to
       // see which image is currently in flight.
-      const { error } = await supabase.storage.from("job-photos").upload(path, file);
+      const { error } = await supabase.storage.from("job-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
       if (error) {
         report(error, { tags: { source: "PostJob.uploadImage" } });
       } else {
@@ -190,7 +191,7 @@ export function useJobMediaUpload() {
         const path = `${jobId}/scope-video.${ext}`;
         const { error: vidErr } = await supabase.storage
           .from(SCOPE_VIDEO_BUCKET)
-          .upload(path, scopeVideoFile, { upsert: true });
+          .upload(path, scopeVideoFile, { upsert: true, cacheControl: MUTABLE_OBJECT_CACHE_CONTROL });
         if (!vidErr) {
           const { data: urlData } = supabase.storage.from(SCOPE_VIDEO_BUCKET).getPublicUrl(path);
           try {
@@ -222,7 +223,7 @@ export function useJobMediaUpload() {
     const path = `${jobId}/scope-video.${ext}`;
     const { error: upErr } = await supabase.storage
       .from(SCOPE_VIDEO_BUCKET)
-      .upload(path, scopeVideoFile, { upsert: true });
+      .upload(path, scopeVideoFile, { upsert: true, cacheControl: MUTABLE_OBJECT_CACHE_CONTROL });
     if (upErr) return; // non-fatal — video is a nice-to-have
     const { data } = supabase.storage.from(SCOPE_VIDEO_BUCKET).getPublicUrl(path);
     if (!data?.publicUrl) return;

@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -170,7 +171,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
       const path = supportScreenshotPath(userId, ext);
       const { error } = await supabase.storage
         .from("user-documents")
-        .upload(path, file, { upsert: false, contentType: file.type });
+        .upload(path, file, { upsert: false, contentType: file.type, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
       if (error) throw error;
       // The ticket carries the storage PATH, never a signed URL: a token
       // pasted into reports.description 400s after its exp. AdminSupport signs

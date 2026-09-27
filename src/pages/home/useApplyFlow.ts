@@ -1,3 +1,4 @@
+import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, type Query } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -181,7 +182,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         const path = `${helperId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadErr } = await supabase.storage
           .from("application-attachments")
-          .upload(path, file);
+          .upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
         if (uploadErr) {
           // Re-throw with a friendly file-specific message so onError can toast it.
           throw Object.assign(new Error(`Failed to upload ${file.name}`), { code: "UPLOAD_FAILED" });

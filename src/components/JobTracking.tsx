@@ -367,7 +367,7 @@ export function deriveCurrentStatusIdx({
   return idx;
 }
 
-export { trackingProofCaption, type TrackingProofCaption } from "./trackingProofCaption";
+export { trackingProofCaption } from "./trackingProofCaption";
 
 /**
  * The tracking-row steps the map is drawn on.

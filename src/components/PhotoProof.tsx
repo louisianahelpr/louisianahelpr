@@ -465,7 +465,7 @@ type PhotoProofGroupProps = {
   budget?: number;
 };
 
-export { PhotoProofRequirementNote, POSTER_PROOF_MISSING_NOTE, type ProofNoteAudience } from "./PhotoProofRequirementNote";
+export { PhotoProofRequirementNote, POSTER_PROOF_MISSING_NOTE } from "./PhotoProofRequirementNote";
 
 export const PhotoProofGroup = ({
   jobId, beforeUrls, afterUrls, onUploaded = () => {}, canUpload = true, canUploadBefore, canUploadAfter, requireAfter = false, budget = 0,

@@ -84,9 +84,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 
+    // MARK: - App-switcher privacy cover (OA-008)
+    //
+    // iOS snapshots the screen for the app switcher right after
+    // willResignActive. Without a cover that snapshot is whatever was open: a
+    // chat, a checkout, a payout account. The JS shield in AppLockGate runs on
+    // the same event but only when App Lock is on, and it races the snapshot
+    // through the WebView. This cover is native, synchronous and for EVERY
+    // user (owner, 2026-09-27): the launch screen's own image and colour, laid
+    // over the window before the snapshot and removed on becoming active.
+    private var privacyCover: UIView?
+
     func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+        guard privacyCover == nil, let window = window else { return }
+        let cover = UIImageView(frame: window.bounds)
+        cover.image = UIImage(named: "Splash")
+        cover.contentMode = .scaleAspectFill
+        cover.clipsToBounds = true
+        cover.backgroundColor = UIColor(red: 0.9451, green: 0.9490, blue: 0.9569, alpha: 1)
+        cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        cover.isUserInteractionEnabled = false
+        cover.accessibilityElementsHidden = true
+        window.addSubview(cover)
+        privacyCover = cover
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
@@ -99,7 +119,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        privacyCover?.removeFromSuperview()
+        privacyCover = nil
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

@@ -1386,3 +1386,8 @@ duplicate-number check).
   "Couldn't process". The single-batch path (lines 222-260) already uses get_payout_batch_job_ids + release-payout.
   Done when bulk goes through release-payout, a test fails if triggerBulkPayout invokes anything else, and a Stripe
   test-mode bulk run creates transfers.
+
+## Archived 2026-09-27 — from "OPEN — the three red nightlies, diagnosed 2026-09-22 (re-runs pending)"
+
+- [x] **DONE 2026-09-27 (lead): #1595 closed on green run 35796081270, #1618 closed on green run 35947190080 (issue closing comments); #1582 is still red and stays tracked by its open nightly-red issue and the press line below.** Three nightlies diagnosed; re-runs to confirm green were pending at time of writing — Diagnoses landed for #1618/#1582/#1595 causes; confirming green re-runs pending — see consolidated table at line 1948. (see also line 1948) (archive L359)
+- [x] **DONE 2026-09-27 (lead): the re-run was green, run 35796081270 closed #1595 on 2026-09-22T23:37Z.** #1595 e2e-journeys — single failure's fix (6fb3335fa) landed after the run; re-run pending — Fix 6fb3335fa landed after the failing run; the actual re-run (with new findings) is tracked at line 1275. (see also line 1275) (archive L405)

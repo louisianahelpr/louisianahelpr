@@ -298,6 +298,53 @@ export function parseLoadingStates(log) {
     note: br ? `pass = surfaces measured, skipped = not measured; checker: ${br[1]} breaches (${br[2]} baselined debt, ${br[3]} by design)` : "breach line not in log (shape check did not run?)" };
 }
 
+/**
+ * Q63: the quota monitor's report table, one entry per quota, from its run log.
+ * Returns null when the log has no table (never an empty list that reads as
+ * "nothing is near a limit").
+ */
+export function parseQuotaReport(log) {
+  const lines = logContent(log);
+  const head = lines.findIndex((l) => /^\| Service \| Quota \| Used \| Limit \| % \| Status \| Window \| Note \|/.test(l.trim()));
+  if (head < 0) return null;
+  const out = [];
+  for (const l of lines.slice(head + 2)) {
+    const t = l.trim();
+    if (!t.startsWith("|")) break;
+    const c = t.split(/(?<!\\)\|/).slice(1, -1).map((x) => x.trim().replace(/\\\|/g, "|"));
+    if (c.length !== 8) continue;
+    out.push({ service: c[0], quota: c[1], used: c[2], limit: c[3], pct: c[4], status: c[5].replace(/\*/g, ""), window: c[6], note: c[7] });
+  }
+  return out.length ? out : null;
+}
+
+/** Quota-report status -> scoreboard status. 70% warns; 90% and 100% are red. */
+export const QUOTA_STATUS = { OK: "PASS", WARN: "WARN", HIGH: "FAIL", OVER: "FAIL" };
+
+/** One scoreboard row per quota, from the newest completed quota-monitor run. */
+export function quotaRows(runs, now, readLog) {
+  const signal = "quota monitor (every quota)";
+  const pool = (runs ?? []).filter((r) => CONCLUSIVE.has(r.conclusion));
+  if (!pool.length) return [unknown("quotas", signal, "no conclusive quota-monitor.yml run on main in the last 40", { source: "quota-monitor.yml" })];
+  // A red run still prints the table (it is red for one unreadable quota or a
+  // budget), so the newest conclusive run's table is the measurement.
+  const run = pool[0];
+  let table = null;
+  try { table = parseQuotaReport(readLog(run.id)); } catch (e) {
+    return [unknown("quotas", signal, `run ${run.id} log unreadable: ${errMsg(e)}`, { source: "quota-monitor.yml" })];
+  }
+  if (!table) return [unknown("quotas", signal, `run ${run.id} has no quota table in its log`, { source: "quota-monitor.yml" })];
+  const stale = ageDays(run.updatedAt ?? run.createdAt, now) > MAX_RUN_AGE_DAYS;
+  const source = `[${run.conclusion}, ${run.event}](${run.url})`;
+  return table.map((q) => {
+    const base = { group: "quotas", signal: `${q.service}: ${q.quota}`, at: iso(run.updatedAt), source };
+    const used = `${q.used} of ${q.limit} (${q.pct})`;
+    const mapped = QUOTA_STATUS[q.status];
+    if (!mapped) return { ...base, status: "UNKNOWN", note: `UNKNOWN: quota monitor says ${q.status}${q.note ? ` — ${q.note}` : ""}` };
+    return { ...base, status: stale ? "STALE" : mapped, note: [`${q.status}: ${used}, ${q.window}`, q.note].filter(Boolean).join("; ") };
+  });
+}
+
 /** Test/spec suites whose counts come from their newest conclusive main run's log. */
 export const SUITES = [
   { workflow: "vitest.yml", signal: "Vitest (tests; files in note)", parse: parseVitest, group: "tests" },
@@ -728,6 +775,7 @@ export async function liveRows({ now = new Date(), sqlFn } = {}) {
   rows.push(gateRow());
   rows.push(...(wf.runsByFile.get("test.yml") ? testYmlStepRows(wf.runsByFile.get("test.yml"), now) : [unknown("tests", "test.yml steps", "no run data for test.yml")]));
   rows.push(...suiteRows);
+  rows.push(...quotaRows(wf.runsByFile.get("quota-monitor.yml"), now, (id) => sh("gh", ["run", "view", String(id), "--log"], { timeout: 90000 })));
   const ledger = await ledgerRows(readOnly);
   const red = nightlyRedRows(now);
   rows.push(...ledger.rows, ...red.rows, ...(await pushTokenRows(readOnly, now)), ...(await identityFingerprintRows(readOnly, now)), ...(await emailDeliverabilityRows(readOnly, now)));

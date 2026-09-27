@@ -10,7 +10,7 @@ export interface Quota {
   why?: string;
   limitSource: string;
 }
-export type QuotaStatus = "ok" | "warn" | "over" | "unreadable" | "not-monitored";
+export type QuotaStatus = "ok" | "warn" | "high" | "over" | "unreadable" | "not-monitored";
 export interface QuotaRow {
   q: Quota;
   limit: number | null;
@@ -28,6 +28,7 @@ export interface Reading {
   window?: string;
 }
 export const WARN_AT: number;
+export const HIGH_AT: number;
 export interface PlanLimit {
   value: number | null;
   unit: string;
@@ -43,10 +44,11 @@ export const PLAN_LIMITS: Record<
 >;
 export const QUOTAS: Quota[];
 export function effectiveLimit(q: Quota, env?: Record<string, string | undefined>, live?: Record<string, number>): number | null;
-export function grade(used: number, limit: number | null, warnAt?: number): { status: "ok" | "warn" | "over" | "unreadable"; pct: number | null };
+export function grade(used: number, limit: number | null, warnAt?: number, highAt?: number): { status: "ok" | "warn" | "high" | "over" | "unreadable"; pct: number | null };
 export function evaluateQuotas(
   readings: Record<string, Reading>,
   opts?: { env?: Record<string, string | undefined>; live?: Record<string, number>; warnAt?: number; quotas?: Quota[] },
 ): { rows: QuotaRow[]; alerts: QuotaRow[]; unreadable: QuotaRow[]; notMonitored: QuotaRow[]; summary: string; report: string };
+export function alertSeverity(row: { status: string }): "warning" | "error";
 export function alertTitle(row: QuotaRow): string;
 export function unreadableTitle(row: QuotaRow): string;

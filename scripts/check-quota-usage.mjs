@@ -35,7 +35,7 @@
  * LH_GITHUB_API_BASE, LH_SENTRY_API_BASE. --no-ledger skips ledger writes.
  */
 import { appendFileSync } from "node:fs";
-import { QUOTAS, alertTitle, evaluateQuotas, unreadableTitle } from "./lib/quotaMonitor.mjs";
+import { QUOTAS, alertSeverity, alertTitle, evaluateQuotas, unreadableTitle } from "./lib/quotaMonitor.mjs";
 import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
 
@@ -298,7 +298,7 @@ async function main() {
     for (const r of res.alerts) {
       await recordOpsAlert({
         sourceKind: "workflow", source: "quota-monitor", title: alertTitle(r),
-        severity: r.status === "over" ? "error" : "warning",
+        severity: alertSeverity(r),
         sample: `${r.q.service} ${r.q.name}: ${r.used} of ${r.limit} ${r.q.unit} (${r.pct}%). ${r.q.limitSource}`,
         sampleRef: { run_url: runUrl, quota: r.q.id }, verifyKind: "workflow", verifyRef: "quota-monitor.yml",
       });

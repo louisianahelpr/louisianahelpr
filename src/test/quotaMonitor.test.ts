@@ -4,15 +4,19 @@
 // @mutate scripts/check-quota-usage.mjs |     process.exit(1); |     process.exit(0);
 // @mutate scripts/check-quota-usage.mjs |   if (!(db > 0)) fail( |   if (false) fail(
 // @mutate .github/workflows/quota-monitor.yml |         run: node scripts/check-quota-usage.mjs |         run: echo skipped
+// @mutate scripts/lib/quotaMonitor.mjs |   if (ratio >= highAt) return { status: "high", pct }; |   if (false) return { status: "high", pct };
+// @mutate scripts/lib/quotaMonitor.mjs | export const alertSeverity = (row) => (row.status === "warn" ? "warning" : "error"); | export const alertSeverity = (row) => (row.status === "over" ? "error" : "warning");
+// @mutate scripts/lib/quotaMonitor.mjs | r.status === "warn" \|\| r.status === "high" \|\| r.status === "over" | r.status === "warn" \|\| r.status === "over"
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { QUOTAS, WARN_AT, effectiveLimit, evaluateQuotas, grade } from "../../scripts/lib/quotaMonitor.mjs";
+import { HIGH_AT, QUOTAS, WARN_AT, alertSeverity, effectiveLimit, evaluateQuotas, grade } from "../../scripts/lib/quotaMonitor.mjs";
 
 /**
- * Q63: a quota/limit monitor that alerts at 80% and is never silently green.
+ * Q63: a quota/limit monitor that alerts in two steps, 70% (warning) and 90%
+ * (error), and is never silently green.
  * Pins (1) the threshold maths, (2) that a failed or missing read is
  * UNREADABLE (a red run), never "ok", (3) that a quota with no API is listed
  * as NOT MONITORED, never dropped and never graded ok, and (4) the CLI end to
@@ -23,16 +27,26 @@ const ROOT = join(__dirname, "..", "..");
 const GB = 1024 ** 3;
 
 describe("quota threshold maths", () => {
-  it("alerts at 80%, over at 100%", () => {
-    expect(WARN_AT).toBe(0.8);
-    expect(grade(79, 100).status).toBe("ok");
-    expect(grade(79.99, 100).status).toBe("ok");
-    expect(grade(80, 100)).toEqual({ status: "warn", pct: 80 });
-    expect(grade(99, 100).status).toBe("warn");
+  it("two steps: warn at 70%, high at 90%, over at 100%", () => {
+    expect(WARN_AT).toBe(0.7);
+    expect(HIGH_AT).toBe(0.9);
+    expect(grade(69, 100).status).toBe("ok");
+    expect(grade(69.99, 100).status).toBe("ok");
+    expect(grade(70, 100)).toEqual({ status: "warn", pct: 70 });
+    expect(grade(89.9, 100).status).toBe("warn");
+    expect(grade(90, 100)).toEqual({ status: "high", pct: 90 });
+    expect(grade(99, 100).status).toBe("high");
     expect(grade(100, 100)).toEqual({ status: "over", pct: 100 });
     expect(grade(250, 100).status).toBe("over");
     expect(grade(0, 100)).toEqual({ status: "ok", pct: 0 });
     expect(grade(6.5 * GB, 8 * GB).status).toBe("warn");
+    expect(grade(7.5 * GB, 8 * GB).status).toBe("high");
+  });
+
+  it("the 70% step is a ledger warning; the 90% and 100% steps are ledger errors", () => {
+    expect(alertSeverity({ status: "warn" })).toBe("warning");
+    expect(alertSeverity({ status: "high" })).toBe("error");
+    expect(alertSeverity({ status: "over" })).toBe("error");
   });
 
   it("a nonsense reading is unreadable, never 0%", () => {
@@ -104,17 +118,22 @@ describe("evaluateQuotas", () => {
     expect(res.summary).toMatch(/^UNREADABLE 2/);
   });
 
-  it("connections with no live limit and no override are unreadable (nothing to be 80% of)", () => {
+  it("connections with no live limit and no override are unreadable (nothing to be 70% of)", () => {
     const res = evaluateQuotas(allOk(), { live: {} });
     expect(res.unreadable.map((r) => r.q.id)).toEqual(["supabase.connections"]);
   });
 
-  it("80% alerts as warn, 100% as over", () => {
+  it("70% alerts as warn, 90% as high, 100% as over; each is on the report", () => {
     const readings = allOk();
-    readings["vercel.deploys_per_day"] = { value: 85 };
+    readings["vercel.deploys_per_day"] = { value: 75 };
     readings["resend.sends_day"] = { value: 100 };
+    readings["resend.sends_month"] = { value: 2800 };
     const res = evaluateQuotas(readings, { live });
-    expect(res.alerts.map((r) => [r.q.id, r.status])).toEqual([["vercel.deploys_per_day", "warn"], ["resend.sends_day", "over"]]);
+    expect(Object.fromEntries(res.alerts.map((r) => [r.q.id, r.status]))).toEqual({
+      "vercel.deploys_per_day": "warn", "resend.sends_day": "over", "resend.sends_month": "high",
+    });
+    expect(res.report).toMatch(/\*\*HIGH\*\*/);
+    expect(res.report).toMatch(/Alert at 70% of a limit \(WARN, ledger warning\), at 90% \(HIGH, ledger error\)/);
   });
 });
 
@@ -291,7 +310,7 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
     const dropping = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", errors: "dropping" });
     expect(dropping.code, dropping.out).toBe(0);
     // accepted (0) alone would read as 0/5000 (0%) and never warn; accepted +
-    // rate_limited (4500) crosses the 80% warn line at LH_QUOTA_SENTRY_ERRORS.
+    // rate_limited (4500) crosses the 90% high line at LH_QUOTA_SENTRY_ERRORS.
     expect(dropping.out).toMatch(/::warning title=Quota at 90%::Sentry Error events/);
     expect(dropping.out).toMatch(/0 accepted, 4500 dropped by quota \(rate_limited\), 8 filtered, 1 invalid/);
   }, 90_000);

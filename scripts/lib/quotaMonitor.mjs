@@ -16,8 +16,9 @@
  *                    "NOT MONITORED" with `why`, and the CLI prints a
  *                    ::warning for each one on every run.
  *
- * GRADING (`grade`): used/limit >= warnAt (0.8) -> "warn" (ledger alert,
- * severity warning); >= 1 -> "over" (severity error). A readable row whose
+ * GRADING (`grade`), the two steps the owner asked for (Q63): used/limit >=
+ * warnAt (0.7) -> "warn" (ledger alert, severity warning); >= highAt (0.9) ->
+ * "high" (severity error); >= 1 -> "over" (severity error). A readable row whose
  * read FAILED, or came back with no number, is "unreadable": the ledger gets
  * an error item and the CLI exits 1, so the run is red and nightly-issue-sync
  * files it. A monitor that cannot see is never green.
@@ -31,7 +32,8 @@
  * and said so in the report).
  */
 
-export const WARN_AT = 0.8;
+export const WARN_AT = 0.7;
+export const HIGH_AT = 0.9;
 
 const GB = 1024 ** 3;
 
@@ -212,14 +214,15 @@ export function effectiveLimit(q, env = {}, live = {}) {
  * The threshold maths. `used` and `limit` must both be finite, limit > 0,
  * used >= 0; anything else is unreadable (a limit of 0 or a negative count is
  * a broken read, not "0%").
- * @returns {{status: "ok"|"warn"|"over"|"unreadable", pct: number|null}}
+ * @returns {{status: "ok"|"warn"|"high"|"over"|"unreadable", pct: number|null}}
  */
-export function grade(used, limit, warnAt = WARN_AT) {
+export function grade(used, limit, warnAt = WARN_AT, highAt = HIGH_AT) {
   if (typeof used !== "number" || !Number.isFinite(used) || used < 0) return { status: "unreadable", pct: null };
   if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) return { status: "unreadable", pct: null };
   const ratio = used / limit;
   const pct = Math.round(ratio * 1000) / 10;
   if (ratio >= 1) return { status: "over", pct };
+  if (ratio >= highAt) return { status: "high", pct };
   if (ratio >= warnAt) return { status: "warn", pct };
   return { status: "ok", pct };
 }
@@ -257,7 +260,7 @@ export function evaluateQuotas(readings, opts = {}) {
       note: g.status === "unreadable" ? `bad reading (used=${r.value}, limit=${limit})` : r.note ?? "",
     });
   }
-  const alerts = rows.filter((r) => r.status === "warn" || r.status === "over");
+  const alerts = rows.filter((r) => r.status === "warn" || r.status === "high" || r.status === "over");
   const unreadable = rows.filter((r) => r.status === "unreadable");
   const notMonitored = rows.filter((r) => r.status === "not-monitored");
   const summary = [
@@ -273,7 +276,7 @@ export function evaluateQuotas(readings, opts = {}) {
     "",
     `**${summary}**`,
     "",
-    `Alert at ${Math.round(warnAt * 100)}% of a limit (ledger warning), at 100% (ledger error). Unreadable = red run.`,
+    `Alert at ${Math.round(warnAt * 100)}% of a limit (WARN, ledger warning), at ${Math.round(HIGH_AT * 100)}% (HIGH, ledger error) and at 100% (OVER, ledger error). Unreadable = red run.`,
     "",
     "| Service | Quota | Used | Limit | % | Status | Window | Note |",
     "| --- | --- | --- | --- | --- | --- | --- | --- |",
@@ -293,6 +296,8 @@ export function evaluateQuotas(readings, opts = {}) {
   return { rows, alerts, unreadable, notMonitored, summary, report };
 }
 
+/** Ledger severity: the 70% step is a warning, the 90% and 100% steps are errors. */
+export const alertSeverity = (row) => (row.status === "warn" ? "warning" : "error");
 /** Ledger title for an alert: stable per quota, so repeats bump one item. */
 export const alertTitle = (row) => `Quota: ${row.q.service} ${row.q.name} at or above ${Math.round(WARN_AT * 100)}% of its limit`;
 /** Ledger title for an unreadable quota. */

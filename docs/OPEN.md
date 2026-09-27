@@ -1252,7 +1252,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] Owner decisions VN-33 follow-up: nudge/escalate poster confirm, bad-pin fallback, new build later — Open: poster-confirm nudge/escalate and bad-pin Confirm fallback not found implemented. (archive L2638)
 - [ ] VN-37 page gutter design decision; VN-52 group jobs fix+turn-on — Mixed: VN-37 gutter fixed; VN-52 group jobs still off (flag false), blockers (b)/(d) unresolved. (see also line 3070 (VN-37 section)) (archive L2643)
-- [ ] "Test" workflow on main red on knip (pre-existing) — Open, not reached: knip failure status on the Test workflow unconfirmed. (archive L2644)
+- [x] "Test" workflow on main red on knip (pre-existing) — DONE 2026-09-27: the "Dead code (knip)" step PASSED in Test run 36301463419 at d15e6be50; the later red run skipped it only because an earlier step failed. (archive L2644)
 
 ### Role words out of user-facing copy — branch role-neutral-copy-v2
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -1585,7 +1585,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### NEW — LOW (from the same pass)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] Seed rot: two proof-photo storage URLs on job e7e09075 return HTTP 400 — Not verified; likely still open (minor seed-data rot). (archive L6636)
+- [x] Seed rot: two proof-photo storage URLs on job e7e09075 return HTTP 400 — DONE 2026-09-27. Measured live: e7e09075 is cancelled, is_seed, and its proof arrays are empty. The same query found the SOURCE of the class: seed job c9a6a3a0 (created 2026-09-26) still held 365-day signed URLs, written by scripts/e2e/settleForward.mjs `uploadProof`. It now stores the path, and src/test/noPersistedSignedUrlsInHarness.test.ts (e2e/, scripts/, supabase/functions, REST + SDK signing) is shown red on the old writer. (archive L6636)
 
 ### NEW — PATTERN: seed fixtures create states the app cannot reach
 Reconciled 2026-09-23; detail in the archive at the line shown.

@@ -257,16 +257,10 @@ async function uploadProof({ base, anon, helperToken, jobId, type }) {
     body: PNG_1PX,
   });
   if (!up.ok) throw new Error(`uploading ${type} proof: HTTP ${up.status} ${await readBody(up)}`);
-  const signed = await fetch(`${base}/storage/v1/object/sign/proof-photos/${path}`, {
-    method: "POST",
-    headers: headers(anon, helperToken),
-    body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 365 }),
-  });
-  if (!signed.ok) throw new Error(`signing ${type} proof: HTTP ${signed.status} ${await readBody(signed)}`);
-  const { signedURL, signedUrl } = await signed.json();
-  const rel = signedURL ?? signedUrl;
-  if (!rel) throw new Error(`signing ${type} proof returned no url`);
-  return `${base}/storage/v1${rel}`;
+  // The row stores the storage PATH, exactly as PhotoProof.tsx does; readers
+  // sign it at display time. This used to return a 365-day signed URL, and
+  // seed job c9a6a3a0 (2026-09-26) was still being written with one.
+  return path;
 }
 
 /**

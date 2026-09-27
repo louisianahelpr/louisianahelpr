@@ -316,7 +316,7 @@ const MEASURE = ([sel, probes]) => {
       clusters: probes.map((pr) => {
         // A toast is not the page. The helper's /jobs/:id lands on an error
         // toast (the fixture is unpaid, so open_jobs_browse never hands it
-        // over) that sits over the bottom nav for a few seconds: run
+        // over) that sits over the bottom nav for a few seconds: on 2026-09-27 run
         // 36342002299 probed the toast as "the nav, loaded" (58px -> 28px,
         // 2 -> 3 rows) and failed, while runs that captured after it faded
         // passed. Look through the toaster to the page beneath it.

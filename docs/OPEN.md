@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 598 items — 390 done, 48 partly done (fixed, protection pending), 160 open.**
+**Queue: 598 items — 391 done, 48 partly done (fixed, protection pending), 159 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1496,7 +1496,7 @@ Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02
 - [ ] **Q810 Q415 (a) follow-up: a hired series card that still has open dates must stay applicable (not publicly listed) so later Helprs can apply (2026-09-27).** Lands with or after Q415 (a) (branch q415e, a2778491e). GUARD when built: src/test/pglite/recurringSplitDays.pglite.mjs apply-after-hire case.
 - [ ] **Q812 Seed/E2E job titles cut at 32 characters (2026-09-27, gap noticed by lanes).** PGlite fixtures and mocked fixtures use titles over 32 characters, and the seeders lose their suffixes when titles are truncated. Make the title limit one shared constant and have seeders/fixtures read it. GUARD when built: a test that derives every seeder/fixture title length from source against the shared limit.
 - [ ] **Q813 loadPins race (2026-09-27, gap noticed by lanes).** Noticed by a lane and not changed: loadPins can resolve out of order and overwrite newer pins with stale ones. Reproduce, then fix with a request token or abort. GUARD when built: a race test that resolves the two loads in reverse order.
-- [ ] **Q815 unpaidJobsNeverShowInPost guard fails vacuity (2026-09-27, gap noticed by lanes).** `node scripts/vacuity/index.mjs --only` on the unpaidJobsNeverShowInPost test does not kill its mutants. Make the guard able to fail and prove it red.
+- [x] **Q815 unpaidJobsNeverShowInPost guard fails vacuity (2026-09-27, gap noticed by lanes).** `node scripts/vacuity/index.mjs --only` on the unpaidJobsNeverShowInPost test does not kill its mutants. Make the guard able to fail and prove it red. **Closed 2026-09-27:** the failure was an ambiguous registration (`"return;"` found twice in paymentIntentPaymentFailed.ts); 5a006cb5c (Q770/Q771) rewrote the registrations. Re-measured at 4eb49814e: `node scripts/vacuity/index.mjs --only src/test/unpaidJobsNeverShowInPost.test.ts` shows 4/4 killed. Guard: `src/test/unpaidJobsNeverShowInPost.test.ts`.
 - [ ] **Q816 Browser-lock starvation (2026-09-27, gap noticed by lanes).** Lanes waiting on the shared browser lock starved: one holder kept it and the others timed out. Add a max hold time and fair queueing, and log who holds it.
 - [ ] **Q817 About 50 E2E residue jobs on prod (2026-09-27, gap noticed by lanes).** About 50 test-created jobs left behind by E2E runs. Clean up the is_seed/test-owned ones, and make every spec's teardown remove what it creates. GUARD when built: a post-run residue count asserted to be 0.
 - [ ] **Q818 Excess stripe-connect and error_logs calls (2026-09-27, gap noticed by lanes).** Pages call the stripe-connect status function and insert into error_logs more often than needed (the same call repeated on one page view). Dedupe with React Query, and add a request-count budget.

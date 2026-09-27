@@ -17,6 +17,7 @@
  * enforce_ban_gate and the helper whitelist in 20260927012804.
  *
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | OR NEW.date_needed IS DISTINCT FROM OLD.date_needed | OR false
+ * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |                  AND EXISTS (SELECT 1 FROM public.series_visit_holds h WHERE h.parent_job_id = OLD.id)); |                  AND false);
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   AND (NEW.recurrence_weeks IS DISTINCT FROM OLD.recurrence_weeks | AND (false
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.series_ended_on IS DISTINCT FROM OLD.series_ended_on THEN | IF false THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   -- ── A Helpr leaves: their future dates go back (owner decision 6) ──────\n  IF v_uid IS DISTINCT FROM v_job.customer_id THEN |   IF false THEN
@@ -71,8 +72,10 @@ describe("recurring series: end + schedule lock", () => {
   it("a hired series parent's schedule columns are client-locked", () => {
     const { body } = newestFunction("enforce_series_columns_client_lock");
     expect(body).toMatch(
-      /IF OLD\.recurrence_days IS NOT NULL AND OLD\.parent_job_id IS NULL AND OLD\.helper_id IS NOT NULL\s+AND \(NEW\.recurrence_weeks IS DISTINCT FROM OLD\.recurrence_weeks\s+OR NEW\.date_needed IS DISTINCT FROM OLD\.date_needed\s+OR NEW\.start_time IS DISTINCT FROM OLD\.start_time\s+OR NEW\.recurrence_end_date IS DISTINCT FROM OLD\.recurrence_end_date\) THEN\s+RAISE/,
+      /IF OLD\.recurrence_days IS NOT NULL AND OLD\.parent_job_id IS NULL AND v_hired\s+AND \(NEW\.recurrence_weeks IS DISTINCT FROM OLD\.recurrence_weeks\s+OR NEW\.date_needed IS DISTINCT FROM OLD\.date_needed\s+OR NEW\.start_time IS DISTINCT FROM OLD\.start_time\s+OR NEW\.recurrence_end_date IS DISTINCT FROM OLD\.recurrence_end_date\) THEN\s+RAISE/,
     );
+    // Hired = a Helpr on the parent OR anyone holding a date of a split series.
+    expect(body).toMatch(/v_hired := OLD\.helper_id IS NOT NULL\s+OR \(OLD\.recurrence_days IS NOT NULL AND OLD\.parent_job_id IS NULL\s+AND EXISTS \(SELECT 1 FROM public\.series_visit_holds h WHERE h\.parent_job_id = OLD\.id\)\);/);
     expect(body).toMatch(/IF NEW\.series_ended_on IS DISTINCT FROM OLD\.series_ended_on THEN\s+RAISE/);
     expect(body).toMatch(/IF NEW\.series_ended_on IS NOT NULL THEN\s+RAISE/);
     // The trigger fires on every one of those columns (the newest CREATE TRIGGER).
@@ -120,7 +123,7 @@ describe("recurring series: end + schedule lock", () => {
     expect(body).toMatch(/WHERE j\.id = NEW\.parent_job_id\s+FOR SHARE;/);
     // Review 2026-09-25: a date-bounded refusal let a GAP on or before the end
     // be funded after the series ended.
-    expect(body).toMatch(/IF v_ended IS NOT NULL THEN\s+RAISE EXCEPTION 'series_ended/);
+    expect(body).toMatch(/IF TG_OP = 'INSERT' AND v_ended IS NOT NULL THEN\s+RAISE EXCEPTION 'series_ended/);
     expect(body).not.toMatch(/NEW\.date_needed > v_ended/);
     expect(allSql).toMatch(/CREATE TRIGGER trg_series_visit_within_end\s+BEFORE INSERT ON public\.jobs/);
   });

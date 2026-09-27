@@ -341,6 +341,12 @@ BEGIN
   END IF;
 
   -- The Helpr who was on the parent left it: their future dates go back.
+  -- No strike here, on purpose (scheduling review MEDIUM-3): a Helpr leaving
+  -- via helper_cancel_booking is refused after the start (job_already_started)
+  -- and is struck there when the start is within 24h; every held date is on or
+  -- after the parent's date_needed, so no held date is nearer than that. The
+  -- other paths that clear recurring_helper_id (poster, ban, admin) are not the
+  -- Helpr giving up and must not strike them.
   IF TG_OP = 'UPDATE' AND OLD.recurring_helper_id IS NOT NULL
      AND NEW.recurring_helper_id IS DISTINCT FROM OLD.recurring_helper_id THEN
     SELECT array_agg(h.visit_date) INTO v_future

@@ -92,7 +92,7 @@ describe("recurring split days (Q407 4-6)", () => {
   it("a visit is created only for the Helpr holding its date", () => {
     const { body } = newestFunction("enforce_series_visit_within_end");
     expect(body).toMatch(/IF v_holder IS NULL OR v_holder IS DISTINCT FROM NEW\.helper_id THEN\s+RAISE EXCEPTION 'series_date_unheld/);
-    expect(body).toMatch(/IF v_ended IS NOT NULL THEN\s+RAISE EXCEPTION 'series_ended/);
+    expect(body).toMatch(/IF TG_OP = 'INSERT' AND v_ended IS NOT NULL THEN\s+RAISE EXCEPTION 'series_ended/);
   });
 
   it("the strike for handing back a date applies only within 24 hours, via the existing ladder", () => {
@@ -150,7 +150,7 @@ describe("recurring split days (Q407 4-6)", () => {
 
   it("the split choice is locked after hire, and hire seeds the holds", () => {
     const lock = newestFunction("enforce_series_columns_client_lock").body;
-    expect(lock).toMatch(/IF NEW\.series_split_ok IS DISTINCT FROM OLD\.series_split_ok\s+AND \(OLD\.helper_id IS NOT NULL OR OLD\.recurring_helper_id IS NOT NULL\) THEN\s+RAISE/);
+    expect(lock).toMatch(/IF NEW\.series_split_ok IS DISTINCT FROM OLD\.series_split_ok\s+AND \(v_hired OR OLD\.recurring_helper_id IS NOT NULL\) THEN\s+RAISE/);
     const triggers = [...allSql.matchAll(/CREATE TRIGGER trg_enforce_series_columns_client_lock\s+BEFORE INSERT OR UPDATE OF ([a-z_, ]+) ON public\.jobs/g)];
     expect((triggers.pop()?.[1] ?? "").split(",").map((c) => c.trim())).toContain("series_split_ok");
     expect(allSql).toMatch(/CREATE TRIGGER trg_series_holds_on_hire\s+AFTER UPDATE ON public\.jobs\s+FOR EACH ROW\s+WHEN \(OLD\.recurring_helper_id IS DISTINCT FROM NEW\.recurring_helper_id\)/);

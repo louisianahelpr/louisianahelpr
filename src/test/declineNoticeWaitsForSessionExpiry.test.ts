@@ -8,11 +8,11 @@
  * A decline (payment_intent.payment_failed) is retryable inside the session,
  * so a notice there sends the poster to pay twice.
  *
- * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts: add back insertNotifications(... "the job isn't posted" ...) => red
- * @mutate src/pages/post-job/useJobSubmit.ts: delete safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId) => red
- * @mutate src/pages/post-job/EntryChoice.tsx: drop `draftCheckout !== "paid" &&` => red
- * @mutate src/pages/post-job/useDraftCheckoutState.ts: return "none" for a live session => red
- * @mutate src/pages/post-job/useDraftCheckoutState.ts: useState<DraftCheckoutState>("none") => red
+ * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | logStep("Job marked failed; poster is told on session expiry" | logStep("Job marked failed; the job isn't posted"
+ * @mutate src/pages/post-job/useJobSubmit.ts | safeStorage.setItem(DRAFT_CHECKOUT_JOB_KEY, jobId); | void jobId;
+ * @mutate src/pages/post-job/EntryChoice.tsx | form.hasDraft && draftCheckout !== "paid" && | form.hasDraft &&
+ * @mutate src/pages/post-job/useDraftCheckoutState.ts | return row.stripe_session_id ? "open" : "none"; | return "none";
+ * @mutate src/pages/post-job/useDraftCheckoutState.ts | safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY) ? "open" : "none", | "none",
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

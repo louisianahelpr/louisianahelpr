@@ -142,6 +142,31 @@ export async function handleCheckoutSessionExpired(
   const giftCardId = meta?.gift_card_id;
   if (!giftCardId) return; // not a gift card difference checkout — nothing further to unwind
 
+  // Free the gift only if THIS session was the job's live checkout. Two taps
+  // either side of create-payment's 10-minute key bucket (Q770) open two
+  // sessions for one reservation; only one is stamped on the job, and the
+  // other expires ~10 min earlier. Un-reserving on that orphan's expiry would
+  // leave the stamped session payable with the gift back in 'sent', so the
+  // consume on completion matches nothing and the gift is spent twice.
+  if (jobId) {
+    const { data: job, error: jobErr } = await supabase
+      .from("jobs")
+      .select("stripe_session_id, payment_status")
+      .eq("id", jobId)
+      .maybeSingle();
+    if (jobErr) {
+      throw new Error(`Failed to read job ${jobId} before un-reserving gift ${giftCardId} on expired checkout ${session.id}: ${jobErr.message}`);
+    }
+    const superseded = !!job?.stripe_session_id && job.stripe_session_id !== session.id;
+    const funded = !!job && !["unpaid", "failed", "abandoned"].includes(job.payment_status ?? "unpaid");
+    if (superseded || funded) {
+      logStep("Expired checkout — job holds another session or is funded, gift reservation left alone", {
+        giftCardId, sessionId: session.id, jobId,
+      });
+      return;
+    }
+  }
+
   const { data: freed, error: freeErr } = await supabase
     .from("gift_cards")
     .update({ status: "sent", job_id: null })

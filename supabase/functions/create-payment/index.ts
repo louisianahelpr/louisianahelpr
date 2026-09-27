@@ -326,6 +326,23 @@ serve(async (req) => {
       const remintKeySuffix = previousSessionId ? `-after-${previousSessionId}` : "";
 
       /**
+       * Checkout expiry (Q770). Without `expires_at` a job checkout stays open
+       * for Stripe's default 24h, and a declined card only reaches the poster
+       * when the session EXPIRES (Q769: a decline is retryable inside an open
+       * session, so the notice waits for checkout.session.expired). An hour
+       * bounds that wait and the abandoned-checkout sweep's wait with it.
+       *
+       * Taken from a 10-minute bucket, and the bucket is part of the
+       * idempotency key, exactly as the recurring-visit checkout does: Stripe
+       * refuses a reused key whose params changed (for 24h), so a double-tap
+       * must send the SAME expires_at. bucket + 60 min is 50-60 min from now,
+       * above Stripe's 30-minute minimum.
+       */
+      const checkoutBucketSec = Math.floor(Date.now() / 1000 / 600) * 600;
+      const checkoutExpiresAt = checkoutBucketSec + 60 * 60;
+      const checkoutKeySuffix = `${remintKeySuffix}-b${checkoutBucketSec}`;
+
+      /**
        * Record a newly-minted session on the job, tolerating the double-tap.
        *
        * The write is guarded on the session id we READ, so a concurrent request
@@ -448,9 +465,10 @@ serve(async (req) => {
           // FULL price while the gift sat 'reserved' against the abandoned
           // one, unusable on anything else until the session expired.
           cancel_url: buildRedirectUrl(`/post-job?gift_card=${encodeURIComponent(giftCardId)}`, isNative),
+          expires_at: checkoutExpiresAt,
           metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
         }, {
-          idempotencyKey: `gift-card-diff-${jobId}${remintKeySuffix}`,
+          idempotencyKey: `gift-card-diff-${jobId}${checkoutKeySuffix}`,
         });
 
         // Record the session on the job, exactly as the full-escrow path below
@@ -705,12 +723,13 @@ serve(async (req) => {
         payment_intent_data: paymentIntentExtras,
         success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
         cancel_url: buildRedirectUrl(`/post-job`, isNative),
+        expires_at: checkoutExpiresAt,
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents) },
       }, {
         // Idempotency: a double-submit (double-tap, retried request) for the same
         // job reuses the existing Checkout Session instead of creating a second
-        // escrow charge. Scoped per job; Stripe expires the key after 24h.
-        idempotencyKey: `escrow-${jobId}${remintKeySuffix}`,
+        // escrow charge. Scoped per job and 10-minute expiry bucket (see checkoutKeySuffix).
+        idempotencyKey: `escrow-${jobId}${checkoutKeySuffix}`,
       });
 
       // Store both fee structures on the job. Fail the request if this write

@@ -25,8 +25,8 @@
  *
  * @mutate src/lib/neverPaidStatuses.ts | "unpaid", "abandoned", "failed" | "unpaid", "abandoned"
  * @mutate src/hooks/useRecentPostedJobs.ts | .or(`payment_status.is.null,payment_status.not.in.(${NEVER_PAID_STATUSES.join(",")})`) | .or(`payment_status.is.null,payment_status.not.in.(unpaid,abandoned)`)
- * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | link: "/post-job", | link: `/posts?job=${failedJob.id}`,
- * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |       return; |       void 0;
+ * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts | link: "/post-job", | link: `/posts?job=${released.id}`,
+ * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts | if (released && released.payment_status === "failed" && released.customer_id) { | if (released && released.customer_id) {
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";

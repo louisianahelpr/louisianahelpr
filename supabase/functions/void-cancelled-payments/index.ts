@@ -677,10 +677,15 @@ serve(async (req) => {
         continue;
       }
 
-      // Verify the Stripe session is actually expired/unpaid
+      // Abandon only a session Stripe has EXPIRED (Q771). payment_status is
+      // 'unpaid' on an OPEN session too — a poster still on the Checkout page,
+      // or retrying after a decline — so keying on it abandoned live
+      // checkouts an hour after the job was created. An open session is left
+      // for Stripe's own expires_at (create-payment sets a short one, Q770);
+      // 'complete' + unpaid is an async payment still settling.
       try {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id!);
-        if (session.payment_status === "unpaid") {
+        if (session.status === "expired" && session.payment_status === "unpaid") {
           if (await markAbandoned(job, "unpaid")) abandonedCount++;
         }
       } catch (e) {

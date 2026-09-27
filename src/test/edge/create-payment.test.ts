@@ -266,7 +266,7 @@ describe("create-payment edge function", () => {
           // `escrow-job-1` alone would replay the expired session's response
           // for 24h and hand the poster a url that leads nowhere.
           const opts = stripeMock.checkout.sessions.create.mock.calls[0][1];
-          expect(opts.idempotencyKey).toBe("escrow-job-1-after-cs_dead");
+          expect(opts.idempotencyKey).toMatch(/^escrow-job-1-after-cs_dead-b\d+$/);
 
           // payment_status returns to the money-in-flight state: the
           // checkout.session.expired handler, void-cancelled-payments' sweep
@@ -349,9 +349,15 @@ describe("create-payment edge function", () => {
         );
         expect(res.status).toBe(200);
         expect(stripeMock.checkout.sessions.retrieve).not.toHaveBeenCalled();
-        expect(stripeMock.checkout.sessions.create.mock.calls[0][1].idempotencyKey).toBe(
-          "escrow-job-1",
-        );
+        const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+        // Q770: the key carries the 10-minute expiry bucket, and expires_at is
+        // that bucket + 1h — so a double-tap sends identical params under one key.
+        const bucket = Number(/^escrow-job-1-b(\d+)$/.exec(opts.idempotencyKey)?.[1]);
+        expect(bucket % 600).toBe(0);
+        expect(params.expires_at).toBe(bucket + 3600);
+        const now = Math.floor(Date.now() / 1000);
+        expect(params.expires_at - now).toBeGreaterThanOrEqual(30 * 60);
+        expect(params.expires_at - now).toBeLessThanOrEqual(60 * 60);
       });
     });
 

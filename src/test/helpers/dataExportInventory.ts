@@ -139,6 +139,10 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   helper_shadowbans: { by: ["helper_id"] },
   application_rate_log: { by: ["applicant_id"] },
   profile_search_rate_log: { by: ["searcher_id"] },
+  crew_dispute_member_outcomes: { by: ["helper_id"] },
+  job_schedule_change_requests: { by: ["requested_by", "responder_id"] },
+  series_date_offers: { by: ["helper_id"] },
+  series_visit_holds: { by: ["helper_id"] },
 };
 
 /**
@@ -183,6 +187,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "profiles.license_reviewed_by": { reason: "staff reviewer id", stripped: true },
   "jobs.removed_by": { reason: "staff moderator id", stripped: true },
   "disputes.decided_by": { reason: "staff decider id", stripped: true },
+  "crew_dispute_member_outcomes.decided_by": { reason: "staff decider id", stripped: true },
   "helper_verifications.changed_by": { reason: "staff reviewer id", stripped: true },
   "verification_exceptions.assigned_to": { reason: "staff assignee id", stripped: true },
   "reports.assigned_to": { reason: "staff assignee id", stripped: true },

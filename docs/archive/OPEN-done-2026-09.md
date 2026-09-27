@@ -1751,3 +1751,34 @@ duplicate-number check).
   reports of the last 90 days, and one /support guest message lands as a 'contact-support-guest'
   item after functions-deploy. App Store reviews are NOT ingested anywhere in source: Q289.
   LIVE PASS 2026-09-25 ~14:00Z (queue lane, read-only SQL): pg_get_functiondef(ops_alert_condition) has the 'user-report' branch; trigger trg_reports_zz_ledger on reports (fn ops_alert_ledger_from_report) present; all six new functions (that one, ops_alert_record_user_report, user_report_is_open/_is_real/_severity/_title) proacl = postgres + service_role only; backfill: 1 user-report ledger item (closed) and 0 open real reports in 90 days, which agree; contact-support deployed v2069 contains the 'contact-support-guest' path (get_edge_function). STILL OPEN: the end-to-end guest /support message (not sent: it emails the real support inbox and opens a ledger item; the lead or owner should send one and watch the item open and close).
+
+## Archived 2026-09-27 — from "MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)"
+
+- [x] **Q63 Quota and limit monitor, before any free-tier limit bites.**
+  Supabase (DB size, egress, connections, edge invocations, realtime
+  messages; supabase-usage.yml covers part of it), Vercel (deploys,
+  bandwidth, function time), GitHub Actions minutes, Resend send volume,
+  Sentry quota. Alert at 70% and 90%, and show each on the scoreboard.
+  **STATUS 2026-09-23 (cloud/q63-q72-monitors; built and stub-verified, NOT yet run on prod, so [~]):**
+  `.github/workflows/quota-monitor.yml` (daily 23:17 UTC, prod-load slot) runs
+  `scripts/check-quota-usage.mjs` (limits + maths in `scripts/lib/quotaMonitor.mjs`). READS: Supabase DB
+  size (pg_database_size vs 8 GB Pro), client connections vs the LIVE max_connections, file storage
+  (storage.objects bytes vs 100 GB), edge invocations (function_edge_logs 24h x 30 vs 2M/month, logs.all);
+  Vercel deployments in 24h (GitHub deployments API, all environments, vs the Hobby cap of 100/day; a floor,
+  CLI deploys make none); Resend sends month-to-date and 24h (email_send_log 'sent' vs ASSUMED free plan
+  3,000/month, 100/day; a floor, Auth SMTP mail is not logged); Sentry accepted errors 30d (stats_v2, falls
+  back to project stats on 401/403; vs ASSUMED Developer plan 5,000). NOT MONITORED, ::warning every run:
+  Supabase egress and Realtime messages (no API; Management API usage routes 404, measured 2026-09-14).
+  ALERTS through the ops alert ledger (warning at 80%, error at 100%, verify-ref quota-monitor.yml);
+  UNREADABLE quota = ledger error + red run (nightly-issue-sync). Limits were NOT re-read from vendor
+  pricing (egress-blocked in the cloud session); each has an LH_QUOTA_* override. GUARD:
+  src/test/quotaMonitor.test.ts (maths, unreadable -> red, empty read -> red, no-API rows never "ok"; 6
+  @mutate lines, each shown red) + both scripts in src/test/liveCheckScriptsFailClosed.test.ts. SQL executed
+  in PGlite on a prod-shaped schema. FIRST PROD RUNS DONE: scheduled run 36082385383 (2026-09-25 03:20Z) green, 11 rows read (DB 74.5 MB of 8 GB, connections 26/60, storage 8.9 MB, edge invocations 313,980/2M projected, Vercel deploys 26/100 a day, Resend 811/3,000 month and 32/100 day, Sentry errors 255/5,000, Sentry replays 652/50 OVER; egress and Realtime messages NOT-MONITORED). **DONE 2026-09-27 (Lane 1):** two-step alerting, 70% = WARN (ledger warning), 90% = HIGH and
+  100% = OVER (ledger errors), in scripts/lib/quotaMonitor.mjs (grade, alertSeverity); one scoreboard row
+  per quota (scripts/scoreboard.mjs quotaRows, from the newest conclusive quota-monitor.yml run's report
+  table; OK PASS, WARN WARN, HIGH/OVER FAIL, NOT-MONITORED/UNREADABLE UNKNOWN with the reason, old run
+  STALE, no table = one UNKNOWN row). GitHub Actions minutes: not applicable, the repo is PUBLIC
+  (gh repo view, 2026-09-27) and public-repo standard runners are free. Stale supabase-usage.yml limits
+  stay with Q221. GUARD: src/test/quotaMonitor.test.ts (14 @mutate, 14/14 killed) +
+  src/test/scoreboardQuotaRows.test.ts (4 @mutate, 4/4 killed).

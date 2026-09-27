@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 218** (162 to do, 56 fixed with protection pending; 362 done). Feeds mirrored in: 15 from the alert ledger, 12 from nightly-red issues, 10 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 217** (162 to do, 55 fixed with protection pending; 363 done). Feeds mirrored in: 15 from the alert ledger, 12 from nightly-red issues, 10 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T21:05Z)_
 - **Remote branches:** 102 carry patches not on main, 0 fully merged, of 103 (Q79). _(2026-09-27T21:05Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 580 items — 362 done, 56 partly done (fixed, protection pending), 162 open.**
+**Queue: 580 items — 363 done, 55 partly done (fixed, protection pending), 162 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -451,29 +451,6 @@ sure someone hears it and closes it.
   pay) with a test-account pool against prod at a quiet hour, stepping up
   until p95 or errors break. Record the ceiling and what gives first, and set
   alert thresholds below it. Owner decision after: tier, or optimisation.
-- [~] **Q63 Quota and limit monitor, before any free-tier limit bites.**
-  Supabase (DB size, egress, connections, edge invocations, realtime
-  messages; supabase-usage.yml covers part of it), Vercel (deploys,
-  bandwidth, function time), GitHub Actions minutes, Resend send volume,
-  Sentry quota. Alert at 70% and 90%, and show each on the scoreboard.
-  **STATUS 2026-09-23 (cloud/q63-q72-monitors; built and stub-verified, NOT yet run on prod, so [~]):**
-  `.github/workflows/quota-monitor.yml` (daily 23:17 UTC, prod-load slot) runs
-  `scripts/check-quota-usage.mjs` (limits + maths in `scripts/lib/quotaMonitor.mjs`). READS: Supabase DB
-  size (pg_database_size vs 8 GB Pro), client connections vs the LIVE max_connections, file storage
-  (storage.objects bytes vs 100 GB), edge invocations (function_edge_logs 24h x 30 vs 2M/month, logs.all);
-  Vercel deployments in 24h (GitHub deployments API, all environments, vs the Hobby cap of 100/day; a floor,
-  CLI deploys make none); Resend sends month-to-date and 24h (email_send_log 'sent' vs ASSUMED free plan
-  3,000/month, 100/day; a floor, Auth SMTP mail is not logged); Sentry accepted errors 30d (stats_v2, falls
-  back to project stats on 401/403; vs ASSUMED Developer plan 5,000). NOT MONITORED, ::warning every run:
-  Supabase egress and Realtime messages (no API; Management API usage routes 404, measured 2026-09-14).
-  ALERTS through the ops alert ledger (warning at 80%, error at 100%, verify-ref quota-monitor.yml);
-  UNREADABLE quota = ledger error + red run (nightly-issue-sync). Limits were NOT re-read from vendor
-  pricing (egress-blocked in the cloud session); each has an LH_QUOTA_* override. GUARD:
-  src/test/quotaMonitor.test.ts (maths, unreadable -> red, empty read -> red, no-API rows never "ok"; 6
-  @mutate lines, each shown red) + both scripts in src/test/liveCheckScriptsFailClosed.test.ts. SQL executed
-  in PGlite on a prod-shaped schema. FIRST PROD RUNS DONE: scheduled run 36082385383 (2026-09-25 03:20Z) green, 11 rows read (DB 74.5 MB of 8 GB, connections 26/60, storage 8.9 MB, edge invocations 313,980/2M projected, Vercel deploys 26/100 a day, Resend 811/3,000 month and 32/100 day, Sentry errors 255/5,000, Sentry replays 652/50 OVER; egress and Realtime messages NOT-MONITORED). STILL OPEN:
-  GitHub Actions minutes (no API with GITHUB_TOKEN); 70/90% two-step and per-quota scoreboard rows (the
-  workflow's own row is on the scoreboard); stale limits in supabase-usage.yml -> Q221.
 - [~] **Q65 Test-data hygiene on prod. MEASURED 2026-09-26, purge BUILT (branch cloud/open-testinfra, PR #1839), dry-run until turned on.** Seed rows by age (<1d/1-7d/7-30d/30-90d): jobs 379 (26/105/242/6), profiles 57 (all 7-30d), messages 449 (138/172/133/6), notifications 1,266 of 1,503 (317/321/628/0), storage 223 objects ~105 KB (52/105/66/0); nothing purged seed jobs by age (84 older than 14 days, re-measured by the lead). Built: supabase/migrations/20260926041023_purge_old_seed_data.sql, `purge_old_seed_data(p_dry_run default true, 14-day window, floor 7, batch <= 500)`, daily cron purge-old-seed-data through run_seed_purge(), DRY until feature_flags.seed_purge_live = true; candidates are is_seed, v4-id (never prod-seed v5 or 5eed fixtures), unpaid/abandoned/cancelled, not referenced by 14 money/trust tables; money jobs are LISTED never deleted; never touches profiles, auth or storage; runs recorded in seed_purge_runs (service_role only). GUARD: src/test/seedPurgeIsSafe.test.ts (6/7 red without the migration, 5 @mutate killed); PGlite src/test/pglite/seedPurge.pglite.mjs 35/35 after 3x. VISIBILITY NOT PROVEN, the item's premise is false today: seed_jobs_hidden_publicly() = false live, so open_jobs_browse is 9/9 seed rows (lead re-measured); split out as Q552. OWNER TO-DO after merge: read 2-3 rows of seed_purge_runs (dry), then `UPDATE platform_settings SET feature_flags = feature_flags || '{"seed_purge_live": true}'`; recommendation: flip after 2-3 clean dry runs. Was: **Q65 Test-data hygiene on prod.** E2E/press/prod-audit write to prod by **Re-measured 2026-09-27 (lane D, read-only prod SQL):** migration live; platform_settings.feature_flags->>'seed_purge_live' is NULL (still dry); seed_purge_runs holds 1 dry run (jobs_would_delete 13, money-held listed 38, notifications 569). What is left is the owner's flip. **2026-09-27 ~21:00Z (lane 2, read-only prod SQL), owner approved the flip after 3 CONSECUTIVE clean dry runs:** seed_purge_runs still holds 1 row (id 1, 2026-09-27 05:19Z, dry_run true, jobs_would_delete 13, money_held_count 38, jobs_eligible_not_reached 0, notifications_would_delete 569); seed_purge_live NULL; cron purge-old-seed-data `19 5 * * *` active. Condition not met (1 of 3). The 3rd consecutive run is 2026-09-29 ~05:19Z at the earliest; flip then only if runs 2 and 3 are clean too (no error, jobs_eligible_not_reached 0). done-when: sql `SELECT coalesce(feature_flags->>'seed_purge_live','false') FROM public.platform_settings` => true
   design. Measure how many is_seed jobs, users, messages, notifications and
   storage objects have built up; purge anything past a retention window on

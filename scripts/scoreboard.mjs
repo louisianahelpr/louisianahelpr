@@ -46,6 +46,7 @@ import { join, resolve } from "node:path";
 import { queueCounts } from "./queue-count.mjs";
 import { queueText } from "./lib/openQueue.mjs";
 import { countFindings, foldFindings, parseFindingsLog } from "./lib/auditFindings.mjs";
+import { feedCounts } from "./lib/openFeeds.mjs";
 import { INVENTORY as EXPIRY_INVENTORY, inventoryCounts, runAll as runExpiry, scoreboardRows as expiryScoreboardRows } from "./lib/expiryMonitor.mjs";
 import { measureSlos, realIo, sloRecord, sloTargetRows } from "./slo.mjs";
 import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
@@ -834,27 +835,28 @@ export function carryForwardMeasured(freshLive, committed, now = new Date()) {
   }).join("\n");
 }
 
-export function renderOpenBlock(local, liveBlock) {
+export function renderOpenBlock(local, liveBlock, openText = "") {
   const q = local.find((r) => r.signal.startsWith("OPEN.md queue"));
-  const bus = local.find((r) => r.signal.startsWith("audit bus"));
+  const f = feedCounts(openText ?? "");
+  // ONE open-work number (owner, 2026-09-27: "can this just be merged into open
+  // so we aren't tracking several different things"). The alert ledger,
+  // nightly-red issues and the audit bus are FEEDS mirrored into this queue by
+  // scripts/open-sync-trackers.mjs; they appear only as where items came from.
+  const partly = Number.parseInt(q.skipped, 10) || 0;
   return `${EO_START}
-**Everything open — start here** (Q58). Every tracker, its live count, and where to look.
+**Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** ${q.note}. Source of truth for work.
-- **Audit bus:** ${bus.status === "UNKNOWN" ? bus.note : bus.note.split(";")[0]} — \`node scripts/audit-bus.mjs list --blockers\` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Open: ${q.fail + partly}** (${q.fail} to do, ${partly} fixed with protection pending; ${q.pass} done). Feeds mirrored in: ${f.ledger} from the alert ledger, ${f.issue} from nightly-red issues, ${f.bus} from the audit bus (\`node scripts/open-sync-trackers.mjs\`).
 ${LIVE_START}
-${liveBlock ?? "- **Live trackers (alert ledger, nightly-red issues, CI, branches): never measured** — run `node scripts/scoreboard.mjs --write`."}
+${(liveBlock ?? "- **Live (workflows, branches): never measured** — run `node scripts/scoreboard.mjs --write`.").split("\n").filter((l) => !/^- \*\*(Ops alert ledger|nightly-red issues):/.test(l)).join("\n")}
 ${LIVE_END}
 ${EO_END}`;
 }
 
 export function renderLiveOpen(live) {
-  const L = live.ledger, R = live.red, W = live.wf, B = live.branches;
+  const W = live.wf, B = live.branches;
   const lines = [
-    L ? `- **Ops alert ledger:** ${L.open} open (${L.openBySeverity}), ${L.verifying} verifying — \`node scripts/ops-alert-ledger.mjs list\` · /admin?view=health. _(${L.at})_`
-      : "- **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.",
-    R ? `- **nightly-red issues:** ${R.open} open — \`gh issue list -l nightly-red\`. _(${R.at})_` : "- **nightly-red issues:** UNKNOWN — `gh issue list` failed.",
     W ? `- **Workflows on main:** ${W.FAIL} red, ${W.STALE} stale, ${W.UNKNOWN} unknown, ${W.PASS} green of ${W.total} — [SCOREBOARD](SCOREBOARD.md). _(${live.at})_` : "- **Workflows on main:** UNKNOWN — `gh api` failed.",
     B ? `- **Remote branches:** ${B.unlanded} carry patches not on main, ${B.merged} fully merged, of ${B.total} (Q79). _(${B.at})_` : "- **Remote branches:** UNKNOWN — git fetch failed.",
   ];
@@ -912,23 +914,27 @@ async function main() {
     // Session start: fast, capped, never fails. Local rows are exact; the two
     // cheap live trackers are re-measured with short timeouts; the slow ones
     // (every workflow, branches) come from the committed block with their stamp.
-    let live = committedLive(between(readRepo(OPEN) ?? "", EO_START, EO_END) ?? "");
+    // Session start: fast, never fails. The queue is exact at this tree; the
+    // feeds are counted from their mirrored OPEN.md items, and a source not yet
+    // mirrored is named. Workflows and branches come from the committed block.
+    const openText = readRepo(OPEN) ?? "";
+    const old = (committedLive(between(openText, EO_START, EO_END) ?? "") ?? "").split("\n");
+    const live = [
+      old.find((l) => l.startsWith("- **Workflows on main:**")) ?? "- **Workflows on main:** not measured yet.",
+      old.find((l) => l.startsWith("- **Remote branches:**")) ?? "- **Remote branches:** not measured yet.",
+    ].join("\n");
+    console.log(renderOpenBlock(local, live, openText).split("\n").filter((l) => !l.startsWith("<!--")).join("\n"));
     try {
-      const now = new Date();
-      const { sql } = await import("./lib/opsAlertLedger.mjs");
-      const ledger = await ledgerRows((q) => sql(q, { readOnly: true, timeoutMs: 6000 }));
-      const red = nightlyRedRows(now, 6000);
-      const fresh = renderLiveOpen({ ledger: ledger.summary, red: red.summary, wf: null, branches: null, at: iso(now) }).split("\n");
-      const old = (live ?? "").split("\n");
-      const keep = (prefix, freshLine) => (freshLine.includes("UNKNOWN") ? old.find((l) => l.startsWith(prefix)) ?? freshLine : freshLine);
-      live = [
-        keep("- **Ops alert ledger:**", fresh[0]),
-        keep("- **nightly-red issues:**", fresh[1]),
-        old.find((l) => l.startsWith("- **Workflows on main:**")) ?? "- **Workflows on main:** not measured yet.",
-        old.find((l) => l.startsWith("- **Remote branches:**")) ?? "- **Remote branches:** not measured yet.",
-      ].join("\n");
-    } catch { /* keep the committed live lines */ }
-    console.log(renderOpenBlock(local, live).split("\n").filter((l) => !l.startsWith("<!--")).join("\n"));
+      const { SNAPSHOT, FINDINGS: BUS, busSources, mirrorProblems } = await import("./lib/openFeeds.mjs");
+      const snap = JSON.parse(readRepo(SNAPSHOT) ?? "{}");
+      const keys = [
+        ...(snap.issues?.open ?? []).map((i) => `issue #${i.number}`),
+        ...(snap.ledger?.open ?? []).map((r) => `ledger ${r.fingerprint.slice(0, 12)}`),
+        ...busSources(readRepo(BUS) ?? "").flatMap((g) => g.keys),
+      ];
+      const { missing } = mirrorProblems(keys, openText);
+      if (missing.length) console.log(`- ${missing.length} feed source(s) not yet in OPEN.md: ${missing.slice(0, 5).join(", ")} — run \`node scripts/open-sync-trackers.mjs\`.`);
+    } catch { /* src/test/openFeedsMirrored.test.ts still catches it */ }
     return;
   }
 
@@ -970,7 +976,7 @@ async function main() {
     openLive = committedLive(between(openText ?? "", EO_START, EO_END) ?? "");
   }
   const sb = renderScoreboard(local, sbLive);
-  const open = spliceOpen(openText, renderOpenBlock(local, openLive));
+  const open = spliceOpen(openText, renderOpenBlock(local, openLive, openText));
   writeFileSync(sbPath, sb);
   writeFileSync(openPath, open);
   const problems = shapeProblems(sb, open);

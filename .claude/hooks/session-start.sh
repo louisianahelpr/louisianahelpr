@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# EVERYTHING OPEN, first of all (docs/OPEN.md Q58c): the same block that heads
-# docs/OPEN.md — queue, audit bus, alert ledger, nightly-red issues, red
-# workflows, unlanded branches — with the ledger and issue counts re-measured
-# live (6s cap each; anything unreachable falls back to the committed line
-# with its stamp). Never fails session start.
+# OPEN WORK, first of all (docs/OPEN.md Q58c): the block that heads
+# docs/OPEN.md, with ONE open-work number (owner, 2026-09-27). The alert
+# ledger, nightly-red issues and the audit bus are feeds mirrored into OPEN.md
+# by scripts/open-sync-trackers.mjs; a source not yet mirrored is named.
+# Never fails session start.
 LH_DIR0="${CLAUDE_PROJECT_DIR:-.}"
 if command -v node >/dev/null 2>&1 && [ -f "$LH_DIR0/scripts/scoreboard.mjs" ]; then
   LH_LINKED0="$LH_DIR0"
@@ -18,25 +18,6 @@ if command -v node >/dev/null 2>&1 && [ -f "$LH_DIR0/scripts/scoreboard.mjs" ]; 
   LH_SUPABASE_WORKDIR="${LH_SUPABASE_WORKDIR:-$LH_LINKED0}" \
     node "$LH_DIR0/scripts/scoreboard.mjs" --open-block 2>/dev/null || true
   echo
-fi
-
-# Open alerts next (CLAUDE.md: every alert is fixed AND verified fixed; read
-# them first each session). Prints the open count + top 5 from
-# public.ops_alert_ledger (docs/OPEN.md Q1). Read-only, capped at ~8s inside
-# the script, and it can never fail session start.
-LH_DIR="${CLAUDE_PROJECT_DIR:-.}"
-if command -v node >/dev/null 2>&1 && [ -f "$LH_DIR/scripts/ops-alert-ledger.mjs" ]; then
-  # The Supabase CLI link lives in the MAIN checkout's supabase/.temp; a
-  # worktree session has none, so fall back to the main checkout.
-  LH_LINKED="$LH_DIR"
-  if [ ! -f "$LH_DIR/supabase/.temp/project-ref" ]; then
-    LH_COMMON="$(git -C "$LH_DIR" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-    if [ -n "$LH_COMMON" ] && [ -f "$(dirname "$LH_COMMON")/supabase/.temp/project-ref" ]; then
-      LH_LINKED="$(dirname "$LH_COMMON")"
-    fi
-  fi
-  LH_SUPABASE_WORKDIR="${LH_SUPABASE_WORKDIR:-$LH_LINKED}" \
-    node "$LH_DIR/scripts/ops-alert-ledger.mjs" list --brief 2>/dev/null || true
 fi
 
 # SessionStart hook — installs npm dependencies so Claude Code on the web

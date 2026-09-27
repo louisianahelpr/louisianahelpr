@@ -1,3 +1,4 @@
+// @mutate docs/audit/launch-2026-09/inbox/seeded-tracker-fixtures.md | # Seeded tracker fixtures — both owner accounts | ## 2026-09-23T04:00:00.000Z — from lh-orchestrator\n\n# Seeded tracker fixtures — both owner accounts
 // @mutate docs/GUARD-BURNDOWN.md | - every registered guard carries a real `@mutate`. | - [ ] every registered guard carries a real `@mutate`.
 /*
  * ONE open-work list: docs/OPEN.md (owner, 2026-09-23, Q58e: "all tracked in 1
@@ -57,8 +58,18 @@ export function listNamed(path: string): boolean {
   return LIST_NAME.test(base) && /\.(md|txt|markdown)$/i.test(base);
 }
 
+/**
+ * A retired audit-bus inbox thread (`audit-bus.mjs msg` appended "## <ISO> — from <lane>"
+ * blocks to docs/audit/launch-2026-09/inbox/<lane>.md). Those files were a second
+ * open-work list; their open item moved to OPEN.md (Q803) and they were deleted
+ * 2026-09-27 (owner: "if there are any other open list merge them into open also
+ * then delete them").
+ */
+const LANE_MSG = /^## \d{4}-\d{2}-\d{2}T[^\n]* — from /m;
+
 export function openListSignals(text: string): string[] {
   const out: string[] = [];
+  if (LANE_MSG.test(text)) out.push("an audit-bus inbox message thread (retired: use SendMessage / an OPEN.md item)");
   const n = (text.match(UNCHECKED) ?? []).length;
   if (n) out.push(`${n} unchecked "- [ ]" line(s)`);
   const h1 = text.split("\n").find((l) => /^#\s/.test(l)) ?? "";
@@ -117,6 +128,7 @@ describe("docs/OPEN.md is the only open-work list (Q58e)", () => {
     expect(openListSignals("# TODO\n\nnothing yet\n")).toHaveLength(1);
     expect(openListSignals("# Launch backlog\n")).toHaveLength(1);
     expect(openListSignals("# Guide\n\n- [x] done\n")).toHaveLength(0);
+    expect(openListSignals("# lane\n\n## 2026-09-23T04:00:00.000Z — from lh-orchestrator\n\nplease re-check\n")).toHaveLength(1);
     expect(listNamed("TODO.md")).toBe(true);
     expect(listNamed("docs/PERF_AUDIT_TODO.md")).toBe(true);
     expect(listNamed("docs/audit/OPEN_ITEMS.md")).toBe(true);

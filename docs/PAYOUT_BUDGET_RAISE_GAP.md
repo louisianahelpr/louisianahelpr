@@ -1,7 +1,8 @@
 # A poster can raise `budget` while checkout is open, and one payout path has no cap
 
 **Status:** fix (1) SHIPPED 2026-09-04 (`20260904210915_lock_budget_while_checkout_session_open.sql`,
-commit 4c3d6d664) · fixes (2) and (3) still open · **Found:** 2026-09-04 · **Severity:** HIGH
+commit 4c3d6d664) · fixes (2) and (3) in the code as of 2026-09-27 (`process-scheduled-payouts/index.ts:1356` and
+`release-payout/index.ts:801` both cap at `captured + giftAppliedCents`); nothing open · **Found:** 2026-09-04 · **Severity:** HIGH
 **Exploitable today:** no — production holds only seed/test data and no real
 money has moved. **Exploitable the day real users arrive:** yes.
 

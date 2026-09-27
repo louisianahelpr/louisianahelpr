@@ -50,7 +50,7 @@ describe("done-when marker parser", () => {
     "  continued; done-when: sql `select count(*) from t` => 0.",
     "- [~] **Q2 test** done-when: test src/test/foo.test.ts",
     "- [ ] **Q3 open item** done-when: issue #5 closed",
-    "- [~] **Q4 gh** done-when: issue #12 closed, done-when: pr #34 merged",
+    "- [~] **Q4 gh** done-when: issue #12 closed, done-when: pr #34 merged, done-when: bus NB-004 closed",
     "## heading",
     "- [~] **Q5 bad** done-when: soon",
   ].join("\n");
@@ -64,11 +64,12 @@ describe("done-when marker parser", () => {
     ]);
   });
 
-  it("parses test, issue and pr markers", () => {
+  it("parses test, issue, pr and bus markers", () => {
     expect(byId.Q2.markers).toEqual([{ kind: "test", path: "src/test/foo.test.ts" }]);
     expect(byId.Q4.markers).toEqual([
       { kind: "issue", number: 12 },
       { kind: "pr", number: 34 },
+      { kind: "bus", id: "NB-004" },
     ]);
   });
 

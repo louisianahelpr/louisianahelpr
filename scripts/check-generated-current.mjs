@@ -184,6 +184,14 @@ export const EVIDENCE = [
     refreshedBy: ".github/workflows/ui-sweep.yml (overlay mode, weekly) — asserts both directions",
     checkedBy: "check-staleness.mjs: last successful Friday scheduled ui-sweep.yml run",
   },
+  {
+    id: "open-feeds",
+    script: "scripts/open-sync-trackers.mjs",
+    outputs: ["docs/audit/open-feeds.json"],
+    refresh: "node scripts/open-sync-trackers.mjs (gh + prod ops_alert_ledger, read-only; also mirrors new sources into docs/OPEN.md)",
+    refreshedBy: ".github/workflows/scoreboard.yml (measures the feeds, then lands the snapshot + OPEN.md items through its refresh PR)",
+    checkedBy: "src/test/openFeedsMirrored.test.ts (every open source in the snapshot has a not-done OPEN.md item)",
+  },
 ];
 
 /**

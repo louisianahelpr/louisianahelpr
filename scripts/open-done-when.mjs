@@ -13,6 +13,9 @@
  *   done-when: test <path>                          `npx vitest run <path>` exits 0
  *   done-when: issue #N closed                      GitHub issue N is closed
  *   done-when: pr #N merged                         GitHub PR N is merged
+ *   done-when: bus <ID> closed                      audit-bus finding <ID> folds to a closed
+ *        status (fixed/retracted/duplicate/wontfix/obsolete) in the committed
+ *        docs/audit/launch-2026-09/findings.jsonl (scripts/open-sync-trackers.mjs writes it)
  *
  * An item is READY when every one of its markers holds. Exit 0: nothing ready
  * and every marker readable. Exit 1: something is ready to tick, or a marker
@@ -40,6 +43,7 @@ const KINDS = [
   { kind: "test", re: /^test\s+([\w./-]+\.(?:test|spec)\.tsx?)/ },
   { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ },
   { kind: "pr", re: /^pr\s+#(\d+)\s+merged\b/ },
+  { kind: "bus", re: /^bus\s+([A-Z]+-\d+(?:#[\w-]+)?)\s+closed\b/ },
 ];
 
 /** Every `- [~]` item: its id, full text (with continuation lines), parsed markers and unparseable ones. */
@@ -60,6 +64,7 @@ export function partlyDoneItems(md) {
       const x = hit.x;
       if (hit.k.kind === "sql") markers.push({ kind: "sql", query: x[1].trim(), expected: (x[2] ?? x[3]).trim() });
       else if (hit.k.kind === "test") markers.push({ kind: "test", path: x[1] });
+      else if (hit.k.kind === "bus") markers.push({ kind: "bus", id: x[1] });
       else markers.push({ kind: hit.k.kind, number: Number(x[1]) });
     }
     out.push({ id, line: i + 1, text, markers, malformed });
@@ -101,6 +106,12 @@ async function runMarker(mk, opts) {
     } catch {
       return { ok: false, note: `${mk.path} fails` };
     }
+  }
+  if (mk.kind === "bus") {
+    const { busStatus, FINDINGS } = await import("./lib/openFeeds.mjs");
+    const st = busStatus(readFileSync(FINDINGS, "utf8")).get(`bus ${mk.id}`);
+    if (!st) return { ok: false, error: `bus ${mk.id} is not in ${FINDINGS}` };
+    return { ok: st === "closed", note: `bus ${mk.id} is ${st}` };
   }
   const args = mk.kind === "issue" ? ["issue", "view", String(mk.number), "--json", "state"] : ["pr", "view", String(mk.number), "--json", "state"];
   const state = JSON.parse(execFileSync("gh", args, { encoding: "utf8" })).state;

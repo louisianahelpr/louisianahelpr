@@ -16,8 +16,8 @@
  *   node scripts/audit-bus.mjs show <id>
  *   node scripts/audit-bus.mjs status <id> --set verified --by lh-verifier --note "..."
  *   node scripts/audit-bus.mjs dupe <id> --of <other-id> --by lh-verifier
- *   node scripts/audit-bus.mjs msg --to lh-visual-critic --from lh-route-walker --body "..."
- *   node scripts/audit-bus.mjs inbox --agent lh-visual-critic
+ *   (msg / inbox are retired: lanes talk over SendMessage, open work is an
+ *   OPEN.md item. The inbox files were merged into docs/OPEN.md 2026-09-27.)
  *   node scripts/audit-bus.mjs rollup
  */
 
@@ -29,7 +29,6 @@ import { countFindings, foldFindings } from "./lib/auditFindings.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = join(ROOT, "docs/audit/launch-2026-09");
 const LOG = join(DIR, "findings.jsonl");
-const INBOX = join(DIR, "inbox");
 
 const SEVERITIES = ["HIGH", "MEDIUM", "LOW", "POLISH"];
 const STATUSES = ["filed", "verified", "retracted", "duplicate", "fixed", "wontfix", "obsolete"];
@@ -150,15 +149,10 @@ if (cmd === "file") {
   const f = fold().find((x) => x.id === a._[0]);
   if (!f) die(`no such finding: ${a._[0]}`);
   console.log(JSON.stringify(f, null, 2));
-} else if (cmd === "msg") {
-  for (const k of ["to", "from", "body"]) if (!a[k] || a[k] === true) die(`--${k} is required`);
-  mkdirSync(INBOX, { recursive: true });
-  appendFileSync(join(INBOX, `${a.to}.md`), `\n## ${now()} — from ${a.from}\n\n${a.body}\n`);
-  console.log(`message delivered to ${a.to}`);
-} else if (cmd === "inbox") {
-  if (!a.agent || a.agent === true) die("--agent is required");
-  const p = join(INBOX, `${a.agent}.md`);
-  console.log(existsSync(p) ? readFileSync(p, "utf8") : "(empty inbox)");
+} else if (cmd === "msg" || cmd === "inbox") {
+  // Retired (PROTOCOL §7). Its files became a second open-work list; docs/OPEN.md
+  // is the one list (owner, 2026-09-27), guarded by src/test/onlyOneOpenList.test.ts.
+  die(`audit-bus ${cmd} is retired: message a lane with SendMessage; file open work as a docs/OPEN.md item or a finding.`);
 } else if (cmd === "rollup") {
   const all = fold();
   // The tables below list everything not retracted/duplicate (fixed rows stay

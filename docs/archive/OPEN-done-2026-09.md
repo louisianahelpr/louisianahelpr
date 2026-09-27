@@ -1450,7 +1450,7 @@ duplicate-number check).
 
 ## Archived 2026-09-27 — from "AUDIT BUS — findings live in the ledger, not here"
 
-- [x] **Q723 Q392 reviewer follow-ups (parish half, b9e7ee8e7, live-verified).** DONE 2026-09-27 (20260927162805): every dropped row is settled (CHECK `(status='queued') = (settled_at IS NULL)`); seed-suppressed case in PGlite §7c; owner chose "blocked/seed stay silent, errors retry" — errors back off 5/10/20/40 min and give up at attempt 5 with an error log. Harness 65 PASS, 8 FAIL with skip-q723; lh-silent-failure APPROVE.
+- [x] **Q723 Q392 reviewer follow-ups (parish half, b9e7ee8e7, live-verified).** DONE 2026-09-27 (20260927162805): every dropped row is settled (CHECK `(status='queued') = (settled_at IS NULL)`); seed-suppressed case in PGlite §7c; owner chose "blocked/seed stay silent, errors retry" — errors back off 5/10/20/40 min and give up at attempt 5 with an error log. Harness 65 PASS, 8 FAIL with skip-q723; lh-silent-failure APPROVE. Guard: the CHECK `job_match_queue_settled_iff_not_queued` in supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql (a dropped row left unsettled cannot be written).
   - `job_match_queue` rows marked 'dropped' leave `settled_at` null.
   - The seed-suppressed branch has no PGlite case.
   - OWNER: confirm that a 'dropped' row (e.g. blocked or seed) should also stop the other channel from sending.

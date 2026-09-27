@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 302 done, 93 partly done (fixed, protection pending), 131 open. Source of truth for work.
-- **Audit bus:** 18 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 17 open, 1 open launch blocker — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 18 open (1 critical, 17 error), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-27T04:06Z)_
 - **nightly-red issues:** 13 open — `gh issue list -l nightly-red`. _(2026-09-27T04:05Z)_

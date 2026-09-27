@@ -186,7 +186,6 @@ export const NOT_MONITORED = {
   nps_submitted: "survey plumbing",
   post_job_entry_choice: "UI choice inside the post flow; job_posted is the outcome",
   sample_job_template_selected: "UI choice inside the post flow",
-  unpaid_draft_resume: "recovery path inside the post flow",
   application_withdraw_reason: "optional survey on withdrawing",
 };
 

@@ -245,7 +245,7 @@ async function driveJobPosted(): Promise<string> {
   };
   const params: UseJobSubmitParams = {
     saving: false, setSaving: vi.fn(), setRedirecting: vi.fn(), setStep: vi.fn(), setConfirmed: vi.fn(),
-    setIdvStatus: vi.fn(), setIdvFailureReason: vi.fn(), setIdvDialogOpen: vi.fn(), clearDraft: vi.fn(),
+    setIdvStatus: vi.fn(), setIdvFailureReason: vi.fn(), setIdvDialogOpen: vi.fn(), flushDraft: vi.fn(),
     title: "Mow the lawn", description: "Front and back yard, about an hour.", category: "yard_work",
     selectedPetIds: [], streetAddress: "1 Main St", city: "New Orleans", addrState: "LA", zipCode: "70112",
     parish: "Orleans", dateNeeded: "2099-01-01", startTime: "09:00", isFlexibleSchedule: false, estimatedHours: "1",

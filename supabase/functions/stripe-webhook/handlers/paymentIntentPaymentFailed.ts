@@ -47,13 +47,18 @@ export async function handlePaymentIntentPaymentFailed(
   if (failedJob) {
     await insertNotifications(supabase, {
       user_id: failedJob.customer_id,
+      // The subject reference: the seed boundary drops the row for a seed job,
+      // and notificationDestination keeps "/post-job" (not an Activity path).
+      job_id: failedJob.id,
       title: "Payment failed",
-      message: `Your payment for "${failedJob.title}" could not be processed. Please update your payment method and try again.`,
+      message: `Your payment for "${failedJob.title}" could not be processed, so the job isn't posted. Open Post a Job and load your draft to try again with another card.`,
       type: "warning",
-      // `?job=` — My Posts opens on the "Needs you" bucket and a job whose
-      // payment just failed is not necessarily in it. Activity resolves the
-      // job id to whichever bucket it is actually in.
-      link: `/posts?job=${failedJob.id}`,
+      // Post a Job, never My Posts: a job that was never paid for does not
+      // exist in Posts (owner, 2026-09-27: "Unpaid jobs should not show in
+      // post anywhere. Even hidden."), so `/posts?job=` opened on nothing.
+      // The draft the poster typed is kept through checkout (useJobSubmit
+      // flushes it before the redirect) and "Load Draft" brings it back.
+      link: "/post-job",
     });
     // Must throw on failure: a silent drop here leaves the job in its pre-failure
     // state (e.g. "escrow") permanently. The outer handler rolls back the dedupe

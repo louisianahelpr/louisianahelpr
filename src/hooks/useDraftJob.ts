@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 
-const DRAFT_KEY = "helpr_draft_job";
+export const DRAFT_KEY = "helpr_draft_job";
 // Debounce window for persisting drafts. Long enough that fast typists
 // don't hammer localStorage on every keystroke, short enough that the user
 // won't lose meaningful work if the tab dies. A `beforeunload` /

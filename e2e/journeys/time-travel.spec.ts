@@ -284,16 +284,17 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     await postJob("2027-03-14", "06:00", "dst-spring");
 
     /*
-     * AN UNFUNDED JOB IS A DRAFT, NOT A POST (owner, 2026-09-21; shipped in
-     * 8fdee80ca): "a job can never be posted if it was enver paid for … It
-     * would be in post a job, drafts."
+     * AN UNPAID JOB SHOWS NOWHERE (owner, 2026-09-27): "Unpaid jobs should not
+     * show in post anywhere. Even hidden." and "Finish paying should not even
+     * be a thing." (It was a "Finish Paying" draft row in Post a Job from
+     * 2026-09-21, 8fdee80ca, until then.)
      *
      * This is the same unfunded fixture the countdown leg below had to stop using, and
      * it is asserted here rather than left implicit, because the rule is what
      * takes that leg away. `jobIsUnfundedDraft` (src/components/job-card/
-     * activityFilters.ts) drops payment_status unpaid/abandoned/failed on an
-     * OPEN job out of `postedJobs` at the source — list AND tab counts — and
-     * `useUnpaidJobDrafts` is the route back to paying for it. Every job this
+     * activityFilters.ts) drops payment_status unpaid/abandoned/failed, in
+     * every status, out of `postedJobs` at the source — list AND tab counts —
+     * and Post a Job offers no row for it either. Every job this
      * spec can create is in exactly that state and cannot leave it: the live
      * `enforce_jobs_insert_column_lock` forces `payment_status := 'unpaid'`
      * and `status := 'open'` on a poster INSERT, and `payment_status` is in
@@ -301,16 +302,18 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
      *
      * Real clock, not a moved one: where a row is filed is not a time question.
      */
-    await test.step("an unfunded job is a draft in Post a Job, and is not a post in My Posts", async () => {
+    await test.step("an unfunded job shows neither in Post a Job nor in My Posts", async () => {
       const { ctx, page } = await openAt(browser, request, CT, new Date());
       try {
         await page.goto("/post-job");
-        const draft = page.locator(`[data-unpaid-draft="${job.id}"]`);
-        await expect(draft, "an unfunded job is not offered as a draft in Post a Job — an abandoned checkout with no route back to paying for it").toBeVisible({
-          timeout: 45_000,
-        });
-        await expect(draft, "the draft row does not name the job it belongs to").toContainText(job.title);
-        await step(journey, page, "unfunded-is-a-draft");
+        // Wait for the entry column to paint (it holds a skeleton until its
+        // data rows settle), so the absence below is not a loading screen.
+        await expect(page.getByText("Start Fresh", { exact: true }), "Post a Job never painted its entry choices").toBeVisible({ timeout: 45_000 });
+        await expect(
+          page.getByText(job.title),
+          "an unpaid job is offered in Post a Job — the owner removed Finish Paying (2026-09-27)",
+        ).toHaveCount(0);
+        await step(journey, page, "unfunded-not-in-post-a-job");
 
         await page.goto(`/posts?job=${job.id}`);
         await expect(page.getByRole("heading", { name: "My Posts", level: 1 })).toBeVisible({ timeout: 45_000 });

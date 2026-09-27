@@ -3,6 +3,7 @@ import { isPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
+import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import {
   BUCKET_ORDER,
   BUCKET_LABEL,
@@ -410,17 +411,21 @@ export function bucketAppliedApp(app: { status: string; job?: { status: string }
  * filed under "waiting for applicants". Which of the three it carries is
  * bookkeeping about how the checkout ended (`unpaid` = never completed,
  * `abandoned` = walked away, `failed` = card declined), not a difference any
- * reader cares about. Kept in step with `unfundedNoticeCause`.
+ * reader cares about.
+ *
+ * EVERY STATUS, not just `open` (owner, 2026-09-27: "Unpaid jobs should not
+ * show in post anywhere. Even hidden."). A never-paid job the poster or the
+ * sweeper later cancelled used to land in Cancelled; one held for review sat in
+ * Waiting. On prod that day: 117 open, 52 cancelled, 1 pending_approval, none
+ * with a helper. A job exists for the poster only once it is paid.
  *
  * FILTERED AT THE SOURCE, not per bucket. The list and the tab counts both walk
  * `postedJobs`, so a rule applied to one and not the other is how a tab reads
  * "Waiting 1" over an empty list — the same one-fact-two-columns shape this
  * repo has paid for before.
  */
-export function jobIsUnfundedDraft(j: { status?: string | null; payment_status?: string | null }): boolean {
-  const moneyNeverLanded =
-    j.payment_status === "unpaid" || j.payment_status === "abandoned" || j.payment_status === "failed";
-  return moneyNeverLanded && j.status === "open";
+export function jobIsUnfundedDraft(j: { payment_status?: string | null }): boolean {
+  return (NEVER_PAID_STATUSES as readonly (string | null | undefined)[]).includes(j.payment_status);
 }
 
 export interface UseActivityFiltersArgs {
@@ -444,8 +449,8 @@ export function useActivityFilters({
   userId,
   pendingApplicantCounts,
 }: UseActivityFiltersArgs) {
-  /* Unfunded rows leave here and nowhere else — see `jobIsUnfundedDraft`. They
-     belong to Post a Job's drafts, not to any bucket on this page. */
+  /* Never-paid rows leave here and nowhere else — see `jobIsUnfundedDraft`.
+     They belong to no bucket on this page, in any status. */
   const postedJobs = useMemo(() => allPostedJobs.filter((j) => !jobIsUnfundedDraft(j)), [allPostedJobs]);
   const searchLower = searchQuery.toLowerCase().trim();
   // Re-bucket at the instant an open listing expires: it leaves Waiting then,

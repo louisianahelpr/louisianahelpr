@@ -24,9 +24,6 @@ interface PostedJobActionsProps {
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
   onBoost: (jobId: string) => void;
-  /** True when the job has never been funded, so it is invisible to every
-      helper. Boost sells reach on a listing that has none — see PostedJobCard. */
-  unfunded?: boolean;
   onEdit: (job: Job) => void;
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
@@ -109,7 +106,6 @@ export function PostedJobActions({
   helperNames,
   completedJobMeta,
   onBoost,
-  unfunded = false,
   onEdit,
   onCancel,
   onComplete,
@@ -330,7 +326,6 @@ export function PostedJobActions({
     userId,
     helperNames,
     completedJobMeta,
-    unfunded,
     completingJobId,
     confirmingArrivalJobId,
     confirmingWorkingJobId,

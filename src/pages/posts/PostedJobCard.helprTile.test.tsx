@@ -39,7 +39,6 @@ vi.mock("./postedJobCard/PostedJobApplicants", () => ({ PostedJobApplicants: () 
 // position (directly above the row) is proved against the real actions in
 // src/test/jobCardPersonTileAboveRow.test.tsx.
 vi.mock("./postedJobCard/PostedJobActions", () => ({ PostedJobActions: () => null }));
-vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fundJob: vi.fn(), fundingJobId: null }) }));
 vi.mock("../../components/job-card/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 
 import { PostedJobCard } from "./PostedJobCard";

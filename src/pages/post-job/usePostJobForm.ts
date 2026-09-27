@@ -26,7 +26,7 @@ export function usePostJobForm() {
   const navigate = useNavigate();
   const { profile } = useCurrentUser();
   const [searchParams] = useSearchParams();
-  const { draft, hasDraft, saveDraft, flushDraft, clearDraft } = useDraftJob();
+  const { draft, hasDraft, saveDraft, flushDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   // Preflight open-job count — checked at mount so the user learns
@@ -372,7 +372,7 @@ export function usePostJobForm() {
     setIdvStatus,
     setIdvFailureReason,
     setIdvDialogOpen,
-    clearDraft,
+    flushDraft,
     title,
     description,
     category,

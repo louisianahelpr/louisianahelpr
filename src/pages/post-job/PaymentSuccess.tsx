@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-// No @capacitor/share or sonner import here any more: the share ladder and
-// every one of its user-visible outcomes belong to `shareNative`.
 // Derive the auto-release window rather than restating "48 hours" in prose.
 // This is checkout copy — a legally load-bearing promise about when money
 // moves — so it must follow the config the cron actually enforces. Imported
@@ -30,6 +28,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
 import { safeStorage } from "@/lib/safeStorage";
+import { DRAFT_KEY } from "@/hooks/useDraftJob";
 // formatPriceExact, not formatPrice: the sentences below state a sum of money
 // that is ACTUALLY SITTING IN ESCROW. See the note at the render site.
 import { formatPriceExact } from "@/lib/format";
@@ -336,6 +335,7 @@ const PaymentSuccess = () => {
     if (isHeld && !celebrated.current) {
       celebrated.current = true;
       hapticSuccess();
+      safeStorage.removeItem(DRAFT_KEY); // paid: drop the draft kept through checkout; a cancel keeps "Load Draft"
     }
   }, [isHeld]);
 

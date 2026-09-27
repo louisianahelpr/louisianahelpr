@@ -11,7 +11,7 @@
  * `create-payment` had answered 429 with `{ error: "Too many requests. Please
  * try again later." }` — a sentence written for a person — and the client
  * printed supabase-js's transport wrapper instead. `useFundExistingJob.ts`
- * even carried the comment that made it happen: "functions.invoke reports a
+ * (removed with Finish Paying, 2026-09-27) even carried the comment that made it happen: "functions.invoke reports a
  * handled edge error in `data.error`". It does not, for any non-2xx: `data` is
  * null and `error` is a FunctionsHttpError whose `.message` is that generic
  * line. The server's words live in `error.context` (the Response), which is
@@ -32,7 +32,7 @@
  *
  * The fix in both shapes is `functionErrorMessage(error, fallback)`.
  *
- * @mutate src/hooks/useFundExistingJob.ts | (error ? await functionErrorMessage(error, "Payment setup failed") : "Payment setup failed") | (error?.message ?? "Payment setup failed")
+ * @mutate src/pages/post-job/useJobSubmit.ts | (paymentError ? await functionErrorMessage(paymentError, "Payment setup failed") : "Payment setup failed") | (paymentError?.message ?? "Payment setup failed")
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";

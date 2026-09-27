@@ -11,6 +11,7 @@ import { posterFeePercentForTier } from "@/lib/posterFees";
 import { CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { checkDrift } from "@/lib/checkDrift";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
+import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 
 /**
  * useJobFormEffects — owns the mount/reactive side effects that populate
@@ -221,7 +222,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         .select("id", { count: "exact", head: true })
         .eq("customer_id", user.id)
         .eq("status", "open")
-        .not("payment_status", "in", "(unpaid,abandoned)")
+        .not("payment_status", "in", `(${NEVER_PAID_STATUSES.join(",")})`)
         .then(({ count }) => { setOpenJobCount(count ?? 0); });
       // Whether this poster still owes the one-time setup fee, and their own
       // subscription tier — so the shown service fee (12/11/10/9/8) and total match

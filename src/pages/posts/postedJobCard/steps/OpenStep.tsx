@@ -25,7 +25,7 @@ import type { PosterStepCtx } from "./posterStepContract";
  * The boost banner is a NOTICE (it states a fact and offers nothing), which is
  * why it is no longer a `mb-2` div hand-spaced above the row.
  */
-export function OpenStep({ job, unfunded, onBoost, onEdit, onCancel }: PosterStepCtx) {
+export function OpenStep({ job, onBoost, onEdit, onCancel }: PosterStepCtx) {
   const boostExp = job.boost_expires_at ? new Date(job.boost_expires_at) : null;
   const isBoosted = !!boostExp && boostExp > new Date();
 
@@ -61,22 +61,14 @@ export function OpenStep({ job, unfunded, onBoost, onEdit, onCancel }: PosterSte
           className={JOB_ACTION_CHIP_CLASS}
           style={jobActionChipStyle("share")}
         />,
-        /* Boost sells REACH. An unfunded job has none — every browse surface
-           filters on a funded payment_status — so charging to promote it would
-           be selling nothing. Dropped entirely rather than disabled: a greyed
-           chip invites a tap and an explanation, and UnfundedJobNotice already
-           gives the poster the one action that helps. The shell counts the row,
-           so it falls to 3 columns on its own. */
-        unfunded ? null : (
-          <JobActionChip
-            key="boost"
-            icon={Rocket}
-            label={isBoosted ? "Boosted" : "Boost"}
-            tone="boost"
-            disabled={isBoosted}
-            onClick={() => onBoost(job.id)}
-          />
-        ),
+        <JobActionChip
+          key="boost"
+          icon={Rocket}
+          label={isBoosted ? "Boosted" : "Boost"}
+          tone="boost"
+          disabled={isBoosted}
+          onClick={() => onBoost(job.id)}
+        />,
         <JobActionChip key="edit" icon={Pencil} label="Edit" ariaLabel="Edit job" tone="edit" onClick={() => onEdit(job)} />,
       ]}
     />

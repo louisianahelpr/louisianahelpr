@@ -205,7 +205,7 @@ describe("create-payment edge function", () => {
     /**
      * Re-minting an unfunded checkout.
      *
-     * `UnfundedJobNotice`'s "Finish paying" button covers exactly three
+     * `UnfundedJobNotice`'s "Finish paying" button (removed 2026-09-27) covered exactly three
      * payment_status values — 'unpaid', 'abandoned' and 'failed' — and two of
      * them KEEP `stripe_session_id` (void-cancelled-payments' abandoned sweep
      * and stripe-webhook's payment_intent.payment_failed both leave it set).

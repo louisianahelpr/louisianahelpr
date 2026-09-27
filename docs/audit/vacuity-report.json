@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-27T16:55:00.423Z",
-  "guards": 1214,
-  "registered": 1214,
+  "generated": "2026-09-27T19:20:55.163Z",
+  "guards": 1213,
+  "registered": 1213,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -274,6 +274,15 @@
       ]
     },
     {
+      "module": "src/components/postjob/AiJobBuilder.tsx",
+      "tests": [
+        "src/components/postjob/AiJobBuilder.test.tsx"
+      ],
+      "parents": [
+        "src/pages/post-job/EntryChoice.tsx"
+      ]
+    },
+    {
       "module": "src/components/profile/EarningsForecastCard.tsx",
       "tests": [
         "src/components/profile/EarningsForecastCard.test.tsx"
@@ -380,15 +389,6 @@
       ],
       "parents": [
         "src/pages/jobs/AppliedJobsTab.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/post-job/EntryChoice.tsx",
-      "tests": [
-        "src/pages/post-job/unpaidDraftsAreReachable.test.tsx"
-      ],
-      "parents": [
-        "src/pages/post-job/PostJob.tsx"
       ]
     },
     {

@@ -31,6 +31,7 @@ import { functionErrorMessage } from "@/lib/supabaseResult";
 import { userFacingError } from "@/lib/userFacingError";
 import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure";
 import { endSentence } from "@/lib/endSentence";
+import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 
 /**
  * Remove a job whose payment setup failed, and PROVE it went.
@@ -113,7 +114,7 @@ export interface UseJobSubmitParams {
   setIdvFailureReason: (v: string | undefined) => void;
   setIdvDialogOpen: (v: boolean) => void;
   // Draft
-  clearDraft: () => void;
+  flushDraft: () => void;
   // Details fields
   title: string;
   description: string;
@@ -175,7 +176,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     setIdvStatus,
     setIdvFailureReason,
     setIdvDialogOpen,
-    clearDraft,
+    flushDraft,
     title,
     description,
     category,
@@ -384,12 +385,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     // Check open job limit (server enforces too, but show friendly message).
     // The payment_status filter mirrors enforce_open_job_limit exactly: a job
-    // whose checkout never started ('unpaid') or did not complete
-    // ('abandoned') is invisible in every browse surface and holds no slot in
-    // the trigger. Drift here would show a friendly "you're at 5" toast for a
-    // post the server would happily accept. This used to exclude only
-    // 'abandoned'.
-    const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open").not("payment_status", "in", "(unpaid,abandoned)");
+    // that was never paid for (NEVER_PAID_STATUSES: 'unpaid', 'abandoned',
+    // 'failed') is invisible in every browse surface and in the poster's own
+    // Posts, and holds no slot in the trigger. Drift here would show a friendly
+    // "you're at 5" toast for a post the server would happily accept. This
+    // used to exclude only 'abandoned', then skipped 'failed' until 2026-09-27.
+    const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open").not("payment_status", "in", `(${NEVER_PAID_STATUSES.join(",")})`);
     if (openCountErr) {
       report(openCountErr, { tags: { source: "usePostJobForm.openJobLimit" } });
       toast.error("Couldn't check your open job count — please try again.");
@@ -751,7 +752,11 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         return;
       }
 
-      clearDraft();
+      // Keep the local draft through checkout (owner, 2026-09-27: an unpaid
+      // job is never saved anywhere in Posts). A cancelled checkout lands on
+      // /post-job, where "Load Draft" brings the form back; PaymentSuccess
+      // clears it once the job is actually paid.
+      flushDraft();
       // The instant-job-match fan-out USED to happen here. It has moved to
       // stripe-webhook's checkoutSessionCompleted, because "escrow is set up"
       // was never true at this point: create-payment only mints a Checkout

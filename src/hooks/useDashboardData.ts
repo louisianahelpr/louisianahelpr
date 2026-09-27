@@ -308,8 +308,8 @@ export function useDashboardData() {
             // with 400 / 42703 for the entire query, so /home rendered
             // "We couldn't load jobs" for every helper rather than degrading.
             //
-            // Nothing on this feed ever read it. Its only consumer is
-            // `UnfundedJobNotice`, which lives on the POSTER's card and reads
+            // Nothing on this feed ever read it. Its only consumer was
+            // `UnfundedJobNotice` (removed 2026-09-27), which lived on the POSTER's card and reads
             // `public.jobs` directly — so the column was added to the wrong
             // query, and removing it here restores the feed without narrowing
             // anything. Adding it to the view instead would widen what browse

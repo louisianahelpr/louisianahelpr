@@ -87,7 +87,6 @@ const KNOWN: Record<string, string> = {
     "MEASURED NOT CLIPPED 2026-09-26 (Q119): all 23 section subtitles on /legal, /terms, /privacy, /rules sh==ch at 320, 375 and 1440 (guest, local build on prod)",
   "src/components/job-card/ActivitySectionedView.tsx:button:{sectionLabels[key]}": UNMEASURED,
   "src/pages/profile/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label": UNMEASURED,
-  'src/pages/post-job/EntryChoice.tsx:button:{fundingJobId === draft.id ? "Opening checkout…" : "Finish P': UNMEASURED,
   "src/pages/post-job/FormStep.tsx:Button:{submitLabel}": UNMEASURED,
 };
 

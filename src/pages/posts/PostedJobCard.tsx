@@ -23,10 +23,8 @@ import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
-import { UnfundedJobNotice, shouldShowUnfundedNotice } from "./postedJobCard/UnfundedJobNotice";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
-import { useFundExistingJob } from "@/hooks/useFundExistingJob";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -94,7 +92,6 @@ function PostedJobCardInner({
   // showed. Both are gone — every card expands, and every card hides its body
   // until it does — so "archived completed" is no longer a special layout.
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
-  const { fundJob, fundingJobId } = useFundExistingJob();
   // Q344: a decided dispute whose money has not moved is not "Done · paid".
   const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
   const isExpanded = expandedJobIds.has(job.id);
@@ -120,20 +117,6 @@ function PostedJobCardInner({
   // The predicate lives in trackerMounts.ts so the batched tracking prefetch
   // (useActivityData) covers exactly these cards (#1582).
   const showsTracker = postedCardShowsTracker(job);
-  /* An unfunded job has not been posted to anyone. All four browse surfaces
-     require a funded payment_status, so no helper can return it — yet three
-     controls on this card asserted the opposite, and the poster believed them:
-     the tracker lit "Posted" as a COMPLETED step roughly 40px above the notice
-     reading "Payment not finished"; the Applicants button offered to show
-     applicants for a listing nobody could see (and its "0" reads as weak
-     demand rather than as invisibility); and Boost offered to charge for
-     promoting it.
-
-     Each is gated off rather than reworded, because there is no true version
-     of any of them until the money lands. UnfundedJobNotice is then the only
-     thing this card says about state, which is the point — one claim, and a
-     button that fixes it. */
-  const unfunded = shouldShowUnfundedNotice(job);
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
   /* THE HELPR'S PROFILE TILE — built here, rendered DIRECTLY ABOVE THE ACTION
@@ -199,7 +182,7 @@ function PostedJobCardInner({
      the action row, so the `personTile` slot is gone from <JobTracking>
      altogether. The V6 rule it existed to protect is unchanged and now lives
      at `helperTile` above: nothing about the Helpr on a collapsed card. */
-  const trackerBlock = showsTracker && !unfunded ? (
+  const trackerBlock = showsTracker ? (
     <div onClick={(e) => e.stopPropagation()}>
       {/* `embedded`: this card is already a JobCardShell glass card,
           so the tracker renders without a box of its own (same fix
@@ -708,10 +691,8 @@ function PostedJobCardInner({
             {isExpanded && (
             <div>
               {/* Q360: the money problem jobs.status cannot show (bank took the
-                  payment back / card declined), first thing in the open card.
-                  A declined card on an open job is already said, with its
-                  Finish Paying button, by UnfundedJobNotice below. */}
-              {!shouldShowUnfundedNotice(job) && cardPaymentProblem(job) && (
+                  payment back / card declined), first thing in the open card. */}
+              {cardPaymentProblem(job) && (
                 <div className="px-4 pt-3 pb-3 border-t border-border/30">
                   <PaymentProblemNotice job={job} />
                 </div>
@@ -740,21 +721,8 @@ function PostedJobCardInner({
                 </div>
               )}
 
-              {/* An unfunded job is invisible to every helper while this card
-                  looks completely normal — whether the calendar sync created
-                  it or the poster's own checkout was abandoned. Say so before
-                  the applicants row, which would otherwise read "0 applicants"
-                  and be taken as low demand. */}
-              {shouldShowUnfundedNotice(job) && (
-                <UnfundedJobNotice
-                  job={job}
-                  onFund={fundJob}
-                  funding={fundingJobId === job.id}
-                />
-              )}
-
               {/* Applicants button + inline expanded applicant list */}
-              {job.status === "open" && !unfunded && (
+              {job.status === "open" && (
                 <PostedJobApplicants
                   job={job}
                   applicantCounts={applicantCounts}
@@ -778,7 +746,6 @@ function PostedJobCardInner({
                 helperNames={helperNames}
                 completedJobMeta={completedJobMeta}
                 onBoost={onBoost}
-                unfunded={unfunded}
                 onEdit={onEdit}
                 onCancel={onCancel}
                 onComplete={onComplete}

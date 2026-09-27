@@ -159,7 +159,7 @@ function makeJob(over: Record<string, unknown> = {}): Job {
 function posterCtx(job: Job): PosterStepCtx {
   return {
     job, userId: POSTER, helperNames: { [HELPER]: "Hallie H." }, completedJobMeta: {},
-    unfunded: false, completingJobId: null, confirmingArrivalJobId: null,
+    completingJobId: null, confirmingArrivalJobId: null,
     confirmingWorkingJobId: null, instantReleaseOn: false, navigate: vi.fn(),
     onBoost: vi.fn(), onEdit: vi.fn(), onCancel: vi.fn(), onComplete: vi.fn(),
     onNoShow: vi.fn(), onTip: vi.fn(), onReview: vi.fn(), onDispute: vi.fn(),

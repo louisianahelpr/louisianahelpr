@@ -23,7 +23,7 @@
 // @mutate src/components/dashboard/JobCard.tsx | : "group relative h-full rounded-2xl | : "motion-safe:animate-fade-in group relative h-full rounded-2xl
 // @mutate src/hooks/useArrivalGate.ts | const ready = latched \|\| (primaryReady && (secondaryReady \|\| capped)); | const ready = latched \|\| primaryReady;
 // @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
-// @mutate src/pages/post-job/EntryChoice.tsx | unpaidDrafts !== null && recentPosted !== null && form.openJobCount !== null | true
+// @mutate src/pages/post-job/EntryChoice.tsx | recentPosted !== null && form.openJobCount !== null | true
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
 // @mutate src/components/profile/EarningsTab.tsx | view === "earnings" && !earningsReady && | view === "earnings" && loading &&
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
@@ -105,9 +105,9 @@ describe("lists arrive in one wave (Q169)", () => {
 });
 
 describe("each measured page waits in ONE placeholder and lands once (Q169)", () => {
-  it("post-job's entry column holds until its three data rows settle", () => {
+  it("post-job's entry column holds until its two data rows settle", () => {
     const src = read("pages/post-job/EntryChoice.tsx");
-    expect(src).toMatch(/unpaidDrafts !== null && recentPosted !== null && form\.openJobCount !== null/);
+    expect(src).toMatch(/recentPosted !== null && form\.openJobCount !== null/);
     expect(src).toMatch(/if \(!entryReady\) return <EntryChoiceSkeleton \/>;/);
   });
 

@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw, CreditCard } from "lucide-react";
+import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
 import { sampleJobs } from "@/data/sampleJobs";
 import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
-import { useUnpaidJobDrafts } from "@/hooks/useUnpaidJobDrafts";
-import { useFundExistingJob } from "@/hooks/useFundExistingJob";
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/job-card/activityConstants";
@@ -72,15 +70,10 @@ function shortRelativeDate(iso: string): string {
  * Purely presentational — all transitions/handlers come from usePostJobForm.
  */
 export function EntryChoice({ form }: EntryChoiceProps) {
-  /* UNPAID JOBS LIVE HERE NOW (owner, 2026-09-21): "It would be in post a job,
-     drafts. The job can never be posted anywhere or move forward until it's
-     paid." They were removed from My Posts in the same change — correctly, since
-     no Helpr can see them — and this is the route back. Without it an abandoned
-     checkout is invisible and unreachable, which is worse than the bug that
-     started it. `null` while loading, `[]` when there are none, so the row
-     hides itself rather than flashing empty. */
-  const unpaidDrafts = useUnpaidJobDrafts();
-  const { fundJob, fundingJobId } = useFundExistingJob();
+  /* NO UNPAID JOBS HERE (owner, 2026-09-27): "Finish paying should not even
+     be a thing." A job exists for the poster only once it is paid; a checkout
+     they back out of returns them to their own local draft (useJobSubmit keeps
+     it until /payment-success), never to a server row to pay for. */
   // Quick-start templates pre-fill the form in one tap. We show the first
   // four by default and reveal the rest on "Show all" — the full set now
   // lives entirely on this entry step (the in-form template picker was
@@ -138,17 +131,12 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // landed yet, which must read as "not at the limit", never as a refusal.
   const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
 
-  // ONE PAINT (Q169). Three rows here depend on data — the open-job cap
-  // notice, one "Finish Paying" row per unpaid job, and "Repost" — and every
-  // one of them sits ABOVE the static cards. Painted as each query landed,
-  // measured at 375 on prod: the static cards rendered, then three Finish
-  // Paying rows and Repost arrived and shoved them 376px down (CLS 0.32). The
-  // column now holds a card-shaped skeleton until all three have settled (at
-  // most ARRIVAL_CAP_MS), then renders once in its final order.
-  const entryReady = useArrivalGate(
-    true,
-    unpaidDrafts !== null && recentPosted !== null && form.openJobCount !== null,
-  );
+  // ONE PAINT (Q169). Two rows here depend on data — the open-job cap notice
+  // and "Repost" — and both sit ABOVE the static cards. Painted as each query
+  // landed, measured at 375 on prod, rows arriving late shoved the static cards
+  // down (CLS 0.32). The column holds a card-shaped skeleton until both have
+  // settled (at most ARRIVAL_CAP_MS), then renders once in its final order.
+  const entryReady = useArrivalGate(true, recentPosted !== null && form.openJobCount !== null);
   if (!entryReady) return <EntryChoiceSkeleton />;
 
   return (
@@ -204,49 +192,6 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         </span>
         <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
       </button>
-
-      {/* 1b — FINISH PAYING (only when a checkout was started and never landed).
-             Above the local draft deliberately: this one is a real row on the
-             server that no Helpr can see until it is paid, so it is the more
-             urgent of the two things called a "draft" here. */}
-      {(unpaidDrafts?.length ?? 0) > 0 && unpaidDrafts!.map((draft) => (
-        <button
-          key={draft.id}
-          type="button"
-          disabled={fundingJobId === draft.id}
-          onClick={() => {
-            track("unpaid_draft_resume", { jobId: draft.id });
-            fundJob(draft.id);
-          }}
-          className="w-full rounded-2xl liquid-glass p-card text-left flex items-center gap-4 active:scale-[0.99] transition-transform disabled:opacity-60"
-          style={{ minHeight: "104px" }}
-          data-unpaid-draft={draft.id}
-        >
-          <span
-            className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-            style={{ background: "hsl(var(--amber-tint) / 0.14)" }}
-            aria-hidden
-          >
-            <CreditCard className="w-5 h-5" style={{ color: "hsl(var(--amber-ink))" }} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span
-              className="block font-display italic font-bold text-ds-17 truncate"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
-            >
-              {fundingJobId === draft.id ? "Opening checkout…" : "Finish Paying"}
-            </span>
-            <span
-              title={`“${draft.title}” isn’t posted yet — nobody can see it until it’s paid.`}
-              className="block font-sans mt-0.5 text-ds-11 truncate"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              “{draft.title}” isn’t posted yet — nobody can see it until it’s paid.
-            </span>
-          </span>
-          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden />
-        </button>
-      ))}
 
       {/* 2 — LOAD DRAFT (only when a saved draft exists) */}
       {form.hasDraft && (

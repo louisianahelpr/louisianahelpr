@@ -115,7 +115,6 @@ function ctx(job: Job): PosterStepCtx {
     userId: "poster-1",
     helperNames: { "helper-1": "Hallie H." },
     completedJobMeta: {},
-    unfunded: false,
     completingJobId: null,
     confirmingArrivalJobId: null,
     confirmingWorkingJobId: null,

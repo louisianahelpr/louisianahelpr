@@ -174,7 +174,7 @@ describe("whole-cent parity: what the screen shows is what Stripe charges", () =
   });
 
   /*
-   * useJobSubmit / useFundExistingJob are NOT exempt by name — they pass no
+   * useJobSubmit is NOT exempt by name — it passes no
    * `amount` at all (the server reads `jobs.budget`, a numeric(10,2) column),
    * so they never enter the inventory. If one ever starts sending a client
    * amount it appears here and must round, which is the whole point.

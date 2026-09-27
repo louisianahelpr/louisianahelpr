@@ -2,6 +2,7 @@ import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 
 /**
  * The shape of a recently-posted job used by the entry-choice
@@ -38,6 +39,11 @@ async function fetchRecentPostedJobs(
       .from("jobs")
       .select("id, title, category, budget, created_at")
       .eq("customer_id", userId)
+      // A job exists for the poster only once it is paid (owner, 2026-09-27:
+      // "Unpaid jobs should not show in post anywhere"). Filtered in the query,
+      // not after it, so LIMIT still returns the last N real jobs. A null
+      // payment_status (pre-escrow rows) is kept: `not.in` alone drops nulls.
+      .or(`payment_status.is.null,payment_status.not.in.(${NEVER_PAID_STATUSES.join(",")})`)
       .order("created_at", { ascending: false })
       .limit(limit),
   );

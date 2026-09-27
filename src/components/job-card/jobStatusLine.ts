@@ -10,7 +10,6 @@ import {
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
 import type { AppliedApp, Job } from "./activityConstants";
-import { shouldShowUnfundedNotice } from "../../pages/posts/postedJobCard/UnfundedJobNotice";
 import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/postedJobCard/steps/posterStepContract";
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
 
@@ -139,7 +138,6 @@ const BUCKET_TONE: Record<ActivityBucket, JobStatusTone> = {
 /* ═══════════════════════════ THE POSTER'S SIDE ═══════════════════════════ */
 
 export type PosterWait =
-  | "unfunded"
   | "in_review"
   | "applicants"
   | "listing_expired"
@@ -176,10 +174,6 @@ export type PosterWait =
  * you need to confirm", is this table's `confirm_arrival`.
  */
 export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
-  /* THE BUCKET DOES NOT KNOW ABOUT MONEY. An unfunded job is `open` with no
-     applicants, which buckets to Waiting — but nobody can see it and the one
-     move that exists is the poster's. Finding #1. */
-  unfunded: { detail: "Finish paying to post it", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   in_review: { detail: "We're checking this post" },
   applicants: { detail: "Applicants are waiting" },
   listing_expired: { detail: "The listing has expired" },
@@ -356,11 +350,6 @@ export function derivePosterWait(
     case "pending_approval":
       return "in_review";
     case "open":
-      /* An unfunded job is invisible to every Helpr while this card looks
-         entirely normal — so it outranks everything else an open card could
-         say, including its own applicant count. Same rule and same predicate as
-         the expanded card's UnfundedJobNotice. */
-      if (shouldShowUnfundedNotice(job)) return "unfunded";
       if (job.direct_offer_status === "pending") return "offer_out";
       if (jobIsOverdue(job)) return "overdue";
       if (pendingApplicantCount > 0) return "applicants";

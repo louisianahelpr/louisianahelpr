@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
-import { UNPAID_DRAFT_PAYMENT_STATES } from "@/hooks/useUnpaidJobDrafts";
 
 /**
  * THE CLASS: a product rule starts hiding rows AT THE SOURCE, and a prod e2e
@@ -35,7 +34,7 @@ import { UNPAID_DRAFT_PAYMENT_STATES } from "@/hooks/useUnpaidJobDrafts";
 // Break the product rule this guard reads and the second case fails: a job the
 // insert lock forces to open+unpaid is no longer recognised as hidden, which is
 // the exact reading that decides whether an e2e fixture is safe on My Posts.
-// @mutate src/components/job-card/activityFilters.ts | return moneyNeverLanded && j.status === "open"; | return false;
+// @mutate src/components/job-card/activityFilters.ts | return (NEVER_PAID_STATUSES as readonly (string \| null \| undefined)[]).includes(j.payment_status); | return false;
 
 const REPO = join(__dirname, "..", "..");
 
@@ -95,12 +94,7 @@ describe("e2e job fixtures vs the filters that hide them", () => {
 
   it("the app's own rule says that shape is a draft — so it is NOT on My Posts", () => {
     // Read with the app's predicate, not a copy of it.
-    expect(jobIsUnfundedDraft({ status: "open", payment_status: "unpaid" })).toBe(true);
-    // The three payment states are one fact in two files; a job that slips
-    // between them is invisible on every surface at once.
-    for (const state of UNPAID_DRAFT_PAYMENT_STATES) {
-      expect(jobIsUnfundedDraft({ status: "open", payment_status: state }), `${state} is not read as unfunded`).toBe(true);
-    }
+    expect(jobIsUnfundedDraft({ payment_status: "unpaid" })).toBe(true);
   });
 
   it("no e2e spec creates such a job and then drives a job list without saying what it expects", () => {

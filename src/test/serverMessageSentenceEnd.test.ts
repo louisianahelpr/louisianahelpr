@@ -1,11 +1,12 @@
 // @mutate src/lib/endSentence.ts | return /[?!]$/.test(trimmed) ? trimmed : `${trimmed}.`; | return `${trimmed}.`;
-// @mutate src/hooks/useFundExistingJob.ts | ${endSentence(message)} The job | ${message}. The job
+// @mutate src/pages/post-job/useJobSubmit.ts | ${errorMsg} Please try again. | ${errorMsg}. Please try again.
 /**
  * A SERVER MESSAGE ENDING "?" OR "!" NEVER GETS ". " BOLTED ON (Q34).
  *
  * The press sweep saw "…?. Please try again." — our copy appended ". " to a
  * server sentence that had already ended. Two call sites did it by hand
- * (useJobSubmit, useFundExistingJob). Both now close the sentence with
+ * (useJobSubmit, and useFundExistingJob until Finish Paying was removed on
+ * 2026-09-27). useJobSubmit closes the sentence with
  * endSentence(); this test pins the helper and scans src/ for the class: an
  * interpolated message/error/reason immediately followed by ". <Capital>".
  */

@@ -291,7 +291,7 @@ for (const job of jobs) {
      checkout was sent to cancel_escrow, which correctly answered 409 ("never
      held in escrow"), and the sweeper then reported it as a stranded funded job
      and failed the whole workflow. It is the same discriminator
-     UnfundedJobNotice uses, read the opposite way round: session + unpaid means
+     UnfundedJobNotice (removed 2026-09-27) used, read the opposite way round: session + unpaid means
      abandoned, which is the one thing it is NOT.
 
      `payment_status` alone is the funded test. */

@@ -93,7 +93,6 @@ vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null 
 vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
 vi.mock("@/components/job-card/JobCardMetaRow", () => ({ JobCardMetaRow: () => <div data-testid="meta" /> }));
 vi.mock("@/pages/posts/postedJobCard/PostedJobApplicants", () => ({ PostedJobApplicants: () => null }));
-vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fundJob: vi.fn(), fundingJobId: null }) }));
 vi.mock("@/components/job-card/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
 

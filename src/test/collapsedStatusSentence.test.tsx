@@ -94,7 +94,6 @@ vi.mock("@/components/job-card/JobCountdown", () => ({ JobCountdown: () => null 
 vi.mock("@/pages/jobs/JobPetCareSheet", () => ({ JobPetCareSheet: () => null }));
 vi.mock("@/components/job-card/useHighlightPulse", () => ({ useHighlightPulse: () => {} }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null }) }));
-vi.mock("@/hooks/useFundExistingJob", () => ({ useFundExistingJob: () => ({ fundJob: vi.fn(), fundingJobId: null }) }));
 
 function makeSupabase() {
   const result = { data: null, error: null };
@@ -212,7 +211,6 @@ const POSTER_FIXTURES: Record<
   PosterWait,
   { job: Job; pending?: number; completion?: { tipped: boolean; reviewed: boolean } }
 > = {
-  unfunded: { job: job({ payment_status: "unpaid", stripe_session_id: "cs_1" }) },
   in_review: { job: job({ status: "pending_approval" }) },
   applicants: { job: job({}), pending: 3 },
   listing_expired: { job: job({ expires_at: ago(2) }) },
@@ -535,7 +533,7 @@ describe("the sentence says whose move it is, and does not lie about it", () => 
   });
 
   it("Posts: the states that ARE the poster's move say so", () => {
-    for (const id of ["confirm_arrival", "confirm_working", "approve", "revision_fixed", "applicants", "unfunded"] as PosterWait[]) {
+    for (const id of ["confirm_arrival", "confirm_working", "approve", "revision_fixed", "applicants"] as PosterWait[]) {
       const f = POSTER_FIXTURES[id];
       const line = posterStatusLine(f.job, f.pending ?? 0, undefined, f.completion);
       expect(line.eyebrow, `${id} does not tell the poster it is their move`).toBe("Needs You");

@@ -157,7 +157,7 @@ function params(overrides: Partial<UseJobSubmitParams> = {}): UseJobSubmitParams
     setIdvStatus: vi.fn(),
     setIdvFailureReason: vi.fn(),
     setIdvDialogOpen: vi.fn(),
-    clearDraft: vi.fn(),
+    flushDraft: vi.fn(),
     title: "Mow the back lawn",
     description: "Front and back, bagging clippings.",
     category: "lawn_care",

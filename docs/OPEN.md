@@ -4,13 +4,13 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 311 done, 89 partly done (fixed, protection pending), 132 open. Source of truth for work.
+- **Queue (this file):** 311 done, 89 partly done (fixed, protection pending), 137 open. Source of truth for work.
 - **Audit bus:** 11 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
-- **nightly-red issues:** 11 open — `gh issue list -l nightly-red`. _(2026-09-27T07:03Z)_
-- **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T07:03Z)_
-- **Remote branches:** 107 carry patches not on main, 4 fully merged, of 114 (Q79). _(2026-09-27T07:03Z)_
+- **nightly-red issues:** 11 open — `gh issue list -l nightly-red`. _(2026-09-27T07:06Z)_
+- **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T07:06Z)_
+- **Remote branches:** 107 carry patches not on main, 4 fully merged, of 114 (Q79). _(2026-09-27T07:06Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -56,7 +56,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 532 items — 311 done, 89 partly done (fixed, protection pending), 132 open.**
+**Queue: 537 items — 311 done, 89 partly done (fixed, protection pending), 137 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1997,3 +1997,20 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   that is why the agent found none on Perry's /posts?filter=done). Record with review:record. (2) lh-money-escrow note:
   a completed job with payment_status refunded would also read "payout pending"; none exist in prod today (measured by
   the reviewer: completed rows are payout_pending 50, released 22). Decide its label before one can exist.
+- [ ] **Q758 Admin bulk "Pay selected" can never pay.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). AdminPayoutBatches.tsx:319-347
+  triggerBulkPayout invokes stripe-payouts with {helper_id}; that function only reads the caller's own balance
+  (stripe.balance.retrieve, index.ts:95) and transfers nothing, so assertTransferHappened throws and every batch toasts
+  "Couldn't process". The single-batch path (lines 222-260) already uses get_payout_batch_job_ids + release-payout.
+  Done when bulk goes through release-payout, a test fails if triggerBulkPayout invokes anything else, and a Stripe
+  test-mode bulk run creates transfers.
+- [ ] **Q759 Admin user-detail "Earned (Worked)" gives each helper a group job's whole budget.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item).
+  JobsTab divides by helpers_needed, but useOpenProfile.ts:73-74 does not select it, so the divisor is always 1. Done
+  when the column is selected, the type makes it required, and a test fails if any column calcEarning reads is missing.
+- [ ] **Q760 Admin status override writes jobs.status with no status predicate.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). AdminJobs.tsx:445
+  `(supabase.from("jobs").update as any)(updates).eq("id", …)`; the `as any` hides it from check-race-class. Done when
+  it carries .eq("status", prev), the cast is gone, the any baseline drops by 1, and raceClassGuard covers the call.
+- [ ] **Q761 Nine axe calls in 8 e2e specs skip WCAG 2.2 AA.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). They hardcode the 4-tag wcag21aa literal
+  instead of AXE_TAGS from e2e/happy-path/axeTags.ts. Done when a source scan fails on any withTags literal outside
+  axeTags.ts, shown red on one planted literal.
+- [ ] **Q762 Real p95 page load (web and app) is unmeasured.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). scripts/slo.mjs:42,49 mark both
+  page-load SLOs notMeasured. Done when both have a real measurement and sloTargetsTwoWay passes.

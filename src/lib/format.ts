@@ -57,9 +57,22 @@ export function formatPriceExact(amount: number): string {
  * `@/lib/dateUtils`, which formats the date_needed DATE column
  * (YYYY-MM-DD) with a weekday prefix ("Mon, Jun 22").
  */
+/**
+ * A bare DATE column ("2026-10-07") is a calendar day, not an instant:
+ * `new Date("2026-10-07")` reads it as UTC midnight, which is the evening of
+ * Oct 6 in Louisiana (Q405). Parse date-only strings as the local day; hand
+ * everything else (timestamps, Date objects) through unchanged.
+ */
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+function toDisplayDate(date: string | Date): Date {
+  if (typeof date !== "string") return date;
+  const m = DATE_ONLY.exec(date);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(date);
+}
+
 export function formatTimestamp(date: string | Date | null | undefined): string {
   if (!date) return "";
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = toDisplayDate(date);
   if (isNaN(d.getTime())) return "";
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
@@ -73,7 +86,7 @@ export function formatTimestamp(date: string | Date | null | undefined): string 
  */
 export function formatShortDate(date: string | Date | null | undefined): string {
   if (!date) return "";
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = toDisplayDate(date);
   if (isNaN(d.getTime())) return "";
   const opts: Intl.DateTimeFormatOptions =
     d.getFullYear() === new Date().getFullYear()

@@ -42,6 +42,7 @@ import {
   setNotifications,
   setUnreadTotal,
   markNotificationsLoaded,
+  bellUnreadCount,
 } from "@/components/notificationPanel/notificationStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
@@ -464,7 +465,7 @@ const NotificationPanel = () => {
   const unreadInPage = notifications.filter((n) => !n.read).length;
   // Prefer the counted total; fall back to the page while it is still loading
   // or if the count query failed. Never show a number derived from an error.
-  const unreadCount = unreadTotal ?? unreadInPage;
+  const unreadCount = bellUnreadCount({ notifications, unreadTotal });
   // The list can only ever show what it fetched. Saying so is the honest
   // alternative to quietly shrinking the badge to match the page.
   const hasMoreThanPage = unreadTotal !== null && unreadTotal > unreadInPage;

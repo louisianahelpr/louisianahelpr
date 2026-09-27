@@ -91,6 +91,15 @@ export const setUnreadTotal = (
   emit({ ...state, unreadTotal: next });
 };
 
+/**
+ * The number the bell shows: the counted database total, or, until it has
+ * been counted (or if the count failed), the unread rows in the fetched page.
+ * NotificationPanel renders this and the app-icon badge (useNavUnreadCount,
+ * N-006) adds it to the Messages count, so the two can never derive it apart.
+ */
+export const bellUnreadCount = (s: Pick<NotificationState, "notifications" | "unreadTotal">): number =>
+  s.unreadTotal ?? s.notifications.filter((n) => !n.read).length;
+
 /** Record that a list load for the bound user succeeded (see `listLoaded`). */
 export const markNotificationsLoaded = () => {
   if (state.listLoaded) return;

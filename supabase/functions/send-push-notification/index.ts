@@ -572,7 +572,8 @@ serve(async (req) => {
   // NB-002: the app-icon badge only changed while the app ran, so a closed app
   // kept whatever count its last session left. Every iOS push now carries the
   // recipient's unread count, counted like the in-app badge (useNavUnreadCount:
-  // unread, not system, sender not blocked either way). Locally-archived
+  // messages unread, not system, sender not blocked either way; plus unread
+  // notifications since N-006). Locally-archived
   // threads are client-only, so this can read higher until the app next opens
   // and re-sets it. A failed count sends no badge rather than a wrong one.
   if (iosTokens.length > 0 && typeof payload.badge !== 'number') {
@@ -590,8 +591,23 @@ serve(async (req) => {
         .eq('read', false)
         .not('is_system', 'is', true)
       if (blocked.length > 0) unread = unread.not('sender_id', 'in', `(${blocked.join(',')})`)
-      const { count, error: countErr } = await unread
-      if (!countErr && typeof count === 'number') payload.badge = count // NB-002 server badge
+      // N-006 (owner, 2026-09-27): the icon is unread messages PLUS unread
+      // notifications — the same sum the app sets (useNavUnreadCount), counted
+      // like the bell (NotificationPanel: user_id, read = false). Either count
+      // failing sends no badge rather than a wrong one.
+      const [msgs, notifs] = await Promise.all([
+        unread,
+        supabase
+          .from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', payload.user_id)
+          .eq('read', false),
+      ])
+      const count = msgs.count
+      const notifCount = notifs.count
+      if (!msgs.error && !notifs.error && typeof count === 'number' && typeof notifCount === 'number') {
+        payload.badge = count + notifCount // NB-002 server badge
+      }
     }
   }
 

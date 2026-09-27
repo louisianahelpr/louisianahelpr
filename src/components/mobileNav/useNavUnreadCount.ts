@@ -1,5 +1,5 @@
 import { report } from "@/lib/errorLogger";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,12 @@ import { getBlockedUserIds } from "@/lib/userBlocks";
 import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { setAppIconBadge } from "@/lib/appBadge";
 import { readCachedUnread, writeCachedUnread } from "./mobileNavHelpers";
+import {
+  subscribeNotifications,
+  getNotificationSnapshot,
+  getNotificationServerSnapshot,
+  bellUnreadCount,
+} from "@/components/notificationPanel/notificationStore";
 
 /**
  * Owns the Messages badge unread count for the bottom nav: the durable-cache
@@ -158,14 +164,21 @@ export function useNavUnreadCount(user: User | null | undefined) {
     else setUnreadCount(n);
   }, [user]);
 
-  // Mirror the live unread count onto the native springboard (app-icon)
-  // badge, so the home-screen icon carries the unread number like every
-  // other messaging app — even while the app is backgrounded. No-op on web
-  // and best-effort on native (see setAppIconBadge). A signed-out/guest user
-  // has nothing to badge, so force it to zero.
+  // The bell's number, read from the SAME shared store every bell renders
+  // (notificationStore / bellUnreadCount), never re-derived here. Only this
+  // user's: the store is bound to one account and a different id means it
+  // has not been counted for us yet, which contributes nothing.
+  const bell = useSyncExternalStore(subscribeNotifications, getNotificationSnapshot, getNotificationServerSnapshot);
+  const notificationsUnread = user && bell.userId === user.id ? bellUnreadCount(bell) : 0;
+
+  // Mirror onto the native springboard (app-icon) badge. Owner decision
+  // 2026-09-27 (N-006): the icon counts unread MESSAGES plus unread
+  // NOTIFICATIONS, so it agrees with the Messages tab + bell the app shows.
+  // No-op on web and best-effort on native (see setAppIconBadge). A
+  // signed-out/guest user has nothing to badge, so force it to zero.
   useEffect(() => {
-    void setAppIconBadge(user ? unreadCount : 0);
-  }, [user, unreadCount]);
+    void setAppIconBadge(user ? unreadCount + notificationsUnread : 0); // N-006
+  }, [user, unreadCount, notificationsUnread]);
 
   // Messages — best-effort mark-all-read. Optimistically zero the badge
   // (so the dot disappears in the same frame as the tap); on error the

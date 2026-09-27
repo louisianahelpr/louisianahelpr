@@ -4,7 +4,11 @@
  * counts the recipient's unread, non-system, non-blocked messages and sets the
  * badge itself whenever the caller did not.
  *
- * @mutate supabase/functions/send-push-notification/index.ts | payload.badge = count // NB-002 server badge | void count // NB-002 server badge
+ * N-006 (owner, 2026-09-27): the badge is unread messages PLUS unread
+ * notifications, the same sum useNavUnreadCount puts on the icon, so a push
+ * arriving cannot overwrite the icon with the messages count alone.
+ *
+ * @mutate supabase/functions/send-push-notification/index.ts | payload.badge = count + notifCount // NB-002 server badge | payload.badge = count // NB-002 server badge
  * @mutate supabase/functions/send-push-notification/index.ts | .not('is_system', 'is', true) | .not('is_system', 'is', null)
  */
 import { readFileSync } from "node:fs";
@@ -21,6 +25,11 @@ describe("every iOS push carries the server's unread count (NB-002)", () => {
     expect(block).toContain("typeof payload.badge !== 'number'");
     expect(block).toMatch(/\.eq\('receiver_id', payload\.user_id\)\s*\.eq\('read', false\)\s*\.not\('is_system', 'is', true\)/);
     expect(block).toContain("not('sender_id', 'in'");
-    expect(block).toMatch(/payload\.badge = count \/\/ NB-002 server badge/);
+    expect(block).toMatch(/payload\.badge = count \+ notifCount \/\/ NB-002 server badge/);
+  });
+  it("the badge adds the bell's unread notifications (N-006)", () => {
+    const block = src.slice(src.indexOf("// NB-002:"), src.indexOf("// NB-002 server badge") + 30);
+    expect(block).toMatch(/\.from\('notifications'\)\s*\.select\('id', \{ count: 'exact', head: true \}\)\s*\.eq\('user_id', payload\.user_id\)\s*\.eq\('read', false\)/);
+    expect(block).toContain("!notifs.error");
   });
 });

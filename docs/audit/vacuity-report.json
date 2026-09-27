@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-27T06:09:56.223Z",
-  "guards": 1202,
-  "registered": 1201,
+  "generated": "2026-09-27T06:12:45.242Z",
+  "guards": 1203,
+  "registered": 1202,
   "unregistered": [
     "src/test/platformSettingsSingleton.test.ts"
   ],
@@ -20,6 +20,7 @@
     "src/lib/workRecordDocument.test.ts",
     "src/pages/jobs/appliedJobCard/helperDisputeCopy.test.tsx",
     "src/pages/profile/types.test.ts",
+    "src/test/adminAlertOpensItsFlag.test.ts",
     "src/test/adminEndpointAuthz.test.ts",
     "src/test/banEvasionSurface.test.ts",
     "src/test/blockedStorageBoot.test.ts",

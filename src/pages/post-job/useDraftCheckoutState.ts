@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
-import { DRAFT_KEY, DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
+import { DRAFT_CHECKOUT_JOB_KEY, dropSpentDraft } from "@/hooks/useDraftJob";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 
 /**
@@ -55,8 +55,7 @@ export function useDraftCheckoutState(hasDraft: boolean): DraftCheckoutState {
       }
       const next = classifyDraftCheckout(data);
       if (next === "paid") {
-        safeStorage.removeItem(DRAFT_KEY);
-        safeStorage.removeItem(DRAFT_CHECKOUT_JOB_KEY);
+        dropSpentDraft();
       } else if (next === "none") {
         safeStorage.removeItem(DRAFT_CHECKOUT_JOB_KEY);
       }

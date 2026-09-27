@@ -634,9 +634,26 @@ async function pushTokenRows(sqlFn, now) {
  * ones need scripts/backfill-identity-fingerprints.mjs (STRIPE_SECRET_KEY).
  * Until that runs, the identity ban-evasion layer does not bind for them.
  */
+/**
+ * Sandbox sessions that can never carry a fingerprint (owner, 2026-09-27): the
+ * owner's and the two shared e2e accounts' TEST-mode verifications. The dry run
+ * that day (read-only, Supabase-held key) found a name but no DOB and no
+ * document number on all three, so nothing can be hashed. Exempt by SESSION,
+ * not profile: a re-verification gets a new session id and is checked again.
+ * Exact list; never grow it without a measured reason.
+ */
+export const IDENTITY_FP_EXEMPT_SESSIONS = [
+  "vs_1U8Ae6Kp2H4b7tECdK3zgGCL",
+  "vs_1UCTo8Kp2H4b7tEC5dT7RTFd",
+  "vs_1UCUKKKp2H4b7tECSiHFHS7w",
+];
+const IDENTITY_FP_SCOPE =
+  "idv_status = 'verified' AND idv_session_id IS NOT NULL AND idv_session_id NOT IN (" +
+  IDENTITY_FP_EXEMPT_SESSIONS.map((s) => `'${s}'`).join(", ") +
+  ")";
 export const IDENTITY_FP_SQL =
-  "SELECT count(*) FILTER (WHERE idv_status = 'verified' AND idv_session_id IS NOT NULL AND identity_sha256 IS NULL)::int AS missing, " +
-  "count(*) FILTER (WHERE idv_status = 'verified' AND idv_session_id IS NOT NULL)::int AS verified FROM public.profiles";
+  `SELECT count(*) FILTER (WHERE ${IDENTITY_FP_SCOPE} AND identity_sha256 IS NULL)::int AS missing, ` +
+  `count(*) FILTER (WHERE ${IDENTITY_FP_SCOPE})::int AS verified FROM public.profiles`;
 /**
  * Q73: email deliverability, re-measured every scoreboard run.
  * (1) DNS for the sending domain: SPF on the Resend bounce subdomain (send.),

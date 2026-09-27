@@ -1,5 +1,7 @@
 // @mutate scripts/scoreboard.mjs | status: missing === 0 ? "PASS" : "FAIL" | status: "PASS"
 // @mutate scripts/scoreboard.mjs | ...(await identityFingerprintRows(readOnly, now)) | ...[]
+// @mutate scripts/scoreboard.mjs | AND idv_session_id NOT IN ( | AND idv_session_id IN (
+// @mutate scripts/scoreboard.mjs | "vs_1UCUKKKp2H4b7tECSiHFHS7w",\n]; | "vs_1UCUKKKp2H4b7tECSiHFHS7w",\n  "vs_extra",\n];
 /**
  * Q240: THE IDENTITY-FINGERPRINT BACKFILL IS A LIVE NUMBER, NOT A MEMORY.
  *
@@ -18,7 +20,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { identityFingerprintRows, IDENTITY_FP_SQL } from "../../scripts/scoreboard.mjs";
+import { identityFingerprintRows, IDENTITY_FP_SQL, IDENTITY_FP_EXEMPT_SESSIONS } from "../../scripts/scoreboard.mjs";
 
 const NOW = new Date("2026-09-23T12:00:00Z");
 type Row = { status: string; fail?: number; pass?: number; note: string };
@@ -26,7 +28,17 @@ const rowsFor = async (sqlFn: (q: string) => Promise<unknown[]>): Promise<Row[]>
 
 describe("scoreboard: verified profiles carry an identity fingerprint (Q240)", () => {
   it("asks the exact question", () => {
-    expect(IDENTITY_FP_SQL).toMatch(/idv_status = 'verified' AND idv_session_id IS NOT NULL AND identity_sha256 IS NULL/);
+    expect(IDENTITY_FP_SQL).toMatch(/idv_status = 'verified' AND idv_session_id IS NOT NULL AND idv_session_id NOT IN \([^)]*\) AND identity_sha256 IS NULL/);
+  });
+
+  it("exempts exactly the three sandbox sessions the owner ruled out (2026-09-27), by session id", () => {
+    expect(IDENTITY_FP_EXEMPT_SESSIONS).toEqual([
+      "vs_1U8Ae6Kp2H4b7tECdK3zgGCL",
+      "vs_1UCTo8Kp2H4b7tEC5dT7RTFd",
+      "vs_1UCUKKKp2H4b7tECSiHFHS7w",
+    ]);
+    expect(IDENTITY_FP_EXEMPT_SESSIONS.length).toBeGreaterThan(2);
+    for (const id of IDENTITY_FP_EXEMPT_SESSIONS) expect(IDENTITY_FP_SQL).toContain(`'${id}'`);
   });
 
   it("FAILs while any verified profile lacks one, naming the backfill", async () => {

@@ -47,6 +47,8 @@ export interface StripeMock {
     create: ReturnType<typeof vi.fn>;
     /** Q202: an abandoned 3D Secure challenge's PaymentIntent is canceled on re-mint. */
     cancel: ReturnType<typeof vi.fn>;
+    /** Q415 (e): charge-recurring-visits tags an intent whose refund withholds the fee. */
+    update: ReturnType<typeof vi.fn>;
   };
   /** Saved-card lookup — what makes an off-session auto-tip possible at all. */
   paymentMethods: {
@@ -143,6 +145,7 @@ export const stripeMock: StripeMock = {
     retrieve: vi.fn(),
     create: vi.fn(),
     cancel: vi.fn(),
+    update: vi.fn(),
   },
   paymentMethods: {
     list: vi.fn(),

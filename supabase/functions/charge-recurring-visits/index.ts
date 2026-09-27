@@ -71,6 +71,7 @@ import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
 import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 
 /**
@@ -181,6 +182,61 @@ const DEFINITIVE_CHARGE_FAILURES: ReadonlySet<string> = new Set([
 function isDefinitiveChargeFailure(e: unknown): boolean {
   const type = (e as { type?: unknown } | null | undefined)?.type;
   return typeof type === "string" && DEFINITIVE_CHARGE_FAILURES.has(type);
+}
+
+/**
+ * What a refund returns when Stripe's processing fee is withheld (Q415 (e),
+ * Q407 (12)): the captured amount less the fee Stripe actually kept, read from
+ * the charge's balance transaction. If that read fails, the card-rate estimate
+ * on the amount charged is the floor, never zero. `knownCapturedCents` is what
+ * this run knows was charged: an on-session intent is only a stub `{ id }`.
+ * An amount that is still unknown throws, so the caller alerts instead of
+ * sending Stripe (or the poster) NaN.
+ */
+async function refundLessStripeFeeCents(
+  stripe: Stripe,
+  intent: Stripe.PaymentIntent,
+  knownCapturedCents: number,
+): Promise<{ refundCents: number; capturedCents: number }> {
+  let pi: Stripe.PaymentIntent = intent;
+  try {
+    pi = await stripe.paymentIntents.retrieve(intent.id, { expand: ["latest_charge.balance_transaction"] });
+  } catch (e) {
+    console.warn(`[charge-recurring-visits] fee read for ${intent.id} failed; withholding the card-rate estimate`, e);
+  }
+  const captured = pi?.amount_received || pi?.amount || intent.amount || knownCapturedCents;
+  const refundCents = Math.max(0, captured - actualOrEstimatedFeeCents(pi, captured));
+  if (!(Number.isFinite(captured) && captured > 0 && Number.isFinite(refundCents))) {
+    throw new Error(`could not work out what ${intent.id} captured (${captured})`);
+  }
+  return { refundCents, capturedCents: captured };
+}
+
+/**
+ * stripe.refunds.create, where an idempotency conflict on a PaymentIntent that
+ * already carries a refund counts as done. The refund key is per intent, and a
+ * later run can compute a different amount for the same intent (the fee read
+ * failed once and succeeded the next time). Stripe then answers
+ * idempotency_error although the money already went back; that must not raise
+ * the "refund by hand" alert, whose reader would refund the withheld fee too.
+ * Returns `alreadyRefunded: true` in that case: the amounts THIS run computed
+ * are not what went back, and the earlier run already told the poster.
+ */
+async function createRefundOnce(
+  stripe: Stripe,
+  params: Stripe.RefundCreateParams,
+  opts: { idempotencyKey: string },
+): Promise<{ alreadyRefunded: boolean }> {
+  try {
+    await stripe.refunds.create(params, opts);
+    return { alreadyRefunded: false };
+  } catch (e) {
+    const type = (e as { type?: string } | null)?.type;
+    if (type !== "StripeIdempotencyError" && type !== "idempotency_error") throw e;
+    const prior = await stripe.refunds.list({ payment_intent: String(params.payment_intent), limit: 100 });
+    if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e;
+    return { alreadyRefunded: true };
+  }
 }
 
 type ChargeOutcome =
@@ -404,7 +460,7 @@ serve(async (req) => {
   if (!dryRun && !onlyParentId) {
     const { data: stale, error: staleErr } = await supabase
       .from("recurring_visit_payments")
-      .select("id, parent_job_id, visit_date, status, payer_id, stripe_payment_intent_id, stripe_session_id")
+      .select("id, parent_job_id, visit_date, status, payer_id, amount_cents, stripe_payment_intent_id, stripe_session_id")
       .in("status", ["pending", "paid"])
       .lte("visit_date", today)
       .order("visit_date", { ascending: true })
@@ -480,30 +536,85 @@ serve(async (req) => {
         (await settleVisitPayment(supabase, row.id, "funded", String(booked[0].id))).forEach(fail);
         continue;
       }
+      let refundParams: Stripe.RefundCreateParams = { payment_intent: pi };
+      let alreadyRefunded = false;
       try {
-        await stripe.refunds.create(
-          { payment_intent: pi },
-          { idempotencyKey: `recurring-visit-refund:${pi}` },
-        );
+        // Q415 (e): the run that charged this intent may already have refunded
+        // it less the card fee, and only failed to mark the row. A bare refund
+        // here would return the rest, i.e. the fee the platform must not
+        // absorb (Q407 (12)). The poster was told at that refund.
+        // A refund that is neither that one nor the whole payment was made by
+        // hand for less: say so, never settle it as refunded in silence.
+        // A run that refused this visit because the series ended or the date
+        // changed hands marked the intent before refunding it: that refund
+        // withholds the card fee, and so does any retry of it here.
+        const amountCents = Number(row.amount_cents);
+        let piObj: Stripe.PaymentIntent;
+        try {
+          piObj = await stripe.paymentIntents.retrieve(pi, { expand: ["latest_charge.balance_transaction"] });
+        } catch (readErr) {
+          // Unread, it is unknown whether the fee is withheld: refund nothing
+          // this run, and try again on the next.
+          fail(`visit payment ${row.id}: could not read ${pi} (${(readErr as Error).message}); retried next run`);
+          continue;
+        }
+        const withholdFee = piObj?.metadata?.refund_withhold_fee === "true";
+        const owedCents = withholdFee ? Math.max(0, amountCents - actualOrEstimatedFeeCents(piObj, amountCents)) : amountCents;
+        const prior = await stripe.refunds.list({ payment_intent: pi, limit: 100 });
+        const live = prior.data.filter((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled");
+        if (live.length > 0) {
+          const refunded = live.reduce((sum: number, r: Stripe.Refund) => sum + (r.amount ?? 0), 0);
+          // A hand refund of what the alert said (the amount less the fee)
+          // settles too; it carries no fee_withheld mark.
+          if (live.some((r: Stripe.Refund) => r.metadata?.fee_withheld === "true") || refunded >= owedCents) {
+            (await settleVisitPayment(supabase, row.id, "refunded", null)).forEach(fail);
+            continue;
+          }
+          fail(`visit payment ${row.id}: ${pi} was refunded $${(refunded / 100).toFixed(2)} of $${(owedCents / 100).toFixed(2)} by hand; not settled`);
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Paid recurring visit was never booked and is only partly refunded",
+            message: `${pi} (visit on ${row.visit_date}) was refunded $${(refunded / 100).toFixed(2)} of the $${(owedCents / 100).toFixed(2)} owed${
+              withholdFee ? " (the card fee is withheld)" : ""
+            }, not by this function. Refund the rest by hand.`,
+            fields: { payment_intent: pi, parent_job_id: String(row.parent_job_id), visit_date: String(row.visit_date) },
+          });
+          continue;
+        }
+        if (withholdFee) {
+          if (!Number.isFinite(owedCents)) throw new Error(`amount_cents ${row.amount_cents} is not a number`);
+          refundParams = { payment_intent: pi, amount: owedCents, metadata: { fee_withheld: "true" } };
+          if (owedCents !== 0) ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: `recurring-visit-refund:${pi}` }));
+        } else {
+          ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: `recurring-visit-refund:${pi}` }));
+        }
       } catch (e) {
         fail(`visit payment ${row.id}: paid visit was never booked and the refund of ${pi} failed (${(e as Error).message})`);
         await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
           title: "Paid recurring visit was never booked and the refund failed",
-          message: `The payer paid ${pi} on-session for the visit on ${row.visit_date}, the visit was never booked, and the refund did not go through. Refund ${pi} by hand.`,
+          message: `The payer paid ${pi} on-session for the visit on ${row.visit_date}, the visit was never booked, and the refund did not go through. Refund ${pi} by hand: ${
+            refundParams.amount === undefined ? "in full" : `$${(refundParams.amount / 100).toFixed(2)} (the card fee is withheld)`
+          }.`,
           fields: { payment_intent: pi, parent_job_id: String(row.parent_job_id), visit_date: String(row.visit_date) },
         });
         continue;
       }
       (await settleVisitPayment(supabase, row.id, "refunded", null)).forEach(fail);
-      if (row.payer_id) {
+      if (row.payer_id && !alreadyRefunded) {
         const link = "/posts";
+        const kept = refundParams.amount !== undefined;
         const { data: n, error: nErr } = await supabase.from("notifications").insert({
           user_id: row.payer_id,
           job_id: row.parent_job_id,
-          title: "Your visit payment was refunded",
-          message: `The visit on ${row.visit_date} couldn't be booked, so we refunded what you paid for it.`,
+          title: kept ? "Your visit payment was refunded, less the card fee" : "Your visit payment was refunded",
+          message: kept
+            ? `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. We refunded $${
+              ((refundParams.amount ?? 0) / 100).toFixed(2)
+            }; the card processor's fee of $${((Number(row.amount_cents) - (refundParams.amount ?? 0)) / 100).toFixed(2)} can't be returned.`
+            : `The visit on ${row.visit_date} couldn't be booked, so we refunded what you paid for it.`,
           type: "job_updates",
           link,
         }).select("id");
@@ -1293,9 +1404,37 @@ serve(async (req) => {
           // trg_series_visit_within_end: the date changed hands (given up or
           // taken over) after this run read it. Refunded below, then a skip.
           const holderChangedMidRun = String(childErr?.message ?? "").startsWith("series_date_unheld:");
+          // Q415 (e) (owner, 2026-09-27): a charge the PLATFORM got wrong (an
+          // insert that simply failed) comes back in full. A series that
+          // ended, or a date that changed hands, between charge and insert is
+          // the parties' doing, so Stripe's processing fee is withheld: the
+          // platform never absorbs a fee (Q407 (12)).
+          const refundParams: Stripe.RefundCreateParams = { payment_intent: intent.id };
+          let capturedCents = paidRow ? paidRow.amount_cents : totalCents;
+          let alreadyRefunded = false;
           try {
-            await stripe.refunds.create(
-              { payment_intent: intent.id },
+            if (seriesEndedMidRun || holderChangedMidRun) {
+              // Tell the stale-visit sweep why, before any refund request: if
+              // this refund fails, the sweep retries it and must withhold the
+              // fee too. Best effort: a refund that goes through carries its
+              // own fee_withheld mark below.
+              try {
+                await stripe.paymentIntents.update(intent.id, { metadata: { refund_withhold_fee: "true" } });
+              } catch (e) {
+                console.warn(`[charge-recurring-visits] could not mark ${intent.id} as fee-withheld`, e);
+              }
+              const split = await refundLessStripeFeeCents(stripe, intent, capturedCents);
+              refundParams.amount = split.refundCents;
+              capturedCents = split.capturedCents;
+              // The sweep's mark that this partial refund is the whole of it.
+              refundParams.metadata = { fee_withheld: "true" };
+            }
+            // A charge no bigger than its fee leaves nothing to return. Stripe
+            // refuses a $0 refund, and that refusal would raise the "refund by
+            // hand" alert below for money that is correctly kept.
+            if (refundParams.amount !== 0) ({ alreadyRefunded } = await createRefundOnce(
+              stripe,
+              refundParams,
               // Keyed on the INTENT, not on (series, date). Those are not the
               // same key across days: the window spans three runs and the
               // charge key expires after 24h, so one (series, date) can produce
@@ -1305,13 +1444,15 @@ serve(async (req) => {
               // money still held. One key per intent is idempotent for the
               // retry it is actually protecting against and cannot collide.
               { idempotencyKey: `recurring-visit-refund:${intent.id}` },
-            );
+            ));
           } catch (refundErr) {
             await postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
               title: "Recurring visit charged but not created, and the refund failed",
-              message: `PaymentIntent ${intent.id} is holding a poster's money for a visit that was never created. Refund by hand.`,
+              message: `PaymentIntent ${intent.id} is holding a poster's money for a visit that was never created. Refund by hand: ${
+                refundParams.amount === undefined ? "in full" : `$${(refundParams.amount / 100).toFixed(2)} (the card fee is withheld)`
+              }.`,
               fields: { parentJobId: String(parent.id), visitDate, intent: intent.id, error: String(refundErr) },
             });
             fail(
@@ -1322,6 +1463,32 @@ serve(async (req) => {
           // Q210(b): the on-session payment was given back; its row says so.
           if (paidRow) {
             (await settleVisitPayment(supabase, paidRow.id, "refunded", null)).forEach(fail);
+          }
+          // Q415 (e): money was kept, so the poster is told how much came back
+          // and why the rest did not. A silent partial refund reads as theft.
+          if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id) {
+            const refundedCents = refundParams.amount;
+            const withheldCents = capturedCents - refundedCents;
+            const link = "/posts";
+            const { data: n, error: nErr } = await supabase.from("notifications").insert({
+              user_id: parent.customer_id,
+              job_id: parent.id,
+              title: "Your visit charge was refunded, less the card fee",
+              message: `The visit on ${visitDate} wasn't booked because ${
+                seriesEndedMidRun ? "the series ended" : "the date changed hands"
+              } after it was charged. We refunded $${(refundedCents / 100).toFixed(2)}; the card processor's fee of $${
+                (withheldCents / 100).toFixed(2)
+              } can't be returned.`,
+              type: "job_updates",
+              link,
+            }).select("id");
+            if (
+              nErr || !n ||
+              (n.length === 0 &&
+                (await seedBoundaryDropsRow(supabase, { user_id: String(parent.customer_id), job_id: String(parent.id), link })) !== true)
+            ) {
+              fail(`series ${parent.id} ${visitDate}: poster was not told of the fee-withheld refund (${nErr?.message ?? "zero rows"})`);
+            }
           }
           if (seriesEndedMidRun) {
             console.log(

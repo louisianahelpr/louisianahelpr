@@ -14,10 +14,18 @@ export function haversineMiles(
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+/**
+ * The radius in miles from a `nearby:<miles>` token, or null (no radius).
+ * A zero radius is null: saved_searches_radius_miles_positive refuses it, and
+ * the token can arrive from the `?loc=` URL param, not only the chips (Q54;
+ * guard src/test/savedSearchRadiusParity.test.ts).
+ */
 export function parseNearbyFilter(value: string): number | null {
   if (!value) return null;
   const m = value.match(/^nearby:(\d+(?:\.\d+)?)$/);
-  return m ? parseFloat(m[1]) : null;
+  if (!m) return null;
+  const miles = parseFloat(m[1]);
+  return Number.isFinite(miles) && miles > 0 ? miles : null;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

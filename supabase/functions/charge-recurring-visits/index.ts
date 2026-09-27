@@ -559,14 +559,24 @@ serve(async (req) => {
           continue;
         }
         const withholdFee = piObj?.metadata?.refund_withhold_fee === "true";
-        const owedCents = withholdFee ? Math.max(0, amountCents - actualOrEstimatedFeeCents(piObj, amountCents)) : amountCents;
+        const lessFeeCents = Math.max(0, amountCents - actualOrEstimatedFeeCents(piObj, amountCents));
+        const owedCents = withholdFee ? lessFeeCents : amountCents;
+        // Set before any other Stripe call, so a failure below alerts with
+        // the amount actually owed, not "in full".
+        if (withholdFee) {
+          if (!Number.isFinite(owedCents)) throw new Error(`amount_cents ${row.amount_cents} is not a number`);
+          refundParams = { payment_intent: pi, amount: owedCents, metadata: { fee_withheld: "true" } };
+        }
         const prior = await stripe.refunds.list({ payment_intent: pi, limit: 100 });
         const live = prior.data.filter((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled");
         if (live.length > 0) {
           const refunded = live.reduce((sum: number, r: Stripe.Refund) => sum + (r.amount ?? 0), 0);
           // A hand refund of what the alert said (the amount less the fee)
-          // settles too; it carries no fee_withheld mark.
-          if (live.some((r: Stripe.Refund) => r.metadata?.fee_withheld === "true") || refunded >= owedCents) {
+          // settles too; it carries no fee_withheld mark. That holds even on
+          // an intent whose fee_withheld tag could not be written (the tag
+          // and the refund can fail together): ops refunded the amount the
+          // alert named, and paging them for the fee every day would be wrong.
+          if (live.some((r: Stripe.Refund) => r.metadata?.fee_withheld === "true") || refunded >= lessFeeCents) {
             (await settleVisitPayment(supabase, row.id, "refunded", null)).forEach(fail);
             continue;
           }
@@ -583,8 +593,6 @@ serve(async (req) => {
           continue;
         }
         if (withholdFee) {
-          if (!Number.isFinite(owedCents)) throw new Error(`amount_cents ${row.amount_cents} is not a number`);
-          refundParams = { payment_intent: pi, amount: owedCents, metadata: { fee_withheld: "true" } };
           if (owedCents !== 0) ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: `recurring-visit-refund:${pi}` }));
         } else {
           ({ alreadyRefunded } = await createRefundOnce(stripe, refundParams, { idempotencyKey: `recurring-visit-refund:${pi}` }));

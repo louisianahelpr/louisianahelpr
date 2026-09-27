@@ -97,9 +97,11 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts | We refunded $${(refundedCents / 100).toFixed(2)} | We refunded $${(intent.amount / 100).toFixed(2)}
 // @mutate supabase/functions/charge-recurring-visits/index.ts |               fail(`series ${parent.id} ${visitDate}: poster was not told of the fee-withheld refund | console.log(`series ${parent.id} ${visitDate}: poster was not told of the fee-withheld refund
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (live.length > 0) { |         if (false) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= owedCents) { |  \|\| true) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| true) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| refunded >= owedCents) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           refundParams = { payment_intent: pi, amount: owedCents, metadata: { fee_withheld: "true" } };\n        }\n        const prior |         }\n        const prior
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = piObj?.metadata?.refund_withhold_fee === "true"; | const withholdFee = false;
-// @mutate supabase/functions/charge-recurring-visits/index.ts | const owedCents = withholdFee ? Math.max(0, amountCents - actualOrEstimatedFeeCents(piObj, amountCents)) : amountCents; | const owedCents = amountCents;
+// @mutate supabase/functions/charge-recurring-visits/index.ts | const owedCents = withholdFee ? lessFeeCents : amountCents; | const owedCents = amountCents;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | await stripe.paymentIntents.update(intent.id, { metadata: { refund_withhold_fee: "true" } }); | void 0;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | Refund ${pi} by hand: ${\n            refundParams.amount === undefined ? | Refund ${pi} by hand: ${\n            refundParams.amount !== undefined ?
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const kept = refundParams.amount !== undefined; | const kept = false;
@@ -1599,6 +1601,43 @@ describe("charge-recurring-visits edge function", () => {
     const pages = slackAlerts.filter((a) => a.severity === "critical");
     expect(pages).toHaveLength(1);
     expect(JSON.stringify(pages[0])).toContain("$96.80 (the card fee is withheld)");
+    expect(visitPaymentWrites("update")).toEqual([]);
+    expect(b.errors).toBe(1);
+  });
+
+  it("Q415 (e) re-review: a hand refund of the amount less the fee settles even when the fee-withheld tag was never written", async () => {
+    // The tag write and the mid-run refund can fail together (one Stripe
+    // outage); ops then refund what the alert named, and must not be paged
+    // daily for the fee.
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ ...taggedIntent, metadata: {} });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_hand", status: "succeeded", amount: 9680 }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    expect(slackAlerts.filter((a) => a.severity === "critical")).toHaveLength(0);
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q415 (e) re-review: a failed refund list on a fee-withheld intent tells ops the withheld amount, not 'in full'", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(taggedIntent);
+    stripeMock.refunds.list.mockRejectedValue(new Error("stripe down"));
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    const pages = slackAlerts.filter((a) => a.severity === "critical");
+    expect(pages).toHaveLength(1);
+    expect(JSON.stringify(pages[0])).toContain("$96.80 (the card fee is withheld)");
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(visitPaymentWrites("update")).toEqual([]);
     expect(b.errors).toBe(1);
   });

@@ -166,10 +166,13 @@ export function useNavUnreadCount(user: User | null | undefined) {
 
   // The bell's number, read from the SAME shared store every bell renders
   // (notificationStore / bellUnreadCount), never re-derived here. Only this
-  // user's: the store is bound to one account and a different id means it
-  // has not been counted for us yet, which contributes nothing.
+  // user's, and only once the bell has answered: before that (cold launch
+  // into a page with no bell, e.g. a push tap into /messages) the store holds
+  // nothing for us, and a messages-only number would overwrite the correct
+  // sum the push just put on the icon. So leave the icon alone until then.
   const bell = useSyncExternalStore(subscribeNotifications, getNotificationSnapshot, getNotificationServerSnapshot);
-  const notificationsUnread = user && bell.userId === user.id ? bellUnreadCount(bell) : 0;
+  const bellCounted = !!user && bell.userId === user.id && (bell.listLoaded || bell.unreadTotal !== null);
+  const notificationsUnread = bellCounted ? bellUnreadCount(bell) : null;
 
   // Mirror onto the native springboard (app-icon) badge. Owner decision
   // 2026-09-27 (N-006): the icon counts unread MESSAGES plus unread
@@ -177,7 +180,8 @@ export function useNavUnreadCount(user: User | null | undefined) {
   // No-op on web and best-effort on native (see setAppIconBadge). A
   // signed-out/guest user has nothing to badge, so force it to zero.
   useEffect(() => {
-    void setAppIconBadge(user ? unreadCount + notificationsUnread : 0); // N-006
+    if (user && notificationsUnread === null) return; // bell not counted yet: no partial badge
+    void setAppIconBadge(user ? unreadCount + (notificationsUnread ?? 0) : 0); // N-006
   }, [user, unreadCount, notificationsUnread]);
 
   // Messages — best-effort mark-all-read. Optimistically zero the badge

@@ -10,7 +10,8 @@
  * with the network edges stubbed and asserts the value handed to
  * setAppIconBadge is the sum.
  *
- * @mutate src/components/mobileNav/useNavUnreadCount.ts | void setAppIconBadge(user ? unreadCount + notificationsUnread : 0); // N-006 | void setAppIconBadge(user ? unreadCount : 0); // N-006
+ * @mutate src/components/mobileNav/useNavUnreadCount.ts | void setAppIconBadge(user ? unreadCount + (notificationsUnread ?? 0) : 0); // N-006 | void setAppIconBadge(user ? unreadCount : 0); // N-006
+ * @mutate src/components/mobileNav/useNavUnreadCount.ts | if (user && notificationsUnread === null) return; // bell not counted yet: no partial badge | // removed
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
@@ -46,11 +47,13 @@ import {
   setNotificationUser,
   setUnreadTotal,
   setNotifications,
+  markNotificationsLoaded,
   bellUnreadCount,
   getNotificationSnapshot,
 } from "@/components/notificationPanel/notificationStore";
 
 const USER = { id: "user-n006" } as User;
+const last = () => badgeCalls[badgeCalls.length - 1];
 
 beforeEach(() => {
   badgeCalls.length = 0;
@@ -66,16 +69,16 @@ describe("app-icon badge = unread messages + bell unread (N-006)", () => {
     await waitFor(() => expect(result.current.unreadCount).toBe(MESSAGE_ROWS.length));
     const bell = bellUnreadCount(getNotificationSnapshot());
     expect(bell).toBe(5);
-    await waitFor(() => expect(badgeCalls.at(-1)).toBe(MESSAGE_ROWS.length + bell));
+    await waitFor(() => expect(last()).toBe(MESSAGE_ROWS.length + bell));
   });
 
   it("follows the bell when a notification is read", async () => {
     setNotificationUser(USER.id);
     setUnreadTotal(5);
     renderHook(() => useNavUnreadCount(USER));
-    await waitFor(() => expect(badgeCalls.at(-1)).toBe(8));
+    await waitFor(() => expect(last()).toBe(8));
     act(() => setUnreadTotal(4));
-    await waitFor(() => expect(badgeCalls.at(-1)).toBe(7));
+    await waitFor(() => expect(last()).toBe(7));
   });
 
   it("uses the bell's own fallback (page-derived) before the total is counted", async () => {
@@ -84,22 +87,30 @@ describe("app-icon badge = unread messages + bell unread (N-006)", () => {
       { id: "n1", read: false },
       { id: "n2", read: true },
     ] as never);
+    markNotificationsLoaded(); // the bell's list load succeeded; the head count has not answered
     renderHook(() => useNavUnreadCount(USER));
-    await waitFor(() => expect(badgeCalls.at(-1)).toBe(MESSAGE_ROWS.length + 1));
+    await waitFor(() => expect(last()).toBe(MESSAGE_ROWS.length + 1));
   });
 
-  it("never counts another account's bell", async () => {
+  it("never sends a partial (messages-only) badge before the bell has counted for this user", async () => {
+    // Another account's bell, then an unanswered one for ours: neither may
+    // overwrite the icon (a push may just have set the correct sum).
     setNotificationUser("someone-else");
     setUnreadTotal(40);
-    renderHook(() => useNavUnreadCount(USER));
-    await waitFor(() => expect(badgeCalls.at(-1)).toBe(MESSAGE_ROWS.length));
+    const { result } = renderHook(() => useNavUnreadCount(USER));
+    await waitFor(() => expect(result.current.unreadCount).toBe(MESSAGE_ROWS.length));
+    act(() => setNotificationUser(USER.id));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(badgeCalls).toEqual([]);
+    act(() => setUnreadTotal(2));
+    await waitFor(() => expect(last()).toBe(MESSAGE_ROWS.length + 2));
   });
 
   it("a signed-out user badges zero", async () => {
     setNotificationUser(USER.id);
     setUnreadTotal(5);
     renderHook(() => useNavUnreadCount(null));
-    await waitFor(() => expect(badgeCalls.at(-1)).toBe(0));
+    await waitFor(() => expect(last()).toBe(0));
     expect(badgeCalls.length).toBeGreaterThan(0);
   });
 });

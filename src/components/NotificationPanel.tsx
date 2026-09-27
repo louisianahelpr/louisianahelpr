@@ -41,8 +41,7 @@ import {
   setNotificationUser,
   setNotifications,
   setUnreadTotal,
-  markNotificationsLoaded,
-  bellUnreadCount,
+  markNotificationsLoaded, bellUnreadCount,
 } from "@/components/notificationPanel/notificationStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";

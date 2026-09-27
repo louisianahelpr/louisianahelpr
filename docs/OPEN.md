@@ -32,6 +32,16 @@ verbatim to the dated archive docs/archive/OPEN-done-YYYY-MM.md by
 while one is left here. The queue score, next free number and the done-item
 guard check read this file AND the archives, so archiving never changes a count.
 
+**`[~]` items say when they are done (2026-09-27):** put what is left as one or
+more markers on the item, written out in full and ANDed together:
+``done-when: sql `SELECT <one column>` => <expected>`` (read-only, first row),
+`done-when: test <path>`, `done-when: issue #N closed`, or `done-when: pr #N merged`.
+Only add markers when they cover everything that is left (a screenshot or a
+review still to do means no marker yet). `node scripts/open-done-when.mjs` runs them;
+the nightly `open-done-when` workflow opens one nightly-red issue listing the items
+that are ready to tick. src/test/openPartlyDoneItemsSayDoneWhen.test.ts ratchets the
+count of `[~]` items with no marker.
+
 **Priority among the open queue items (lead's order, 2026-09-23 — money and
 security first, then alerting, then the audit, then hygiene):** Q53 (DB outage
 root cause), Q50 (card holds on cancelled jobs, Stripe side), Q3 (Stripe test

@@ -1,0 +1,94 @@
+name: Partly-done items ready to tick
+
+# WHY THIS EXISTS (2026-09-27)
+# ----------------------------------------------------------------------------
+# Eight `[~]` items in docs/OPEN.md (Q399, Q348, Q298, Q423, Q342, Q343, Q398,
+# Q452) each said "tick [x] after db-deploy once `SELECT ...` returns X". All
+# eight were already true on prod and stayed `[~]` until someone happened to
+# re-run the checks by hand (commit daa403bf7). Nothing re-checked them.
+#
+# A `[~]` item now carries `done-when:` markers (syntax: top of docs/OPEN.md),
+# and scripts/open-done-when.mjs runs them. This workflow runs it nightly and
+# keeps ONE `nightly-red: open-done-when` issue open while any item is READY to
+# tick or any marker cannot be read; the issue body lists which. It closes
+# itself on the first run with nothing to tick.
+#
+# SQL markers run read-only through the Management API (read_only:true, the
+# same transport prod-errors.yml uses for the ops alert ledger); only a single
+# SELECT/WITH statement is accepted. The guard that keeps markerless `[~]`
+# items from growing is src/test/openPartlyDoneItemsSayDoneWhen.test.ts.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Twice a week, not nightly: Sun and Thu 05:17 UTC were the only two free
+    # :17 slots in the prod-load week on 2026-09-27 (Q322 list in
+    # src/test/prodWorkflowSpacing.test.ts). Dispatch any time to re-check.
+    - cron: "17 5 * * 0,4"
+
+permissions:
+  contents: read
+
+concurrency:
+  # Scheduled runs share prod-load; a dispatch gets its own group
+  # (src/test/prodWorkflowSpacing.test.ts rule 4).
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('open-done-when-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Run every done-when marker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      report: ${{ steps.run.outputs.report }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Which [~] items can be ticked?
+        id: run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          node scripts/open-done-when.mjs --out /tmp/done-when.md | tee -a "$GITHUB_STEP_SUMMARY"
+          STATUS=${PIPESTATUS[0]}
+          # A crash before --out leaves no file: say so in the issue body; the
+          # step still exits with the script's own status below.
+          if [ ! -f /tmp/done-when.md ]; then
+            echo "open-done-when.mjs wrote no report (exit $STATUS)" > /tmp/done-when.md
+          fi
+          {
+            echo "report<<DONE_WHEN_EOF"
+            cat /tmp/done-when.md
+            echo ""
+            echo "DONE_WHEN_EOF"
+          } >> "$GITHUB_OUTPUT"
+          exit "$STATUS"
+
+  notify:
+    name: Report nightly result
+    needs: [check]
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: open-done-when
+          status: ${{ needs.check.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          body-extra: ${{ needs.check.outputs.report }}

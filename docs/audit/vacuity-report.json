@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-27T06:12:45.242Z",
-  "guards": 1203,
-  "registered": 1202,
+  "generated": "2026-09-27T06:24:12.456Z",
+  "guards": 1204,
+  "registered": 1203,
   "unregistered": [
     "src/test/platformSettingsSingleton.test.ts"
   ],

@@ -175,7 +175,7 @@ describe("recordReviewInActivityCache", () => {
 
   it("flips the poster's Reviewed badge and the helper's reviewed set, and leaves others alone", () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const detailKey = queryKeys.activity.postedDetail(USER, { helperIds: [], completedIds: [JOB, "job-2"], activeIds: [], groupIds: [] });
+    const detailKey = queryKeys.activity.postedDetail(USER, { helperIds: [], completedIds: [JOB, "job-2"], trackedIds: [], groupIds: [] });
     qc.setQueryData(detailKey, {
       helperNames: {},
       helperAvatars: {},
@@ -202,7 +202,7 @@ describe("recordReviewInActivityCache", () => {
 
   it("does not invent meta for a job the cache does not hold", () => {
     const qc = new QueryClient();
-    const detailKey = queryKeys.activity.postedDetail(USER, { helperIds: [], completedIds: [], activeIds: [], groupIds: [] });
+    const detailKey = queryKeys.activity.postedDetail(USER, { helperIds: [], completedIds: [], trackedIds: [], groupIds: [] });
     const before = { helperNames: {}, helperAvatars: {}, completedJobMeta: {}, latestTracking: {}, groupHelpersByJob: {} };
     qc.setQueryData(detailKey, before);
     recordReviewInActivityCache(JOB, qc);

@@ -17,6 +17,12 @@
  * @mutate src/lib/proofPhotoStorage.ts | !usable(p, expiresInSeconds, now) && !inFlight.has(p) | !usable(p, expiresInSeconds, now)
  * @mutate src/lib/proofPhotoStorage.ts |       .createSignedUrls(objectPaths, expiresInSeconds); |       .createSignedUrls(objectPaths.slice(0, 1), expiresInSeconds);
  * @mutate src/lib/proofPhotoStorage.ts |     if (startedIn !== generation) return; |     void startedIn;
+ * @mutate src/lib/proofPhotoStorage.ts |     const batch = enqueue(toSign, expiresInSeconds) |     const batch = signBatch(toSign, expiresInSeconds, generation)
+ * @mutate src/lib/proofPhotoStorage.ts |   pending.clear(); |   void 0;
+ *
+ * run 36275729414: one load of the poster's "done" tab still sent 84 sign
+ * POSTs, one per gallery, because each gallery's photos were disjoint. Galleries
+ * that mount together now share one request (queued for a short window).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -90,6 +96,42 @@ describe("proof photos are signed in batches and reused (#1582)", () => {
   it("two galleries asking at once share one request", async () => {
     await Promise.all([signProofPhotoUrls([p("b1"), p("a1")]), signProofPhotoUrls([p("a1"), p("b1")])]);
     expect(batches).toHaveLength(1);
+  });
+
+  it("galleries with DIFFERENT photos mounting together share one request (run 36275729414)", async () => {
+    const galleries = Array.from({ length: 40 }, (_, i) => [p(`b${i}`), p(`a${i}`)]);
+    const outs = await Promise.all(galleries.map((g) => signProofPhotoUrls(g)));
+    expect(batches).toHaveLength(1);
+    expect(outs[39]).toEqual([`https://signed.test/${p("b39")}`, `https://signed.test/${p("a39")}`]);
+  });
+
+  it("a gallery mounting while the request is already on the wire joins it", async () => {
+    let release!: () => void;
+    gate = new Promise((r) => (release = r));
+    const first = signProofPhotoUrls([p("b1")]);
+    await new Promise((r) => setTimeout(r, 60)); // window flushed, request pending
+    expect(batches).toHaveLength(1);
+    const second = signProofPhotoUrls([p("b1")]);
+    release();
+    await Promise.all([first, second]);
+    expect(batches).toHaveLength(1);
+  });
+
+  it("a very large window is split into chunks of at most 100 paths", async () => {
+    const vals = Array.from({ length: 250 }, (_, i) => p(`x${i}`));
+    await signProofPhotoUrls(vals);
+    expect(batches.map((b) => b.length)).toEqual([100, 100, 50]);
+  });
+
+  it("a queued, not yet sent window is dropped at sign-out", async () => {
+    const before = signProofPhotoUrls([p("q1")]);
+    resetProofPhotoSignCache();
+    const after = signProofPhotoUrls([p("q2")]);
+    await Promise.all([before, after]);
+    // q2 opened a fresh window; the old window still flushes on its own but
+    // cannot write its URLs back (generation check), so exactly q1 and q2 are
+    // separate requests and nothing from before sign-out is merged into q2's.
+    expect(batches).toContainEqual([p("q2")]);
   });
 
   it("a missing object is null and reported; its neighbours still render", async () => {

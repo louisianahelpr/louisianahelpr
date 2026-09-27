@@ -74,11 +74,45 @@ const inFlight = new Map<string, Promise<void>>();
 // previous account signed out cannot write its signed URLs back afterwards.
 let generation = 0;
 
+/**
+ * GALLERIES THAT MOUNT TOGETHER SHARE ONE REQUEST (#1582, run 36275729414).
+ *
+ * Batching per call was not enough: the poster's "done" tab mounts one gallery
+ * per finished job, each gallery's effect called signProofPhotoUrls on its own,
+ * and one load of that tab sent 84 `POST /object/sign/proof-photos` (measured
+ * 2026-09-26 on main 2dce37649 against prod). Paths are now queued for a short
+ * window and signed together, in chunks of SIGN_CHUNK, per TTL.
+ */
+const COALESCE_MS = 25;
+const SIGN_CHUNK = 100;
+const pending = new Map<number, { paths: Set<string>; flush: Promise<void> }>();
+
+function enqueue(paths: string[], expiresInSeconds: number): Promise<void> {
+  let q = pending.get(expiresInSeconds);
+  if (!q) {
+    const set = new Set<string>();
+    // The account that asked, not the one signed in when the timer fires.
+    const askedIn = generation;
+    const flush = new Promise<void>((r) => setTimeout(r, COALESCE_MS)).then(async () => {
+      if (pending.get(expiresInSeconds)?.paths === set) pending.delete(expiresInSeconds);
+      const all = [...set];
+      const chunks: string[][] = [];
+      for (let i = 0; i < all.length; i += SIGN_CHUNK) chunks.push(all.slice(i, i + SIGN_CHUNK));
+      await Promise.all(chunks.map((c) => signBatch(c, expiresInSeconds, askedIn)));
+    });
+    q = { paths: set, flush };
+    pending.set(expiresInSeconds, q);
+  }
+  for (const p of paths) q.paths.add(p);
+  return q.flush;
+}
+
 /** Forget every signed URL and pending batch: sign-out (authSignOut.ts) and tests. */
 export function resetProofPhotoSignCache(): void {
   generation += 1;
   signed.clear();
   inFlight.clear();
+  pending.clear();
 }
 
 function usable(path: string, expiresInSeconds: number, now: number): string | null {
@@ -86,12 +120,11 @@ function usable(path: string, expiresInSeconds: number, now: number): string | n
   return hit && hit.expiresAt - now >= (expiresInSeconds * 1000) / 2 ? hit.url : null;
 }
 
-async function signBatch(paths: string[], expiresInSeconds: number): Promise<void> {
+async function signBatch(paths: string[], expiresInSeconds: number, startedIn: number): Promise<void> {
   // Only storage object paths are ever signed (signedUrlOnlyForStoragePaths).
   const objectPaths = paths.filter((p) => isStorageObjectPath(p));
   if (objectPaths.length === 0) return;
   const requestedAt = Date.now();
-  const startedIn = generation;
   try {
     const { data, error } = await supabase.storage
       .from(PROOF_PHOTOS_BUCKET)
@@ -143,7 +176,7 @@ export async function signProofPhotoUrls(
   const now = Date.now();
   const toSign = [...new Set(paths.filter((p) => p && !usable(p, expiresInSeconds, now) && !inFlight.has(p)))];
   if (toSign.length) {
-    const batch = signBatch(toSign, expiresInSeconds).finally(() => {
+    const batch = enqueue(toSign, expiresInSeconds).finally(() => {
       for (const p of toSign) if (inFlight.get(p) === batch) inFlight.delete(p);
     });
     for (const p of toSign) inFlight.set(p, batch);

@@ -6,6 +6,7 @@ import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { formatName } from "@/lib/utils";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
+import { appliedCardMountsTracker, postedCardTrackerQueries } from "@/components/job-card/trackerMounts";
 import type { TrackingData } from "@/components/JobTracking";
 import { queryKeys } from "@/lib/queryKeys";
 import { checkDrift } from "@/lib/checkDrift";
@@ -243,7 +244,9 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
 export interface PostedDetailInputs {
   helperIds: string[];
   completedIds: string[];
-  activeIds: string[];
+  /** Jobs whose poster card mounts a <JobTracking> that would query: the
+      batched tracking prefetch covers exactly these (trackerMounts.ts). */
+  trackedIds: string[];
   groupIds: string[];
   /** Completed GROUP jobs: their crews are who the poster reviews (Q407). */
   completedGroupIds: string[];
@@ -258,7 +261,7 @@ export function postedDetailInputs(postedJobs: Job[]): PostedDetailInputs {
   return {
     helperIds: [...new Set(postedJobs.filter((j) => j.helper_id).map((j) => j.helper_id!))].sort(),
     completedIds: postedJobs.filter((j) => j.status === "completed").map((j) => j.id).sort(),
-    activeIds: postedJobs.filter((j) => isActiveStatus(j.status)).map((j) => j.id).sort(),
+    trackedIds: postedJobs.filter(postedCardTrackerQueries).map((j) => j.id).sort(),
     groupIds: postedJobs
       .filter((j) => isActiveStatus(j.status) && j.is_group_job)
       .map((j) => j.id)
@@ -274,7 +277,7 @@ export async function fetchPostedActivityDetail(
   userId: string,
   inputs: PostedDetailInputs,
 ): Promise<PostedActivityDetail> {
-  const { helperIds, completedIds, activeIds, groupIds, completedGroupIds = [] } = inputs;
+  const { helperIds, completedIds, trackedIds, groupIds, completedGroupIds = [] } = inputs;
 
   const [helperProfilesRes, tipsRes, reviewsRes, trackingRes, groupHelpersRes, completedCrewRes] = await Promise.all([
     helperIds.length ? supabase.rpc("get_safe_profiles", { user_ids: helperIds }) : emptyResult<SafeProfileRow>(),
@@ -289,7 +292,7 @@ export async function fetchPostedActivityDetail(
     completedIds.length
       ? supabase.from("reviews").select("job_id, reviewee_id").in("job_id", completedIds).eq("reviewer_id", userId)
       : emptyResult<{ job_id: string; reviewee_id: string }>(),
-    activeIds.length ? fetchTracking(activeIds) : emptyResult<TrackingRow>(),
+    trackedIds.length ? fetchTracking(trackedIds) : emptyResult<TrackingRow>(),
     groupIds.length
       ? supabase.from("group_job_helpers").select("id, job_id, helper_id, status, joined_at, helper_confirmed_at, share_cents").in("job_id", groupIds)
       : emptyResult<GroupHelperRow>(),
@@ -396,7 +399,7 @@ export async function fetchPostedActivityDetail(
     helperNames,
     helperAvatars,
     completedJobMeta,
-    latestTracking: latestTrackingByJob(activeIds, trackingRes),
+    latestTracking: latestTrackingByJob(trackedIds, trackingRes),
     groupHelpersByJob,
   };
 }
@@ -569,7 +572,8 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
 
 export interface AppliedDetailInputs {
   posterIds: string[];
-  activeIds: string[];
+  /** Jobs whose Helpr card mounts a tracker (trackerMounts.ts). */
+  trackedIds: string[];
 }
 
 export function appliedDetailInputs(appliedApps: AppliedApp[]): AppliedDetailInputs {
@@ -577,8 +581,8 @@ export function appliedDetailInputs(appliedApps: AppliedApp[]): AppliedDetailInp
     posterIds: [
       ...new Set(appliedApps.map((a) => a.job?.customer_id).filter((id): id is string => Boolean(id))),
     ].sort(),
-    activeIds: appliedApps
-      .filter((a) => a.job && isActiveStatus(a.job.status) && a.status === "accepted")
+    trackedIds: appliedApps
+      .filter((a) => appliedCardMountsTracker(a, a.job))
       .map((a) => a.job_id)
       .sort(),
   };
@@ -587,10 +591,10 @@ export function appliedDetailInputs(appliedApps: AppliedApp[]): AppliedDetailInp
 export async function fetchAppliedActivityDetail(
   inputs: AppliedDetailInputs,
 ): Promise<AppliedActivityDetail> {
-  const { posterIds, activeIds } = inputs;
+  const { posterIds, trackedIds } = inputs;
   const [profilesRes, trackingRes] = await Promise.all([
     posterIds.length ? supabase.rpc("get_safe_profiles", { user_ids: posterIds }) : emptyResult<SafeProfileRow>(),
-    activeIds.length ? fetchTracking(activeIds) : emptyResult<TrackingRow>(),
+    trackedIds.length ? fetchTracking(trackedIds) : emptyResult<TrackingRow>(),
   ]);
   if (profilesRes.error) {
     report(profilesRes.error, { severity: "warning", tags: { source: "useActivityData.posterNames" } });
@@ -599,7 +603,7 @@ export async function fetchAppliedActivityDetail(
   (profilesRes.data ?? []).forEach((p) => {
     posterNames[p.user_id] = formatName(p.full_name);
   });
-  return { posterNames, latestTracking: latestTrackingByJob(activeIds, trackingRes) };
+  return { posterNames, latestTracking: latestTrackingByJob(trackedIds, trackingRes) };
 }
 
 // ---------------------------------------------------------------------------

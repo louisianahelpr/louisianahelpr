@@ -27,6 +27,7 @@ type Kind =
 const CLASSIFIED: Record<string, Kind> = {
   "src/lib/proofPhotoStorage.ts:signed": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/proofPhotoStorage.ts:inFlight": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
+  "src/lib/proofPhotoStorage.ts:pending": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/pinnedConversations.ts:cache": { kind: "keyed-by-user-id" },
   "src/lib/archivedConversations.ts:cache": { kind: "keyed-by-user-id" },
   "src/lib/userBlocks.ts:blockReads": { kind: "keyed-by-user-id" },

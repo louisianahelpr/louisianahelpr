@@ -1,4 +1,5 @@
 import { memo, useRef } from "react";
+import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
@@ -114,21 +115,11 @@ function PostedJobCardInner({
   // poster has a decision in front of them — so it keeps the tracker (owner:
   // "where is the live tracker?"). It used to drop to the bare "Offered to …"
   // pill the moment work was submitted, which hid the whole history at exactly
-  // the point the poster is judging it. `completed` still has no tracker: the
-  // job is over, and a full green bar is a trophy, not information.
-  const showsTracker =
-    ((job.status === "accepted" ||
-      job.status === "in_progress" ||
-      job.status === "revision_requested" ||
-      job.status === "disputed" ||
-      // Completed keeps it too (owner: "remove [the stripe]. should show
-      // tracker"). A finished job's history is the most useful thing on the
-      // card once the actions are done — who did it and when each step
-      // landed — and it replaces a green band that only repeated the filter
-      // the user is already standing in.
-      job.status === "completed") &&
-      !!job.helper_id) ||
-    job.status === "open";
+  // the point the poster is judging it. `completed` keeps it too (owner:
+  // "should show tracker"): the finished job's step history.
+  // The predicate lives in trackerMounts.ts so the batched tracking prefetch
+  // (useActivityData) covers exactly these cards (#1582).
+  const showsTracker = postedCardShowsTracker(job);
   /* An unfunded job has not been posted to anyone. All four browse surfaces
      require a funded payment_status, so no helper can return it — yet three
      controls on this card asserted the opposite, and the poster believed them:

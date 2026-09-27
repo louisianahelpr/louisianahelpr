@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActiveJobSection } from "./ActiveJobSection";
@@ -240,8 +240,14 @@ const CASES: Array<{
  * live state may have neither.
  */
 describe("helper active card — exactly one way out of a live job", () => {
-  const reportIn = (c: HTMLElement) =>
-    [...c.querySelectorAll("button")].find((b) => /Report a Problem/i.test(b.textContent || ""));
+  // Report a Problem lives INSIDE the row's `More` popover (owner, 2026-09-27:
+  // "report a problem should be under more tab"), which portals to <body>. So
+  // "is it offered" opens More first and then looks everywhere.
+  const reportIn = (c: HTMLElement) => {
+    const more = c.querySelector<HTMLElement>("[data-job-step-overflow]");
+    if (more && !document.querySelector('[role="dialog"][aria-label="More actions for this job"]')) fireEvent.click(more);
+    return [...document.body.querySelectorAll("button")].find((b) => /Report a Problem/i.test(b.textContent || ""));
+  };
   const exitIn = (c: HTMLElement) =>
     [...c.querySelectorAll("button")].find((b) => /Cancel Job/i.test(b.textContent || ""));
   const confirmedNotOnTheWay = makeJob({
@@ -268,23 +274,25 @@ describe("helper active card — exactly one way out of a live job", () => {
     ["on the way", CASES[0].job, "on_the_way"],
     ["working", CASES[1].job, "working"],
   ] as const) {
-    it(`${name}: no Cancel Job, and Report a Problem is a chip beside Message`, async () => {
+    it(`${name}: no Cancel Job, and Report a Problem is inside More, in Message's row`, async () => {
       const { container } = renderSection(job, tracking);
       await act(async () => { await Promise.resolve(); });
       expect(exitIn(container), `a job that is ${name} still offers the back-out`).toBeUndefined();
       const report = reportIn(container);
       expect(report, `a job that is ${name} has no exit at all — not even a report path`).toBeTruthy();
       expect(report!.className).not.toContain("btn-grad-primary");
-      // IN the action row, beside Message — the same row, same chip primitive.
-      expect(report!.hasAttribute("data-job-action-chip"), "Report a Problem is not a row chip").toBe(true);
+      // Same chip primitive, but NOT on the row: it is inside More.
+      expect(report!.hasAttribute("data-job-action-chip"), "Report a Problem is not a job action chip").toBe(true);
+      expect(container.contains(report!), "Report a Problem is on the row instead of inside More").toBe(false);
+      expect(report!.closest('[role="dialog"][aria-label="More actions for this job"]')).not.toBeNull();
       const message = [...container.querySelectorAll("button[data-job-action-chip]")].find((b) =>
         /Message/i.test(b.textContent || ""),
       );
       expect(message, "Message must stay reachable").toBeTruthy();
-      // The ONE row (owner, 2026-09-14, VN-21 — was a `.grid` chip row under a
-      // separate full-width primary).
-      expect(report!.closest("[data-job-step-row]"), "Report a Problem is not in an action row").not.toBeNull();
-      expect(report!.closest("[data-job-step-row]"), "Report a Problem is not in the same row as Message").toBe(
+      // The More that holds it sits in the ONE row, beside Message (owner,
+      // 2026-09-14, VN-21 — was a `.grid` chip row under a separate primary).
+      const more = container.querySelector("[data-job-step-overflow]");
+      expect(more!.closest("[data-job-step-row]"), "More is not in the same row as Message").toBe(
         message!.closest("[data-job-step-row]"),
       );
     });

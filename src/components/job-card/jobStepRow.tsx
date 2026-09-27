@@ -374,6 +374,10 @@ export function allocateJobStepRow({
  * pinned both ends of the row:
  *
  *   "report a problem always all the way on the left"
+ *     — superseded 2026-09-27 ("report a problem should be under more tab"):
+ *       the shell now pins Report a Problem / Dispute INSIDE More
+ *       (MORE_ONLY_CHIP_KEYS in JobStepCard), so the lead pin is whatever
+ *       chip comes first after them.
  *   "before and after photos should be to the left of the primary buttons"
  *
  * Taking from the end would now hide the photo chip — the control the owner

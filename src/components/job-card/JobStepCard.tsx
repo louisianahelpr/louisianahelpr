@@ -10,6 +10,14 @@ import {
 import { useClaimedPersonTile } from "./jobCardPerson";
 import { JobStepOverflowChip } from "./JobActionRow";
 
+/** React keys of chips that ALWAYS live inside `More`, at every width, even
+ *  when the row has room (owner, 2026-09-27: "report a problem should be under
+ *  more tab"; both job cards). `report` is the Helpr's Report a Problem
+ *  (ActiveJobSection), `dispute` the poster's Dispute (InProgressStep). They
+ *  lead the popover; the width-driven overflow follows them. Held here, not
+ *  per step, so no step can put them back on the row. */
+export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute"];
+
 /**
  * JobStepCard — the ONE structure every state of BOTH activity job cards is
  * drawn in: the helper's applied card and the poster's posted card.
@@ -131,7 +139,8 @@ import { JobStepOverflowChip } from "./JobActionRow";
  *      so the card never stacks two explanations under one row.
  *   8. `escape`  — quiet text below the row (e.g. the helper's after-cancel
  *      notice). Report a Problem is NOT here any more: owner, 2026-09-14
- *      (VN-19) moved it into `actions` as a danger chip beside Message.
+ *      (VN-19) moved it into `actions`; since 2026-09-27 it lives inside `More`
+ *      (MORE_ONLY_CHIP_KEYS).
  *   9. `dialogs` — portalled confirms. Rendered last, occupies no layout.
  */
 export function JobStepCard({
@@ -176,7 +185,13 @@ export function JobStepCard({
   escape?: ReactNode;
   dialogs?: ReactNode;
 }) {
-  const chips = (actions ?? []).filter(Boolean);
+  const allChips = (actions ?? []).filter(Boolean);
+  const isMoreOnly = (c: ReactNode) =>
+    isValidElement(c) && typeof c.key === "string" && MORE_ONLY_CHIP_KEYS.includes(c.key);
+  // Chips pinned inside `More` never compete for a row slot; the row sees one
+  // extra slot for the `More` control itself instead.
+  const moreOnly = allChips.filter(isMoreOnly);
+  const chips = allChips.filter((c) => !isMoreOnly(c));
 
   // Portal hosts. Callback refs into state, so the context re-renders the
   // slots once the hosts exist (before paint — ref attachment is a layout-phase
@@ -221,7 +236,10 @@ export function JobStepCard({
   // for the ones currently parked in the overflow control — measuring the raw
   // DOM count would oscillate (take chips out, find room, put them back).
   const overflowCountRef = useRef(0);
-  overflowCountRef.current = layout.alloc.overflowChips;
+  // With chips pinned in `More` and nothing overflowing, the control still
+  // takes one slot, so the allocator is told about it.
+  overflowCountRef.current =
+    layout.alloc.overflowChips > 0 ? layout.alloc.overflowChips : moreOnly.length > 0 ? 1 : 0;
   // THE CHIPS' WIDEST LABEL WORD, AS A HIGH-WATER MARK. Same problem as the
   // count above and the same shape of answer: a chip parked in `More` is not a
   // child of the row, so re-reading the DOM would forget it needed 58px, find
@@ -306,6 +324,8 @@ export function JobStepCard({
       : chips.findIndex((c) => isValidElement(c) && c.key === soloChipKey),
   );
 
+  const moreChips = [...moreOnly, ...rowChips.overflow];
+
   return (
     <div
       className={
@@ -365,16 +385,17 @@ export function JobStepCard({
               `allocateJobStepRow`. With no measurement (a test DOM, a hidden
               card) `overflowChips` is 0 and every chip renders in place. */}
           {/* THE ENDS ARE PINNED AND THE MIDDLE COLLAPSES (owner, 2026-09-19:
-              "report a problem always all the way on the left"; "before and
-              after photos should be to the left of the primary buttons"). The
+              "before and after photos should be to the left of the primary
+              buttons"). Report a Problem / Dispute no longer sit on the left:
+              they live in `More` via MORE_ONLY_CHIP_KEYS (owner, 2026-09-27). The
               allocator says how many chips fit;
               `partitionJobStepRowChips` says which ones, and it never sends a
               pinned end into the popover — the `More` control lands where the
               chips it holds came from. */}
           {rowChips.lead}
-          {rowChips.overflow.length > 0 ? (
+          {moreChips.length > 0 ? (
             <JobStepOverflowChip
-              count={rowChips.overflow.length}
+              count={moreChips.length}
               /* THE PANEL IS THE ROW'S BOX, not the viewport's. Anchored to
                  the trigger and sized by `w-[min(17rem,calc(100vw-1.5rem))]`
                  it was 272px wide inside a 244px card at 320, so Radix's
@@ -386,7 +407,7 @@ export function JobStepCard({
               anchorRef={rowRef}
               width={layout.rowPx}
             >
-              {rowChips.overflow}
+              {moreChips}
             </JobStepOverflowChip>
           ) : null}
           {rowChips.trail}

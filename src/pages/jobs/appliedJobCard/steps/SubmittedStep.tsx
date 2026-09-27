@@ -85,7 +85,7 @@ export function SubmittedStep({
       header={tracker}
       notice={notice}
       /* CHIP ORDER IS PINNED AT BOTH ENDS (owner, 2026-09-19): "report a
-         problem always all the way on the left", and "before and after photos
+         problem always all the way on the left" (superseded 2026-09-27: Report a Problem now lives inside More — MORE_ONLY_CHIP_KEYS in JobStepCard), and "before and after photos
          should be to the left of the primary buttons". The primary is already
          far right (V2/V3), so the row reads:
            Report a Problem · …middle… · Before/After Photo · [green primary]

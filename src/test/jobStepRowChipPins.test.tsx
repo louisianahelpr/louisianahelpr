@@ -3,6 +3,9 @@
  *
  * Owner, 2026-09-19: "before and after photos should be to the left of the
  * primary buttons", and "report a problem always all the way on the left".
+ * (The report half was superseded 2026-09-27 — "report a problem should be
+ * under more tab" — JobStepCard lifts it into More before layout; see
+ * src/test/reportChipLivesInMore.test.tsx. Source order is still pinned here.)
  * With the standing primary-right rule (V2/V3) that is three fixed positions
  * and one flexible middle:
  *

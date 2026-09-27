@@ -17,7 +17,9 @@ interface GiftCardTeaserProps {
  * money was already sitting in their account.
  *
  * It rides at the head of the /home feed (BrowseTasksFeed `lead`), with the
- * cards' own 8px pitch below it. It used to sit under the feed as the
+ * cards' own --list-gap pitch below it (mb-list: it was mb-2, 8px, and
+ * prod-audit shell-spacing read "section gaps [8]" on /home once the list
+ * moved to 12px, run 36298506930). It used to sit under the feed as the
  * panel's last child, where the bottom nav covered it: on prod, 2026-09-26,
  * poster-e2e's "2 Helpr gift cards waiting" card had its top at y=734 of an
  * 812px phone, entirely under the nav (prod-audit #1754, section gap -120).
@@ -26,7 +28,7 @@ const GiftCardTeaser = ({ giftCardCount }: GiftCardTeaserProps) => {
   if (giftCardCount <= 0) return null;
   return (
     <div
-      className="mb-2 rounded-ds-md p-3"
+      className="mb-list rounded-ds-md p-3"
       style={{
         background: "hsl(var(--gift-tint) / 0.08)",
         border: "0.5px solid hsl(var(--gift-tint) / 0.2)",

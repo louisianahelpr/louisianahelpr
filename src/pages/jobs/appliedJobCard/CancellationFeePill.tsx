@@ -13,7 +13,7 @@ export function CancellationFeePill({
   fallbackFeePercent,
 }: {
   job: Job;
-  fallbackFeePercent?: number | null;
+  fallbackFeePercent: number | null;
 }) {
   if (!(job.cancellation_fee != null && job.cancellation_fee > 0)) return null;
   const status = job.cancellation_fee_status;

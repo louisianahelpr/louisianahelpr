@@ -14,7 +14,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           "border-[hsl(var(--ink-deep)/0.15)] glass-field",
           "ring-offset-background",
           "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
-          "placeholder:text-muted-foreground/80",
+          "placeholder:text-muted-foreground",
           // iOS-feel focus ring: olivewood accent, no double outline.
           "focus-visible:outline-none",
           "focus-visible:border-[hsl(var(--olivewood)/0.6)]",

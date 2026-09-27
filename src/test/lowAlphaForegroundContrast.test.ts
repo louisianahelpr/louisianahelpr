@@ -83,6 +83,19 @@ const ACCEPTED = new Map<string, number>([
   ["src/pages/profile/giftCards/RecipientPicker.tsx --olivewood/0.6", 1], //      3.70:1 — <Search> inside the field, pointer-events-none; the placeholder says it
   ["src/components/PushNotificationPrompt.tsx --bark/0.85", 1], //        3.97:1 — <Bell className="w-3.5 h-3.5"> beside its own label
   ["src/components/ui/sonner.tsx --olivewood/0.65", 1], //                4.24:1 — sonner's close is an <svg aria-hidden stroke="currentColor">, button labelled "Close toast"
+  // Found 2026-09-27 when the scanner learned Tailwind slash opacity (Q765).
+  // The text declarations on that list were fixed; these are the glyphs.
+  ["src/components/CompletionPrompts.tsx --muted-foreground/0.3", 1], //  1.53:1 — unfilled <Star> in a button labelled "Rate N stars"
+  ["src/components/admin/userDetail/ReviewsTab.tsx --muted-foreground/0.3", 2], // 1.53:1 — unfilled <Star> outlines in each review row; the filled stars carry the rating
+  ["src/components/profile/reviewCard.tsx --muted-foreground/0.3", 1], //  1.53:1 — unfilled <Star aria-hidden> inside role="img" aria-label="N of 5 stars"
+  ["src/components/reviewPanel/ReviewList.tsx --muted-foreground/0.3", 2], // 1.53:1 — unfilled <Star> outlines; the filled stars carry the rating
+  ["src/pages/user/JobsList.tsx --muted-foreground/0.3", 1], //           1.53:1 — <EmptyIcon> ornament above the empty-state sentence
+  ["src/pages/user/ReviewsSection.tsx --muted-foreground/0.3", 1], //     1.53:1 — <Star> ornament above the empty-state sentence
+  ["src/components/CancellationDialog.tsx --muted-foreground/0.4", 1], // 1.80:1 — <ArrowRight rotate-90> connector between the numbered step 1 and step 2 cards
+  ["src/pages/profile/WorkRecord.tsx --muted-foreground/0.5", 1], //      2.13:1 — <Briefcase> ornament above the empty-state sentence
+  ["src/components/messages/ChatView.tsx --accent/0.6", 1], //            2.44:1 — <X> in the button labelled "Dismiss safety reminder"; hover goes full accent
+  ["src/pages/profile/petProfiles/PetCard.tsx --muted-foreground/0.6", 1], // 2.54:1 — <ChevronDown> expand affordance on a row named by the pet
+  ["src/components/profile/profileLanding/SettingsSection.tsx --muted-foreground/0.7", 1], // 3.07:1 — <ChevronRightIcon> row affordance beside its label
 
   // (b) painted on a dark ground the static scan cannot see
   ["src/components/messages/ConversationList.tsx --parchment/0.85", 1], // "1.00:1" — near-white on bark
@@ -104,38 +117,6 @@ const ACCEPTED = new Map<string, number>([
   ["src/components/landing/HowItWorksSection.tsx --burnt-sienna/0.75", 1], // 3.11:1 worst surface, 3.61:1 on its real light ground
 ]);
 
-// NOT accepted — known sub-AA Tailwind slash-opacity classes (`text-muted-foreground/70`)
-// awaiting a fix (Q765). The scanner could not see this syntax until 2026-09-27;
-// widening it found these 30. Pinned EXACTLY: a fix must lower its count here in
-// the same commit (the stale check below fails otherwise), and a new one fails.
-const PENDING_FIX_Q765 = new Map<string, number>([
-  ["src/components/CompletionPrompts.tsx --muted-foreground/0.3", 1], // 1.53:1
-  ["src/components/admin/userDetail/ReviewsTab.tsx --muted-foreground/0.3", 2], // 1.53:1
-  ["src/components/profile/reviewCard.tsx --muted-foreground/0.3", 1], // 1.53:1
-  ["src/components/reviewPanel/ReviewList.tsx --muted-foreground/0.3", 2], // 1.53:1
-  ["src/pages/user/JobsList.tsx --muted-foreground/0.3", 1], // 1.53:1
-  ["src/pages/user/ReviewsSection.tsx --muted-foreground/0.3", 1], // 1.53:1
-  ["src/components/CancellationDialog.tsx --muted-foreground/0.4", 1], // 1.80:1
-  ["src/pages/profile/WorkRecord.tsx --muted-foreground/0.5", 1], // 2.13:1
-  ["src/components/messages/ChatView.tsx --accent/0.6", 1], // 2.44:1
-  ["src/components/PhotoProof.tsx --muted-foreground/0.6", 2], // 2.54:1
-  ["src/components/TimePickerWheel.tsx --muted-foreground/0.6", 1], // 2.54:1
-  ["src/pages/profile/petProfiles/PetCard.tsx --muted-foreground/0.6", 1], // 2.54:1
-  ["src/components/DatePickerField.tsx --muted-foreground/0.7", 1], // 3.07:1
-  ["src/components/admin/AdminUserNotes.tsx --muted-foreground/0.7", 1], // 3.07:1
-  ["src/components/dashboard/applyConfirmDialog/ApplyBody.tsx --muted-foreground/0.7", 1], // 3.07:1
-  ["src/components/postjob/BudgetSection.tsx --muted-foreground/0.7", 1], // 3.07:1
-  ["src/components/profile/profileLanding/SettingsSection.tsx --muted-foreground/0.7", 1], // 3.07:1
-  ["src/pages/jobs/appliedJobCard/steps/SubmittedStep.tsx --muted-foreground/0.7", 3], // 3.07:1
-  ["src/pages/user/JobsList.tsx --muted-foreground/0.7", 1], // 3.07:1
-  ["src/components/dashboard/filterSheet/FilterSheetRows.tsx --primary/0.8", 1], // 3.59:1
-  ["src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx --primary/0.8", 1], // 3.59:1
-  ["src/components/profile/EarningsTab.tsx --muted-foreground/0.8", 1], // 3.76:1
-  ["src/components/ui/input.tsx --muted-foreground/0.8", 1], // 3.76:1
-  ["src/components/ui/select.tsx --muted-foreground/0.8", 1], // 3.76:1
-  ["src/components/ui/textarea.tsx --muted-foreground/0.8", 1], // 3.76:1
-]);
-
 type Row = { file: string; line: number; token: string; alpha: number; worst: [string, number]; source: string };
 
 function keyOf(r: Row) {
@@ -145,11 +126,12 @@ function keyOf(r: Row) {
 describe("low-alpha foreground contrast", () => {
   const { rows, failing } = collectLowAlphaForegrounds() as { rows: Row[]; failing: Row[] };
 
-  // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | "text-muted-foreground/70" | "text-muted-foreground/60"
+  // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | "text-muted-foreground/90" | "text-muted-foreground/60"
   it("sees Tailwind slash opacity — the job dialog's pitch hint is found", () => {
-    // The blind spot (archive L2242): "Save as my default pitch" is
+    // The blind spot (archive L2242): "Save as my default pitch" was
     // `text-muted-foreground/70`, 3.07:1, and the scanner used to miss it.
-    expect(rows.some((r) => r.file.endsWith("applyConfirmDialog/ApplyBody.tsx") && r.token === "muted-foreground" && r.alpha === 0.7)).toBe(true);
+    // Q765 took it to /90 (4.64:1); the scanner must still see the class.
+    expect(rows.some((r) => r.file.endsWith("applyConfirmDialog/ApplyBody.tsx") && r.token === "muted-foreground" && r.alpha === 0.9)).toBe(true);
   });
 
   it("scanned a real tree — the guard cannot pass vacuously", () => {
@@ -176,7 +158,7 @@ describe("low-alpha foreground contrast", () => {
 
     const unexplained: string[] = [];
     for (const [key, count] of seen) {
-      const allowed = ACCEPTED.get(key) ?? PENDING_FIX_Q765.get(key);
+      const allowed = ACCEPTED.get(key);
       if (allowed === undefined) {
         const worst = failing.find((r) => keyOf(r) === key)!;
         unexplained.push(
@@ -204,13 +186,10 @@ describe("low-alpha foreground contrast", () => {
   // must then be reported stale.
   // @mutate src/components/landing/HowItWorksSection.tsx | hsl(var(--burnt-sienna) / 0.75) | hsl(var(--burnt-sienna))
   it("the accepted list does not rot", () => {
-    const seen = new Set(failing.map(keyOf));
     const counts = new Map<string, number>();
     for (const r of failing) counts.set(keyOf(r), (counts.get(keyOf(r)) ?? 0) + 1);
-    const stale = [
-      ...[...ACCEPTED.keys()].filter((k) => !seen.has(k)),
-      ...[...PENDING_FIX_Q765].filter(([k, n]) => (counts.get(k) ?? 0) !== n).map(([k, n]) => `${k} pinned ${n}, found ${counts.get(k) ?? 0}`),
-    ];
+    // Exact, both ways: an entry whose count FELL is as stale as one that vanished.
+    const stale = [...ACCEPTED.keys()].filter((k) => (counts.get(k) ?? 0) !== ACCEPTED.get(k)).map((k) => `${k} pinned ${ACCEPTED.get(k)}, found ${counts.get(k) ?? 0}`);
     expect(
       stale,
       "these were fixed or moved — delete them from ACCEPTED so the list keeps meaning something",

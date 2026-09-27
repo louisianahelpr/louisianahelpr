@@ -587,7 +587,7 @@ export const PhotoProofGroup = ({
                 )}
               </div>
             ) : (
-              <div className="text-ds-10 text-muted-foreground/60">No photos</div>
+              <div className="text-ds-10 text-muted-foreground">No photos</div>
             )}
             {showBeforeUpload && (
               <PhotoProof jobId={jobId} type="before" existingUrls={beforeUrls} onUploaded={onUploaded} />
@@ -611,7 +611,7 @@ export const PhotoProofGroup = ({
                 )}
               </div>
             ) : (
-              <div className="text-ds-10 text-muted-foreground/60">No photos</div>
+              <div className="text-ds-10 text-muted-foreground">No photos</div>
             )}
             {showAfterUpload && (
               <PhotoProof jobId={jobId} type="after" existingUrls={afterUrls} onUploaded={onUploaded} />

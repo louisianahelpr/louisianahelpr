@@ -1230,7 +1230,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ### Low-alpha AA batch — landed 8aff7b8cc, three things left open (2026-09-20)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] TrustRow's separator never renders (dead code, single-chip call site) — Still open: TrustRow separator dead because JobPosterCard only passes one signal. (archive L2236)
-- [ ] Q765 — 30 sub-AA Tailwind slash-opacity foregrounds (25 keys, `PENDING_FIX_Q765` in src/test/lowAlphaForegroundContrast.test.ts): text ones (SubmittedStep ×3, PhotoProof "No photos" ×2, JobsList, BudgetSection, EarningsTab, AdminUserNotes, DatePickerField, TimePickerWheel, ApplyBody pitch hint 3.07:1, input/select/textarea placeholders 3.76:1, primary/80 hovers 3.59:1) need darkening with before/after screenshots; icons (empty rating stars 1.53:1, chevrons, empty-state glyphs) need a 1.4.11 3:1 decision each. Lower the pinned count in the same commit as each fix.
 - [ ] Three live AA failures found outside the lane's list (job dialog pitch, /messages banner, /posts badge) — Open, not reached: three specific AA contrast failures reported 2026-09-20, no fix commit found. (archive L2248)
 - [ ] Four changed contrast sites never photographed in their own state — Open, not reached: 4 contrast fixes still unverified by screenshot. (archive L2254)
 

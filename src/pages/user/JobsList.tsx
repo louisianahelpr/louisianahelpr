@@ -59,7 +59,7 @@ export const JobsList = ({ jobs, variant, knownCount = 0 }: Props) => {
           <EmptyIcon className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
           <p className="text-ds-11 text-muted-foreground max-w-[46ch] mx-auto">{emptyCopy}</p>
           {withheld && (
-            <p className="text-ds-11 text-muted-foreground/70 mt-1">
+            <p className="text-ds-11 text-muted-foreground mt-1">
               Who hired whom stays between them.
             </p>
           )}

@@ -142,7 +142,7 @@ export function PendingApplicationSection({
               aria-label="Edit your message"
               /* `p-2 -m-2` grows the hit area to ~44px without moving the
                  glyph — the same trick the meta row's location chip uses. */
-              className="text-primary hover:text-primary/80 btn-press p-2 -m-2 shrink-0"
+              className="text-primary hover:text-primary/95 btn-press p-2 -m-2 shrink-0"
               onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
             >
               <Pencil className="w-3.5 h-3.5" />

@@ -157,7 +157,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
               key={String(opt)}
               className={cn(
                 "flex items-center justify-center text-ds-17 font-semibold tracking-tight tabular-nums snap-center select-none",
-                isActive ? "text-foreground" : "text-muted-foreground/60",
+                isActive ? "text-foreground" : "text-muted-foreground",
               )}
               style={{ height: ITEM_HEIGHT }}
               role="option"

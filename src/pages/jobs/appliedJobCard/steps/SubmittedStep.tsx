@@ -34,11 +34,11 @@ export function SubmittedStep({
         <span className="text-ds-13 font-medium text-primary">Job complete</span>
       </div>
       {job.payment_status === "released" ? (
-        <p className="text-ds-10 text-muted-foreground/70 pt-1">
+        <p className="text-ds-10 text-muted-foreground pt-1">
           Payout sent. It lands in your bank on your usual payout schedule.
         </p>
       ) : (
-        <p className="text-ds-10 text-muted-foreground/70 pt-1">
+        <p className="text-ds-10 text-muted-foreground pt-1">
           Approved. Your payout is sent {STANDARD_PAYOUT_PHRASE},
           then lands in your bank on your usual payout schedule.
         </p>
@@ -57,7 +57,7 @@ export function SubmittedStep({
           <li><span className="text-foreground font-medium">Approve &amp; complete</span> the job</li>
           <li>Or <span className="text-foreground font-medium">request a revision</span></li>
         </ul>
-        <p className="text-ds-10 text-muted-foreground/70 pt-1">
+        <p className="text-ds-10 text-muted-foreground pt-1">
           {posterInstantRelease
             ? `They approve instantly. Your payout is sent ${STANDARD_PAYOUT_PHRASE}.`
             : `If the person who posted this job doesn't respond within ${AUTO_COMPLETE_HOURS} hours, the job completes automatically and your payout is released ${PAYOUT_HOLD_HOURS} hours after that.`}

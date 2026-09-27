@@ -342,7 +342,7 @@ export function ApplyBody({
               whole row with opacity-* drops the label under WCAG AA. */}
           <span
             className={`font-sans text-ds-12 ${
-              differsFromTemplate ? "text-muted-foreground" : "text-muted-foreground/70"
+              differsFromTemplate ? "text-muted-foreground" : "text-muted-foreground/90"
             }`}
           >
             Save as my default pitch

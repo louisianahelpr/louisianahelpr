@@ -1444,3 +1444,6 @@ duplicate-number check).
 ## Archived 2026-09-27 — from "CARRIED — the 2026-09-02 ledger (docs/audit/OPEN_ITEMS.md, retired 2026-09-23)"
 
 - [x] **HYGIENE #9**: submit-partner-application function absent; write path revoked. DONE 2026-09-27: already dropped. Migration 20260630000000_drop_partner_applications.sql drops the table; live `to_regclass('public.partner_applications')` = null, 0 pg_proc names match `%partner%`, no submit-partner-application in list_edge_functions, and `git grep` finds no reference outside docs/migrations.
+## Archived 2026-09-27 — from "Low-alpha AA batch — landed 8aff7b8cc, three things left open (2026-09-20)"
+
+- [x] Q765 — sub-AA Tailwind slash-opacity foregrounds, guarded by src/test/lowAlphaForegroundContrast.test.ts (now count-exact both ways). Scanner `node scripts/a11y/low-alpha-text-inventory.mjs`: 47 → 30 below 4.5:1 (2026-09-27). 17 text declarations fixed (SubmittedStep ×3, PhotoProof ×2, JobsList, BudgetSection, EarningsTab, AdminUserNotes, DatePickerField, TimePickerWheel, input/select/textarea placeholders → plain muted-foreground; ApplyBody pitch hint /70 → /90 at 4.64:1; two hover:text-primary/80 → /95). The 13 remaining new ones are icons, moved to ACCEPTED (a) with a WCAG 1.4.11 reason each; PENDING_FIX_Q765 deleted. Before/after at 375 light+dark in ~/.lh-shots/q765/, recorded via review:record.

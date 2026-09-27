@@ -103,7 +103,7 @@ export function DatePickerField({
             // too bright on the frosted glass fill, so use a half-opacity
             // ring with no offset gap to match the glass-field focus style.
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:border-ring/60",
-            !selected && "text-muted-foreground/70",
+            !selected && "text-muted-foreground",
             className,
           )}
         >

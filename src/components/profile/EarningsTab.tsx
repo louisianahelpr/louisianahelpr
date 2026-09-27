@@ -651,7 +651,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             needs the current number to the IRS, who owns it. The threshold
             constants stay in `moneyLimits.ts` because ThresholdBanner still
             needs a level to fire a heads-up at. */}
-        <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
+        <p className="text-ds-11 text-muted-foreground leading-relaxed pt-2 flex gap-1.5">
           <Info className="w-3 h-3 mt-0.5 shrink-0" />
           <span>
             <strong className="text-muted-foreground">Tax reporting:</strong> If your payments pass the federal Form 1099-K reporting thresholds for the year, Stripe issues the form automatically — no action needed on your side. It&rsquo;s a federal filing, not a Louisiana one. The thresholds have changed several times recently, so check{" "}

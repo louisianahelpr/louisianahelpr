@@ -300,7 +300,7 @@ export function BudgetSection({
                     )
                   </>
                 )}
-                <span className="block text-ds-9 text-muted-foreground/70 mt-0.5">
+                <span className="block text-ds-9 text-muted-foreground mt-0.5">
                   Based on {priceStats.sampleCount} completed{" "}
                   {priceStats.sampleCount === 1 ? "job" : "jobs"}
                   {priceStats.parishMatch ? " in your parish" : " across Louisiana"}

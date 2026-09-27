@@ -331,7 +331,7 @@ describe("Session Replay privacy (PROD path)", () => {
     const config = initMock.mock.calls[0][0] as Record<string, unknown>;
     // Set on the initial config so the sampling decision is in force before
     // the deferred integration starts capturing.
-    expect(config.replaysSessionSampleRate).toBe(0.1);
+    expect(config.replaysSessionSampleRate).toBe(0);
     expect(config.replaysOnErrorSampleRate).toBe(1.0);
   });
 
@@ -468,6 +468,7 @@ describe("setSentryUser", () => {
 // Exceeded"). An automated browser (navigator.webdriver) records no replay in a
 // PROD build; a person's browser still does. Errors still report, tagged.
 // @mutate src/lib/sentry.ts |     const recordReplays = import.meta.env.PROD && !automated && !localBuild; |     const recordReplays = import.meta.env.PROD && !localBuild;
+// @mutate src/lib/sentry.ts |       replaysSessionSampleRate: 0, |       replaysSessionSampleRate: recordReplays ? 0.1 : 0,
 // @mutate src/lib/automatedBrowser.ts |     return typeof navigator !== "undefined" && navigator.webdriver === true; |     return false;
 // @mutate src/lib/sentry.ts |     if (recordReplays) { |     if (import.meta.env.PROD) {
 describe("Session Replay in automated browsers (Q275)", () => {
@@ -492,9 +493,9 @@ describe("Session Replay in automated browsers (Q275)", () => {
     }
   }
 
-  it("a person's browser in a PROD build samples and registers Replay", async () => {
+  it("a person's browser in a PROD build registers Replay, recording only sessions that hit an error (Q746)", async () => {
     const config = await initProd(false);
-    expect(config.replaysSessionSampleRate).toBeGreaterThan(0);
+    expect(config.replaysSessionSampleRate).toBe(0);
     expect(config.replaysOnErrorSampleRate).toBe(1);
     const names = addIntegrationMock.mock.calls.map((c) => (c[0] as { name?: string })?.name);
     expect(names).toContain("replay");
@@ -612,7 +613,7 @@ describe("Session Replay on a prod build served locally (Q386)", () => {
     "%s (native iOS, native Android, web): records at the configured rates",
     async (href) => {
       const config = await initProdAt(href);
-      expect(config.replaysSessionSampleRate).toBe(0.1);
+      expect(config.replaysSessionSampleRate).toBe(0);
       expect(config.replaysOnErrorSampleRate).toBe(1.0);
       expect(addIntegrationMock).toHaveBeenCalledOnce();
     },

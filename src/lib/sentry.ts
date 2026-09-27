@@ -251,7 +251,11 @@ export function initSentry() {
       // Both default to 0 in dev because Replay isn't registered there.
       // Both are 0 in an automated browser (Q275, isAutomatedBrowser) and in
       // a prod build served locally (Q386, isLocalBuildHost).
-      replaysSessionSampleRate: recordReplays ? 0.1 : 0,
+      // Session sampling is 0 (Q746): the plan holds 50 replays/month, and a
+      // 10% sample of every session spent them on bot and anonymous visits
+      // (408 sent in the 7 days to 2026-09-25, all dropped), so a replay of a
+      // session that actually hit an error was refused too.
+      replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: recordReplays ? 1.0 : 0,
 
       // Don't ship benign noise.

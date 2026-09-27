@@ -229,14 +229,14 @@ describe("AdminJobs — the notification insert cannot fail silently", () => {
 
 // /jobs is the HELPER surface. Sending the poster there lands them on a
 // screen the job they posted can never appear on.
-// @mutate src/components/admin/AdminJobs.tsx | role === "poster" ? `/posts?job=${jobId}` : `/jobs?job=${jobId}`; | `/jobs?job=${jobId}`;
+// @mutate src/components/admin/adminJobs/notifyJobParty.ts | role === "poster" ? `/posts?job=${jobId}` : `/jobs?job=${jobId}`; | `/jobs?job=${jobId}`;
 
 // Q157: the notifications BEFORE INSERT trigger (Q137) drops a seed job's row
 // to a REAL account. That drop is the rule working, not a failed write, and the
 // admin must not be told "could not be notified" for it.
-// @mutate src/components/admin/AdminJobs.tsx |     } else if (crossesSeed === true) { |     } else if (crossesSeed === "never") {
-// @mutate src/components/admin/AdminJobs.tsx |       { p_recipient: row.user_id, p_job_id: row.job_id, p_link: row.link }, |       { p_recipient: row.user_id, p_job_id: row.job_id, p_link: "" },
-// @mutate src/components/admin/AdminJobs.tsx | was not notified: this is a test job | could not be notified: this is a test job
+// @mutate src/components/admin/adminJobs/notifyJobParty.ts |     } else if (crossesSeed === true) { |     } else if (crossesSeed === "never") {
+// @mutate src/components/admin/adminJobs/notifyJobParty.ts |       { p_recipient: row.user_id, p_job_id: row.job_id, p_link: row.link }, |       { p_recipient: row.user_id, p_job_id: row.job_id, p_link: "" },
+// @mutate src/components/admin/adminJobs/notifyJobParty.ts | was not notified: this is a test job | could not be notified: this is a test job
 describe("AdminJobs — a seed job never notifies a real account, and says so honestly (Q157)", () => {
   it("asks the boundary with the trigger's own arguments before each insert", async () => {
     await removeTheJob();

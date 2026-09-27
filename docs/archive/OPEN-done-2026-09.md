@@ -1447,3 +1447,10 @@ duplicate-number check).
 ## Archived 2026-09-27 — from "Low-alpha AA batch — landed 8aff7b8cc, three things left open (2026-09-20)"
 
 - [x] Q765 — sub-AA Tailwind slash-opacity foregrounds, guarded by src/test/lowAlphaForegroundContrast.test.ts (now count-exact both ways). Scanner `node scripts/a11y/low-alpha-text-inventory.mjs`: 47 → 30 below 4.5:1 (2026-09-27). 17 text declarations fixed (SubmittedStep ×3, PhotoProof ×2, JobsList, BudgetSection, EarningsTab, AdminUserNotes, DatePickerField, TimePickerWheel, input/select/textarea placeholders → plain muted-foreground; ApplyBody pitch hint /70 → /90 at 4.64:1; two hover:text-primary/80 → /95). The 13 remaining new ones are icons, moved to ACCEPTED (a) with a WCAG 1.4.11 reason each; PENDING_FIX_Q765 deleted. Before/after at 375 light+dark in ~/.lh-shots/q765/, recorded via review:record.
+
+## Archived 2026-09-27 — from "AUDIT BUS — findings live in the ledger, not here"
+
+- [x] **Q723 Q392 reviewer follow-ups (parish half, b9e7ee8e7, live-verified).** DONE 2026-09-27 (20260927162805): every dropped row is settled (CHECK `(status='queued') = (settled_at IS NULL)`); seed-suppressed case in PGlite §7c; owner chose "blocked/seed stay silent, errors retry" — errors back off 5/10/20/40 min and give up at attempt 5 with an error log. Harness 65 PASS, 8 FAIL with skip-q723; lh-silent-failure APPROVE.
+  - `job_match_queue` rows marked 'dropped' leave `settled_at` null.
+  - The seed-suppressed branch has no PGlite case.
+  - OWNER: confirm that a 'dropped' row (e.g. blocked or seed) should also stop the other channel from sending.

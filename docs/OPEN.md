@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 315 done, 89 partly done (fixed, protection pending), 135 open. Source of truth for work.
+- **Queue (this file):** 316 done, 89 partly done (fixed, protection pending), 134 open. Source of truth for work.
 - **Audit bus:** 11 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
@@ -56,7 +56,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 539 items — 315 done, 89 partly done (fixed, protection pending), 135 open.**
+**Queue: 539 items — 316 done, 89 partly done (fixed, protection pending), 134 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1933,10 +1933,6 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
   - (b) `/posts` #1 ROWS went from 2 to 5 (helper view). The cause is not yet known and it needs a look.
   - (c) A real regression: on `/user/:id`, #1 JUMP went from 18 to 44 and ROWS from 2 to 4. ProfileHeroSkeleton reserves one chip row, but since #1797 (3bf782e83) the loaded hero has two badge groups. Fix the skeleton (agent-sized).
   - (d) Should the guard keep failing both ways, so stale allows are also red?
-- [x] **Q723 Q392 reviewer follow-ups (parish half, b9e7ee8e7, live-verified).** DONE 2026-09-27 (20260927162805): every dropped row is settled (CHECK `(status='queued') = (settled_at IS NULL)`); seed-suppressed case in PGlite §7c; owner chose "blocked/seed stay silent, errors retry" — errors back off 5/10/20/40 min and give up at attempt 5 with an error log. Harness 65 PASS, 8 FAIL with skip-q723; lh-silent-failure APPROVE.
-  - `job_match_queue` rows marked 'dropped' leave `settled_at` null.
-  - The seed-suppressed branch has no PGlite case.
-  - OWNER: confirm that a 'dropped' row (e.g. blocked or seed) should also stop the other channel from sending.
 - [~] **Q725 press shards claim rows from one shared queue (nightly-red #1582, run 36230166945, 2026-09-26).** Shard 4 stopped at its 135-min budget with 12 rows not reached while shard 2 finished in 73 min and sat idle: the static `k % 4` split was blind to row cost (/admin?view=jobs 97 min alone). Every shard now claims each row (route x persona) by an atomic mkdir in `PRESS_QUEUE_DIR`, shared by both waves; wave 1 (`PRESS_LAST_WAVE=0`) hands unclaimed and cut-short rows to wave 2, and only the last wave reports rows as not reached. GUARD src/test/pressRowQueue.test.ts (6 @mutate killed, ~/.lh-shots/pec-1582/vacuity-rowqueue.txt). Tick when a dispatched press run shows 0 rows not reached.
 - [ ] **Q726 81 leftover "[E2E DO NOT ACCEPT] automated lifecycle" jobs inflate /admin?view=jobs (#1582, 2026-09-26).** They made that one press row 412 presses / 97 min in run 36230166945. Find which sweep leaves them (prod-lifecycle teardown) and why it does not delete them, clean up the existing ones (is_seed, test-owned only), and add a check that a sweep leaves no jobs of its own behind. Guard to name when fixed: a leftover-lifecycle-jobs count check that is 0.
 - [ ] **Q727 Dead money-state branch: 'partially_refunded' (LOW, found building Q327 2026-09-26, code read only).** supabase/functions/auto-resolve-disputes/index.ts outcomeFromPaymentStatus maps payment_status 'partially_refunded' to the poster, but jobs_payment_status_check (newest in 20260824210000) has never admitted that value, so the case is unreachable and any writer that tried it would be refused. Decide: drop the case, or admit the value if a partial refund is meant to be recorded on the job. Guard to name when fixed: a test that every payment_status literal in supabase/functions is in jobs_payment_status_check (src/test/banSettlesOneOffJobs.test.ts already holds this two-way for ban_settlement_action).

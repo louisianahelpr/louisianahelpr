@@ -130,7 +130,7 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
     "[]": "e2e/happy-path/knownAxeViolations.ts:out.stale.push(",
   },
   "docs/audit/loading-states/baseline.json": {
-    allow: "scripts/check-loading-state-shape.mjs:const stale = [...allow].filter((id) => !seen.has(id))",
+    allow: "scripts/check-loading-state-shape.mjs:else stale.push(id);",
     byDesign: {
       out:
         "owner ruling 2026-09-19 (skeleton fills the screen, grows below): a tab that happens to fit one " +

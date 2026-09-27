@@ -98,6 +98,36 @@ export function breaches(results) {
   return out;
 }
 
+/**
+ * Baselined `allow` entries this run did not breach, split into the STALE
+ * (fixed: delete them) and the UNOBSERVED (not measured this run: keep them).
+ *
+ * Keys are by index (`#0`), so a cluster not captured on one run shifts the
+ * index: on 2026-09-27 run 36339804281 captured customer /post-job after its
+ * data had landed, so `#0` was the nav bar and the page skeleton's entries read
+ * as fixed; 36335322192, the run before, measured them breaching (Q766).
+ * An entry that records the `path` it was measured on is judged only when a
+ * cluster with that path sits at its key; otherwise it is unobserved. An entry
+ * whose path IS measured and does not breach is stale, same as before.
+ */
+export function staleEntries(results, allowEntries, found) {
+  const seen = new Set(found.map((b) => `${b.key}|${b.kind}`));
+  const pathAt = new Map();
+  for (const r of results) {
+    if (r.status !== "measured") continue;
+    (r.clusters ?? []).forEach((c, i) => { if (c.realBox) pathAt.set(clusterKey(r, i), c.path); });
+  }
+  const stale = [];
+  const unobserved = [];
+  for (const a of allowEntries) {
+    const id = `${a.key}|${a.kind}`;
+    if (seen.has(id)) continue;
+    if (a.path && pathAt.get(a.key) !== a.path) unobserved.push(id);
+    else stale.push(id);
+  }
+  return { stale, unobserved };
+}
+
 function main() {
   const problems = [];
   const json = process.argv.includes("--json");
@@ -175,7 +205,8 @@ function main() {
   }
 
   // Only `allow` shrinks. See the comment on the two lists above.
-  const stale = [...allow].filter((id) => !seen.has(id));
+  const { stale, unobserved } = staleEntries(results, base.allow ?? [], found);
+  if (unobserved.length) console.log(`unobserved (baselined, not measured on this run, kept): ${unobserved.join(", ")}`);
   if (stale.length) {
     problems.push(`BASELINE: ${stale.length} entr(ies) no longer breach and must be deleted from docs/audit/loading-states/baseline.json: ${stale.join(", ")}`);
   }

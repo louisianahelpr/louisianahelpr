@@ -174,16 +174,19 @@
     },
     {
       "key": "customer /post-job #0",
+      "path": "main#main-content > div > div > div > div",
       "kind": "jump",
       "was": "row 568px → 1154px (+586px)"
     },
     {
       "key": "customer /post-job #0",
+      "path": "main#main-content > div > div > div > div",
       "kind": "media",
       "was": "5 avatar/media bone(s) → 10 real"
     },
     {
       "key": "helper /messages #0",
+      "path": "main#main-content > div > div > div > div > section > div > div > div > div:nth-of-type(1)",
       "kind": "jump",
       "was": "row 60px → 36px (-24px)"
     }

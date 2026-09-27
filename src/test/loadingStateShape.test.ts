@@ -93,6 +93,37 @@ describe("loading states: no placeholder lies about size or shape", () => {
 
 
 /**
+ * CLASS CHECK (Q766): an allow entry whose page element was not measured this
+ * run is UNOBSERVED, not fixed. Cluster keys are by index, so when a fast load
+ * skips the skeleton, #0 becomes the nav bar (run 36339804281, customer
+ * /post-job) and the old rule called both /post-job entries stale. An entry
+ * carrying `path` is stale only when that element was measured and did not
+ * breach. Red on the old rule: the first case returned stale.
+ */
+describe("loading states: a baselined entry that was not measured is not 'fixed'", () => {
+  type Mod = { staleEntries: (r: unknown[], a: unknown[], f: unknown[]) => { stale: string[]; unobserved: string[] } };
+  const load = async () => (await import(/* @vite-ignore */ resolve(__dirname, "../../scripts/check-loading-state-shape.mjs"))) as Mod;
+  const entry = { key: "customer /post-job #0", kind: "jump", path: "main > div" };
+  const result = (path: string) => ({ status: "measured", persona: "customer", url: "/post-job", clusters: [{ realBox: {}, path }] });
+
+  it("a different element at #0 leaves the entry unobserved", async () => {
+    const { staleEntries } = await load();
+    expect(staleEntries([result("nav.bottom-nav")], [entry], [])).toEqual({ stale: [], unobserved: ["customer /post-job #0|jump"] });
+  });
+
+  it("the same element measured without a breach is stale", async () => {
+    const { staleEntries } = await load();
+    expect(staleEntries([result("main > div")], [entry], [])).toEqual({ stale: ["customer /post-job #0|jump"], unobserved: [] });
+  });
+
+  it("an entry without a path keeps the strict rule", async () => {
+    const { staleEntries } = await load();
+    const { path: _p, ...bare } = entry;
+    expect(staleEntries([result("nav.bottom-nav")], [bare], []).stale).toEqual(["customer /post-job #0|jump"]);
+  });
+});
+
+/**
  * THE PROFILE-TAB PLACEHOLDER, held to the owner's ruling — "skeleton fills
  * the screen, grows below" (2026-09-19, decided in a pop-up).
  *

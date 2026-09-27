@@ -195,5 +195,5 @@ describe("a dispute closed without moving money is watched", () => {
 });
 
 // Proof this is able to fail. Each mutation breaks a different premise:
-// @mutate supabase/functions/process-scheduled-payouts/index.ts | .is("disputed_at", null)          // defense-in-depth | .is("disputed_at2", null)          // defense-in-depth
-// @mutate supabase/migrations/20260922224023_dispute_sweep_locks_the_job_row_it_judges.sql | AND d.execution_refund_id   IS NULL | AND true
+// @mutate supabase/functions/process-scheduled-payouts/index.ts | .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved))") | .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved,open))")
+// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | AND d.execution_refund_id   IS NULL | AND true

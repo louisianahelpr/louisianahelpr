@@ -47,7 +47,9 @@ const NOT_FOR_A_CREW: Record<string, string> = {
   get_payout_batches: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
   get_helper_earnings_export:
     "NOT YET BUILT (Q727 follow-up): the earnings export reads jobs.helper_id, so a crew member's earnings (payout_transfers per member) are missing from it",
-  get_neighbor_hire_count: "NOT YET BUILT (Q727 follow-up): the 'hired by N neighbours' signal counts single-helper jobs only",
+  get_helper_tiers:
+    "NOT YET BUILT (Q727 follow-up): the admin tier list (20260926034718) counts completed_jobs and lists Helprs through jobs.helper_id only, so a crew-only Helpr is missing and a crew member's crew jobs are uncounted",
+  get_neighbor_hire_count:"NOT YET BUILT (Q727 follow-up): the 'hired by N neighbours' signal counts single-helper jobs only",
   get_helper_parish_badges:
     "DROPPED: not in the database (20260913053041; parish badges removed by owner decision, 20260915191403). Listed only because effectiveDefs does not honour DROP FUNCTION (Q729)",
   get_top_helpers_by_parish:

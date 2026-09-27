@@ -172,6 +172,24 @@ export function useAdminUserSummaries() {
     setStrikesSummary(counts);
   };
 
+  /**
+   * Each user's newest login, one row per user (Q428). A global
+   * `.order(created_at desc).limit(N)` over login_history let the accounts that
+   * sign in most fill the page and read everyone else as "Never logged in";
+   * admin_last_logins groups server-side so no user's volume hides another's.
+   * PGRST202 (RPC not deployed yet, the window between merge and db-deploy)
+   * falls back to the old bounded read rather than showing nothing.
+   */
+  const loadLastLogins = async (userIds: string[]) => {
+    const rpc = await supabase.rpc("admin_last_logins");
+    if (rpc.error?.code !== "PGRST202") {
+      const wanted = new Set(userIds);
+      return { data: rpc.data?.filter((r) => wanted.has(r.user_id)) ?? null, error: rpc.error };
+    }
+    const old = await supabase.from("login_history").select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500);
+    return { data: old.data?.map((r) => ({ user_id: r.user_id, last_login_at: r.created_at })) ?? null, error: old.error };
+  };
+
   const loadActivitySummary = async (userIds: string[], profiles: Profile[]) => {
     if (userIds.length === 0) { setLastLoginSummary({}); return; }
     const summary: Record<string, { label: string; at: string }> = {};
@@ -179,7 +197,7 @@ export function useAdminUserSummaries() {
     const [jobsRes, appsRes, loginRes] = await Promise.all([
       supabase.from("jobs").select("customer_id, created_at, title").in("customer_id", userIds).order("created_at", { ascending: false }).limit(500),
       supabase.from("applications").select("helper_id, created_at").in("helper_id", userIds).order("created_at", { ascending: false }).limit(500),
-      supabase.from("login_history").select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500),
+      loadLastLogins(userIds),
     ]);
     if (jobsRes.error) console.error("[useAdminUserSummaries] loadActivitySummary jobs:", jobsRes.error);
     if (appsRes.error) console.error("[useAdminUserSummaries] loadActivitySummary applications:", appsRes.error);
@@ -197,12 +215,12 @@ export function useAdminUserSummaries() {
       if (j.customer_id) consider(j.customer_id, "Posted Job", j.created_at);
     });
     (appsRes.data)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
-    (loginRes.data)?.forEach((l) => consider(l.user_id, "Logged In", l.created_at));
     // Track most-recent login separately for the user list row
     const logins: Record<string, string> = {};
     (loginRes.data)?.forEach((l) => {
-      if (!logins[l.user_id] || new Date(l.created_at) > new Date(logins[l.user_id])) {
-        logins[l.user_id] = l.created_at;
+      consider(l.user_id, "Logged In", l.last_login_at);
+      if (!logins[l.user_id] || new Date(l.last_login_at) > new Date(logins[l.user_id])) {
+        logins[l.user_id] = l.last_login_at;
       }
     });
     // A failed read leaves it unknown (null), not empty: empty would say

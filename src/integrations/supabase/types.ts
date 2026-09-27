@@ -5670,6 +5670,13 @@ export type Database = {
         }[]
       }
       admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
+      admin_last_logins: {
+        Args: never
+        Returns: {
+          last_login_at: string
+          user_id: string
+        }[]
+      }
       admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
       admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }
       admin_alert_subjects: {

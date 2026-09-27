@@ -4,6 +4,9 @@ import {
   APPLICATION_STATUS_LABELS,
   jobStatusLabel,
   applicationStatusLabel,
+  paymentStatusLabel,
+  jobPaymentStatusLabel,
+  CLOSED_NO_PAYMENT_LABEL,
 } from "./statusLabels";
 import { Constants } from "@/integrations/supabase/types";
 
@@ -96,3 +99,20 @@ describe("applicationStatusLabel()", () => {
 // matters is the one the hand-written list already suffered once:
 // `pending_approval` present in the enum and absent from the label table.
 // @mutate src/lib/statusLabels.ts | pending_approval: "Awaiting approval", | pending_approval: "",
+
+// Q337: rpc_settle_dispute_without_payment leaves jobs.status alone and moves
+// payment_status to 'cancelled', so a helper-wins $0 close rendered
+// "Completed" beside "Cancelled". The job-aware label must say what happened.
+// @mutate src/lib/statusLabels.ts | if (jobStatus === "completed" && paymentStatus === "cancelled") return CLOSED_NO_PAYMENT_LABEL; | if (false) return CLOSED_NO_PAYMENT_LABEL;
+describe("jobPaymentStatusLabel() (Q337)", () => {
+  it("never pairs a completed job with a bare 'Cancelled' payment label", () => {
+    expect(jobPaymentStatusLabel("completed", "cancelled")).toBe(CLOSED_NO_PAYMENT_LABEL);
+    expect(jobPaymentStatusLabel("completed", "cancelled")).not.toBe(paymentStatusLabel("cancelled"));
+  });
+  it("keeps the plain column label everywhere else", () => {
+    expect(jobPaymentStatusLabel("cancelled", "cancelled")).toBe("Cancelled");
+    expect(jobPaymentStatusLabel("completed", "released")).toBe("Released");
+    expect(jobPaymentStatusLabel("completed", "refunded")).toBe("Refunded");
+    expect(jobPaymentStatusLabel(null, null)).toBe("");
+  });
+});

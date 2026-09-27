@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { jobStatusColorClasses } from "@/lib/statusColors";
-import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
+import { jobStatusLabel, jobPaymentStatusLabel } from "@/lib/statusLabels";
 import { formatTimestamp } from "@/lib/format";
 import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
@@ -126,7 +126,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
                     {j.payment_status && (
                       <>
                         <span>·</span>
-                        <span>{paymentStatusLabel(j.payment_status)}</span>
+                        <span>{jobPaymentStatusLabel(j.status, j.payment_status)}</span>
                       </>
                     )}
                   </div>

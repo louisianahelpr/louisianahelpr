@@ -138,3 +138,23 @@ export function paymentStatusLabel(status: string | null | undefined): string {
   if (!status) return "";
   return PAYMENT_STATUS_LABELS[status as PaymentStatus] ?? humanize(status);
 }
+
+/**
+ * The payment label for a chip that sits BESIDE the job's own status (Q337).
+ *
+ * rpc_settle_dispute_without_payment (20260924013122) closes a decided dispute
+ * on a never-funded job by moving payment_status to 'cancelled' and leaving
+ * jobs.status alone, so a helper-wins close reads "Completed" next to
+ * "Cancelled" — two chips that contradict each other. On a completed job
+ * 'cancelled' means "closed with no payment", and says so. Every other pair
+ * keeps the plain column label. Guard: src/lib/statusLabels.test.ts.
+ */
+export const CLOSED_NO_PAYMENT_LABEL = "Closed, no payment";
+
+export function jobPaymentStatusLabel(
+  jobStatus: string | null | undefined,
+  paymentStatus: string | null | undefined,
+): string {
+  if (jobStatus === "completed" && paymentStatus === "cancelled") return CLOSED_NO_PAYMENT_LABEL;
+  return paymentStatusLabel(paymentStatus);
+}

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, CheckCircle2, History as HistoryIcon } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { paymentStatusLabel } from "@/lib/statusLabels";
+import { jobPaymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatTimestamp, formatCategory, formatPrice } from "@/lib/format";
@@ -105,7 +105,7 @@ export const JobDetailDialog = ({
               <Badge variant="sienna">{categoryLabels[detailJob.category] || formatCategory(detailJob.category)}</Badge>
               <StatusBadge status={detailJob.status} className="text-ds-11" />
               <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${paymentColors[detailJob.payment_status || "unpaid"]}`}>
-                {paymentStatusLabel(detailJob.payment_status ?? "unpaid")}
+                {jobPaymentStatusLabel(detailJob.status, detailJob.payment_status ?? "unpaid")}
               </span>
             </div>
 

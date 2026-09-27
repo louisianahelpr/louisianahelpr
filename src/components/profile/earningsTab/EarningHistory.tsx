@@ -1,7 +1,7 @@
 import { Gift, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
+import { jobStatusLabel, jobPaymentStatusLabel, CLOSED_NO_PAYMENT_LABEL } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
@@ -157,6 +157,7 @@ export function EarningHistory({
             // blank right-hand column that looks like a rendering failure.
             const returnedPayment =
               job.status === "completed" && !isEarnedJob(job) ? job.payment_status : null;
+            const returnedLabel = returnedPayment ? jobPaymentStatusLabel(job.status, returnedPayment) : "";
             const jobTips = tips.filter((t) => t.job_id === job.id);
             // NET of the card fee — the same calc as the tab's Tips tile
             // (create-payment retains stripeProcessingCostCents(tip) as the
@@ -224,7 +225,8 @@ export function EarningHistory({
                     )}
                     {returnedPayment && (
                       <p className="font-sans text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                        {paymentStatusLabel(returnedPayment)} · no payout
+                        {/* Q337: a $0 dispute close is "Closed, no payment", not "Cancelled". */}
+                        {returnedLabel === CLOSED_NO_PAYMENT_LABEL ? returnedLabel : `${returnedLabel} · no payout`}
                       </p>
                     )}
                     {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${formatPriceExact(tipTotal)}</p>}

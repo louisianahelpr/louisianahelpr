@@ -18,6 +18,11 @@ name: Seed payout fire drill
 
 on:
   workflow_dispatch:
+    inputs:
+      blocked_pi_seed_job:
+        description: "Optional: an is_seed, due, PI-less job id to give an UNCONFIRMED test PaymentIntent, so the run hits pi_not_succeeded (a seed failure). Restored to null afterwards."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -55,6 +60,45 @@ jobs:
             echo "::error::${REAL} real job(s) are due; an include_seed run would pay them too. Refusing."; exit 1
           fi
 
+      # A forced seed failure (Q93's tick needs one): the named seed job gets
+      # an unconfirmed Stripe TEST PaymentIntent (status
+      # requires_payment_method), so the run takes the pi_not_succeeded branch,
+      # the one that used to message every admin. Only a job that is is_seed
+      # AND has no PI is touched; the restore step below puts the null back
+      # and cancels the PaymentIntent whatever happens.
+      - name: Give one seed job an unconfirmed test PaymentIntent
+        if: inputs.blocked_pi_seed_job != ''
+        env:
+          JOB_ID: ${{ inputs.blocked_pi_seed_job }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$JOB_ID" | grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; then
+            echo "::error::blocked_pi_seed_job must be a uuid"; exit 1
+          fi
+          case "$STRIPE_TEST_SECRET_KEY" in
+            sk_test_*|rk_test_*) ;;
+            *) echo "::error::STRIPE_TEST_SECRET_KEY is not a test-mode key"; exit 1 ;;
+          esac
+          REST="https://${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/jobs"
+          H=(-H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
+          N=$(curl -sS --fail-with-body "${H[@]}" "${REST}?select=id&id=eq.${JOB_ID}&is_seed=eq.true&stripe_payment_intent_id=is.null" | jq 'length')
+          if [ "$N" != "1" ]; then
+            echo "::error::${JOB_ID} is not an is_seed job without a PaymentIntent; refusing"; exit 1
+          fi
+          PI=$(curl -sS --fail-with-body -u "${STRIPE_TEST_SECRET_KEY}:" https://api.stripe.com/v1/payment_intents \
+            -d amount=100 -d currency=usd -d "payment_method_types[]=card" -d "metadata[drill]=Q93" -d "metadata[job_id]=${JOB_ID}")
+          PI_ID=$(printf '%s' "$PI" | jq -r .id)
+          echo "created test PaymentIntent ${PI_ID} status $(printf '%s' "$PI" | jq -r .status) livemode $(printf '%s' "$PI" | jq -r .livemode)"
+          echo "PI_ID=${PI_ID}" >> "$GITHUB_ENV"
+          SET=$(curl -sS --fail-with-body -X PATCH "${H[@]}" -H "Content-Type: application/json" -H "Prefer: return=representation" \
+            -d "{\"stripe_payment_intent_id\":\"${PI_ID}\"}" "${REST}?id=eq.${JOB_ID}&is_seed=eq.true&select=id" | jq 'length')
+          if [ "$SET" != "1" ]; then
+            echo "::error::setting the PaymentIntent on ${JOB_ID} changed ${SET} rows"; exit 1
+          fi
+
       - name: Run process-scheduled-payouts?include_seed=1
         env:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -72,4 +116,24 @@ jobs:
           jq '{success, processed, defects, seedDefects, statuses: ([.results[]?.status] | group_by(.) | map({(.[0]): length}) | add)}' body.json
           if [ "$STATUS" != "200" ]; then
             echo "::error::process-scheduled-payouts answered HTTP ${STATUS}"; exit 1
+          fi
+
+      - name: Restore the seed job and cancel the test PaymentIntent
+        if: always() && inputs.blocked_pi_seed_job != '' && env.PI_ID != ''
+        env:
+          JOB_ID: ${{ inputs.blocked_pi_seed_job }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          REST="https://${SUPABASE_PROJECT_REF}.supabase.co/rest/v1/jobs"
+          H=(-H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
+          SET=$(curl -sS --fail-with-body -X PATCH "${H[@]}" -H "Content-Type: application/json" -H "Prefer: return=representation" \
+            -d '{"stripe_payment_intent_id":null}' "${REST}?id=eq.${JOB_ID}&is_seed=eq.true&stripe_payment_intent_id=eq.${PI_ID}&select=id" | jq 'length')
+          echo "restored stripe_payment_intent_id=null on ${SET} row(s)"
+          ST=$(curl -sS --fail-with-body -u "${STRIPE_TEST_SECRET_KEY}:" -X POST "https://api.stripe.com/v1/payment_intents/${PI_ID}/cancel" | jq -r .status)
+          echo "PaymentIntent ${PI_ID} now ${ST}"
+          if [ "$SET" != "1" ] || [ "$ST" != "canceled" ]; then
+            echo "::error::cleanup incomplete (rows=${SET}, pi=${ST})"; exit 1
           fi

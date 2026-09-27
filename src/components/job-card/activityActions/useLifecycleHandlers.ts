@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { unwrapMutation } from "@/lib/mutationResult";
+import { MissingRowCountError, WriteRejectedError, unwrapMutation } from "@/lib/mutationResult";
 import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { arrivalEstablished, arrivalGateMessage } from "@/lib/arrivalGate";
@@ -248,11 +248,13 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
               });
             }
           }
-        } catch {
+        } catch (err) {
           // Non-fatal — the perk offer is a nice-to-have.
+          report(err, { severity: "warning", tags: { area: "activity", op: "completeJob.perkOffer" }, context: { jobId } });
         }
       }
-    } catch {
+    } catch (err) {
+      report(err, { tags: { area: "activity", op: "completeJob" }, context: { jobId } });
       hapticError();
       toast.error("We couldn't mark this job complete — please try again.");
     } finally {
@@ -269,7 +271,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       hapticSuccess();
       toast("Revision marked as fixed");
       refresh();
-    } catch { hapticError(); toast.error("We couldn't resolve that revision — please try again."); }
+    } catch (err) { report(err, { tags: { area: "activity", op: "resolveRevision" }, context: { jobId } }); hapticError(); toast.error("We couldn't resolve that revision — please try again."); }
   };
 
 
@@ -289,6 +291,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           },
         );
       } catch (err) {
+        // unwrapMutation already reported its own rejections; report the rest.
+        if (!(err instanceof WriteRejectedError || err instanceof MissingRowCountError)) report(err, { tags: { area: "activity", op: "confirmArrival" }, context: { jobId } });
         rollbackActivity(snapshot);
         hapticError();
         toast.error(lifecycleErrorMessage(err) ?? "We couldn't confirm arrival just now — please try again.");
@@ -323,6 +327,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           },
         );
       } catch (err) {
+        // unwrapMutation already reported its own rejections; report the rest.
+        if (!(err instanceof WriteRejectedError || err instanceof MissingRowCountError)) report(err, { tags: { area: "activity", op: "confirmWorking" }, context: { jobId } });
         rollbackActivity(snapshot);
         hapticError();
         toast.error(lifecycleErrorMessage(err) ?? "We couldn't confirm that just now — please try again.");
@@ -419,7 +425,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
             : "No-show reported — the Helpr has been warned and your job is open again.",
       );
       refresh();
-    } catch { hapticError(); toast.error("We couldn't report the no-show just now — please try again."); }
+    } catch (err) { report(err, { tags: { area: "activity", op: "reportNoShow" } }); hapticError(); toast.error("We couldn't report the no-show just now — please try again."); }
     finally { setReportingNoShow(false); setNoShowJobId(null); }
   };
 

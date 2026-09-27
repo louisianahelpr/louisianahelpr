@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { report } from "@/lib/errorLogger";
 import {
   awardBlockReasonFromStatus,
   type AwardBlockReason,
@@ -67,7 +68,8 @@ export function useStripeConnectCheck() {
       // Allow applying as long as a payout method is on file.
       // Stripe may still be verifying the account, but that shouldn't block job applications.
       return { ok: true };
-    } catch {
+    } catch (err) {
+      report(err, { severity: "warning", tags: { area: "payout", op: "checkHelperStripeConnect" } });
       // No `needsPayoutSetup` here: we never established that the account is
       // missing, only that we couldn't ask. Sending them to set up an account
       // they may already have would be the wrong instruction.
@@ -103,14 +105,14 @@ export function useStripeConnectCheck() {
         profile?.idv_status,
       );
       return { ok: reason === null, reason };
-    } catch {
-      // Silent HERE by design, but never silent to the user: `indeterminate`
+    } catch (err) {
+      report(err, { severity: "warning", tags: { area: "payout", op: "checkHelperAwardEligibility" } });
+      // Reported, and never silent to the user: `indeterminate`
       // is the whole point — it says "we could not ask", which both callers in
       // useOfferHandlers stop on with a "couldn't check your verification
       // status" toast rather than reading it as "not verified" and trapping an
-      // already-verified helper. The gate fails CLOSED and explains itself, so
-      // there is nothing left for monitoring to add on a transient network
-      // blip against Stripe.
+      // already-verified helper. The gate fails CLOSED and explains itself;
+      // the report is what tells us when "could not ask" stops being a blip.
       return { ok: false, reason: null, indeterminate: true };
     } finally {
       setChecking(false);

@@ -66,6 +66,11 @@ export function ScheduleChangeControl({
     }
   };
 
+  // The form opens on the job's own date and time; sending that unchanged is
+  // refused by the RPC (schedule_change_same), so the button waits for a
+  // change instead of offering a press that can only fail (press run
+  // 36297439015, Q770).
+  const unchanged = date === dateNeeded && time === (startTime ?? "").slice(0, 5);
   const askedOfMe = !!pending && pending.responder_id === userId;
   const askedByMe = !!pending && pending.requested_by === userId;
 
@@ -135,7 +140,7 @@ export function ScheduleChangeControl({
         title={`New date or time for "${jobTitle ?? "this job"}"`}
         description="The other person has to accept before anything changes. If they decline or don't answer before the current start, the job stays as it is and the usual cancellation rules apply. Pay doesn't change."
         primaryLabel={busy ? "Sending…" : "Send request"}
-        primaryDisabled={busy || !date}
+        primaryDisabled={busy || !date || unchanged}
         onPrimary={(e) => {
           e.preventDefault();
           void act(async () => {

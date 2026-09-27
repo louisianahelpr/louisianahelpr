@@ -9,6 +9,8 @@
  * @mutate src/pages/posts/PostedJobSeriesControls.tsx | <ScheduleChangeForJob job={job} userId={userId} viewer="poster" /> | <span data-x />
  * @mutate src/pages/jobs/AppliedJobCard.tsx | <ScheduleChangeForJob job={job} userId={userId} viewer="helper" /> | <span data-x />
  * @mutate src/components/series/JobSeriesCardControls.tsx |     <ScheduleChangeControl | <span data-x
+ * @mutate src/components/schedule/ScheduleChangeControl.tsx | primaryDisabled={busy || !date || unchanged} | primaryDisabled={busy || !date}
+ * @mutate src/components/schedule/ScheduleChangeControl.tsx | const unchanged = date === dateNeeded && time === (startTime ?? "").slice(0, 5); | const unchanged = date === dateNeeded;
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -84,6 +86,22 @@ describe("ScheduleChangeControl", () => {
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith("request_job_schedule_change", { p_job_id: "j1", p_date: "2026-09-13", p_start_time: "15:00:00" }),
     );
+  });
+
+  it("Send waits for a change: the job's own date and time cannot be sent (Q770, the RPC refuses schedule_change_same)", async () => {
+    row.value = null;
+    renderIt(POSTER);
+    fireEvent.click(await screen.findByRole("button", { name: "Ask for a new date or time" }));
+    const send = () => screen.getByRole("button", { name: "Send request" }) as HTMLButtonElement;
+    expect(send().disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "10:00" } });
+    expect(send().disabled).toBe(false);
+    fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "09:00" } });
+    expect(send().disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-09-11" } });
+    expect(send().disabled).toBe(false);
+    fireEvent.click(send());
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
   });
 
   it("both parties' cards carry it", () => {

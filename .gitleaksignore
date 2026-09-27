@@ -66,3 +66,7 @@ d7c4e078b83edc86e5f02d7dcef03b3d7af4dfdf:src/lib/safeProfiles.test.ts:generic-ap
 
 # supabase/functions/mapkit-token/index.ts: Doc comment naming the secret the function needs; no key body.
 a44a65f3d744888ccfa9709f22975476e9c397a3:supabase/functions/mapkit-token/index.ts:private-key:29
+
+# src/test/edge/process-scheduled-payouts-crew.test.ts: Stripe idempotency-key label ("crew-dispute-refund-disp-1") in a mocked-Stripe assertion, not a secret.
+7893ed17047c56bee48696f55e88394ea1b289c8:src/test/edge/process-scheduled-payouts-crew.test.ts:generic-api-key:245
+7893ed17047c56bee48696f55e88394ea1b289c8:src/test/edge/process-scheduled-payouts-crew.test.ts:generic-api-key:266

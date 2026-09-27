@@ -227,6 +227,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",
   "scripts/open-done-when.mjs": "--out report (/tmp/done-when.md in open-done-when.yml, the nightly-red issue body), never a repo file",
   "scripts/prod-deploy.mjs": "action/sha/deployment to $GITHUB_OUTPUT in prod-deploy.yml (a CI step output, never a repo file)",
+  "scripts/rollback/drill-web.mjs": "current/restored/timings to $GITHUB_OUTPUT in rollback-drill.yml (a CI step output, never a repo file)",
   "scripts/audit/a11y-engine-diff.mjs": "report to --out path",
   "scripts/audit/press-every-control.mjs": "results to test-results/ (CI artifact)",
   "scripts/audit/measure-page-settle.mjs": "Q169 audit table to ~/.lh-shots/cls (evidence outside the repo); the CI budget is e2e/prod-audit/page-settle.spec.ts",

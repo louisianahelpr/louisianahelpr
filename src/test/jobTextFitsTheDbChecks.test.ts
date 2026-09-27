@@ -162,6 +162,8 @@ const NOT_A_JOB_TITLE = new Set<string>([
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit charged but not created, and the refund failed"',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit created without its application row"',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit funding had failures"',
+  'supabase/functions/charge-recurring-visits/index.ts|"Paid recurring visit was never booked and is only partly refunded"',
+  'supabase/functions/charge-recurring-visits/index.ts|"Your visit charge was refunded, less the card fee"',
   `supabase/functions/charge-recurring-visits/index.ts|"We couldn't charge for your next visit"`,
 ]);
 

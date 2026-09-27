@@ -56,7 +56,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 537 items — 311 done, 89 partly done (fixed, protection pending), 137 open.**
+**Queue: 537 items — 312 done, 89 partly done (fixed, protection pending), 136 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -2006,9 +2006,14 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q759 Admin user-detail "Earned (Worked)" gives each helper a group job's whole budget.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item).
   JobsTab divides by helpers_needed, but useOpenProfile.ts:73-74 does not select it, so the divisor is always 1. Done
   when the column is selected, the type makes it required, and a test fails if any column calcEarning reads is missing.
-- [ ] **Q760 Admin status override writes jobs.status with no status predicate.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). AdminJobs.tsx:445
+- [x] **Q760 Admin status override writes jobs.status with no status predicate.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). AdminJobs.tsx:445
   `(supabase.from("jobs").update as any)(updates).eq("id", …)`; the `as any` hides it from check-race-class. Done when
   it carries .eq("status", prev), the cast is gone, the any baseline drops by 1, and raceClassGuard covers the call.
+  DONE 2026-09-27: typed `.update(updates).eq("id").eq("status", previousStatus).select("id")`; zero rows throws
+  (WriteRejectedError, "someone changed this job, reload") before any notify/audit/local update. any 47 -> 46
+  (AdminJobs.tsx 1 -> 0, scripts/any-baseline.json). Guard: src/test/raceClassGuard.test.ts "admin status override
+  (Q760)" + check-race-class; with the predicate removed the CLI reports NEW HIT ...AdminJobs.tsx::opaque:updates
+  and 5 raceClassGuard tests fail; with the old cast restored the new test and anyRatchet fail.
 - [ ] **Q761 Nine axe calls in 8 e2e specs skip WCAG 2.2 AA.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). They hardcode the 4-tag wcag21aa literal
   instead of AXE_TAGS from e2e/happy-path/axeTags.ts. Done when a source scan fails on any withTags literal outside
   axeTags.ts, shown red on one planted literal.

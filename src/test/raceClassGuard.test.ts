@@ -298,6 +298,36 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
   });
 });
 
+// Q760: the admin status override was an id-only jobs.status write hidden
+// from the scanner by `(… .update as any)(…)`. The cast is gone and the write
+// is a compare-and-set on the status the admin saw.
+// @mutate src/components/admin/AdminJobs.tsx | .eq("status", previousStatus) |
+describe("race-class guard — admin status override (Q760)", () => {
+  const ADMIN_JOBS = "src/components/admin/AdminJobs.tsx";
+  const OVERRIDE_KEY = `client:${ADMIN_JOBS}::opaque:updates`;
+  const live = () => readFileSync(resolve(__dirname, "../..", ADMIN_JOBS), "utf8");
+
+  it("the old `as any` form was invisible to the scanner (why Q760 existed)", () => {
+    const hidden = `await (supabase.from("jobs").update as any)(updates).eq("id", detailJob.id).select("id");`;
+    expect(guard.clientHitsInSource(ADMIN_JOBS, hidden)).toEqual([]);
+  });
+
+  it("the uncast write with no status predicate is flagged", () => {
+    const unguarded = `await supabase\n  .from("jobs")\n  .update(updates)\n  .eq("id", detailJob.id)\n  .select("id");`;
+    expect(guard.clientHitsInSource(ADMIN_JOBS, unguarded).map((h: Hit) => h.key)).toEqual([OVERRIDE_KEY]);
+  });
+
+  it("the live override is visible to the scanner and carries .eq(\"status\", previousStatus)", () => {
+    const src = blankComments(live());
+    // Visible: no cast hides a jobs update in this file any more.
+    expect(src).not.toMatch(/\.update\s+as\s+any/);
+    // Guarded: the override chain is not a hit (removing the predicate makes it one).
+    const keys = guard.clientHitsInSource(ADMIN_JOBS, src).map((h: Hit) => h.key);
+    expect(keys).not.toContain(OVERRIDE_KEY);
+    expect(src).toMatch(/\.update\(updates\)\s*\.eq\("id", detailJob\.id\)\s*\.eq\("status", previousStatus\)\s*\.select\("id"\)/);
+  });
+});
+
 describe("race-class guard — detector units", () => {
   const fn = (body: string, returnsTrigger = false) => ({
     file: "x.sql",

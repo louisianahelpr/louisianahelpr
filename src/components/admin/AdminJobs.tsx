@@ -438,15 +438,25 @@ const AdminJobs = () => {
       // error === null, and both parties were then told the status changed —
       // with a deep link to a job still sitting in its old state. Same guard
       // the removal path above already carries.
+      // .eq("status", previousStatus) (Q760): the override is a compare-and-set
+      // on the status the admin was looking at. Without it an override
+      // decided on a stale view (the job was accepted, completed or disputed
+      // after the list loaded) silently overwrote the newer state. Zero rows
+      // means someone changed the job first: unwrapMutation throws, the admin
+      // is told to reload, and nobody is notified. Covered by
+      // scripts/check-race-class.mjs (src/test/raceClassGuard.test.ts).
       unwrapMutation(
-        // `as any` kept on purpose (Q184): without it scripts/check-race-class.mjs
-        // sees this unguarded jobs status write for the first time. The fix is a
-        // status predicate (a runtime change), queued as Q204 in OPEN.md.
-        await (supabase.from("jobs").update as any)(updates).eq("id", detailJob.id).select("id"),
+        await supabase
+          .from("jobs")
+          .update(updates)
+          .eq("id", detailJob.id)
+          .eq("status", previousStatus)
+          .select("id"),
         {
           action: "override this job's status",
-          rejectedMessage: "This job's status wasn't changed — it may have already moved. Refresh the list.",
-          context: { jobId: detailJob.id, toStatus: overrideStatus },
+          rejectedMessage:
+            "Someone changed this job while you were looking, so its status wasn't overridden. Reload the list to see where it is now.",
+          context: { jobId: detailJob.id, fromStatus: previousStatus, toStatus: overrideStatus },
         },
       );
 

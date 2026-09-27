@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
 import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
 import type { Profile } from "./adminUserHelpers";
@@ -131,7 +132,7 @@ export function useAdminUserSummaries() {
     // (see AdminUserRow), so the number and its noun agree.
     const { data, error } = await supabase
       .from("jobs")
-      .select("helper_id, customer_id, budget, helper_fee_percent, customer_fee_amount, sales_tax_amount, status, payment_status")
+      .select("helper_id, customer_id, budget, helper_fee_percent, platform_fee_amount, urgent_fee, is_group_job, helpers_needed, customer_fee_amount, sales_tax_amount, status, payment_status")
       .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
       // Q233: a held status without a PaymentIntent is a row nobody charged.
       .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
@@ -142,10 +143,12 @@ export function useAdminUserSummaries() {
     for (const j of data) {
       const budget = Number(j.budget) || 0;
       if (j.helper_id && userIds.includes(j.helper_id)) {
-        // `??`-semantics, not `||`: a stamped 0% (comped job) is a real fee
-        // and must not be re-inflated to the legacy 10% fallback.
-        const fee = helperFeePercentOrLegacy(j.helper_fee_percent) / 100;
-        totals[j.helper_id] = (totals[j.helper_id] || 0) + budget * (1 - fee);
+        // ONE take-home formula (helperEarnings.ts, Q765): roster split, the
+        // stamped fee on a released row, and the net urgent bonus. The fallback
+        // is the row's own stamped rate (legacy 10% only when unstamped);
+        // `??`-semantics keep a stamped 0% comped job at 0%.
+        totals[j.helper_id] = (totals[j.helper_id] || 0)
+          + helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent));
       }
       if (j.customer_id && userIds.includes(j.customer_id)) {
         totals[j.customer_id] = (totals[j.customer_id] || 0)

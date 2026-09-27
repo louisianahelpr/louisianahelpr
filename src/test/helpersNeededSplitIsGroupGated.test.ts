@@ -17,9 +17,10 @@
  * `helpers_needed` (the split divisor shape) must test `is_group_job` in its
  * condition. helperShareCount itself is the canonical gate and is skipped.
  * Divisor shapes (`/`, numeric `??`/`||` fallbacks, Math.max) count too.
- * Shown red on the pre-fix JobsTab.
+ * Shown red on the pre-fix JobsTab. (Its mutation now targets
+ * ApplyEarningsBreakdown: Q765 moved JobsTab onto helperTakeHomeDollars.)
  *
- * @mutate src/components/admin/userDetail/JobsTab.tsx | const helpers = helperShareCount(j); | const helpers = Number(j.helpers_needed) > 0 ? Number(j.helpers_needed) : 1;
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1; | const helpers = Number(confirmApplyJob.helpers_needed) > 0 ? Number(confirmApplyJob.helpers_needed) : 1;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -136,9 +137,11 @@ describe("a budget is split by helpers_needed only on a group job", () => {
       { text: "j.is_group_job && j.helpers_needed ? j.helpers_needed : 1", gated: true },
     ]);
     expect(helperSplits("const h = Number(j.helpers_needed) > 0 ? Number(j.helpers_needed) : 1;")[0].gated).toBe(false);
-    // Exact, both ways: 12 split sites in src/ on 2026-09-27, all gated. A new
-    // site or a removed one moves this number; update it in the same commit.
-    expect(all.length).toBe(12);
+    // Exact, both ways: 10 split sites in src/ on 2026-09-27, all gated (12
+    // until Q765 moved the admin pay summary and analytics payout totals onto
+    // helperTakeHomeDollars). A new site or a removed one moves this number;
+    // update it in the same commit.
+    expect(all.length).toBe(10);
   });
 
   // Every shape the reviewer of 37ba1c1d0 showed the first extractor missed

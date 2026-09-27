@@ -1,7 +1,7 @@
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { TIER_COLORS } from "../adminAnalyticsConstants";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT, helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { SUB_PRICE, type Job, type Profile, type Tip } from "./types";
 import { TIER_ORDER, normalizeTier, type TierId } from "@/lib/subscriptionTiers";
 import { formatCategory } from "@/lib/format";
@@ -211,14 +211,13 @@ export const computeMetrics = (
 
   // Kept for callers that do not pass the ledger — visible next to the reason
   // it is wrong, rather than deleted.
-  const derivedHelperPayouts = completedJobs.reduce((s, j) => {
-    const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
-    const perHelper = Number(j.budget || 0) / helpers;
-    const commissionPercent = Number(j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT);
-    const commission = (perHelper * commissionPercent) / 100;
-    // Urgent fee splits across the roster like the budget (#114).
-    return s + (perHelper - commission + netUrgentFeeDollars(Number(j.urgent_fee ?? 0)) / helpers);
-  }, 0);
+  // ONE take-home formula (helperEarnings.ts, Q765): roster split, the stamped
+  // fee on a released row, the urgent bonus net of its Stripe cost split like
+  // the budget (#114). Fallback percent = the row's own stamped rate.
+  const derivedHelperPayouts = completedJobs.reduce(
+    (s, j) => s + helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent)),
+    0,
+  );
   const totalHelperPayouts = ledgerPayouts ?? derivedHelperPayouts;
   /** True when the figure above came from the ledger rather than an estimate. */
   const helperPayoutsFromLedger = ledgerPayouts !== undefined;
@@ -301,14 +300,12 @@ export const computeMetrics = (
   const pendingPayouts = allJobs.filter(j => j.payment_status === "payout_pending");
   const releasedPayouts = allJobs.filter(j => j.payment_status === "released");
   const escrowTotal = escrowJobs.reduce((s, j) => s + (j.budget || 0), 0);
-  const pendingPayoutTotal = pendingPayouts.reduce((s, j) => {
-    const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
-    const perHelper = (j.budget || 0) / helpers;
-    const commissionPercent = j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
-    const commission = (perHelper * commissionPercent) / 100;
-    // Urgent fee splits across the roster like the budget (#114).
-    return s + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers);
-  }, 0);
+  // payout_pending is not yet released, so helperTakeHomeDollars applies the
+  // row's stamped percent to the per-helper share (Q765), as before.
+  const pendingPayoutTotal = pendingPayouts.reduce(
+    (s, j) => s + helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent)),
+    0,
+  );
   // The Released rung of the pipeline. Its two siblings (In Escrow, Payout
   // Pending) quote money the platform is still holding, so a job budget is the
   // right basis for them. Released money has LEFT — the only honest basis is

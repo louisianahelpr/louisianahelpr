@@ -7,7 +7,7 @@ import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
 import { formatTimestamp } from "@/lib/format";
 import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
-import { helperShareCount } from "@/lib/helperEarnings";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import type { Profile } from "../adminUserHelpers";
 import type { AdminProfileJob } from "../adminusers/useOpenProfile";
 
@@ -27,13 +27,12 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
     const isCustomer = j.customer_id === viewProfile.user_id;
     const budget = Number(j.budget) || 0;
     if (isHelper) {
-      // `??`-semantics, not `||`: a stamped 0% (comped job) is a real fee and
-      // must not be re-inflated to the legacy 10% fallback.
-      const fee = helperFeePercentOrLegacy(j.helper_fee_percent) / 100;
-      // Group jobs split the budget across the roster; a non-group job never
-      // splits, whatever helpers_needed says (same rule as release-payout).
-      const helpers = helperShareCount(j);
-      return (budget / helpers) * (1 - fee); // net payout to this helper
+      // The helper's own Earnings screen and this tab share ONE formula
+      // (helperEarnings.ts): roster split, the stamped fee on a released row,
+      // and the net urgent bonus (Q765). The fallback percent is the row's own
+      // stamped rate (legacy 10% only when unstamped); `??`-semantics keep a
+      // stamped 0% comped job at 0%.
+      return helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent));
     }
     if (isCustomer) {
       // total paid by poster

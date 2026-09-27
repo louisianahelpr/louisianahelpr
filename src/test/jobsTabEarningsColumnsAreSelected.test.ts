@@ -27,8 +27,20 @@ const JOBS_TAB = join(ROOT, "src/components/admin/userDetail/JobsTab.tsx");
 const OPEN_PROFILE = join(ROOT, "src/components/admin/adminusers/useOpenProfile.ts");
 const HELPER_EARNINGS = join(ROOT, "src/lib/helperEarnings.ts");
 
-/** Every `<param>.<column>` read inside helperEarnings.ts's exported function `name`, or [] if none. */
-export function helperColumns(name: string, source = readFileSync(HELPER_EARNINGS, "utf8")): string[] {
+/**
+ * Every `<param>.<column>` read inside helperEarnings.ts's exported function
+ * `name`, or [] if none — following the job into every other helperEarnings.ts
+ * function it is passed to (helperTakeHomeDollars → helperPlatformFeeDollars →
+ * helperShareCount / isSettledForDisplay), so a caller of the top-level helper
+ * needs every column the chain reads (Q765).
+ */
+export function helperColumns(
+  name: string,
+  source = readFileSync(HELPER_EARNINGS, "utf8"),
+  seen: Set<string> = new Set(),
+): string[] {
+  if (seen.has(name)) return [];
+  seen.add(name);
   const sf = ts.createSourceFile(HELPER_EARNINGS, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const cols = new Set<string>();
   sf.forEachChild((node) => {
@@ -38,6 +50,13 @@ export function helperColumns(name: string, source = readFileSync(HELPER_EARNING
     const p = param.name.text;
     const walk = (n: ts.Node) => {
       if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === p) cols.add(n.name.text);
+      if (
+        ts.isCallExpression(n) &&
+        ts.isIdentifier(n.expression) &&
+        n.arguments.some((a) => ts.isIdentifier(a) && a.text === p)
+      ) {
+        for (const c of helperColumns(n.expression.text, source, seen)) cols.add(c);
+      }
       ts.forEachChild(n, walk);
     };
     walk(node.body);
@@ -104,6 +123,10 @@ describe("admin Jobs-tab earnings columns are all selected (Q759)", () => {
     expect(earningsCols).toContain("helpers_needed");
     expect(earningsCols).toContain("helper_fee_percent");
     expect(earningsCols).toContain("is_group_job");
+    // Reached only through helperTakeHomeDollars' call chain (Q765).
+    expect(earningsCols).toContain("urgent_fee");
+    expect(earningsCols).toContain("platform_fee_amount");
+    expect(earningsCols).toContain("payment_status");
   });
 
   it("inventories the jobs select for AdminProfileJob (a broken extractor must not pass vacuously)", () => {
@@ -126,7 +149,7 @@ describe("admin Jobs-tab earnings columns are all selected (Q759)", () => {
   });
 
   it("RED when is_group_job is dropped from the select (the split gate helperShareCount reads)", () => {
-    const broken = jobsSelectColumns(openProfileSrc.replace(/, is_group_job"/, '"'));
+    const broken = jobsSelectColumns(openProfileSrc.replace(/, is_group_job\b/, ""));
     const missing = earningsCols.filter((c) => !broken.includes(c));
     expect(missing).toEqual(["is_group_job"]);
   });

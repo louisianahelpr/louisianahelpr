@@ -48,6 +48,14 @@ describe("one nightly-red issue per workflow", () => {
     expect(WATCH_SRC).not.toMatch(/workflow-name:\s*"main: \$\{\{/);
   });
 
+  it("the scan found the watched workflows and their own slugs", () => {
+    /* Floors, measured 2026-09-27: main-red-watch watches 21 workflows and 37
+       workflow files sync their own issue. Well under both, so adding or
+       retiring one does not fail the build; an empty scan does. */
+    expect(WATCHED.length).toBeGreaterThan(15);
+    expect(ownSlugs.size).toBeGreaterThan(25);
+  });
+
   it.each(WATCHED)("%s resolves to its own slug when it syncs one", (name) => {
     const r = nightlySlug(name) as Slug;
     const own = ownSlugs.get(name);

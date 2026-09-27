@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Queue (this file):** 304 done, 92 partly done (fixed, protection pending), 131 open. Source of truth for work.
-- **Audit bus:** 14 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
+- **Audit bus:** 13 open, 1 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** UNKNOWN — the read-only query failed; see SCOREBOARD.md.
 - **nightly-red issues:** 12 open — `gh issue list -l nightly-red`. _(2026-09-27T06:04Z)_

@@ -14,16 +14,19 @@ import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
 
 /**
  * One row of the admin Jobs tab: exactly the columns `openProfile` selects.
- * `helpers_needed` is read by JobsTab's earnings maths but is NOT in the
- * select, so at runtime it is always absent — typed optional to say so.
+ * `helpers_needed` is required, not optional: JobsTab's earnings maths
+ * (`calcEarning`) divides a group job's budget by it, so a missing column
+ * would silently credit each helper the full budget instead of their share
+ * (Q759). Keep this list and the `.select()` string below in exact sync —
+ * `jobsTabEarningsColumnsAreSelected.test.ts` fails if they drift.
  */
 export type AdminProfileJob = Pick<
   Tables<"jobs">,
   | "id" | "title" | "status" | "payment_status" | "budget" | "helper_fee_percent"
   | "customer_fee_amount" | "platform_fee_amount" | "sales_tax_amount" | "customer_id"
   | "helper_id" | "created_at" | "updated_at" | "poster_completed_at"
-  | "helper_completed_at" | "parish"
-> & Partial<Pick<Tables<"jobs">, "helpers_needed">>;
+  | "helper_completed_at" | "parish" | "helpers_needed"
+>;
 export type AdminProfileViolation = Tables<"user_violations">;
 export type AdminProfileBan = Tables<"user_bans">;
 
@@ -71,7 +74,7 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
         : Promise.resolve({ data: [] as Pick<Tables<"email_send_log">, "template_name" | "message_id" | "status" | "created_at">[], error: null }),
       supabase
         .from("jobs")
-        .select("id, title, status, payment_status, budget, helper_fee_percent, customer_fee_amount, platform_fee_amount, sales_tax_amount, customer_id, helper_id, created_at, updated_at, poster_completed_at, helper_completed_at, parish")
+        .select("id, title, status, payment_status, budget, helper_fee_percent, customer_fee_amount, platform_fee_amount, sales_tax_amount, customer_id, helper_id, created_at, updated_at, poster_completed_at, helper_completed_at, parish, helpers_needed")
         .or(`customer_id.eq.${profile.user_id},helper_id.eq.${profile.user_id}`)
         .order("created_at", { ascending: false })
         .limit(500),

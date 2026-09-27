@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { reportSubmitError } from "@/lib/reportErrors";
-import { isStorageObjectPath } from "@/lib/storagePath";
+import { supportScreenshotPath, withSupportScreenshot } from "@/lib/supportScreenshot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -161,24 +161,21 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     if (!userId) return null;
     setUploadingScreenshot(true);
     try {
-      const ext = (file.name.split(".").pop() || "png").toLowerCase();
-      const path = `${userId}/support/${Date.now()}.${ext}`;
+      // Only a plain alphanumeric extension reaches the path: AdminSupport
+      // refuses a path with whitespace in it, so "shot.PNG copy" must not
+      // produce one.
+      const rawExt = (file.name.split(".").pop() || "").toLowerCase();
+      const ext = /^[a-z0-9]{1,8}$/.test(rawExt) ? rawExt : "png";
+      const path = supportScreenshotPath(userId, ext);
       const { error } = await supabase.storage
         .from("user-documents")
         .upload(path, file, { upsert: false, contentType: file.type });
       if (error) throw error;
-      // user-documents bucket is private as of 2026-05-05; embed a signed
-      // URL with 30-day TTL into the support ticket so the admin can view
-      // it without needing UI changes. Most tickets resolve in <30 days;
-      // older ones can be re-fetched by path if needed.
-      // `path` was built two lines up, so this always holds; the gate is here
-      // so every sign call in src/ reads the same (signedUrlOnlyForStoragePaths).
-      if (!isStorageObjectPath(path)) throw new Error("Not a storage path");
-      const { data, error: signErr } = await supabase.storage
-        .from("user-documents")
-        .createSignedUrl(path, 30 * 24 * 60 * 60);
-      if (signErr || !data) throw signErr || new Error("No signed URL");
-      return data.signedUrl;
+      // The ticket carries the storage PATH, never a signed URL: a token
+      // pasted into reports.description 400s after its exp. AdminSupport signs
+      // the path when an admin presses "View screenshot" (admins can SELECT
+      // user-documents: policy "user-documents: owner or admin read").
+      return path;
     } catch {
       toast.error("Couldn't upload screenshot — sending without it.");
       return null;
@@ -202,14 +199,12 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
 
     setSending(true);
 
-    let screenshotUrl: string | null = null;
+    let screenshotPath: string | null = null;
     if (category === "report" && screenshot) {
-      screenshotUrl = await uploadScreenshot(screenshot);
+      screenshotPath = await uploadScreenshot(screenshot);
     }
 
-    const description = screenshotUrl
-      ? `${message.trim()}\n\nScreenshot: ${screenshotUrl}`
-      : message.trim();
+    const description = withSupportScreenshot(message.trim(), screenshotPath);
 
     const { error } = await supabase.from("reports").insert({
       reporter_id: userId,

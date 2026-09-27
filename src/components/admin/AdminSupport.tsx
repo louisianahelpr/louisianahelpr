@@ -7,7 +7,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, LifeBuoy, CheckCircle2, Clock, Crown, Mail } from "lucide-react";
+import { MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, LifeBuoy, CheckCircle2, Clock, Crown, Mail, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
@@ -18,6 +18,9 @@ import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewSh
 import { TIER_PERKS, toSubscriptionTier, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { TestTag } from "@/components/admin/TestTag";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { splitSupportScreenshot } from "@/lib/supportScreenshot";
+import { isStorageObjectPath } from "@/lib/storagePath";
+import { openSignedDocument } from "@/lib/openSignedDocument";
 
 type Ticket = {
   id: string;
@@ -464,9 +467,17 @@ const AdminSupport = () => {
                   </Badge>
                 </div>
 
-                {ticket.description && (
-                  <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-ds-sm p-3 whitespace-pre-wrap">{ticket.description}</p>
-                )}
+                {ticket.description && (() => {
+                  const { body, path } = splitSupportScreenshot(ticket.description, ticket.reporter_id);
+                  return (
+                    <>
+                      {body && (
+                        <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-ds-sm p-3 whitespace-pre-wrap">{body}</p>
+                      )}
+                      {path && <ViewScreenshotButton path={path} />}
+                    </>
+                  );
+                })()}
 
                 {ticket.status === "pending" && (
                   <div className="flex gap-2 pt-1">
@@ -495,5 +506,40 @@ const AdminSupport = () => {
     </AdminViewShell>
   );
 };
+
+/**
+ * The reporter's screenshot, signed at CLICK time for five minutes. The ticket
+ * stores only the user-documents path (src/lib/supportScreenshot.ts); admins
+ * can read it through the "user-documents: owner or admin read" policy. The
+ * tab opens inside the click before any await (openSignedDocument, Q295), or
+ * WebKit blocks it silently.
+ */
+function ViewScreenshotButton({ path }: { path: string }) {
+  const [busy, setBusy] = useState(false);
+  const open = async () => {
+    setBusy(true);
+    await openSignedDocument({
+      open: (url, target) => window.open(url, target),
+      sign: async () => {
+        if (!isStorageObjectPath(path)) return null;
+        const { data, error } = await supabase.storage
+          .from("user-documents")
+          .createSignedUrl(path, 300);
+        if (error) report(error, { tags: { source: "AdminSupport.ViewScreenshot" } });
+        return error || !data ? null : data.signedUrl;
+      },
+      toastError: (msg) => toast.error(msg),
+    });
+    setBusy(false);
+  };
+  return (
+    <div>
+      <Button size="sm" variant="outline" onClick={open} disabled={busy}>
+        {busy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5 mr-1" />}
+        View screenshot
+      </Button>
+    </div>
+  );
+}
 
 export default AdminSupport;

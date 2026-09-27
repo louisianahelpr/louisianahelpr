@@ -127,8 +127,12 @@ const PINNED: Record<string, string> = {
   // via useProofPhotoUrls. Nothing had been written through it in prod, and
   // `job_revisions.photos` has no server-side URL validator — only
   // trg_ban_gate_job_revisions — so the change needed no migration.
-  "components/profile/SupportInline.tsx":
-    "30-day token pasted into reports.description; the file says so and accepts it ('older ones can be re-fetched by path if needed')",
+  // components/profile/SupportInline.tsx was here (a 30-day token pasted into
+  // reports.description). FIXED 2026-09-27: the ticket carries the
+  // user-documents PATH on its "Screenshot: " line (src/lib/supportScreenshot.ts,
+  // shared by writer and reader) and AdminSupport signs it for 300s when an
+  // admin presses "View screenshot". Prod held 0 rows with that line, so no
+  // data conversion. The list is now EMPTY: any long-lived token is new.
 };
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
@@ -158,20 +162,22 @@ function evalProduct(expr: string): number {
   return expr.split("*").reduce((acc, n) => acc * Number(n.trim()), 1);
 }
 
-/** Files that mint a signed URL intended to outlive the page view. */
-function longLivedTokens(): { file: string; seconds: number }[] {
+/** Every `createSignedUrl(path, <literal ttl>)` the scan can read. */
+function literalTtls(): { file: string; seconds: number }[] {
   const found: { file: string; seconds: number }[] = [];
   for (const abs of sourceFiles(SRC)) {
     const src = readFileSync(abs, "utf8");
     if (!src.includes("createSignedUrl")) continue;
     for (const m of src.matchAll(TTL_RE)) {
-      const seconds = evalProduct(m[1]);
-      if (seconds >= DISPLAY_TTL_CEILING) {
-        found.push({ file: relative(SRC, abs), seconds });
-      }
+      found.push({ file: relative(SRC, abs), seconds: evalProduct(m[1]) });
     }
   }
   return found.sort((a, b) => a.file.localeCompare(b.file));
+}
+
+/** Files that mint a signed URL intended to outlive the page view. */
+function longLivedTokens(): { file: string; seconds: number }[] {
+  return literalTtls().filter((t) => t.seconds >= DISPLAY_TTL_CEILING);
 }
 
 describe("a signed URL is never persisted", () => {
@@ -205,14 +211,16 @@ describe("a signed URL is never persisted", () => {
   it("the scan reaches the files it claims to scan", () => {
     // Vacuity floor: a broken walk returns [] and every assertion above passes.
     expect(sourceFiles(SRC).length, "no source files scanned").toBeGreaterThan(300);
+    // With no offender left, "found at least one long-lived token" can no longer
+    // be the floor (it stepped 3 -> 1 -> 0 as the pins were fixed). The floor is
+    // now that the TTL regex still READS the display-time call sites: 4 on
+    // 2026-09-27 (AdminCredentialQueue x2, CredentialsTab, AdminSupport, all
+    // 300s). A regex that silently stopped matching would find 0 here, and the
+    // "no new call site" assertion above would pass on nothing.
     expect(
-      longLivedTokens().length,
-      "the scan found no long-lived signed URL at all — it cannot have run",
-      // Floor steps DOWN with the pin list, never up: 3 -> 1 when the two
-      // dispute writers were converted on 2026-09-22. SupportInline.tsx is the
-      // one remaining offender, so 1 is the most this can assert and still be
-      // a real vacuity check rather than a permanent exemption.
-    ).toBeGreaterThanOrEqual(1);
+      literalTtls().length,
+      "the TTL regex matched no createSignedUrl call at all — it cannot have run",
+    ).toBeGreaterThan(3);
   });
 
   it("the threshold does not swallow the app's real display-time TTLs", () => {

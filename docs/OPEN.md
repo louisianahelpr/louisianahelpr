@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 219** (162 to do, 57 fixed with protection pending; 361 done). Feeds mirrored in: 15 from the alert ledger, 12 from nightly-red issues, 10 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 218** (162 to do, 56 fixed with protection pending; 362 done). Feeds mirrored in: 15 from the alert ledger, 12 from nightly-red issues, 10 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T21:05Z)_
 - **Remote branches:** 102 carry patches not on main, 0 fully merged, of 103 (Q79). _(2026-09-27T21:05Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 580 items — 361 done, 57 partly done (fixed, protection pending), 162 open.**
+**Queue: 580 items — 362 done, 56 partly done (fixed, protection pending), 162 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -474,37 +474,6 @@ sure someone hears it and closes it.
   in PGlite on a prod-shaped schema. FIRST PROD RUNS DONE: scheduled run 36082385383 (2026-09-25 03:20Z) green, 11 rows read (DB 74.5 MB of 8 GB, connections 26/60, storage 8.9 MB, edge invocations 313,980/2M projected, Vercel deploys 26/100 a day, Resend 811/3,000 month and 32/100 day, Sentry errors 255/5,000, Sentry replays 652/50 OVER; egress and Realtime messages NOT-MONITORED). STILL OPEN:
   GitHub Actions minutes (no API with GITHUB_TOKEN); 70/90% two-step and per-quota scoreboard rows (the
   workflow's own row is on the scoreboard); stale limits in supabase-usage.yml -> Q221.
-- [~] **Q64 User-reported problems become tracked items.** In-app "report a
-  problem" / support messages / App Store reviews mentioning a bug create
-  an alert-ledger item (source `user-report`), so they're fixed and
-  verified like any alert.
-  STATUS 2026-09-23 (cloud/q64-q70, BUILT, NOT YET LIVE — the lead lands it and runs the first live pass):
-  surfaces found in source: ReportDialog (job/message/user/review), the Profile support tab
-  (SupportInline), /support (contact-support, signed in AND guest), and four `/support?topic=`
-  entry points (shake-to-report, both dispute cards, the ban appeal); NPS is a survey, listed as
-  not-a-report. Routing: migration 20260923181420 puts trg_reports_zz_ledger (AFTER INSERT) on
-  public.reports -> one `user-report` ledger item per normalised title (dedupe: double-taps and
-  repeats count, ids stripped), severity by kind (safety reports critical, issue reports error,
-  messages warning, suggestions info), sample_ref = report id + link to /admin?view=reports|support;
-  closes (sql_condition, hourly ops_alert_verify) only when every matching report is
-  resolved/dismissed in its admin queue; seed reporters skipped. Flood cap (authz review M1): a
-  NEW item is refused past 5 per reporter / 20 overall per hour and counted on ONE overflow item
-  (closes when every open real report has its own item or is resolved). Guests (no reports row)
-  are recorded by contact-support itself, ONE item per topic (the subject rides in sample_ref, so
-  an unauthenticated caller cannot mint items; verify manual; link = the support-inbox subject
-  line). morning-page no longer prints user-report titles (user-typed text, published). The
-  old per-topic Slack companion item now closes when no user-report item is open. PGlite proof
-  src/test/pglite/userReportsLedger.pglite.mjs: ALL PASS (39) x3 applies; 31 FAIL with
-  NEW_MIGRATION=skip, 5 FAIL with the flood cap removed. GUARD: src/test/userReportsReachTheLedger.test.ts
-  (two-way surface inventory from source; 4 FAIL on the unfixed tree, 7/7 @mutate red). Reviewed:
-  lh-authz-rls REVIEW ONLY (M1, M2, L1, L2 fixed; L3 keyword severity accepted with the cap;
-  verifier fairness is Q291). LIVE PASS TO DO (lead): after
-  db-deploy, `pg_get_functiondef('public.ops_alert_condition'::regproc)` has the 'user-report'
-  branch, `pg_proc.proacl` of the six new functions has no anon/authenticated, the backfill count
-  (`select count(*) from ops_alert_ledger where source_kind='user-report'`) equals the open real
-  reports of the last 90 days, and one /support guest message lands as a 'contact-support-guest'
-  item after functions-deploy. App Store reviews are NOT ingested anywhere in source: Q289.
-  LIVE PASS 2026-09-25 ~14:00Z (queue lane, read-only SQL): pg_get_functiondef(ops_alert_condition) has the 'user-report' branch; trigger trg_reports_zz_ledger on reports (fn ops_alert_ledger_from_report) present; all six new functions (that one, ops_alert_record_user_report, user_report_is_open/_is_real/_severity/_title) proacl = postgres + service_role only; backfill: 1 user-report ledger item (closed) and 0 open real reports in 90 days, which agree; contact-support deployed v2069 contains the 'contact-support-guest' path (get_edge_function). STILL OPEN: the end-to-end guest /support message (not sent: it emails the real support inbox and opens a ledger item; the lead or owner should send one and watch the item open and close).
 - [~] **Q65 Test-data hygiene on prod. MEASURED 2026-09-26, purge BUILT (branch cloud/open-testinfra, PR #1839), dry-run until turned on.** Seed rows by age (<1d/1-7d/7-30d/30-90d): jobs 379 (26/105/242/6), profiles 57 (all 7-30d), messages 449 (138/172/133/6), notifications 1,266 of 1,503 (317/321/628/0), storage 223 objects ~105 KB (52/105/66/0); nothing purged seed jobs by age (84 older than 14 days, re-measured by the lead). Built: supabase/migrations/20260926041023_purge_old_seed_data.sql, `purge_old_seed_data(p_dry_run default true, 14-day window, floor 7, batch <= 500)`, daily cron purge-old-seed-data through run_seed_purge(), DRY until feature_flags.seed_purge_live = true; candidates are is_seed, v4-id (never prod-seed v5 or 5eed fixtures), unpaid/abandoned/cancelled, not referenced by 14 money/trust tables; money jobs are LISTED never deleted; never touches profiles, auth or storage; runs recorded in seed_purge_runs (service_role only). GUARD: src/test/seedPurgeIsSafe.test.ts (6/7 red without the migration, 5 @mutate killed); PGlite src/test/pglite/seedPurge.pglite.mjs 35/35 after 3x. VISIBILITY NOT PROVEN, the item's premise is false today: seed_jobs_hidden_publicly() = false live, so open_jobs_browse is 9/9 seed rows (lead re-measured); split out as Q552. OWNER TO-DO after merge: read 2-3 rows of seed_purge_runs (dry), then `UPDATE platform_settings SET feature_flags = feature_flags || '{"seed_purge_live": true}'`; recommendation: flip after 2-3 clean dry runs. Was: **Q65 Test-data hygiene on prod.** E2E/press/prod-audit write to prod by **Re-measured 2026-09-27 (lane D, read-only prod SQL):** migration live; platform_settings.feature_flags->>'seed_purge_live' is NULL (still dry); seed_purge_runs holds 1 dry run (jobs_would_delete 13, money-held listed 38, notifications 569). What is left is the owner's flip. **2026-09-27 ~21:00Z (lane 2, read-only prod SQL), owner approved the flip after 3 CONSECUTIVE clean dry runs:** seed_purge_runs still holds 1 row (id 1, 2026-09-27 05:19Z, dry_run true, jobs_would_delete 13, money_held_count 38, jobs_eligible_not_reached 0, notifications_would_delete 569); seed_purge_live NULL; cron purge-old-seed-data `19 5 * * *` active. Condition not met (1 of 3). The 3rd consecutive run is 2026-09-29 ~05:19Z at the earliest; flip then only if runs 2 and 3 are clean too (no error, jobs_eligible_not_reached 0). done-when: sql `SELECT coalesce(feature_flags->>'seed_purge_live','false') FROM public.platform_settings` => true
   design. Measure how many is_seed jobs, users, messages, notifications and
   storage objects have built up; purge anything past a retention window on

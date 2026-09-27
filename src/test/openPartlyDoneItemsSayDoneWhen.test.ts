@@ -24,7 +24,7 @@ const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 
 /** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-09-27. */
-const MARKERLESS_PARTLY_DONE = 29;
+const MARKERLESS_PARTLY_DONE = 28;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

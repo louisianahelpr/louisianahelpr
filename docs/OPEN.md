@@ -227,6 +227,15 @@ sure someone hears it and closes it.
 
 ## MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)
 
+**ANSWERED 2026-09-27 (owner pop-ups, all held questions asked at once):**
+- Q183: (b) make `auto_restrict_repeat_violators` warn-first: suspend only on a second trip within 7 days, and count only its own types. To build: migration + test.
+- Q210(b): a recurring visit of $300+ sends an on-session "tap to pay" Checkout instead of an off-session charge. Auto-tips stay off-session. To build (lh-money-escrow review).
+- MQ 30 (#1582): (A) keep pressing every card. The speed-up comes from the shared-queue shards (Q725) and the storm root cause, not from sampling.
+- Q317b: re-measure after the press-storm fix and ask again only if still over budget.
+- MQ 31 group crews: (A) yes, (B) yes, both confirmed as built. (C) NEW: return the platform fee, sales tax and gift card PRO-RATA with a returned share. To build in process-scheduled-payouts (lh-money-escrow review).
+- Q57: DONE. The lead set it via `gh api` (default_workflow_permissions=write, can_approve_pull_request_reviews=true, re-read).
+- Q11 SENTRY_READ_TOKEN and SUPABASE_SERVICE_ROLE_KEY: owner will set them; steps given in the transcript.
+
 **Held 2026-09-27 (lead), ask once main is current:**
 - **Q317b Shrink the prod pools again?** MEASURED 2026-09-27: db_saturation_samples peaked 54/60 connections at 02:00Z on 09-26 and 09-27 (press window); cron.job_run_details shows 0 failed jobs in 48h; quota-monitor 36285625149 reads demand 67 vs 57 usable (PostgREST 14 + LISTEN 1 + pooler 11 + Auth 10 + other backends 20 under load + cron reserve 11). First fix: the press request-storm fix (#1582 lane), then re-measure. If still over: (a) cut PostgREST db_pool + pooler by 10 combined (free, may throttle real traffic) or (b) accept and widen the check's load allowance (not recommended).
 - **Supabase-usage storage orphan sweep needs repo secret SUPABASE_SERVICE_ROLE_KEY** (run 36222936567: "nothing was swept"). Credential step: `gh secret set SUPABASE_SERVICE_ROLE_KEY` from Supabase -> Settings -> API.

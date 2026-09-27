@@ -93,3 +93,4 @@
 {"sha":"d374211a2d9f7467580c121a636d1adc4c94a4ce","reviewer":"lh-authz-rls","verdict":"APPROVE: singleton unique index ((true)) replay-safe and live, 1 row, RLS admin-only unchanged; only fee-pill call site passes a number. Nit: prop still number|null with legacy ?? fallback","date":"2026-09-27"}
 {"sha":"008b699d2d5ecba50e6ad262ca3434b43c0bd366","reviewer":"lh-silent-failure","verdict":"server half sound (no fail-open, cannot fail a push); client issue 2 fixed in 09573b74c; issues 1,3 filed Q755/Q756","date":"2026-09-27"}
 {"sha":"c678ce0c38f8318c613b184ed6554711f493d6e6","reviewer":"lh-silent-failure","verdict":"PASS-with-notes; notes 1-2 fixed in 5cec4468f, note 3 pre-existing","date":"2026-09-27"}
+{"sha":"2e0d126e735b1ccacc13e4a15df14d5438aac86c","reviewer":"lh-authz-rls","verdict":"PASS after fix: sender-can-clear-receiver-bell (low) fixed by receiver/server-only guard in the same commit; backfill uuid regex tightened","date":"2026-09-27"}

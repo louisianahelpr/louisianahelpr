@@ -66,8 +66,11 @@ says more.
   sensitive-review.yml turns main red on an unrecorded one (Q9).
 
 ## Landing
-- Commit in your worktree, then
-  `git fetch origin && git rebase origin/main && git push --no-verify origin HEAD:main`.
+- Commit in your worktree, then `bash scripts/land.sh`: it fetches, rebases
+  onto origin/main, runs `npm run inventories:refresh`, commits what that
+  regenerated, proves `check:generated` green, then
+  `git push --no-verify origin HEAD:main`. A bare `--no-verify` push skips the
+  hook that refreshes them and leaves main red (503fd193c, 2026-09-27).
 - End commits with the Co-Authored-By line from CLAUDE.md.
 - If a rebase stops on a conflict, resolve it (for generated files: take
   origin's version, then regenerate) and `git rebase --continue`. Never

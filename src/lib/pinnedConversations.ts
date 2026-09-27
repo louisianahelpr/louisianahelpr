@@ -60,6 +60,18 @@ function storageKey(userId: string): string {
 const cache = new Map<string, Set<string>>();
 
 /**
+ * Q813: generation per user. `loadPins` awaits the network, so two loads (or a
+ * load and a toggle) can overlap; only the newest may write back, or an older
+ * fetch resolving last overwrites newer pins with its stale snapshot.
+ */
+const loadGen = new Map<string, number>();
+const bumpGen = (userId: string) => {
+  const gen = (loadGen.get(userId) ?? 0) + 1;
+  loadGen.set(userId, gen);
+  return gen;
+};
+
+/**
  * True when the table isn't deployed yet.
  *
  * Migrations auto-deploy on merge, but there is a window between the code
@@ -152,6 +164,7 @@ function setPending(userId: string, key: string, on: boolean): void {
  */
 export async function loadPins(userId: string): Promise<Set<string>> {
   if (!userId) return new Set();
+  const gen = bumpGen(userId);
   // Seed from the mirror first so the very first paint is right.
   const local = readLocal(userId);
   cache.set(userId, local);
@@ -225,6 +238,8 @@ export async function loadPins(userId: string): Promise<Set<string>> {
     }
     for (const k of localOnlyKeys) if (!gone.has(k)) server.add(k);
   }
+  // A newer load or a toggle started while this one awaited: its state wins.
+  if (loadGen.get(userId) !== gen) return getPinnedSet(userId);
   writePending(userId, pending);
 
   cache.set(userId, server);
@@ -262,6 +277,7 @@ export function togglePinned(userId: string, jobId: string, otherUserId: string)
   const next = !set.has(k);
   if (next) set.add(k);
   else set.delete(k);
+  bumpGen(userId);
   cache.set(userId, set);
   writeLocal(userId, set);
   // Q512: a pin is pending until the server confirms it; an unpin is never

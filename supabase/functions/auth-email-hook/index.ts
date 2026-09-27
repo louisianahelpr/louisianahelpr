@@ -239,8 +239,11 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   const messageId = crypto.randomUUID()
 
-  // Log pending BEFORE enqueue so we have a record even if enqueue crashes
-  await supabase.from('email_send_log').insert({
+  // Log pending BEFORE enqueue so we have a record even if enqueue crashes.
+  // The log is bookkeeping, not delivery: a failed write alerts but never
+  // blocks the email, so the alert waits until after enqueue_email (a degraded
+  // DB makes the alert's own writes slow, and Auth's hook timeout is short).
+  const { error: pendingLogError } = await supabase.from('email_send_log').insert({
     message_id: messageId,
     template_name: emailType,
     recipient_email: user.email,
@@ -263,16 +266,25 @@ async function handleWebhook(req: Request): Promise<Response> {
     },
   })
 
+  if (pendingLogError) {
+    console.error('Failed to write pending email_send_log row', { error: pendingLogError, emailType })
+    await alertAuthEmail('send log failed', 'warning', `email_send_log insert failed for a ${emailType} email: ${pendingLogError.message ?? 'unknown error'}; the email still sent (or its enqueue failure alerts separately) but has no pending record.`)
+  }
+
   if (enqueueError) {
     console.error('Failed to enqueue auth email', { error: enqueueError, emailType })
     await alertAuthEmail('enqueue failed', 'critical', `enqueue_email failed for a ${emailType} email: ${enqueueError.message ?? 'unknown error'}`)
-    await supabase.from('email_send_log').insert({
+    const { error: failedLogError } = await supabase.from('email_send_log').insert({
       message_id: messageId,
       template_name: emailType,
       recipient_email: user.email,
       status: 'failed',
       error_message: 'Failed to enqueue email',
     })
+    if (failedLogError) {
+      console.error('Failed to write failed email_send_log row', { error: failedLogError, emailType })
+      await alertAuthEmail('send log failed', 'warning', `email_send_log insert failed after an enqueue failure for a ${emailType} email: ${failedLogError.message ?? 'unknown error'}`)
+    }
     return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

@@ -245,8 +245,8 @@ describe("realtime channel inventory (Q105)", () => {
     // …and it is actually used, by more than one consumer.
     const consumers = files.filter((f) => /\bsubscribeUserRealtime\(/.test(readFileSync(f, "utf8")) && !f.endsWith("userRealtimeBus.ts"));
     expect(consumers.map((f) => relative(SRC, f)).sort()).toEqual([
-      "components/NotificationPanel.tsx",
       "components/mobileNav/useNavUnreadCount.ts",
+      "components/notificationPanel/notificationFeed.ts",
       "hooks/useActivityBadgeCounts.ts",
       "hooks/useActivityData.ts",
       "hooks/useRealtimePush.ts",

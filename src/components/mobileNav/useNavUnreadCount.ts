@@ -14,6 +14,7 @@ import {
   getNotificationServerSnapshot,
   bellUnreadCount,
 } from "@/components/notificationPanel/notificationStore";
+import { useNotificationFeed } from "@/components/notificationPanel/notificationFeed";
 
 /**
  * Owns the Messages badge unread count for the bottom nav: the durable-cache
@@ -165,11 +166,15 @@ export function useNavUnreadCount(user: User | null | undefined) {
   }, [user]);
 
   // The bell's number, read from the SAME shared store every bell renders
-  // (notificationStore / bellUnreadCount), never re-derived here. Only this
-  // user's, and only once the bell has answered: before that (cold launch
-  // into a page with no bell, e.g. a push tap into /messages) the store holds
-  // nothing for us, and a messages-only number would overwrite the correct
-  // sum the push just put on the icon. So leave the icon alone until then.
+  // (notificationStore / bellUnreadCount), never re-derived here. The feed
+  // that fills that store (load + realtime) is bound HERE, so it runs on every
+  // route for every signed-in user, not only where a bell is mounted (Q756:
+  // a cold launch into /messages used to leave it unbound, and the icon never
+  // followed a new notification off the dashboard). Only this user's number,
+  // and only once the feed has answered: before that the store holds nothing
+  // for us, and a messages-only number would overwrite the correct sum the
+  // push just put on the icon. So leave the icon alone until then.
+  useNotificationFeed(user?.id);
   const bell = useSyncExternalStore(subscribeNotifications, getNotificationSnapshot, getNotificationServerSnapshot);
   const bellCounted = !!user && bell.userId === user.id && (bell.listLoaded || bell.unreadTotal !== null);
   const notificationsUnread = bellCounted ? bellUnreadCount(bell) : null;

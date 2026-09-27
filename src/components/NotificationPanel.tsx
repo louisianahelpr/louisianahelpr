@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type
 import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
+import { loadNotificationFeed, onNotificationArrival } from "@/components/notificationPanel/notificationFeed";
 import { useReducedMotion } from "@/lib/accessibility";
 import { AlertTriangle, BellRing, CheckCheck, Loader2 } from "lucide-react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
@@ -41,7 +41,7 @@ import {
   setNotificationUser,
   setNotifications,
   setUnreadTotal,
-  markNotificationsLoaded, bellUnreadCount,
+  bellUnreadCount,
 } from "@/components/notificationPanel/notificationStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
@@ -260,79 +260,11 @@ const NotificationPanel = () => {
       setNotificationUser(null);
       return;
     }
-    // No-op while the same person stays signed in; clears everything the
-    // moment the id changes.
-    setNotificationUser(session.user.id);
-    /* TWO SELECTS, NOT ONE — and this is the whole of the third notification-
-       count bug. The panel used to fetch only "the latest 50 by created_at",
-       which is a RECENCY page, while the badge counts UNREAD across the whole
-       table. Those are different sets, and nothing kept the page from missing
-       the unread rows entirely.
-
-       Measured against prod on 2026-09-11 for lexilombas05@gmail.com: 73 rows,
-       10 unread, 63 read — and the ten unread ones rank 53rd to 62nd by
-       created_at, because they were created on 09-10 and 63 read rows landed
-       after them. So `unread_in_page` was **0** while `unread_total` was 10.
-       The bell was right (10, from the count query) and the PANEL was wrong in
-       three ways at once: the "Unread" segment claimed 10 over an empty list,
-       the seed effect below saw no unread in the page and opened the panel on
-       All, and `markAllRead` derives `unreadIds` from the page — so it found
-       nothing, returned early, and the Mark-all-read control was a SILENT
-       no-op on the exact account that needed it.
-       That is why the two previous fixes could not help: neither the store
-       (4b7c93f08) nor the optimistic decrement (c14f86df4) is wrong. The two
-       numbers were never out of sync — the LIST was, and no amount of sharing
-       one variable makes a page contain rows it never asked for.
-       So ask for them. The recency page stays (it is what "All" shows), and a
-       second, unread-scoped select guarantees the unread rows are present
-       whenever there are at most 50 of them. Merge, dedupe by id, re-sort. */
-    const [recent, unread] = await withLoadTimeout(Promise.all([
-      supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .eq("read", false)
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]));
-    // Either failing is a failed load: a recency page without its unread rows
-    // is the defect above, and unread rows without the page is not a list.
-    const error = recent.error ?? unread.error;
-    const data = error
-      ? null
-      : [...new Map(
-          [...(recent.data ?? []), ...(unread.data ?? [])].map((n) => [n.id, n]),
-        ).values()].sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        );
-    if (error) {
-      failLoad(error);
-      return;
-    }
+    // The load itself (recency page + unread page + head count) is the bell's
+    // shared feed (Q756, ./notificationPanel/notificationFeed.ts): it THROWS on
+    // a failed list, which the caller turns into this panel's error card.
+    await loadNotificationFeed(session.user.id);
     setLoadError(false);
-    if (data) setNotifications(data);
-    markNotificationsLoaded();
-
-    // Counted separately and deliberately: the list is a page, the badge is a
-    // fact. A failure here leaves unreadTotal null and the UI falls back to
-    // the page-derived count — stale, but never a number invented from an
-    // error path.
-    const { count, error: countErr } = await withLoadTimeout(supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", session.user.id)
-      .eq("read", false));
-    if (countErr) {
-      report(countErr, { tags: { source: "NotificationPanel.unreadCount" } });
-      return;
-    }
-    setUnreadTotal(count ?? 0);
   };
 
   // Pull-to-refresh on the notification list — manual recovery path
@@ -354,81 +286,40 @@ const NotificationPanel = () => {
       registerServiceWorker();
     }
 
-    // Realtime subscription — also trigger browser push for new notifications.
-    // We resolve the userId upfront so we can pass a server-side filter,
-    // scoping the postgres_changes subscription to only this user's rows
-    // (avoids receiving every platform-wide notification INSERT).
-    let unsubscribe: (() => void) | null = null;
-    // The session read is async — if the component unmounts before it
-    // resolves, the cleanup below has already run against a null `unsubscribe`
-    // and the subscription would leak. The flag closes that race.
-    let cancelled = false;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const userId = session?.user?.id;
-      if (!userId || cancelled) return;
-      // The binding (notifications INSERT, user_id=eq.<me>) lives on the ONE
-      // shared per-user channel (src/lib/userRealtimeBus.ts, Q105). Every
-      // mounted bell, the nav badges and Dashboard's push hook used to open
-      // their own copy of it, one realtime.subscription row each.
-      unsubscribe = subscribeUserRealtime(
-        userId,
-        "notifications:insert",
-        async (payload) => {
-          const n = payload.new as Notification;
-          // A realtime INSERT can race the initial fetch (both can carry the
-          // same row), and React would then render two elements with the same
-          // key. Dedupe on id — the badge count is derived from this list, so
-          // a duplicate would also overcount unread.
-          setNotifications((prev) => {
-            if (prev.some((x) => x.id === n.id)) return prev;
-            // THE TOTAL MOVES WITH THE LIST. `unreadTotal` used to be written
-            // in exactly one place — the initial count query — so every
-            // realtime arrival grew the list and left the badge behind, and
-            // the bell under-reported by one per notification received while
-            // the app stayed open. Incremented INSIDE the dedupe branch so a
-            // row that arrives twice (realtime racing the initial fetch)
-            // counts once, which is the same reason the dedupe exists.
-            if (!n.read) setUnreadTotal((t) => (t === null ? t : t + 1));
-            return [n, ...prev];
-          });
-          // Play notification chime + vibrate
-          try {
-            const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(830, ctx.currentTime);
-            osc.frequency.setValueAtTime(990, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.3);
-            // Browsers cap concurrent AudioContexts (~6); without this
-            // the chime silently stops firing after a handful of
-            // notifications. Release it once the tone finishes.
-            osc.onended = () => { ctx.close().catch(() => {}); };
-          } catch {}
-          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-          if (document.hidden && getPushPermission() === "granted") {
-            // Same resolution as a tap in the panel — a realtime row must
-            // not open somewhere different from the row it just inserted.
-            showLocalNotification(n.title, n.message, notificationDestination(n) ?? undefined);
-          }
-        },
-        {
-          // This channel is the bell's only live feed. A drop leaves the badge
-          // frozen on a count that is no longer true, so re-read the list
-          // rather than resuming from whatever arrives next.
-          onRecovered: () => void loadNotifications(),
-        },
-      );
+    // The realtime binding and the store updates live in the bell's shared
+    // feed (Q756), bound for every signed-in user on every route by
+    // useNavUnreadCount. A mounted panel only adds the chime and the local
+    // notification for each new row.
+    const off = onNotificationArrival((n) => {
+      // Play notification chime + vibrate
+      try {
+        const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(830, ctx.currentTime);
+        osc.frequency.setValueAtTime(990, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+        // Browsers cap concurrent AudioContexts (~6); without this
+        // the chime silently stops firing after a handful of
+        // notifications. Release it once the tone finishes.
+        osc.onended = () => { ctx.close().catch(() => {}); };
+      } catch {}
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      if (document.hidden && getPushPermission() === "granted") {
+        // Same resolution as a tap in the panel — a realtime row must
+        // not open somewhere different from the row it just inserted.
+        showLocalNotification(n.title, n.message, notificationDestination(n) ?? undefined);
+      }
     });
 
     return () => {
       clearTimeout(timer);
-      cancelled = true;
-      unsubscribe?.();
+      off();
     };
   }, []);
 

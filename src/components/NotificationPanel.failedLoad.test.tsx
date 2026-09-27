@@ -77,6 +77,7 @@ vi.mock("sonner", () => ({
 
 import NotificationPanel from "./NotificationPanel";
 import { __resetNotificationStore } from "./notificationPanel/notificationStore";
+import { __resetNotificationFeedLoad } from "./notificationPanel/notificationFeed";
 
 const EMPTY_COPY = "Nothing new yet.";
 const ERROR_COPY = "Couldn't load notifications.";
@@ -103,6 +104,9 @@ describe("NotificationPanel: a failed load renders the error card, never the emp
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     __resetNotificationStore();
+    // The load is shared app-wide (Q756); a hung one from the previous test
+    // would otherwise be joined by this test's panel.
+    __resetNotificationFeedLoad();
     state.mode = "ok";
     state.sessionError = false;
   });

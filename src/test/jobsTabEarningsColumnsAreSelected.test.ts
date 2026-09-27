@@ -25,8 +25,27 @@ import ts from "typescript";
 const ROOT = process.cwd();
 const JOBS_TAB = join(ROOT, "src/components/admin/userDetail/JobsTab.tsx");
 const OPEN_PROFILE = join(ROOT, "src/components/admin/adminusers/useOpenProfile.ts");
+const HELPER_EARNINGS = join(ROOT, "src/lib/helperEarnings.ts");
 
-/** Every `j.<column>` property access read inside the `calcEarning` arrow function's body. */
+/** Every `<param>.<column>` read inside helperEarnings.ts's exported function `name`, or [] if none. */
+export function helperColumns(name: string, source = readFileSync(HELPER_EARNINGS, "utf8")): string[] {
+  const sf = ts.createSourceFile(HELPER_EARNINGS, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const cols = new Set<string>();
+  sf.forEachChild((node) => {
+    if (!ts.isFunctionDeclaration(node) || node.name?.text !== name || !node.body) return;
+    const param = node.parameters[0];
+    if (!param || !ts.isIdentifier(param.name)) return;
+    const p = param.name.text;
+    const walk = (n: ts.Node) => {
+      if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === p) cols.add(n.name.text);
+      ts.forEachChild(n, walk);
+    };
+    walk(node.body);
+  });
+  return [...cols];
+}
+
+/** Every `j.<column>` read inside the `calcEarning` arrow function's body, including through a helperEarnings.ts helper it passes `j` to. */
 export function calcEarningColumns(source: string): string[] {
   const sf = ts.createSourceFile(JOBS_TAB, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const cols = new Set<string>();
@@ -47,6 +66,15 @@ export function calcEarningColumns(source: string): string[] {
           n.expression.text === paramName
         ) {
           cols.add(n.name.text);
+        }
+        // A job passed whole to a helperEarnings.ts helper (e.g.
+        // helperShareCount(j)) needs every column that helper reads.
+        if (
+          ts.isCallExpression(n) &&
+          ts.isIdentifier(n.expression) &&
+          n.arguments.some((a) => ts.isIdentifier(a) && a.text === paramName)
+        ) {
+          for (const c of helperColumns(n.expression.text)) cols.add(c);
         }
         ts.forEachChild(n, walk);
       };
@@ -75,6 +103,7 @@ describe("admin Jobs-tab earnings columns are all selected (Q759)", () => {
     expect(earningsCols.length).toBeGreaterThan(4);
     expect(earningsCols).toContain("helpers_needed");
     expect(earningsCols).toContain("helper_fee_percent");
+    expect(earningsCols).toContain("is_group_job");
   });
 
   it("inventories the jobs select for AdminProfileJob (a broken extractor must not pass vacuously)", () => {
@@ -94,5 +123,11 @@ describe("admin Jobs-tab earnings columns are all selected (Q759)", () => {
     ));
     const missing = earningsCols.filter((c) => !broken.includes(c));
     expect(missing).toEqual(["helpers_needed"]);
+  });
+
+  it("RED when is_group_job is dropped from the select (the split gate helperShareCount reads)", () => {
+    const broken = jobsSelectColumns(openProfileSrc.replace(/, is_group_job"/, '"'));
+    const missing = earningsCols.filter((c) => !broken.includes(c));
+    expect(missing).toEqual(["is_group_job"]);
   });
 });

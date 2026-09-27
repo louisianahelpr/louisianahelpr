@@ -24,6 +24,8 @@ export interface BucketState {
   hasMime: boolean;
   /** The declared file_size_limit in bytes, when it is a plain integer or product of integers. */
   size?: number;
+  /** The declared allowed_mime_types, when it is an ARRAY[...] of string literals (Q54). */
+  mime?: string[];
 }
 
 /** Split `s` on top-level occurrences of `sep`, ignoring separators inside
@@ -79,6 +81,11 @@ function parenGroups(s: string): string[] {
   return groups;
 }
 
+/** `ARRAY['a', 'b']` (any case) as its string literals; anything else undefined. */
+const mimeList = (v: string): string[] | undefined => {
+  const m = /^\s*array\s*\[([^\]]*)\]/i.exec(v);
+  return m ? [...m[1].matchAll(/'([^']*)'/g)].map((x) => x[1]) : undefined;
+};
 const unquote = (v: string) => v.trim().replace(/^'(.*)'$/s, "$1");
 const isNonNull = (v: string) => v.trim().toLowerCase() !== "null" && v.trim() !== "";
 /** `10485760` or `50 * 1024 * 1024` (optionally `::bigint`) as a number; anything else undefined. */
@@ -90,7 +97,10 @@ const bytes = (v: string): number | undefined => {
 
 /** Apply every `INSERT INTO storage.buckets` and `UPDATE storage.buckets` in a
  * migration file to the running state map. */
-function applyMigration(sql: string, state: Map<string, BucketState>): void {
+function applyMigration(rawSql: string, state: Map<string, BucketState>): void {
+  // A `-- 5 MB cap (matches ...)` comment inside a VALUES tuple unbalanced the
+  // paren groups and dropped the avatars bucket's size and MIME list (Q54).
+  const sql = rawSql.replace(/--[^\n]*/g, "");
   const ensure = (id: string): BucketState => {
     let b = state.get(id);
     if (!b) { b = { isPublic: false, hasSize: false, hasMime: false }; state.set(id, b); }
@@ -115,7 +125,7 @@ function applyMigration(sql: string, state: Map<string, BucketState>): void {
         b.isPublic = fields[pubIdx].trim().toLowerCase() === "true";
       }
       if (sizeIdx >= 0 && sizeIdx < fields.length && isNonNull(fields[sizeIdx])) { b.hasSize = true; b.size = bytes(fields[sizeIdx]); }
-      if (mimeIdx >= 0 && mimeIdx < fields.length && isNonNull(fields[mimeIdx])) b.hasMime = true;
+      if (mimeIdx >= 0 && mimeIdx < fields.length && isNonNull(fields[mimeIdx])) { b.hasMime = true; b.mime = mimeList(fields[mimeIdx]); }
     }
   }
 
@@ -129,11 +139,12 @@ function applyMigration(sql: string, state: Map<string, BucketState>): void {
     const pub = setClause.match(/public\s*=\s*(true|false)/i);
     const size = setClause.match(/file_size_limit\s*=\s*([^,]+)/i);
     const mime = setClause.match(/allowed_mime_types\s*=\s*([^,]+)/i);
+    const mimeArr = setClause.match(/allowed_mime_types\s*=\s*(array\s*\[[^\]]*\])/i);
     for (const id of ids) {
       const b = ensure(id);
       if (pub) b.isPublic = pub[1].toLowerCase() === "true";
       if (size && isNonNull(size[1])) { b.hasSize = true; b.size = bytes(size[1]); }
-      if (mime && isNonNull(mime[1])) b.hasMime = true;
+      if (mime && isNonNull(mime[1])) { b.hasMime = true; b.mime = mimeArr ? mimeList(mimeArr[1]) : undefined; }
     }
   }
 }

@@ -28,6 +28,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SUPPORT_SCREENSHOT_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { hapticError, hapticLight } from "@/lib/haptics";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import {
@@ -138,8 +139,8 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-picking the same file
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Select an image file.");
+    if (!isAllowedUploadType(file, SUPPORT_SCREENSHOT_TYPES)) {
+      toast.error(unsupportedUploadCopy(file, "a JPG, PNG, WebP or HEIC image"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {

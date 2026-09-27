@@ -13,14 +13,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { VOICE_NOTE_MIME_TYPES } from "@/lib/messageAttachments";
 
 const MAX_SECONDS_DEFAULT = 60;
 
 /** Pick the best-supported audio MIME for the current browser/WKWebView. */
 function preferredAudioMime(): string {
   // mp4 is what iOS WKWebView supports; webm for Chrome/Android.
-  const candidates = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"];
-  for (const mime of candidates) {
+  for (const mime of VOICE_NOTE_MIME_TYPES) {
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mime)) {
       return mime;
     }

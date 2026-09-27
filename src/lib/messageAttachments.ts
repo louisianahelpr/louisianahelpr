@@ -161,6 +161,14 @@ export function getMessageAttachmentFilename(path: string, fallback = "Attachmen
  *  storage error). 60s audio at ~128kbps is ~1 MB, so 5× headroom. */
 const VOICE_NOTE_MAX_BYTES = 5 * 1024 * 1024;
 
+/**
+ * The recorder formats the message-attachments bucket takes (Q54), in the
+ * recorder's order of preference: mp4 is what iOS WKWebView records, webm is
+ * Chrome/Android. Storage matches these literally, parameters included, so
+ * useVoiceRecorder picks only from this list.
+ */
+export const VOICE_NOTE_MIME_TYPES: readonly string[] = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"];
+
 export function isAudioMime(mime: string | null | undefined): boolean {
   return !!mime && mime.startsWith("audio/");
 }
@@ -179,6 +187,9 @@ export async function uploadVoiceNote(
 ): Promise<{ path: string; mime: string; size: number } | { error: string }> {
   if (blob.size > VOICE_NOTE_MAX_BYTES) {
     return { error: "Voice note too large (max 5 MB)." };
+  }
+  if (!VOICE_NOTE_MIME_TYPES.includes(mime)) {
+    return { error: "This voice note format isn't supported." };
   }
 
   const ext = mime.includes("webm") ? "webm" : "m4a";

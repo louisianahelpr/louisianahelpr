@@ -30,6 +30,7 @@ import { Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 import { toast } from "sonner";
+import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvidenceChannel";
@@ -126,6 +127,10 @@ export const DisputeTimelineDialog = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const valid = files.filter((f) => {
+      if (!isAllowedUploadType(f, PROOF_PHOTO_TYPES)) {
+        toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
+        return false;
+      }
       if (f.size > MAX_FILE_SIZE) {
         toast.error(`"${f.name}" exceeds 5 MB limit.`);
         return false;

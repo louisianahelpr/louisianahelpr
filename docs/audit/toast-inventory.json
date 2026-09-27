@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 558,
+    "calls": 564,
     "files": 141,
-    "rendering": 536,
+    "rendering": 542,
     "suppressedByPolicy": 22,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 444,
+      "toast.error": 450,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 27,
       "toast.warning": 20
     },
     "copyPiecesByForm": {
-      "literal": 312,
+      "literal": 311,
       "template": 72,
-      "dynamic": 214,
+      "dynamic": 221,
       "jsx": 0
     }
   },
@@ -222,7 +222,17 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 71,
+      "line": 72,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeDialog.tsx",
+      "line": 76,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -232,7 +242,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 105,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -242,7 +252,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 113,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -252,7 +262,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 157,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -262,7 +272,7 @@
     },
     {
       "file": "src/components/DisputeDialog.tsx",
-      "line": 274,
+      "line": 279,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -272,7 +282,17 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 130,
+      "line": 131,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/DisputeTimelineDialog.tsx",
+      "line": 135,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -282,7 +302,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 282,
+      "line": 287,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -292,7 +312,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 289,
+      "line": 294,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -812,7 +832,17 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 103,
+      "line": 105,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/PhotoProof.tsx",
+      "line": 109,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -822,7 +852,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 120,
+      "line": 126,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -832,7 +862,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 131,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -842,7 +872,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 174,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -862,7 +892,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 183,
+      "line": 189,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -872,7 +902,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 194,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3673,17 +3703,17 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 142,
+      "line": 143,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Select an image file."
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(file, \"a JPG, PNG, WebP or HEIC image\")"
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 146,
+      "line": 147,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3693,7 +3723,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 180,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3703,7 +3733,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 219,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3840,7 +3870,17 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 79,
+      "line": 57,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or GIF photo\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 85,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3850,7 +3890,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 107,
+      "line": 113,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3860,7 +3900,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 112,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3870,7 +3910,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 163,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3890,7 +3930,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 194,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3900,7 +3940,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 201,
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3910,7 +3950,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 203,
+      "line": 209,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3920,7 +3960,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 207,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3930,7 +3970,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 264,
+      "line": 270,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -4612,7 +4652,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 117,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4622,7 +4662,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 267,
+      "line": 271,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -4632,7 +4672,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 296,
+      "line": 300,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4642,7 +4682,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 301,
+      "line": 305,
       "kind": "errorToast",
       "title": {
         "form": "dynamic",
@@ -4652,7 +4692,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 307,
+      "line": 311,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4662,7 +4702,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 314,
+      "line": 318,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4672,7 +4712,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 323,
+      "line": 327,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -4686,7 +4726,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 382,
+      "line": 386,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -4700,7 +4740,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 389,
+      "line": 393,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4710,7 +4750,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 458,
+      "line": 462,
       "kind": "toast.loading",
       "title": {
         "form": "literal",
@@ -4754,7 +4794,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 110,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4764,7 +4804,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 120,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4774,7 +4814,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 123,
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4784,7 +4824,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 150,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4794,7 +4834,17 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 162,
+      "line": 163,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(file, \"a photo (JPG, PNG, WebP, HEIC) or a PDF\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/AppliedJobsTab.tsx",
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4804,7 +4854,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 167,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4814,7 +4864,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 180,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4824,7 +4874,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 200,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4834,7 +4884,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 209,
+      "line": 211,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4844,7 +4894,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 221,
+      "line": 223,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5608,7 +5658,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 95,
+      "line": 96,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5618,7 +5668,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 142,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5638,11 +5688,21 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 215,
+      "line": 216,
       "kind": "toast.error",
       "title": {
         "form": "literal",
         "text": "Couldn't send the revision request. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/CompletionChoiceSheet.tsx",
+      "line": 408,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(f, \"a JPG, PNG, WebP or HEIC photo\")"
       },
       "renders": true
     },

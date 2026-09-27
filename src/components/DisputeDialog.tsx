@@ -25,6 +25,7 @@ import {
 import { queryKeys } from "@/lib/queryKeys";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { report } from "@/lib/errorLogger";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { userFacingError } from "@/lib/userFacingError";
@@ -67,6 +68,10 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter((f) => {
+      if (!isAllowedUploadType(f, PROOF_PHOTO_TYPES)) {
+        toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
+        return false;
+      }
       if (f.size > MAX_FILE_SIZE) {
         toast.error(`"${f.name}" exceeds 5 MB limit.`);
         return false;

@@ -12,6 +12,7 @@ import {
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import { toast } from "sonner";
+import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -98,7 +99,12 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
   // dialog, and lives ten minutes.
   const existingSrcs = useProofPhotoUrls(existingUrls);
 
-  const addFiles = (selected: File[]) => {
+  const addFiles = (picked: File[]) => {
+    const selected = picked.filter((f) => {
+      if (isAllowedUploadType(f, PROOF_PHOTO_TYPES)) return true;
+      toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
+      return false;
+    });
     if (selected.length === 0) return;
     if (files.length + selected.length > 5) { toast.error("Max 5 photos."); return; }
     const newFiles = [...files, ...selected].slice(0, 5);

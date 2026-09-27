@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { APPLICATION_ATTACHMENT_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import {
@@ -159,6 +160,7 @@ export const AppliedJobsTab = ({
   }, [withdrawTarget, userId, withdrawReason, withdrawDetail]);
 
   const handleAddAttachment = useCallback(async (appId: string, jobId: string, currentUrls: string[], file: File) => {
+    if (!isAllowedUploadType(file, APPLICATION_ATTACHMENT_TYPES)) { toast.error(unsupportedUploadCopy(file, "a photo (JPG, PNG, WebP, HEIC) or a PDF")); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("That file's too large — keep it under 5 MB."); return; }
     setUploadingAttachment(appId);
     const ext = file.name.split('.').pop();

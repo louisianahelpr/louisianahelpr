@@ -28,6 +28,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { toast } from "sonner";
+import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { hapticSuccess, hapticError, hapticMedium } from "@/lib/haptics";
 import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
@@ -402,7 +403,11 @@ export function CompletionChoiceSheet({
                       accept="image/*"
                       multiple
                       onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
+                        const files = Array.from(e.target.files || []).filter((f) => {
+                          if (isAllowedUploadType(f, PROOF_PHOTO_TYPES)) return true;
+                          toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
+                          return false;
+                        });
                         setPhotos((prev) => [...prev, ...files].slice(0, 3));
                         e.target.value = "";
                       }}

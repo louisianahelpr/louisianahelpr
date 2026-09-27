@@ -196,7 +196,7 @@ export function PendingApplicationSection({
             <input
               type="file"
               className="sr-only"
-              accept="image/*,.pdf,.doc,.docx"
+              accept="image/*,application/pdf"
               disabled={uploadingAttachment === app.id}
               onChange={(e) => {
                 const file = e.target.files?.[0];

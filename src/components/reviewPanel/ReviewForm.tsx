@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { ImagePlus, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
+import { REVIEW_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
 import { maybeCelebrate } from "@/lib/celebrate";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -50,7 +51,12 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
   // unconditionally rendered "Rate Tre B..".
   const titleName = revieweeName.trimEnd().endsWith(".") ? revieweeName.trimEnd() : `${revieweeName.trimEnd()}.`;
 
-  const addPhotoFiles = (selected: File[]) => {
+  const addPhotoFiles = (picked: File[]) => {
+    const selected = picked.filter((f) => {
+      if (isAllowedUploadType(f, REVIEW_PHOTO_TYPES)) return true;
+      toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or GIF photo"));
+      return false;
+    });
     if (selected.length === 0) return;
     const combined = [...photoFiles, ...selected].slice(0, MAX_PHOTOS);
     setPhotoFiles(combined);

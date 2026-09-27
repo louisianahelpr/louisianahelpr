@@ -22,6 +22,7 @@ import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboar
 import { userFacingError } from "@/lib/userFacingError";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isNetworkFailure } from "@/lib/networkFailure";
+import { APPLICATION_ATTACHMENT_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 
 
 type UseApplyFlowArgs = {
@@ -173,6 +174,9 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // Upload attachments first (store storage paths; resolve signed URLs at view time).
       const attachmentUrls: string[] = [];
       for (const file of files) {
+        if (!isAllowedUploadType(file, APPLICATION_ATTACHMENT_TYPES)) {
+          throw Object.assign(new Error(unsupportedUploadCopy(file, "a photo (JPG, PNG, WebP, HEIC) or a PDF")), { code: "UPLOAD_FAILED" });
+        }
         const ext = file.name.split('.').pop();
         const path = `${helperId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadErr } = await supabase.storage

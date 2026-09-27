@@ -198,6 +198,7 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "scripts/check-agent-refs.mjs::KNOWN_DEAD": "not an exemption: dead agent names mapped to a specific ERROR message",
   "scripts/check-discarded-query-filters.mjs::SKIP_DIRS": "directory-walk skip set (node_modules, dist, …)",
   "scripts/check-edge-syntax.cjs::SKIP": "directory-walk skip set",
+  "scripts/lib/stripeRestoreReconcile.mjs::KNOWN_ONE_OFF_PIS": "classification of historical Stripe PaymentIntents by exact id (a PaymentIntent is never deleted, so an entry cannot stop reproducing); excuses no offender",
   "scripts/check-vercel-config.mjs::ALLOWED": "vercel.json schema (allowed keys), not offenders",
   "scripts/test-signin-link.mjs::ALLOWED_EMAILS": "safety allowlist of test accounts a sign-in link may be minted for (app config)",
   "scripts/typecheck-edge.mjs::SKIP_DIRS": "directory-walk skip set",

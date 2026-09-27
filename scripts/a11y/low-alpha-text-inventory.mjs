@@ -34,12 +34,26 @@ function parseTokens(block) {
   for (const m of block.matchAll(/--([a-z0-9-]+):\s*([0-9.]+)\s+([0-9.]+)%\s+([0-9.]+)%/g)) {
     t[m[1]] = [parseFloat(m[2]), parseFloat(m[3]), parseFloat(m[4])];
   }
+  // Semantic names alias a brand token (`--muted-foreground: var(--stormy-sky);`).
+  // Tailwind's colour classes (`text-muted-foreground/70`) use the semantic name.
+  for (const m of block.matchAll(/--([a-z0-9-]+):\s*var\(--([a-z0-9-]+)\)\s*;/g)) {
+    t[`alias:${m[1]}`] = m[2];
+  }
   return t;
 }
 const darkStart = css.search(/--parchment:\s*220 14% 9%/);
 if (darkStart < 0) throw new Error("could not find the dark-theme token block in src/index.css");
 const LIGHT = parseTokens(css.slice(0, darkStart));
 const DARK = { ...LIGHT, ...parseTokens(css.slice(darkStart)) };
+for (const theme of [LIGHT, DARK]) {
+  for (const key of Object.keys(theme)) {
+    if (!key.startsWith("alias:")) continue;
+    const name = key.slice(6);
+    let target = theme[key];
+    for (let hops = 0; hops < 5 && theme[`alias:${target}`] && !theme[target]; hops++) target = theme[`alias:${target}`];
+    if (!theme[name] && theme[target]) theme[name] = theme[target];
+  }
+}
 
 function hslToRgb(h, s, l) {
   s /= 100;
@@ -89,6 +103,10 @@ const files = [];
 const SHAPES = [
   [/(?<![-\w])color:\s*["'`]?hsl\(var\(--([a-z0-9-]+)\)\s*\/\s*([0-9.]+)\)/g, "color"],
   [/\btext-\[hsl\(var\(--([a-z0-9-]+)\)\s*\/\s*([0-9.]+)\)\]/g, "tw-text"],
+  // Tailwind slash opacity: `text-muted-foreground/70` is
+  // `hsl(var(--muted-foreground) / 0.7)` — every colour in tailwind.config.ts
+  // is `hsl(var(--<same name>))`. `text-white/90` has no token and is skipped.
+  [/\btext-([a-z][a-z0-9-]*)\/(\d{1,2})\b/g, "tw-slash"],
 ];
 
 const SURFACES = [
@@ -107,7 +125,7 @@ for (const file of files) {
     let m;
     while ((m = re.exec(src))) {
       const token = m[1];
-      const alpha = parseFloat(m[2]);
+      const alpha = kind === "tw-slash" ? parseInt(m[2], 10) / 100 : parseFloat(m[2]);
       if (alpha >= 1) continue;
       const lineNo = src.slice(0, m.index).split("\n").length;
       const scored = [];

@@ -164,7 +164,6 @@ const SWALLOW_OK: Allow[] = [
   { file: ".github/workflows/security-audit.yml", match: "npm audit --audit-level=low || true", reason: "prints the full all-severity report for review; the gating command is the next one, `npm audit --omit=dev --audit-level=moderate`, with no swallow" },
   { file: ".github/workflows/expiry-monitor.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/workflows/supabase-usage.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
-  { file: ".github/workflows/supabase-usage.yml", match: "Page Vercel usage to Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/workflows/supabase-usage.yml", match: "Summary :: cat ", reason: "copies a report into the step summary; the usage verdict is decided by the measuring steps above" },
   { file: ".github/workflows/test.yml", match: "git fetch --no-tags --depth=1 origin \"$BASE\"", reason: "a failed fetch is followed by `git cat-file -e` on the base; if it is still missing the step checks the WHOLE tree (--all) instead of the diff — failing toward more checking" },
   { file: ".github/workflows/uptime.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },

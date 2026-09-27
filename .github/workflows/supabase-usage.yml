@@ -34,14 +34,12 @@ name: Supabase usage
 # threshold is lowered under those readings. Bucket storage is the one metric
 # NEITHER source carries — see the report footer.
 #
-# ALSO IN THIS RUN (docs/OPEN.md "Vercel usage alert", owner "finish up"
-# 2026-09-14): the "Vercel usage headroom" step below asks Vercel's own
-# billing/charges API (api.vercel.com, OPTIONAL repo secret VERCEL_TOKEN) how
-# close the team is to its plan's limits (Vercel HOBBY since Q221, from the
-# same PLAN_LIMITS), and pages #ops-alerts through
-# the same SLACK_WEBHOOK_URL path at >=80%. scripts/lib/vercelUsage.mjs has
-# the metric table and every source-URL citation. No VERCEL_TOKEN -> the step
-# logs one skip line and stays green (OWNER ACTION printed in the log).
+# NO VERCEL STEP, on purpose (docs/OPEN.md Q720, owner 2026-09-27): Vercel
+# usage is not measurable on the Hobby plan. GET /v1/billing/charges answers
+# 404 "Plan not found." for this team in every run since 09-19, and Vercel's
+# REST API has no other usage endpoint. The owner accepted never measuring it
+# rather than moving to Pro, so the step was removed instead of reporting
+# UNMEASURED every week. src/test/supabaseUsageNoVercelStep.test.ts keeps it out.
 
 on:
   schedule:
@@ -196,54 +194,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
-      # Vercel usage alert (docs/OPEN.md "Vercel usage alert", owner: "finish
-      # up" 2026-09-14). Same run, same otherwise-empty prod-load slot: no
-      # new cron. `if: ${{ !cancelled() }}` so a failure earlier in this job
-      # (e.g. the Supabase "Tell Slack" step exiting 1 on a missing webhook)
-      # never hides whether Vercel is close to a Pro limit.
-      #
-      # scripts/check-vercel-usage.mjs handles the no-secret case itself: it
-      # prints ONE skip line and exits 0, so this step is always green when
-      # VERCEL_TOKEN is absent rather than showing a silent GitHub "skipped"
-      # badge with nothing in the log (the class slackAlertWorkflows.test.ts
-      # guards against for the Slack secret). A 401/5xx fails this step
-      # loudly (see the script header) and leaves `warn` unset, so the next
-      # step below cannot fire on a broken token.
-      - name: Vercel usage headroom
-        id: vercel-usage
-        if: ${{ !cancelled() }}
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          WARN_AT_PERCENT: "80"
-        run: node scripts/check-vercel-usage.mjs
-
-      # Only on the warn path, exactly like the Supabase "Tell Slack" step
-      # above: a missing webhook fails loudly rather than skipping.
-      - name: Page Vercel usage to Slack
-        if: steps.vercel-usage.outputs.warn == 'true'
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SUMMARY: ${{ steps.vercel-usage.outputs.summary }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          # Ops alert ledger (docs/OPEN.md Q1): the Slack post scrolls away; the
-          # ledger item stays open until this workflow's own re-run is green.
-          # Recorded FIRST so a missing webhook cannot skip it; never fails the step.
-          node scripts/ops-alert-ledger.mjs record --source-kind workflow --source "vercel-usage" \
-            --title "Vercel Pro usage at or above the warn threshold" --severity warning --verify-ref "supabase-usage.yml" \
-            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
-          set -euo pipefail
-          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
-            echo "::error::Vercel usage is at or above the warn threshold of a plan limit and there is no SLACK_WEBHOOK_URL repo secret. OWNER ACTION: add it (Settings -> Secrets and variables -> Actions)."
-            exit 1
-          fi
-          TEXT=":warning: Vercel Pro usage — ${SUMMARY}
-          ${RUN_URL}"
-          curl -sS --fail-with-body -X POST -H 'content-type: application/json' \
-            --data "$(jq -nc --arg t "$TEXT" '{text:$t}')" "$SLACK_WEBHOOK_URL"
-
       - name: Summary
         if: always()
         env:
@@ -253,8 +203,6 @@ jobs:
           cat supabase-usage-report.md >> "$GITHUB_STEP_SUMMARY" || true
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Storage orphan sweep:** ${SWEEP_SUMMARY:-did not report}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          cat vercel-usage-report.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
 
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after supabase-usage — along
   # with 13 other scheduled workflows — was found failing with nobody told.

@@ -36,7 +36,7 @@ const NOW = new Date("2026-09-24T12:00:00Z");
 function q66Phrases(open: string): string[] {
   const item = /^- \[[ x~]\] \*\*Q66 [\s\S]*?(?=\n- \[)/m.exec(open)?.[0] ?? "";
   const list = /as numbers:\s*([\s\S]*?)\.\s*Show each/.exec(item)?.[1];
-  if (!list) throw new Error("Q66's metric sentence not found in docs/OPEN.md");
+  if (!list) throw new Error("Q66's metric sentence not found in docs/OPEN.md or its archive");
   return list.replace(/\s+/g, " ").split(/,\s*(?![^(]*\))/).map((s) => s.trim());
 }
 
@@ -45,7 +45,8 @@ const good = { sqlFn: async (q: string) => (q.includes("payout_transfers") ? [{ 
   runsFn: async () => [...Array(1000).fill({ conclusion: "success" }), { conclusion: "failure" }, { conclusion: "cancelled" }] };
 
 describe("Q66's metric list and scripts/slo.mjs agree, both ways", () => {
-  const phrases = q66Phrases(read("docs/OPEN.md"));
+  // Q66 is archived once ticked [x] (scripts/archive-done.mjs), so read both.
+  const phrases = q66Phrases(read("docs/OPEN.md") + "\n" + read("docs/archive/OPEN-done-2026-09.md"));
 
   it("has a real list (cannot pass vacuously)", () => {
     expect(phrases.length).toBeGreaterThan(5);

@@ -118,6 +118,7 @@ and 3) does reach native users, because the app calls the same Supabase project.
 |---|---|---|---|---|---|
 | 2026-09-26 | plan (all three) | cloud session (cloud/open-audits) | 29 ms (vercel/supabase CLIs absent: reads fell back to placeholders, as designed) | — | `node scripts/rollback/rollback.mjs plan`: 16 steps printed, 0 mutating calls. |
 | 2026-09-26 | migration | cloud session (cloud/open-audits) | — | PGlite 11.9 s wall (15 ms of SQL) | Drilled on the newest migration, 20260925155322 (run_missed_cron_catch_up): down SQL = 20260923172145's body + its REVOKE/GRANT; bad x1 then revert x3, all applied. Not pushed (a drill, not an incident). |
-| (web + function live drills pending: they move PRODUCTION traffic / code, so the owner or lead runs them in a quiet hour) | | | | | |
+| 2026-09-27 | web (LIVE) | rollback-drill.yml run 36357336613 (workflow_dispatch, repo VERCEL_TOKEN) | — | rollback request→live 6 s; promote-back request→live 5 s; job ~12 s of drill | Live served 60ca5b6c2 (dpl_6qyhVSZeeTn49VH9JU9YA9j5Fwkg); rolled back to 268beee84 (dpl_AFJBz1feXcPTvKrMsTfueMYxL1cG), then promoted the original back. After restore the project showed `{"lastRollbackTarget":null}`, and the next batched deploy (308da8fe8, committed 23:09Z) went live on its own, so auto-assignment was not left off. |
+| (function live drill and App Store timing pending: the function path moves production code; App Store is owner-only) | | | | | |
 
 Re-drill quarterly (docs/OPEN.md Q69).

@@ -442,7 +442,8 @@ BEGIN
          j.created_at,
          j.is_seed,
          j.date_needed,
-         j.expires_at
+         j.expires_at,
+         j.parent_job_id
     INTO v_job
     FROM public.jobs j
    WHERE j.id = NEW.job_id
@@ -506,6 +507,17 @@ BEGIN
   -- the poster); C3 and C10 above still run on it.
   IF current_setting('app.series_claim_rpc', true) = '1' THEN
     RETURN NEW;
+  END IF;
+
+  -- C12 (authz review HIGH). A series VISIT is never applied to. A visit a
+  -- Helpr gave up is 'open' with no helper and still funded, but it belongs
+  -- to the series: it goes only to a Helpr already on the series, through
+  -- claim_series_dates (C11 above). No discovery surface lists it
+  -- (20260927015010), and this refuses the direct INSERT and apply_to_job.
+  IF v_job.parent_job_id IS NOT NULL THEN
+    RAISE EXCEPTION 'series_visit_not_open'
+      USING ERRCODE = '42501',
+            HINT = 'This visit is part of a series.';
   END IF;
 
   -- C1. Every discovery surface requires status = 'open'.
@@ -603,6 +615,11 @@ BEGIN
   IF public.is_caller_banned() THEN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
+  -- Authz review LOW: a non-party is refused before the row lock, and with one
+  -- answer, so it can neither hold the series' lock nor probe which ids exist.
+  IF NOT public.is_series_party(p_job_id) THEN
+    RAISE EXCEPTION 'not_authorized';
+  END IF;
 
   -- One claim at a time per series: first to commit wins every contested date.
   SELECT j.id, j.title, j.customer_id, j.helper_id, j.recurring_helper_id, j.recurrence_days,
@@ -639,13 +656,16 @@ BEGIN
   END IF;
 
   -- The earliest uncreated date a future charge-recurring-visits run can still
-  -- fund (see the check in the loop).
+  -- fund (see the check in the loop). Deliberately UTC, not Chicago
+  -- (scheduling review LOW-2): it models the cron's own clock (06:06 UTC,
+  -- funding dates strictly after its UTC run date), so both sides of the
+  -- comparison are in the cron's frame. v_today above stays Chicago.
   v_min_fundable := (now() AT TIME ZONE 'UTC')::date
                     + (CASE WHEN (now() AT TIME ZONE 'UTC')::time < '05:30'::time THEN 1 ELSE 2 END);
 
   FOREACH v_d IN ARRAY (SELECT COALESCE(array_agg(DISTINCT x ORDER BY x), ARRAY[]::date[]) FROM unnest(p_dates) AS x)
   LOOP
-    IF v_d <= v_job.date_needed OR v_d <= v_today
+    IF v_d <= v_job.date_needed
        OR NOT EXISTS (SELECT 1 FROM public.series_visit_dates(v_job.date_needed, v_job.recurrence_days, v_job.recurrence_weeks) AS s
                        WHERE s = v_d) THEN
       v_refused := v_refused || v_d;
@@ -657,6 +677,17 @@ BEGIN
       FROM public.jobs c
      WHERE c.parent_job_id = v_job.id AND c.date_needed = v_d
      FOR UPDATE;
+    -- Scheduling review MEDIUM-2: the past is judged by the visit's own local
+    -- start, not by the calendar day. A visit vacated this morning for a 5pm
+    -- start can still be picked up today; one whose start has passed cannot.
+    -- A date with no visit row yet needs a day of lead time (fundability
+    -- below), so today is always too late for it.
+    IF (v_child_id IS NULL AND v_d <= v_today)
+       OR (v_child_id IS NOT NULL AND v_child_status = 'open' AND v_child_helper IS NULL
+           AND ((v_d + COALESCE(v_child_start, '00:00'::time)) AT TIME ZONE 'America/Chicago') <= now()) THEN
+      v_refused := v_refused || v_d;
+      CONTINUE;
+    END IF;
     IF v_child_id IS NOT NULL
        AND NOT (v_child_status = 'open' AND v_child_helper IS NULL
                 AND ((v_d + COALESCE(v_child_start, '00:00'::time)) AT TIME ZONE 'America/Chicago') > now()) THEN
@@ -851,6 +882,11 @@ BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated';
   END IF;
+  -- Authz review LOW: a non-party is refused before the row lock, and with one
+  -- answer, so it can neither hold the series' lock nor probe which ids exist.
+  IF NOT public.is_series_party(p_job_id) THEN
+    RAISE EXCEPTION 'not_authorized';
+  END IF;
   SELECT j.id, j.parent_job_id, j.recurrence_days, j.title, j.customer_id INTO v_job
     FROM public.jobs j WHERE j.id = p_job_id FOR UPDATE;
   IF v_job.id IS NULL THEN
@@ -908,6 +944,11 @@ DECLARE
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated';
+  END IF;
+  -- Authz review LOW: a non-party is refused before the row lock, and with one
+  -- answer, so it can neither hold the series' lock nor probe which ids exist.
+  IF NOT public.is_series_party(p_job_id) THEN
+    RAISE EXCEPTION 'not_authorized';
   END IF;
 
   SELECT j.id, j.title, j.customer_id, j.recurring_helper_id, j.helper_id, j.recurrence_days,
@@ -1031,6 +1072,12 @@ GRANT EXECUTE ON FUNCTION public.end_recurring_series(uuid) TO authenticated, se
 -- FOR SHARE on the parent, then on the hold: a give-up (parent FOR UPDATE,
 -- then DELETE of the hold) either finishes first, and this insert is refused
 -- (the cron refunds), or waits for it.
+-- Authz review HIGH: it also runs when a visit's helper_id is SET (UPDATE),
+-- so a vacated visit can be booked only by the Helpr holding its date, on
+-- every path (claim_series_dates inserts the hold first; accept_application,
+-- an admin write or anything added later does not get around it). Clearing
+-- helper_id (a give-up, a ban) is not checked, and the end-date rule is for
+-- NEW visits only, so it is skipped on UPDATE.
 CREATE OR REPLACE FUNCTION public.enforce_series_visit_within_end()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -1043,11 +1090,14 @@ BEGIN
   IF NEW.parent_job_id IS NULL THEN
     RETURN NEW;
   END IF;
+  IF TG_OP = 'UPDATE' AND (NEW.helper_id IS NULL OR NEW.helper_id IS NOT DISTINCT FROM OLD.helper_id) THEN
+    RETURN NEW;
+  END IF;
   SELECT j.series_ended_on INTO v_ended
     FROM public.jobs j
    WHERE j.id = NEW.parent_job_id
    FOR SHARE;
-  IF v_ended IS NOT NULL THEN
+  IF TG_OP = 'INSERT' AND v_ended IS NOT NULL THEN
     RAISE EXCEPTION 'series_ended: the series ended on %; no new visit (%)', v_ended, NEW.date_needed
       USING ERRCODE = '23514';
   END IF;
@@ -1064,6 +1114,11 @@ END;
 $fn$;
 
 REVOKE ALL ON FUNCTION public.enforce_series_visit_within_end() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_series_visit_within_end ON public.jobs;
+CREATE TRIGGER trg_series_visit_within_end
+  BEFORE INSERT OR UPDATE OF helper_id ON public.jobs
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_series_visit_within_end();
 
 -- ── A Helpr cancelling a booking: the crew branch, series visits, 24h strike
 -- ONE combined definition, restated from the newest text of BOTH earlier
@@ -1279,6 +1334,12 @@ RETURNS trigger
 LANGUAGE plpgsql
 SET search_path TO 'public'
 AS $fn$
+DECLARE
+  -- Authz review MEDIUM: on a split series the parent's helper_id can be null
+  -- while other Helprs hold dates, and they agreed to this schedule too. Read
+  -- as the caller: only the poster can UPDATE a parent (RLS), and a poster is
+  -- always a party under the holds' read policy, so the read sees every hold.
+  v_hired boolean;
 BEGIN
   -- A definer RPC (current_user = its owner), service_role, or postgres.
   IF current_user::text NOT IN ('authenticated', 'anon') THEN
@@ -1297,11 +1358,15 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  v_hired := OLD.helper_id IS NOT NULL
+             OR (OLD.recurrence_days IS NOT NULL AND OLD.parent_job_id IS NULL
+                 AND EXISTS (SELECT 1 FROM public.series_visit_holds h WHERE h.parent_job_id = OLD.id));
+
   IF NEW.parent_job_id IS DISTINCT FROM OLD.parent_job_id THEN
     RAISE EXCEPTION 'series_locked: jobs.parent_job_id is set only by the recurring-visit scheduler (job_id=%)', OLD.id
       USING ERRCODE = '42501';
   END IF;
-  IF NEW.recurrence_days IS DISTINCT FROM OLD.recurrence_days AND OLD.helper_id IS NOT NULL THEN
+  IF NEW.recurrence_days IS DISTINCT FROM OLD.recurrence_days AND v_hired THEN
     RAISE EXCEPTION 'series_locked: the visit schedule cannot change after a Helpr is hired (job_id=%)', OLD.id
       USING ERRCODE = '42501',
             HINT = 'Cancel the series and post a new one with the new days.';
@@ -1326,13 +1391,13 @@ BEGIN
   -- One person / split: the terms Helprs applied under. Fixed once anyone is
   -- hired on the series.
   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok
-     AND (OLD.helper_id IS NOT NULL OR OLD.recurring_helper_id IS NOT NULL) THEN
+     AND (v_hired OR OLD.recurring_helper_id IS NOT NULL) THEN
     RAISE EXCEPTION 'series_locked: one-person or split days cannot change after a Helpr is hired (job_id=%)', OLD.id
       USING ERRCODE = '42501';
   END IF;
   -- A hired series parent: every column the visit dates are computed from is
   -- the schedule the Helpr agreed to.
-  IF OLD.recurrence_days IS NOT NULL AND OLD.parent_job_id IS NULL AND OLD.helper_id IS NOT NULL
+  IF OLD.recurrence_days IS NOT NULL AND OLD.parent_job_id IS NULL AND v_hired
      AND (NEW.recurrence_weeks IS DISTINCT FROM OLD.recurrence_weeks
           OR NEW.date_needed IS DISTINCT FROM OLD.date_needed
           OR NEW.start_time IS DISTINCT FROM OLD.start_time

@@ -86,7 +86,7 @@ describe("a running recurring series blocks deleting either party's account (Q40
   it("LOW-5 deploy order: before jobs.series_ended_on exists (42703) a running series still blocks (no series can have ended yet)", async () => {
     const r = await findActiveWork(fakeAdmin({ jobs: [series()] }, ["series_ended_on"]), POSTER);
     expect(r).toMatchObject({ ok: true, active: true, reason: "series" });
-    const none = await findActiveWork(fakeAdmin({ jobs: [series({ date_needed: "2031-01-01" })], series_visit_holds: { error: { code: "42P01", message: 'relation "series_visit_holds" does not exist' } } }, ["series_ended_on"]), POSTER);
+    const none = await findActiveWork(fakeAdmin({ jobs: [series({ date_needed: "2032-01-05" })], series_visit_holds: { error: { code: "42P01", message: 'relation "series_visit_holds" does not exist' } } }, ["series_ended_on"]), POSTER);
     expect(none).toMatchObject({ ok: true, active: false });
   });
 

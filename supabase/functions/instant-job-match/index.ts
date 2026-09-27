@@ -113,6 +113,10 @@ serve(async (req) => {
       // browse surface (open_jobs_browse: customer_id IS NOT NULL), so it is
       // never announced. enqueue_instant_job_match re-checks the whole gate.
       .not("customer_id", "is", null)
+      // Q407 review: a vacated series visit (child row, open, funded) is
+      // re-offered only inside its series, never announced to strangers
+      // (job_announceable_to, 20260927015010).
+      .is("parent_job_id", null)
       .in("payment_status", FUNDED_PAYMENT_STATUSES)
       // Same visibility rule as get_public_open_jobs: hidden while a direct
       // offer is pending; matchable again once it resolves (declined/expired).

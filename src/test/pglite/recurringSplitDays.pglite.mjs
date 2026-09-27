@@ -23,11 +23,15 @@
  * lands only within 24 hours; the browse view carries the terms.
  */
 import { recurringVisitDates } from "../../lib/recurringSchedule.ts";
-import { PGlite, readMigration, baseSchema, as, checker, refused, USERS } from "./seriesWorld.mjs";
+import { PGlite, readMigration, baseSchema, as, checker, refused, USERS, newestFunctionSql } from "./seriesWorld.mjs";
 
 const END = readMigration("20260927012804_recurring_series_end.sql");
 const LOCK = readMigration("20260927012805_hired_job_schedule_lock.sql");
 const SPLIT = readMigration("20260927012806_recurring_split_days.sql");
+// Discovery surfaces restated with `parent_job_id IS NULL` (authz HIGH). Its
+// LANGUAGE sql bodies read prod tables this world does not model, so it is
+// applied with check_function_bodies off; prod validates them on deploy.
+const VIS = readMigration("20260927015010_recurring_vacated_visit_private.sql");
 const { P, A, B, C, X } = USERS;
 const { check, failures, fail } = checker();
 
@@ -109,11 +113,46 @@ const dateAt = async (db, n) => (await db.query(`select ${d(n)}::text as v`)).ro
 // ── NEW STATE ──────────────────────────────────────────────────────────────
 const db = new PGlite();
 await db.exec(baseSchema("20260927012804"));
+// get_ranked_open_jobs' RETURNS TABLE names the prod enum.
+await db.exec(`create type public.job_category as enum ('other')`);
 for (let i = 0; i < 3; i++) {
   await db.exec(END);
   await db.exec(LOCK);
   await db.exec(SPLIT);
+  await db.exec(`set check_function_bodies = off; ${VIS}; set check_function_bodies = on;`);
 }
+// PROOF_BEFORE_015010=1 puts back the discovery gates as they were before
+// 20260927015010, so the vacated-visit checks below print red.
+if (process.env.PROOF_BEFORE_015010) {
+  for (const f of ["job_announceable_to", "notify_saved_searches_on_new_job", "deliver_saved_search_alert"]) {
+    await db.exec(`set check_function_bodies = off; ${newestFunctionSql(f, "20260927015010").sql}; set check_function_bodies = on;`);
+  }
+}
+// Just enough of the saved-search world for its funded-UPDATE trigger: X has
+// a catch-all saved search, so any job that becomes open + funded queues X.
+await db.exec(`
+  alter table public.profiles add column email_verified boolean default true, add column latitude numeric,
+    add column longitude numeric, add column parish text;
+  create table public.saved_searches (id uuid primary key default gen_random_uuid(), user_id uuid, name text default 's',
+    created_at timestamptz default now(), notify_enabled boolean default true, category text, parish text,
+    max_budget numeric, min_budget numeric, query text, location_keyword text, radius_miles numeric, last_notified_at timestamptz);
+  create table public.notification_preferences (user_id uuid primary key, job_matches boolean, match_digest_mode boolean);
+  create table public.match_digest_queue (user_id uuid, job_id uuid, unique (user_id, job_id));
+  create table public.saved_search_alert_queue (user_id uuid, job_id uuid, notify_at timestamptz, search_name text,
+    matched_search_ids uuid[], unique (user_id, job_id));
+  create function public.early_access_visible_at(uuid, timestamptz) returns timestamptz language sql stable as $f$ select now() $f$;
+  create function public.miles_between(numeric, numeric, numeric, numeric) returns numeric language sql immutable as $f$ select 0::numeric $f$;
+  create function public.get_user_credential_tier(uuid) returns int language sql stable as $f$ select 0 $f$;
+  insert into public.saved_searches (user_id) values ('${USERS.X}');
+  grant all on public.saved_searches, public.notification_preferences, public.match_digest_queue,
+    public.saved_search_alert_queue to service_role;
+  -- Prod: service_role=X on deliver_saved_search_alert (proacl, 2026-09-27).
+  grant execute on function public.deliver_saved_search_alert(uuid, uuid, text, uuid[]) to service_role;
+  create trigger trg_notify_saved_searches_funded_update after update on public.jobs for each row
+    when (new.status = 'open' and new.payment_status in ('escrow','payout_pending','released')
+          and (old.status is distinct from 'open' or old.payment_status is distinct from new.payment_status))
+    execute function public.notify_saved_searches_on_new_job();
+`);
 check("migration chain applies 3x (replay-safe)", true);
 
 // 1. Schedule parity with the TypeScript authority.
@@ -296,6 +335,25 @@ check("a new one-person hire takes every open date back", held.length === expect
   check("the poster is told the date is back on the series (not 'open to everyone')", n >= 1, String(n));
   r = await as(db, "authenticated", X, `select count(*)::int c from public.open_jobs_browse where id='${V}'`);
   check("a vacated series visit is not in the public browse view", r.ok && r.rows[0].c === 0, r.err ?? JSON.stringify(r.rows?.[0]));
+  // authz HIGH / scheduling MEDIUM-1: the vacated visit is not public work on
+  // any surface, and nobody but the series' own claim can take it.
+  r = await server(db, `select public.job_announceable_to(j, '${X}') as v from public.jobs j where j.id='${V}'`);
+  check("HIGH a vacated series visit is not announceable (parish match, digest, instant match)", r.ok && r.rows[0].v === false, r.err ?? JSON.stringify(r.rows?.[0]));
+  n = (await db.query(`select count(*)::int c from public.saved_search_alert_queue where job_id='${V}'`)).rows[0].c;
+  check("HIGH a vacated series visit queues no saved-search alert (the funded-UPDATE trigger fired)", n === 0, String(n));
+  // Control: the same trigger DOES queue a plain one-time job that reopens.
+  const PLAIN = J(40);
+  await server(db, `insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, payment_status)
+    values ('${PLAIN}', 'plain', '${P}', '${A}', 'accepted', ${d(30)}, '09:00', 'escrow')`);
+  await server(db, `update public.jobs set helper_id = null, status = 'open' where id='${PLAIN}'`);
+  n = (await db.query(`select count(*)::int c from public.saved_search_alert_queue where job_id='${PLAIN}' and user_id='${X}'`)).rows[0].c;
+  check("control: a one-time job reopening while funded does queue the saved search", n === 1, String(n));
+  r = await server(db, `select public.deliver_saved_search_alert('${X}', '${V}', 's', array(select id from public.saved_searches where user_id='${X}')) as v`);
+  check("HIGH ... and an alert already queued for it is dropped at send time", r.ok && r.rows[0].v === false, r.err ?? JSON.stringify(r.rows?.[0]));
+  r = await as(db, "authenticated", X, `insert into public.applications (job_id, helper_id) values ('${V}', '${X}')`);
+  check("HIGH a client cannot apply to a vacated series visit", refused(r, /series_visit_not_open/), r.err);
+  r = await server(db, `update public.jobs set helper_id='${X}', status='accepted' where id='${V}'`);
+  check("HIGH even a server write cannot put a non-holder on a series visit", refused(r, /series_date_unheld/), r.err);
   await server(db, `insert into public.applications (job_id, helper_id) values ('${J(3)}', '${C}')`);
   r = await as(db, "authenticated", P, `select public.offer_series_dates('${J(3)}', '${C}') as v`);
   check("the poster can offer the vacated date", r.ok && r.rows[0].v.open_dates >= 1, r.err ?? JSON.stringify(r.rows?.[0]));
@@ -307,7 +365,7 @@ check("a new one-person hire takes every open date back", held.length === expect
   check("... with an accepted application row", n.length === 1 && n[0].status === "accepted", JSON.stringify(n));
   // MEDIUM-1: the takeover's application bypass is the claim's alone.
   r = await as(db, "authenticated", X, `insert into public.applications (job_id, helper_id) values ('${V}', '${X}')`);
-  check("a client cannot apply to the booked visit (the claim's flag is not theirs)", refused(r, /job_not_open/), r.err);
+  check("a client cannot apply to the booked visit (the claim's flag is not theirs)", refused(r, /series_visit_not_open/), r.err);
   // Within 24 hours: the strike applies to a series visit too.
   const W = J(21);
   await server(db, `insert into public.series_visit_holds (parent_job_id, visit_date, helper_id) values ('${J(4)}', current_date + 20, '${C}') on conflict do nothing`);
@@ -343,6 +401,10 @@ check("a new one-person hire takes every open date back", held.length === expect
   await server(db, `insert into public.applications (job_id, helper_id) values ('${J(4)}', '${B}') on conflict do nothing`);
   await as(db, "authenticated", P, `select public.offer_series_dates('${J(4)}', '${B}')`);
   await server(db, `delete from public.series_visit_holds where parent_job_id='${J(4)}' and visit_date = current_date + 1`);
+  // 10b's "soon visit" W lands on this date when Chicago's now + 3h crosses
+  // midnight; this check is about a date with NO visit row, so clear it.
+  await db.exec(`delete from public.applications where job_id in (select id from public.jobs where parent_job_id='${J(4)}' and date_needed = current_date + 1)`);
+  await db.exec(`delete from public.jobs where parent_job_id='${J(4)}' and date_needed = current_date + 1`);
   r = await as(db, "authenticated", B, `select public.claim_series_dates('${J(4)}', array[current_date + 1]) as v`);
   check(`an uncreated date past its last funding run is refused (tooSoon=${tooSoon})`,
     r.ok && (tooSoon ? r.rows[0].v.refused.length === 1 : r.rows[0].v.claimed.length === 1), r.err ?? JSON.stringify(r.rows?.[0]));
@@ -357,6 +419,61 @@ n = (await db.query(`select distinct user_id from public.notifications where job
 check("every Helpr still on the series is told (a booked visit counts)", JSON.stringify(n) === JSON.stringify([A, B, C].sort()), JSON.stringify(n));
 r = await as(db, "authenticated", C, `select public.claim_series_dates('${J(2)}', array[${d(10)}]) as v`);
 check("no claim after the series ended", refused(r, /series_ended/), r.err);
+
+// 11b. Authz review LOW: a non-party is refused before the row lock, with one
+// answer whether the id is a series, a visit, or nothing at all.
+for (const fn of ["claim_series_dates('ID', array[current_date + 5])", "give_up_series_dates('ID', array[current_date + 5])", "end_recurring_series('ID')"]) {
+  for (const [label, id] of [["an unknown id", "a0000000-0000-0000-0000-00000000ffff"], ["someone else's visit", J(20)], ["someone else's series", J(3)]]) {
+    r = await as(db, "authenticated", X, `select public.${fn.replace("ID", id)} as v`);
+    check(`LOW a non-party calling ${fn.split("(")[0]} on ${label} gets not_authorized`, refused(r, /not_authorized/) && !/job_not_found|not_a_series/.test(r.err ?? ""), r.err);
+  }
+}
+
+// 11c. Authz review MEDIUM: a split series whose visit-one Helpr left still has
+// Helprs holding dates; its schedule is theirs too, though the parent's
+// helper_id is null.
+{
+  await db.exec(SERIES(J(6), true, "split, visit-one Helpr gone"));
+  await server(db, `insert into public.series_visit_holds (parent_job_id, visit_date, helper_id) values ('${J(6)}', ${d(8)}, '${B}')`);
+  for (const [col, val] of [["recurrence_weeks", "5"], ["date_needed", d(4)], ["series_split_ok", "false"], ["recurrence_days", "'{1,3}'"]]) {
+    r = await as(db, "authenticated", P, `update public.jobs set ${col} = ${val} where id='${J(6)}'`);
+    check(`MEDIUM the poster cannot change ${col} while a Helpr holds a date (parent helper_id null)`, refused(r, /series_locked/), r.err ?? `affected ${r.affected}`);
+  }
+  await db.exec(SERIES(J(7), true, "split, nobody yet"));
+  r = await as(db, "authenticated", P, `update public.jobs set recurrence_weeks = 5 where id='${J(7)}'`);
+  check("control: with no hold and no hire the poster can still change the schedule", r.ok && r.affected === 1, r.err);
+}
+
+// 11d. Scheduling review MEDIUM-2: a vacated visit is judged by its own local
+// start, not the calendar day.
+{
+  const hourNow = Number((await db.query(`select extract(hour from (now() at time zone 'America/Chicago'))::int h`)).rows[0].h);
+  const mk = async (id, child, startExpr) => {
+    await db.exec(`insert into public.jobs (id, title, customer_id, status, date_needed, start_time, recurrence_days, recurrence_weeks, series_split_ok)
+      values ('${id}', 'same-day', '${P}', 'open', (now() at time zone 'America/Chicago')::date - 7, '09:00', '{0,1,2,3,4,5,6}', 3, true)`);
+    // Booked for its holder, then vacated (as helper_cancel_booking leaves it).
+    await server(db, `insert into public.series_visit_holds (parent_job_id, visit_date, helper_id) values ('${id}', (now() at time zone 'America/Chicago')::date, '${A}')`);
+    let ins = await server(db, `insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, parent_job_id, payment_status)
+      values ('${child}', 'same-day', '${P}', '${A}', 'accepted', (now() at time zone 'America/Chicago')::date, ${startExpr}, '${id}', 'escrow')`);
+    if (ins.ok) ins = await server(db, `update public.jobs set helper_id = null, status = 'open' where id='${child}'`);
+    if (ins.ok) ins = await server(db, `delete from public.series_visit_holds where parent_job_id='${id}'`);
+    check(`MEDIUM-2 fixture: the vacated same-day visit ${child.slice(-2)} exists`, ins.ok, ins.err);
+    await server(db, `insert into public.applications (job_id, helper_id) values ('${id}', '${B}')`);
+    await as(db, "authenticated", P, `select public.offer_series_dates('${id}', '${B}')`);
+    return as(db, "authenticated", B, `select public.claim_series_dates('${id}', array[(now() at time zone 'America/Chicago')::date]) as v`);
+  };
+  // Later today: now + 3h, capped at 23:59 so it stays on today's date.
+  const lateOk = (await db.query(`select (now() at time zone 'America/Chicago')::time < '23:55' as x`)).rows[0].x;
+  if (lateOk) {
+    r = await mk(J(30), J(31), `least((now() at time zone 'America/Chicago') + interval '3 hours',
+      date_trunc('day', now() at time zone 'America/Chicago') + interval '23 hours 59 minutes')::time`);
+    check("MEDIUM-2 a visit vacated today with a start later today can be picked up", r.ok && r.rows[0].v.claimed.length === 1, r.err ?? JSON.stringify(r.rows?.[0]));
+  } else check("MEDIUM-2 later-today case skipped after 23:55 Chicago (no later start exists today)", true);
+  if (hourNow >= 3) {
+    r = await mk(J(32), J(33), `((now() at time zone 'America/Chicago') - interval '2 hours')::time`);
+    check("MEDIUM-2 a vacated visit whose start has passed cannot", r.ok && r.rows[0].v.claimed.length === 0 && r.rows[0].v.refused.length === 1, r.err ?? JSON.stringify(r.rows?.[0]));
+  } else check("MEDIUM-2 passed-start case skipped before 03:00 Chicago", true);
+}
 
 // 12. Grants and ban.
 r = await as(db, "authenticated", A, `insert into public.series_visit_holds (parent_job_id, visit_date, helper_id) values ('${J(2)}', ${d(12)}, '${A}')`);

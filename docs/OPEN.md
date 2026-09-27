@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 218** (166 to do, 52 fixed with protection pending; 367 done). Feeds mirrored in: 15 from the alert ledger, 12 from nightly-red issues, 10 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 217** (166 to do, 51 fixed with protection pending; 368 done). Feeds mirrored in: 15 from the alert ledger, 12 from nightly-red issues, 10 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T21:05Z)_
 - **Remote branches:** 102 carry patches not on main, 0 fully merged, of 103 (Q79). _(2026-09-27T21:05Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 585 items — 367 done, 52 partly done (fixed, protection pending), 166 open.**
+**Queue: 585 items — 368 done, 51 partly done (fixed, protection pending), 166 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -62,47 +62,6 @@ Owner order: every alert, from anywhere, is fixed AND verified fixed (CLAUDE.md)
 Nothing here gets muted: every failure still fails loudly; the work is making
 sure someone hears it and closes it.
 
-- [~] **Q1 Alert ledger.** **STATUS 2026-09-26 (cloud/open-ops, re-measured live, read-only SQL 03:43Z):** (b) DONE: nightly_red items sync (29 in the ledger, newest 2026-09-26 02:08Z). (c) DONE: Sentry items sync (2, newest last_seen 2026-09-25 03:04Z; JAVASCRIPT-2K). (d) PARTLY: sql_condition now covers 12 sources live (detect_stuck_payments, ops-digest-undelivered, push-tokens-empty, db-saturation, db-statement-timeouts, error-log-throttled, email-dlq x2, cron-dead/startup-timeout/caught-up, cron-http-untagged, seed-boundary, user-report, user-error-screen) plus the new ops-alert-pending-stale; cron-http (timeouts), cron-missed-slot and dispute-unsettled-seed stay manual, edge ops-alert:* stay companions. (e) BUILT: migration 20260926040011 adds check_ops_alert_pending() on its own pg_cron job (ops-alert-pending-watchdog, hourly, 3h liveness expectation): it folds the queue itself (a second path, independent of the GitHub job) and reports a row still queued after 2h once per UTC day as error_logs source ops-alert-pending-stale (sql_condition close rule); PGlite ALL PASS 3x, 14 FAIL without it; guard src/test/opsAlertPendingWatchdog.test.ts (6 @mutate, each red). The brief now prints the queued count (src/test/opsLedgerBriefCountsQueued.test.ts, 3 @mutate). Live at 03:43Z: ops_alert_pending empty. The new migration's lh-authz-rls REVIEW ONLY pass (2026-09-26): SHIP; nit: the fold and the report insert share one transaction (an exception in the insert would undo the fold; no trigger on that path can raise, traced). OPEN: (a) lh-authz-rls review of the original 20260923043402 is still not recorded here; after deploy, confirm cron.job has ops-alert-pending-watchdog and its first run in cron.job_run_details succeeded. BUILT 2026-09-23 (migration 20260923043402,
-  `public.ops_alert_ledger`; CLI `scripts/ops-alert-ledger.mjs`; hourly sync in
-  prod-errors.yml; Open Alerts card on /admin?view=health; session-start hook
-  prints the open list; guard src/test/opsAlertLedgerCoverage.test.ts, red on
-  the old tree with 12 bypasses). Left open until: (a) lh-authz-rls review of
-  the migration, (b) first hourly sync shows nightly-red issues in the ledger,
-  (c) Sentry syncs (needs SENTRY_AUTH_TOKEN/ORG/PROJECT repo secrets — the sync
-  says SKIPPED otherwise), (d) more `sql_condition` verify hooks: cron-http,
-  cron-silent, dispute-unsettled, rls-escalation-refused and every edge
-  `ops-alert:*` item are `manual`/`companions` today.
-  REVIEW FOLLOW-UP 2026-09-23 (migration 20260923050059): HIGH fixed — the
-  error_logs trigger's ledger upsert could stall a concurrent caller until its
-  COMMIT (measured 3004 ms vs a 3000 ms hold; prod lock_timeout=0). Now
-  ops_alert_record bounds the wait to 100 ms and, if the row is busy, queues
-  the occurrence in `ops_alert_pending`; ops_alert_verify() folds it in (hourly).
-  Measured after: 103 ms / 104 ms (existing row / brand-new fingerprint), both
-  transactions commit, caller's lock_timeout untouched
-  (scripts/probes/ops-alert-ledger-concurrency.embedded-pg.mjs; class guard
-  src/test/errorLogTriggersNeverWait.test.ts, red on the original). MEDIUM
-  fixed — normalise v2 keeps [1-5]xx codes after http/status/returned/
-  responded/code/error and digits glued to a name (v2, job_7); ids, amounts,
-  timestamps, signed numbers still stripped; provable existing rows re-keyed
-  (merged where two v1 items are now one; open wins). LOW fixed —
-  check_ops_digest_delivery() is ok:false when the ops-daily-digest
-  expectation row is missing (row exists live, registered 2026-09-14); the
-  side effect is commented at the ops_alert_condition call site.
-  lh-silent-failure review of the fix: re-key merge chain lost counts/open
-  status (fixed: row re-read per iteration, PGlite chain case red without it);
-  one bad pending row stopped every fold (fixed: per-row sub-block, row stays
-  queued); 6+ digit numbers were `<id>` (fixed: hex ids need a letter).
-  STILL OPEN: (e) no watchdog on `ops_alert_pending` — if the hourly `ledger`
-  job stops, queued occurrences never fold and nothing says so (alert on
-  oldest queued_at age from something other than that job); the brief
-  (ops-alert-ledger.mjs) reads the ledger without folding, so it undercounts
-  during a storm.
-  One tracked item per distinct alert fingerprint,
-  from error_logs (server rows, every severity), Slack posts that bypass
-  error_logs, Sentry, nightly-red issues and CI. Auto-opened, and closed only
-  after that alert's own detector has been re-run and shows it cleared. A
-  guard ensures no code path posts to Slack without a ledger entry. The
-  session-start check reads it first. STATUS 2026-09-27 (lane A): cron ops-alert-pending-watchdog (`37 * * * *`) green, its migrations applied. Live authz: RLS on, admin-only SELECT policy; ops_alert_pending has no anon/authenticated access; all 16 ops_alert_* functions proacl postgres + service_role only. Still missing: an lh-authz-rls review record for 20260923043402 (3de93fe23) in docs/reviews/sensitive-reviews.jsonl.
 - [ ] **Q7 WebKit only: the bottom nav isn't frosted. OWNER (device), re-checked 2026-09-26: still unmeasured in WebKit.** Nothing code-side can settle it. The dock is signed-in only (guest /browse renders no MobileNav, checked at 375), the cloud session that took this item had no test-account credentials, and Playwright WebKit on Linux is not the iOS compositor, so no CI run can show WKWebView frost either. What the source does (MobileNav.tsx:705-745): the full-width curtain carries `backdropFilter`/`WebkitBackdropFilter: blur(32px) saturate(170%)` together with `maskImage`/`WebkitMaskImage` on the SAME element, and the pill carries `blur(40px) saturate(180%)` inside the nav, whose own style has `transform` + `willChange: transform` (the hide-on-scroll slide). Both are inline styles, so the CSS minifier cannot have dropped the -webkit- form. **Ask:** on the iOS 26.1 simulator or a device, signed in, open /home, scroll the feed under the dock and send one screenshot. **Recommendation:** if the pill is frosted and only the band above it is clear, the curtain's mask is the suspect (test by removing `WebkitMaskImage` alone). If the pill is clear too, test with `willChange` removed from the nav. Fix whichever one screenshot proves, and add a pixel-variance check under the dock to a WebKit spec.
 - [ ] **Q10 Owner-side, carried over:** (from Q242, 2026-09-24: dashboard-only cleanup — Slack #new-channel/#social and the Lovable/"Helpr Op" Slack apps; Checkr/Certificial/Browserbase keys and webhooks in their dashboards; extra Supabase API keys / auth providers; Stripe Connect settings.) release dispute 9756a585's payout;
   **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL — DONE 2026-09-23 by Claude in the owner's Chrome (Settings > Payouts > Manual payouts, saved, re-read after reload; no test-mode banner, so the live account); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; Louisiana IS registered and collecting (checked in the Stripe dashboard 2026-09-23: Tax > Locations, 1 registration, collecting); filing is NOT set up there ('Set up filing') — OWNER: decide whether Stripe files the returns); right-panel overlap: owner asked Claude to audit it (Q151).

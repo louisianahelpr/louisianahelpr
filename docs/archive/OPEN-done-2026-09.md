@@ -1811,3 +1811,47 @@ duplicate-number check).
 ## Archived 2026-09-27 — from "MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)"
 
 - [x] **Q192 Q180 follow-ups from the lh-authz-rls review (2026-09-23).** DONE 2026-09-27 (lane 1): (d) and (c) are unreachable by construction, measured: GET /auth/v1/settings on prod returns mailer_autoconfirm false, anonymous_users false, phone false (only email, apple, google), so GoTrue issues no session to an unconfirmed email account; the rail renders only with a user (DesktopSidebarNav `if (!user) return null`, useAppShellViewport gates desktop-rail on railUserPresent). mailer_autoconfirm staying false is asserted nightly by scripts/check-identity-linking.mjs in db-drift-detect.yml. GUARD src/test/adminCreatedUsersAreConfirmed.test.ts closes our own path. The owner decision in (b) moved to Q807. STATUS 2026-09-26 (cloud/open-security-money): (b) MEASURED on prod: 0 auth.users with email_confirmed_at NULL (so 0 unconfirmed accounts with a job, message or application); pg_policies has 1 policy reading email verification. Our own code's only way to mint a session for an unconfirmed account is an admin-API user without email_confirm; GUARD src/test/adminCreatedUsersAreConfirmed.test.ts (every admin user-creation call in src, supabase/functions, scripts, e2e passes email_confirm: true; floor 4; @mutate red). OWNER QUESTION for (b): add a server half (RLS/RPC refuse writes when auth.jwt() email is unconfirmed)? Recommendation: not now: GoTrue already refuses the session, 0 such accounts exist and the guard closes our own path; revisit if a non-email sign-in (phone/SSO) is added. (c) 0 banned+unconfirmed rows; an unconfirmed account gets no session from GoTrue, so the client never routes it (measured count; the routing itself not exercised). (d) NOT CHECKED (needs a browser pass with an unconfirmed session, which GoTrue will not issue; the rail renders only when signed in). (a) DONE 2026-09-23 (Q193, measured, no dashboard needed): the landing is now https://www.louisianahelpr.com/signup-pending (/account-pending was deleted). A real admin generate_link for a seeded test account with that redirect_to 303s to exactly https://www.louisianahelpr.com/signup-pending#access_token=… (so it IS allow-listed); https://evil.example.com/steal falls back to the Site URL (not open). Probe: ~/.lh-shots/q193/landing-probe.mjs. (b) The server enforces email confirmation ONLY by GoTrue refusing unconfirmed sessions; no RLS policy or RPC checks auth.jwt() email_verified, so a session minted another way (admin createUser without email_confirm) could write. Decide whether Q180 needs a server half (data-model change, own review). (c) An unconfirmed account that is also banned can land on /signup-pending (the email gate fires before the profile loads) rather than /account-banned, until it confirms (0 such rows live; the denied state no longer exists since Q193). (d) Not checked: whether the desktop right rail renders for an unconfirmed user on public pages (/help, /support, legal).
+
+## Archived 2026-09-27 — from "QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight"
+
+- [x] **Q1 Alert ledger.** DONE 2026-09-27 (lane 1): (a) lh-authz-rls REVIEW ONLY of 20260923043402 and every later redefinition, judged on LIVE prod: VERDICT approve. ops_alert_ledger RLS on, relacl {postgres, service_role, authenticated=r}, one SELECT policy gated on has_role(admin); ops_alert_pending and ops_alert_admin_subjects RLS on with no client grant; all 16 public.ops_alert* functions pin search_path=public and none grants EXECUTE to PUBLIC, anon or authenticated (ops_alert_apply postgres only). (e) cron.job ops-alert-pending-watchdog is active ('37 * * * *'), 39 succeeded and 0 failed runs in cron.job_run_details, last 2026-09-27 21:37Z. GUARD src/test/opsAlertLedgerCoverage.test.ts and src/test/opsAlertPendingWatchdog.test.ts. **STATUS 2026-09-26 (cloud/open-ops, re-measured live, read-only SQL 03:43Z):** (b) DONE: nightly_red items sync (29 in the ledger, newest 2026-09-26 02:08Z). (c) DONE: Sentry items sync (2, newest last_seen 2026-09-25 03:04Z; JAVASCRIPT-2K). (d) PARTLY: sql_condition now covers 12 sources live (detect_stuck_payments, ops-digest-undelivered, push-tokens-empty, db-saturation, db-statement-timeouts, error-log-throttled, email-dlq x2, cron-dead/startup-timeout/caught-up, cron-http-untagged, seed-boundary, user-report, user-error-screen) plus the new ops-alert-pending-stale; cron-http (timeouts), cron-missed-slot and dispute-unsettled-seed stay manual, edge ops-alert:* stay companions. (e) BUILT: migration 20260926040011 adds check_ops_alert_pending() on its own pg_cron job (ops-alert-pending-watchdog, hourly, 3h liveness expectation): it folds the queue itself (a second path, independent of the GitHub job) and reports a row still queued after 2h once per UTC day as error_logs source ops-alert-pending-stale (sql_condition close rule); PGlite ALL PASS 3x, 14 FAIL without it; guard src/test/opsAlertPendingWatchdog.test.ts (6 @mutate, each red). The brief now prints the queued count (src/test/opsLedgerBriefCountsQueued.test.ts, 3 @mutate). Live at 03:43Z: ops_alert_pending empty. The new migration's lh-authz-rls REVIEW ONLY pass (2026-09-26): SHIP; nit: the fold and the report insert share one transaction (an exception in the insert would undo the fold; no trigger on that path can raise, traced). OPEN: (a) lh-authz-rls review of the original 20260923043402 is still not recorded here; after deploy, confirm cron.job has ops-alert-pending-watchdog and its first run in cron.job_run_details succeeded. BUILT 2026-09-23 (migration 20260923043402,
+  `public.ops_alert_ledger`; CLI `scripts/ops-alert-ledger.mjs`; hourly sync in
+  prod-errors.yml; Open Alerts card on /admin?view=health; session-start hook
+  prints the open list; guard src/test/opsAlertLedgerCoverage.test.ts, red on
+  the old tree with 12 bypasses). Left open until: (a) lh-authz-rls review of
+  the migration, (b) first hourly sync shows nightly-red issues in the ledger,
+  (c) Sentry syncs (needs SENTRY_AUTH_TOKEN/ORG/PROJECT repo secrets — the sync
+  says SKIPPED otherwise), (d) more `sql_condition` verify hooks: cron-http,
+  cron-silent, dispute-unsettled, rls-escalation-refused and every edge
+  `ops-alert:*` item are `manual`/`companions` today.
+  REVIEW FOLLOW-UP 2026-09-23 (migration 20260923050059): HIGH fixed — the
+  error_logs trigger's ledger upsert could stall a concurrent caller until its
+  COMMIT (measured 3004 ms vs a 3000 ms hold; prod lock_timeout=0). Now
+  ops_alert_record bounds the wait to 100 ms and, if the row is busy, queues
+  the occurrence in `ops_alert_pending`; ops_alert_verify() folds it in (hourly).
+  Measured after: 103 ms / 104 ms (existing row / brand-new fingerprint), both
+  transactions commit, caller's lock_timeout untouched
+  (scripts/probes/ops-alert-ledger-concurrency.embedded-pg.mjs; class guard
+  src/test/errorLogTriggersNeverWait.test.ts, red on the original). MEDIUM
+  fixed — normalise v2 keeps [1-5]xx codes after http/status/returned/
+  responded/code/error and digits glued to a name (v2, job_7); ids, amounts,
+  timestamps, signed numbers still stripped; provable existing rows re-keyed
+  (merged where two v1 items are now one; open wins). LOW fixed —
+  check_ops_digest_delivery() is ok:false when the ops-daily-digest
+  expectation row is missing (row exists live, registered 2026-09-14); the
+  side effect is commented at the ops_alert_condition call site.
+  lh-silent-failure review of the fix: re-key merge chain lost counts/open
+  status (fixed: row re-read per iteration, PGlite chain case red without it);
+  one bad pending row stopped every fold (fixed: per-row sub-block, row stays
+  queued); 6+ digit numbers were `<id>` (fixed: hex ids need a letter).
+  STILL OPEN: (e) no watchdog on `ops_alert_pending` — if the hourly `ledger`
+  job stops, queued occurrences never fold and nothing says so (alert on
+  oldest queued_at age from something other than that job); the brief
+  (ops-alert-ledger.mjs) reads the ledger without folding, so it undercounts
+  during a storm.
+  One tracked item per distinct alert fingerprint,
+  from error_logs (server rows, every severity), Slack posts that bypass
+  error_logs, Sentry, nightly-red issues and CI. Auto-opened, and closed only
+  after that alert's own detector has been re-run and shows it cleared. A
+  guard ensures no code path posts to Slack without a ledger entry. The
+  session-start check reads it first. STATUS 2026-09-27 (lane A): cron ops-alert-pending-watchdog (`37 * * * *`) green, its migrations applied. Live authz: RLS on, admin-only SELECT policy; ops_alert_pending has no anon/authenticated access; all 16 ops_alert_* functions proacl postgres + service_role only. Still missing: an lh-authz-rls review record for 20260923043402 (3de93fe23) in docs/reviews/sensitive-reviews.jsonl.

@@ -1424,3 +1424,7 @@ duplicate-number check).
 ## Archived 2026-09-27 — from "Still open for the owner"
 
 - [x] TAB_TITLES.wrapped drifts ("Helpr Wrapped" vs "Your 2026 so far") — DONE (verified 2026-09-27): `TAB_TITLES.wrapped` is `Your ${wrappedSeasonLabel().title}`, HelprWrapped.tsx:450 reads it back, and src/pages/profile/types.test.ts:33-61 guards both halves (passes on main 0a04dc0db). (archive L7495)
+
+## Archived 2026-09-27 — from "CARRIED — the 2026-09-02 ledger (docs/audit/OPEN_ITEMS.md, retired 2026-09-23)"
+
+- [x] **HYGIENE #5**: handleIdUpload / idUploading / onIdUpload dead prop chain. DONE (verified 2026-09-27): zero occurrences in src/ outside tests; removed by a4d87c1a0 (Q40), kept out by src/test/retiredIdUploadStaysGone.test.ts (passes).

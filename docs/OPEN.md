@@ -1731,7 +1731,6 @@ Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02
 - [ ] **OWNER-ONLY #11**: Enable HaveIBeenPwned in Supabase Auth (F-SEC-08). Owner dashboard action; unverifiable from repo, stays open. (also: TODO.md (F-SEC-08))
 - [ ] **OWNER-ONLY #12**: Decide the Android question (dead FCM branch, no client). Still no android/ directory or assetlinks.json; decision not made.
 - [ ] **HYGIENE #3**: axe workflow (a11y-axe.yml) not a required branch-protection check. Branch protection still lists only 3 required checks; axe/a11y still not required.
-- [x] **HYGIENE #5**: handleIdUpload / idUploading / onIdUpload dead prop chain. DONE (verified 2026-09-27): zero occurrences in src/ outside tests; removed by a4d87c1a0 (Q40), kept out by src/test/retiredIdUploadStaysGone.test.ts (passes).
 - [ ] **HYGIENE #6**: Inline translucent nav pill/curtain fills survive prefers-reduced-transparency. Not reached in enough depth to confirm change; treated as unresolved.
 - [ ] **HYGIENE #8**: helpr-pass-wallet edge function unreferenced, 501s. Still unreferenced from the client and still on the known-dead list; unchanged. (also: scripts/check-dead-edge-functions.mjs (known-dead list))
 - [ ] **HYGIENE #9**: submit-partner-application function absent; write path revoked. Still a dead end on both sides; no build-or-drop decision made.

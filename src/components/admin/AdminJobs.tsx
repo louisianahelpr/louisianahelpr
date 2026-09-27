@@ -438,7 +438,7 @@ const AdminJobs = () => {
       // error === null, and both parties were then told the status changed —
       // with a deep link to a job still sitting in its old state. Same guard
       // the removal path above already carries.
-      // .eq("status", previousStatus) (Q760): the override is a compare-and-set
+      // The status predicate below (Q760) makes the override a compare-and-set
       // on the status the admin was looking at. Without it an override
       // decided on a stale view (the job was accepted, completed or disputed
       // after the list loaded) silently overwrote the newer state. Zero rows

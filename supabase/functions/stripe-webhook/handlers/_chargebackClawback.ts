@@ -14,7 +14,10 @@
 //
 // Now:
 //   a real chargeback (never an inquiry) on a job whose Helpr was paid →
-//     reverse the Helpr's transfer(s) for the job, up to the disputed amount;
+//     reverse the Helpr's transfer(s) for the job, up to the disputed amount.
+//     Several transfers (a crew job) share a PARTIAL dispute PRO RATA by each
+//     transfer's amount (owner decision 2026-09-27, Q210(g)): see
+//     proRataShares();
 //   closed WON  → pay each reversed amount back to the same account;
 //   closed LOST → the reversal stands.
 // The payee is told each time, in-app.
@@ -237,6 +240,38 @@ export async function notifyPayee(supabase: Db, userId: string, jobId: string, t
   }
 }
 
+/**
+ * Q210(g) (owner decision 2026-09-27): a partial dispute on a job paid by
+ * several transfers (a crew) is taken back PRO RATA by each transfer's
+ * amount, never oldest first. Largest-remainder rounding, so the shares sum
+ * to exactly min(disputed, total paid); ties go to the older transfer (then
+ * the smaller id), so a redelivery computes the same split.
+ */
+function proRataShares(
+  transfers: ReadonlyArray<{ id: string; amount?: number | null; created?: number | null }>,
+  disputedCents: number,
+): Map<string, number> {
+  const base = transfers.map((t) => ({ id: t.id, amount: Math.max(0, Math.floor(Number(t.amount) || 0)), created: t.created ?? 0 }));
+  const total = base.reduce((n, t) => n + t.amount, 0);
+  const target = Math.min(Math.max(0, Math.floor(Number(disputedCents) || 0)), total);
+  const shares = new Map<string, number>();
+  if (total <= 0) return shares;
+  let given = 0;
+  const frac: Array<{ id: string; rem: number; created: number }> = [];
+  for (const t of base) {
+    const exact = target * t.amount;
+    const whole = Math.floor(exact / total);
+    shares.set(t.id, whole);
+    given += whole;
+    frac.push({ id: t.id, rem: exact - whole * total, created: t.created });
+  }
+  frac.sort((a, b) => b.rem - a.rem || a.created - b.created || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  for (let k = 0; given < target && k < frac.length; k++, given++) {
+    shares.set(frac[k].id, (shares.get(frac[k].id) ?? 0) + 1);
+  }
+  return shares;
+}
+
 export type ClawbackResult = {
   /** Cents reversed by THIS run (new reversals only). */
   reversedNowCents: number;
@@ -246,11 +281,14 @@ export type ClawbackResult = {
   failed: Array<{ transferId: string; error: string }>;
   /** Payees newly reversed this run, with their amounts. */
   payees: Map<string, number>;
+  /** Pro-rata cents a transfer could not give (already reversed elsewhere). */
+  shortfall: Array<{ transferId: string; cents: number }>;
 };
 
 /**
  * Reverse the Helpr's transfer(s) for a job whose charge is disputed, up to
- * the disputed amount. Idempotent per (dispute, transfer).
+ * the disputed amount, split pro rata across transfers (proRataShares).
+ * Idempotent per (dispute, transfer).
  *
  * Throws only for a DB failure or a transient Stripe failure, so the webhook
  * answers 500 and Stripe redelivers (the claimed rows make the redelivery
@@ -262,7 +300,7 @@ export async function clawBackReleasedPayout(
   job: { id: string; title?: string | null },
   opts: { alertIfNoTransfer?: boolean } = {},
 ): Promise<ClawbackResult> {
-  const result: ClawbackResult = { reversedNowCents: 0, reversedTotalCents: 0, failed: [], payees: new Map() };
+  const result: ClawbackResult = { reversedNowCents: 0, reversedTotalCents: 0, failed: [], payees: new Map(), shortfall: [] };
 
   const existing = await readClawbackRows(supabase, dispute.id);
   if (existing.error) throw new Error(`chargeback_clawbacks read failed for ${dispute.id}: ${existing.error}`);
@@ -272,6 +310,9 @@ export async function clawBackReleasedPayout(
 
   // Already clawed back for this dispute counts against the disputed amount.
   let remaining = Math.max(0, Number(dispute.amount) || 0);
+  // Each transfer's pro-rata part of the disputed amount (Q210(g)). A resumed
+  // row keeps the amount it claimed; `remaining` stays the hard ceiling.
+  const shares = proRataShares(transfers, remaining);
   for (const r of existing.rows) {
     if ((CLAWED_BACK_STATUSES as readonly string[]).includes(r.status)) {
       remaining -= r.reversed_cents;
@@ -331,7 +372,11 @@ export async function clawBackReleasedPayout(
       amount = row.reversed_cents;
     } else {
       const reversible = Math.max(0, (t.amount ?? 0) - (t.amount_reversed ?? 0));
-      amount = Math.min(reversible, remaining);
+      const share = shares.get(t.id) ?? 0;
+      amount = Math.min(share, reversible, remaining);
+      if (reversible < share && reversible < remaining) {
+        result.shortfall.push({ transferId: t.id, cents: Math.min(share, remaining) - reversible });
+      }
       if (amount <= 0) continue;
       const destination = typeof t.destination === "string" ? t.destination : (t.destination as { id?: string } | null)?.id ?? null;
       const helperId = helperByTransfer.get(t.id) ?? (await helperForAccount(supabase, destination, dispute.id));
@@ -422,6 +467,21 @@ export async function clawBackReleasedPayout(
       },
       link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
       oncePerDayKey: `clawback-refused:${dispute.id}`,
+    });
+  }
+  if (result.shortfall.length > 0) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Card-dispute clawback — a payout could not give its pro-rata share",
+      message: `Dispute ${dispute.id} (${dollars(dispute.amount)}) is split pro rata across the job's payouts, but ${result.shortfall.length} transfer(s) had less left to reverse than their share (part of it was already reversed earlier, e.g. a partial refund or dispute split, so the gap may be refund-related rather than a true loss); the other members were not charged extra, so the platform is carrying ${dollars(result.shortfall.reduce((n, s) => n + s.cents, 0))}. Recover it by hand if it should be.`,
+      fields: {
+        "Dispute ID": dispute.id,
+        "Job ID": job.id,
+        "Short": result.shortfall.map((s) => `${s.transferId}: ${dollars(s.cents)}`).join(" | ").slice(0, 600),
+      },
+      link: `https://dashboard.stripe.com/disputes/${dispute.id}`,
+      oncePerDayKey: `clawback-shortfall:${dispute.id}`,
     });
   }
   if (opts.alertIfNoTransfer !== false && transfers.length === 0 && existing.rows.length === 0) {

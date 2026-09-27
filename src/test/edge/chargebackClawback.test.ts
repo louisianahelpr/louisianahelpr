@@ -22,7 +22,12 @@
  * Each mutation below undoes one of those and must turn this file red.
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | if (!isInquiry) clawbackJob = { id: chargebackJob.id, title: chargebackJob.title ?? null }; | if (false) clawbackJob = { id: chargebackJob.id, title: chargebackJob.title ?? null };
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | if (row && row.status !== "reversing" && row.status !== "reverse_failed") continue; | if (false) continue;
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | amount = Math.min(reversible, remaining); | amount = reversible;
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = reversible;
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = Math.min(reversible, remaining);
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const target = Math.min(Math.max(0, Math.floor(Number(disputedCents) \|\| 0)), total); | const target = Math.max(0, Math.floor(Number(disputedCents) \|\| 0));
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | b.rem - a.rem \|\| a.created - b.created | b.rem - a.rem \|\| b.created - a.created
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | for (let k = 0; given < target && k < frac.length; k++, given++) { | for (let k = 0; false; k++, given++) {
+ * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |   if (result.shortfall.length > 0) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | { idempotencyKey: `clawback-${dispute.id}-${t.id}` }, | {},
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | result.failed.push({ transferId: t.id, error: message }); | void message;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | .eq("payment_status", "released") | .eq("id", chargebackJob.id)
@@ -131,7 +136,7 @@ describe("card-dispute clawback (Q202)", () => {
       expect(told[0].message).toMatch(/paid back to you automatically/);
     });
 
-    it("never reverses more than the disputed amount across several transfers", async () => {
+    it("never reverses more than the disputed amount across several transfers, split PRO RATA (Q210(g))", async () => {
       const fn = await load();
       event("evt_c2", "charge.dispute.created", dispute("needs_response", 5000));
       scenario.reads.jobs = { rows: [releasedJob()] };
@@ -140,8 +145,53 @@ describe("card-dispute clawback (Q202)", () => {
       });
       stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_x" });
       await post(fn);
-      const amounts = stripeMock.transfers.createReversal.mock.calls.map((c) => c[1].amount);
-      expect(amounts).toEqual([3000, 2000]);
+      const amounts = stripeMock.transfers.createReversal.mock.calls.map((c) => [c[0], c[1].amount]);
+      // 5000 x 3/7 = 2142.86 -> 2143 (largest remainder), 5000 x 4/7 = 2857.14 -> 2857.
+      // Oldest-first would have been [3000, 2000].
+      expect(amounts).toEqual([["tr_a", 2143], ["tr_b", 2857]]);
+    });
+
+    it("a crew of three shares a partial dispute pro rata, cents exact, ties to the older transfer", async () => {
+      const fn = await load();
+      event("evt_c2b", "charge.dispute.created", dispute("needs_response", 1000));
+      scenario.reads.jobs = { rows: [releasedJob()] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [transfer("tr_c", 3000, { created: 3 }), transfer("tr_a", 3000, { created: 1 }), transfer("tr_b", 3000, { created: 2 })],
+      });
+      stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_x" });
+      await post(fn);
+      const byId = Object.fromEntries(stripeMock.transfers.createReversal.mock.calls.map((c) => [c[0], c[1].amount]));
+      // 1000 / 3 = 333.33 each; the one spare cent goes to the oldest.
+      expect(byId).toEqual({ tr_a: 334, tr_b: 333, tr_c: 333 });
+    });
+
+    it("a dispute at or above what was paid reverses every transfer in full", async () => {
+      const fn = await load();
+      event("evt_c2c", "charge.dispute.created", dispute("needs_response", 20000));
+      scenario.reads.jobs = { rows: [releasedJob()] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [transfer("tr_a", 3000, { created: 1 }), transfer("tr_b", 4000, { created: 2 })],
+      });
+      stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_x" });
+      await post(fn);
+      expect(stripeMock.transfers.createReversal.mock.calls.map((c) => c[1].amount)).toEqual([3000, 4000]);
+      // Nothing was short: the shares are capped at what was paid.
+      expect(alerts().some((a) => /pro-rata share/.test(a.title))).toBe(false);
+    });
+
+    it("a transfer with less left than its share gives what it has and pages the shortfall", async () => {
+      const fn = await load();
+      event("evt_c2d", "charge.dispute.created", dispute("needs_response", 4000));
+      scenario.reads.jobs = { rows: [releasedJob()] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [transfer("tr_a", 4000, { created: 1, amount_reversed: 3500 }), transfer("tr_b", 4000, { created: 2 })],
+      });
+      stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_x" });
+      await post(fn);
+      expect(stripeMock.transfers.createReversal.mock.calls.map((c) => [c[0], c[1].amount])).toEqual([["tr_a", 500], ["tr_b", 2000]]);
+      const page = alerts().find((a) => /pro-rata share/.test(a.title));
+      expect(page?.severity).toBe("critical");
+      expect(page?.message).toMatch(/\$15\.00/);
     });
 
     it("an inquiry (warning_needs_response) reverses nothing and leaves the released job alone", async () => {

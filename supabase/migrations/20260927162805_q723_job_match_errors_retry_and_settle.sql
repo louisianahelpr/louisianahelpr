@@ -31,19 +31,22 @@ ALTER TABLE public.job_match_queue ADD COLUMN IF NOT EXISTS retry_after timestam
 ALTER TABLE public.parish_match_alert_queue ADD COLUMN IF NOT EXISTS attempts int NOT NULL DEFAULT 0;
 ALTER TABLE public.parish_match_alert_queue ADD COLUMN IF NOT EXISTS retry_after timestamptz;
 
--- Held to the end of the migration: an old-body writer cannot commit an
--- unsettled row between the backfill and ADD CONSTRAINT.
-LOCK TABLE public.job_match_queue IN SHARE ROW EXCLUSIVE MODE;
-
-UPDATE public.job_match_queue
-   SET settled_at = COALESCE(settled_at, created_at)
- WHERE status <> 'queued' AND settled_at IS NULL;
-UPDATE public.job_match_queue
-   SET settled_at = NULL
- WHERE status = 'queued' AND settled_at IS NOT NULL;
-
+-- One DO block, so the lock, backfill and constraint share a transaction in
+-- every runner (the db-deploy replay gate runs each top-level statement in
+-- autocommit, where a bare LOCK TABLE is refused). The lock stops an old-body
+-- writer committing an unsettled row between the backfill and ADD CONSTRAINT;
+-- once the CHECK exists it refuses such a row itself.
 DO $$
 BEGIN
+  LOCK TABLE public.job_match_queue IN SHARE ROW EXCLUSIVE MODE;
+
+  UPDATE public.job_match_queue
+     SET settled_at = COALESCE(settled_at, created_at)
+   WHERE status <> 'queued' AND settled_at IS NULL;
+  UPDATE public.job_match_queue
+     SET settled_at = NULL
+   WHERE status = 'queued' AND settled_at IS NOT NULL;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
      WHERE conname = 'job_match_queue_settled_iff_not_queued'

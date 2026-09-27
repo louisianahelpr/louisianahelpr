@@ -324,11 +324,21 @@ const UserAvatar = React.forwardRef<
         <img
           key={corsMode}
           ref={inspect}
-          src={imageSrc}
-          alt={alt}
+          // `crossOrigin` and `loading` MUST come before `src` (Q740). React
+          // sets attributes in prop order, and WebKit (so WKWebView) starts
+          // the load the moment `src` lands: `src` first means a no-cors
+          // request, then a second, CORS one when `crossOrigin` arrives, and
+          // neither is shared with the next <img> for the same URL. Measured
+          // in Playwright WebKit, 40 <img> of one URL: src-first 41 requests,
+          // crossOrigin-first 1 (Chromium: 1 either way). On prod
+          // /posts?filter=done that was 101 requests for one Helpr's avatar,
+          // and ×719 across the a11y-prod-webkit sweep. Guarded by
+          // src/test/imgCrossOriginBeforeSrc.test.tsx.
+          crossOrigin={corsMode === "anonymous" ? "anonymous" : undefined}
           loading="lazy"
           decoding="async"
-          crossOrigin={corsMode === "anonymous" ? "anonymous" : undefined}
+          src={imageSrc}
+          alt={alt}
           onError={handleError}
           onLoad={handleLoad}
           // `object-cover` rather than the primitive's bare `aspect-square

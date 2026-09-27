@@ -176,7 +176,7 @@ describe("the request meter paces a run under its ceiling", () => {
   });
 
   it("an in-app walk gates each route through gateClientNav (route-retention 519 on /home, #1754)", async () => {
-    // One goto("/home"), then 37 routes x 4 laps by pushState, 13 requests
+    // One goto("/home"), then 37 routes x 4 laps (2026-09-27) by pushState, 13 requests
     // each. Ungated, every request is one burst charged to "/home".
     const walk = async (gated: boolean) => {
       const clock = fakeClock(1_790_000_000_000);

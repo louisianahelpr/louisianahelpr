@@ -364,7 +364,7 @@ describe("#1794: the API request context is metered too", () => {
 });
 
 describe("#1754: an in-app navigation passes a pacing gate too", () => {
-  // route-retention-signed-in walked 37 routes x 4 laps by pushState after ONE
+  // route-retention-signed-in walked 37 routes x 4 laps on 2026-09-27 by pushState after ONE
   // goto("/home"): 519 requests between two gates, all charged to "/home",
   // and prod-audit 36298506930 read 498 in a 400 minute. pacePage gates
   // goto/reload; a pushState walk is gated only if it calls gateClientNav.

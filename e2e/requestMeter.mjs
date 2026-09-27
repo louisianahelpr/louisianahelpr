@@ -130,7 +130,7 @@ export function priorMinutes(label, dir = REQUEST_BUDGET_DIR) {
  * Gate an IN-APP navigation (history.pushState + popstate) the way goto is
  * gated. Every route a client-side walk visits is a page load's worth of
  * requests, and none of them passes page.goto: route-retention-signed-in
- * walked 37 routes x 4 laps after ONE goto("/home") and sent 519 requests
+ * walked 37 routes x 4 laps on 2026-09-27 after ONE goto("/home") and sent 519 requests
  * between two gates, all charged to "/home" (prod-audit 36298506930 read 467
  * and 498/min against the 400 ceiling, #1754). No-op on an unmetered page.
  * src/test/requestBudget.test.ts fails any e2e file that pushes history

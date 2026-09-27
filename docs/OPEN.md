@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 580 items — 364 done, 55 partly done (fixed, protection pending), 161 open.**
+**Queue: 580 items — 365 done, 54 partly done (fixed, protection pending), 161 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -406,20 +406,6 @@ sure someone hears it and closes it.
   2026-09-22; a full sweep runs for hours); every "nightly" claim corrected
   and the "weekly workflow called nightly" check lives in
   workflowFalseGreenShapes.test.ts.
-- [~] **Q54 Front/back PARITY sweep: every rule enforced in two places must agree. STATUS 2026-09-26 (cloud/open-process):** matrix docs/audit/parity-matrix-2026-09-26.md (dated measurement, read from migrations + edge source, NOT live pg_constraint: the Supabase MCP could not connect from the cloud container): 80 client/server pairs, 42 already tested, 36 newly tested, 2 still untested. GUARDS: src/test/textLimitParity.test.ts, src/test/enumRangeParity.test.ts, src/test/amountBoundsParity.test.ts, src/test/aiJobBuilderBoundsParity.test.ts (shared reader src/test/helpers/parityReaders.ts reads the NEWEST constraint/function); 36 @mutate lines, all 36 re-run by the lead and killed. REAL MISMATCH F1 (recorded, not changed): supabase/functions/ai-job-builder/sanitize.ts is looser than the post-job form on 6 bounds (description 4000 vs 1000, special requirements 1000 vs 500, budget 0..100000 vs 10..1000, group helpers 1..20 vs 2..10), assigned verbatim by src/pages/post-job/useJobEntry.ts applyAiJob; pinned exactly in KNOWN_DRIFT. RECOMMENDATION: lower the sanitizer to the form's bounds (server side is stale) and delete the KNOWN_DRIFT entries; it needs a lh-silent-failure review-only pass because it's an edge function. STILL OPEN: (1) upload MIME allow-lists vs bucket allowed_mime_types as one class guard; (2) saved-search radius vs saved_searches_radius_miles_positive; (3) one-sided client limits with NO server bound (jobs.title 32 / description 1000, pitch 500, decline note 200, report detail 10-500) listed in the matrix. OWNER DECISION: should those get DB CHECKs (recommended: yes for jobs.title/description)? Was: **Front/back PARITY sweep: every rule enforced in two places must
-  agree.** Tonight's mismatches were one class: device-zone vs Central day
-  (2 bugs), types.ts 59 differences behind prod, RPC error codes with no client
-  copy, an admin badge reading a different column than verification uses, a
-  static guard's exemption list missing from the live check. Inventory, from
-  code, every rule the CLIENT enforces that the SERVER also enforces (budget
-  min/max and pricing modes, text lengths and required fields, allowed
-  status/enum values, fee/tip/refund math, time windows such as the cancel
-  fee / day-of / auto-release, who-can-do-what gating, file size and type
-  limits, rate limits), and every server value the client DISPLAYS (labels
-  per status, error codes). For each pair: a parity test that fails when the
-  two sides drift. Some exist (moneyFigures.parity, tierPerks.parity,
-  earlyAccess.parity, cancellationFee.parity). Find the pairs that have no
-  test and add one. Report the matrix. **RE-MEASURED 2026-09-27 (lane C):** (2) DONE: parseNearbyFilter returns null for a radius the CHECK refuses (`?loc=nearby:0` parsed to 0 and the save was refused 23514); guard src/test/savedSearchRadiusParity.test.ts reads the CHECK and the chips from source, 3 @mutate all killed (~/.lh-shots/lane-c/q54-radius-vacuity.txt). (3) and F1 are owner decisions, moved to Q782. Left here: (1) the MIME allow-list class guard. done-when: test src/test/uploadMimeParity.test.ts
 - [~] **Q56 REPORT DELIVERED 2026-09-26: docs/audit/q56-load-speed-2026-09-26.md (ranked list, every number sourced). Headline: on the CI Lighthouse settings every public route paints late: FCP 3.4-3.8 s, LCP 5.8-6.6 s, 5.4-5.9 s of it LCP "render delay" (client-side render); Realtime's WAL poll is the #1 DB cost (4,103 s, 4.6x the next). NEW BUDGET: .lighthouserc.json error budgets FCP 4500 / LCP 8000 / TBT 600 ms, GUARD src/test/lighthouseMetricBudgets.test.ts (2 @mutate, one shown red). Fixes filed as Q652 (prerender public first screens), Q653 (Realtime/DB cost), Q654 (unused boot JS), Q655 (year-long cache on versioned images). NOT MEASURED, so [~]: WebKit cold loads (no WebKit build in the cloud container), the deployed site's TTFB/CDN (host blocked by the container's egress policy), a signed-in dashboard in a browser (test-account env vars empty). OWNER/LEAD: run the Playwright half on the Mac with WebKit (`npx playwright install webkit`) to fill those three. Was:** Morning report: what should improve, and how to make it LOAD
   QUICKER (owner, 2026-09-23).** Measure first, recommend second: cold-load
   timings on prod at 375 (phone) and 1440 (TTFB, FCP, LCP, time to

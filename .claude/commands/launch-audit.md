@@ -36,7 +36,7 @@ Do this yourself, and **stop the audit if it fails**:
 4. `gh run list --branch main --limit 10` — is `main` actually green right now?
 5. `npm run check:launch`.
 6. **Reconcile `docs/OPEN.md` and the audit bus against `main` before dispatching anything.**
-   (`docs/audit/OPEN_ITEMS.md` was retired to a pointer by Q16; `docs/OPEN.md` is the only
+   (`docs/audit/OPEN_ITEMS.md` was retired by Q16 and deleted 2026-09-27; `docs/OPEN.md` is the only
    open-work list and findings live on the bus: `node scripts/audit-bus.mjs list`.)
    Read the generated "Everything open" block at the top of `docs/OPEN.md` and
    `docs/SCOREBOARD.md` (refresh both: `node scripts/scoreboard.mjs --write`), then compare

@@ -25,8 +25,6 @@ const THE_LIST = "docs/OPEN.md";
 /** Docs allowed to carry unchecked boxes or an open-list title, each with why. */
 // @two-way src/test/onlyOneOpenList.test.ts:allowlisted but no longer an open list
 export const ALLOWED: Record<string, string> = {
-  "docs/audit/OPEN_ITEMS.md":
-    "retired to a 3-line pointer by Q16 (2026-09-23); its H1 still reads 'Open items — retired' so readers of old links land on the pointer",
   "docs/audit/launch-2026-09/SURFACE.md":
     "GENERATED coverage checklist (scripts/audit-surface.mjs): one box per surface an audit lane must visit; findings go to the audit bus, not here",
   "docs/APP_STORE_REVIEW_SUBMISSION.md":
@@ -46,6 +44,18 @@ export const ALLOWED: Record<string, string> = {
 const UNCHECKED = /^\s*[-*+] \[ \]/gm;
 /** A title that declares the doc a list of open work. */
 const DECLARES = /^#\s+.*\b(to-?do|todos?|open[- ](items?|work|list|tasks?)|backlog|punch[- ]?list)\b/im;
+
+/**
+ * A file NAMED like an open list is one, whatever it says inside (2026-09-27:
+ * docs/PERF_AUDIT_TODO.md held five ranked open items in prose, no boxes, no
+ * list title, and two retired stubs — TODO.md, docs/audit/OPEN_ITEMS.md —
+ * still sat beside OPEN.md). Outside docs/archive/, no such name may exist.
+ */
+const LIST_NAME = /(^|[/_.-])(to-?do|todos|open[_-]?items|backlog|punch[_-]?list)([_.-]|$)/i;
+export function listNamed(path: string): boolean {
+  const base = path.split("/").pop() ?? "";
+  return LIST_NAME.test(base) && /\.(md|txt|markdown)$/i.test(base);
+}
 
 export function openListSignals(text: string): string[] {
   const out: string[] = [];
@@ -89,6 +99,13 @@ describe("docs/OPEN.md is the only open-work list (Q58e)", () => {
     ).toEqual([]);
   });
 
+  it("no file outside docs/archive/ is NAMED like an open list (TODO, OPEN_ITEMS, backlog)", () => {
+    const all = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
+    expect(all.length).toBeGreaterThan(1000);
+    const named = all.filter((f) => !f.startsWith("docs/archive/") && listNamed(f));
+    expect(named, "move its open items into docs/OPEN.md, then git mv it to docs/archive/ or delete it").toEqual([]);
+  });
+
   it("the allowlist does not rot (two-way)", () => {
     const stale = Object.keys(ALLOWED).filter((f) => !existsSync(join(ROOT, f)) || !hits.has(f));
     expect(stale, "allowlisted but no longer an open list (or gone) — remove the entry").toEqual([]);
@@ -100,5 +117,12 @@ describe("docs/OPEN.md is the only open-work list (Q58e)", () => {
     expect(openListSignals("# TODO\n\nnothing yet\n")).toHaveLength(1);
     expect(openListSignals("# Launch backlog\n")).toHaveLength(1);
     expect(openListSignals("# Guide\n\n- [x] done\n")).toHaveLength(0);
+    expect(listNamed("TODO.md")).toBe(true);
+    expect(listNamed("docs/PERF_AUDIT_TODO.md")).toBe(true);
+    expect(listNamed("docs/audit/OPEN_ITEMS.md")).toBe(true);
+    expect(listNamed("docs/launch-backlog.md")).toBe(true);
+    expect(listNamed("docs/OPEN.md")).toBe(false);
+    expect(listNamed("src/lib/todoParser.ts")).toBe(false);
+    expect(listNamed("docs/TOOLS.md")).toBe(false);
   });
 });

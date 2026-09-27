@@ -266,4 +266,4 @@ pending action items live there. Don't restate that memory in this
 file — read it at session start.
 
 Project-scoped open work lives ONLY in `docs/OPEN.md` (TODO.md was
-retired 2026-09-23; its history is docs/archive/TODO-2026-08-31.md).
+retired 2026-09-23 and deleted 2026-09-27; its history is docs/archive/TODO-2026-08-31.md).

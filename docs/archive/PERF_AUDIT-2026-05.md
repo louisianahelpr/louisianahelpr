@@ -1,3 +1,5 @@
+> **Historical, superseded by docs/OPEN.md** (archived 2026-09-27). The open items below are carried as Q748 in docs/OPEN.md.
+
 # Performance audit — May 2026
 
 **Live Vercel Speed Insights (mobile)** shows real-user FCP of **10.98s**

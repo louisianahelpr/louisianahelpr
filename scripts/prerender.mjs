@@ -17,7 +17,7 @@
  * If everything passes, swap `package.json` `scripts.build`:
  *   "build": "vite build && node scripts/prerender.mjs"
  *
- * See docs/PERF_AUDIT_TODO.md for the rationale + risk profile.
+ * See docs/archive/PERF_AUDIT-2026-05.md (open work: Q748 in docs/OPEN.md) for the rationale + risk profile.
  */
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -36,7 +36,7 @@ async function main() {
     console.error(
       "✗ puppeteer not installed. Run `npm install --save-dev puppeteer` first.",
     );
-    console.error("  (see docs/PERF_AUDIT_TODO.md for the full enable procedure)");
+    console.error("  (see docs/archive/PERF_AUDIT-2026-05.md for the full enable procedure)");
     process.exit(2);
   }
 

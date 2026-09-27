@@ -4,7 +4,7 @@
 **Everything open — start here** (Q58). Every tracker, its live count, and where to look.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Queue (this file):** 286 done, 105 partly done (fixed, protection pending), 130 open. Source of truth for work.
+- **Queue (this file):** 286 done, 105 partly done (fixed, protection pending), 131 open. Source of truth for work.
 - **Audit bus:** 18 open, 2 open launch blockers — `node scripts/audit-bus.mjs list --blockers` · [ROLLUP](audit/launch-2026-09/ROLLUP.md).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Ops alert ledger:** 18 open (1 critical, 17 error), 0 verifying — `node scripts/ops-alert-ledger.mjs list` · /admin?view=health. _(2026-09-27T04:06Z)_
@@ -46,7 +46,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 521 items — 286 done, 105 partly done (fixed, protection pending), 130 open.**
+**Queue: 522 items — 286 done, 105 partly done (fixed, protection pending), 131 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1984,3 +1984,19 @@ record carries its evidence). The HIGH / launch-blocker ones as of 2026-09-23
 - [ ] **Q742** (follow-up to Q741 / #1582, 2026-09-26): the app-wide request-budget overage is not explained yet. e2e-journeys run 36217255758 (at dd331d851): perTest 83.2 against the 51.9 budget (calibrated 2026-09-23, e26631de7), busiest minute 439 against a 400 ceiling. `git log --since=2026-09-24 -G 'refetchInterval|setInterval|staleTime|refetchOnWindowFocus|refetchOnMount|user_blocks|user_roles|invalidateQueries' -- src/` names no introducing commit (8d13bd427, 2adf846b2, f5bead45b, 3bf782e83 checked). Q741 removed 134 requests per /posts load, but its effect on journeys is NOT measured. Next: re-run e2e-journeys after Q741 deploys, then bisect by per-test request count if still over. Also confirm the next press-every-control run reaches every row. GUARD: scripts/e2e/request-budget.mjs (the budget itself; must stay exact).
 - [ ] **Q744** (Q183 review leftover, 2026-09-27): two violations inserted at the same moment in separate transactions each count 1 in `auto_restrict_repeat_violators`, so both give a final warning and neither suspends. Fix: take a per-user advisory lock (or `SELECT ... FOR UPDATE` on the profile) before counting. GUARD: a two-connection PGlite/prod-xmin race case, red first.
 - [ ] **Q745** (Q183 review leftover, 2026-09-27): when the violator has no profile row, the suspension UPDATE changes nothing but the "suspended" notice still sends. Fix: check the UPDATE row count (GET DIAGNOSTICS) and skip the notice (log to error_logs) when it is 0. GUARD: a case in src/test/pglite/autoRestrictWarnFirst.pglite.mjs, red first.
+- [ ] **Q747** (Q79 follow-up, remote-branch sweep 2026-09-26): 109 remote branches measured against origin/main by added-line presence plus pickaxe of main's history. 77 are LANDED or SUPERSEDED (list in the sweep report; deletion awaits owner approval), 1 was landed by the sweep (cloud/nightly-1799-privacy-journey, request meter byShape), 15 are superseded WIP backups (last line). These 16 carry work not on main and each needs a land / fold / abandon decision; none was landed because each is over ~15 files, a money/data-model change, or diagnostics only:
+  - cloud/q282-q262-q224 (488 lines not on main): FK and prune migrations. Data-model; needs lh-authz-rls / schema review before landing.
+  - cloud/q283-q225-q289 (801): early-access job-match holds and store reviews. Main shipped its own Q392 early-access migration since, so re-derive, do not cherry-pick.
+  - cloud/q287-q298-q291 (303): ops_alert_close_rules migration. Main already has opsAlertVerifyIsFair; the rest is unlanded.
+  - cloud/q408-q409-export (295): export_my_data rate-limit migration. Data-model; review first.
+  - cloud/q232-admin (640): admin surface work.
+  - cloud/q265-layout (172): dockClearanceIsOneToken, PetProfiles; Q265 is partly done on main.
+  - cloud/q272-press (544): pressProfileRestoreOncePerRun; Q272 says "fixed in code on cloud/open-testinfra, live proof pending".
+  - cloud/q228-copy (275): copy fixes.
+  - cloud/q206-perf (355): auth-email-hook inline signup, applicantsPanelRounds.
+  - cloud/q297-tooling (428): tooling.
+  - cloud/open-testinfra-journeys (792) and wip/testinfra-journeys-probe (795, the same work): 04-money-outcomes money journeys. Money; review with lh-money-escrow.
+  - lead/q226-wip (517): 04-admin-safety journey; Q226 still open.
+  - cloud/nightly-1754-prod-audit (83): placeholderNodeNotReused; held on MORNING QUESTION MQ28.
+  - cloud/nightly-1794-a11y-webkit (18) and cloud/nightly-1719-webkit-stripe (55): diagnostic logging only (a11y-prod and Stripe checkout in fixtures.ts), no fix. Likely abandon.
+  - wip/backup-* (q423, msg-authz, integ, me009-q387, q327, q327-uncommitted, group-followups, group-followups-uncommitted, recurring-fix, journeys-fix, vac1797, vac1797-uncommitted) and wip/vac1797-probe, -probe-mut, -probe-journeys: WIP snapshots from 09-25. Every file they touch exists on main under the same name and was edited after; the 19-74 residual lines per branch are older forms. Likely abandon; not line-by-line confirmed.

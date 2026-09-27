@@ -32,6 +32,8 @@
  * @mutate src/lib/userRealtimeBus.ts | table: "messages", filter: `receiver_id=eq.${userId}` } | table: "messages" }
  * @mutate src/pages/messages/useMessagesRealtime.ts | const sub = subscribeWithRecovery( | void supabase.channel("dup").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${userId}` }, () => {}); const sub = subscribeWithRecovery(
  * @mutate src/pages/admin/Admin.tsx | table: 'jobs', filter: 'is_seed=eq.false' | table: 'jobs'
+ * @mutate src/components/JobTracking.tsx | if (jobTerminal) return; | void 0;
+ * @mutate src/components/JobTracking.tsx | const jobTerminal = jobStatus === "completed" \|\| jobStatus === "cancelled"; | const jobTerminal = jobStatus === "cancelled";
  * @mutate src/hooks/useActivityData.ts | .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate) | .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, invalidate)
  */
 import { describe, it, expect } from "vitest";
@@ -288,5 +290,33 @@ describe("realtime channel inventory (Q105)", () => {
       });
     }
     expect(offenders, "a channel is opened before an early return that renders nothing").toEqual([]);
+  });
+
+  it("a completed or cancelled job's tracker card mounts no binding (Q777)", () => {
+    // Prod realtime.subscription, 2026-09-27: 107 rows for one poster, 50 of
+    // its 52 `jobs` bindings on COMPLETED jobs. Every Posts/Activity card
+    // mounts <JobTracking>, which bound job_tracking + jobs per card whatever
+    // the status. The subscribing effect must bail on a terminal status before
+    // it opens the channel, and re-run when the status changes.
+    const file = join(SRC, "components/JobTracking.tsx");
+    const sf = parse(file);
+    const effects: ts.CallExpression[] = [];
+    visit(sf, (n) => {
+      if (ts.isCallExpression(n) && /^use(Layout)?Effect$/.test(n.expression.getText(sf)) && /subscribeWithRecovery\(/.test(n.getText(sf))) {
+        effects.push(n);
+      }
+    });
+    expect(effects.length, "JobTracking's subscribing effect").toBe(1);
+    const [body, deps] = effects[0].arguments;
+    const text = body.getText(sf);
+    const bail = /\bif\s*\(\s*([A-Za-z_$][\w$]*)\s*\)\s*return\s*;/g;
+    const subAt = text.indexOf("subscribeWithRecovery(");
+    const guards = [...text.matchAll(bail)].filter((m) => m.index! < subAt).map((m) => m[1]);
+    const terminal = guards.find((id) => {
+      const decl = new RegExp(`const\\s+${id}\\s*=\\s*([^;]+);`).exec(sf.getText())?.[1] ?? "";
+      return /jobStatus\s*===\s*"completed"/.test(decl) && /jobStatus\s*===\s*"cancelled"/.test(decl) && !/&&/.test(decl);
+    });
+    expect(terminal, "the subscribing effect must return before subscribing when jobStatus is completed or cancelled").toBeTruthy();
+    expect(deps?.getText(sf) ?? "", "the terminal flag must be in the effect's deps").toMatch(new RegExp(`\\b${terminal}\\b`));
   });
 });

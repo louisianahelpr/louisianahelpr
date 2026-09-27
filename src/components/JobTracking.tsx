@@ -761,6 +761,7 @@ export function JobTracking({
     }
   }, [jobId, helperId]);
 
+  const jobTerminal = jobStatus === "completed" || jobStatus === "cancelled";
   useEffect(() => {
     if (!helperId) return;
     // Only fall back to a per-card fetch when the parent did NOT supply
@@ -768,6 +769,11 @@ export function JobTracking({
     // `null` to mean "no row yet"), so the initial query is eliminated;
     // the realtime channel below still patches live updates after mount.
     if (initialTracking === undefined) loadTracking();
+    // A completed or cancelled job can no longer move along the tracker, so
+    // it holds no realtime bindings (Q777: prod realtime.subscription, 50 of
+    // one poster's 52 jobs bindings were completed jobs). Contested statuses
+    // (revision_requested, disputed) can still change and keep theirs.
+    if (jobTerminal) return;
 
     const sub = subscribeWithRecovery(
       (name) => supabase
@@ -812,7 +818,7 @@ export function JobTracking({
     // `initialTracking` is read once when the effect runs to decide whether
     // to skip the fallback fetch. Subsequent prop changes flow through the
     // sync-effect above, not here — so it intentionally stays out of deps.
-  }, [jobId, helperId, loadTracking]);
+  }, [jobId, helperId, loadTracking, jobTerminal]);
 
   // LIVE position updates while the helper is EN ROUTE.
   //

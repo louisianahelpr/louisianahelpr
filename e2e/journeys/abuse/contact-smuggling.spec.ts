@@ -17,6 +17,7 @@
  * @mutate-exempt Subject is a DB trigger, not client code: 0 browser refs, 12 REST assertions (measured 2026-09-21), and the gate never deploys migrations. SHOWN ABLE TO FAIL by scripts/probes/contact-leak-reject.probe.mjs, which replays 20260913020635_reject_contact_leaks_in_jobs_and_bios.sql in PGlite and is RED-BEFORE against the LIVE function body (pg_get_functiondef 2026-09-12 misses jane@my-domain.com; the migration catches it), then proves a phone number in a job insert and in a bio update are both rejected 23514 while clean text passes. scripts/probes/contact-scan-phone.probe.mjs covers the digit-boundary and hidden-copy half the same way.
  */
 import { test, expect, getSession, optionalSession, rest, sessionsAvailable, SUPABASE_URL, E2E_TITLE_MARKER, announceUncovered, skipUncovered } from "../fixtures";
+import { fitJobTitle, runTag } from "../../../scripts/lib/jobTextBounds.mjs";
 
 /**
  * BAD ACTORS — contact-detail smuggling (terminal 7).
@@ -36,6 +37,8 @@ import { test, expect, getSession, optionalSession, rest, sessionsAvailable, SUP
 
 const avail = sessionsAvailable();
 const runId = `t7-smuggle-${Date.now().toString(36)}`;
+// One title per smuggle, inside jobs_title_length (32, Q782): marker + a 12-char tag.
+const smuggleTitle = (label: string) => fitJobTitle(`${E2E_TITLE_MARKER} ${runTag(`${label} ${runId}`, 12)}`);
 
 const SMUGGLES = [
   { label: "US phone", text: "reach me at 504-555-0100 anytime" },
@@ -75,7 +78,7 @@ test.describe("bad actors: contact smuggling", () => {
         headers: { ...posterHeaders, Prefer: "return=representation" },
         data: {
           customer_id: posterId,
-          title: `${E2E_TITLE_MARKER} smuggle ${s.label} ${runId}`,
+          title: smuggleTitle(s.label),
           description: `Regular job text. ${s.text}`,
           category: "cleaning",
           budget: 50,
@@ -95,7 +98,7 @@ test.describe("bad actors: contact smuggling", () => {
       }
       expect(created.status(), `SECURITY: a ${s.label} in a job description was STORED, not rejected: ${body}`).toBe(400);
       expect(body, "the rejection should carry the trigger's user-readable message").toMatch(/(detected|mentioned) in the job description/i);
-      const stored = await request.get(`${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${posterId}&title=ilike.*smuggle ${s.label} ${runId}*&select=id`, { headers: posterHeaders }).then((r) => r.json());
+      const stored = await request.get(`${SUPABASE_URL}/rest/v1/jobs?customer_id=eq.${posterId}&title=eq.${encodeURIComponent(smuggleTitle(s.label))}&select=id`, { headers: posterHeaders }).then((r) => r.json());
       expect(stored, "no row must exist after a rejected insert").toEqual([]);
     });
   }

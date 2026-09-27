@@ -4,25 +4,24 @@
  * bounds of the post-job form the output is poured into
  * (src/pages/post-job/useJobEntry.ts applyAiJob assigns every field verbatim).
  *
- * FOUND 2026-09-26 (Q54 sweep): only the title agrees. Every other field the
- * sanitizer bounds is looser than the form, so a generated posting can land in
- * the form already over its own limits:
- *   - description:   sanitizer 4000 chars, form DESCRIPTION_MAX 1000 (maxLength
- *                    does not truncate a programmatic value; no DB CHECK on
- *                    jobs.description, so it would post at 4000);
- *   - special_requirements: sanitizer 1000, form textarea maxLength 500;
- *   - budget:        sanitizer clamps to [0, 100000], the form, the create-payment
- *                    check and jobs_budget_range allow [10, 1000];
- *   - helpers_needed: sanitizer clamps to [1, 20], the group-job input is [2, 10].
- * The sanitizer is server code; this lane records the drift instead of
- * changing it (docs/audit/parity-matrix-2026-09-26.md, finding F1).
+ * FOUND 2026-09-26 (Q54 sweep, docs/audit/parity-matrix-2026-09-26.md F1):
+ * only the title agreed. The sanitizer let a description reach 4000 chars
+ * (form 1000), special_requirements 1000 (form 500), budget [0, 100000] (form
+ * and jobs_budget_range [10, 1000]) and helpers_needed [1, 20] (group-job
+ * input [2, 10]), so a generated posting could land in the form already over
+ * its own limits.
+ * FIXED 2026-09-27 (Q782, owner decision): the sanitizer uses the form's
+ * bounds, and the DB enforces title <= 32 / description <= 1000
+ * (jobs_title_length, jobs_description_length). KNOWN_DRIFT is empty.
  *
  * KNOWN_DRIFT is EXACT, both directions: a new drift fails, and so does fixing
  * one without deleting its entry here.
  *
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | const TITLE_MAX = 32; | const TITLE_MAX = 40;
- * @mutate supabase/functions/ai-job-builder/sanitize.ts | const DESCRIPTION_MAX = 4000; | const DESCRIPTION_MAX = 1000;
- * @mutate supabase/functions/ai-job-builder/sanitize.ts | const MAX_HELPERS = 20; | const MAX_HELPERS = 10;
+ * @mutate supabase/functions/ai-job-builder/sanitize.ts | const DESCRIPTION_MAX = 1000; | const DESCRIPTION_MAX = 4000;
+ * @mutate supabase/functions/ai-job-builder/sanitize.ts | const MAX_HELPERS = 10; | const MAX_HELPERS = 20;
+ * @mutate supabase/functions/ai-job-builder/sanitize.ts | num(r.budget_min, 10, MAX_BUDGET) | num(r.budget_min, 0, MAX_BUDGET)
+ * @mutate supabase/functions/ai-job-builder/sanitize.ts | const REQUIREMENTS_MAX = 500; | const REQUIREMENTS_MAX = 1000;
  * @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts | export const TITLE_MAX = 32; | export const TITLE_MAX = 28;
  * @mutate src/components/postjob/LogisticsSection.tsx | rows={2} maxLength={500} autoCapitalize="sentences" | rows={2} maxLength={1000} autoCapitalize="sentences"
  */
@@ -84,17 +83,9 @@ function pairs(): Pair[] {
   ];
 }
 
-/** field → "sanitizer vs form", exactly as measured 2026-09-26. */
+/** field → "sanitizer vs form". Empty since Q782 (2026-09-27); it held 7. */
 // @two-way src/test/aiJobBuilderBoundsParity.test.ts:stale KNOWN_DRIFT entry
-const KNOWN_DRIFT: Record<string, string> = {
-  "description max chars": "4000 vs 1000",
-  "special_requirements max chars": "1000 vs 500",
-  "budget_max ceiling": "100000 vs 1000",
-  "budget_min ceiling": "100000 vs 1000",
-  "budget floor": "0 vs 10",
-  "helpers_needed ceiling": "20 vs 10",
-  "helpers_needed floor": "1 vs 2",
-};
+const KNOWN_DRIFT: Record<string, string> = {};
 
 describe("ai-job-builder output bounds vs the post-job form (Q54)", () => {
   it("inventory floor: every bound resolves on both sides", () => {
@@ -108,16 +99,19 @@ describe("ai-job-builder output bounds vs the post-job form (Q54)", () => {
 
   it("the set of drifted bounds is exactly KNOWN_DRIFT (a new drift fails; so does a fix left listed)", () => {
     const drift: Record<string, string> = {};
+    // Since Q782 every bound is EQUAL, not merely no looser: a sanitizer
+    // stricter than the form silently truncates what the form would accept,
+    // and a form loosened past the sanitizer is the same drift from the
+    // other side.
     for (const p of pairs()) {
-      const looser = p.loose === "above" ? p.sanitizer > p.form : p.sanitizer < p.form;
-      if (looser || (p.field === "title max chars" && p.sanitizer !== p.form)) drift[p.field] = `${p.sanitizer} vs ${p.form}`;
+      if (p.sanitizer !== p.form) drift[p.field] = `${p.sanitizer} vs ${p.form}`;
     }
     const stale = Object.keys(KNOWN_DRIFT).filter((f) => drift[f] !== KNOWN_DRIFT[f]);
     expect(stale, "stale KNOWN_DRIFT entry — the bound moved or was fixed; update or remove it").toEqual([]);
     expect(drift).toEqual(KNOWN_DRIFT);
   });
 
-  it("the title cap is the same number on both sides (the one bound that agrees)", () => {
+  it("the title cap is the same number on both sides", () => {
     expect(sanitizerLen("title")).toBe(numericConst(FORM_CONSTS, "TITLE_MAX"));
   });
 });

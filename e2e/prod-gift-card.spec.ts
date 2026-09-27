@@ -14,6 +14,7 @@ import {
   checkShortfall,
   type GiftRow,
 } from "./giftCardLedger";
+import { fitJobTitle, runTag } from "../scripts/lib/jobTextBounds.mjs";
 
 // THE GIFT CARD JOURNEY, against PRODUCTION, on a Stripe TEST key (SC-005).
 //
@@ -150,9 +151,11 @@ async function postJob(api: APIRequestContext, s: Session, runId: string, leg: s
     headers: { ...rest(s), Prefer: "return=representation" },
     data: {
       customer_id: s.user.id,
-      title: `${E2E_TITLE_MARKER} gift card ${leg} ${runId}`,
+      // jobs_title_length caps a title at 32 (Q782): marker (19) + leg + a
+      // 10-char tag of the run; the full run id is in the description.
+      title: fitJobTitle(`${E2E_TITLE_MARKER} ${leg} ${runTag(runId, 10)}`),
       description:
-        "Automated end-to-end test row. Not a real job. Funded with a test gift card and cancelled by CI; " +
+        `Automated end-to-end test row (gift card ${leg}, ${runId}). Not a real job. Funded with a test gift card and cancelled by CI; ` +
         "if you are reading this in the app, something has gone wrong with the test harness.",
       category: "cleaning",
       budget,

@@ -259,8 +259,12 @@ serve(async (req) => {
             .insert({
               customer_id:      conn.user_id,
               category:         'cleaning',
-              title:            `STR cleaning — ${propName} checkout ${checkoutDateStr}`,
-              description:      `Cleaning needed after guest checkout on ${checkoutDateStr}. ${notes}`,
+              // public.jobs CHECKs (Q782): char_length(title) <= 32 and
+              // char_length(description) <= 1000, counted in code points. The
+              // old `STR cleaning — <name> checkout <date>` was 35+ characters
+              // for every property, so every insert would now be refused.
+              title:            Array.from(`STR clean ${checkoutDateStr} ${propName}`).slice(0, 32).join('').trim(),
+              description:      Array.from(`Cleaning needed after guest checkout on ${checkoutDateStr}. ${notes}`).slice(0, 1000).join(''),
               budget:           conn.cleaning_budget ?? 80,
               location:         conn.property_address ?? '',
               date_needed:      checkoutDateStr,

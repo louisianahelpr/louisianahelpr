@@ -102,7 +102,7 @@ export async function ensureFundedApplicantJob(
   helper: Session,
 ): Promise<ApplicantFixture> {
   const log = await retireApplicantFixtures(api, poster, helper);
-  const row = await createFixtureRow(api, poster, `${APPLICANT_FIXTURE_TITLE}: patch a fence gate`);
+  const row = await createFixtureRow(api, poster, APPLICANT_FIXTURE_TITLE);
   log.push(`created ${row.id}`);
   const funded = await fund(api, browser, poster, row, log);
 

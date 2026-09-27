@@ -27,6 +27,7 @@ import {
   IDENTITY_BUCKETS,
   KNOWN_NOT_EXPORTED,
 } from "../../scripts/lib/privacyJourney.mjs";
+import { fitJobTitle, runTag } from "../../scripts/lib/jobTextBounds.mjs";
 
 /**
  * PRIVACY REQUESTS, END TO END, ON PROD (docs/OPEN.md Q70). Monthly:
@@ -257,8 +258,9 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
       budget: 45,
       is_seed: true,
     };
-    const [a] = await srWrite(request, "POST", "jobs", "", { ...base, title: `${MARK} A (deleted on purge)` });
-    const [b] = await srWrite(request, "POST", "jobs", "", { ...base, title: `${MARK} B (outlives its poster)` });
+    // Titles fit jobs_title_length (32, Q782); MARK itself (52) rides in the description.
+    const [a] = await srWrite(request, "POST", "jobs", "", { ...base, title: fitJobTitle(`${E2E_TITLE_MARKER} ${runTag(RUN_TAG, 10)} A`) });
+    const [b] = await srWrite(request, "POST", "jobs", "", { ...base, title: fitJobTitle(`${E2E_TITLE_MARKER} ${runTag(RUN_TAG, 10)} B`) });
     created.deletedJobId = String(a.id);
     created.keptJobId = String(b.id);
     const [app] = await srWrite(request, "POST", "applications", "", {

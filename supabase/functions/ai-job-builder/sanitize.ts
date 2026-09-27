@@ -8,12 +8,17 @@ const JOB_CATEGORIES = [
   "delivery", "pet_care", "assembly", "storm_prep", "events", "other",
 ] as const;
 
+// The post-job form's own bounds (Q782, owner 2026-09-27): the output is poured
+// into that form verbatim, and the DB CHECKs jobs_title_length (32) and
+// jobs_description_length (1000) refuse anything longer. Budget [10, 1000] is
+// _shared/jobBudgetLimits.ts; helpers [2, 10] and requirements 500 are
+// LogisticsSection. src/test/aiJobBuilderBoundsParity.test.ts keeps them equal.
 const TITLE_MAX = 32;
-const DESCRIPTION_MAX = 4000;
-const REQUIREMENTS_MAX = 1000;
+const DESCRIPTION_MAX = 1000;
+const REQUIREMENTS_MAX = 500;
 const MAX_HOURS = 200;
-const MAX_BUDGET = 100_000;
-const MAX_HELPERS = 20;
+const MAX_BUDGET = 1000;
+const MAX_HELPERS = 10;
 
 function str(v: unknown, max: number): string | undefined {
   return typeof v === "string" ? v.slice(0, max).trimEnd() : undefined;
@@ -36,15 +41,15 @@ export function sanitizeJob(raw: unknown): Record<string, unknown> | null {
   };
   const hours = num(r.estimated_hours, 0, MAX_HOURS);
   if (hours !== undefined) out.estimated_hours = hours;
-  let min = num(r.budget_min, 0, MAX_BUDGET);
-  let max = num(r.budget_max, 0, MAX_BUDGET);
+  let min = num(r.budget_min, 10, MAX_BUDGET);
+  let max = num(r.budget_max, 10, MAX_BUDGET);
   if (min !== undefined && max !== undefined && min > max) [min, max] = [max, min];
   if (min !== undefined) out.budget_min = min;
   if (max !== undefined) out.budget_max = max;
   const reqs = str(r.special_requirements, REQUIREMENTS_MAX);
   if (reqs !== undefined) out.special_requirements = reqs;
   if (typeof r.is_group_job === "boolean") out.is_group_job = r.is_group_job;
-  const helpers = num(r.helpers_needed, 1, MAX_HELPERS);
+  const helpers = num(r.helpers_needed, 2, MAX_HELPERS);
   if (helpers !== undefined) out.helpers_needed = Math.round(helpers);
   return out;
 }

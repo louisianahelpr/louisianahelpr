@@ -23,6 +23,7 @@
  */
 import type { APIRequestContext, Browser } from "@playwright/test";
 import { ANON, SUPABASE_URL, type Session } from "../journeys/fixtures";
+import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { openCardFields } from "../stripeCheckoutCard";
 import {
   ACCEPTED_FIXTURE_TITLE,
@@ -91,14 +92,14 @@ export async function retireFundedJob(api: APIRequestContext, poster: Session, j
 }
 
 /** `title` defaults to the un-applied fixture; the applicant fixture (fundedApplicantJob.ts) passes its own prefix. */
-export async function createFixtureRow(api: APIRequestContext, poster: Session, title = `${FUNDED_FIXTURE_TITLE}: hang two shelves`): Promise<Row> {
+export async function createFixtureRow(api: APIRequestContext, poster: Session, title = FUNDED_FIXTURE_TITLE): Promise<Row> {
   const rows = await readJson<Row[]>(
     await api.post(`${SUPABASE_URL}/rest/v1/jobs?select=${COLS}`, {
       headers: headers(poster, { Prefer: "return=representation" }),
       data: {
         customer_id: poster.user.id,
         is_seed: true,
-        title,
+        title: fitJobTitle(title),
         description: "Two floating shelves in a living room, studs already marked, anchors and level on site. Prod-audit fixture, never hired.",
         category: "handyman",
         location: "4412 Highland Rd, Baton Rouge, LA 70808",
@@ -317,7 +318,7 @@ export async function ensureAcceptedJob(
   } else {
     let from: "fund" | "apply" | "hire" = "fund";
     if (plan.kind === "create") {
-      const row = await createFixtureRow(api, poster, `${ACCEPTED_FIXTURE_TITLE}: fix a sticking screen door`);
+      const row = await createFixtureRow(api, poster, ACCEPTED_FIXTURE_TITLE);
       id = row.id;
       log.push(`created ${id}`);
     } else {
@@ -374,7 +375,7 @@ export async function ensureDisputedJob(
   let id: string;
   let next: "fund" | "apply" | "hire" | "dispute";
   if (plan.kind === "create") {
-    const row = await createFixtureRow(api, poster, `${DISPUTE_FIXTURE_TITLE}: patch a drywall hole`);
+    const row = await createFixtureRow(api, poster, DISPUTE_FIXTURE_TITLE);
     log.push(`created ${row.id}`);
     id = row.id;
     next = "fund";

@@ -3,6 +3,7 @@ import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { openCardFields } from "./stripeCheckoutCard";
 import { join } from "node:path";
+import { fitJobTitle } from "../scripts/lib/jobTextBounds.mjs";
 import { pathsByJob, rowStillNames, withoutPaths, type ProofRow } from "./proofPhotoTeardown";
 
 // The full authenticated money loop, against PRODUCTION, on a Stripe TEST key.
@@ -564,7 +565,10 @@ test.describe("full money loop against production", () => {
     // downstream of the row existing.
     // Letter-prefixed base36, never bare digits: the jobs contact-leak reject
     // trigger reads a 10+-digit run in a title as a phone number.
-    const runId = `r${Date.now().toString(36)}-${process.env.GITHUB_RUN_ID ? `g${Number(process.env.GITHUB_RUN_ID).toString(36)}` : "local"}`;
+    // The title holds marker + runId inside jobs_title_length's 32 (Q782), so
+    // runId is the ms clock alone (9 chars); the Actions run goes in the description.
+    const runId = `r${Date.now().toString(36)}`;
+    const ghRun = process.env.GITHUB_RUN_ID ?? "local";
     // `select=` is MANDATORY on every jobs write that asks for the row back.
     // Bare `return=representation` is `RETURNING *`, and 20260915045110 took
     // the table-level SELECT off jobs for `authenticated` — so `*` now expands
@@ -574,9 +578,9 @@ test.describe("full money loop against production", () => {
       headers: { ...rest(poster), Prefer: "return=representation" },
       data: {
         customer_id: poster.user.id,
-        title: `${E2E_TITLE_MARKER} automated lifecycle ${runId}`,
+        title: fitJobTitle(`${E2E_TITLE_MARKER} ${runId}`),
         description:
-          "Automated end-to-end test row. Not a real job. Created and settled by CI; " +
+          `Automated end-to-end test row (lifecycle ${runId}, run ${ghRun}). Not a real job. Created and settled by CI; ` +
           "if you are reading this in the app, something has gone wrong with the test harness.",
         category: "cleaning",
         budget: 25,

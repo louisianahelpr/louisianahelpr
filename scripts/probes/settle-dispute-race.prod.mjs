@@ -27,6 +27,7 @@
 // Promise.allSettled, judge committed state, then delete the dispute, the
 // round's notifications, any strike or violation it filed, and the job.
 import { rest, session, rpcSr, URL_, ANON } from "./lib/prodEnv.mjs";
+import { fitJobTitle } from "../lib/jobTextBounds.mjs";
 
 const ROUNDS = Number(process.argv[2] ?? 20);
 const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
@@ -48,7 +49,7 @@ async function fixture(scenario, label) {
     method: "POST", prefer: "return=representation",
     body: {
       customer_id: POSTER, helper_id: HELPER, is_seed: true,
-      title: `RACE-SETTLE ${scenario} ${label} ${tag()}`,
+      title: fitJobTitle(`RACE-SETTLE ${scenario} ${label} ${tag()}`),
       description: "settle_dispute_record race probe fixture",
       category: "yard_work", location: "4412 Highland Rd, Baton Rouge, LA 70808", date_needed: ago(0).slice(0, 10),
       budget: 50,

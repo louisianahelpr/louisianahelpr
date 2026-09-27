@@ -546,7 +546,7 @@ async function ensureHelperAvatar(helperId) {
 // grades e2e/happy-path/seedData.ts — this table is outside that guard's walk
 // (e2e/, src/test/) since prod-seed.mjs is a script, not a fixture file.
 const GROUP_JOB_ROW = {
-  title: "SEED Haul storm debris — three-person crew",
+  title: "SEED Haul storm debris — crew",
   category: "storm_prep",
   budget: 300,
   status: "open",
@@ -622,15 +622,16 @@ async function apply() {
   const posterJobs = [
     { id: sid("job:poster-open"), customer_id: posterId, title: "SEED Mow and edge a corner lot", category: "yard_work", budget: 95, status: "open" },
     { id: sid("job:poster-pending-approval"), customer_id: posterId, title: "SEED Hang shelves and a TV mount", category: "handyman", budget: 150, status: "pending_approval" },
-    { id: sid("job:helper-posts"), customer_id: helperId, title: "SEED Anchor bookcases and cover outlets", category: "handyman", budget: 125, status: "open" },
+    { id: sid("job:helper-posts"), customer_id: helperId, title: "SEED Anchor bookcases + outlets", category: "handyman", budget: 125, status: "open" },
     { id: sid("job:pets"), customer_id: posterId, title: "SEED Feed and walk two dogs", category: "pet_care", budget: 160, status: "open" },
   ].map((j) => ({ ...jobBase, ...j }));
   const heavyJobs = [
     {
       id: sid("job:heavy-big"),
       customer_id: ids.heavy,
-      title: LONG("SEED Complete post-hurricane cleanup of a raised Acadian cottage: tear out soaked drywall, haul debris, mold-treat the crawlspace and re-hang every shutter 🌀", 150),
-      description: LONG("SEED audit fixture. The water reached thirty-one inches inside; everything below that line comes out. Référence DOSSIER-FEMA-caseAX-QLR. ", 5000),
+      // Max content = the DB's own bounds (Q782: jobs_title_length 32, jobs_description_length 1000).
+      title: LONG("SEED Complete post-hurricane cleanup of a raised Acadian cottage: tear out soaked drywall, haul debris, mold-treat the crawlspace and re-hang every shutter 🌀", 32),
+      description: LONG("SEED audit fixture. The water reached thirty-one inches inside; everything below that line comes out. Référence DOSSIER-FEMA-caseAX-QLR. ", 1000),
       category: "storm_prep",
       budget: 1000, // MAX_JOB_BUDGET_DOLLARS (_shared/jobBudgetLimits.ts, Q202)
       status: "open",
@@ -638,7 +639,7 @@ async function apply() {
     ...Array.from({ length: 110 }, (_, i) => ({
       id: sid(`job:heavy-${i}`),
       customer_id: ids.heavy,
-      title: ["SEED Mow, edge and blow a corner lot 🌿", "SEED Déménagement: 3 chambres, 2e étage", "SEED Assemble IKEA PAX ×4 — 有说明书", "SEED Supercalifragilisticexpialidociousfencerepairjob", "SEED Clean gutters"][i % 5],
+      title: ["SEED Mow, edge, blow a lot 🌿", "SEED Déménagement: 3 chambres", "SEED IKEA PAX ×4 — 有说明书", "SEED Supercalifragilisticexpiali", "SEED Clean gutters"][i % 5],
       category: ["cleaning", "yard_work", "moving", "errands", "handyman", "painting", "delivery", "assembly", "other", "events"][i % 10],
       budget: [10, 45, 180, 450, 750, 999, 1000][i % 7],
       status: "open",

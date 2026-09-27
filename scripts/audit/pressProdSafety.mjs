@@ -28,6 +28,7 @@ import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.t
 import { resolve } from "node:path";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
+import { fitJobTitle, runTag } from "../lib/jobTextBounds.mjs";
 
 export const PRESS_MARKER = "[PRESS DO NOT ACCEPT]";
 
@@ -191,8 +192,11 @@ export async function createPressJob(poster, runId, suffix = "", source = "press
     headers: headers(poster, { Prefer: "return=representation" }),
     body: JSON.stringify({
       customer_id: poster.userId,
-      title: `${PRESS_MARKER} ${source} ${runId}${suffix}`,
-      description: `Automated ${source} fixture. Not a real job. Created by CI and removed by its clean-up; if you can read this in the app the harness has a bug.`,
+      // jobs_title_length caps the title at 32 (Q782): marker (21) + a 6-char
+      // tag of the run. Clean-up matches the marker substring only; the full
+      // run identity goes in the description.
+      title: fitJobTitle(`${PRESS_MARKER} ${runTag(`${source} ${runId}${suffix}`)}`),
+      description: `Automated ${source} fixture (run ${runId}${suffix}). Not a real job. Created by CI and removed by its clean-up; if you can read this in the app the harness has a bug.`,
       category: "cleaning",
       budget: 25,
       // A REAL street address, not a town (owner, 2026-09-19: "when i click

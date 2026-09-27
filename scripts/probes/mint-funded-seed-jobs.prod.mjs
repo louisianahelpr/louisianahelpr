@@ -69,6 +69,7 @@
 import { appendFileSync, writeFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import { rest, session, invoke } from "./lib/prodEnv.mjs";
+import { fitJobTitle } from "../lib/jobTextBounds.mjs";
 
 const argv = process.argv.slice(2);
 const LISTING_MODE = argv[0] === "--listings";
@@ -95,27 +96,27 @@ const SEED_HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
  */
 const LISTINGS = [
   { account: "poster", days: 31, category: "cleaning", budget: 185,
-    title: "Deep clean a 3-bed before move-in",
+    title: "Deep clean a 3-bed, move-in",
     description: "Empty house, needs a full turnover clean: floors, baseboards, inside cabinets, both bathrooms, oven and fridge. Keys in the lockbox, code sent after hiring.",
     location: "4412 Highland Rd, Baton Rouge, LA 70808", parish: "East Baton Rouge", latitude: 30.4028, longitude: -91.1714 },
   { account: "helper-e2e", days: 45, category: "yard_work", budget: 165,
-    title: "Trim crepe myrtles and haul the limbs",
+    title: "Trim crepe myrtles, haul limbs",
     description: "Four crepe myrtles along the driveway plus one hedge line. Bring your own loppers; haul-off is included in the price.",
     location: "215 E Main St, New Iberia, LA 70560", parish: "Iberia", latitude: 30.0035, longitude: -91.8187 },
   { account: "helper", days: 59, category: "assembly", budget: 140,
-    title: "Assemble a swing set in the backyard",
+    title: "Assemble a backyard swing set",
     description: "Boxed swing set with instructions included. The ground is already level and cleared, and there is power at the patio for tools.",
     location: "412 Guilbeau Rd, Lafayette, LA 70506", parish: "Lafayette", latitude: 30.2241, longitude: -92.0198 },
   { account: "poster", days: 73, category: "moving", budget: 240,
-    title: "Two-person crew for a one-bedroom move",
+    title: "Two-person crew, 1-bedroom move",
     description: "Second-floor walk-up to a ground-floor unit about fifteen minutes away. Everything is boxed; the truck is already rented.",
     location: "3419 Magazine St, New Orleans, LA 70115", parish: "Orleans", latitude: 29.9273, longitude: -90.0879 },
   { account: "helper-e2e", days: 88, category: "painting", budget: 195,
-    title: "Touch up the hallway and stairwell",
+    title: "Touch up hallway and stairwell",
     description: "Small patch and repaint after some drywall work. Paint is already matched and on site, drop cloths provided.",
     location: "3505 Line Ave, Shreveport, LA 71104", parish: "Caddo", latitude: 32.4771, longitude: -93.7523 },
   { account: "helper", days: 102, category: "handyman", budget: 120,
-    title: "Clean the gutters and reseat one downspout",
+    title: "Clean gutters, reseat downspout",
     description: "Single-storey ranch, gutters all the way around, plus one downspout that has pulled away from the wall. Ladder available if you need it.",
     location: "1011 Ryan St, Lake Charles, LA 70601", parish: "Calcasieu", latitude: 30.2210, longitude: -93.2174 },
   { account: "poster", days: 117, category: "delivery", budget: 110,
@@ -123,7 +124,7 @@ const LISTINGS = [
     description: "Appliance is on the curb and a dolly is provided. Ten-minute drive, ground floor at both ends, no stairs either side.",
     location: "1418 St Charles St, Houma, LA 70360", parish: "Terrebonne", latitude: 29.5936, longitude: -90.7268 },
   { account: "helper-e2e", days: 131, category: "events", budget: 210,
-    title: "Setup crew for a backyard reception",
+    title: "Setup crew, backyard reception",
     description: "Tables, chairs and string lights from noon, then help striking everything down after ten. Two people would be ideal but one is fine.",
     location: "1125 Jackson St, Alexandria, LA 71301", parish: "Rapides", latitude: 31.3050, longitude: -92.4520 },
 ];
@@ -166,7 +167,7 @@ function jobBody(made) {
       account: "poster-e2e",
       body: {
         customer_id: POSTER, is_seed: true, parish: null,
-        title: `RACE-FUNDED seed ${tag()}`, description: "funded fixture for a money race probe",
+        title: fitJobTitle(`RACE-FUNDED seed ${tag()}`), description: "funded fixture for a money race probe",
         category: "cleaning", location: "4412 Highland Rd, Baton Rouge, LA 70808",
         date_needed: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10),
         budget: 20, status: "open", payment_status: "unpaid", pricing_mode: "set_price",

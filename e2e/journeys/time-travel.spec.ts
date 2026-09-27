@@ -13,6 +13,7 @@ import {
   skipUncovered,
   type Session,
 } from "./fixtures";
+import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 
 /**
  * TIME TRAVEL — what a real user sees days later, on the deployed app and the
@@ -227,6 +228,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     // in a title as a phone number, so use base36 with a letter prefix.
     const runId = `r${Date.now().toString(36)}`;
 
+    const LEG_CODE: Record<string, string> = { plain: "tp", "dst-fall": "tf", "dst-spring": "ts" };
     async function postJob(date: string, start: string, label: string) {
       const expires = ct(date, start).toISOString();
       // `expires_at` is read back below, so name it (plus `id` for cleanup).
@@ -236,8 +238,10 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         headers: { ...rest(poster), Prefer: "return=representation" },
         data: {
           customer_id: poster.user.id,
-          title: `${E2E_TITLE_MARKER} time travel ${label} ${runId}`,
-          description: "Automated time-travel test row. Not a real job; deleted when the run ends.",
+          // jobs_title_length caps a title at 32 (Q782): marker (19) + a
+          // 2-char leg code + runId (9); the leg's name is in the description.
+          title: fitJobTitle(`${E2E_TITLE_MARKER} ${LEG_CODE[label] ?? label} ${runId}`),
+          description: `Automated time-travel test row (${label}). Not a real job; deleted when the run ends.`,
           category: "cleaning",
           budget: 25,
           location: "Baton Rouge, LA",
@@ -366,7 +370,8 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     const runId = `f${Date.now().toString(36)}`;
     const D = centralDate(3);
     const start = ct(D, "09:00");
-    const title = `${E2E_TITLE_MARKER} time travel funded ${runId}`;
+    // marker (19) + "tt" + runId (9) = 32, jobs_title_length's cap (Q782).
+    const title = fitJobTitle(`${E2E_TITLE_MARKER} tt ${runId}`);
     const ins = await request.post(`${SUPABASE_URL}/rest/v1/jobs?select=id,title,expires_at`, {
       headers: { ...rest(poster), Prefer: "return=representation" },
       data: {

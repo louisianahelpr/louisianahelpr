@@ -20,6 +20,7 @@
 // The fixture has no Stripe PI and no poster strike path (nothing cancels),
 // so there is nothing to clean up beyond notifications + the job row.
 import { rest, session, invoke } from "./lib/prodEnv.mjs";
+import { fitJobTitle } from "../lib/jobTextBounds.mjs";
 
 const ROUNDS = Number(process.argv[2] ?? 20);
 const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
@@ -34,7 +35,7 @@ async function fixture(label, helperDone) {
     method: "POST", prefer: "return=representation",
     body: {
       customer_id: POSTER, helper_id: HELPER, is_seed: true,
-      title: `RACE-RELEASE ${label} ${Math.random().toString(36).replace(/[0-9.]/g, "").slice(0, 6)}`, description: "release race probe fixture",
+      title: fitJobTitle(`RACE-RELEASE ${label} ${Math.random().toString(36).replace(/[0-9.]/g, "").slice(0, 6)}`), description: "release race probe fixture",
       category: "yard_work", location: "4412 Highland Rd, Baton Rouge, LA 70808", date_needed: ago(0).slice(0, 10),
       budget: 50, status: "in_progress", payment_status: "escrow",
       helper_confirmed_at: ago(5), poster_confirmed_at: ago(5), accepted_at: ago(6),

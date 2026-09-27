@@ -14,6 +14,7 @@
  * @mutate-exempt Subject is RLS, not client code: 0 browser refs, 17 REST assertions (measured 2026-09-21), and the gate never applies a policy. CLASS SHOWN ABLE TO FAIL by scripts/probes/direct-offer-policy-scope.pglite.mjs, which isolates the direct-offer policies on a jobs table and is RED-BEFORE: under the old policy a non-party account can SELECT and UPDATE the status of an ASSIGNED, funded job. scripts/probes/self-application-gate.pglite.mjs and trigger-fn-grants.pglite.mjs cover two more authz holes the same way. GAP, stated plainly: no probe reproduces the generic "helper reads the poster's private job" assertion at the top of this file. Closing it means a PGlite replay of the jobs SELECT policy with two roles, modelled on direct-offer-policy-scope.pglite.mjs.
  */
 import { test, expect, getSession, rest, sessionsAvailable, SUPABASE_URL, E2E_TITLE_MARKER, announceUncovered } from "../fixtures";
+import { fitJobTitle, runTag } from "../../../scripts/lib/jobTextBounds.mjs";
 import type { APIRequestContext } from "@playwright/test";
 
 /**
@@ -68,7 +69,7 @@ test.describe("bad actors: IDOR & authz", () => {
       headers: { ...posterHeaders, Prefer: "return=representation" },
       data: {
         customer_id: posterId,
-        title: `${E2E_TITLE_MARKER} idor target ${runId}`,
+        title: fitJobTitle(`${E2E_TITLE_MARKER} idor ${runTag(runId, 7)}`),
         description: "Unfunded IDOR target; safe to delete.",
         category: "cleaning",
         budget: 50,

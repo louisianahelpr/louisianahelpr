@@ -49,10 +49,10 @@ describe("ai-job-builder output is whitelisted and bounded (A-002)", () => {
       price: 1,
     })!;
     expect(out.title).toHaveLength(32);
-    expect(out.budget_min).toBe(0);
-    expect(out.budget_max).toBe(100_000);
+    expect(out.budget_min).toBe(10);
+    expect(out.budget_max).toBe(1000);
     expect(out).not.toHaveProperty("estimated_hours");
-    expect(out.helpers_needed).toBe(20);
+    expect(out.helpers_needed).toBe(10);
     expect(out).not.toHaveProperty("price");
     expect(out).not.toHaveProperty("__proto_pollution");
   });

@@ -70,7 +70,8 @@ import { FUNDED_FIXTURE_TITLE } from "../prod-audit/fundedOpenJobPlan";
 /** Every row this spec writes carries it; the pre-sweep finds a killed run's rows by it. Not any sweeper's marker. */
 export const MARKER = "[E2E-CANARY]";
 /** The ONE persistent unpaid job the checkout leg re-mints a session on. */
-export const CHECKOUT_FIXTURE_TITLE = `${MARKER} checkout fixture, never paid`;
+/** 29 characters: inside jobs_title_length (32, Q782); ", never paid" rides in the description. */
+export const CHECKOUT_FIXTURE_TITLE = `${MARKER} checkout fixture`;
 const CHECKOUT_FIXTURE_DAYS = 60;
 const MIN_RUNWAY_DAYS = 7;
 

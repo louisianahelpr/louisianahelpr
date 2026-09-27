@@ -37,6 +37,7 @@
 // Every scenario also checks job_messaging_closes_at(job) = completed_at + 24h
 // on a completed job (the 24h messaging lockout clock).
 import { rest, session, invoke, URL_, ANON } from "./lib/prodEnv.mjs";
+import { fitJobTitle } from "../lib/jobTextBounds.mjs";
 
 const ROUNDS = Number(process.argv[2] ?? 20);
 const ONLY = process.argv[3] ?? "all";
@@ -68,7 +69,7 @@ async function fixture(label, { helperDone, helperConfirmed }) {
     method: "POST", prefer: "return=representation",
     body: {
       customer_id: POSTER, helper_id: HELPER, is_seed: true,
-      title: `RACE-COMPLETE ${label} ${tag()}`, description: "completion race probe fixture",
+      title: fitJobTitle(`RACE-COMPLETE ${label} ${tag()}`), description: "completion race probe fixture",
       category: "yard_work", location: "4412 Highland Rd, Baton Rouge, LA 70808", date_needed: ago(0).slice(0, 10),
       budget: 50, status: "in_progress", payment_status: "escrow",
       helper_confirmed_at: helperConfirmed ? ago(5) : null, poster_confirmed_at: ago(5), accepted_at: ago(6),
@@ -150,14 +151,14 @@ const SCENARIOS = {
 
 // CONTROL: each party alone must do its job, or no round measures anything.
 {
-  const c1 = await fixture("control-done", SCENARIOS.cancel.fixture);
+  const c1 = await fixture("ctl-done", SCENARIOS.cancel.fixture);
   try {
     const r = await doneLegacy(c1);
     const ok = r.status < 300 && r.json?.length === 1;
     console.log(`control done-alone: ${ok ? "ok" : "FAILED"} ${r.status} ${JSON.stringify(r.json)}`);
     if (!ok) process.exit(2);
   } finally { await cleanup(c1); }
-  const c2 = await fixture("control-cancel", SCENARIOS.cancel.fixture);
+  const c2 = await fixture("ctl-cancel", SCENARIOS.cancel.fixture);
   try {
     const r = await cancel(c2);
     const ok = r.status < 300;

@@ -335,13 +335,16 @@ export const CommunityContent = () => (
              VIOLATIONS, and promised a permanent ban at the 3rd, which the
              trigger never does automatically: it suspends 30 days and notifies
              admins to decide. Stating an automatic permanent ban that no code
-             performs is the kind of promise a suspended user quotes back. */
+             performs is the kind of promise a suspended user quotes back.
+             Q183 (2026-09-27, migration 20260927043454): it counts only its
+             own types and only the last 7 days, so the rungs below are
+             "within 7 days". */
           <ul className="list-disc pl-4 space-y-0.5">
-            <li><strong className="text-foreground">1st violation:</strong> Final warning — email + in-app, telling you the next one is a 7-day suspension.</li>
-            <li><strong className="text-foreground">2nd violation:</strong> 7-day suspension.</li>
-            <li><strong className="text-foreground">3rd violation:</strong> 30-day suspension.</li>
+            <li><strong className="text-foreground">1st violation:</strong> Final warning — email + in-app, telling you another one within 7 days is a 7-day suspension.</li>
+            <li><strong className="text-foreground">2nd violation within 7 days:</strong> 7-day suspension.</li>
+            <li><strong className="text-foreground">3rd violation within 7 days:</strong> 30-day suspension.</li>
             <li><strong className="text-foreground">4th and beyond:</strong> Reviewed by a human for a permanent ban — it is never automatic.</li>
-            <li className="!list-none pl-0 pt-1 text-muted-foreground">Counts <em>confirmed violations</em>, not reports made against you. Admin actions, cancellations with a Helpr assigned, off-platform flags, job denials and no-shows are handled separately and do not feed this ladder.</li>
+            <li className="!list-none pl-0 pt-1 text-muted-foreground">Counts <em>confirmed violations</em> from the last 7 days, not reports made against you. Admin actions, cancellations with a Helpr assigned, off-platform flags, job denials and no-shows are handled separately and do not feed this ladder.</li>
           </ul>
         }
       />

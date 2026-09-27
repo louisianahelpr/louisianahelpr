@@ -562,6 +562,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/seriesRefund.ts";`,
   );
 
+  // Money review MED-3: `_shared/seriesParent.ts` has ZERO imports and decides
+  // which open rows are live series parents the expiry sweep must skip.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/seriesParent\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/seriesParent.ts";`,
+  );
+
   // ── The transactional-email layer ────────────────────────────────────────
   //
   // `_shared/resend.ts` constructs a Resend client at module scope,

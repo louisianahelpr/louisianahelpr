@@ -1126,8 +1126,11 @@ CREATE TRIGGER trg_series_visit_within_end
 --   - 20260925140148_group_roster_departure (Q393): THE CREW BRANCH (a crew
 --     member leaves through their roster slot), with the copy rewrites
 --     20260925143327 applies to it in place ("the person who posted it");
---   - the single-helper path as 20260924220318 left it.
--- Changes on top of both:
+--   - the single-helper path as 20260924220318 left it;
+--   - the role-neutral copy 20260926193844_helper_cancel_booking_copy_reapply
+--     re-applied in place (the newest definition on main before this one;
+--     money review LOW-4: every string it set is kept verbatim here).
+-- Changes on top of all three:
 --   - the reliability strike applies ONLY within 24 hours of the start, on
 --     EVERY booking: a series visit (owner decision Q407 (6)), a one-time job
 --     and a crew slot (owner decision Q407 (11), 2026-09-25: "a Helpr

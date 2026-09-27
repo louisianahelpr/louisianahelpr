@@ -22,7 +22,8 @@
  * Runs the REAL function source via the edge harness, with the real
  * `_shared/seriesRefund.ts`.
  *
- * @mutate supabase/functions/_shared/seriesRefund.ts |   return !!job.parent_job_id && !job.helper_id; |   return false;
+ * @mutate supabase/functions/_shared/seriesRefund.ts |   return inSeries && !job.helper_id; |   return false;
+ * @mutate supabase/functions/_shared/seriesRefund.ts |   return inSeries && !job.helper_id; |   return !!job.parent_job_id && !job.helper_id;
  * @mutate supabase/functions/_shared/seriesRefund.ts |   if (inSeries && !!job.series_ban_cancelled_at) return true; |   if (!!job.series_ban_cancelled_at) return true;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           const nonRefundableCents = fullSeriesRefund\n            ? actualOrEstimatedFeeCents(pi, capturedCents) |           const nonRefundableCents = false\n            ? actualOrEstimatedFeeCents(pi, capturedCents)
  * @mutate supabase/functions/void-cancelled-payments/index.ts |             ? actualOrEstimatedFeeCents(pi, capturedCents)\n            : Math.max | ? 0\n            : Math.max
@@ -191,5 +192,16 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
   it("the ban migration sets the marker on every visit it cancels", () => {
     const sql = blankSqlComments(readFileSync("supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql", "utf8"));
     expect(sql).toMatch(/SET status = 'cancelled',[\s\S]{0,200}series_ban_cancelled_at = now\(\),/);
+  });
+});
+
+describe("refundsSeriesVisitInFull (money review MED-2)", () => {
+  it("an unfilled visit ONE (the parent row) is refunded in full, like any unfilled visit", async () => {
+    const { refundsSeriesVisitInFull } = await import("../../../supabase/functions/_shared/seriesRefund");
+    expect(refundsSeriesVisitInFull({ parent_job_id: null, recurrence_days: [1, 3], helper_id: null })).toBe(true);
+    expect(refundsSeriesVisitInFull({ parent_job_id: "p", recurrence_days: null, helper_id: null })).toBe(true);
+    // A filled visit one, or a one-off job with no Helpr, keeps the normal rule.
+    expect(refundsSeriesVisitInFull({ parent_job_id: null, recurrence_days: [1], helper_id: "h" })).toBe(false);
+    expect(refundsSeriesVisitInFull({ parent_job_id: null, recurrence_days: null, helper_id: null })).toBe(false);
   });
 });

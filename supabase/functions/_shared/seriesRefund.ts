@@ -5,7 +5,8 @@
  * the charge: the platform never absorbs a fee and never refunds more than it
  * netted (owner decision Q407 (12); void-cancelled-payments).
  *
- *   - An UNFILLED visit: a series visit (parent_job_id set) cancelled with no
+ *   - An UNFILLED visit: a series visit (parent_job_id set, or visit one = the
+ *     parent, recurrence_days set) cancelled with no
  *     Helpr on it. It was funded for a Helpr who then gave it up, and nobody
  *     took it before it arrived (owner: a date still unfilled when it arrives
  *     is not charged).
@@ -31,5 +32,8 @@ export interface SeriesRefundJob {
 export function refundsSeriesVisitInFull(job: SeriesRefundJob): boolean {
   const inSeries = !!job.parent_job_id || (Array.isArray(job.recurrence_days) && job.recurrence_days.length > 0);
   if (inSeries && !!job.series_ban_cancelled_at) return true;
-  return !!job.parent_job_id && !job.helper_id;
+  // Money review MED-2 (2026-09-27): visit one IS the parent row, so an
+  // unfilled visit one (a split series with no Helpr on its first date) is a
+  // series visit too, not only rows with parent_job_id set.
+  return inSeries && !job.helper_id;
 }

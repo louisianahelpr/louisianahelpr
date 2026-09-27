@@ -3,6 +3,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { CONFIRM_WINDOW_HOURS, confirmDeadlineMs } from "../_shared/confirmDeadline.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { isLiveSeriesParent } from "../_shared/seriesParent.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -202,7 +203,7 @@ serve(async (req) => {
     // 2. Auto-cancel open jobs whose expires_at has passed OR date_needed is in the past
     const { data: expiredByTime, error: expTimeErr } = await supabase
       .from("jobs")
-      .select("id, title, customer_id")
+      .select("*")
       .eq("status", "open")
       .not("expires_at", "is", null)
       .lt("expires_at", now);
@@ -211,7 +212,7 @@ serve(async (req) => {
 
     const { data: expiredByDate, error: expDateErr } = await supabase
       .from("jobs")
-      .select("id, title, customer_id")
+      .select("*")
       .eq("status", "open")
       .is("expires_at", null)
       .lt("date_needed", today);
@@ -226,6 +227,9 @@ serve(async (req) => {
     for (const job of allExpired) {
       if (seen.has(job.id)) continue;
       seen.add(job.id);
+      // Money review MED-3: a live series parent stays open while Helprs pick
+      // its dates; cancelling it on its own date would end the whole series.
+      if (isLiveSeriesParent(job, today)) continue;
 
       // Conditional on still being open — see the reopen guard above. Without
       // it, a helper who won this job via accept_application or

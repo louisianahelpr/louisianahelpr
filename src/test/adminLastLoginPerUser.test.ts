@@ -1,7 +1,7 @@
 // @mutate supabase/migrations/20260927222725_admin_last_logins.sql |   GROUP BY l.user_id\n | GROUP BY l.user_id\n  LIMIT 500\n
 // @mutate supabase/migrations/20260927222725_admin_last_logins.sql |   WHERE public.has_role((SELECT auth.uid()), 'admin'::public.app_role)\n | \n
 // @mutate supabase/migrations/20260927222725_admin_last_logins.sql | FROM PUBLIC, anon; | FROM PUBLIC;
-// @mutate src/components/admin/useAdminUserSummaries.ts | if (rpc.error?.code !== "PGRST202") { | if (false) {
+// @mutate src/components/admin/useAdminUserSummaries.ts | supabase.rpc("admin_last_logins");\n    if (rpc.error?.code !== "PGRST202") { | supabase.rpc("admin_last_logins");\n    if (false) {
 // @mutate src/components/admin/useAdminUserSummaries.ts |       loadLastLogins(userIds),\n |       supabase.from("login_history").select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500),\n
 /*
  * Q428: Admin People said "Never logged in" about accounts that had logged in.

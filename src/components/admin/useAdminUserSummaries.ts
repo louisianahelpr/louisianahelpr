@@ -190,31 +190,49 @@ export function useAdminUserSummaries() {
     return { data: old.data?.map((r) => ({ user_id: r.user_id, last_login_at: r.created_at })) ?? null, error: old.error };
   };
 
+  /**
+   * Each user's newest posted job and newest application, one row per user
+   * (Q819). Same class as Q428: the newest 500 rows across every listed user
+   * would drop quieter users once either table passed 500. PGRST202 (RPC not
+   * deployed yet) falls back to the old bounded reads.
+   */
+  const loadLastActivity = async (userIds: string[]) => {
+    const rpc = await supabase.rpc("admin_last_activity");
+    if (rpc.error?.code !== "PGRST202") {
+      const wanted = new Set(userIds);
+      return { data: rpc.data?.filter((r) => wanted.has(r.user_id)) ?? null, error: rpc.error };
+    }
+    const [jobs, apps] = await Promise.all([
+      supabase.from("jobs").select("customer_id, created_at").in("customer_id", userIds).order("created_at", { ascending: false }).limit(500),
+      supabase.from("applications").select("helper_id, created_at").in("helper_id", userIds).order("created_at", { ascending: false }).limit(500),
+    ]);
+    const rows: { user_id: string; last_posted_at: string | null; last_applied_at: string | null }[] = [];
+    jobs.data?.forEach((j) => { if (j.customer_id) rows.push({ user_id: j.customer_id, last_posted_at: j.created_at, last_applied_at: null }); });
+    apps.data?.forEach((a) => rows.push({ user_id: a.helper_id, last_posted_at: null, last_applied_at: a.created_at }));
+    return { data: rows, error: jobs.error ?? apps.error };
+  };
+
   const loadActivitySummary = async (userIds: string[], profiles: Profile[]) => {
     if (userIds.length === 0) { setLastLoginSummary({}); return; }
     const summary: Record<string, { label: string; at: string }> = {};
-    // Fetch recent jobs (posted), applications (helper), and login history in parallel
-    const [jobsRes, appsRes, loginRes] = await Promise.all([
-      supabase.from("jobs").select("customer_id, created_at, title").in("customer_id", userIds).order("created_at", { ascending: false }).limit(500),
-      supabase.from("applications").select("helper_id, created_at").in("helper_id", userIds).order("created_at", { ascending: false }).limit(500),
+    // Posted/applied activity and login history, both aggregated per user, in parallel
+    const [activityRes, loginRes] = await Promise.all([
+      loadLastActivity(userIds),
       loadLastLogins(userIds),
     ]);
-    if (jobsRes.error) console.error("[useAdminUserSummaries] loadActivitySummary jobs:", jobsRes.error);
-    if (appsRes.error) console.error("[useAdminUserSummaries] loadActivitySummary applications:", appsRes.error);
+    if (activityRes.error) console.error("[useAdminUserSummaries] loadActivitySummary activity:", activityRes.error);
     if (loginRes.error) console.error("[useAdminUserSummaries] loadActivitySummary loginHistory:", loginRes.error);
     const consider = (uid: string, label: string, at?: string | null) => {
       if (!at) return;
       const cur = summary[uid];
       if (!cur || new Date(at) > new Date(cur.at)) summary[uid] = { label, at };
     };
-    // `customer_id` is nullable since 20260901033011 (deleting an account
-    // anonymises the job rather than removing it). The `.in("customer_id",
-    // userIds)` above can never match a null, so this narrowing drops nothing
-    // in practice — but null is not a key and must not index `summary`.
-    (jobsRes.data)?.forEach((j) => {
-      if (j.customer_id) consider(j.customer_id, "Posted Job", j.created_at);
+    // Anonymised jobs (null customer_id, since 20260901033011) are excluded
+    // on both paths, so a null never indexes `summary`.
+    (activityRes.data)?.forEach((r) => {
+      consider(r.user_id, "Posted Job", r.last_posted_at);
+      consider(r.user_id, "Applied to Job", r.last_applied_at);
     });
-    (appsRes.data)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
     // Track most-recent login separately for the user list row
     const logins: Record<string, string> = {};
     (loginRes.data)?.forEach((l) => {

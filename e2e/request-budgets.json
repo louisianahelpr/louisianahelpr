@@ -3,6 +3,9 @@
   "budgets": {
     "*": {
       "ceilingPerMinute": 400,
+      "pageBurstCeiling": {
+        "/posts": 200
+      },
       "perTest": null,
       "signIns": null
     },

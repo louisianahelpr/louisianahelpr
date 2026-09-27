@@ -84,6 +84,13 @@ export function judge(agg, budget, { ceilingOnly = false } = {}) {
   } else if (agg.peakPerMinute > budget.ceilingPerMinute) {
     failures.push(`${agg.label}: ${agg.peakPerMinute} backend requests in its busiest minute, over the ${budget.ceilingPerMinute}/min ceiling`);
   }
+  // Per-page burst ceilings (Q430): one page load's requests between two pacing
+  // gates. POLICY like the minute ceiling, so one-way: a page whose request
+  // count grows with the account's data (N+1 per card) fails here by name.
+  for (const [page, max] of Object.entries(budget.pageBurstCeiling ?? {})) {
+    const burst = agg.topBursts?.[page] ?? 0;
+    if (burst > max) failures.push(`${agg.label}: page ${page} sent ${burst} backend requests in one load, over its ${max} page-burst ceiling`);
+  }
   for (const [field, measured] of [["perTest", agg.perTest], ["signIns", agg.signIns]]) {
     const b = budget[field];
     if (ceilingOnly) {

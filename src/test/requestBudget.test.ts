@@ -31,6 +31,8 @@
  * @mutate scripts/e2e/request-budget.mjs | aggregate(dirs.flatMap(readSamples)) | aggregate(readSamples(dirs[0]))
  * @mutate .github/workflows/press-every-control.yml |  --dir request-budget/shard-4 |
  * @mutate e2e/memory/retention.ts |   await gateClientNav(page, path); |
+ * @mutate scripts/e2e/request-budget.mjs | if (burst > max) failures.push( | if (false) failures.push(
+ * @mutate e2e/request-budgets.json | "/posts": 200 | "/posts-off": 200
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -211,6 +213,25 @@ describe("backend request budgets (Q104)", () => {
     expect(subset.notes.join()).toMatch(/subset run, perTest not judged/);
     expect(judge(agg, { ceilingPerMinute: 249, perTest: 1000 }, { ceilingOnly: true }).failures.join()).toMatch(/over the 249\/min ceiling/);
     expect(judge(hollow, { ceilingPerMinute: 400 }, { ceilingOnly: true }).failures.join()).toMatch(/meter is not attached/);
+  });
+
+  // Q430 (owner, 2026-09-27): a request-count budget for /posts?filter=done.
+  // The Done bucket once rendered every completed card expanded, each with its
+  // own tracking query, channel and avatar: 330 requests in one WebKit load
+  // (a11y-webkit-prod 36294688001). A page burst over its ceiling fails by
+  // name, in every run (subset runs too), and the budgets file must carry it.
+  it("a /posts page burst over its ceiling fails the run (Q430)", () => {
+    const burst = (n: number) =>
+      aggregate([{ label: "x", total: n, byClass: { rest: n }, signIns: 0, duplicates: 0, tests: 1, minutes: { "10": n }, topDuplicates: {}, topBursts: { "/posts": n }, startedAt: 0, endedAt: 1 }]).x;
+    const b = { ceilingPerMinute: 400, pageBurstCeiling: { "/posts": 200 } };
+    expect(judge(burst(330), b).failures.join()).toMatch(/page \/posts sent 330 backend requests in one load, over its 200/);
+    expect(judge(burst(330), b, { ceilingOnly: true }).failures.join()).toMatch(/page \/posts sent 330/);
+    expect(judge(burst(200), b).failures).toEqual([]);
+    const { budgets } = JSON.parse(read("e2e/request-budgets.json")) as { budgets: Record<string, { pageBurstCeiling?: Record<string, number> }> };
+    const posts = budgets["*"].pageBurstCeiling?.["/posts"];
+    expect(posts, "every run must judge the /posts page burst").toBeTypeOf("number");
+    // Half the 400/min ceiling: one page may not take more than a worker's share.
+    expect(posts).toBeLessThanOrEqual(200);
   });
 
   it("prod-audit passes --ceiling-only ONLY on a grep dispatch, never on a full run", () => {

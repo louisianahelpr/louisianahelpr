@@ -3,6 +3,21 @@ import type { Job } from "@/components/job-card/activityConstants";
 
 export type CompletedJobMeta = Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
 
+/**
+ * At most this many cards open by default: the newest completed jobs still
+ * awaiting a tip or review (owner, 2026-09-27, Q430). Every expanded card
+ * mounts its own JobTracking query, realtime channel and avatar, so an uncapped
+ * default made /posts?filter=done N+1 in the poster's completed jobs (69
+ * untipped cards = a 330-request page burst on WebKit, nightly-red #1794).
+ */
+export const MAX_DEFAULT_EXPANDED = 3;
+
+/** Newest first: when the job completed, else when it last changed, else posted. */
+function recency(job: Pick<Job, "completed_at" | "updated_at" | "created_at">): number {
+  const t = Date.parse(job.completed_at ?? job.updated_at ?? job.created_at ?? "");
+  return Number.isNaN(t) ? 0 : t;
+}
+
 /** sessionStorage key for the default-open cards the user collapsed by hand. */
 export const COLLAPSED_AWAITING_KEY = "activity:collapsed-awaiting-tip-review";
 
@@ -50,8 +65,9 @@ function readCollapsed(): string[] {
  * review outstanding now opens EXPANDED, so the loose end is in front of the
  * poster instead of behind a tap.
  *
- *  - Default open: `awaitsTipOrReview`. The user's own tap always wins over the
- *    default, in both directions.
+ *  - Default open: `awaitsTipOrReview`, capped at the newest
+ *    MAX_DEFAULT_EXPANDED of them (Q430). The user's own tap always wins over
+ *    the default, in both directions.
  *  - A card the user collapses stays collapsed for the rest of the browser
  *    session (sessionStorage), even across a navigation away and back — a meta
  *    refetch must never force it back open.
@@ -67,11 +83,23 @@ export function useCardExpansion(postedJobs: Job[], completedJobMeta: CompletedJ
     () => new Map(readCollapsed().map((id) => [id, false] as const)),
   );
 
-  const defaultOpen = useMemo(() => {
-    const s = new Set<string>();
-    for (const job of postedJobs) if (awaitsTipOrReview(job, completedJobMeta)) s.add(job.id);
-    return s;
-  }, [postedJobs, completedJobMeta]);
+  // Every card still owing a tip or review; the auto-collapse below tracks all
+  // of them, opened by default or not.
+  const awaiting = useMemo(
+    () => postedJobs.filter((job) => awaitsTipOrReview(job, completedJobMeta)),
+    [postedJobs, completedJobMeta],
+  );
+
+  const defaultOpen = useMemo(
+    () =>
+      new Set(
+        [...awaiting]
+          .sort((a, b) => recency(b) - recency(a))
+          .slice(0, MAX_DEFAULT_EXPANDED)
+          .map((job) => job.id),
+      ),
+    [awaiting],
+  );
 
   const expandedJobIds = useMemo(() => {
     const s = new Set(defaultOpen);
@@ -88,7 +116,7 @@ export function useCardExpansion(postedJobs: Job[], completedJobMeta: CompletedJ
   const seenAwaiting = useRef<Set<string>>(new Set());
   const collapsedOnDone = useRef<Set<string>>(new Set());
   useEffect(() => {
-    for (const id of defaultOpen) seenAwaiting.current.add(id);
+    for (const job of awaiting) seenAwaiting.current.add(job.id);
     const landed: string[] = [];
     for (const job of postedJobs) {
       const m = completedJobMeta[job.id];
@@ -112,7 +140,7 @@ export function useCardExpansion(postedJobs: Job[], completedJobMeta: CompletedJ
       for (const id of landed) next.delete(id);
       return next;
     });
-  }, [defaultOpen, postedJobs, completedJobMeta]);
+  }, [awaiting, postedJobs, completedJobMeta]);
 
   useEffect(() => {
     try {

@@ -13,6 +13,7 @@ import {
   useCardExpansion,
   awaitsTipOrReview,
   COLLAPSED_AWAITING_KEY,
+  MAX_DEFAULT_EXPANDED,
   type CompletedJobMeta,
 } from "./useCardExpansion";
 
@@ -100,5 +101,44 @@ describe("useCardExpansion (VN-29)", () => {
 // VN-29 in one line: the hook must actually SEED its open set from
 // awaitsTipOrReview. Unwiring it (rather than breaking the predicate the
 // first describe block tests directly) is what proves the wiring.
-// @mutate src/components/job-card/useCardExpansion.ts | for (const job of postedJobs) if (awaitsTipOrReview(job, completedJobMeta)) s.add(job.id); | for (const job of postedJobs) if (false) s.add(job.id);
+// @mutate src/components/job-card/useCardExpansion.ts | () => postedJobs.filter((job) => awaitsTipOrReview(job, completedJobMeta)), | () => postedJobs.filter(() => false),
 // @mutate src/components/job-card/useCardExpansion.ts | return !(m.tipped && m.reviewed); | return false;
+
+// Q430 (owner, 2026-09-27): "cap default-expanded completed cards at the
+// newest 3". Each expanded card mounts a JobTracking query, a realtime channel
+// and an avatar, so the number of cards open by default IS the per-card request
+// count of /posts?filter=done. The test poster's 69 untipped completed jobs all
+// opened (a 330-request burst on WebKit, nightly-red #1794); this pins the
+// default to MAX_DEFAULT_EXPANDED whatever N is, and to the NEWEST ones.
+describe("useCardExpansion default-open cap (Q430)", () => {
+  const N = 69;
+  const many = Array.from({ length: N }, (_, i) => ({
+    id: `c${i}`,
+    status: "completed",
+    // c0 completed first, c68 most recently.
+    completed_at: new Date(Date.UTC(2026, 8, 1) + i * 3_600_000).toISOString(),
+    created_at: "2026-08-01T00:00:00Z",
+  })) as unknown as Job[];
+  const meta: CompletedJobMeta = Object.fromEntries(many.map((j) => [j.id, { tipped: false, reviewed: false }]));
+
+  it(`opens only the newest ${MAX_DEFAULT_EXPANDED} of ${N} awaiting cards`, () => {
+    expect(MAX_DEFAULT_EXPANDED).toBe(3);
+    // Shuffled input: the order the list arrives in must not decide which open.
+    const shuffled = [...many].reverse().sort((a, b) => (a.id.length - b.id.length) || a.id.localeCompare(b.id));
+    const { result } = renderHook(() => useCardExpansion(shuffled, meta));
+    expect([...result.current.expandedJobIds].sort()).toEqual(["c66", "c67", "c68"]);
+  });
+
+  it("still auto-collapses a capped card the user opened once its tip and review land", () => {
+    const { result, rerender } = renderHook(({ m }: { m: CompletedJobMeta }) => useCardExpansion(many, m), {
+      initialProps: { m: meta },
+    });
+    act(() => result.current.toggleExpandedJobId("c0"));
+    expect(result.current.expandedJobIds.has("c0")).toBe(true);
+    rerender({ m: { ...meta, c0: { tipped: true, reviewed: true } } });
+    expect(result.current.expandedJobIds.has("c0")).toBe(false);
+  });
+});
+// @mutate src/components/job-card/useCardExpansion.ts | .slice(0, MAX_DEFAULT_EXPANDED) | .slice(0)
+// @mutate src/components/job-card/useCardExpansion.ts | .sort((a, b) => recency(b) - recency(a)) | .sort(() => 0)
+// @mutate src/components/job-card/useCardExpansion.ts | for (const job of awaiting) seenAwaiting.current.add(job.id); | for (const id of defaultOpen) seenAwaiting.current.add(id);

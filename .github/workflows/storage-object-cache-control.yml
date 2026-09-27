@@ -74,8 +74,15 @@ jobs:
             --data-binary @current.bin "${BASE}/avatars/${OBJECT_PATH}"
           echo
 
-          echo "AFTER (public, cache-busted):"
-          curl -sS -D after.headers -o after.bin "${BASE}/public/avatars/${OBJECT_PATH}?cb=$(date +%s%N)"
+          # Storage serves the old header for a few seconds after the PUT (run
+          # 36356668481 re-read 0.14 s later and still saw no-cache; a GET 20 s
+          # later saw max-age=3600), so poll up to 60 s before calling it red.
+          for try in 1 2 3 4 5 6; do
+            sleep 10
+            echo "AFTER try $try (public, cache-busted):"
+            curl -sS -D after.headers -o after.bin "${BASE}/public/avatars/${OBJECT_PATH}?cb=$(date +%s%N)"
+            if grep -iEq '^cache-control:.*max-age=3600' after.headers; then break; fi
+          done
           awk 'tolower($0) ~ /^(http|cache-control|last-modified|etag|cf-cache-status)/' after.headers
           AFTER_MD5=$(md5sum after.bin | cut -d' ' -f1)
           echo "after bytes md5 $AFTER_MD5"

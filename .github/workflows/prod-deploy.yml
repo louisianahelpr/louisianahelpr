@@ -76,7 +76,7 @@ jobs:
   notify:
     name: Report prod deploy
     needs: [deploy]
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

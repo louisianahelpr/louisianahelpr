@@ -174,7 +174,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [check, ledger]
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

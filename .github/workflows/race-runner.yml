@@ -117,7 +117,7 @@ jobs:
     name: Report nightly result
     needs: [race]
     # A red-proof dispatch is SUPPOSED to fail; it must not file an issue.
-    if: always() && github.ref == 'refs/heads/main' && github.event.inputs.exclude_migrations == ''
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event.inputs.exclude_migrations == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

@@ -770,7 +770,7 @@ jobs:
     # and is deliberately allowed to FAIL THE BUILD, which is its signal; the
     # nightly-red issue exists for the scheduled runs nobody is watching.
     if: >-
-      always() && github.event_name != 'pull_request'
+      !cancelled() && github.event_name != 'pull_request'
       && needs.prod-lifecycle.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 5

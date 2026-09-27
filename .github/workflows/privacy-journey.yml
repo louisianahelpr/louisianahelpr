@@ -192,7 +192,7 @@ jobs:
   notify:
     name: Report result
     needs: [gate, privacy-journey]
-    if: always() && needs.gate.outputs.run != 'false'
+    if: ${{ !cancelled() && needs.gate.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

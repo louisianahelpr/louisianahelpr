@@ -78,7 +78,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [check]
-    if: always() && github.ref == 'refs/heads/main'
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

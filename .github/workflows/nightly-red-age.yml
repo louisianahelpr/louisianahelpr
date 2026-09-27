@@ -160,7 +160,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [age]
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

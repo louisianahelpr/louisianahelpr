@@ -321,7 +321,7 @@ jobs:
     # erased, the #1636 pattern). A push still files when vercel-config
     # itself fails, since that leg did run.
     if: >-
-      always() && github.event_name != 'pull_request'
+      !cancelled() && github.event_name != 'pull_request'
       && (needs.served-commit.result != 'skipped' || needs.vercel-config.result != 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 5

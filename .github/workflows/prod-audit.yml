@@ -321,7 +321,7 @@ jobs:
     # the schedule fires. A pinned run has not earned the right to close a
     # suite's issue and stays silent instead.
     if: >-
-      always() && (github.event_name == 'schedule'
+      !cancelled() && (github.event_name == 'schedule'
       || (github.event_name == 'workflow_dispatch' && inputs.grep == ''))
     runs-on: ubuntu-latest
     timeout-minutes: 5

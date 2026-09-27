@@ -229,7 +229,7 @@ jobs:
     needs: [measure, land]
     # Main only, like `land`: the nightly-red issue is about main, and a branch
     # run (whose `land` is skipped) must neither open nor close it.
-    if: always() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

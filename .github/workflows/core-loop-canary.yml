@@ -118,7 +118,7 @@ jobs:
     name: Report the canary's result
     needs: [preflight, canary]
     # Not on a stand-down: that hour proved nothing either way.
-    if: always() && needs.preflight.outputs.busy != 'true'
+    if: ${{ !cancelled() && needs.preflight.outputs.busy != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -332,7 +332,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [fixtures, sweep, diff]
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

@@ -1,0 +1,88 @@
+name: Storage object cache-control rewrite
+
+# docs/OPEN.md Q349: one avatar object (the owner's admin account) is served
+# `cache-control: no-cache` because it was written by a raw upload that sent
+# no header. Editing storage.objects.metadata does not change what Storage
+# serves (the header lives on the S3 object), so the fix is a same-bytes
+# re-upload with `cache-control: max-age=3600`. Owner approved (2026-09-27
+# night, MORNING QUESTIONS): run it as a workflow_dispatch job on repo secrets.
+#
+# Fail-closed, one object, same bytes:
+#   1. the path must be avatars/<uuid>/avatar.jpg;
+#   2. the object is downloaded and its md5 must equal `expected_md5` (the
+#      backup taken 2026-09-27, ~/.lh-shots/q349/original.jpg), else nothing
+#      is written;
+#   3. the SAME bytes are PUT back with x-upsert and max-age=3600;
+#   4. a cache-busted public GET must answer cache-control max-age=3600 and
+#      return bytes with the same md5, else the run is red.
+# Manual only: no schedule, no push trigger. It sends no database query.
+
+on:
+  workflow_dispatch:
+    inputs:
+      object_path:
+        description: "Object inside the avatars bucket (<uuid>/avatar.jpg)"
+        required: true
+        default: "7f65ef12-1d3d-439b-b0a7-f42ce8bc176d/avatar.jpg"
+      expected_md5:
+        description: "md5 the current bytes must have before anything is written"
+        required: true
+        default: "81dd4332ae2b0005bb1556f57b7f2dd4"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: storage-object-cache-control-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  rewrite:
+    name: Same-bytes re-upload with max-age=3600
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Re-upload and verify
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OBJECT_PATH: ${{ inputs.object_path }}
+          EXPECTED_MD5: ${{ inputs.expected_md5 }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$OBJECT_PATH" | grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/avatar\.jpg$'; then
+            echo "::error::object_path must be <uuid>/avatar.jpg, got '$OBJECT_PATH'"; exit 1
+          fi
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_PROJECT_REF or SUPABASE_SERVICE_ROLE_KEY secret is empty"; exit 1
+          fi
+          BASE="https://${SUPABASE_PROJECT_REF}.supabase.co/storage/v1/object"
+          AUTH=(-H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")
+
+          echo "BEFORE (public, cache-busted):"
+          curl -sS -D - -o /dev/null "${BASE}/public/avatars/${OBJECT_PATH}?cb=$(date +%s%N)" | awk 'tolower($0) ~ /^(http|cache-control|last-modified|etag|cf-cache-status)/'
+
+          curl -sS --fail-with-body "${AUTH[@]}" -o current.bin "${BASE}/authenticated/avatars/${OBJECT_PATH}"
+          GOT=$(md5sum current.bin | cut -d' ' -f1)
+          echo "current bytes: $(stat -c %s current.bin) B, md5 $GOT"
+          if [ "$GOT" != "$EXPECTED_MD5" ]; then
+            echo "::error::md5 $GOT != expected $EXPECTED_MD5; nothing written"; exit 1
+          fi
+
+          curl -sS --fail-with-body -X PUT "${AUTH[@]}" \
+            -H "Content-Type: image/jpeg" -H "x-upsert: true" -H "cache-control: max-age=3600" \
+            --data-binary @current.bin "${BASE}/avatars/${OBJECT_PATH}"
+          echo
+
+          echo "AFTER (public, cache-busted):"
+          curl -sS -D after.headers -o after.bin "${BASE}/public/avatars/${OBJECT_PATH}?cb=$(date +%s%N)"
+          awk 'tolower($0) ~ /^(http|cache-control|last-modified|etag|cf-cache-status)/' after.headers
+          AFTER_MD5=$(md5sum after.bin | cut -d' ' -f1)
+          echo "after bytes md5 $AFTER_MD5"
+          if [ "$AFTER_MD5" != "$EXPECTED_MD5" ]; then
+            echo "::error::served bytes changed: $AFTER_MD5"; exit 1
+          fi
+          if ! grep -iEq '^cache-control:.*max-age=3600' after.headers; then
+            echo "::error::served cache-control is not max-age=3600"; exit 1
+          fi
+          echo "OK: same bytes, cache-control max-age=3600"

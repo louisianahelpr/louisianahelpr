@@ -122,6 +122,19 @@ export const onNotificationArrival = (l: ArrivalListener) => {
   return () => { arrivalListeners.delete(l); };
 };
 
+/**
+ * Result of the reload a realtime reconnect triggers: `null` = it worked,
+ * otherwise the error. A mounted panel listens so a failed reconnect reload
+ * shows its error card/toast and a good one clears a stale error card, as
+ * they did when the panel owned the channel.
+ */
+type RecoveryListener = (err: unknown) => void;
+const recoveryListeners = new Set<RecoveryListener>();
+export const onFeedRecoveryLoad = (l: RecoveryListener) => {
+  recoveryListeners.add(l);
+  return () => { recoveryListeners.delete(l); };
+};
+
 type Feed = { refs: number; close: () => void };
 const feeds = new Map<string, Feed>();
 
@@ -161,7 +174,16 @@ function openFeed(userId: string): Feed {
       // This channel is the bell's only live feed. A drop leaves the badge
       // frozen on a count that is no longer true, so re-read the list rather
       // than resuming from whatever arrives next.
-      onRecovered: () => void load(),
+      onRecovered: () =>
+        void loadNotificationFeed(userId).then(
+          () => { for (const l of [...recoveryListeners]) l(null); },
+          (err) => {
+            // A mounted panel turns this into its error card / toast (and
+            // reports it); with no panel, the feed reports it itself.
+            if (recoveryListeners.size === 0) report(err, { tags: { source: "notificationFeed.load" } });
+            for (const l of [...recoveryListeners]) l(err);
+          },
+        ),
     },
   );
   return {

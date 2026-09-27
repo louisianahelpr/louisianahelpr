@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type
 import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { loadNotificationFeed, onNotificationArrival } from "@/components/notificationPanel/notificationFeed";
+import { loadNotificationFeed, onFeedRecoveryLoad, onNotificationArrival } from "@/components/notificationPanel/notificationFeed";
 import { useReducedMotion } from "@/lib/accessibility";
 import { AlertTriangle, BellRing, CheckCheck, Loader2 } from "lucide-react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
@@ -290,6 +290,12 @@ const NotificationPanel = () => {
     // feed (Q756), bound for every signed-in user on every route by
     // useNavUnreadCount. A mounted panel only adds the chime and the local
     // notification for each new row.
+    // A realtime reconnect reloads through the feed: surface its outcome
+    // exactly like a load this panel ran (error card / toast, or clear it).
+    const offRecovery = onFeedRecoveryLoad((err) => {
+      if (err) failLoad(err);
+      else setLoadError(false);
+    });
     const off = onNotificationArrival((n) => {
       // Play notification chime + vibrate
       try {
@@ -320,6 +326,7 @@ const NotificationPanel = () => {
     return () => {
       clearTimeout(timer);
       off();
+      offRecovery();
     };
   }, []);
 

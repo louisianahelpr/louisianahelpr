@@ -35,7 +35,7 @@ function card(side: "helper" | "poster", key: string, label: string) {
       step="working"
       actions={[
         <JobActionChip key={key} icon={AlertTriangle} label={label} ariaLabel={label} tone="danger" onClick={vi.fn()} />,
-        <JobActionChip key="message" icon={MessageSquare} label="Message" ariaLabel="Message" onClick={vi.fn()} />,
+        <JobActionChip key="message" icon={MessageSquare} label="Message" ariaLabel="Message" tone="message" onClick={vi.fn()} />,
       ]}
     />,
   );

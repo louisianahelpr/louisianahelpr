@@ -146,6 +146,13 @@ interface Surface {
    * quietly vacuous if the header stops opening the row.
    */
   tabRowOpen?: boolean;
+  /**
+   * A MEASURED row jump this surface is knowingly over ROW_BUDGET by, with the
+   * open item that owns it. Not an exemption: the jump must stay within one
+   * pixel of this number in BOTH directions, so a regression is red and so is
+   * a fix that leaves the number stale (lower it in the same commit).
+   */
+  rowJump?: { px: number; owner: string };
 }
 
 const SURFACES: Surface[] = [
@@ -170,6 +177,13 @@ const SURFACES: Surface[] = [
     as: "helper",
     hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
     tabRowOpen: true,
+    /* Added for the tab-row reservation (first-y), not the row height. Its
+       row height is Q700's question on a harder list: prod-audit 36298506930
+       (2026-09-27, helper-e2e at 375) measured 50 done cards in THREE shapes,
+       293px x22, 160px x18, 204px x10, against the 150px placeholder; the
+       nearest is 160, a 10px jump, 2px over budget. No static card is near
+       all three. Held at the measured 10 until the owner answers Q700. */
+    rowJump: { px: 10, owner: "docs/OPEN.md Q700 (done cards: 160/204/293px shapes)" },
   },
   {
     name: "posts",
@@ -429,12 +443,23 @@ for (const surface of SURFACES) {
             `This surface is knowingly below budget (see POSTED_ROW_PIN) — it may be FIXED, never made worse.`,
         ).toBeLessThanOrEqual(surface.pinnedRow);
       } else {
-        expect(
-          Math.abs(loadingH - nearest),
-          `${surface.name}: the placeholder reserves ${loadingH}px, and the nearest card shape the list ` +
-            `actually has is ${nearest}px (shapes: ${shapeMix}) — every card below the first one moves by the ` +
-            `difference, compounding down the list. Budget ${ROW_BUDGET}px.`,
-        ).toBeLessThanOrEqual(ROW_BUDGET);
+        const jump = Math.abs(loadingH - nearest);
+        if (surface.rowJump) {
+          expect(
+            Math.abs(jump - surface.rowJump.px),
+            `${surface.name}: the row jump is ${jump}px, and this surface records a measured ${surface.rowJump.px}px ` +
+              `(${surface.rowJump.owner}); placeholder ${loadingH}px, nearest real shape ${nearest}px (shapes: ${shapeMix}). ` +
+              `Worse is a regression; better means update rowJump, or delete it once within ${ROW_BUDGET}px.`,
+          ).toBeLessThanOrEqual(1);
+          expect(surface.rowJump.px, `${surface.name}: rowJump records a jump within budget — delete it`).toBeGreaterThan(ROW_BUDGET);
+        } else {
+          expect(
+            jump,
+            `${surface.name}: the placeholder reserves ${loadingH}px, and the nearest card shape the list ` +
+              `actually has is ${nearest}px (shapes: ${shapeMix}) — every card below the first one moves by the ` +
+              `difference, compounding down the list. Budget ${ROW_BUDGET}px.`,
+          ).toBeLessThanOrEqual(ROW_BUDGET);
+        }
         expect(
           Math.abs(gap(loading) - gap(loaded)),
           `${surface.name}: placeholder rows are ${gap(loading)}px apart, real rows ${gap(loaded)}px. The gap ` +

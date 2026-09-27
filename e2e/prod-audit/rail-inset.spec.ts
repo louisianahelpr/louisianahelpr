@@ -62,7 +62,7 @@ interface RailRow {
   col: { left: number; right: number; area: number; what: string } | null;
 }
 
-function readRail(rail: number): RailRow {
+function readRail([rail, tol]: [number, number]): RailRow {
   const vw = document.documentElement.clientWidth;
   const html = document.documentElement.className;
   const nav = document.querySelector<HTMLElement>('nav[aria-label="Primary"]');
@@ -105,7 +105,7 @@ function readRail(rail: number): RailRow {
     let best: HTMLElement | null = null;
     while (c && c !== document.body) {
       const w = c.getBoundingClientRect().width;
-      if (w < areaW - 2 * TOL) best = c;
+      if (w < areaW - 2 * tol) best = c;
       else break;
       c = c.parentElement;
     }
@@ -165,7 +165,7 @@ test("rail inset: nothing under the open right rail on any signed-in route at 10
     for (const s of SCREENS) {
       await page.goto(s.url, { waitUntil: "domcontentloaded" });
       await settle(page);
-      const r = await page.evaluate(readRail, RAIL);
+      const r = await page.evaluate(readRail, [RAIL, TOL] as [number, number]);
       const at = `${s.name}@${vw} (${r.path})`;
       if (!r.railOn) {
         noRail.push(at);

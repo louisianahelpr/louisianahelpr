@@ -1,4 +1,4 @@
--- Disputes on a crew (docs/OPEN.md Q727, with Q396(c); owner rules Q407).
+-- Disputes on a crew (docs/OPEN.md Q728, with Q396(c); owner rules Q407).
 --
 -- A crew has no lead (20260925154606): jobs.helper_id is NULL on every group
 -- job. Every dispute rule keyed on helper_id therefore changed meaning on a
@@ -39,7 +39,7 @@
 --      fee (unfilled slots and 'refund' members alike) in ONE refund. Refunding
 --      every member is a full refund, which the existing Full refund action
 --      does; this RPC refuses it. A member with no frozen share refuses too.
---      PRODUCT QUESTION (owner, Q727): a member's share is all-or-nothing
+--      PRODUCT QUESTION (owner, Q728): a member's share is all-or-nothing
 --      here. Whether an admin may award a member PART of their share, and
 --      whether the poster's service fee on a refunded share is returned (the
 --      unfilled-slot refund today returns budget + urgent only, never fees),
@@ -124,7 +124,7 @@ BEGIN
 
   -- The platform is not a party to the job, so there is no membership to
   -- check on that branch. Every human caller still is.
-  -- NULL-safe (Q727): this read `_uid <> _customer AND _uid <> _helper`, and
+  -- NULL-safe (Q728): this read `_uid <> _customer AND _uid <> _helper`, and
   -- on a crew `_uid <> NULL` is NULL, so the IF never fired and ANY signed-in
   -- account could open a dispute on any booked crew job, freezing its escrow.
   IF NOT _system
@@ -523,7 +523,7 @@ BEGIN
     RAISE EXCEPTION 'job not found';
   END IF;
 
-  -- NULL-safe and roster-aware (Q727): on a crew jobs.helper_id is NULL, so
+  -- NULL-safe and roster-aware (Q728): on a crew jobs.helper_id is NULL, so
   -- `_uid <> _helper` was NULL and ANY signed-in account could escalate a
   -- crew's dispute (which stops the 72h sweep and holds the crew's pay).
   _on_crew := _is_group IS TRUE AND EXISTS (
@@ -671,7 +671,7 @@ BEGIN
     RAISE EXCEPTION 'job not found';
   END IF;
 
-  -- A crew (Q727, was the branch's Q409; see Q710). This function records ONE
+  -- A crew (Q728, was the branch's Q409; see Q710). This function records ONE
   -- fraction for "the Helpr" and execute-dispute-split moves it to
   -- jobs.helper_id, which is NULL on every crew: a crew decision recorded here
   -- could never execute, and it froze the escrow behind a decided-unexecuted

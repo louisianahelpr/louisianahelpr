@@ -54,7 +54,7 @@ import { blankComments, blankNonCode } from "./helpers/blankNonCode";
 // @mutate supabase/functions/money-reconciliation/index.ts | pi = await stripe.paymentIntents.retrieve( | pi = await stripe.paymentIntents.cancel(
 // @mutate supabase/functions/void-cancelled-payments/index.ts | const jobs = cancelledJobs; | const jobs = cancelledJobs;\n    for (const j of jobs \|\| []) await stripe.refunds.create({ payment_intent: String(j.id) });
 // @mutate supabase/functions/execute-dispute-split/index.ts | "claim_dispute_settlement", | "claim_dispute_settlement_x",
-// Transitive (Q727): a money helper reached through another helper, called once outside the guarded loop.
+// Transitive (Q728): a money helper reached through another helper, called once outside the guarded loop.
 // @mutate supabase/functions/process-scheduled-payouts/index.ts |     const crewSettled = new Set<string>(); |     const crewSettled = new Set<string>();\n    const early = () => crewReadyToRelease(null as never);
 
 const MONEY_SRC =
@@ -263,7 +263,7 @@ function unguardedSites(
    * function every one of whose call sites is covered, TRANSITIVELY (a money
    * helper called only from another helper that is itself called only where
    * money is allowed: process-scheduled-payouts' refundUnfilledCrewShares,
-   * called from crewReadyToRelease, Q727). Same bar at every level: one
+   * called from crewReadyToRelease, Q728). Same bar at every level: one
    * uncovered call anywhere up the chain is a miss. Depth-capped against
    * recursion.
    */
@@ -394,7 +394,7 @@ describe("Q231: only execute-dispute-split moves a decided dispute's escrow", ()
     const code = blankComments(readFileSync("supabase/functions/_shared/unsettledDispute.ts", "utf8"));
     expect(code).toMatch(/\.eq\("status", "decided"\)/);
     // The default read; `crewFanout` (process-scheduled-payouts, group jobs
-    // only, Q727) additionally leaves out a crew decision that cron executes.
+    // only, Q728) additionally leaves out a crew decision that cron executes.
     expect(code).toMatch(/:\s*"execution_status\.is\.null,execution_status\.neq\.executed";/);
     expect(code).toMatch(/opts\.crewFanout\s*\?\s*"execution_status\.is\.null,and\(execution_status\.neq\.executed,execution_status\.neq\.crew_fanout\)"/);
     expect(code).toMatch(/\.or\(unsettled\)/);

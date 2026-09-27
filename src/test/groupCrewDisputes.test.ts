@@ -14,7 +14,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * `IF _uid <> _customer AND _uid <> _helper THEN RAISE` never raises on a
  * crew. open_dispute_as and rpc_escalate_dispute were exactly that: ANY
  * signed-in account could open or escalate a dispute on any booked crew job
- * and freeze its escrow (docs/OPEN.md Q727; red on the before state in
+ * and freeze its escrow (docs/OPEN.md Q728; red on the before state in
  * src/test/pglite/groupCrewDisputes.pglite.mjs R1/R2). The fix
  * (20260927012240) checks the roster, NULL-safe, and gives a crew its own
  * decision: each member's FROZEN share is paid or refunded
@@ -57,10 +57,10 @@ const CALLER_DISTINCT_FROM_HELPER = /\b_uid IS DISTINCT FROM _helper\b/;
  */
 const NOT_A_JOB_HELPER: Record<string, string> = {
   get_helper_earnings_export:
-    "`auth.uid() <> _helper_id` compares the caller to its own _helper_id ARGUMENT; a NULL argument passes the check but its `helper_id = _helper_id` query matches no rows (a NULL-argument finding, docs/OPEN.md Q728, not a crew hole)",
+    "`auth.uid() <> _helper_id` compares the caller to its own _helper_id ARGUMENT; a NULL argument passes the check but its `helper_id = _helper_id` query matches no rows (a NULL-argument finding, docs/OPEN.md Q729, not a crew hole)",
 };
 
-describe("disputes on a crew (Q727)", () => {
+describe("disputes on a crew (Q728)", () => {
   it("1. no function compares a caller to a helper with <> / != (NULL on a crew), and the dispute party checks read the roster", () => {
     const offenders = [...EFFECTIVE.entries()]
       .filter(([, d]) => CALLER_NOT_HELPER.test(blankSqlComments(d.stmt)))

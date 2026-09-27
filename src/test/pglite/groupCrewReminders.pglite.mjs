@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20260927012241_group_crew_reminders_and_counts (docs/OPEN.md
- * Q727; owner rules Q407: a crew has no lead, every hired member is equal).
+ * Q728; owner rules Q407: a crew has no lead, every hired member is equal).
  *
  *   PGLITE_DIR=~/.lh-pglite-probe npx tsx src/test/pglite/groupCrewReminders.pglite.mjs [--replay]
  *   (or node --experimental-strip-types with a resolver for extensionless .ts imports)

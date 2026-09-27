@@ -1,4 +1,4 @@
--- A crew's reminders, auto-start and counts (docs/OPEN.md Q727, the Q396(c)
+-- A crew's reminders, auto-start and counts (docs/OPEN.md Q728, the Q396(c)
 -- follow-up; owner rules Q407: a crew has NO lead, every hired member is equal).
 -- Landed from wip/backup-group-followups, where it was numbered Q408/Q409;
 -- those numbers belong to other items on main.
@@ -29,7 +29,7 @@
 --   get_helper_completed_counts,
 --   get_public_profile_stats         a crew member's completed crew jobs count.
 --
--- NOT built here (owner questions, written into Q727): an unanswered-offer
+-- NOT built here (owner questions, written into Q728): an unanswered-offer
 -- deadline for a crew member (expire_unanswered_offers), and what a block
 -- between the poster and ONE crew member settles (block_user_and_settle).
 --
@@ -102,7 +102,7 @@ BEGIN
     END;
   END LOOP;
 
-  -- Pass 1c (Q727): a CREW. No lead (Q407), so the single pass above never
+  -- Pass 1c (Q728): a CREW. No lead (Q407), so the single pass above never
   -- matches it (helper_id IS NULL): every hired member who has not confirmed
   -- for the day is reminded on their own roster row, and the poster once.
   -- Same window, same grace (a member hired inside the window is not
@@ -184,7 +184,7 @@ BEGIN
     END;
   END LOOP;
 
-  -- Pass 2c (Q727): T-12h and a crew member still hasn't answered — tell the
+  -- Pass 2c (Q728): T-12h and a crew member still hasn't answered — tell the
   -- poster once, with how many.
   FOR rec IN
     SELECT j.id, j.title, j.customer_id,
@@ -294,7 +294,7 @@ BEGIN
       RAISE NOTICE 'sweep_job_start_reminders: job % failed: %', rec.id, SQLERRM;
     END;
   END LOOP;
-  -- Q727: a CREW (no lead, helper_id NULL): the poster and every hired member.
+  -- Q728: a CREW (no lead, helper_id NULL): the poster and every hired member.
   FOR rec IN
     SELECT j.id, j.title, j.customer_id
     FROM public.jobs j
@@ -409,7 +409,7 @@ BEGIN
       RAISE NOTICE 'sweep_no_show_alerts: job % failed: %', rec.id, SQLERRM;
     END;
   END LOOP;
-  -- Q727: a CREW (no lead, helper_id NULL). Each hired member who has not
+  -- Q728: a CREW (no lead, helper_id NULL). Each hired member who has not
   -- arrived is asked, and the poster is asked once, only while someone on the
   -- crew has not arrived. A crew is in_progress as soon as ONE member sets
   -- out, so both states are read here.
@@ -485,7 +485,7 @@ BEGIN
        -- in. Auto-starting the former would start a job nobody agreed to.
        AND (
             (j.helper_id IS NOT NULL AND j.helper_confirmed_at IS NOT NULL)
-            -- Q727: a CREW has no lead (helper_id NULL, Q407). It is booked
+            -- Q728: a CREW has no lead (helper_id NULL, Q407). It is booked
             -- when it is fully staffed ('accepted') and EVERY hired member has
             -- confirmed; a crew with an unconfirmed member stays manual, the
             -- same way an unconfirmed single booking does.
@@ -542,7 +542,7 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
   -- A job counts for the Helpr who did it: the single Helpr (jobs.helper_id)
-  -- or, on a crew (no lead, Q407), every member on its roster (Q727). A user
+  -- or, on a crew (no lead, Q407), every member on its roster (Q728). A user
   -- with none is absent, as before.
   SELECT u.id, COUNT(DISTINCT j.id)::bigint
   FROM unnest(p_user_ids) AS u(id)
@@ -613,7 +613,7 @@ AS $function$
   job_agg AS (
     SELECT
       t.user_id,
-      -- The Helpr side: the single Helpr, or (Q727) a crew member, who is joined
+      -- The Helpr side: the single Helpr, or (Q728) a crew member, who is joined
       -- below through the roster and is never the job's poster.
       COUNT(*) FILTER (WHERE j.customer_id IS DISTINCT FROM t.user_id AND j.status = 'completed')::integer AS completed_as_helper,
       COUNT(DISTINCT j.id) FILTER (WHERE j.status = 'completed')::integer AS completed_total,
@@ -623,7 +623,7 @@ AS $function$
     FROM target t
     LEFT JOIN public.jobs j
       ON j.customer_id = t.user_id OR j.helper_id = t.user_id
-      -- Q727: a crew has no lead (Q407), so a crew member's jobs are found
+      -- Q728: a crew has no lead (Q407), so a crew member's jobs are found
       -- through the roster.
       OR (j.is_group_job IS TRUE AND EXISTS (
             SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = t.user_id))

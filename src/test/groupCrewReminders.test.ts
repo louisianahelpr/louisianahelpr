@@ -12,7 +12,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * A crew has no lead (Q407, 20260925154606): jobs.helper_id is NULL on every
  * group job, so `j.helper_id IS NOT NULL` skips every crew and
  * `j.helper_id = <user>` never counts a crew member's job. Before
- * 20260927012241 (docs/OPEN.md Q727) that meant no day-of, start or no-show
+ * 20260927012241 (docs/OPEN.md Q728) that meant no day-of, start or no-show
  * message to any crew member, no auto-start, and crew jobs missing from every
  * completed count (red on the before state:
  * src/test/pglite/groupCrewReminders.pglite.mjs R1-R5).
@@ -42,21 +42,21 @@ const SINGLE_HELPER_SELECT =
 
 const NOT_FOR_A_CREW: Record<string, string> = {
   expire_unanswered_offers:
-    "a single Helpr's offer deadline; a crew member has none (accept_group_application writes no response_deadline). Whether an unconfirmed crew member's slot should expire is an owner question (Q727), since Q407(13) counts an offered member as hired",
+    "a single Helpr's offer deadline; a crew member has none (accept_group_application writes no response_deadline). Whether an unconfirmed crew member's slot should expire is an owner question (Q728), since Q407(13) counts an offered member as hired",
   get_payout_batch_job_ids: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
   get_payout_batches: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
   get_helper_earnings_export:
-    "NOT YET BUILT (Q727 follow-up): the earnings export reads jobs.helper_id, so a crew member's earnings (payout_transfers per member) are missing from it",
+    "NOT YET BUILT (Q728 follow-up): the earnings export reads jobs.helper_id, so a crew member's earnings (payout_transfers per member) are missing from it",
   get_helper_tiers:
-    "NOT YET BUILT (Q727 follow-up): the admin tier list (20260926034718) counts completed_jobs and lists Helprs through jobs.helper_id only, so a crew-only Helpr is missing and a crew member's crew jobs are uncounted",
-  get_neighbor_hire_count:"NOT YET BUILT (Q727 follow-up): the 'hired by N neighbours' signal counts single-helper jobs only",
+    "NOT YET BUILT (Q728 follow-up): the admin tier list (20260926034718) counts completed_jobs and lists Helprs through jobs.helper_id only, so a crew-only Helpr is missing and a crew member's crew jobs are uncounted",
+  get_neighbor_hire_count:"NOT YET BUILT (Q728 follow-up): the 'hired by N neighbours' signal counts single-helper jobs only",
   get_helper_parish_badges:
-    "DROPPED: not in the database (20260913053041; parish badges removed by owner decision, 20260915191403). Listed only because effectiveDefs does not honour DROP FUNCTION (Q729)",
+    "DROPPED: not in the database (20260913053041; parish badges removed by owner decision, 20260915191403). Listed only because effectiveDefs does not honour DROP FUNCTION (Q730)",
   get_top_helpers_by_parish:
-    "DROPPED: not in the database (20260915191403, parish badges removed by owner decision). Listed only because effectiveDefs does not honour DROP FUNCTION (Q729)",
+    "DROPPED: not in the database (20260915191403, parish badges removed by owner decision). Listed only because effectiveDefs does not honour DROP FUNCTION (Q730)",
 };
 
-describe("a crew gets its reminders, auto-start and counts (Q727)", () => {
+describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
   it("every function that finds the booked Helpr through jobs.helper_id either reads the roster or is classified", () => {
     const found = [...EFFECTIVE.entries()]
       .filter(([, d]) => {
@@ -78,7 +78,7 @@ describe("a crew gets its reminders, auto-start and counts (Q727)", () => {
       const b = body(fn);
       expect(b, `${fn} is gone`).not.toHaveLength(0);
       expect(b, `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);
-      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q727 definition`).toBe(THIS);
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q728 definition`).toBe(THIS);
     }
   });
 

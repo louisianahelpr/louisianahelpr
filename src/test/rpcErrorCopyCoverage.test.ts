@@ -68,7 +68,7 @@ const UNREACHABLE: Allowlist = {
       reason: "Admin console: AdminDisputes' decide handler toasts lifecycleErrorMessage(err), whose table carries this code's sentence (Q342 review M1), not rpcErrorMessage.",
     },
     group_dispute_needs_crew_decision: {
-      reason: "Admin-only (20260927012240, Q727): a crew is decided per member with rpc_decide_crew_dispute; AdminDisputes throws the raised error (message + hint) into its own admin dispute UI. Its per-member decision UI is open work in docs/OPEN.md Q727.",
+      reason: "Admin-only (20260927012240, Q728): a crew is decided per member with rpc_decide_crew_dispute; AdminDisputes throws the raised error (message + hint) into its own admin dispute UI. Its per-member decision UI is open work in docs/OPEN.md Q728.",
     },
   },
   rpc_helper_mark_done: {

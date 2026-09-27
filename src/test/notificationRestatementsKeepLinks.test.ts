@@ -80,12 +80,12 @@ const INTENDED_LINK_CHANGES = new Set([
   "20260925154606_group_crew_has_no_lead.sql::notify_on_job_update",
   "20260925154606_group_crew_has_no_lead.sql::notify_on_payment_escrowed",
   "20260925154606_group_crew_has_no_lead.sql::poster_cancel_job",
-  // Q727: dispute notices reach every crew member ('/jobs?job=<id>') and,
+  // Q728: dispute notices reach every crew member ('/jobs?job=<id>') and,
   // when a member files or escalates, the poster ('/posts?job=<id>'): the
   // same links as the single-Helpr notices, added beside them (nothing gone).
   "20260927012240_group_crew_disputes.sql::open_dispute_as",
   "20260927012240_group_crew_disputes.sql::rpc_escalate_dispute",
-  // Q727: a crew's day-of, start and no-show reminders: the poster on
+  // Q728: a crew's day-of, start and no-show reminders: the poster on
   // '/posts?job=<id>', each member on '/jobs?job=<id>' (nothing gone).
   "20260927012241_group_crew_reminders_and_counts.sql::sweep_dayof_confirm_reminders",
   "20260927012241_group_crew_reminders_and_counts.sql::sweep_job_start_reminders",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20260927012240_group_crew_disputes (docs/OPEN.md Q727 and
+ * PGlite proof for 20260927012240_group_crew_disputes (docs/OPEN.md Q728 and
  * the SQL half of Q396(c); owner rules Q407: a crew has no lead, every hired
  * member is equal, each member's share is frozen in cents at hire).
  *

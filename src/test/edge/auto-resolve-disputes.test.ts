@@ -353,7 +353,7 @@ describe("auto-resolve-disputes", () => {
       expect((await json(res)).escalated_helper_filed).toBe(0);
     });
 
-    // docs/OPEN.md Q727: a crew has no helper_id (Q407), so `disputed_by ===
+    // docs/OPEN.md Q728: a crew has no helper_id (Q407), so `disputed_by ===
     // helper_id` never matched a crew member's filing and one member's silence
     // auto-released the whole crew's pay.
     // @mutate supabase/functions/auto-resolve-disputes/index.ts | (job.is_group_job === true && job.disputed_by !== job.customer_id) | false

@@ -187,7 +187,7 @@ serve(async (req) => {
     // (money review HIGH-1 + MEDIUM-3).
     const crewSlotByJob = new Map<string, Map<string, { shareCents: number | null; slotNo: number | null }>>();
     // A crew dispute decided member by member (rpc_decide_crew_dispute,
-    // 20260927012240, docs/OPEN.md Q727): each hired member's frozen share is
+    // 20260927012240, docs/OPEN.md Q728): each hired member's frozen share is
     // either paid ('pay') or returned to the poster ('refund'). This cron is
     // its executor: it pays only the 'pay' members, refunds every other cent
     // of the budget and urgent fee in ONE refund, and then closes the dispute
@@ -632,7 +632,7 @@ serve(async (req) => {
         return { ready: false, paidCents };
       }
       // ── The unfilled slots' (and refunded members') shares go back ──────
-      // (money review MEDIUM-4; Q727.) Once every paid member is paid, the
+      // (money review MEDIUM-4; Q728.) Once every paid member is paid, the
       // rest is refunded ONCE: the payment_refunds ledger is read first (fail
       // closed), the Stripe key is per job (per dispute for a decision), and
       // the job is not released until it is done.

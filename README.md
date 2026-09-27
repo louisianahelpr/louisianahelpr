@@ -71,7 +71,7 @@ App ID: `com.Helpr`. See `docs/CICD_AND_ASO.md` and `fastlane/` for release auto
 
 ## Deployment
 
-The web app deploys to Vercel on push to `main`. Supabase edge functions deploy
+The web app deploys to Vercel via `.github/workflows/prod-deploy.yml` (batched; a push to `main` alone does not trigger a deploy — `vercel.json` has `git.deploymentEnabled: false`). Supabase edge functions deploy
 via `.github/workflows/functions-deploy.yml` when `supabase/functions/**` changes.
 Native iOS releases go through Fastlane (see `docs/CICD_AND_ASO.md`).
 

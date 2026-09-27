@@ -731,6 +731,14 @@ async function apply() {
   await retireStuckSeedSplits();
 
   // Helper profile surfaces.
+  // The week has a second writer: the account journey saves it through
+  // save_weekly_availability, which re-inserts it at RANDOM ids. Upserting
+  // the seed ids on top of that ADDS a second week instead of replacing it
+  // (2026-09-27: 7 journey rows at 10:41 + 7 seed rows at 10:52 = 14, and
+  // journeys-webkit failed "Expected: 7, Received: 14"). So the seed week
+  // REPLACES: any weekly row not at a seed id goes first. Weekly only;
+  // date-specific overrides are left alone.
+  await rest("DELETE", `helper_availability?helper_id=eq.${helperId}&specific_date=is.null&id=not.${inList(SEED_AVAILABILITY_DAYS.map((d) => sid(`avail:${d}`)))}`, undefined, { prefer: "return=minimal" });
   await upsert("helper_availability", SEED_AVAILABILITY_DAYS.map((d) => ({
     id: sid(`avail:${d}`), helper_id: helperId, day_of_week: d, start_time: SEED_AVAILABILITY_START, end_time: SEED_AVAILABILITY_END, is_available: true, specific_date: null,
   })));

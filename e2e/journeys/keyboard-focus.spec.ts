@@ -153,8 +153,20 @@ test(authedTitle, async ({ browser, request, journey }) => {
     const rows = page.locator("button.flex-1.min-w-0.text-left");
     await expect(rows.first(), "the helper inbox has no threads to open").toBeVisible({ timeout: 60_000 });
     await rows.first().focus();
+    // Opening a thread clears its message notifications (useMessagesData's
+    // mark-read PATCH) when the counterparty has written. On the slow row that
+    // write is held, and step c's goto left before it was sent (run
+    // 36298505707: "the slow row held these writes"). Wait for it when it fires.
+    const markRead = page
+      .waitForRequest(
+        (r) => r.method() === "PATCH" && r.url().includes("/rest/v1/notifications?") && r.url().includes("type=eq.message"),
+        { timeout: 30_000 },
+      )
+      .catch(() => null);
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: "Back to conversations" })).toBeVisible({ timeout: 30_000 });
+    const markReadReq = await markRead;
+    if (markReadReq) await markReadReq.response();
     await expect.poll(() => focusDescription(page), { timeout: 5_000 }).not.toBe("body");
     const inside = await page.evaluate(() => !!document.activeElement?.closest("main, [role=main], #root"));
     expect(inside, "focus left the app root").toBe(true);

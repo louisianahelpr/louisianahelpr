@@ -51,6 +51,8 @@
 // @mutate scripts/audit/prod-seed.mjs | const SEED_AVAILABILITY_DAYS = [0, 1, 2, 3, 4, 5, 6]; | const SEED_AVAILABILITY_DAYS = [1, 2, 3, 4, 5, 6];
 // And on the hours, which is the other half of "the same seven rows".
 // @mutate scripts/audit/prod-seed.mjs | const SEED_AVAILABILITY_START = "09:00:00"; | const SEED_AVAILABILITY_START = "08:00:00";
+// And on the 2026-09-27 accumulation: same days, same hours, different ids.
+// @mutate scripts/audit/prod-seed.mjs | await rest("DELETE", `helper_availability?helper_id=eq. | await rest("GET", `helper_availability?helper_id=eq.
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -166,6 +168,19 @@ describe("helper_availability: the seeder and the account journey seed the same 
           `as an extra row in the next journey run.`,
       ).toBe(true);
     }
+    // Same days and same hours still ACCUMULATE when the ids differ: the
+    // journey's RPC rewrote the week at random ids at 10:41 on 2026-09-27,
+    // the seeder upserted its seven seed ids at 10:52, and helper-e2e held 14.
+    // The seeder must clear every weekly row that is not a seed row BEFORE
+    // it upserts, so its week replaces whatever the journey left.
+    const clear = src.indexOf("helper_availability?helper_id=eq.${helperId}&specific_date=is.null&id=not.${inList(SEED_AVAILABILITY_DAYS.map(");
+    const up = src.indexOf('await upsert("helper_availability", SEED_AVAILABILITY_DAYS.map(');
+    expect(
+      clear !== -1 && clear < up && /await rest\("DELETE", `$/.test(src.slice(Math.max(0, clear - 40), clear)),
+      `${SEEDER} no longer DELETEs the helper's non-seed weekly rows before upserting the seed ` +
+        `week. Upsert-by-id cannot replace rows save_weekly_availability wrote at random ids, so ` +
+        `the two weeks add up (14 rows on 2026-09-27, journeys-webkit run 36298505707).`,
+    ).toBe(true);
     expect(
       src.includes("start_time: SEED_AVAILABILITY_START") &&
         src.includes("end_time: SEED_AVAILABILITY_END"),

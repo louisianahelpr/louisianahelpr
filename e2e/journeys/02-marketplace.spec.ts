@@ -1,7 +1,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { APIRequestContext, Browser, BrowserContext, Page } from "@playwright/test";
+import type { APIRequestContext, Browser, BrowserContext, Locator, Page } from "@playwright/test";
 import {
   test,
   expect,
@@ -620,24 +620,50 @@ test.describe.serial("marketplace chain", () => {
       // The swipeable row: innermost element holding both the job title and its Pin/Unpin trail.
       const row = pp.locator("div").filter({ has: title }).filter({ has: pp.getByText(/^(Pin|Unpin)$/) }).last();
       await expect(row.getByText("Pin", { exact: true }), "the conversation started out pinned").toHaveCount(1);
-      const box = (await title.boundingBox())!;
-      await pp.mouse.move(box.x + 10, box.y + box.height / 2);
-      await pp.mouse.down();
-      await pp.mouse.move(box.x + 180, box.y + box.height / 2, { steps: 15 });
-      await pp.mouse.up();
+      await swipeRight(pp, title);
       await expect(row.getByText("Unpin", { exact: true }), "a right swipe past the threshold did not pin the conversation").toHaveCount(1, { timeout: 10_000 });
       await expect(pp.getByRole("heading", { name: /Hide This Conversation/ }), "the pin swipe opened the archive dialog").toHaveCount(0);
       await assertHealthy(pp, "inbox after pin");
       await journey.milestone(pp, "pinned");
       // Pins are per-device (src/lib/pinnedConversations); swipe back so the shared account is left as found.
-      const b2 = (await title.boundingBox())!;
-      await pp.mouse.move(b2.x + 10, b2.y + b2.height / 2);
-      await pp.mouse.down();
-      await pp.mouse.move(b2.x + 180, b2.y + b2.height / 2, { steps: 15 });
-      await pp.mouse.up();
+      await swipeRight(pp, title);
       await expect(row.getByText("Pin", { exact: true })).toHaveCount(1, { timeout: 10_000 });
     });
   });
+
+  /**
+   * A human-paced right swipe on an inbox row (SwipeableConversationRow:
+   * framer-motion drag="x", SWIPE_THRESHOLD 90px).
+   *
+   * journeys-webkit run 36298505707 (2026-09-27, slow rotation): the old
+   * gesture read the row box on the frame the list painted and then moved 170px
+   * in ~54ms (mouseDown 626117 -> mouseUp 626237 in the trace). WebKit read it
+   * as a TAP: no thread_pins write was sent and the poster landed inside the
+   * thread (failure-poster.png). So: wait until the row stops moving, drag at
+   * finger speed, hold before release, and fail with the real reason if the
+   * gesture was taken as a tap.
+   */
+  async function swipeRight(page: Page, target: Locator) {
+    let box = await target.boundingBox();
+    for (let i = 0; i < 20; i++) {
+      await page.waitForTimeout(400);
+      const next = await target.boundingBox();
+      if (box && next && Math.abs(next.x - box.x) < 1 && Math.abs(next.y - box.y) < 1) break;
+      box = next;
+    }
+    expect(box, "the inbox row has no box to swipe").toBeTruthy();
+    const y = box!.y + box!.height / 2;
+    const x0 = box!.x + 10;
+    await page.mouse.move(x0, y);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i++) {
+      await page.mouse.move(x0 + i * 15, y);
+      await page.waitForTimeout(20);
+    }
+    await page.waitForTimeout(150);
+    await page.mouse.up();
+    await expect(page, "the swipe was read as a tap and opened the conversation").toHaveURL(/\/messages\/?(\?.*)?$/, { timeout: 2_000 });
+  }
 
   /** The in-app location rationale; this journey's helper always says Not Now. */
   async function declineLocation(page: Page) {
@@ -733,8 +759,24 @@ test.describe.serial("marketplace chain", () => {
 
   /** Press a visible control by name, then prove the screen is not an error. */
   async function press(page: Page, scope: ReturnType<Page["locator"]>, name: RegExp, where: string) {
-    const btn = (await findChip(page, scope, name, 45_000)) ?? scope.getByRole("button", { name }).first();
+    const deadline = Date.now() + 45_000;
+    let btn = (await findChip(page, scope, name, 45_000)) ?? scope.getByRole("button", { name }).first();
     await expect(btn, `${where}: no "${name}" control`).toBeVisible({ timeout: 45_000 });
+    /* A CHIP IN THE MORE PANEL CAN VANISH UNDER US. The panel is a Radix
+       popover; a card re-render closes it, and the locator findChip returned
+       then matches nothing. Run 36298505707 read exactly that as "Tip is on
+       the card but DISABLED" (the call log said "element(s) not found").
+       isEnabled throws when the element is gone: re-open and re-find it,
+       and keep the disabled wait below for a control that is really there. */
+    while (Date.now() < deadline) {
+      const enabled = await btn.isEnabled({ timeout: 2_000 }).catch(() => null);
+      if (enabled) break;
+      if (enabled === null) {
+        btn = (await findChip(page, scope, name, Math.max(1_000, deadline - Date.now()))) ?? scope.getByRole("button", { name }).first();
+      } else {
+        await page.waitForTimeout(1_000);
+      }
+    }
     /* VISIBLE IS NOT PRESSABLE, and on this card the difference is a whole
        product rule. Every step of the helper's ladder renders DISABLED until
        two hours before the start (`JobTracking`'s `isLocked`), and the poster's

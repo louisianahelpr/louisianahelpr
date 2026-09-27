@@ -1395,3 +1395,7 @@ duplicate-number check).
 ## Archived 2026-09-27 — from "OPEN (RETRACTED as an upload bug; 33 dangling seed rows remain) — the press sweep's proof-photo 400s are failed SIGNING (2026-09-22)"
 
 - [x] **DONE 2026-09-27 (lead): measured in press run 36275729414 (2026-09-27T03:01Z), step 'check every proof-photo reference resolves': `96 stored references checked, 96 resolved, 0 DANGLING`; the checker is wired nightly in press-every-control.yml:300.** 33 dangling is_seed proof-photo references still 400 on sign, no nightly guard wired — 33 dangling is_seed proof-photo refs still uncleared as of this entry; nightly wiring for the checker not confirmed done. (see also line 379 (#1582, says cleared to 62 refs 0 on real jobs)) (archive L30)
+
+## Archived 2026-09-27 — from "Low-alpha AA batch — landed 8aff7b8cc, three things left open (2026-09-20)"
+
+- [x] Contrast inventory scanner misses Tailwind slash-opacity syntax — DONE 2026-09-27: `low-alpha-text-inventory.mjs` now reads `text-<colour>/<N>` (and resolves `--muted-foreground: var(--stormy-sky)` aliases). Failing count 17 → 47; the 30 new ones are pinned exactly as PENDING_FIX_Q765 (Q765). New test "sees Tailwind slash opacity" shown red with the tw-slash shape removed. (archive L2242)

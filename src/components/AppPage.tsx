@@ -94,7 +94,7 @@ function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps
             `px-3` stays and is now genuinely cancelled: the padding is what
             keeps a card's focus ring and shadow off this scroll container's
             `overflow` clip. */}
-        <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
+        <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav">
           <div className="animate-ds-page-in">
             {/* The shared tab shell — literally the same component every
                 Profile tab renders through, not a copy of its class string.

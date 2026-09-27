@@ -134,7 +134,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
     // clearance is its one named prop, because a vertical inset cannot reopen
     // the horizontal gutter the owner reported on 2026-09-19. Asserted by
     // profileTabShell.test.ts.
-    <ProfileTabBody bottomClearance="calc(var(--safe-area-bottom, 0px) + 6rem)">
+    <ProfileTabBody bottomClearance="calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))">
       <ProfileTabHeader
         title="Legal &amp; Policies"
         onBack={onBack}

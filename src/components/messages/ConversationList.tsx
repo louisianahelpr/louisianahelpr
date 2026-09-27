@@ -1394,7 +1394,7 @@ export function ConversationList({
                  is load-bearing. */
               paddingBottom: isWebDesktop
                 ? "calc(var(--safe-area-bottom, 0px) + 1rem)"
-                : "calc(var(--safe-area-bottom, 0px) + 96px)",
+                : "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",
             }}
           >
           <div className="space-y-2">

@@ -287,7 +287,7 @@ export const AppliedJobsTab = ({
           // Pull the empty-state card past the scroll container's bottom
           // safe-area padding so it bleeds all the way to the panel's
           // bottom edge — like the home page does.
-          marginBottom: "calc(-1 * (var(--safe-area-bottom, 0px) + 96px))",
+          marginBottom: "calc(-1 * (var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px)))",
         }}
       >
         <EmptyState

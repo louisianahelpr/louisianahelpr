@@ -607,7 +607,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                not `h-`, so the wrapper still grows past the fold as before. */
             <div
               className="min-h-full flex flex-col"
-              style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px)" }}
+              style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))" }}
             >
           {tab === "posted" && (
             /* `space-y-list` (12px, Q213a), which is what PostedJobsTab and the grouped

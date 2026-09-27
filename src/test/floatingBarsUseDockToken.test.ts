@@ -59,13 +59,9 @@ describe("floating bottom bars clear the dock with the shared token (Q214/Q314)"
   });
 
   it("LegalTab's bottomClearance reads the shared --safe-area-bottom var, not raw env() (Q314)", () => {
-    // Not the full pb-safe-nav value: Profile.tsx's own tab scroll container
-    // already reserves the full dock clearance (`pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]`
-    // at Profile.tsx:785); this prop is EXTRA room on top of that baseline for
-    // the tab's own floating pill, so it keeps its bespoke `+ 6rem` and only
-    // swaps the raw env() for the same `--safe-area-bottom` var the shared
-    // token itself reads.
+    // Q265 (2026-09-27): the clearance is the dock's own height token, so it
+    // collapses with `--bottom-nav-h` wherever MobileNav renders no dock.
     const code = blankComments(readSource("src/components/profile/LegalTab.tsx") ?? "");
-    expect(code).toMatch(/bottomClearance="calc\(var\(--safe-area-bottom, 0px\) \+ 6rem\)"/);
+    expect(code).toMatch(/bottomClearance="calc\(var\(--safe-area-bottom, 0px\) \+ var\(--bottom-nav-h, 96px\)\)"/);
   });
 });

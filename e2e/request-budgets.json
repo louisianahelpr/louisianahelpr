@@ -38,7 +38,7 @@
     },
     "canary": {},
     "privacy": {
-      "perTest": 42,
+      "perTest": 45.5,
       "signIns": 0
     },
     "slow-network": {

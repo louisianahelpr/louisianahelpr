@@ -1,10 +1,8 @@
 {
-  "generated": "2026-09-27T06:24:12.456Z",
+  "generated": "2026-09-27T06:26:46.179Z",
   "guards": 1204,
-  "registered": 1203,
-  "unregistered": [
-    "src/test/platformSettingsSingleton.test.ts"
-  ],
+  "registered": 1204,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",
@@ -20,7 +18,6 @@
     "src/lib/workRecordDocument.test.ts",
     "src/pages/jobs/appliedJobCard/helperDisputeCopy.test.tsx",
     "src/pages/profile/types.test.ts",
-    "src/test/adminAlertOpensItsFlag.test.ts",
     "src/test/adminEndpointAuthz.test.ts",
     "src/test/banEvasionSurface.test.ts",
     "src/test/blockedStorageBoot.test.ts",

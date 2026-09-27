@@ -12,8 +12,8 @@
  *      scanned with comments blanked; the per-file count of each replay hook
  *      must EQUAL the table below. A new site fails, and so does a site that
  *      disappears (then the table is stale and the gates below read nothing).
- *   2. RATES. The init config samples 10% of sessions and 100% of error
- *      sessions, and both are 0 unless `recordReplays`, which requires a PROD
+ *   2. RATES. The init config samples no plain sessions (Q746) and 100% of
+ *      error sessions, and the error rate is 0 unless `recordReplays`, which requires a PROD
  *      build, no WebDriver (Q275) and not a locally served build (Q386).
  *   3. The replay integration is only ever added inside `if (recordReplays)`
  *      and skipped once a test profile blocked it (Q379).
@@ -22,7 +22,7 @@
  * baked into the .ipa/.apk and keeps whatever rates it shipped with until a
  * new build is installed (Q387).
  *
- * @mutate src/lib/sentry.ts | replaysSessionSampleRate: recordReplays ? 0.1 : 0, | replaysSessionSampleRate: 0.1,
+ * @mutate src/lib/sentry.ts | replaysSessionSampleRate: 0, | replaysSessionSampleRate: recordReplays ? 0.1 : 0,
  * @mutate src/lib/sentry.ts | replaysOnErrorSampleRate: recordReplays ? 1.0 : 0, | replaysOnErrorSampleRate: recordReplays ? 0.5 : 0,
  * @mutate src/lib/sentry.ts | const recordReplays = import.meta.env.PROD && !automated && !localBuild; | const recordReplays = import.meta.env.PROD && !localBuild;
  * @mutate src/lib/errorLogger.ts | async function fanOutToObservability(err: unknown | void import("@sentry/react").then((m) => m.addIntegration(m.replayIntegration())); async function fanOutToObservability(err: unknown
@@ -103,12 +103,12 @@ describe("Session Replay: every enable site and the configured rates (Q386)", ()
     expect(sites).toEqual(REPLAY_SITES);
   });
 
-  it("sessions are sampled at 10% and error sessions at 100%, both 0 unless recordReplays", () => {
-    const session = /replaysSessionSampleRate:\s*recordReplays\s*\?\s*([\d.]+)\s*:\s*0\s*,/.exec(SENTRY);
+  it("plain sessions are never sampled (Q746) and error sessions at 100% unless recordReplays is off", () => {
+    const session = /replaysSessionSampleRate:\s*([\d.]+)\s*,/.exec(SENTRY);
     const onError = /replaysOnErrorSampleRate:\s*recordReplays\s*\?\s*([\d.]+)\s*:\s*0\s*,/.exec(SENTRY);
-    expect(session, "replaysSessionSampleRate must be `recordReplays ? <rate> : 0`").not.toBeNull();
+    expect(session, "replaysSessionSampleRate must be a literal 0 (Q746: the plan holds 50 replays/month)").not.toBeNull();
     expect(onError, "replaysOnErrorSampleRate must be `recordReplays ? <rate> : 0`").not.toBeNull();
-    expect(Number(session![1])).toBe(0.1);
+    expect(Number(session![1])).toBe(0);
     expect(Number(onError![1])).toBe(1);
   });
 

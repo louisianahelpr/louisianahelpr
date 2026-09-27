@@ -116,7 +116,9 @@ export function reachableOnDispatch(cond: string): boolean {
   let e = cond
     .replace(/github\.event_name\s*==\s*'([^']*)'/g, (_, v) => (v === "workflow_dispatch" ? "true" : "false"))
     .replace(/github\.event_name\s*!=\s*'([^']*)'/g, (_, v) => (v === "workflow_dispatch" ? "false" : "true"))
-    // Status functions: all satisfiable by some run of the suite.
+    // Status functions: all satisfiable by some run of the suite, and so is
+    // their negation (`!cancelled()` holds on any run nobody cancelled, Q703).
+    .replace(/!\s*(always|success|failure|cancelled)\(\)/g, "true")
     .replace(/\b(always|success|failure|cancelled)\(\)/g, "true")
     // Anything else compared to a literal is the dispatcher's to choose.
     .replace(/[A-Za-z_][\w.\-[\]'"*]*\s*(===?|!==?)\s*('[^']*'|"[^"]*"|true|false|\d+)/g, "true")
@@ -236,6 +238,8 @@ describe("a nightly red is clearable by a dispatch", () => {
     expect(reachableOnDispatch("always() && github.event_name != 'workflow_dispatch'")).toBe(false);
     expect(reachableOnDispatch("always() && github.event_name == 'schedule'")).toBe(false);
     expect(reachableOnDispatch("always() && github.event_name == 'workflow_dispatch'")).toBe(true);
+    expect(reachableOnDispatch("!cancelled() && github.event_name == 'workflow_dispatch'")).toBe(true);
+    expect(reachableOnDispatch("!cancelled() && github.event_name == 'schedule'")).toBe(false);
     expect(
       reachableOnDispatch(
         "always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.scenario == ''))",

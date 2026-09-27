@@ -17,7 +17,7 @@
  * other lanes are editing right now would turn their merges red.
  */
 
-// @mutate .github/workflows/e2e-journeys.yml | always() && github.ref == 'refs/heads/main' && (github.event_name | always() && (github.event_name
+// @mutate .github/workflows/e2e-journeys.yml | !cancelled() && github.ref == 'refs/heads/main' && (github.event_name | !cancelled() && (github.event_name
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

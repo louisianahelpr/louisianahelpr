@@ -349,8 +349,15 @@ jobs:
     # closing the issue from it announced a green main that was still red
     # until the branch merged; a red branch run added "Still red" to main's
     # issue for a tree main never ran. Scheduled runs are always on main.
+    #
+    # And not from a CANCELLED run (2026-09-26, Q703): run 36211786791 was
+    # cancelled before any test and still commented "Still red" on #1719.
+    # `!cancelled()` runs this job after a failure (like always()) but not when
+    # the run itself was cancelled, which earned nothing either way. A journey
+    # JOB cancelled by its own timeout does not cancel the run, so it still
+    # reports as a failure below (a timeout is a real red).
     if: >-
-      always() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule'
+      !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule'
       || (github.event_name == 'workflow_dispatch' && inputs.scenario == ''))
     runs-on: ubuntu-latest
     timeout-minutes: 5

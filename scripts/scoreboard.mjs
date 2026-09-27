@@ -640,8 +640,11 @@ async function pushTokenRows(sqlFn, now) {
  * that day (read-only, Supabase-held key) found a name but no DOB and no
  * document number on all three, so nothing can be hashed. Exempt by SESSION,
  * not profile: a re-verification gets a new session id and is checked again.
- * Exact list; never grow it without a measured reason.
+ * Exact list; never grow it without a measured reason. Two-way: an entry whose
+ * session is no longer a verified, unfingerprinted profile is stale and turns
+ * the row FAIL until it is removed.
  */
+// @two-way scripts/scoreboard.mjs:stale baseline entry in IDENTITY_FP_EXEMPT_SESSIONS
 export const IDENTITY_FP_EXEMPT_SESSIONS = [
   "vs_1U8Ae6Kp2H4b7tECdK3zgGCL",
   "vs_1UCTo8Kp2H4b7tEC5dT7RTFd",
@@ -653,7 +656,10 @@ const IDENTITY_FP_SCOPE =
   ")";
 export const IDENTITY_FP_SQL =
   `SELECT count(*) FILTER (WHERE ${IDENTITY_FP_SCOPE} AND identity_sha256 IS NULL)::int AS missing, ` +
-  `count(*) FILTER (WHERE ${IDENTITY_FP_SCOPE})::int AS verified FROM public.profiles`;
+  `count(*) FILTER (WHERE ${IDENTITY_FP_SCOPE})::int AS verified, ` +
+  `count(*) FILTER (WHERE idv_status = 'verified' AND identity_sha256 IS NULL AND idv_session_id IN (` +
+  IDENTITY_FP_EXEMPT_SESSIONS.map((s) => `'${s}'`).join(", ") +
+  `))::int AS exempt_live FROM public.profiles`;
 /**
  * Q73: email deliverability, re-measured every scoreboard run.
  * (1) DNS for the sending domain: SPF on the Resend bounce subdomain (send.),
@@ -728,7 +734,14 @@ export async function identityFingerprintRows(sqlFn, now) {
     const num = (v) => (typeof v === "number" || (typeof v === "string" && /^\d+$/.test(v)) ? Number(v) : NaN);
     const missing = num(r?.missing);
     const verified = num(r?.verified);
-    if (!Number.isInteger(missing) || !Number.isInteger(verified)) throw new Error("unexpected result shape");
+    const exemptLive = num(r?.exempt_live);
+    if (!Number.isInteger(missing) || !Number.isInteger(verified) || !Number.isInteger(exemptLive)) throw new Error("unexpected result shape");
+    const stale = IDENTITY_FP_EXEMPT_SESSIONS.length - exemptLive;
+    if (stale > 0) {
+      return [{ group: "alerts", signal, status: "FAIL", pass: verified - missing, fail: missing + stale, total: verified, at: iso(now),
+        source: "public.profiles (read-only) · OPEN.md Q240",
+        note: `stale baseline entry in IDENTITY_FP_EXEMPT_SESSIONS: ${stale} exempt session(s) are no longer a verified profile without a fingerprint — remove them (lower the baseline)` }];
+    }
     return [{ group: "alerts", signal, status: missing === 0 ? "PASS" : "FAIL", pass: verified - missing, fail: missing, total: verified, at: iso(now),
       source: "public.profiles (read-only) · OPEN.md Q240",
       note: missing === 0 ? "every verified profile has its fingerprint" : `${missing} verified profile(s) lack it: run scripts/backfill-identity-fingerprints.mjs --apply (needs STRIPE_SECRET_KEY)` }];

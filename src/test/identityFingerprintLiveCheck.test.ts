@@ -1,6 +1,7 @@
 // @mutate scripts/scoreboard.mjs | status: missing === 0 ? "PASS" : "FAIL" | status: "PASS"
 // @mutate scripts/scoreboard.mjs | ...(await identityFingerprintRows(readOnly, now)) | ...[]
 // @mutate scripts/scoreboard.mjs | AND idv_session_id NOT IN ( | AND idv_session_id IN (
+// @mutate scripts/scoreboard.mjs |     if (stale > 0) { |     if (false) {
 // @mutate scripts/scoreboard.mjs | "vs_1UCUKKKp2H4b7tECSiHFHS7w",\n]; | "vs_1UCUKKKp2H4b7tECSiHFHS7w",\n  "vs_extra",\n];
 /**
  * Q240: THE IDENTITY-FINGERPRINT BACKFILL IS A LIVE NUMBER, NOT A MEMORY.
@@ -42,16 +43,23 @@ describe("scoreboard: verified profiles carry an identity fingerprint (Q240)", (
   });
 
   it("FAILs while any verified profile lacks one, naming the backfill", async () => {
-    const [r] = await rowsFor(async () => [{ missing: 3, verified: 3 }]);
+    const [r] = await rowsFor(async () => [{ missing: 3, verified: 3, exempt_live: 3 }]);
     expect(r.status).toBe("FAIL");
     expect(r.fail).toBe(3);
     expect(r.note).toMatch(/backfill-identity-fingerprints/);
   });
 
   it("PASSes only on zero missing", async () => {
-    const [r] = await rowsFor(async () => [{ missing: 0, verified: 3 }]);
+    const [r] = await rowsFor(async () => [{ missing: 0, verified: 3, exempt_live: 3 }]);
     expect(r.status).toBe("PASS");
     expect(r.pass).toBe(3);
+  });
+
+  it("FAILs on a stale exemption: an exempt session no longer verified-and-unfingerprinted", async () => {
+    const [r] = await rowsFor(async () => [{ missing: 0, verified: 3, exempt_live: 2 }]);
+    expect(r.status).toBe("FAIL");
+    expect(r.note).toMatch(/stale baseline entry in IDENTITY_FP_EXEMPT_SESSIONS/);
+    expect(IDENTITY_FP_SQL).toMatch(/AS exempt_live/);
   });
 
   it("is UNKNOWN, never PASS, when the query fails or returns a bad shape", async () => {

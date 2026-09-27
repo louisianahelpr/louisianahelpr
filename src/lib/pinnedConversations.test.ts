@@ -5,7 +5,7 @@
  * failed the batch, was reported on every inbox load, kept every live local
  * pin from syncing, and stayed in the mirror forever.
  *
- * @mutate src/lib/pinnedConversations.ts | if (isGoneReference(rowError)) gone.add(pinnedKey(row.job_id, row.other_user_id)); | if (isGoneReference(rowError)) void 0;
+ * @mutate src/lib/pinnedConversations.ts | gone.add(pinnedKey(row.job_id, row.other_user_id)); | void 0;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -50,6 +50,7 @@ describe("loadPins merge-up survives a pin to a deleted job (JAVASCRIPT-2K)", ()
       `helpr_pinned_threads_v2_${ME}`,
       JSON.stringify([pinnedKey(LIVE_JOB, OTHER), pinnedKey(GONE_JOB, OTHER)]),
     );
+    localStorage.setItem(`helpr_pinned_threads_v2_pending_${ME}`, JSON.stringify([pinnedKey(LIVE_JOB, OTHER), pinnedKey(GONE_JOB, OTHER)])); // Q512: made here, not yet confirmed
 
     const pins = await loadPins(ME);
 
@@ -64,6 +65,7 @@ describe("loadPins merge-up survives a pin to a deleted job (JAVASCRIPT-2K)", ()
   it("the next load does not push the dead pin again", async () => {
     const { loadPins, pinnedKey } = await import("./pinnedConversations");
     localStorage.setItem(`helpr_pinned_threads_v2_${ME}`, JSON.stringify([pinnedKey(GONE_JOB, OTHER)]));
+    localStorage.setItem(`helpr_pinned_threads_v2_pending_${ME}`, JSON.stringify([pinnedKey(GONE_JOB, OTHER)])); // Q512: made here, not yet confirmed
     await loadPins(ME);
     upserts.length = 0;
     await loadPins(ME);

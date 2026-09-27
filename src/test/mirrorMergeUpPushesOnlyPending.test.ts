@@ -18,6 +18,9 @@
  * @mutate src/lib/archivedConversations.ts |   for (const k of plan.push) localOnly.set(k, canonicalLocal.get(k)!); |   for (const [k, e] of canonicalLocal) if (!(k in server)) localOnly.set(k, e);
  * @mutate src/lib/archivedConversations.ts |   setPending(userId, key, true); |   void 0;
  * @mutate src/lib/archivedConversations.ts |   setPending(userId, key, false);\n  emitArchiveChanged();\n\n  void (async () => {\n    const base | emitArchiveChanged();\n\n  void (async () => {\n    const base
+ * @mutate src/lib/pinnedConversations.ts |   setPending(userId, k, next); |   void next;
+ * @mutate src/lib/pinnedConversations.ts |   const localOnlyKeys = plan.push; |   const localOnlyKeys = [...local].filter((k) => !server.has(k));
+ * @mutate src/lib/pinnedConversations.ts |       if (next) setPending(userId, k, false); |       void 0;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -30,9 +33,8 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 // Mirror stores whose merge-up still pushes every local-only key.
 // @two-way src/test/mirrorMergeUpPushesOnlyPending.test.ts:KNOWN_PUSHES_ALL lists a store that now pushes only pending keys
-const KNOWN_PUSHES_ALL: Record<string, string> = {
-  "src/lib/pinnedConversations.ts": "unpin on one device is re-pinned by another device's mirror; Q512",
-};
+// Empty since Q512 (pins use the same pending set).
+const KNOWN_PUSHES_ALL: Record<string, string> = {};
 
 function mirrorStores(): string[] {
   const dir = join(ROOT, "src", "lib");
@@ -88,5 +90,15 @@ describe("a mirror merge-up pushes only this device's unconfirmed changes (Q511)
     expect(archive).toMatch(/if \(!error\) setPending\(userId, key, false\)/);
     expect(restore).toMatch(/setPending\(userId, key, false\)/);
     expect(src).toMatch(/for \(const k of plan\.push\) localOnly\.set\(k, canonicalLocal\.get\(k\)!\);/);
+  });
+
+  // Q512: an Unpin on one device must not be undone by another's mirror.
+  it("the pin store wires it: pin marks pending, a confirmed write clears it, load pushes only plan.push", () => {
+    const src = blankComments(read("src/lib/pinnedConversations.ts"));
+    const toggle = src.slice(src.indexOf("export function togglePinned"));
+    expect(toggle.length).toBeGreaterThan(100);
+    expect(toggle, "a pin is pending and an unpin is not").toMatch(/setPending\(userId, k, next\);/);
+    expect(toggle, "a confirmed pin stops being pending").toMatch(/if \(!error\) \{\s*if \(next\) setPending\(userId, k, false\);/);
+    expect(src, "loadPins pushes only the plan's pending keys").toMatch(/const localOnlyKeys = plan\.push;/);
   });
 });

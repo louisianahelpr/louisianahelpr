@@ -208,6 +208,7 @@ describe("thread stores: a gone job is dropped, anything else still reports", ()
     failWith = RLS_ERROR;
     const { loadPins, pinnedKey } = await import("@/lib/pinnedConversations");
     localStorage.setItem(`helpr_pinned_threads_v2_${ME}`, JSON.stringify([pinnedKey(GONE_JOB, OTHER)]));
+    localStorage.setItem(`helpr_pinned_threads_v2_pending_${ME}`, JSON.stringify([pinnedKey(GONE_JOB, OTHER)])); // Q512: made here, not yet confirmed
     const pins = await loadPins(ME);
     expect([...pins]).toEqual([pinnedKey(GONE_JOB, OTHER)]);
     expect(reportMock).toHaveBeenCalledTimes(1);

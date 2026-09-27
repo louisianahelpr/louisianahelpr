@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { isGoneReference } from "@/lib/goneReference";
+import { planMergeUp } from "@/lib/archivedConversations";
 
 const STORAGE_KEY_PREFIX = "helpr_pinned_threads_v2_";
 /** Pre-server key. Read once so existing session pins aren't yanked away. */
@@ -102,6 +103,48 @@ function writeLocal(userId: string, set: Set<string>): void {
 }
 
 /**
+ * Q512: the pins THIS device made whose server write is not yet confirmed
+ * (offline, a failed write, or the pre-deploy window). The merge-up used to
+ * push EVERY local-only pin, so an Unpin on one device (server row deleted)
+ * was re-pinned by another device's stale mirror on its next load. Only a
+ * pending pin is this device's news to push; a local-only pin that is not
+ * pending was confirmed once and has since been unpinned elsewhere (or its
+ * job/person is gone), so it is dropped. Same rule as the archive store
+ * (Q511, planMergeUp).
+ */
+function pendingStorageKey(userId: string): string {
+  return `${STORAGE_KEY_PREFIX}pending_${userId}`;
+}
+
+function readPending(userId: string): Set<string> {
+  try {
+    const raw = safeStorage.getItem(pendingStorageKey(userId));
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === "string") : []);
+  } catch {
+    // Corrupt: nothing pending. The worst case is one unconfirmed pin that
+    // has to be made again, never a resurrected one.
+    return new Set();
+  }
+}
+
+function writePending(userId: string, pending: Set<string>): void {
+  try {
+    safeStorage.setItem(pendingStorageKey(userId), JSON.stringify([...pending]));
+  } catch {
+    /* best-effort — quota / private mode */
+  }
+}
+
+function setPending(userId: string, key: string, on: boolean): void {
+  const pending = readPending(userId);
+  if (on === pending.has(key)) return;
+  if (on) pending.add(key);
+  else pending.delete(key);
+  writePending(userId, pending);
+}
+
+/**
  * Hydrate the cache for a user. Call once when the inbox mounts.
  *
  * Resolves to the pinned set. On any server failure it resolves with the
@@ -129,14 +172,21 @@ export async function loadPins(userId: string): Promise<Set<string>> {
 
   const server = new Set((data ?? []).map((r) => pinnedKey(r.job_id, r.other_user_id)));
 
-  // Merge-up: a thread pinned while `thread_pins` didn't exist yet (or
-  // before this account's local mirror had ever synced) only lives in
-  // `local` — trusting `server` wholesale here would silently DROP it, and
-  // the pin would vanish from the inbox with no warning the next time this
-  // loads. Push local-only pins up before overwriting the mirror, best-
+  // Merge-up: a pin made on this device whose write never landed (offline,
+  // pre-deploy) only lives in `local` — trusting `server` wholesale here
+  // would silently DROP it. Push it up before overwriting the mirror, best-
   // effort (a failed push just means it retries next load — the pin stays
   // in the merged result either way so this session never loses it).
-  const localOnlyKeys = [...local].filter((k) => !server.has(k));
+  // Q512: only PENDING pins are pushed; a local-only pin the server once
+  // confirmed was unpinned on another device and is dropped, so it stays
+  // unpinned.
+  const pending = readPending(userId);
+  const plan = planMergeUp(local, server, pending);
+  for (const k of plan.confirmed) pending.delete(k);
+  // A pending key with no mirror entry was unpinned here before its write
+  // was confirmed; nothing to push.
+  for (const k of [...pending]) if (!local.has(k)) pending.delete(k);
+  const localOnlyKeys = plan.push;
   if (localOnlyKeys.length > 0) {
     const rows = localOnlyKeys
       .map((k) => {
@@ -153,13 +203,18 @@ export async function loadPins(userId: string): Promise<Set<string>> {
           .from("thread_pins")
           .upsert(batch, { onConflict: "user_id,job_id,other_user_id", ignoreDuplicates: true });
       const { error: mergeError } = await pushPins(rows);
+      if (!mergeError) for (const r of rows) pending.delete(pinnedKey(r.job_id, r.other_user_id));
       if (isGoneReference(mergeError)) {
         // One pin to a deleted job fails the whole batch (Sentry JAVASCRIPT-2K,
         // 2026-09-25). Retry one at a time so the live pins still sync, and
         // drop the ones whose job or person is gone.
         for (const row of rows) {
           const { error: rowError } = await pushPins([row]);
-          if (isGoneReference(rowError)) gone.add(pinnedKey(row.job_id, row.other_user_id));
+          if (!rowError) pending.delete(pinnedKey(row.job_id, row.other_user_id));
+          if (isGoneReference(rowError)) {
+            gone.add(pinnedKey(row.job_id, row.other_user_id));
+            pending.delete(pinnedKey(row.job_id, row.other_user_id));
+          }
           else if (rowError && !isMissingTable(rowError)) {
             report(rowError, { severity: "warning", tags: { source: "pinnedConversations.mergeLocalPins" } });
           }
@@ -170,6 +225,7 @@ export async function loadPins(userId: string): Promise<Set<string>> {
     }
     for (const k of localOnlyKeys) if (!gone.has(k)) server.add(k);
   }
+  writePending(userId, pending);
 
   cache.set(userId, server);
   writeLocal(userId, server);
@@ -208,6 +264,9 @@ export function togglePinned(userId: string, jobId: string, otherUserId: string)
   else set.delete(k);
   cache.set(userId, set);
   writeLocal(userId, set);
+  // Q512: a pin is pending until the server confirms it; an unpin is never
+  // pending (a stale pending pin must not be pushed back up).
+  setPending(userId, k, next);
 
   void (async () => {
     const { error } = next
@@ -222,20 +281,24 @@ export function togglePinned(userId: string, jobId: string, otherUserId: string)
           .eq("job_id", jobId)
           .eq("other_user_id", otherUserId);
 
-    if (error) {
-      if (isMissingTable(error)) return; // pre-deploy — the mirror still holds it
-      // Roll back so the UI stops claiming a pin the server rejected.
-      const rollback = new Set(getPinnedSet(userId));
-      if (next) rollback.delete(k);
-      else rollback.add(k);
-      cache.set(userId, rollback);
-      writeLocal(userId, rollback);
-      // The thread's job (or person) was deleted while the inbox was open:
-      // the pin can never be stored and the rollback above already dropped
-      // it, so this is not a fault. Any other error still reports.
-      if (isGoneReference(error)) return;
-      report(error, { severity: "warning", tags: { source: "pinnedConversations.togglePinned" } });
+    if (!error) {
+      if (next) setPending(userId, k, false);
+      return;
     }
+    if (isMissingTable(error)) return; // pre-deploy — the mirror (and pending) still holds it
+    // Roll back so the UI stops claiming a pin the server rejected.
+    const rollback = new Set(getPinnedSet(userId));
+    if (next) {
+      rollback.delete(k);
+      setPending(userId, k, false);
+    } else rollback.add(k);
+    cache.set(userId, rollback);
+    writeLocal(userId, rollback);
+    // The thread's job (or person) was deleted while the inbox was open:
+    // the pin can never be stored and the rollback above already dropped
+    // it, so this is not a fault. Any other error still reports.
+    if (isGoneReference(error)) return;
+    report(error, { severity: "warning", tags: { source: "pinnedConversations.togglePinned" } });
   })();
 
   return next;

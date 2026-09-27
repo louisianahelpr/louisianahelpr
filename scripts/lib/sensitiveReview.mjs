@@ -49,6 +49,13 @@ export function trailerReview(message) {
   return found;
 }
 
+/** Reviewer names a Sensitive-Review trailer uses that the gate does not accept (they record nothing). */
+export function rejectedTrailerReviewers(message) {
+  return [...String(message).matchAll(/^Sensitive-Review:\s*([\w-]+)\s*:/gim)]
+    .map((m) => m[1].toLowerCase())
+    .filter((r) => r !== "not-needed" && !REVIEWERS.includes(r));
+}
+
 /** sha -> review from docs/reviews/sensitive-reviews.jsonl (bad lines are reported, not dropped). */
 export function parseLog(text) {
   const bySha = new Map();

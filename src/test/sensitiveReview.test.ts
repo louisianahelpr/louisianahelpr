@@ -20,7 +20,7 @@ import { mkdtempSync, writeFileSync, rmSync, realpathSync, readFileSync, mkdirSy
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 // @ts-expect-error — plain .mjs module, no declaration file
-import { isSensitive, trailerReview, parseLog, audit, REVIEWERS } from "../../scripts/lib/sensitiveReview.mjs";
+import { isSensitive, trailerReview, rejectedTrailerReviewers, parseLog, audit, REVIEWERS } from "../../scripts/lib/sensitiveReview.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const CLI = join(ROOT, "scripts", "check-sensitive-review.mjs");
@@ -74,6 +74,10 @@ describe("what counts as a recorded review", () => {
     expect(trailerReview("x\n\nSensitive-Review: not-needed: comment-only")?.reviewer).toBe("not-needed");
     expect(trailerReview("x\n\nSensitive-Review: my-friend: fine")).toBeNull();
     expect(trailerReview("x\n\nreviewed by lh-authz-rls")).toBeNull();
+    // e1fe53bd9 (2026-09-27): a trailer naming "lead" recorded nothing, and the red run did not say why.
+    expect(rejectedTrailerReviewers("x\n\nSensitive-Review: lead: comment-only")).toEqual(["lead"]);
+    expect(rejectedTrailerReviewers("x\n\nSensitive-Review: not-needed: comment-only")).toEqual([]);
+    expect(rejectedTrailerReviewers("x\n\nSensitive-Review: code-review: clean")).toEqual([]);
   });
 
   it("the review log rejects malformed lines instead of dropping them", () => {

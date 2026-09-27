@@ -19,7 +19,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { REVIEWERS, START_DATE, audit, parseLog, windowStart } from "./lib/sensitiveReview.mjs";
+import { REVIEWERS, START_DATE, audit, parseLog, rejectedTrailerReviewers, windowStart } from "./lib/sensitiveReview.mjs";
 
 export const LOG = "docs/reviews/sensitive-reviews.jsonl";
 const args = process.argv.slice(2);
@@ -58,7 +58,11 @@ const lines = [
   `Range \`${range}\` since ${since}: ${commits.length} commit(s), ${rows.length} touch a sensitive path, **${missing.length} with no recorded review**.`,
   ``,
 ];
-for (const r of missing) lines.push(`- \`${r.sha.slice(0, 9)}\` ${r.message.split("\n")[0].slice(0, 90)} — ${r.sensitive.slice(0, 3).join(", ")}${r.sensitive.length > 3 ? ` (+${r.sensitive.length - 3})` : ""}`);
+for (const r of missing) {
+  const rejected = rejectedTrailerReviewers(r.message);
+  const why = rejected.length ? ` — its trailer names ${rejected.map((x) => `\`${x}\``).join(", ")}, not an accepted reviewer (${REVIEWERS.join(", ")}, or not-needed)` : "";
+  lines.push(`- \`${r.sha.slice(0, 9)}\` ${r.message.split("\n")[0].slice(0, 90)} — ${r.sensitive.slice(0, 3).join(", ")}${r.sensitive.length > 3 ? ` (+${r.sensitive.length - 3})` : ""}${why}`);
+}
 if (missing.length) {
   lines.push("", `Record each: run the review-only pass (${REVIEWERS.slice(0, 5).join(", ")}), then either add a \`Sensitive-Review: <reviewer>: <verdict>\` trailer to the commit or \`node scripts/check-sensitive-review.mjs record <sha> <reviewer> <verdict>\`.`);
 }

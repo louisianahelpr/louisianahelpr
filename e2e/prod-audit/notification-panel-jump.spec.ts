@@ -17,7 +17,8 @@
  *      the change and the check would be vacuous). The panel's notification
  *      reads are narrowed on the wire to the rows this spec created, because
  *      the shared poster's own backlog fills the panel;
- *   3. tap one row and sample the panel's bottom edge every animation frame;
+ *   3. tap one row and sample the panel's bottom edge every animation frame,
+ *      stepping a paused fake clock one frame at a time (see sampleEdge);
  *   4. assert the row really left AND the edge really moved (a no-op cannot
  *      pass), and that no single frame moved it more than MAX_FRAME_PX.
  * Writes: three notifications on the shared poster account, marked read and
@@ -32,11 +33,9 @@ import { newUserContext, sessionFor, SUPABASE_URL, ANON, rest, type Session } fr
 
 /** ~40px per the Q51 spec: a third of the pre-fix jump, 3x the fixed one. */
 export const MAX_FRAME_PX = 40;
-/** A step spanning more than ~3 frames at 60 Hz is a dropped-frame gap, not "one frame". */
-export const MAX_STEP_MS = 50;
+/** One frame of the page's fake clock (60 Hz). */
+const FRAME_MS = 16;
 const TITLE = "Test from Helpr";
-/** Judged taps per engine; the three seeded rows allow two (3 -> 2 -> 1). */
-const ATTEMPTS = 2;
 
 let poster: Session;
 const created: string[] = [];
@@ -71,28 +70,30 @@ async function seedUnread(request: import("@playwright/test").APIRequestContext,
   return mine;
 }
 
-/** Per-frame bottom edge of the open panel while `act` runs, for `ms`. */
-type Sample = { y: number; t: number };
-/** Per-frame bottom edge of the open panel, with each frame's timestamp, while `act` runs, for `ms`. */
-async function sampleEdge(page: Page, act: () => Promise<void>, ms: number): Promise<Sample[]> {
-  await page.evaluate(() => {
-    const w = window as unknown as { __edge: { y: number; t: number }[]; __edgeOn: boolean };
-    w.__edge = [];
-    w.__edgeOn = true;
-    const tick = () => {
-      const el = document.querySelector('[role="dialog"][aria-labelledby]');
-      if (el) w.__edge.push({ y: el.getBoundingClientRect().bottom, t: performance.now() });
-      if (w.__edgeOn) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
+/**
+ * The panel's bottom edge, one sample per FAKE frame, after `act` runs.
+ *
+ * Frames are stepped by Playwright's clock, not taken from the runner: on CI,
+ * WebKit dropped 74-338ms of frames exactly where the exit began (runs
+ * 36290267474, 36298506930, 36361548155), and Framer Motion drives the height
+ * collapse from requestAnimationFrame, so a dropped stretch made the ANIMATION
+ * itself take one big step, which no sampler can tell from the bug. With time
+ * paused and advanced FRAME_MS at a time, every sample is exactly one frame of
+ * the app's own animation, in both engines, whatever the runner's frame rate.
+ * Real time still runs between steps, so the mark-read request completes.
+ */
+async function sampleEdge(page: Page, act: () => Promise<void>, frames: number): Promise<number[]> {
+  const edge = () => page.evaluate(() => document.querySelector('[role="dialog"][aria-labelledby]')?.getBoundingClientRect().bottom ?? NaN);
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 50);
+  const out = [await edge()];
   await act();
-  await page.waitForTimeout(ms);
-  return page.evaluate(() => {
-    const w = window as unknown as { __edge: { y: number; t: number }[]; __edgeOn: boolean };
-    w.__edgeOn = false;
-    return w.__edge;
-  });
+  for (let i = 0; i < frames; i++) {
+    await page.clock.runFor(FRAME_MS);
+    out.push(await edge());
+  }
+  await page.clock.resume();
+  return out;
 }
 
 for (const engine of ["chromium", "webkit"] as const) {
@@ -115,6 +116,10 @@ for (const engine of ["chromium", "webkit"] as const) {
         return route.continue({ url: `${req.url()}&id=in.(${ids})` });
       });
       const page = await ctx.newPage();
+      // Fake timers (Date, performance.now, requestAnimationFrame) from the first
+      // script, so Framer Motion's frame loop runs on them; time flows normally
+      // until sampleEdge pauses it.
+      await page.clock.install();
       await page.setViewportSize({ width: 375, height: 812 });
       await page.goto("/home");
       await page.getByRole("button", { name: "Notifications" }).first().click();
@@ -130,40 +135,24 @@ for (const engine of ["chromium", "webkit"] as const) {
       expect(sh, `the poster's Unread list fills the panel (${sh}px in ${ch}px), so this run cannot see a jump; mark its old notifications read`).toBeLessThanOrEqual(ch + 1);
 
       await page.waitForTimeout(800); // entry animations done
-      // Up to ATTEMPTS taps, one row each (3 -> 2 -> 1, still content-sized).
-      // A JUMP fails at once, on any attempt. Only "cannot judge" (frames
-      // dropped exactly where the edge moved) earns another tap: on CI, WebKit
-      // stalled 236-338ms right at the first tap's exit start (runs 36290267474,
-      // 36298506930) while Chromium on the same runs measured 25px.
-      let verdict = "";
-      for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
-        const count = await rows.count();
-        const edge = await sampleEdge(page, () => rows.last().click(), 1200);
-        await expect(rows, "the tapped row did not leave the Unread list").toHaveCount(count - 1, { timeout: 5_000 });
+      const before = await rows.count();
+      // 250 fake frames = 4s of app time: the mark-read round trip, then the 200ms exit.
+      const edge = await sampleEdge(page, () => rows.last().dispatchEvent("click"), 250);
+      await expect(rows, "the tapped row did not leave the Unread list").toHaveCount(before - 1, { timeout: 10_000 });
 
-        // A step is a move between two consecutive frames, with the time it
-        // spanned. A JUMP is a big move inside a normal frame interval; a big move
-        // across a long gap (a dropped-frame stretch on a loaded runner) cannot be
-        // told from a smooth slide, so it is not passed: it fails as "cannot judge".
-        const steps = edge.slice(1).map((s, i) => ({ dy: Math.abs(s.y - edge[i].y), dt: s.t - edge[i].t }));
-        const largest = steps.reduce((a, b) => (b.dy > a.dy ? b : a), { dy: 0, dt: 0 });
-        const travel = Math.abs(edge[edge.length - 1].y - edge[0].y);
-        const measure = `${engine} 375 attempt ${attempt}: frames=${edge.length} largest one-frame move=${largest.dy.toFixed(1)}px over ${largest.dt.toFixed(0)}ms total travel=${travel.toFixed(1)}px`;
-        test.info().annotations.push({ type: "measure", description: measure });
-        console.log(`[notification-panel-jump] ${measure}`);
-        // The whole series, so a failure explains itself in the log (y px @ ms since the previous frame).
-        console.log(`[notification-panel-jump] ${engine} series: ${edge.map((e, i) => `${e.y.toFixed(0)}@${i ? (e.t - edge[i - 1].t).toFixed(0) : 0}`).join(" ")}`);
-        await page.screenshot({ path: test.info().outputPath(`panel-after-${engine}-${attempt}.png`) });
-        expect(edge.length, "too few frames sampled to judge").toBeGreaterThan(10);
-        expect(travel, "the panel edge never moved: nothing was measured").toBeGreaterThan(20);
-        const jumps = steps.filter((s) => s.dy > MAX_FRAME_PX && s.dt <= MAX_STEP_MS);
-        const unjudgeable = steps.filter((s) => s.dy > MAX_FRAME_PX && s.dt > MAX_STEP_MS);
-        expect(jumps.map((s) => `${s.dy.toFixed(1)}px in ${s.dt.toFixed(0)}ms`), `the panel edge jumped in one frame (${engine}, attempt ${attempt})`).toEqual([]);
-        verdict = unjudgeable.map((s) => `${s.dy.toFixed(1)}px across a ${s.dt.toFixed(0)}ms gap`).join(", ");
-        if (!verdict) break;
-        await page.waitForTimeout(800);
-      }
-      expect(verdict, `frames were dropped exactly where the panel moved on all ${ATTEMPTS} taps, so this run cannot tell a jump from a slide (${engine}); re-run`).toBe("");
+      const steps = edge.slice(1).map((y, i) => Math.abs(y - edge[i]));
+      const largest = Math.max(...steps);
+      const travel = Math.abs(edge[edge.length - 1] - edge[0]);
+      const moving = steps.filter((dy) => dy > 0.5);
+      const measure = `${engine} 375: fake frames=${steps.length} largest one-frame move=${largest.toFixed(1)}px total travel=${travel.toFixed(1)}px over ${moving.length} moving frames`;
+      test.info().annotations.push({ type: "measure", description: measure });
+      console.log(`[notification-panel-jump] ${measure}`);
+      // Only the frames that moved, so a failure explains itself in the log.
+      console.log(`[notification-panel-jump] ${engine} moving steps: ${moving.map((dy) => dy.toFixed(1)).join(" ")}`);
+      await page.screenshot({ path: test.info().outputPath(`panel-after-${engine}.png`) });
+      expect(edge.every(Number.isFinite), "the panel closed while sampling").toBe(true);
+      expect(travel, "the panel edge never moved: nothing was measured").toBeGreaterThan(20);
+      expect(largest, `the panel edge jumped ${largest.toFixed(1)}px in one frame (${engine})`).toBeLessThanOrEqual(MAX_FRAME_PX);
       await ctx.close();
     } finally {
       if (engine !== "chromium") await browser.close();

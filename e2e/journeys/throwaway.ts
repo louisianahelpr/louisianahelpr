@@ -23,6 +23,7 @@ import { randomBytes } from "node:crypto";
 import type { APIRequestContext } from "@playwright/test";
 import { ANON, PNG_1PX, SUPABASE_URL, type Session } from "./fixtures";
 import { removeUserStorageRest } from "../../scripts/lib/jobMediaRest.mjs";
+import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 import { strongTestPassword } from "../../src/test/strongTestPassword";
 
 export const THROWAWAY_EMAIL_RE = /^helpr-journey-throwaway-[a-z0-9]{6,20}@mailinator\.com$/;
@@ -108,7 +109,7 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
   const avatarPath = `${userId}/journey-throwaway.png`;
   await ok(
     await api.post(`${SUPABASE_URL}/storage/v1/object/avatars/${avatarPath}`, {
-      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/png", "x-upsert": "true" },
+      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/png", "x-upsert": "true", "cache-control": "max-age=3600" },
       data: PNG_1PX,
     }),
     "avatar upload",
@@ -124,7 +125,7 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
         phone: `504555${String(Math.floor(Math.random() * 10_000)).padStart(4, "0")}`,
         date_of_birth: "1990-01-01",
         location: "Baton Rouge, LA",
-        terms_version_accepted: "Jun 2026",
+        terms_version_accepted: LATEST_TERMS_VERSION,
         terms_accepted_at: new Date().toISOString(),
         email_verified: true,
         // The jobs INSERT policy requires a verified identity (measured: an

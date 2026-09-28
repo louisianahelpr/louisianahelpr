@@ -45,18 +45,14 @@ function walk(dir: string, out: string[] = []): string[] {
 /**
  * The legs no journey can reach yet, each carried in docs/OPEN.md: two
  * time-travel legs (an accepted job the Helpr has not confirmed, a paid
- * membership) and the five Q230 notification legs.
+ * membership). The five Q230 notification placeholders left in c3ad37cae:
+ * direct offer, saved-search and tip are now driven, and the rest are named
+ * by e2e/journeys/notifications/producers.ts (notificationProducersCovered).
  */
 // @two-way src/test/journeyPlaceholderSkips.test.ts:a placeholder listed here no longer exists
 const PLACEHOLDER_KNOWN = [
   "e2e/journeys/time-travel.spec.ts :: Confirm window (day before / day of)",
   "e2e/journeys/time-travel.spec.ts :: Subscription expiring",
-  // Q230: named on purpose (415e52ae7); live coverage is the open half of Q230.
-  "e2e/journeys/notifications/notifications.spec.ts :: cron notifications are not exercised here",
-  "e2e/journeys/notifications/notifications.spec.ts :: direct-offer notification is not exercised here",
-  "e2e/journeys/notifications/notifications.spec.ts :: job-match fan-out notification is not exercised here",
-  "e2e/journeys/notifications/notifications.spec.ts :: saved-search-match notification is not exercised here",
-  "e2e/journeys/notifications/notifications.spec.ts :: tip notification is not exercised here",
 ];
 
 export function placeholders(rel: string, src: string): string[] {

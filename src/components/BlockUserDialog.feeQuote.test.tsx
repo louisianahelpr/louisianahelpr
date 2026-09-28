@@ -17,6 +17,7 @@ import { render, screen } from "@testing-library/react";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankNonCode } from "@/test/helpers/blankNonCode";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const rows: Array<Record<string, unknown>> = [];
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
@@ -45,11 +46,13 @@ import { BlockUserDialog } from "./BlockUserDialog";
 
 // "Now" is pinned to 2026-09-27 12:00Z (07:00 Chicago). A job dated 09-26
 // started yesterday: the 50% top tier for a committed Helpr.
+// Job days are derived from NOW, never typed (jobDayFixtureTimezone).
+const NOW = new Date("2026-09-27T12:00:00Z");
 function job(overrides: Record<string, unknown>) {
   return {
     id: "job-1",
     budget: 100,
-    date_needed: "2026-09-26",
+    date_needed: jobLocalDateISO(-1, NOW),
     start_time: null,
     customer_id: "poster-1",
     helper_id: "helper-1",
@@ -65,7 +68,7 @@ const liText = async (re: RegExp) =>
 
 beforeEach(() => {
   rows.length = 0;
-  vi.useFakeTimers({ now: new Date("2026-09-27T12:00:00Z"), toFake: ["Date"] });
+  vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
 });
 afterEach(() => vi.useRealTimers());
 
@@ -98,7 +101,7 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
   it("prices on the job's START, not midnight of its day", async () => {
     // A committed job on 09-28 at 12:00 Chicago starts 29h out (free);
     // midnight of 09-28 is 17h out (25% = $25).
-    rows.push(job({ date_needed: "2026-09-28", start_time: "12:00:00", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
+    rows.push(job({ date_needed: jobLocalDateISO(1, NOW), start_time: "12:00:00", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
     const text = await liText(/will be cancelled/);
     expect(text).toMatch(/no\s+cancellation fee applies/);

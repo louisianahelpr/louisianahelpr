@@ -83,6 +83,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('admin_alert_manual_close',      'classify', 'labels an admin alert title as closed only by a person (Q355 part 2); NULL title = not manual'),
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),
+  ('session_email_unconfirmed',     'noarg',    'reads the JWT only (Q807): TRUE refuses the write, so it fails safe'),
   ('seed_jobs_hidden_publicly',     'noarg',    'reads the launch switch only'),
   ('crew_fee_pays_unconfirmed',     'noarg',    'owner rule constant (Q407): unconfirmed crew members share the late fee'),
   ('crew_completes_when_hired_done','noarg',    'owner rule constant (Q407): an under-filled crew completes when every hired member is done'),

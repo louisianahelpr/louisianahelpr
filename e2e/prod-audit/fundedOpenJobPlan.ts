@@ -57,6 +57,20 @@ export interface FixturePlan {
 const FUNDED = new Set(["escrow", "cancelling"]);
 const REPAYABLE = new Set(["unpaid", "abandoned", "failed"]);
 
+/**
+ * helper-e2e's applications, by job id, as `applications.status`.
+ * apply_to_job refuses ANY existing application ("Already applied to this job",
+ * live pg_get_functiondef 2026-09-28: `COUNT(*) ... WHERE job_id AND helper_id`,
+ * no status filter), and accept_application hires only a pending one. So a
+ * fixture whose application is rejected/withdrawn (expire_unanswered_offers
+ * rejects an unanswered offer and re-opens the job) can be neither applied to
+ * nor hired: it is DEAD for helper-e2e (a11y-webkit-prod run 36352716213,
+ * job 36eebad4, #1794).
+ */
+export type HelperApplications = ReadonlyMap<string, string>;
+const isDeadFor = (apps: HelperApplications, jobId: string) => apps.has(jobId) && apps.get(jobId) !== "pending";
+const nextAfterFunding = (apps: HelperApplications, jobId: string): "apply" | "hire" => (apps.get(jobId) === "pending" ? "hire" : "apply");
+
 /** Whole days from `today` to `date` (both YYYY-MM-DD). */
 export function daysBetween(today: string, date: string): number {
   return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
@@ -125,7 +139,7 @@ const HIRED = new Set(["accepted", "in_progress", "completed", "revision_request
 /** `rows`: poster-e2e's own jobs titled DISPUTE_FIXTURE_TITLE*, newest first or not. */
 export function planDisputedJob(
   rows: DisputeRow[],
-  opts: { helperId: string; appliedJobIds: ReadonlySet<string> },
+  opts: { helperId: string; applications: HelperApplications },
 ): DisputePlan {
   const mine = rows
     .filter((r) => r.title.startsWith(DISPUTE_FIXTURE_TITLE))
@@ -134,9 +148,10 @@ export function planDisputedJob(
   if (disputed) return { kind: "reuse", row: disputed };
   const hired = mine.find((r) => HIRED.has(r.status) && r.helper_id === opts.helperId && r.payment_status === "escrow");
   if (hired) return { kind: "resume", row: hired, next: "dispute" };
-  const open = mine.find((r) => r.status === "open" && !r.helper_id);
+  // A row helper-e2e's closed application makes dead is skipped: create instead.
+  const open = mine.find((r) => r.status === "open" && !r.helper_id && !isDeadFor(opts.applications, r.id));
   if (open && open.payment_status === "escrow") {
-    return { kind: "resume", row: open, next: opts.appliedJobIds.has(open.id) ? "hire" : "apply" };
+    return { kind: "resume", row: open, next: nextAfterFunding(opts.applications, open.id) };
   }
   if (open && REPAYABLE.has(open.payment_status ?? "unpaid")) return { kind: "resume", row: open, next: "fund" };
   return { kind: "create" };
@@ -187,22 +202,29 @@ export type AcceptedPlan = (
 /** `rows`: poster-e2e's own jobs titled ACCEPTED_FIXTURE_TITLE*, in any order. */
 export function planAcceptedJob(
   rows: FixtureRow[],
-  opts: { today: string; helperId: string; appliedJobIds: ReadonlySet<string> },
+  opts: { today: string; helperId: string; applications: HelperApplications },
 ): AcceptedPlan {
   const mine = rows
     .filter((r) => r.title.startsWith(ACCEPTED_FIXTURE_TITLE))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const runway = (r: FixtureRow) => daysBetween(opts.today, r.date_needed);
-  const open = mine.filter((r) => r.status === "open" && !r.helper_id);
-  const retire: AcceptedPlan["retire"] = open
-    .filter((r) => FUNDED.has(r.payment_status ?? "") && runway(r) < MIN_RUNWAY_DAYS)
-    .map((row) => ({ row, why: `open again with only ${runway(row)}d of runway (< ${MIN_RUNWAY_DAYS}): release its escrow` }));
+  const openAll = mine.filter((r) => r.status === "open" && !r.helper_id);
+  const retire: AcceptedPlan["retire"] = openAll
+    .filter((r) => FUNDED.has(r.payment_status ?? ""))
+    .flatMap((row) =>
+      runway(row) < MIN_RUNWAY_DAYS
+        ? [{ row, why: `open again with only ${runway(row)}d of runway (< ${MIN_RUNWAY_DAYS}): release its escrow` }]
+        : isDeadFor(opts.applications, row.id)
+          ? [{ row, why: `helper-e2e's application on it is ${opts.applications.get(row.id)}: apply_to_job refuses a second, release its escrow` }]
+          : [],
+    );
+  const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id));
   const accepted = mine.find(
     (r) => r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS,
   );
   if (accepted) return { kind: "reuse", row: accepted, retire };
   const funded = open.find((r) => r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS);
-  if (funded) return { kind: "resume", row: funded, next: opts.appliedJobIds.has(funded.id) ? "hire" : "apply", retire };
+  if (funded) return { kind: "resume", row: funded, next: nextAfterFunding(opts.applications, funded.id), retire };
   const unpaid = open.find((r) => REPAYABLE.has(r.payment_status ?? "unpaid") && runway(r) >= MIN_RUNWAY_DAYS);
   if (unpaid) return { kind: "resume", row: unpaid, next: "fund", retire };
   return { kind: "create", retire };

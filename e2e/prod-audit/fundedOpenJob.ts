@@ -35,7 +35,21 @@ import {
   planFundedOpenJob,
   type DisputeRow,
   type FixtureRow,
+  type HelperApplications,
 } from "./fundedOpenJobPlan";
+
+/**
+ * EVERY application helper-e2e holds, whatever its status: apply_to_job refuses
+ * any existing one, so a planner that saw only the pending ones planned "apply"
+ * on a job whose offer had lapsed to rejected (#1794, run 36352716213).
+ */
+async function helperApplications(api: APIRequestContext, helper: Session): Promise<HelperApplications> {
+  const rows = await readJson<{ job_id: string; status: string }[]>(
+    await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&select=job_id,status`, { headers: headers(helper) }),
+    "list helper-e2e applications",
+  );
+  return new Map(rows.map((a) => [a.job_id, a.status]));
+}
 
 export const headers = (s: Session, extra: Record<string, string> = {}) => ({
   apikey: ANON,
@@ -336,11 +350,7 @@ export async function ensureAcceptedJob(
     ),
     "list accepted fixture jobs",
   );
-  const pending = await readJson<{ job_id: string }[]>(
-    await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&status=eq.pending&select=job_id`, { headers: headers(helper) }),
-    "list helper-e2e applications",
-  );
-  const plan = planAcceptedJob(rows, { today: centralDatePlus(0), helperId: helper.user.id, appliedJobIds: new Set(pending.map((a) => a.job_id)) });
+  const plan = planAcceptedJob(rows, { today: centralDatePlus(0), helperId: helper.user.id, applications: await helperApplications(api, helper) });
   for (const { row, why } of plan.retire) log.push(`${await retireFundedJob(api, poster, row.id)} — ${why}`);
   let id: string;
   if (plan.kind === "reuse") {
@@ -393,14 +403,7 @@ export async function ensureDisputedJob(
       ),
       "list dispute fixture jobs",
     );
-  const applied = async () =>
-    new Set(
-      (await readJson<{ job_id: string }[]>(
-        await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&status=eq.pending&select=job_id`, { headers: headers(helper) }),
-        "list helper-e2e applications",
-      )).map((a) => a.job_id),
-    );
-  const plan = planDisputedJob(await list(), { helperId: helper.user.id, appliedJobIds: await applied() });
+  const plan = planDisputedJob(await list(), { helperId: helper.user.id, applications: await helperApplications(api, helper) });
   if (plan.kind === "reuse") {
     log.push(`reused disputed ${plan.row.id}`);
     return { job: { id: plan.row.id, title: plan.row.title }, log };

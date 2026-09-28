@@ -22,6 +22,7 @@
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS, | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow",
  * @mutate .github/workflows/a11y-webkit-prod.yml | needs: [preflight, fixtures] | needs: preflight
  * @mutate .github/workflows/a11y-webkit-prod.yml | run: npx playwright test --project=job-status-fixtures | run: echo skipped
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id)); | const open = openAll;
  * @mutate e2e/job-status-fixtures/accepted.spec.ts | await ensureAcceptedJob(request, browser, poster, helper); | { job: { id: "", title: "", date_needed: "2999-01-01" }, log: [] as string[] };
  */
 import { describe, expect, it } from "vitest";
@@ -53,8 +54,8 @@ const row = (over: Partial<FixtureRow> = {}): FixtureRow => ({
   created_at: `2026-09-${String(1 + (n % 20)).padStart(2, "0")}T00:00:00Z`,
   ...over,
 });
-const plan = (rows: FixtureRow[], applied: string[] = []) =>
-  planAcceptedJob(rows, { today: TODAY, helperId: HELPER, appliedJobIds: new Set(applied) });
+const plan = (rows: FixtureRow[], apps: Record<string, string> = {}) =>
+  planAcceptedJob(rows, { today: TODAY, helperId: HELPER, applications: new Map(Object.entries(apps)) });
 const hired = (over: Partial<FixtureRow> = {}) => row({ status: "accepted", payment_status: "escrow", helper_id: HELPER, ...over });
 
 describe("planAcceptedJob", () => {
@@ -91,10 +92,26 @@ describe("planAcceptedJob", () => {
   it("RESUMES a half-made fixture at the step it stopped on, never paying twice", () => {
     const funded = row({ payment_status: "escrow" });
     expect(plan([funded])).toEqual({ kind: "resume", row: funded, next: "apply", retire: [] });
-    expect(plan([funded], [funded.id])).toEqual({ kind: "resume", row: funded, next: "hire", retire: [] });
+    expect(plan([funded], { [funded.id]: "pending" })).toEqual({ kind: "resume", row: funded, next: "hire", retire: [] });
     const unpaid = row({ payment_status: "abandoned" });
     expect(plan([unpaid])).toEqual({ kind: "resume", row: unpaid, next: "fund", retire: [] });
   });
+
+  // a11y-webkit-prod run 36352716213 (#1794): job 36eebad4 was open/escrow and
+  // helper-e2e's application on it was REJECTED (expire_unanswered_offers); the
+  // plan said "apply" and apply_to_job answered "Already applied to this job".
+  it.each(["rejected", "withdrawn"])(
+    "a funded fixture helper-e2e has a %s application on is never resumed: it is RETIRED (escrow released)",
+    (status) => {
+      const dead = row({ payment_status: "escrow" });
+      const p = plan([dead], { [dead.id]: status });
+      expect(p.kind).toBe("create");
+      expect(p.retire.map((r) => r.row.id)).toEqual([dead.id]);
+      // An unpaid one with a closed application is not funded either.
+      const deadUnpaid = row({ payment_status: "abandoned" });
+      expect(plan([deadUnpaid], { [deadUnpaid.id]: status })).toEqual({ kind: "create", retire: [] });
+    },
+  );
 
   it("ignores other jobs: another fixture's title, a hire to someone else, an unfunded hire", () => {
     expect(plan([{ ...hired(), title: `${DISPUTE_FIXTURE_TITLE}: patch a drywall hole` }]).kind).toBe("create");

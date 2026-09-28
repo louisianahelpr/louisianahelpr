@@ -69,6 +69,9 @@ export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/scoreboard.mjs":
     "EMAIL_DOMAIN names the sending domain whose SPF, DKIM and DMARC TXT records the email-DNS signal " +
     "resolves over DNS; it never requests the Vercel site.",
+  "scripts/rollback/drill-web.mjs":
+    "Q69 live rollback drill (rollback-drill.yml, workflow_dispatch only): it polls the live page's " +
+    "build-commit meta tag to time a rollback and its restore. A local build cannot show which deployment prod serves.",
 };
 
 const BASE_VARS = /^\s*-?\s*(PLAYWRIGHT_BASE_URL|HAPPY_PATH_BASE_URL|SITE_URL|BASE):\s*(.*?)\s*$/;

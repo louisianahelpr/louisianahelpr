@@ -1,7 +1,7 @@
 // Proven able to fail 2026-09-20: widening the Helpr column allow-list by one
 // money column (payout_scheduled_at) makes helper:payout_scheduled_at writable
 // with nothing constraining the value, and the ratchet reds.
-// @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql | 'status',\n    'helper_confirmed_at', | 'status',\n    'payout_scheduled_at',\n    'helper_confirmed_at',
+// @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql | 'status',\n    'helper_confirmed_at', | 'status',\n    'payout_scheduled_at',\n    'helper_confirmed_at',
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";

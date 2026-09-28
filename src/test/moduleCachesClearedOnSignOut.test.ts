@@ -29,6 +29,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/proofPhotoStorage.ts:inFlight": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/proofPhotoStorage.ts:pending": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/pinnedConversations.ts:cache": { kind: "keyed-by-user-id" },
+  "src/lib/pinnedConversations.ts:loadGen": { kind: "keyed-by-user-id" },
   "src/lib/archivedConversations.ts:cache": { kind: "keyed-by-user-id" },
   "src/lib/userBlocks.ts:blockReads": { kind: "keyed-by-user-id" },
   "src/lib/userRealtimeBus.ts:buses": { kind: "keyed-by-user-id" },
@@ -62,6 +63,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/realtimeRecovery.ts:healthListeners": { kind: "not-user-data", why: "subscriber callbacks" },
   "src/lib/realtimeRecovery.ts:pendingWakes": { kind: "not-user-data", why: "subscriber callbacks" },
   "src/lib/safeStorage.ts:TRACKED_KEYS": { kind: "not-user-data", why: "storage key names" },
+  "src/lib/storagePath.ts:openableBlobUrls": { kind: "not-user-data", why: "content-addressed: a hit needs the exact data: URL, so it returns nothing the caller does not already hold" },
 };
 
 function files(dir: string): string[] {

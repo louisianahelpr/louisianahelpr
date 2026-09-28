@@ -150,7 +150,6 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // warns on that switch ("Switch is changing from controlled to uncontrolled")
   // and, more practically, an uncontrolled toggle silently keeps its own state,
   // so a fast tap during load could disagree with the server.
-  //
   // The switch is ON when the ROW says so, or when the user has switched it on
   // in this visit to reach the attach area (`intent`, never persisted). The
   // row's `is_licensed` / `is_insured` are server-owned: the BEFORE UPDATE
@@ -323,9 +322,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // they already sent. Bucket is private; clients can't construct the URL
   // themselves. RLS lets owners read their own paths.
   const openDoc = async (path: string) => {
-    // A value that is already a URL opens as-is ONLY if safeDocumentUrl
-    // passes it; only a storage path is signed. A data: document opens as
-    // blob: (a data: URL opens nothing in a new tab, Q295).
+    // Only a storage path is signed; any other value opens only if it passes
+    // safeDocumentUrl, and a data: document opens as blob: (Q295).
     if (!isStorageObjectPath(path)) {
       const safe = openableDocumentUrl(path);
       if (safe) window.open(safe, "_blank", "noopener");

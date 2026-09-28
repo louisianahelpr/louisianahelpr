@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { functionInvokeError } from "@/lib/supabaseResult";
 import {
   awardBlockReasonFromStatus,
   type AwardBlockReason,
@@ -57,7 +58,7 @@ export function useStripeConnectCheck() {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "status" },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       const status = data as ConnectStatus;
       if (!status.connected) {
         return { ok: false, reason: "Connect a payout account before you can accept jobs.", needsPayoutSetup: true };
@@ -99,7 +100,7 @@ export function useStripeConnectCheck() {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "status" },
       });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       const reason = await awardBlockReasonFromStatus(
         data as ConnectStatus | null,
         profile?.idv_status,

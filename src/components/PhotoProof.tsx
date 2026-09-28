@@ -163,7 +163,6 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
       // reader just gets an empty box with its alt text. Proof photos are the
       // evidence a dispute is decided on and the thing that releases a
       // payout, so an expiry date on them is not a cosmetic bug.
-      //
       // Storing the path moves the ticket to display time
       // (`useProofPhotoUrls`), which is the pattern the repo already wrote
       // down for `user-documents` in 20260505220000.

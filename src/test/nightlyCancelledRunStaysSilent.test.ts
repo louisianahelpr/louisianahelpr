@@ -80,44 +80,9 @@ function jobIf(block: string): string {
   return "";
 }
 
-/** Reporters still gated on bare always(), exact (2026-09-27). */
-const STILL_ALWAYS: readonly string[] = [
-  "a11y-webkit-prod.yml",
-  "app-store-reviews.yml",
-  "broken-links.yml",
-  "core-loop-canary.yml",
-  "db-backup.yml",
-  "db-drift-detect.yml",
-  "db-restore-drill.yml",
-  "e2e-abuse-notifications.yml",
-  "e2e-real-backend.yml",
-  "edge-function-smoke.yml",
-  "expiry-monitor.yml",
-  "lighthouse.yml",
-  "loading-states-refresh.yml",
-  "morning-page.yml",
-  "nightly-red-age.yml",
-  "nightly-webkit.yml",
-  "open-done-when.yml",
-  "press-every-control.yml",
-  "privacy-journey.yml",
-  "prod-audit.yml",
-  "prod-deploy.yml",
-  "prod-errors.yml",
-  "prod-freshness.yml",
-  "quota-monitor.yml",
-  "race-runner.yml",
-  "schedule-heartbeat.yml",
-  "scoreboard.yml",
-  "security-audit.yml",
-  "slow-network.yml",
-  "staleness-watch.yml",
-  "stripe-webhook-guard.yml",
-  "supabase-usage.yml",
-  "ui-sweep.yml",
-  "vacuity.yml",
-  "write-contract-refresh.yml",
-];
+/** Reporters still gated on bare always(), exact. Empty since Q821 (2026-09-27)
+ * moved every reporter job to !cancelled(); see nightlyReportersSkipCancelledRuns. */
+const STILL_ALWAYS: readonly string[] = [];
 
 describe("a cancelled run does not report to its nightly-red issue", () => {
   const reporters: { file: string; job: string; cond: string }[] = [];

@@ -4,6 +4,7 @@ import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { MissingRowCountError, WriteRejectedError, unwrapMutation } from "@/lib/mutationResult";
 import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { functionInvokeError } from "@/lib/supabaseResult";
 import { arrivalEstablished, arrivalGateMessage } from "@/lib/arrivalGate";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
@@ -162,7 +163,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         }
       }
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       if (data?.error) throw new Error(data.error);
       // Idempotent replay guard: a duplicate release (double tap, retry after
       // a lost response, a second device) answers with `alreadyReleased` or
@@ -266,7 +267,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
   const resolveRevision = async (jobId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "resolve_revision", jobId } });
-      if (error) throw error;
+      if (error) throw await functionInvokeError(error);
       if (data?.error) throw new Error(data.error);
       hapticSuccess();
       toast("Revision marked as fixed");

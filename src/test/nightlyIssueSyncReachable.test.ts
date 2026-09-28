@@ -114,6 +114,8 @@ export function jobIf(block: string): string | null {
  */
 export function reachableOnDispatch(cond: string): boolean {
   let e = cond
+    // `if: ${{ expr }}` and `if: expr` mean the same thing; evaluate expr.
+    .replace(/^\s*\$\{\{([\s\S]*)\}\}\s*$/, "$1")
     .replace(/github\.event_name\s*==\s*'([^']*)'/g, (_, v) => (v === "workflow_dispatch" ? "true" : "false"))
     .replace(/github\.event_name\s*!=\s*'([^']*)'/g, (_, v) => (v === "workflow_dispatch" ? "false" : "true"))
     // Status functions: all satisfiable by some run of the suite, and so is

@@ -285,6 +285,37 @@ async function driveToHired(
 }
 
 /**
+ * helper-e2e answers the offer: the same conditional UPDATE the app's Accept
+ * Job button makes (useOfferHandlers.ts, `helper_confirmed_at` + clear
+ * `response_deadline`, only while accepted, unconfirmed and not lapsed).
+ * An accepted fixture left UNconfirmed is swept by expire_unanswered_offers
+ * at its response_deadline, which files a job_denial violation on helper-e2e
+ * (user_violations dd89291c, 2026-09-27 20:00, job 36eebad4) and turns
+ * prod-audit's "Shared test accounts carry no strikes" check red. Zero rows
+ * is legitimate (already confirmed on a previous run); the row read after it
+ * is what proves the state.
+ */
+async function helperConfirmsOffer(api: APIRequestContext, helper: Session, id: string, log: string[]): Promise<void> {
+  const now = new Date().toISOString();
+  const rows = await readJson<{ id: string }[]>(
+    await api.patch(
+      `${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&status=eq.accepted&helper_confirmed_at=is.null` +
+        `&or=(response_deadline.is.null,response_deadline.gt.${encodeURIComponent(now)})&select=id`,
+      { headers: headers(helper, { Prefer: "return=representation" }), data: { helper_confirmed_at: now, response_deadline: null } },
+    ),
+    `helper-e2e confirms the offer on ${id}`,
+  );
+  if (rows.length) log.push(`helper-e2e confirmed the offer on ${id}`);
+  const confirmed = await readJson<{ helper_confirmed_at: string | null }[]>(
+    await api.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=helper_confirmed_at`, { headers: headers(helper) }),
+    `read helper_confirmed_at on ${id}`,
+  );
+  if (!confirmed[0]?.helper_confirmed_at) {
+    throw new Error(`accepted fixture: ${id} is still unconfirmed after helper-e2e's confirm; expire_unanswered_offers would strike helper-e2e`);
+  }
+}
+
+/**
  * nightly-red #1794: make sure one ACCEPTED job of poster-e2e, hired to
  * helper-e2e, exists and will stay accepted (the decision is
  * `planAcceptedJob`, read its header). Returns it plus a log. Throws on any
@@ -328,6 +359,8 @@ export async function ensureAcceptedJob(
     }
     await driveToHired(api, browser, poster, helper, id, from, "accepted", log);
   }
+  // Every run, reuse included: a fixture hired before this fix is still unconfirmed.
+  await helperConfirmsOffer(api, helper, id, log);
   // The row is the fact, not the RPC's 200 (CLAUDE.md "A null error is not a write").
   const after = await readRow(api, poster, id);
   if (after.status !== "accepted" || after.helper_id !== helper.user.id || after.payment_status !== "escrow") {

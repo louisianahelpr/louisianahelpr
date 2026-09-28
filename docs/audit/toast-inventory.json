@@ -872,7 +872,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 181,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -892,7 +892,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 190,
+      "line": 189,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -902,7 +902,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 201,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1376,7 +1376,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 504,
+      "line": 502,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1386,7 +1386,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 520,
+      "line": 518,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2892,7 +2892,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 83,
+      "line": 84,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2902,7 +2902,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 89,
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2912,7 +2912,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 136,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2922,7 +2922,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 158,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2932,7 +2932,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 243,
+      "line": 244,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -2946,7 +2946,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 259,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2956,7 +2956,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 272,
+      "line": 273,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -2966,7 +2966,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 274,
+      "line": 275,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2976,7 +2976,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 298,
+      "line": 299,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2986,7 +2986,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 307,
+      "line": 308,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2996,7 +2996,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 334,
+      "line": 335,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3006,7 +3006,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 343,
+      "line": 344,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3016,7 +3016,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 362,
+      "line": 363,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3026,7 +3026,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 386,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3036,7 +3036,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 420,
+      "line": 421,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -3066,7 +3066,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 428,
+      "line": 429,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3456,7 +3456,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 197,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -3466,7 +3466,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 201,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -3476,7 +3476,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 310,
+      "line": 309,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3486,7 +3486,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 332,
+      "line": 330,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3496,7 +3496,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 339,
+      "line": 337,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3506,7 +3506,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 376,
+      "line": 374,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3516,7 +3516,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 437,
+      "line": 435,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3526,7 +3526,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 448,
+      "line": 446,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",

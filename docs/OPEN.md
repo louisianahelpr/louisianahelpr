@@ -342,6 +342,14 @@ sure someone hears it and closes it.
   prod-audit/visual suite: open the panel with a short list, dismiss a row,
   and assert that no single frame moves the panel edge more than ~40px, in
   Chromium and WebKit.
+  STATUS 2026-09-28 (lane Q1): guard `e2e/prod-audit/notification-panel-jump.spec.ts`
+  landed (324a4f339), vacuity 1/1 killed (mutation: fade-only exit). It steps
+  Playwright's fake clock 16ms per sample, because CI WebKit dropped 74-338ms of
+  frames right where the exit began, so rAF sampling could not be judged there
+  (runs 36290267474, 36298506930, 36361548155). Local run on prod, 375: chromium
+  largest one-frame move 12.6px, webkit 12.5px, travel 100.5px each; screenshots
+  reviewed (review:record ok). Open until CI run 36363037533 (prod-audit, grep
+  "leaving row never moves") is green in both engines; then tick [x].
 - [~] **Q52 FALSE-GREEN HUNT (owner, 2026-09-23: "nothing is a false positive
   or going green if it's not truly green").** Areas 2-4 DONE with guards; area 1
   PARTLY done (see Q89). GUARDS:

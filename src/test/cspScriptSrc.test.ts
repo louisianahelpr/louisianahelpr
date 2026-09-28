@@ -18,11 +18,11 @@
  * Inventory is derived from the files, not listed here: every *.html under the
  * repo root and public/, every inline executable <script> in them.
  */
-// @mutate vercel.json | script-src 'self' 'sha256-NByp | script-src 'self' 'unsafe-inline' 'sha256-NByp
+// @mutate vercel.json | script-src 'self' 'sha256- | script-src 'self' 'unsafe-inline' 'sha256-
 // @mutate index.html | var probeKey = "__helpr_boot_storage_probe__"; | var probeKey = "__helpr_boot_storage_probe_v2__";
 // @mutate vite.config.ts | if(k.sheet)on(); | if(k.sheet){on()}
 // @mutate public/offline.html | </title> | </title><!-- paste your .p8 here -->
-// @mutate index.html | script-src 'self' 'sha256-NByp | script-src 'self' 'unsafe-eval' 'sha256-NByp
+// @mutate index.html | script-src 'self' 'sha256- | script-src 'self' 'unsafe-eval' 'sha256-
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";

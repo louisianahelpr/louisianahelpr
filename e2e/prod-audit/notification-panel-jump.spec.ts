@@ -35,6 +35,8 @@ export const MAX_FRAME_PX = 40;
 /** A step spanning more than ~3 frames at 60 Hz is a dropped-frame gap, not "one frame". */
 export const MAX_STEP_MS = 50;
 const TITLE = "Test from Helpr";
+/** Judged taps per engine; the three seeded rows allow two (3 -> 2 -> 1). */
+const ATTEMPTS = 2;
 
 let poster: Session;
 const created: string[] = [];
@@ -121,7 +123,6 @@ for (const engine of ["chromium", "webkit"] as const) {
       await panel.getByRole("radio", { name: /Unread/ }).click();
       const rows = panel.getByRole("button").filter({ hasText: TITLE });
       await expect(rows.first()).toBeVisible({ timeout: 20_000 });
-      const before = await rows.count();
 
       // A short list: the panel is content-sized, so its edge follows the list.
       const scroller = panel.locator(".overscroll-contain").first();
@@ -129,31 +130,40 @@ for (const engine of ["chromium", "webkit"] as const) {
       expect(sh, `the poster's Unread list fills the panel (${sh}px in ${ch}px), so this run cannot see a jump; mark its old notifications read`).toBeLessThanOrEqual(ch + 1);
 
       await page.waitForTimeout(800); // entry animations done
-      const edge = await sampleEdge(page, () => rows.last().click(), 1200);
-      await expect(rows, "the tapped row did not leave the Unread list").toHaveCount(before - 1, { timeout: 5_000 });
+      // Up to ATTEMPTS taps, one row each (3 -> 2 -> 1, still content-sized).
+      // A JUMP fails at once, on any attempt. Only "cannot judge" (frames
+      // dropped exactly where the edge moved) earns another tap: on CI, WebKit
+      // stalled 236-338ms right at the first tap's exit start (runs 36290267474,
+      // 36298506930) while Chromium on the same runs measured 25px.
+      let verdict = "";
+      for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+        const count = await rows.count();
+        const edge = await sampleEdge(page, () => rows.last().click(), 1200);
+        await expect(rows, "the tapped row did not leave the Unread list").toHaveCount(count - 1, { timeout: 5_000 });
 
-      // A step is a move between two consecutive frames, with the time it
-      // spanned. A JUMP is a big move inside a normal frame interval; a big move
-      // across a long gap (a dropped-frame stretch on a loaded runner) cannot be
-      // told from a smooth slide, so it is not passed: it fails as "cannot judge".
-      const steps = edge.slice(1).map((s, i) => ({ dy: Math.abs(s.y - edge[i].y), dt: s.t - edge[i].t }));
-      const largest = steps.reduce((a, b) => (b.dy > a.dy ? b : a), { dy: 0, dt: 0 });
-      const travel = Math.abs(edge[edge.length - 1].y - edge[0].y);
-      const measure = `${engine} 375: frames=${edge.length} largest one-frame move=${largest.dy.toFixed(1)}px over ${largest.dt.toFixed(0)}ms total travel=${travel.toFixed(1)}px`;
-      test.info().annotations.push({ type: "measure", description: measure });
-      console.log(`[notification-panel-jump] ${measure}`);
-      // The whole series, so a failure explains itself in the log (y px @ ms since the previous frame).
-      console.log(`[notification-panel-jump] ${engine} series: ${edge.map((e, i) => `${e.y.toFixed(0)}@${i ? (e.t - edge[i - 1].t).toFixed(0) : 0}`).join(" ")}`);
-      await page.screenshot({ path: test.info().outputPath(`panel-after-${engine}.png`) });
-      expect(edge.length, "too few frames sampled to judge").toBeGreaterThan(10);
-      expect(travel, "the panel edge never moved: nothing was measured").toBeGreaterThan(20);
-      const jumps = steps.filter((s) => s.dy > MAX_FRAME_PX && s.dt <= MAX_STEP_MS);
-      const unjudgeable = steps.filter((s) => s.dy > MAX_FRAME_PX && s.dt > MAX_STEP_MS);
-      expect(jumps.map((s) => `${s.dy.toFixed(1)}px in ${s.dt.toFixed(0)}ms`), `the panel edge jumped in one frame (${engine})`).toEqual([]);
-      expect(
-        unjudgeable.map((s) => `${s.dy.toFixed(1)}px across a ${s.dt.toFixed(0)}ms gap`),
-        `frames were dropped exactly where the panel moved, so this run cannot tell a jump from a slide (${engine}); re-run`,
-      ).toEqual([]);
+        // A step is a move between two consecutive frames, with the time it
+        // spanned. A JUMP is a big move inside a normal frame interval; a big move
+        // across a long gap (a dropped-frame stretch on a loaded runner) cannot be
+        // told from a smooth slide, so it is not passed: it fails as "cannot judge".
+        const steps = edge.slice(1).map((s, i) => ({ dy: Math.abs(s.y - edge[i].y), dt: s.t - edge[i].t }));
+        const largest = steps.reduce((a, b) => (b.dy > a.dy ? b : a), { dy: 0, dt: 0 });
+        const travel = Math.abs(edge[edge.length - 1].y - edge[0].y);
+        const measure = `${engine} 375 attempt ${attempt}: frames=${edge.length} largest one-frame move=${largest.dy.toFixed(1)}px over ${largest.dt.toFixed(0)}ms total travel=${travel.toFixed(1)}px`;
+        test.info().annotations.push({ type: "measure", description: measure });
+        console.log(`[notification-panel-jump] ${measure}`);
+        // The whole series, so a failure explains itself in the log (y px @ ms since the previous frame).
+        console.log(`[notification-panel-jump] ${engine} series: ${edge.map((e, i) => `${e.y.toFixed(0)}@${i ? (e.t - edge[i - 1].t).toFixed(0) : 0}`).join(" ")}`);
+        await page.screenshot({ path: test.info().outputPath(`panel-after-${engine}-${attempt}.png`) });
+        expect(edge.length, "too few frames sampled to judge").toBeGreaterThan(10);
+        expect(travel, "the panel edge never moved: nothing was measured").toBeGreaterThan(20);
+        const jumps = steps.filter((s) => s.dy > MAX_FRAME_PX && s.dt <= MAX_STEP_MS);
+        const unjudgeable = steps.filter((s) => s.dy > MAX_FRAME_PX && s.dt > MAX_STEP_MS);
+        expect(jumps.map((s) => `${s.dy.toFixed(1)}px in ${s.dt.toFixed(0)}ms`), `the panel edge jumped in one frame (${engine}, attempt ${attempt})`).toEqual([]);
+        verdict = unjudgeable.map((s) => `${s.dy.toFixed(1)}px across a ${s.dt.toFixed(0)}ms gap`).join(", ");
+        if (!verdict) break;
+        await page.waitForTimeout(800);
+      }
+      expect(verdict, `frames were dropped exactly where the panel moved on all ${ATTEMPTS} taps, so this run cannot tell a jump from a slide (${engine}); re-run`).toBe("");
       await ctx.close();
     } finally {
       if (engine !== "chromium") await browser.close();

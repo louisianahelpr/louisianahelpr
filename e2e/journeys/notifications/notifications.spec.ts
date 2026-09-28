@@ -16,9 +16,11 @@
  * which is a coin-toss dressed as a proof. Registerable only once the link set
  * is pinned to a fixture this spec owns.
  *
- * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the stranger refusal, the Q223 no-caller-copy rule and the per-template job-party gate directly. GAP, stated plainly: that edge test does NOT cover the notification-preference round-trip or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns. The five Q230 "...is not exercised here" tests are bare skipUncovered() calls with nothing to mutate; src/test/notificationsSpecNamesUncoveredLegs.test.ts guards them and carries the @mutate.
+ * @mutate-exempt 5 of 6 tests are create-notification edge-function behaviour over REST and the gate never deploys a function (measured 2026-09-21). SHOWN ABLE TO FAIL in the right medium by src/test/edge/create-notification.test.ts, which carries a registered @mutate against supabase/functions/create-notification/index.ts and covers the stranger refusal, the Q223 no-caller-copy rule and the per-template job-party gate directly. GAP, stated plainly: that edge test does NOT cover the notification-preference round-trip or the email_send_log row. The 6th test drives a browser but over rows read live from prod, so a mutation against it is data-dependent; it becomes registerable once its links come from a fixture this spec owns.
  */
-import { test, expect, getSession, rest, newUserContext, sessionsAvailable, assertHealthy, SUPABASE_URL, ANON, announceUncovered, skipUncovered } from "../fixtures";
+import { test, expect, getSession, rest, newUserContext, sessionsAvailable, assertHealthy, SUPABASE_URL, ANON, E2E_TITLE_MARKER, announceUncovered, skipUncovered } from "../fixtures";
+import { uncoveredProducers } from "./producers";
+import { fitJobTitle } from "../../../scripts/lib/jobTextBounds.mjs";
 
 /**
  * NOTIFICATIONS & EMAIL (terminal 7). Inventory: docs/archive/notification-inventory.md.
@@ -36,12 +38,17 @@ import { test, expect, getSession, rest, newUserContext, sessionsAvailable, asse
  *   4. a reachable TRIGGER (message on a funded thread) writes the recipient's
  *      in-app row AND an email_send_log row — guarded to a funded thread the
  *      lifecycle spec leaves behind, else reported uncovered rather than funded.
+ *   5. a DIRECT OFFER (poster offers an unfunded job to the helper) writes the
+ *      helper's new_offers row, and the helper's decline writes the poster's
+ *      "Offer declined" row (Q230).
  *
- * Legs needing a third account, a matched fixture or a paid tip are annotated
- * uncovered, never silently skipped (owner: no silent passes): direct offer,
- * saved-search match, job-match fan-out, tip and cron notifications each have
- * their own named test below saying why (Q230). Guard:
- * src/test/notificationsSpecNamesUncoveredLegs.test.ts.
+ * The saved-search alert and the tip notification are asserted in
+ * ../04-money-outcomes.spec.ts, where the job they need is funded.
+ *
+ * EVERY OTHER PRODUCER is annotated uncovered, with its reason, by the last
+ * test below — the list is ./producers.ts, whose keys are derived from source
+ * and held two-way by src/test/notificationProducersCovered.test.ts. Nothing is
+ * silently skipped (owner: no silent passes).
  */
 
 const avail = sessionsAvailable();
@@ -168,52 +175,6 @@ test.describe("notifications & email", () => {
     await ctx.close();
   });
 
-  /*
-   * Q230: five notification legs had no test and no annotation, so nothing told
-   * them apart from a leg nobody had thought of. Each is named here with why the
-   * two shared accounts cannot drive it. Trigger and cron names were read live
-   * on prod (pg_trigger / cron.job, 2026-09-27).
-   */
-  test("direct-offer notification is not exercised here", async () => {
-    skipUncovered(
-      "Direct-offer notification uncovered",
-      "notify_helper_on_direct_offer runs from trg_notify_helper_on_direct_offer on public.jobs when a job is offered " +
-        "to one Helpr. This spec does not drive the direct-offer flow; it needs that client path, verified live.",
-    );
-  });
-
-  test("saved-search-match notification is not exercised here", async () => {
-    skipUncovered(
-      "Saved-search-match notification uncovered",
-      "notify_saved_searches_on_new_job runs from trg_notify_saved_searches_funded_insert/_update on public.jobs when a " +
-        "job becomes funded. It needs a funded test job plus a saved_searches row it matches, which this spec does not set up.",
-    );
-  });
-
-  test("job-match fan-out notification is not exercised here", async () => {
-    skipUncovered(
-      "Job-match fan-out notification uncovered",
-      "notify_helpers_on_job_post runs from trg_notify_helpers_funded_insert/_update on public.jobs when a job becomes " +
-        "funded, fanning out to matching accounts. It needs a funded test job and an account guaranteed to match it.",
-    );
-  });
-
-  test("tip notification is not exercised here", async () => {
-    skipUncovered(
-      "Tip notification uncovered",
-      "notify_helper_on_tip runs from trg_notify_helper_tip on public.tips. A real tip needs a completed job and a " +
-        "Stripe test-mode charge, which the money journeys own, not this spec.",
-    );
-  });
-
-  test("cron notifications are not exercised here", async () => {
-    skipUncovered(
-      "Cron notifications uncovered",
-      "sweep_job_start_reminders, sweep_no_show_alerts, sweep_daily_job_digest, sweep_dayof_confirm_reminders and " +
-        "sweep_release_last_chance run only on pg_cron's schedule; a normal signed-in account cannot invoke them.",
-    );
-  });
-
   test("a message on a funded thread writes the recipient's row and an email_send_log row", async ({ request }) => {
     // Still OPEN, not merely funded: a job's thread closes 24 hours after
     // completion (`job_messaging_closes_at` → `can_message_in_job`, the first
@@ -246,5 +207,100 @@ test.describe("notifications & email", () => {
     // token is available, else report the delivery half uncovered.
     announceUncovered("email_send_log not asserted here", "email_send_log is service-role/admin read only; the CI job with PLAYWRIGHT_ADMIN credentials or a service-role .env asserts the row. Recipient in-app row was verified above.");
     await request.delete(`${SUPABASE_URL}/rest/v1/messages?id=eq.${msg.id}`, { headers: posterHeaders });
+  });
+
+  test("a direct offer notifies the helper, and the helper's decline notifies the poster", async ({ request, journey }) => {
+    // The same INSERT PostJob makes when the poster offers the job to one Helpr
+    // (jobSubmitHelpers.ts: offered_to_helper_id + direct_offer_status
+    // 'pending' + a response window). Unfunded on purpose: the offer trigger
+    // (notify_helper_on_direct_offer) fires on the INSERT, and an unfunded job
+    // with no hired Helpr is cancelled afterwards with no strike on anyone.
+    // parish NULL, so nothing fans out even if it were funded.
+    // UNFUNDED-DRAFT-OK: this job is never looked for on /posts or /jobs. The
+    // two "/jobs?job=" and "/posts?job=" strings below are the notification
+    // rows' link VALUES, compared as strings; no page visits them.
+    const helper = await getSession(request, "helper");
+    const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs?select=id,parish`, {
+      headers: { ...posterHeaders, Prefer: "return=representation" },
+      data: {
+        customer_id: posterId,
+        is_seed: true,
+        title: fitJobTitle(`${E2E_TITLE_MARKER} DO ${runId.slice(-6)}`),
+        description: `Direct-offer notification probe ${runId}: two shelves, studs marked, anchors on site.`,
+        category: "handyman",
+        location: "4412 Highland Rd, Baton Rouge, LA 70808",
+        parish: null,
+        date_needed: new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10),
+        budget: 25,
+        status: "open",
+        payment_status: "unpaid",
+        pricing_mode: "set_price",
+        offered_to_helper_id: helperId,
+        direct_offer_status: "pending",
+        direct_offer_expires_at: new Date(Date.now() + 4 * 3_600_000).toISOString(),
+      },
+    });
+    expect(created.ok(), `direct-offer job insert failed: ${created.status()} ${await created.text()}`).toBe(true);
+    const job = ((await created.json()) as Array<{ id: string; parish: string | null }>)[0];
+    expect(job.parish, "the direct-offer job came back with a parish").toBeNull();
+    journey.cleanup("cancel the unfunded direct-offer job", () =>
+      request.post(`${SUPABASE_URL}/rest/v1/rpc/poster_cancel_job`, { headers: posterHeaders, data: { p_job_id: job.id, p_reason: "E2E direct-offer probe teardown" } }),
+    );
+
+    type Row = { id: string; title: string; link: string | null };
+    const rowsFor = async (headers: Record<string, string>, userId: string, filter: string) =>
+      (await request.get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${userId}&${filter}&select=id,title,link`, { headers }).then((x) => x.json())) as Row[];
+    const drop = async (headers: Record<string, string>, rows: Row[]) => {
+      for (const row of rows) {
+        await request.patch(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${row.id}`, { headers, data: { read: true } });
+        await request.delete(`${SUPABASE_URL}/rest/v1/notifications?id=eq.${row.id}`, { headers });
+      }
+    };
+
+    // 1. The helper's offer row: type new_offers, deep link to the job.
+    let offer: Row[] = [];
+    await expect
+      .poll(async () => (offer = await rowsFor(rest(helper), helperId, `type=eq.new_offers&job_id=eq.${job.id}`)).length, {
+        timeout: 30_000,
+        message: "the helper never received the direct-offer notification",
+      })
+      .toBe(1);
+    expect(offer[0].link, "the direct-offer notification does not open the job").toBe(`/jobs?job=${job.id}`);
+    journey.cleanup("drop the helper's offer notification", () => drop(rest(helper), offer));
+
+    // 2. The helper declines through the app's own RPC (no strike on this
+    //    path: respond_to_direct_offer's decline branch only reopens the job).
+    const declined = await request.post(`${SUPABASE_URL}/rest/v1/rpc/respond_to_direct_offer`, {
+      headers: rest(helper),
+      data: { p_job_id: job.id, p_accept: false },
+    });
+    expect(declined.ok(), `respond_to_direct_offer(decline) failed: ${declined.status()} ${await declined.text()}`).toBe(true);
+
+    // 3. The poster is told, with a link to the job.
+    let told: Row[] = [];
+    await expect
+      .poll(async () => (told = await rowsFor(posterHeaders, posterId, `job_id=eq.${job.id}&title=eq.${encodeURIComponent("Offer declined")}`)).length, {
+        timeout: 30_000,
+        message: "the poster never received the offer-declined notification",
+      })
+      .toBe(1);
+    expect(told[0].link, "the offer-declined notification does not open the job").toBe(`/posts?job=${job.id}`);
+    journey.cleanup("drop the poster's decline notification", () => drop(posterHeaders, told));
+  });
+
+  test("every notification producer no leg asserts is annotated uncovered", async () => {
+    // The registry's keys are derived from source (src/test/helpers/
+    // notificationProducers.ts) and held two-way by
+    // src/test/notificationProducersCovered.test.ts, so a new producer cannot
+    // arrive without landing here or in a leg that asserts its row.
+    const open = uncoveredProducers();
+    for (const { producer, why } of open) {
+      test.info().annotations.push({ type: "uncovered", description: `${producer}: ${why}` });
+    }
+    announceUncovered(
+      `${open.length} notification producers not asserted by any journey`,
+      open.map((p) => p.producer).join(", "),
+    );
+    expect(open.length, "the registry lists nothing uncovered — the guard derives 80+ producers, so this is a broken import").toBeGreaterThan(0);
   });
 });

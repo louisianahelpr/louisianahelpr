@@ -47,7 +47,29 @@ export const REAL_BACKEND_UNREACHABLE: Partial<Record<AccountState, string>> = {
   "idv-unverified": "needs a dedicated seed account without IDV; the shared helper must stay verified for the money loop",
   "no-stripe": "needs a dedicated seed account without a Connect account; the shared helper's is load-bearing",
   restricted: "needs a dedicated seed account restricted via admin tooling and restored; none exists",
-  banned: "needs a dedicated seed account banned via admin tooling and restored; banning a shared account breaks every lane",
+  // `banned` is driven for real on a per-run THROWAWAY account by
+  // 04-admin-safety.spec.ts (e2e/journeys/throwaway.ts), never a shared one.
+};
+
+/**
+ * OUTCOMES no journey drives, and why (Q253). Every other OUTCOMES entry must be
+ * the `outcome` of a real journey test (a `scenarioTitle({ … outcome: "x" })` or
+ * a `title("journey", "x", …)` helper call) — src/test/journeyOutcomesDriven.test.ts
+ * holds the two sides to each other in both directions. Each entry here is
+ * announced as `uncovered` at run time by 04-money-outcomes.spec.ts.
+ *
+ * `elsewhere` names the real-backend file that DOES drive the outcome outside
+ * the journeys, and the door it calls there; the guard checks the door is still
+ * in that file's code.
+ */
+export const OUTCOME_UNDRIVEN: Partial<Record<Outcome, { why: string; elsewhere?: { file: string; door: string } }>> = {
+  disputed: {
+    why:
+      "every rpc_open_dispute pages #ops-alerts (open_dispute_as -> notify_ops_dispute_filed) and freezes the escrow for " +
+      "an admin decision, so a nightly journey does not open a fresh one; prod-audit keeps ONE disputed fixture instead " +
+      "and drives the disputed screens against it.",
+    elsewhere: { file: "e2e/prod-audit/fundedOpenJob.ts", door: '"rpc_open_dispute"' },
+  },
 };
 
 export type Rotation = { device: Device; network: Network; data: DataVolume };

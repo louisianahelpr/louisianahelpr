@@ -253,7 +253,9 @@ async function uploadProof({ base, anon, helperToken, jobId, type }) {
   const path = `${jobId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
   const up = await fetch(`${base}/storage/v1/object/proof-photos/${path}`, {
     method: "POST",
-    headers: { apikey: anon, Authorization: `Bearer ${helperToken}`, "Content-Type": "image/png" },
+    // Unique key, so a year, as PhotoProof.tsx does. A raw upload with no
+    // cache-control header is stored as `no-cache` (Q655: 63 proof photos).
+    headers: { apikey: anon, Authorization: `Bearer ${helperToken}`, "Content-Type": "image/png", "cache-control": "max-age=31536000" },
     body: PNG_1PX,
   });
   if (!up.ok) throw new Error(`uploading ${type} proof: HTTP ${up.status} ${await readBody(up)}`);

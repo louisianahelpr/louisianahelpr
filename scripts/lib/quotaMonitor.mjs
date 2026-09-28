@@ -9,7 +9,7 @@
  *   read: "sql"      Management API read-only SQL against prod (the token
  *                    every prod workflow already holds).
  *   read: "logs"     Management API logs query (function_edge_logs).
- *   read: "github"   the GitHub REST API with the workflow's GITHUB_TOKEN.
+ *   read: "vercel"   the Vercel REST API with VERCEL_TOKEN.
  *   read: "sentry"   the Sentry REST API (SENTRY_AUTH_TOKEN / ORG / PROJECT).
  *   read: null       NO API exists that this repo can read. Never dropped and
  *                    never graded "ok": the report lists it under
@@ -147,9 +147,9 @@ export const QUOTAS = [
     limit: PLAN_LIMITS.vercel_deploys_per_day.value,
     unit: "deployments/day",
     window: "trailing 24h",
-    read: "github",
+    read: "vercel",
     env: "LH_QUOTA_VERCEL_DEPLOYS_PER_DAY",
-    limitSource: "Vercel Hobby: 100 deployments created per day (limits page; not re-read 2026-09-23). Hit for real on 2026-09-13 (\"Deployment rate limited — retry in 24 hours\", scripts/check-deploy-budget.mjs). Measured: GitHub deployments (every environment) Vercel's Git integration created in the last 24h; a CLI deploy creates none, so this is a floor.",
+    limitSource: "Vercel Hobby: 100 deployments created per day (limits page; not re-read 2026-09-23). Hit for real on 2026-09-13 (\"Deployment rate limited — retry in 24 hours\", scripts/check-deploy-budget.mjs). Measured: Vercel deployments API, every deployment of the team (all projects, all targets, API/CLI/Git alike) created in the last 24h.",
   },
   {
     id: "resend.sends_month",

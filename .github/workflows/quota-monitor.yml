@@ -43,7 +43,6 @@ on:
 
 permissions:
   contents: read
-  deployments: read
 
 concurrency:
   # Scheduled runs share prod-load; a dispatch gets its own group
@@ -65,7 +64,9 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Deployments are counted from Vercel, not GitHub: GitHub's list shared
+          # the repo's GITHUB_TOKEN rate limit and went 403 (ledger f9b0a8a7).
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           # A personal read token (org:read, project:read): the org token in
           # SENTRY_AUTH_TOKEN is release-upload only and gets 403 on usage stats.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_READ_TOKEN || secrets.SENTRY_AUTH_TOKEN }}

@@ -109,3 +109,4 @@
 {"sha":"887d6823ba364f49dc5a81e06b82c503fff11f5d","reviewer":"lh-silent-failure","verdict":"approve: one class change mb-2 to mb-list (theme spacing.list = var(--list-gap)) plus a comment; no logic change","date":"2026-09-28"}
 {"sha":"079bcdcdd908681da4760464bcbfdac5f5a0deb8","reviewer":"lh-silent-failure","verdict":"approve-with-notes (review of b8daa8ca7, same patch after rebase)","date":"2026-09-28"}
 {"sha":"a49420743e25c0952d7b0915e497c63276424679","reviewer":"lh-silent-failure","verdict":"approve (review of 887d6823b, same patch after rebase)","date":"2026-09-28"}
+{"sha":"ce757fe220fceac47e3c8b73f7057ad30feb9759","reviewer":"lh-money-escrow","verdict":"APPROVE-WITH-NITS","date":"2026-09-28"}

@@ -25,8 +25,16 @@ import crypto from "node:crypto";
 import { URL_, ANON, readEnv, session } from "./lib/prodEnv.mjs";
 
 const SR = readEnv().SUPABASE_SERVICE_ROLE_KEY;
-const A_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f", J1 = "e8cabaca-87ac-4fa0-95e4-b33179e05d6e";
-const B_ID = "437de07d-1bd7-46c8-a451-6b46aa3bcad5", J2 = "63bf6243-b1a6-55b9-ad4e-d6cae05df6bc";
+const A_ID = "71c56dfb-b326-4010-b960-b18dd3966e7f";
+const B_ID = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
+// J1 (A posts) and J2 (B posts) are seeded per run and deleted in `finally`.
+// They used to be hard-coded ids; both jobs were later deleted, which turned
+// every positive check RED and made B's refusals pass for the wrong reason
+// (a missing job refuses everything). J1 is A's job with B hired, in
+// progress (never browsable; a cancelled job closes messaging), so A may
+// message B on it; J2 is B's job, where A has no part. Messages go to the
+// other party: messages_not_to_self refuses sender = receiver.
+let J1, J2;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const short = (s) => String(s).replace(/\b([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "$1…");
 
@@ -51,16 +59,23 @@ const trackMsg = (r) => { if (r.status === 201) msgs.push(JSON.parse(r.text)[0].
 
 const tA = session("poster-e2e").access_token;
 const tB = session("helper-e2e").access_token;
+const seedJob = async (customer_id, helper_id) => {
+  const r = await call("POST", `/rest/v1/jobs?select=id`, SR, JSON.stringify({ customer_id, helper_id, title: "SEED authz proof job", description: "SEED authz proof job (message-attachments probe)", date_needed: new Date().toISOString().slice(0, 10), budget: 20, status: "in_progress", is_seed: true }), { ...json, Prefer: "return=representation" });
+  if (r.status !== 201) throw new Error(`seeding a fixture job for ${short(customer_id)}: ${r.status} ${r.text}`);
+  return JSON.parse(r.text)[0].id;
+};
 try {
+  J1 = await seedJob(A_ID, B_ID);
+  J2 = await seedJob(B_ID, null);
   const aPath = `${J1}/${A_ID}/${crypto.randomUUID()}-authz-proof.png`;
   let r = track(await upload(tA, aPath, "image/png"), aPath);
   check("A uploads own attachment", r.status === 200, `${r.status} ${r.text}`);
   r = await sign(tB, aPath);
   check("control: B cannot sign A's path with no message", r.status !== 200, `${r.status}`);
-  r = trackMsg(await insertMsg(tB, { job_id: J2, sender_id: B_ID, receiver_id: B_ID, content: "SEED authz proof forged", attachment_url: aPath }));
+  r = trackMsg(await insertMsg(tB, { job_id: J2, sender_id: B_ID, receiver_id: A_ID, content: "SEED authz proof forged", attachment_url: aPath }));
   check("B's message naming A's path is refused", r.status !== 201, `${r.status} ${r.text}`);
   if (r.status !== 201) {
-    const legacy = trackMsg(await call("POST", `/rest/v1/messages?select=id`, SR, JSON.stringify({ job_id: J2, sender_id: B_ID, receiver_id: B_ID, content: "SEED authz proof forged legacy row", attachment_url: aPath }), { ...json, Prefer: "return=representation" }));
+    const legacy = trackMsg(await call("POST", `/rest/v1/messages?select=id`, SR, JSON.stringify({ job_id: J2, sender_id: B_ID, receiver_id: A_ID, content: "SEED authz proof forged legacy row", attachment_url: aPath }), { ...json, Prefer: "return=representation" }));
     check("setup: service role writes a forged legacy row", legacy.status === 201, `${legacy.status} ${legacy.text}`);
   }
   r = await sign(tB, aPath);
@@ -72,7 +87,7 @@ try {
   }
   check("B cannot sign/download A's file through a forged row", r.status !== 200, `sign ${r.status}${leaked ? ", downloaded bytes EQUAL A's upload" : ""}`);
 
-  r = trackMsg(await insertMsg(tA, { job_id: J1, sender_id: A_ID, receiver_id: A_ID, content: "SEED authz proof own", attachment_url: aPath }));
+  r = trackMsg(await insertMsg(tA, { job_id: J1, sender_id: A_ID, receiver_id: B_ID, content: "SEED authz proof own", attachment_url: aPath }));
   check("A's own message with own attachment inserts", r.status === 201, `${r.status} ${r.text}`);
   r = await sign(tA, aPath);
   check("A signs own attachment", r.status === 200, `${r.status}`);
@@ -82,7 +97,7 @@ try {
     r = track(await upload(tA, v, mime, Buffer.from(magic, "hex")), v);
     check(`A uploads voice note (${mime})`, r.status === 200, `${r.status} ${r.text}`);
     if (r.status !== 200) continue;
-    r = trackMsg(await insertMsg(tA, { job_id: J1, sender_id: A_ID, receiver_id: A_ID, content: "SEED authz proof voice", attachment_url: v, attachment_mime: mime, attachment_size: magic.length / 2 }));
+    r = trackMsg(await insertMsg(tA, { job_id: J1, sender_id: A_ID, receiver_id: B_ID, content: "SEED authz proof voice", attachment_url: v, attachment_mime: mime, attachment_size: magic.length / 2 }));
     check(`A sends the voice note as a message (${ext})`, r.status === 201, `${r.status} ${r.text}`);
     r = await sign(tA, v);
     check(`A signs own voice note (${ext})`, r.status === 200, `${r.status}`);
@@ -100,6 +115,10 @@ try {
     if (d.status !== 204) console.log(`cleanup message ${short(id)} -> ${d.status}`);
   }
   if (paths.length) await call("DELETE", `/storage/v1/object/message-attachments`, SR, JSON.stringify({ prefixes: paths }), json);
+  for (const j of [J1, J2].filter(Boolean)) {
+    const d = await call("DELETE", `/rest/v1/jobs?id=eq.${j}`, SR, undefined, { Prefer: "return=minimal" });
+    if (d.status !== 204) { failures++; console.log(`cleanup job ${short(j)} -> ${d.status} ${d.text}`); }
+  }
   const residueMsgs = JSON.parse((await call("GET", `/rest/v1/messages?select=id&content=like.SEED%20authz%20proof*`, SR)).text);
   const residueObjs = [];
   for (const p of paths) if (await objectExists(p)) residueObjs.push(p);

@@ -396,6 +396,20 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crew_dispute_member_outcomes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_dispute_member_outcomes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cron_catchup_policy: {
@@ -5573,9 +5587,12 @@ export type Database = {
           payment_status?: string | null
           photos?: string[] | null
           pricing_mode?: string | null
+          recurrence_days?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
+          recurrence_weeks?: number | null
           require_photo_proof?: boolean | null
+          series_split_ok?: boolean | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"] | null
@@ -5613,9 +5630,12 @@ export type Database = {
           payment_status?: string | null
           photos?: string[] | null
           pricing_mode?: string | null
+          recurrence_days?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
+          recurrence_weeks?: number | null
           require_photo_proof?: boolean | null
+          series_split_ok?: boolean | null
           special_requirements?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["job_status"] | null
@@ -5670,6 +5690,20 @@ export type Database = {
         }[]
       }
       admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
+      admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
+      admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }
+      admin_alert_subjects: {
+        Args: { p_ref: Json; p_rule: string; p_since: string }
+        Returns: {
+          alerted_at: string
+          job_id: string
+          user_id: string
+        }[]
+      }
+      admin_delete_review: {
+        Args: { _reason: string; _review_id: string }
+        Returns: undefined
+      }
       admin_last_activity: {
         Args: never
         Returns: {
@@ -5684,20 +5718,6 @@ export type Database = {
           last_login_at: string
           user_id: string
         }[]
-      }
-      admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
-      admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }
-      admin_alert_subjects: {
-        Args: { p_ref: Json; p_rule: string; p_since: string }
-        Returns: {
-          alerted_at: string
-          job_id: string
-          user_id: string
-        }[]
-      }
-      admin_delete_review: {
-        Args: { _reason: string; _review_id: string }
-        Returns: undefined
       }
       admin_notification_crosses_seed_boundary: {
         Args: { p_job_id: string; p_link: string; p_recipient: string }
@@ -5795,6 +5815,7 @@ export type Database = {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
       }
+      attach_unconfirmed_email_gate: { Args: never; Returns: number }
       auto_start_due_jobs: { Args: never; Returns: number }
       auto_tip_candidates: {
         Args: { _since_hours?: number }
@@ -6001,7 +6022,10 @@ export type Database = {
         Returns: string
       }
       end_recurring_series: { Args: { p_job_id: string }; Returns: Json }
-      end_series_for_banned_account: { Args: { p_user: string }; Returns: number }
+      end_series_for_banned_account: {
+        Args: { p_user: string }
+        Returns: number
+      }
       enforce_retained_ban: {
         Args: {
           p_email?: string
@@ -6011,13 +6035,13 @@ export type Database = {
         }
         Returns: Json
       }
-      enqueue_instant_job_match: {
-        Args: { p_job_id: string; p_matches: Json }
-        Returns: Json
-      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      enqueue_instant_job_match: {
+        Args: { p_job_id: string; p_matches: Json }
+        Returns: Json
       }
       error_log_is_seed: { Args: { p_tags: Json }; Returns: boolean }
       expire_pending_direct_offers: { Args: never; Returns: number }
@@ -6738,10 +6762,7 @@ export type Database = {
       }
       is_safe_media_url: { Args: { v: string }; Returns: boolean }
       is_seed_email: { Args: { p_email: string }; Returns: boolean }
-      is_series_party: {
-        Args: { p_parent: string }
-        Returns: boolean
-      }
+      is_series_party: { Args: { p_parent: string }; Returns: boolean }
       is_server_context: { Args: never; Returns: boolean }
       is_submitted_credential_object: {
         Args: { p_name: string }
@@ -7200,6 +7221,7 @@ export type Database = {
         Args: { p_days: number[]; p_start: string; p_weeks: number }
         Returns: string[]
       }
+      session_email_unconfirmed: { Args: never; Returns: boolean }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }

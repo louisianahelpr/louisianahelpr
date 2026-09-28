@@ -94,7 +94,7 @@ export const DashboardHome = ({
             <h1
               // font-display, like every other h1 in the product — admin no
               // longer sets its own heading face (see AdminSectionHeader).
-              className="font-display font-bold leading-tight text-ds-20"
+              className="font-display font-bold leading-tight text-headline-hero"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
             >
               Welcome back

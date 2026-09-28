@@ -186,7 +186,7 @@ describe("desktop website (>=900px): the screen name is sr-only, never painted",
     const h1 = await heading(title);
     // Hidden, never dropped — a screen with no h1 is an a11y defect.
     expect(h1.className).toContain("sr-only");
-    expect(h1.className).not.toContain("text-ds-20");
+    expect(h1.className).not.toContain("text-headline-hero");
     // And nothing else paints the name either (the search-mode <span> twin).
     expect(screen.queryByText(title, { selector: "span" })).toBeNull();
   });
@@ -210,10 +210,10 @@ describe("phone / native (<900px): the visible title is untouched", () => {
     renderActivity(tab);
 
     const h1 = await heading(title);
-    // The exact classes ScreenHeaderRow paints — 20px Bodoni, unchanged.
+    // The exact classes ScreenHeaderRow paints — Bodoni at the one page-title size (Q236(e)).
     expect(h1.className).not.toContain("sr-only");
     expect(h1.className).toContain("font-display");
-    expect(h1.className).toContain("text-ds-20");
+    expect(h1.className).toContain("text-headline-hero");
   });
 
   it("Messages too", async () => {

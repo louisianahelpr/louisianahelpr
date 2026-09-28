@@ -191,7 +191,7 @@ export interface ScreenHeaderRowProps {
      * 95px of field, and the magnifier and the ✕ live INSIDE it (a 36px inset
      * between them), so the typing area was ~59px: you could not see the word
      * you were searching for. Every other claimant on that row is fixed-width
-     * — a 20px display title at its natural size, a 44px held-open slot, a
+     * — a page-title-size (text-headline-hero) title, a 44px held-open slot, a
      * 44px status chevron and three 12px gaps — so the field, the one flexible
      * item, absorbs the whole shortfall. It is the only thing that can.
      *
@@ -246,7 +246,7 @@ export function ScreenHeaderRow({
           <span
             aria-hidden
             className={cn(
-              "font-display font-bold text-foreground text-ds-20 leading-none shrink-0 max-w-[40%] truncate",
+              "font-display font-bold text-foreground text-headline-hero leading-none shrink-0 max-w-[40%] truncate",
               // A media query, not a JS width branch: the right arrangement is
               // painted on the first frame, and there is no width state that
               // can go stale behind a resize. The literal is spelled out so
@@ -285,7 +285,7 @@ export function ScreenHeaderRow({
             {decorativeTitle ? (
               <span
                 aria-hidden
-                className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0"
+                className="font-display font-bold text-foreground text-headline-hero truncate m-0 leading-none min-w-0"
               >
                 {title}
               </span>
@@ -294,7 +294,7 @@ export function ScreenHeaderRow({
                 className={
                   titleSrOnly
                     ? "sr-only"
-                    : "font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0"
+                    : "font-display font-bold text-foreground text-headline-hero truncate m-0 leading-none min-w-0"
                 }
               >
                 {title}

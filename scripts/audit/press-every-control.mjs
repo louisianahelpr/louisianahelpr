@@ -902,12 +902,18 @@ async function main() {
   // The load ceiling the budget step judges this run by (e2e/request-budgets.json),
   // and the recent press cycles' sizes. See ceilingWaitMs and cycleBurstEstimate.
   const LOAD_CEILING = budgetFor(JSON.parse(readFileSync(resolve(REPO, "e2e/request-budgets.json"), "utf8")).budgets, "press-every-control").ceilingPerMinute;
+  // The budget step judges the WHOLE run's busiest minute (every shard's meter
+  // summed), and press-wave.sh runs PRESS_WAVE_WIDTH shards side by side. Each
+  // shard paced to the full ceiling on its own meter put two shards at up to
+  // 2 x 340/min together: runs 36297439015 (542/min) and 36348328345 (618/min)
+  // failed the 400/min ceiling that way. So each shard takes its share.
+  const WAVE_WIDTH = Math.max(1, Number.parseInt(process.env.PRESS_WAVE_WIDTH ?? "1", 10) || 1);
   const recentCycles = [];
   let cycleStartTotal = null;
   const paceToCeiling = async (page) => {
     if (cycleStartTotal !== null) recentCycles.push(requestMeter.total - cycleStartTotal);
     if (recentCycles.length > 50) recentCycles.shift();
-    const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: Math.floor(LOAD_CEILING * PACE_HEADROOM), burst: cycleBurstEstimate(recentCycles) });
+    const wait = ceilingWaitMs({ minutes: requestMeter.minutes, ceiling: Math.floor((LOAD_CEILING * PACE_HEADROOM) / WAVE_WIDTH), burst: cycleBurstEstimate(recentCycles) });
     if (wait > 0) await page.waitForTimeout(wait);
     cycleStartTotal = requestMeter.total;
   };

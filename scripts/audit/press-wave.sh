@@ -28,6 +28,9 @@ RUN_BASE="${RUN_BASE:-local-$(date +%s)}"
 # PRESS_LAST_WAVE=0 on an earlier wave hands unwalked rows to the next one.
 export PRESS_QUEUE_DIR="${PRESS_QUEUE_DIR:-test-results/press-queue/$RUN_BASE}"
 export PRESS_LAST_WAVE="${PRESS_LAST_WAVE:-1}"
+# The shards of one wave share the run's load ceiling: each paces to 1/width of
+# it (press-every-control.mjs paceToCeiling), since the budget step sums them.
+export PRESS_WAVE_WIDTH="$#"
 
 pids=()
 for n in "$@"; do

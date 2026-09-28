@@ -10,7 +10,7 @@
  * pacer aims PACE_HEADROOM below the ceiling.
  *
  * @mutate scripts/audit/pressFailureClass.mjs |   const window = (recent ?? []).slice(-RECENT_CYCLES); |   const window = recent ?? [];
- * @mutate scripts/audit/press-every-control.mjs | ceiling: Math.floor(LOAD_CEILING * PACE_HEADROOM), | ceiling: LOAD_CEILING,
+ * @mutate scripts/audit/press-every-control.mjs | ceiling: Math.floor((LOAD_CEILING * PACE_HEADROOM) / WAVE_WIDTH), | ceiling: Math.floor(LOAD_CEILING / WAVE_WIDTH),
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -41,7 +41,7 @@ describe("press pacing follows the recent cycles (#1582)", () => {
     expect(PACE_HEADROOM).toBeGreaterThan(0.5);
     expect(PACE_HEADROOM).toBeLessThan(1);
     const src = blankComments(readFileSync(resolve(ROOT, "scripts/audit/press-every-control.mjs"), "utf8"));
-    expect(src).toMatch(/ceilingWaitMs\(\{ minutes: requestMeter\.minutes, ceiling: Math\.floor\(LOAD_CEILING \* PACE_HEADROOM\), burst: cycleBurstEstimate\(recentCycles\) \}\)/);
+    expect(src).toMatch(/ceilingWaitMs\(\{ minutes: requestMeter\.minutes, ceiling: Math\.floor\(\(LOAD_CEILING \* PACE_HEADROOM\) \/ WAVE_WIDTH\), burst: cycleBurstEstimate\(recentCycles\) \}\)/);
     expect(src).not.toMatch(/cycleBurst = Math\.max\(/);
   });
 });

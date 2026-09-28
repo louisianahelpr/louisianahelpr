@@ -116,6 +116,14 @@ mkdir sql && tar xzf b.tar.gz -C sql && rm b.tar.gz
    ```
 6. `psql "$TARGET" -c 'SET session_replication_role = replica' -f sql/data.sql`.
    Triggers and foreign keys are off during the load, so order does not matter.
+   CHECK constraints are NOT off, and prod keeps some NOT VALID over older rows.
+   `schema.sql` re-creates them before the data, so one old row fails its whole
+   table. That is how drill run 36365573863 lost all of `helper_availability`.
+   Before this step, save and drop them:
+   `select format('ALTER TABLE %s ADD CONSTRAINT %I %s;', conrelid::regclass, conname, pg_get_constraintdef(oid)) from pg_constraint where contype = 'c' and not convalidated and connamespace = 'public'::regnamespace`
+   (save the output), then drop each one. After the load, run the saved
+   statements. They re-add each constraint NOT VALID, as prod has it.
+   `scripts/db-restore-drill.sh` step 3a does exactly this.
 7. `psql "$TARGET" -1 -f sql/cron.sql -c 'SELECT cron.alter_job(jobid, active := false) FROM cron.job'`.
    This loads all 55 schedules **switched off**. See §4 before switching them on.
 8. `psql "$TARGET" -f sql/storage-policies.sql`

@@ -23,6 +23,7 @@ import { randomBytes } from "node:crypto";
 import type { APIRequestContext } from "@playwright/test";
 import { ANON, PNG_1PX, SUPABASE_URL, type Session } from "./fixtures";
 import { removeUserStorageRest } from "../../scripts/lib/jobMediaRest.mjs";
+import { strongTestPassword } from "../../src/test/strongTestPassword";
 
 export const THROWAWAY_EMAIL_RE = /^helpr-journey-throwaway-[a-z0-9]{6,20}@mailinator\.com$/;
 
@@ -77,7 +78,7 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
   const tag = `${Date.now().toString(36)}${randomBytes(3).toString("hex")}`;
   const email = `helpr-journey-throwaway-${tag}@mailinator.com`;
   if (!THROWAWAY_EMAIL_RE.test(email)) throw new Error(`generated ${email} does not match THROWAWAY_EMAIL_RE`);
-  const password = randomBytes(24).toString("base64url");
+  const password = strongTestPassword();
   // seed-policy: patched — the profile comes from the signup trigger, and the profile PATCH below sets is_seed: true before anything else touches it
   const user = await ok(
     await api.post(`${SUPABASE_URL}/auth/v1/admin/users`, {

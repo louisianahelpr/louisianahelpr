@@ -1,4 +1,4 @@
-// @mutate src/components/admin/AdminCredentialQueue.tsx |       const safe = openableDocumentUrl(path);\n      if (safe) window.open(safe, "_blank", "noopener"); |       const safe = safeDocumentUrl(path);\n      if (safe) window.open(safe, "_blank", "noopener");
+// @mutate src/components/admin/AdminCredentialQueue.tsx |       const safe = openableDocumentUrl(path); // a data: document opens as blob: (Q295)\n      if (safe) window.open(safe, "_blank", "noopener"); |       const safe = safeDocumentUrl(path);\n      if (safe) window.open(safe, "_blank", "noopener");
 // @mutate src/components/profile/CredentialsTab.tsx | const safe = openableDocumentUrl(path); | const safe = safeDocumentUrl(path);
 // @mutate src/components/job-card/JobCardPhotoStrip.tsx | href={openableDocumentUrl(url) ?? undefined} | href={safeDocumentUrl(url) ?? undefined}
 // @mutate src/lib/storagePath.ts |   if (!safe \|\| !safe.startsWith("data:")) return safe; |   if (!safe \|\| safe) return safe;

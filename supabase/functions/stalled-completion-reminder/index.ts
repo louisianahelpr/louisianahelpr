@@ -42,8 +42,8 @@
 // (postSlackOpsAlert `seed`), and the admin notification names the job so the
 // push->Slack mirror can do the same (docs/OPEN.md Q2, 2026-09-23).
 //
-// Auth: CRON_SECRET or service-role bearer. Schedule: daily at 14:00 UTC
-// (9am CDT / 8am CST) — see the migration. A daily run is deliberate: the
+// Auth: CRON_SECRET or service-role bearer. Schedule: daily at 13:46 UTC
+// (8:46am CDT / 7:46am CST; moved off :00 by Q786) — see the migrations. A daily run is deliberate: the
 // anchor is the end of a calendar day, so a finer cron would only buy the
 // ability to push someone at 2am.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";

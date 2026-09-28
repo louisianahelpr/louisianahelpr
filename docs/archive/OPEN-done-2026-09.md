@@ -2093,3 +2093,11 @@ duplicate-number check).
 ## Archived 2026-09-28 — from "QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above"
 
 - [x] **Q373** (MEDIUM, owner MQ25 2026-09-24; SC-015): archive the Crew/Team/Enterprise products and prices in LIVE Stripe via the API, then read them back. feed: bus SC-015. done-when: bus SC-015 closed DONE 2026-09-28 (agent-bus-zero): live active prices 18 -> 12, 0 on unmapped products (test mode 15 active, 0 orphans); subscription-reconciliation now flags any active price on a product outside PRODUCT_TO_TIER (`orphan_active_price`), guard src/test/edge/includeSeedAlertRouting.test.ts proven red by its @mutate line. Bus SC-015 fixed.
+
+## Archived 2026-09-28 — from "FEEDS — mirrored from the alert ledger, nightly-red issues and the audit bus (node scripts/open-sync-trackers.mjs)"
+
+- [x] **Q800 MEDIUM audit finding S-005 (supabase/functions/helpr-pass-wallet (deployed edge function)): helpr-pass-wallet is a deployed, invocable edge function with ZERO callers an….** Mirrored 2026-09-27 from audit-bus finding S-005 (`node scripts/audit-bus.mjs show S-005`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: bus S-005. done-when: bus S-005 closed DONE 2026-09-27: owner chose delete; function dir, its test and every reference removed (8540fbe31), prod deployment deleted (`supabase functions list` shows 0 matches of 73). NO-GUARD: scripts/check-dead-edge-functions.mjs now has an empty KNOWN_UNREFERENCED, so any new unreferenced function fails it.
+
+## Archived 2026-09-28 — from "CARRIED — the 2026-09-02 ledger (docs/audit/OPEN_ITEMS.md, retired 2026-09-23)"
+
+- [x] **HYGIENE #8**: helpr-pass-wallet edge function unreferenced, 501s. Still unreferenced from the client and still on the known-dead list; unchanged. (also: scripts/check-dead-edge-functions.mjs (known-dead list)) DONE 2026-09-27: owner chose delete; function dir, its test and every reference removed (8540fbe31), prod deployment deleted (`supabase functions list` shows 0 matches of 73). NO-GUARD: scripts/check-dead-edge-functions.mjs now has an empty KNOWN_UNREFERENCED, so any new unreferenced function fails it.

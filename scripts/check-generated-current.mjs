@@ -225,6 +225,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/storage-backup.mjs": "Q147: downloaded storage files + manifest.json into the db-backup runner's out/storage (encrypted into the CI artifact, never a repo file)",
   "scripts/rollback/rollback.mjs": "timing log to ~/.lh-rollback/timing.jsonl (outside the repo); in a LIVE migration rollback only, the new revert migration it stamps, which the operator commits (docs/RUNBOOK-rollback.md)",
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",
+  "scripts/load/load-test.mjs": "Q60: per-run JSON (run-<runId>.json) to --out, default ~/.lh-shots/q60 (outside the repo)",
   "scripts/open-done-when.mjs": "--out report (/tmp/done-when.md in open-done-when.yml, the nightly-red issue body), never a repo file",
   "scripts/prod-deploy.mjs": "action/sha/deployment to $GITHUB_OUTPUT in prod-deploy.yml (a CI step output, never a repo file)",
   "scripts/rollback/drill-web.mjs": "current/restored/timings to $GITHUB_OUTPUT in rollback-drill.yml (a CI step output, never a repo file)",

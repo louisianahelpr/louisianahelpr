@@ -23,6 +23,8 @@
  * @mutate .github/workflows/a11y-webkit-prod.yml | needs: [preflight, fixtures] | needs: preflight
  * @mutate .github/workflows/a11y-webkit-prod.yml | run: npx playwright test --project=job-status-fixtures | run: echo skipped
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id)); | const open = openAll;
+ * @mutate e2e/prod-audit/fundedOpenJob.ts |   await helperConfirmsOffer(api, helper, id, log); |   // confirm removed
+ * @mutate e2e/prod-audit/fundedOpenJob.ts | data: { helper_confirmed_at: now, response_deadline: null } | data: { response_deadline: null }
  * @mutate e2e/job-status-fixtures/accepted.spec.ts | await ensureAcceptedJob(request, browser, poster, helper); | { job: { id: "", title: "", date_needed: "2999-01-01" }, log: [] as string[] };
  */
 import { describe, expect, it } from "vitest";
@@ -138,6 +140,21 @@ describe("a11y-webkit-prod.yml mints the fixture before the sweep reads it", () 
   });
   it("the nightly issue counts it: a red fixtures job is a red run", () => {
     expect(job("notify")).toMatch(/needs\.fixtures\.result == 'success'/);
+  });
+  // prod-audit run 36361548155 (#1754): the fixture was hired and left
+  // UNconfirmed; expire_unanswered_offers swept it at its response_deadline and
+  // filed job_denial dd89291c on helper-e2e (fix a78d95be2). The confirm must
+  // run on EVERY path (reuse included) and prove itself by reading the row.
+  it("helper-e2e confirms the offer on every path, and the confirm proves itself", () => {
+    const src = blankComments(read("e2e/prod-audit/fundedOpenJob.ts"));
+    const ensure = /export async function ensureAcceptedJob\([\s\S]*?\n}/.exec(src)?.[0] ?? "";
+    expect(ensure, "ensureAcceptedJob is gone").toContain("planAcceptedJob(");
+    expect(ensure, "the confirm must sit at function level, after the reuse/drive branch, not inside one branch").toMatch(
+      /\n {2}}\n[\s\S]*?\n {2}await helperConfirmsOffer\(api, helper, id, log\);/,
+    );
+    const confirm = /async function helperConfirmsOffer\([\s\S]*?\n}/.exec(src)?.[0] ?? "";
+    expect(confirm).toContain("helper_confirmed_at: now");
+    expect(confirm).toMatch(/if \(!confirmed\[0\]\?\.helper_confirmed_at\) \{\s*throw new Error/);
   });
   it("the project is the fixture spec's own, and the spec calls the owner", () => {
     const cfg = read("playwright.config.ts");

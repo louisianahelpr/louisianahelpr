@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { sumHelperTakeHomeDollars } from "../_shared/helperEarnings.ts";
 import { feePercentForTier } from "../_shared/helperFees.ts";
+import { formatPayoutDollars } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { TIER_ORDER, TIER_PERK_MATRIX } from "../_shared/tierPerks.ts";
@@ -255,7 +256,7 @@ serve(async (req) => {
       const message = [
         `Your Weekly Report (${weekAgo.toLocaleDateString()} – ${now.toLocaleDateString()})`,
         ``,
-        `💰 Earnings: $${weeklyEarnings.toFixed(2)}`,
+        `💰 Earnings: $${formatPayoutDollars(weeklyEarnings)}`,
         `✅ Jobs Completed: ${completedJobs}`,
         `📝 Applications Sent: ${applicationsSubmitted}`,
         `⭐ New Reviews: ${newReviews}${newReviews > 0 ? ` (avg ${avgNewRating})` : ""}`,

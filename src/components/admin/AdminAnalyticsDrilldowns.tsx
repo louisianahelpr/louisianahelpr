@@ -13,6 +13,7 @@ import { tierDisplayName } from "@/lib/subscriptionTiers";
 // and an admin reconciling against Stripe needs the real figure, not a rounded one.
 import { formatCategory, formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
+import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { toneTextClasses } from "@/components/admin/tones";
 import { PAYMENT_TONE } from "@/components/admin/adminJobs/types";
@@ -230,7 +231,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
             <div className="flex gap-4 mt-2 text-ds-11 text-muted-foreground">
               <span>Budget: ${formatPrice(j.budget)}</span>
               <span>Fee: ${formatPrice(j.platform_fee_amount || 0)}</span>
-              <span>Payout: ${formatPriceExact(j.budget - (j.platform_fee_amount || 0))}</span>
+              <span>Payout: ${formatPriceExact(floorPayoutDollars(j.budget - (j.platform_fee_amount || 0)))}</span>
               {j.payout_scheduled_at && <span>Scheduled: {new Date(j.payout_scheduled_at).toLocaleString("en-US")}</span>}
             </div>
           </div>
@@ -296,7 +297,7 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
               <div className="flex gap-4 mt-2 text-ds-11 text-muted-foreground">
                 <span>Budget: ${j.budget}</span>
                 <span>Fee: ${j.platform_fee_amount || 0}</span>
-                <span>Payout: ${j.budget - (j.platform_fee_amount || 0)}</span>
+                <span>Payout: ${formatPriceExact(floorPayoutDollars(j.budget - (j.platform_fee_amount || 0)))}</span>
               </div>
             )}
           </div>

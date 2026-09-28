@@ -47,7 +47,7 @@ import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { posterServiceFeeCents } from "@/lib/posterFees";
-import { formatPriceExact } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -742,7 +742,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                   ${MIN_GIFT}–${MAX_GIFT} per gift card.{" "}
                   {giftTotalCents == null
                     ? "A card-processing fee is added at checkout."
-                    : `You'll be charged $${formatPriceExact(giftTotalCents / 100)} — $${formatPriceExact(giftAmountCents! / 100)} for them, $${formatPriceExact(giftFeeCents! / 100)} card processing.`}
+                    : `You'll be charged $${formatPrice(giftTotalCents / 100)} — $${formatPrice(giftAmountCents! / 100)} for them, $${formatPrice(giftFeeCents! / 100)} card processing.`}
                 </p>
               </div>
 

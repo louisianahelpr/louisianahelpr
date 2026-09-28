@@ -6,7 +6,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatPayoutDollars } from "../_shared/money.ts";
+import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -881,7 +881,11 @@ serve(async (req) => {
       const urgentShare = crewSlot?.slotNo != null
         ? allocateCents(Math.round(netUrgentFeeDollars(job.urgent_fee) * 100), helpersCount, crewSlot.slotNo) / 100
         : netUrgentFeeDollars(job.urgent_fee) / helpersCount;
-      let helperPayout = perHelperBudget - helperCommission + urgentShare;
+      // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). Held
+      // in dollars here but always a whole number of them, and re-applied after
+      // the onboarding-fee deduction below.
+      let helperPayout =
+        roundPayoutDownCents(Math.round((perHelperBudget - helperCommission + urgentShare) * 100)) / 100;
 
       // ── Step 1: Get helper's connected Stripe account & onboarding fee status ──
       const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
@@ -1199,7 +1203,7 @@ serve(async (req) => {
           continue;
         }
         if (claimed && claimed.length > 0) {
-          if (Math.round(helperPayout * 100) <= onboardingFeeCents) {
+          if (roundPayoutDownCents(Math.round(helperPayout * 100) - onboardingFeeCents) <= 0) {
             // Claim succeeded but this payout is too small to cover the fee.
             // Roll the claim back and skip so the flag doesn't lie, and a
             // future (larger) payout — or manual reconciliation — collects it.
@@ -1217,7 +1221,7 @@ serve(async (req) => {
             continue;
           }
           onboardingFeeDollars = onboardingFeeCents / 100;
-          helperPayout -= onboardingFeeDollars;
+          helperPayout = roundPayoutDownCents(Math.round(helperPayout * 100) - onboardingFeeCents) / 100;
           owesOnboardingFee = true;
         }
         // else: lost the race — flag flipped between read and claim. Don't deduct.
@@ -1354,7 +1358,7 @@ serve(async (req) => {
       // The gift leg counts toward the cap: it is real value leaving the
       // platform, denominated in credit rather than dollars.
       const escrowValueCents = capturedCents + giftAppliedCents;
-      const payoutCents = Math.round(helperPayout * 100);
+      const payoutCents = roundPayoutDownCents(Math.round(helperPayout * 100));
       if (payoutCents > escrowValueCents) {
         console.error(
           `[process-scheduled-payouts] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +

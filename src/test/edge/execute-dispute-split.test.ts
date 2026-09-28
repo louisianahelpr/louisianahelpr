@@ -291,8 +291,9 @@ describe("execute-dispute-split edge function", () => {
 
       // Helper leg: $100 × 60% = $60 gross; commission is the SHARED
       // helperCommissionDollars(60, 12) = round(60 × 12)/100 = $7.20;
-      // $60 − $7.20 = $52.80.
-      expect(body.helper_cents).toBe(5280);
+      // $60 − $7.20 = $52.80, paid as $52 (Q236: whole dollars, rounded down;
+      // the platform keeps the 80 cents).
+      expect(body.helper_cents).toBe(5200);
       expect(body.platform_fee_cents).toBe(720);
 
       // Poster leg: 40% of ($110.00 captured − $3.49 Stripe) = 40% of $106.51.
@@ -311,7 +312,7 @@ describe("execute-dispute-split edge function", () => {
 
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
       const [params, opts] = stripeMock.transfers.create.mock.calls[0];
-      expect(params.amount).toBe(5280);
+      expect(params.amount).toBe(5200);
       expect(params.destination).toBe("acct_helper");
       // Ties the transfer to the funding charge so Stripe enforces the cap too.
       expect(params.source_transaction).toBe("ch_1");
@@ -341,7 +342,7 @@ describe("execute-dispute-split edge function", () => {
         job_id: "job-1",
         helper_id: "helper-1",
         stripe_transfer_id: "tr_1",
-        amount_cents: 5280,
+        amount_cents: 5200,
         platform_fee_cents: 720,
         status: "paid",
         initiated_by: "admin",
@@ -380,7 +381,7 @@ describe("execute-dispute-split edge function", () => {
         execution_status: "executed",
         execution_transfer_id: "tr_1",
         execution_refund_id: "re_1",
-        execution_helper_cents: 5280,
+        execution_helper_cents: 5200,
         execution_refund_cents: 4260,
       });
     });
@@ -407,7 +408,7 @@ describe("execute-dispute-split edge function", () => {
       seedExecutable(scenario, { dispute: { payout_split: { poster: 40, helper: 60 } } });
       const fn = await load();
       const body = await json(await invoke(fn));
-      expect(body.helper_cents).toBe(5280);
+      expect(body.helper_cents).toBe(5200);
       expect(body.refund_cents).toBe(4260);
     });
 
@@ -458,8 +459,9 @@ describe("execute-dispute-split edge function", () => {
       const fn = await load();
       const body = await json(await invoke(fn));
       const netUrgent = (2000 - Math.round(2000 * 0.029)) / 100; // 19.42
-      expect(body.helper_cents).toBe(Math.round((60 + netUrgent * 0.6 - 7.2) * 100));
-      expect(body.helper_cents).toBeGreaterThan(5280);
+      // $64.452 owed → $64 transferred (Q236 rounds every payout DOWN).
+      expect(body.helper_cents).toBe(Math.floor(Math.round((60 + netUrgent * 0.6 - 7.2) * 100) / 100) * 100);
+      expect(body.helper_cents).toBeGreaterThan(5200);
     });
   });
 
@@ -704,7 +706,7 @@ describe("execute-dispute-split edge function", () => {
       // platform balance — no source_transaction, because there is no charge.
       expect(stripeMock.transfers.create).toHaveBeenCalled();
       const transferArgs = stripeMock.transfers.create.mock.calls[0][0];
-      expect(transferArgs.amount).toBe(5280);
+      expect(transferArgs.amount).toBe(5200);
       expect(transferArgs.source_transaction).toBeUndefined();
       // Poster's 40% of the $100 gift, back as a gift.
       expect(body.gift_restored_cents).toBe(4000);
@@ -929,7 +931,7 @@ describe("execute-dispute-split edge function", () => {
       const fn = await load();
       const body = await json(await invoke(fn));
 
-      expect(body.helper_cents).toBe(5000); // ledger, not the recomputed 5280
+      expect(body.helper_cents).toBe(5000); // ledger, not the recomputed 5200
       expect(body.platform_fee_cents).toBe(600); // ledger, not the recomputed 720
       expect(writesTo("disputes").pop()).toMatchObject({ execution_helper_cents: 5000 });
 

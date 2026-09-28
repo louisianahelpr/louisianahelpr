@@ -223,7 +223,7 @@ describe("R18 — money duplications that had no guard", () => {
     const unsettled = { budget: 120, platform_fee_amount: 12, helper_fee_percent: 10, payment_status: "payout_pending" };
     const settled = { ...unsettled, payment_status: "released" };
     // Elite helper (8%): unsettled follows the live tier, settled honours the stamp.
-    expect(edge.helperTakeHomeDollars(unsettled, 8)).toBeCloseTo(110.4, 10);
+    expect(edge.helperTakeHomeDollars(unsettled, 8)).toBeCloseTo(110, 10); // 110.40 floored (Q236)
     expect(edge.helperTakeHomeDollars(settled, 8)).toBeCloseTo(108, 10);
     // An omitted payment_status still means "already paid out" on BOTH sides.
     expect(edge.isSettledForDisplay({ budget: 120 })).toBe(true);

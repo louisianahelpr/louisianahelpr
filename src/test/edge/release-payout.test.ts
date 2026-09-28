@@ -552,8 +552,9 @@ describe("release-payout edge function", () => {
       );
       // Untiered helper → free tier → 12%.
       // The urgent fee nets its own bundled 2.9% Stripe cost: $20 − $0.58 =
-      // $19.42. net = (100 − 12% of 100) + 19.42 = 88 + 19.42 = $107.42.
-      expect((await json(res)).amount_cents).toBe(10742);
+      // $19.42. net = (100 − 12% of 100) + 19.42 = 88 + 19.42 = $107.42,
+      // paid as $107 (Q236: whole dollars, rounded down; platform keeps 42c).
+      expect((await json(res)).amount_cents).toBe(10700);
     });
 
     it("deducts the one-time $2 onboarding fee from a helper who has not paid it", async () => {

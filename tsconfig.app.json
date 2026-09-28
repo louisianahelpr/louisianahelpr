@@ -89,6 +89,7 @@
     "supabase/functions/_shared/stalledCompletion.ts",
     "supabase/functions/_shared/productTiers.ts",
     "supabase/functions/_shared/helperEarnings.ts",
+    "supabase/functions/_shared/money.ts",
     "supabase/functions/_shared/seatTierGrant.ts",
     "supabase/functions/_shared/cancellationFee.ts",
     "supabase/functions/_shared/crewShares.ts",

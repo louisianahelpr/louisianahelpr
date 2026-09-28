@@ -9,7 +9,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatPayoutDollars } from "../_shared/money.ts";
+import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -288,7 +288,8 @@ serve(async (req) => {
           DEFAULT_TIER_FEE_PERCENT,
       );
       const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
-      const helperPayout = cancellationFee - platformCut;
+      // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
+      const helperPayout = roundPayoutDownCents(Math.round((cancellationFee - platformCut) * 100)) / 100;
 
       const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
         .from("profiles")
@@ -355,7 +356,7 @@ serve(async (req) => {
 
       try {
         const transferParams: any = {
-          amount: Math.round(helperPayout * 100),
+          amount: roundPayoutDownCents(Math.round(helperPayout * 100)),
           currency: "usd",
           destination: helperProfile.stripe_account_id,
           transfer_group: feeGroup,
@@ -509,7 +510,8 @@ serve(async (req) => {
             DEFAULT_TIER_FEE_PERCENT,
         );
         const platformCut = Math.round(shareAmount * (commissionPercent / 100) * 100) / 100;
-        const memberPayout = Math.round((shareAmount - platformCut) * 100) / 100;
+        // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
+        const memberPayout = roundPayoutDownCents(Math.round((shareAmount - platformCut) * 100)) / 100;
 
         const { data: memberProfile, error: memberProfileErr } = await supabaseAdmin
           .from("profiles")
@@ -535,7 +537,7 @@ serve(async (req) => {
 
         try {
           const transferParams: Record<string, unknown> = {
-            amount: Math.round(memberPayout * 100),
+            amount: roundPayoutDownCents(Math.round(memberPayout * 100)),
             currency: "usd",
             destination: memberProfile.stripe_account_id,
             transfer_group: feeGroup,

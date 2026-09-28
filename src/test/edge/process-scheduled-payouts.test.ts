@@ -575,7 +575,7 @@ describe("process-scheduled-payouts edge function", () => {
       // the full urgent bonus and the platform over-pays N×.
       // budget 300 / 3 helpers = $100 each; 10% commission = $10; urgent $30
       // nets its own 2.9% bundled Stripe cost ($30 − $0.87 = $29.13) then splits
-      // 3 ways = $9.71. Payout = 100 − 10 + 9.71 = $99.71 → 9971¢.
+      // 3 ways = $9.71. Payout = 100 − 10 + 9.71 = $99.71 → paid 9900¢ (Q236).
       // (Fee already paid so no $2 onboarding deduction clouds the urgent math.)
       seedPayableJob(scenario, {
         job: { budget: 300, urgent_fee: 30, is_group_job: true, helpers_needed: 3 },
@@ -587,7 +587,8 @@ describe("process-scheduled-payouts edge function", () => {
       );
       expect(res.status).toBe(200);
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
-      expect(transferArg.amount).toBe(9971);
+      // Q236: $99.71 owed is paid as $99; the platform keeps the 71 cents.
+      expect(transferArg.amount).toBe(9900);
     });
   });
 });

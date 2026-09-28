@@ -61,7 +61,7 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
-import { formatPayoutDollars } from "../_shared/money.ts";
+import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 
 /**
  * The client type these helpers accept.
@@ -544,7 +544,11 @@ serve(async (req) => {
   const platformFeeDollars = helperCommissionDollars(helperBudgetShareDollars, helperFeePercent);
   const helperPayoutDollars =
     helperBudgetShareDollars + helperUrgentShareDollars - platformFeeDollars;
-  const helperCents = Math.max(0, Math.round(helperPayoutDollars * 100));
+  // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). The
+  // poster's refund below is computed from its own share, not as "the rest",
+  // so the dropped cents stay in the platform balance and never reach the
+  // poster or the escrow cap.
+  const helperCents = roundPayoutDownCents(Math.max(0, Math.round(helperPayoutDollars * 100)));
   const platformFeeCents = Math.round(platformFeeDollars * 100);
 
   // Stripe's processing floor applies only to money Stripe actually processed.

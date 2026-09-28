@@ -76,8 +76,9 @@ describe("helperTakeHomeDollars — budget − fee + net urgent", () => {
       helper_fee_percent: 10,
       urgent_fee: 20,
     };
-    // 100 − 10 + 19.42 (NOT the gross $20 — the edge transfers the net).
-    expect(helperTakeHomeDollars(job, TIER_FALLBACK_PCT)).toBeCloseTo(90 + NET_URGENT_20, 6);
+    // 100 − 10 + 19.42 (NOT the gross $20 — the edge transfers the net),
+    // floored to the whole dollar the transfer pays (Q236).
+    expect(helperTakeHomeDollars(job, TIER_FALLBACK_PCT)).toBe(Math.floor(90 + NET_URGENT_20));
   });
 
   it("ignores an absent/zero urgent fee", () => {
@@ -119,7 +120,8 @@ describe("group jobs — the budget is split across the roster", () => {
       helpers_needed: 3,
     };
     // The poster is charged the urgent fee ONCE, so each helper gets 1/3.
-    expect(helperTakeHomeDollars(job, TIER_FALLBACK_PCT)).toBeCloseTo(88 + NET_URGENT_30 / 3, 6);
+    // Floored to the whole dollar the transfer pays (Q236).
+    expect(helperTakeHomeDollars(job, TIER_FALLBACK_PCT)).toBe(Math.floor(88 + NET_URGENT_30 / 3));
   });
 
   it("derives a group row's fee from the frozen % and ignores the stamped amount", () => {

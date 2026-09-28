@@ -12,6 +12,7 @@ import {
   feePercentForTier,
 } from "../../supabase/functions/_shared/helperFees";
 import { netUrgentFeeDollars } from "./stripeFees";
+import { roundPayoutDownCents } from "../../supabase/functions/_shared/money";
 
 /**
  * THE guard for the display/payout agreement.
@@ -42,7 +43,13 @@ function payoutTakeHomeDollars(
 ) {
   const perHelperBudget = budget / helpersCount;
   const gross = perHelperBudget + netUrgentFeeDollars(urgentFee) / helpersCount;
-  return gross - helperCommissionDollars(perHelperBudget, livePercent);
+  // The transfer amount goes through THE payout rounding rule (Q236): whole
+  // dollars, rounded down, platform keeps the cents.
+  return (
+    roundPayoutDownCents(
+      Math.round((gross - helperCommissionDollars(perHelperBudget, livePercent)) * 100),
+    ) / 100
+  );
 }
 
 const TIERS = [
@@ -108,7 +115,7 @@ describe("displayed take-home equals the payout for the helper's live tier", () 
     expect(isSettledForDisplay(released)).toBe(true);
     // Even asked to fall back to the free rate, the stamp wins.
     expect(helperDisplayFeePercent(released, 12)).toBe(8);
-    expect(helperTakeHomeDollars(released, 12)).toBeCloseTo(110.4, 10);
+    expect(helperTakeHomeDollars(released, 12)).toBe(110); // $110.40 owed → $110 transferred (Q236)
     expect(helperTakeHomeDollars(released, 12)).toBeCloseTo(
       payoutTakeHomeDollars(120, 8),
       10,
@@ -122,7 +129,7 @@ describe("displayed take-home equals the payout for the helper's live tier", () 
       platform_fee_amount: 9.6,
     };
     expect(isSettledForDisplay(legacy)).toBe(true);
-    expect(helperTakeHomeDollars(legacy, 12)).toBeCloseTo(110.4, 10);
+    expect(helperTakeHomeDollars(legacy, 12)).toBe(110); // $110.40 owed → $110 transferred (Q236)
   });
 
   it("group jobs: the live tier applies to each helper's share", () => {

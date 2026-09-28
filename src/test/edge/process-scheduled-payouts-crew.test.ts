@@ -93,14 +93,24 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   });
 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | const perHelperBudget = crewSlot?.shareCents != null ? crewSlot.shareCents / 100 : job.budget / helpersCount; | const perHelperBudget = job.budget / helpersCount;
-  it("$100 across 3: each member's payout + commission is their frozen share, and the three add up to exactly $100.00", async () => {
+  it("$100 across 3: each member is paid from their frozen share, in whole dollars rounded down (Q236)", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
     await run();
     const rows = settledLedger();
     expect(rows).toHaveLength(3);
-    const gross = rows.map((r) => Number(r.amount_cents) + Number(r.platform_fee_cents));
-    expect(gross.sort()).toEqual([3333, 3333, 3334]);
-    expect(gross.reduce((a, b) => a + b, 0)).toBe(10000);
+    // Q236 (owner, 2026-09-27): the transfer is a whole dollar, rounded DOWN;
+    // the platform keeps the cents. So payout + commission sits within a
+    // dollar BELOW the member's frozen share, never above it.
+    for (const r of rows) expect(Number(r.amount_cents) % 100).toBe(0);
+    const gross = rows.map((r) => Number(r.amount_cents) + Number(r.platform_fee_cents)).sort();
+    const shares = [3333, 3333, 3334];
+    gross.forEach((g, i) => {
+      expect(shares[i] - g).toBeGreaterThanOrEqual(0);
+      expect(shares[i] - g).toBeLessThan(100);
+    });
+    const total = gross.reduce((a, b) => a + b, 0);
+    expect(total).toBeLessThanOrEqual(10000);
+    expect(total).toBeGreaterThan(10000 - 300);
   });
 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | return { ready: refund.ok, paidCents, | return { ready: true, paidCents,

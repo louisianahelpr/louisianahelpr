@@ -109,11 +109,12 @@ describe("a take-home never reads above the transfer", () => {
       is_group_job: false,
       helpers_needed: 1,
     };
+    expect(formatPrice(105.6)).toBe("106"); // the shipped bug: 40c overquoted
+    expect(formatPriceFloor(105.6)).toBe("105");
+    // Q236: the payout itself is now floored to $105, so the take-home is too.
     const takeHome = helperTakeHomeDollars(job, 12);
-    expect(takeHome).toBeCloseTo(105.6, 10);
-
-    expect(formatPrice(takeHome)).toBe("106"); // the shipped bug: 40c overquoted
-    expect(formatPriceFloor(takeHome)).toBe("105");
+    expect(takeHome).toBe(105);
+    expect(formatPrice(takeHome)).toBe("105");
   });
 });
 
@@ -155,4 +156,4 @@ describe("the three fixed sites do not drift back", () => {
 // @mutate src/lib/format.ts | const cents = Math.round(amount * 100); | const cents = Math.ceil(amount * 100);
 // formatPriceFloor rounding instead of flooring — a take-home that reads 40c
 // ABOVE the transfer the helper actually receives.
-// @mutate src/lib/format.ts | return Math.floor(amount).toLocaleString("en-US"); | return Math.round(amount).toLocaleString("en-US");
+// @mutate src/lib/format.ts | return Math.floor(Math.round(amount * 100) / 100).toLocaleString("en-US"); | return Math.round(amount).toLocaleString("en-US");

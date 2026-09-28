@@ -36,6 +36,7 @@ import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits
 // formatPriceExact, not formatPrice: this block shows the fee arithmetic,
 // and whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
+import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { userFacingError } from "@/lib/userFacingError";
 
 type CancellationDialogProps = {
@@ -150,7 +151,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // discipline applies to a number shown ABOUT a helper.
   const commissionPercent = MAX_HELPER_FEE_PERCENT;
   const platformCut = Math.round(payeeFee * commissionPercent) / 100;
-  const helperPayout = Math.max(0, Math.round((payeeFee - platformCut) * 100) / 100);
+  // Floored to the whole dollar the transfer really pays (Q236:
+  // void-cancelled-payments rounds every Helpr transfer DOWN to the dollar).
+  const helperPayout = Math.max(0, floorPayoutDollars(payeeFee - platformCut));
 
   const handleCancel = async () => {
     setCancelling(true);

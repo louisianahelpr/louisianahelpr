@@ -1,13 +1,6 @@
-// Rate limiting for the eighteen user-facing edge functions that import it.
-//
-// (EIGHTEEN, counted rather than repeated. The figure carried around this
-// project is seventeen; `grep -l checkRateLimit supabase/functions/*/index.ts`
-// returns admin-delete-user, admin-user-actions, ai-job-builder, cash-out-credits,
-// claim-gift-card, complete-signup, contact-support, create-bgc-payment,
-// create-boost-payment, create-payment, create-gift-card-checkout, delete-own-account,
-// helpr-pass-wallet, instant-job-match, instant-payout, notify-email-change,
-// pay-onboarding-fee and stripe-idv-start. `admin-user-actions` is the one the
-// older count misses.)
+// Rate limiting for the user-facing edge functions that import it. Count them
+// with `grep -l checkRateLimit supabase/functions/*/index.ts` rather than
+// trusting a number written here (this comment said eighteen while 21 did).
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // WHAT THIS USED TO BE, AND WHY IT LIMITED NOTHING

@@ -1395,21 +1395,7 @@ on the way to their first success.
   `/family` (FamilyDashboard) + `/family/accept/:token` (invite accept),
   `/home-history` + `/work-record` (job history, poster vs helper), `/gift-card (retired old route)`
   (community credit donation/redemption), `/analytics` (HelperAnalytics), plus
-  STR iCal sync (`str-ical-sync`, StrSettings), AI job builder (`ai-job-builder`), and **Helpr
-  Pass wallet** (`helpr-pass-wallet` — the Apple/Google Wallet pass: verify the
-  add-to-wallet affordance appears where offered, the pass generates without error,
-  and its fields — name, member tier, QR/barcode — match the account; native-only,
-  so drive it in the iOS sim, and confirm the web surface degrades gracefully rather
-  than showing a broken button. **Tier-change refresh — drive both ends:** the pass
-  is a live artifact, so when the membership tier changes (upgrade, downgrade, or a
-  cron `expire-subscriptions` downgrade) the already-issued pass must update to the
-  new tier, not go stale. Sender side: the tier-change event actually pushes a pass
-  update (APNs/Google pass-update) rather than requiring the user to re-add it.
-  Receiver side: the pass already in the user's Apple/Google Wallet reflects the new
-  tier/entitlements the next time it's viewed, and a downgraded/expired membership
-  doesn't leave a pass advertising a tier the user no longer has. A pass that keeps
-  showing a stale tier after a change is a finding — it misrepresents entitlements at
-  point of use). Each is a must-drive cell: it renders, its primary
+  STR iCal sync (`str-ical-sync`, StrSettings) and AI job builder (`ai-job-builder`). Each is a must-drive cell: it renders, its primary
   flow works end-to-end (e.g. accept a family invite, add a pet), and empty/error/
   loading states are handled. Credit-bearing routes here (referrals, gift card)
   additionally get the High-value **credit-economy** reconciliation treatment above.

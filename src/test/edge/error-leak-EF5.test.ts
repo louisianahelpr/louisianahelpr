@@ -197,7 +197,6 @@ export function rawErrorResponseSites(files = edgeFunctionFiles()): LeakSite[] {
  *                           carries table and column names.
  *   instant-payout        — money path; the Stripe error text reaches the helper.
  *   stripe-payouts          Same shape in both.
- *   helpr-pass-wallet     — `error?.message ?? "wallet pass failed"`.
  *
  * This list may only SHRINK, and it goes red in both directions: a NEW leaking
  * handler fails, and a fixed one whose entry is still here fails too.
@@ -207,7 +206,6 @@ const KNOWN_LEAK_FILES: string[] = [
   "supabase/functions/admin-delete-user/index.ts",
   "supabase/functions/auth-email-hook/index.ts",
   "supabase/functions/delete-own-account/index.ts",
-  "supabase/functions/helpr-pass-wallet/index.ts",
   "supabase/functions/instant-payout/index.ts",
   "supabase/functions/stripe-payouts/index.ts",
 ];

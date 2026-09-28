@@ -2,7 +2,6 @@
 // @mutate src/lib/reviewStats.ts | r.jobs.status !== "cancelled" | true
 // @mutate src/hooks/useProfileTabData.ts | reviewCount: publicRow ? publicRow.review_count ?? 0 : ratings.length, | reviewCount: ratings.length,
 // @mutate src/pages/user/ReviewsSection.tsx | count: Math.max(trueReviewCount, reviews.length), stars: 0 | count: reviews.length, stars: 0
-// @mutate supabase/functions/helpr-pass-wallet/index.ts | .neq("jobs.status", "cancelled"); | ;
 // @mutate supabase/functions/weekly-helper-report/index.ts | .eq("status", "published")\n          .gte("feedback_visible_at", weekAgoISO) | .gte("feedback_visible_at", weekAgoISO)
 // @mutate supabase/migrations/20260926034718_helper_tiers_count_public_reviews.sql |       AND j.status <> 'cancelled'\n  ),\n  stats AS ( |   ),\n  stats AS (
 /*
@@ -56,7 +55,6 @@ const RECEIVED: Record<string, Kind> = {
   "src/hooks/useProfileTabData.ts": "count",
   "src/components/admin/useAdminUserSummaries.ts": "count",
   "src/components/admin/adminusers/useOpenProfile.ts": "count",
-  "supabase/functions/helpr-pass-wallet/index.ts": "count",
   "supabase/functions/weekly-helper-report/index.ts": "count",
   "src/pages/profile/HelprWrapped.tsx": "count",
   "src/components/reviewPanel/ReviewList.tsx": "rows",

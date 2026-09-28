@@ -350,7 +350,7 @@ function rewriteExternalImports(src: string): string {
   // Tier PERKS: `_shared/tierPerks.ts` has ZERO imports and is a plain truth
   // table plus its resolvers, so the generated file points at the REAL module.
   // Pointing a MOCK at it would defeat the purpose — the entitlement gates in
-  // instant-payout, create-boost-payment and helpr-pass-wallet are exactly
+  // instant-payout and create-boost-payment are exactly
   // what these tests exist to hold, and they are only meaningful against the
   // same matrix the app renders from (CC-019).
   out = out.replace(

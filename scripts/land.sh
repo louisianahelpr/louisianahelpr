@@ -84,6 +84,16 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # (node scripts/check-sensitive-review.mjs record <sha> <reviewer> <verdict>).
   node scripts/check-sensitive-review.mjs --range origin/main..HEAD --strict
 
+  # db-deploy runs the moment a migration reaches main, before CI's vitest
+  # does. Its two commonest reds (ledger 00fd2bd0, runs since 2026-09-24:
+  # 5x "types.ts matches the live schema", 3x "no allow check says yes to a
+  # NULL argument"; newest 36361411866 / 36360932660 from the Q807 migration)
+  # each have a repo-only vitest twin that was already red on that commit.
+  # Run the twins here whenever the push touches migrations or their inputs.
+  if git diff --name-only origin/main..HEAD | grep -qE '^(supabase/migrations/|scripts/ci/|src/integrations/supabase/types\.ts$)'; then
+    npx vitest run src/test/typesCoverMigrationFunctions.test.ts src/test/nullArgNeverAllows.test.ts
+  fi
+
   if [ "$DRY" = 1 ]; then
     echo "land: --dry-run, not pushing. HEAD $(git rev-parse --short HEAD)"
     exit 0

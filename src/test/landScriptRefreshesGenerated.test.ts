@@ -25,6 +25,13 @@
  * @mutate scripts/land.sh |     git push --no-verify --force origin "HEAD:refs/heads/$BR" |     git push --no-verify --force origin "HEAD:main"
  * @mutate scripts/land.sh |     --pr) PR=1 ;; |     --pr) PR=0 ;;
  * @mutate .claude/AGENT-BRIEF.md | land with `bash scripts/land.sh --pr` | land with `git push origin HEAD:main`
+ *
+ * Runs the repo-only twins of db-deploy's two commonest reds before a push
+ * that touches migrations (ledger 00fd2bd0; the Q807 migration went red on
+ * both, runs 36361411866 and 36360932660, while both twins were already red).
+ *
+ * @mutate scripts/land.sh |     npx vitest run src/test/typesCoverMigrationFunctions.test.ts src/test/nullArgNeverAllows.test.ts |     true
+ * @mutate scripts/land.sh | grep -qE '^(supabase/migrations/\|scripts/ci/\|src/integrations/supabase/types\.ts$)' | grep -qE '^(supabase/functions/)'
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -68,6 +75,20 @@ describe("scripts/land.sh keeps generated files current on main", () => {
     expect(pr).not.toMatch(/--squash/);
     const brief = readFileSync(resolve(ROOT, ".claude/AGENT-BRIEF.md"), "utf8");
     expect(brief).toMatch(/land with `bash scripts\/land\.sh --pr`/);
+  });
+
+  it("runs db-deploy's repo-only twins before pushing a migration change (ledger 00fd2bd0)", () => {
+    const gate = at(/^\s*if git diff --name-only origin\/main\.\.HEAD \| grep -qE '([^']+)'; then$/m);
+    const pattern = new RegExp(/grep -qE '([^']+)'; then/.exec(code.slice(gate))![1]);
+    for (const p of ["supabase/migrations/20260927234313_refuse_unconfirmed_email_writes.sql", "scripts/ci/null-arg-validators.sql", "src/integrations/supabase/types.ts"]) {
+      expect(pattern.test(p), `${p} must trigger the twins`).toBe(true);
+    }
+    expect(pattern.test("src/pages/home/Home.tsx")).toBe(false);
+    const run = at(/^\s*npx vitest run src\/test\/typesCoverMigrationFunctions\.test\.ts src\/test\/nullArgNeverAllows\.test\.ts$/m);
+    expect(run).toBeGreaterThan(gate);
+    // Before any push.
+    expect(run).toBeLessThan(at(/^\s*if \[ "\$DRY" = 1 \]; then$/m));
+    expect(run).toBeLessThan(at(/git push --no-verify origin HEAD:main/));
   });
 
   it("never uses git stash and refuses a dirty tracked tree", () => {

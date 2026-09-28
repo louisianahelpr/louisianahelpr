@@ -27,8 +27,9 @@
  * waited for, so two prod-load runs can never deadlock on each other.
  *
  * On the job's timeout it fails loudly naming the holder: a red that says
- * "accounts busy" instead of a silent cancel. An unreadable API is retried; if
- * it stays unreadable the job proceeds with a warning (the group still
+ * "accounts busy" instead of a silent cancel. A rate-limited API read waits for
+ * the reset (rateLimitWaitMs). Any other unreadable API is retried; if it stays
+ * unreadable the job proceeds with a warning (the group still
  * serialises; the worst case is the old behaviour, never a deadlock).
  *
  * The locked-job inventory is DERIVED from the checked-out workflow files, so a
@@ -130,12 +131,43 @@ export function decide(me, runs, inventory) {
   return { go: true, why: "no job waiting for the lock and no older run ahead" };
 }
 
+/**
+ * How long a failed API read says to back off, or null when it is not a rate
+ * limit. 2026-09-28 (#1931/#1930/#1719/#1582): every waiter got HTTP 403 on
+ * /actions/runs from 01:39Z, gave up after 10 tries and joined the group at
+ * once, so GitHub cancelled the runs they bumped (slow-network 36364455813,
+ * privacy-journey 36364457749, e2e-journeys 36364643259, press 36364641356).
+ * The waiters poll the API and share the repo's GITHUB_TOKEN budget, so a
+ * rate-limit answer means WAIT for the reset, never "the queue is broken":
+ * waiting bumps nobody, only joining does.
+ */
+export function rateLimitWaitMs({ status, headers = {}, body = "" }, now = Date.now()) {
+  if (status !== 403 && status !== 429) return null;
+  const retryAfter = Number(headers["retry-after"]);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter * 1000;
+  const reset = Number(headers["x-ratelimit-reset"]);
+  const exhausted = headers["x-ratelimit-remaining"] === "0";
+  if (exhausted && Number.isFinite(reset) && reset > 0) return Math.max(reset * 1000 - now, 0) + 5_000;
+  if (exhausted || /rate limit/i.test(body)) return 5 * 60_000;
+  return null;
+}
+
+const RL_HEADERS = ["retry-after", "x-ratelimit-reset", "x-ratelimit-remaining", "x-ratelimit-resource"];
+
 async function gh(path, token) {
   const r = await fetch(`https://api.github.com${path}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
     signal: AbortSignal.timeout(20_000),
   });
-  if (!r.ok) throw new Error(`HTTP ${r.status} ${path}`);
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    const headers = Object.fromEntries(RL_HEADERS.map((h) => [h, r.headers.get(h)]));
+    const err = new Error(
+      `HTTP ${r.status} ${path}: ${body.slice(0, 200)} (x-ratelimit remaining=${headers["x-ratelimit-remaining"]} reset=${headers["x-ratelimit-reset"]} resource=${headers["x-ratelimit-resource"]})`,
+    );
+    err.waitMs = rateLimitWaitMs({ status: r.status, headers, body });
+    throw err;
+  }
   return r.json();
 }
 
@@ -166,7 +198,7 @@ async function main() {
   const repo = process.env.GITHUB_REPOSITORY;
   const token = process.env.GITHUB_TOKEN;
   const runId = Number(process.env.GITHUB_RUN_ID);
-  const pollMs = Number(process.env.WAIT_POLL_SECONDS ?? 60) * 1000;
+  const pollMs = Number(process.env.WAIT_POLL_SECONDS ?? 120) * 1000;
   const inventory = lockedJobs();
   console.log(`Locked jobs (${LOCK}):`);
   for (const [p, js] of Object.entries(inventory)) console.log(`  ${p}: ${js.map((j) => j.key).join(", ")}`);
@@ -200,6 +232,13 @@ async function main() {
       last = d.why;
       if (d.go) return;
     } catch (e) {
+      if (e?.waitMs != null) {
+        // Rate limited: not a broken queue. Sleep to the reset; the job's own
+        // timeout still bounds the wait.
+        console.log(`::warning::queue check rate-limited, waiting ${Math.round(e.waitMs / 1000)}s: ${e.message}`);
+        await new Promise((res) => setTimeout(res, e.waitMs));
+        continue;
+      }
       failures += 1;
       console.log(`::warning::queue check failed (${failures}/10): ${e instanceof Error ? e.message : e}`);
       if (failures >= 10) {

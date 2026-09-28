@@ -32,6 +32,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const REPO = resolve(__dirname, "../..");
 
 /** Exact exemptions, each with its reason. */
+// @two-way src/test/pageTitleOneSize.test.ts:stale exemption
 const EXEMPT: Record<string, string> = {
   // LOCKED landing hero (CLAUDE.md): font, colour and copy are off-limits.
   "src/components/landing/HeroSection.tsx": "locked landing hero",
@@ -82,6 +83,12 @@ describe("Q236(e): one page-title size", () => {
     for (const f of Object.keys(EXEMPT)) {
       expect(h1s.map((h) => h.rel), `exemption ${f} no longer has an h1 — drop it`).toContain(f);
     }
+  });
+
+  it("every exemption still needs its exemption", () => {
+    const offSize = (h: { tag: string }) => !TITLE_SIZE.test(h.tag) || OTHER_SIZE.test(h.tag);
+    const stale = Object.keys(EXEMPT).filter((f) => !h1s.some((h) => h.rel === f && offSize(h)));
+    expect(stale.map((f) => `stale exemption ${f}: its h1 already wears the title size — remove it`)).toEqual([]);
   });
 
   it("every <h1> wears the one title size and no other", () => {

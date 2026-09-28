@@ -225,7 +225,7 @@ jobs:
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
           BEGIN;
-          INSERT INTO auth.users (id, email) VALUES (gen_random_uuid(), 'smoke@helpr.test');
+          INSERT INTO auth.users (id, email, email_confirmed_at) VALUES (gen_random_uuid(), 'smoke@helpr.test', now());
           UPDATE public.profiles
             SET full_name = 'Smoke Tester', email_verified = true
             WHERE user_id = (SELECT id FROM auth.users WHERE email='smoke@helpr.test');
@@ -271,8 +271,8 @@ jobs:
             ];
             tester_id uuid := gen_random_uuid();
           BEGIN
-            INSERT INTO auth.users (id, email)
-              VALUES (tester_id, 'notif-smoke@helpr.test');
+            INSERT INTO auth.users (id, email, email_confirmed_at)
+              VALUES (tester_id, 'notif-smoke@helpr.test', now());
 
             FOREACH t IN ARRAY types LOOP
               BEGIN
@@ -325,8 +325,8 @@ jobs:
             non_admin_id uuid := gen_random_uuid();
             admin_id uuid := gen_random_uuid();
           BEGIN
-            INSERT INTO auth.users (id, email) VALUES (non_admin_id, 'rls-nonadmin-smoke@helpr.test');
-            INSERT INTO auth.users (id, email) VALUES (admin_id, 'rls-admin-smoke@helpr.test');
+            INSERT INTO auth.users (id, email, email_confirmed_at) VALUES (non_admin_id, 'rls-nonadmin-smoke@helpr.test', now());
+            INSERT INTO auth.users (id, email, email_confirmed_at) VALUES (admin_id, 'rls-admin-smoke@helpr.test', now());
             -- prevent_admin_role_self_grant() only allows service_role; SET LOCAL
             -- scopes the role to this transaction so subsequent cleanup sees postgres.
             EXECUTE 'SET LOCAL ROLE service_role';

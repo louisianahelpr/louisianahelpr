@@ -170,8 +170,8 @@ BEGIN
     BEGIN
       CASE step
       WHEN 'users' THEN
-        INSERT INTO auth.users (id, email) VALUES
-          (A, 'q140-a@helpr.test'), (B, 'q140-b@helpr.test'), (D, 'q140-d@helpr.test')
+        INSERT INTO auth.users (id, email, email_confirmed_at) VALUES
+          (A, 'q140-a@helpr.test', now()), (B, 'q140-b@helpr.test', now()), (D, 'q140-d@helpr.test', now())
         ON CONFLICT (id) DO NOTHING;
       WHEN 'profiles' THEN
         INSERT INTO public.profiles (user_id) VALUES (A), (B), (D) ON CONFLICT (user_id) DO NOTHING;

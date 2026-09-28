@@ -114,7 +114,7 @@ async function fixture(admin, race) {
   const helper = randomUUID();
   for (const [id, who] of [[poster, "poster"], [helper, "helper"]]) {
     // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
-    await admin.query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", [id, `race-${who}-${id}@helpr.test`]);
+    await admin.query("INSERT INTO auth.users (id, email, email_confirmed_at) VALUES ($1, $2, now())", [id, `race-${who}-${id}@helpr.test`]);
     // Approved and payout-ready, so onboarding gates stand aside: the runner
     // tests the lock, not onboarding.
     await admin.query(
@@ -372,7 +372,7 @@ async function disputeFixture(admin) {
   const helper = randomUUID();
   for (const [id, who] of [[poster, "poster"], [helper, "helper"]]) {
     // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
-    await admin.query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", [id, `race-${who}-${id}@helpr.test`]);
+    await admin.query("INSERT INTO auth.users (id, email, email_confirmed_at) VALUES ($1, $2, now())", [id, `race-${who}-${id}@helpr.test`]);
     await admin.query(
       `UPDATE public.profiles
           SET full_name = $2, email_verified = true,

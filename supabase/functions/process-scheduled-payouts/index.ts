@@ -6,7 +6,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -619,8 +619,8 @@ serve(async (req) => {
       const notifyPoster = async (cardCents: number) => {
         if (!job.customer_id || cardCents + giftRestoredCents <= 0) return;
         const parts = [
-          cardCents > 0 ? `$${formatPayoutDollars(cardCents / 100)} is being refunded to your card` : null,
-          giftRestoredCents > 0 ? `$${formatPayoutDollars(giftRestoredCents / 100)} is back on your gift card balance` : null,
+          cardCents > 0 ? `$${formatExactDollars(cardCents / 100)} is being refunded to your card` : null,
+          giftRestoredCents > 0 ? `$${formatExactDollars(giftRestoredCents / 100)} is back on your gift card balance` : null,
         ].filter(Boolean).join(" and ");
         const feeTaxClause = feeReturnCents > 0 && taxReturnCents > 0
           ? ", including that share of the service fee and tax"
@@ -882,10 +882,12 @@ serve(async (req) => {
         ? allocateCents(Math.round(netUrgentFeeDollars(job.urgent_fee) * 100), helpersCount, crewSlot.slotNo) / 100
         : netUrgentFeeDollars(job.urgent_fee) / helpersCount;
       // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). Held
-      // in dollars here but always a whole number of them, and re-applied after
-      // the onboarding-fee deduction below.
-      let helperPayout =
-        roundPayoutDownCents(Math.round((perHelperBudget - helperCommission + urgentShare) * 100)) / 100;
+      // in dollars here but always a whole number of them. The onboarding-fee
+      // branch below re-floors from the UNROUNDED cents, so the fee is taken
+      // before the one floor, never between two (a $2.50 fee must not cost a
+      // second dollar).
+      const unroundedPayoutCents = Math.round((perHelperBudget - helperCommission + urgentShare) * 100);
+      let helperPayout = roundPayoutDownCents(unroundedPayoutCents) / 100;
 
       // ── Step 1: Get helper's connected Stripe account & onboarding fee status ──
       const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
@@ -1203,7 +1205,7 @@ serve(async (req) => {
           continue;
         }
         if (claimed && claimed.length > 0) {
-          if (roundPayoutDownCents(Math.round(helperPayout * 100) - onboardingFeeCents) <= 0) {
+          if (roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents) <= 0) {
             // Claim succeeded but this payout is too small to cover the fee.
             // Roll the claim back and skip so the flag doesn't lie, and a
             // future (larger) payout — or manual reconciliation — collects it.
@@ -1221,7 +1223,7 @@ serve(async (req) => {
             continue;
           }
           onboardingFeeDollars = onboardingFeeCents / 100;
-          helperPayout = roundPayoutDownCents(Math.round(helperPayout * 100) - onboardingFeeCents) / 100;
+          helperPayout = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents) / 100;
           owesOnboardingFee = true;
         }
         // else: lost the race — flag flipped between read and claim. Don't deduct.

@@ -9,7 +9,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -126,7 +126,7 @@ serve(async (req) => {
             user_id: result.recipient_id,
             job_id: job.id,
             title: "Your gift is back",
-            message: `"${job.title}" was cancelled, so the $${formatPayoutDollars(dollars)} gift you used on it is available again.`,
+            message: `"${job.title}" was cancelled, so the $${formatExactDollars(dollars)} gift you used on it is available again.`,
             type: "payment",
             link: "/profile?tab=gift_card",
           });

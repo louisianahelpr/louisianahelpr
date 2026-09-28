@@ -582,6 +582,33 @@ describe("release-payout edge function", () => {
       expect((await json(res)).amount_cents).toBe(8600);
     });
 
+    it("takes a non-whole-dollar onboarding fee BEFORE the one whole-dollar floor, not between two (Q236)", async () => {
+      seedPayableJob(scenario, { budget: 100, urgent_fee: 20 });
+      scenario.reads.platform_settings = {
+        rows: [{ helper_fee_percent: 10, onboarding_fee_cents: 230 }],
+      };
+      scenario.reads.profiles = {
+        rows: [
+          {
+            stripe_account_id: "acct_helper",
+            full_name: "New Helper",
+            onboarding_fee_paid: false,
+          },
+        ],
+      };
+      scenario.writeSelectRows.profiles = [{ user_id: "helper-1" }];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      // $107.42 owed − $2.30 fee = $105.12 → paid $105. Flooring first
+      // ($107 − $2.30 = $104.70 → $104) would cost the Helpr a second dollar.
+      expect((await json(res)).amount_cents).toBe(10500);
+    });
+
     it("returns 502 when the Stripe transfer call fails", async () => {
       seedPayableJob(scenario);
       stripeMock.transfers.create.mockRejectedValue(

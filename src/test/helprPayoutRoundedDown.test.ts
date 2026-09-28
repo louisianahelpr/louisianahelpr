@@ -18,18 +18,22 @@
  *  5. The other half of the same owner decision: user payments other than job
  *     checkout (gift card, boost, background-check fee) show whole dollars.
  *     Job checkout's exact-cents pins live in displayedMoneyMatchesReality.
+ *  6. The floor is for Helpr payouts ONLY: a poster refund, a restored gift or
+ *     a referral cash-out shows exact cents (`formatExactDollars`). Every
+ *     `formatPayoutDollars(`/`formatPayoutCents(` argument is inventoried.
  */
-// @mutate supabase/functions/release-payout/index.ts | let payoutCents = roundPayoutDownCents(Math.round(payoutDollars * 100)); | let payoutCents = Math.round(payoutDollars * 100);
-// @mutate supabase/functions/release-payout/index.ts | payoutCents = roundPayoutDownCents(payoutCents - onboardingFeeCents); | payoutCents = payoutCents - onboardingFeeCents;
+// @mutate supabase/functions/release-payout/index.ts | let payoutCents = roundPayoutDownCents(unroundedPayoutCents); | let payoutCents = unroundedPayoutCents;
+// @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents); |       payoutCents = unroundedPayoutCents - onboardingFeeCents;
 // @mutate supabase/functions/void-cancelled-payments/index.ts | amount: roundPayoutDownCents(Math.round(memberPayout * 100)), | amount: Math.round(memberPayout * 100),
 // @mutate supabase/functions/create-payment/index.ts | const amountCents = roundPayoutDownCents(Math.round(amount * 100)); | const amountCents = Math.round(amount * 100);
 // @mutate supabase/functions/_shared/money.ts | return Math.floor(whole / 100) * 100; | return whole;
+// @mutate supabase/functions/execute-dispute-split/index.ts | : `$${formatExactDollars(refundDollars)} has been refunded | : `$${formatPayoutDollars(refundDollars)} has been refunded
 // @mutate src/lib/productPrices.ts | `$${formatPrice(cents / 100)}` | `$${(cents / 100).toFixed(2)}`
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
-import { roundPayoutDownCents, formatPayoutDollars } from "../../supabase/functions/_shared/money";
+import { roundPayoutDownCents, formatPayoutDollars, formatExactDollars } from "../../supabase/functions/_shared/money";
 import { formatPriceFloor } from "@/lib/format";
 import { formatFeeUsd } from "@/lib/productPrices";
 import {
@@ -74,6 +78,19 @@ const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
   "supabase/functions/release-payout/index.ts": 1,
   "supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts": 1,
   "supabase/functions/void-cancelled-payments/index.ts": 2,
+};
+
+/** Every argument handed to the payout floor, per file. Each one is a Helpr's
+ *  own payout (instant-payout's `netCents` is the Helpr's cash-out net). A
+ *  refund, gift or credit figure appearing here is the bug. */
+const PAYOUT_FORMAT_ARGS: Record<string, string[]> = {
+  "supabase/functions/auto-release-payment/index.ts": ["helperPayout", "helperPayout"],
+  "supabase/functions/create-payment/index.ts": ["helperPayout", "helperPayout"],
+  "supabase/functions/execute-dispute-split/index.ts": ["helperDollars"],
+  "supabase/functions/instant-payout/index.ts": ["netCents"],
+  "supabase/functions/process-scheduled-payouts/index.ts": ["helperPayout", "helperPayout"],
+  "supabase/functions/void-cancelled-payments/index.ts": ["helperPayout", "memberPayout"],
+  "supabase/functions/weekly-helper-report/index.ts": ["weeklyEarnings"],
 };
 
 function edgeFiles(): string[] {
@@ -163,6 +180,20 @@ describe("Helpr payouts are whole dollars, rounded down (Q236)", () => {
     expect(clientTakeHome(job, 10)).toBe(41);
     expect(edgeTakeHome(job, 10)).toBe(41);
     expect(clientTakeHome(job, 10) * 100).toBe(roundPayoutDownCents(Math.round(41.868 * 100)));
+  });
+
+  it("the payout floor formats Helpr payouts only; refunds/gifts/credits are exact", () => {
+    const found: Record<string, string[]> = {};
+    for (const f of edgeFiles()) {
+      if (f === "supabase/functions/_shared/money.ts") continue;
+      const args = [...code(f).matchAll(/\bformatPayout(?:Dollars|Cents)\(([^)]*)\)/g)].map((m) => m[1].trim());
+      if (args.length) found[f] = args.sort();
+    }
+    expect(found).toEqual(PAYOUT_FORMAT_ARGS);
+    expect(formatExactDollars(41.87)).toBe("41.87");
+    expect(formatExactDollars(41)).toBe("41");
+    expect(formatExactDollars(1234.5)).toBe("1,234.50");
+    expect(formatExactDollars(Number.NaN)).toBe("0");
   });
 
   it("other user payments show whole dollars; only job checkout shows cents", () => {

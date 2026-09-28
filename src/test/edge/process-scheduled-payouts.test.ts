@@ -251,6 +251,20 @@ describe("process-scheduled-payouts edge function", () => {
       expect((transferArg.metadata as Record<string, unknown>).onboarding_fee_first_payout).toBe("true");
     });
 
+    it("takes a non-whole-dollar fee BEFORE the one whole-dollar floor, not between two (Q236)", async () => {
+      seedPayableJob(scenario, { job: { urgent_fee: 20 } });
+      scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 230 }] };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(res.status).toBe(200);
+      // $90 + $19.42 net urgent = $109.42 owed − $2.30 fee = $107.12 → $107.
+      // Flooring first ($109 − $2.30 = $106.70 → $106) costs a second dollar.
+      const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
+      expect(transferArg.amount).toBe(10700);
+    });
+
     it("does not claim or deduct when the helper already paid the fee", async () => {
       seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
       const fn = await load();

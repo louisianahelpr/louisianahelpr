@@ -20,6 +20,23 @@ export function formatPayoutDollars(amount: number): string {
   return Math.floor(roundPayoutDownCents(amount * 100) / 100).toLocaleString("en-US");
 }
 
+/**
+ * EXACT-cents dollars for money that is NOT a Helpr payout: a refund to the
+ * poster's card, a restored gift balance, a referral-credit cash-out (whose
+ * transfer is exact). Mirrors `formatPriceExact` in `src/lib/format.ts`:
+ * "$41.87", or "$41" when there are no cents. Flooring these would tell the
+ * poster they got back less than Stripe refunded (Q236 review).
+ */
+export function formatExactDollars(amount: number): string {
+  if (!Number.isFinite(amount)) return "0";
+  const cents = Math.round(amount * 100);
+  const hasFraction = cents % 100 !== 0;
+  return (cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+}
+
 /** Cents-denominated sibling, for the handlers that carry Stripe cents. */
 export function formatPayoutCents(cents: number): string {
   if (!Number.isFinite(cents)) return "0";

@@ -61,7 +61,7 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
-import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 
 /**
  * The client type these helpers accept.
@@ -1704,10 +1704,10 @@ serve(async (req) => {
     // told it went "to your original payment method" will go looking for a
     // card refund that will never arrive.
     const posterHow = restoredGiftCents > 0 && refundCents > 0
-      ? `$${formatPayoutDollars(refundDollars)} has been refunded to your original payment method and $${formatPayoutDollars(restoredGiftCents / 100)} is back as a gift you can use on another job.`
+      ? `$${formatExactDollars(refundDollars)} has been refunded to your original payment method and $${formatExactDollars(restoredGiftCents / 100)} is back as a gift you can use on another job.`
       : restoredGiftCents > 0
-      ? `$${formatPayoutDollars(restoredGiftCents / 100)} is back as a gift you can use on another job.`
-      : `$${formatPayoutDollars(refundDollars)} has been refunded to your original payment method.`;
+      ? `$${formatExactDollars(restoredGiftCents / 100)} is back as a gift you can use on another job.`
+      : `$${formatExactDollars(refundDollars)} has been refunded to your original payment method.`;
     const { error: posterNoteErr } = await supabaseAdmin.from("notifications").insert({
       user_id: job.customer_id,
       title: restoredGiftCents > 0 && refundCents === 0

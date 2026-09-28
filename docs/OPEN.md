@@ -1023,7 +1023,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Discarded PostgREST builder calls — branch discarded-query-filters
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [x] npm run typecheck:edge not verified in this container (no Deno) — DONE 2026-09-28: `npm run typecheck:edge` run locally → "189 file(s) checked, 0 errors (10 known/allowlisted)". (archive L2867)
 
 ### HANDOFF 2026-09-15 — map notes + nightly reds (session closed)
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -1057,7 +1056,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Failed list loads rendered "nothing here" + storage audit (2026-09-14)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [x] VERIFY after db-deploy applies 20260914200051: run message-attachments-authz.prod.mjs and record green — DONE 2026-09-28T01:4xZ: GREEN on prod, 16/16 expectations, residue 0 messages/0 objects/0 jobs. First run was RED 6 because the probe's hard-coded fixture jobs had been deleted and it sent A→A (refused by messages_not_to_self); the probe now seeds its own in-progress seed jobs and messages the other party. The live policies were never at fault. (archive L3128)
 
 ### Alerting: few, critical-only, reaching the owner (2026-09-14)
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -1073,7 +1071,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] OPEN LOW-4 (pre-existing): jobs.dispute_evidence_urls legacy mirror still party-writable, unvalidated server-side — Legacy jobs.dispute_evidence_urls column still directly party-writable with only a client render guard; server-side validation not added. (see also line 3171) (archive L3192)
 - [ ] OPEN LOW-7 (pre-existing): process-scheduled-payouts step 4b leaves an orphaned claim row on payout>escrow exit — A payout-exceeds-escrow exit still leaves a permanent pending claim row with a null transfer id. (archive L3193)
 - [ ] OPEN (test tooling): prod-lifecycle-sweeper / pressProdSafety leave a HIRED funded leftover job — Test harness still leaves a hired/funded seed job in place when cancel_escrow 409s; leftovers accumulate until manually released. (archive L3194)
-- [x] OPEN (LOW): confirm SQL watchers' slack-ops-alert posts actually return 200 — DONE 2026-09-28: every net._http_response row in the 24h window 2026-09-27T19:18Z–09-28T01:14Z (282 rows, which includes these watchers' pg_net posts) has status_code 200; zero failures. (archive L3197)
 - [ ] OPEN: 2026-09-14 lifecycle-writes CAS fixes have no prod race proof yet — Eight fixed lifecycle-writes CAS guards (auto-release-payment, auto-resolve-disputes, escrow stamp, revisions, cancel_escrow, chargeback) still have zero prod concurrency proof. (archive L3201)
 - [ ] QUEUED: replay chargeback dispute-hold fix (N4) on Stripe test-mode seed jobs, prod slot — Chargeback dispute-hold conditional writes still unproven on live Stripe test-mode seed jobs; replay not run. (archive L3206)
 

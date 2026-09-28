@@ -2072,3 +2072,15 @@ duplicate-number check).
 ## Archived 2026-09-28 — from "QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above"
 
 - [x] **Q228 No sweep of toast copy, the largest body of user-facing copy. (Q165 carry-over, 2026-09-23.)** Evidence: no toast inventory or copy sweep in scripts/, docs/audit/ or src/test/ (only placement and RPC-error tests). From: docs/archive/launch-2026-09/VERIFIED_REPORT.md. RE-CHECKED 2026-09-28 (lane R1): the sweep landed in 39451a470 (#1823): scripts/toast-inventory.mjs builds the inventory from the TypeScript AST, src/test/toastCopy.test.ts checks every toast leaf against the copy rules and carries @mutate lines. done-when: test src/test/toastCopy.test.ts TICKED 2026-09-28 (lane OK): scripts/open-done-when.mjs ran `npx vitest run src/test/toastCopy.test.ts`: passes.
+
+## Archived 2026-09-28 — from "Discarded PostgREST builder calls — branch discarded-query-filters"
+
+- [x] npm run typecheck:edge not verified in this container (no Deno) — DONE 2026-09-28: `npm run typecheck:edge` run locally → "189 file(s) checked, 0 errors (10 known/allowlisted)". (archive L2867)
+
+## Archived 2026-09-28 — from "Failed list loads rendered "nothing here" + storage audit (2026-09-14)"
+
+- [x] VERIFY after db-deploy applies 20260914200051: run message-attachments-authz.prod.mjs and record green — DONE 2026-09-28T01:4xZ: GREEN on prod, 16/16 expectations, residue 0 messages/0 objects/0 jobs. First run was RED 6 because the probe's hard-coded fixture jobs had been deleted and it sent A→A (refused by messages_not_to_self); the probe now seeds its own in-progress seed jobs and messages the other party. The live policies were never at fault. (archive L3128)
+
+## Archived 2026-09-28 — from "Money: concurrent release / Quick Release / Quick Refund (2026-09-13)"
+
+- [x] OPEN (LOW): confirm SQL watchers' slack-ops-alert posts actually return 200 — DONE 2026-09-28: every net._http_response row in the 24h window 2026-09-27T19:18Z–09-28T01:14Z (282 rows, which includes these watchers' pg_net posts) has status_code 200; zero failures. (archive L3197)

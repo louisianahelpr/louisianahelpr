@@ -25,10 +25,7 @@ import { blockUser } from "@/lib/userBlocks";
 // quotes. Display-only here — the amount that actually moves is recomputed
 // server-side — but it has to agree with what the poster is about to be
 // charged, so it is read, never restated.
-import {
-  jobLocalMidnightMs,
-  cancellationFeePercent,
-} from "../../supabase/functions/_shared/cancellationFee";
+import { computeCancellationFee } from "../../supabase/functions/_shared/cancellationFee";
 import { formatPriceExact } from "@/lib/format";
 
 interface BlockUserDialogProps {
@@ -71,11 +68,14 @@ export function BlockUserDialog({
       if (!user) return;
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, budget, date_needed, customer_id, helper_id")
+        .select("id, budget, date_needed, start_time, customer_id, helper_id, helper_confirmed_at")
         .or(
           `and(customer_id.eq.${user.id},helper_id.eq.${blockedUserId}),and(customer_id.eq.${blockedUserId},helper_id.eq.${user.id})`,
         )
-        .in("status", ["accepted", "in_progress", "revision_requested"]);
+        .in("status", ["accepted", "in_progress", "revision_requested"])
+        // Same set block_user_and_settle cancels: finished work is not
+        // cancelled by a block, so it is neither counted nor charged a fee.
+        .is("helper_completed_at", null);
       if (error) {
         // A swallowed error here would set the count to 0 and hide the
         // "active jobs will be cancelled" warning — leave it unknown
@@ -89,12 +89,24 @@ export function BlockUserDialog({
       const mine = rows.filter((r) => r.customer_id === user.id);
       setIsPosterOnAny(mine.length > 0);
       setEstimatedFee(
-        mine.reduce((sum, r) => {
-          if (!r.date_needed || !(Number(r.budget) > 0) || !r.helper_id) return sum;
-          const hours = (jobLocalMidnightMs(r.date_needed) - Date.now()) / (1000 * 60 * 60);
-          const percent = cancellationFeePercent(true, hours);
-          return sum + Math.round(Number(r.budget) * percent) / 100;
-        }, 0),
+        // Q236(c) (owner, 2026-09-27): NO fee on an offer the Helpr never
+        // accepted. block_user_and_settle prices each job on commitment
+        // (helper_confirmed_at) and its start time; this quote used to price
+        // any assigned Helpr at midnight of the day, so it promised a fee the
+        // server never charges. computeCancellationFee is the server's own rule.
+        mine.reduce(
+          (sum, r) =>
+            sum +
+            computeCancellationFee({
+              budget: r.budget == null ? null : Number(r.budget),
+              date_needed: r.date_needed,
+              start_time: r.start_time ?? null,
+              cancelled_at: null,
+              helper_id: r.helper_id,
+              helper_confirmed_at: r.helper_confirmed_at ?? null,
+            }),
+          0,
+        ),
       );
     })();
     return () => {

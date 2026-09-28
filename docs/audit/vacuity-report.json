@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-28T00:10:31.374Z",
-  "guards": 1245,
-  "registered": 1245,
+  "generated": "2026-09-28T00:16:42.023Z",
+  "guards": 1246,
+  "registered": 1246,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -130,6 +130,17 @@
       ],
       "parents": [
         "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/BlockUserDialog.tsx",
+      "tests": [
+        "src/components/BlockUserDialog.feeQuote.test.tsx"
+      ],
+      "parents": [
+        "src/pages/user/UserProfile.tsx",
+        "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
+        "src/pages/messages/Messages.tsx"
       ]
     },
     {

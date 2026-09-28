@@ -46,7 +46,7 @@
     },
     {
       "file": "src/components/BlockUserDialog.tsx",
-      "line": 112,
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -56,7 +56,7 @@
     },
     {
       "file": "src/components/BlockUserDialog.tsx",
-      "line": 117,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

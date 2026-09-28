@@ -460,7 +460,7 @@ serve(async (req) => {
   if (!dryRun && !onlyParentId) {
     const { data: stale, error: staleErr } = await supabase
       .from("recurring_visit_payments")
-      .select("id, parent_job_id, visit_date, status, payer_id, amount_cents, stripe_payment_intent_id, stripe_session_id")
+      .select("id, parent_job_id, visit_date, status, payer_id, helper_id, amount_cents, stripe_payment_intent_id, stripe_session_id")
       .in("status", ["pending", "paid"])
       .lte("visit_date", today)
       .order("visit_date", { ascending: true })
@@ -536,6 +536,36 @@ serve(async (req) => {
         (await settleVisitPayment(supabase, row.id, "funded", String(booked[0].id))).forEach(fail);
         continue;
       }
+      // Q808 (owner, 2026-09-27): withhold the card fee on BOTH paths. A run
+      // that skipped this paid visit BEFORE its charge re-read (the series had
+      // ended, or the date changed hands) never tagged the intent, so the
+      // cause is read from the rows themselves: an ended series, a date nobody
+      // holds, or a date now held by a Helpr other than the one this payment
+      // was charged for (row.helper_id) withholds the fee exactly as the
+      // mid-run refusal does. A ban (end_series_for_banned_account) or an
+      // account deletion (series_visit_holds FK ON DELETE CASCADE) removes the
+      // holds, so those land here as an unheld date and withhold the fee too.
+      // Any other unbooked paid visit (a chargeback stop, a block whose hold
+      // still stands with the same Helpr) is refunded in full.
+      // Unread, the cause is unknown: refund nothing this run, retry next.
+      const [causeParent, causeHold] = await Promise.all([
+        supabase.from("jobs").select("id, series_ended_on").eq("id", row.parent_job_id).maybeSingle(),
+        supabase
+          .from("series_visit_holds")
+          .select("id, helper_id")
+          .eq("parent_job_id", row.parent_job_id)
+          .eq("visit_date", row.visit_date)
+          .limit(1),
+      ]);
+      if (causeParent.error || causeHold.error) {
+        fail(
+          `visit payment ${row.id}: could not read why its visit was not booked (${causeParent.error?.message ?? causeHold.error?.message}); retried next run`,
+        );
+        continue;
+      }
+      const seriesEndedCause = Boolean((causeParent.data as { series_ended_on: string | null } | null)?.series_ended_on);
+      const nowHolder = ((causeHold.data ?? []) as Array<{ helper_id: string | null }>)[0];
+      const dateUnheldCause = !nowHolder || (row.helper_id != null && nowHolder.helper_id !== row.helper_id);
       let refundParams: Stripe.RefundCreateParams = { payment_intent: pi };
       let alreadyRefunded = false;
       try {
@@ -558,7 +588,7 @@ serve(async (req) => {
           fail(`visit payment ${row.id}: could not read ${pi} (${(readErr as Error).message}); retried next run`);
           continue;
         }
-        const withholdFee = piObj?.metadata?.refund_withhold_fee === "true";
+        const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" || seriesEndedCause || dateUnheldCause;
         const lessFeeCents = Math.max(0, amountCents - actualOrEstimatedFeeCents(piObj, amountCents));
         const owedCents = withholdFee ? lessFeeCents : amountCents;
         // Set before any other Stripe call, so a failure below alerts with

@@ -100,7 +100,8 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| true) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |  \|\| refunded >= lessFeeCents) { |  \|\| refunded >= owedCents) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           refundParams = { payment_intent: pi, amount: owedCents, metadata: { fee_withheld: "true" } };\n        }\n        const prior |         }\n        const prior
-// @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = piObj?.metadata?.refund_withhold_fee === "true"; | const withholdFee = false;
+// @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | const withholdFee = false;
+// @mutate supabase/functions/charge-recurring-visits/index.ts | const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" \|\| | const withholdFee =
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const owedCents = withholdFee ? lessFeeCents : amountCents; | const owedCents = amountCents;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | await stripe.paymentIntents.update(intent.id, { metadata: { refund_withhold_fee: "true" } }); | void 0;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | Refund ${pi} by hand: ${\n            refundParams.amount === undefined ? | Refund ${pi} by hand: ${\n            refundParams.amount !== undefined ?
@@ -109,6 +110,15 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const live = prior.data.filter((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled"); | const live = prior.data;
 // Ended mid-run: a refunded series_ended refusal is reported as a defect (red run for a designed outcome).
 // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (seriesEndedMidRun) { |           if (false) {
+// Q808: a pre-read skip of a paid visit (ended series / unheld date) refunds in full again.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | === "true" \|\| dateUnheldCause;
+// @mutate supabase/functions/charge-recurring-visits/index.ts | === "true" \|\| seriesEndedCause \|\| dateUnheldCause; | === "true" \|\| seriesEndedCause;
+// Q808 review: a date that changed hands to ANOTHER Helpr refunds in full again.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | !nowHolder \|\| (row.helper_id != null && nowHolder.helper_id !== row.helper_id); | !nowHolder;
+// Q808 review: the same Helpr still holding the date withholds the fee.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | nowHolder.helper_id !== row.helper_id); | nowHolder.helper_id === row.helper_id);
+// Q808: an unreadable cause is guessed instead of retried.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |       if (causeParent.error \|\| causeHold.error) { |       if (false) {
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -1585,6 +1595,97 @@ describe("charge-recurring-visits edge function", () => {
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
     expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("less the card fee");
     expect(b.errors).toBe(0);
+  });
+
+  // ── Q808 (owner, 2026-09-27): the fee is withheld on BOTH paths ──────────
+  // A paid visit skipped BEFORE the charge re-read (series ended, date no
+  // longer held) never had its intent tagged; the sweep reads the cause.
+  const untaggedIntent = { ...taggedIntent, metadata: {} };
+
+  it("Q808: a paid visit of an ENDED series, skipped before the charge re-read (intent untagged), is refunded less the fee", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: 9680, metadata: { fee_withheld: "true" } });
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("less the card fee");
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q808: a paid visit whose date nobody holds any more (intent untagged) is refunded less the fee", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireHolds([]);
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: 9680, metadata: { fee_withheld: "true" } });
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q808 review: a paid visit whose date is now held by ANOTHER Helpr (changed hands, intent untagged) is refunded less the fee", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireHolds([{ id: "hold-other", visit_date: "2026-09-01", helper_id: "helper-2" }]);
+    wireVisitPayments({ sweep: { rows: [{ ...orphan, helper_id: HELPER_ID }] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: 9680, metadata: { fee_withheld: "true" } });
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q808 control: a paid, unbooked visit of a live series whose date is still held by the SAME Helpr is refunded IN FULL", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireHolds([{ id: "hold-same", visit_date: "2026-09-01", helper_id: HELPER_ID }]);
+    wireVisitPayments({ sweep: { rows: [{ ...orphan, helper_id: HELPER_ID }] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).not.toContain("less the card fee");
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q808: an unreadable cause (hold read fails) refunds nothing this run and is a defect", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireHolds({ error: { message: "boom", code: "XX000" } });
+    wireVisitPayments({ sweep: { rows: [orphan] } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update")).toEqual([]);
+    expect(reasons(b)).toContain("could not read why its visit was not booked");
   });
 
   it("Q415 (e) review: a failed refund of a fee-withheld intent tells ops the withheld amount, not 'in full'", async () => {

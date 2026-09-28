@@ -299,8 +299,8 @@ async function helperConfirmsOffer(api: APIRequestContext, helper: Session, id: 
   const now = new Date().toISOString();
   const rows = await readJson<{ id: string }[]>(
     await api.patch(
-      `${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&status=eq.accepted&helper_confirmed_at=is.null` +
-        `&or=(response_deadline.is.null,response_deadline.gt.${encodeURIComponent(now)})&select=id`,
+      `${SUPABASE_URL}/rest/v1/jobs?select=id&id=eq.${id}&status=eq.accepted&helper_confirmed_at=is.null` +
+        `&or=(response_deadline.is.null,response_deadline.gt.${encodeURIComponent(now)})`,
       { headers: headers(helper, { Prefer: "return=representation" }), data: { helper_confirmed_at: now, response_deadline: null } },
     ),
     `helper-e2e confirms the offer on ${id}`,

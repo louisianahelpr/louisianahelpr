@@ -23,3 +23,8 @@ export function lockedJobs(dir?: string): Inventory;
 export function matchesLocked(apiName: string, locked: LockedJob[]): boolean;
 /** May the run `me` join the lock now? */
 export function decide(me: { id: number; created_at: string }, runs: InFlightRun[], inventory: Inventory): { go: boolean; why: string };
+/** ms to wait out a GitHub API rate limit, or null when the response is not one. */
+export function rateLimitWaitMs(
+  res: { status: number; headers?: Record<string, string>; body?: string },
+  now?: number,
+): number | null;

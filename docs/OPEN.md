@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 631 items — 424 done, 49 partly done (fixed, protection pending), 158 open.**
+**Queue: 633 items — 424 done, 49 partly done (fixed, protection pending), 160 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -847,6 +847,8 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [ ] **Q854 restore undelivered-event detection (Q156) on the live webhook.** The live guard dropped the pending_webhooks > 0 check because GET /v1/events needs "Events: Read" and the owner's key is scoped to Webhook Endpoints only (assumed from the scope name, not verified against Stripe's docs). Options: add "Events: Read" to STRIPE_LIVE_READ_KEY and restore the check in `scripts/check-stripe-webhook-events.mjs`, or measure delivery another way (webhook receipt rows vs Stripe events). Also: `scripts/audit/expiry-inventory.json` tracks STRIPE_TEST_SECRET_KEY but not STRIPE_LIVE_READ_KEY.
 - [ ] **Q855 Q840 review follow-ups (lh-silent-failure, 2026-09-30, deferred at landing a4a341007).** (1) send-marketing-blast does one is_seed profile lookup per recipient (batch it); (2) the suppressed-row `email_send_log` insert only logs its error to console, `logSkip` drops its error, and send-account-status-email does not check its pending-row insert; the expiry and dead-letter log inserts in process-email-queue drop their errors too (pre-existing); (3) `_shared/testRecipient.ts` duplicates the SQL `is_fixture_email`/`is_seed_email` rules instead of calling one source; (4) `src/test/testRecipientEmailGate.test.ts` checks that each sender calls the gate, but not that it gates before the send at each call site. done-when: all four fixed or each has a dated owner decision.
 - [ ] **Q856 messages section rhythm is unmeasured while poster-e2e has one Active thread (2026-09-30).** shell-spacing.spec.ts now reports messages@320/375/390/430 as UNMEASURED (annotation + `SECTION` log line) when fewer than two `row-name` rows show, because /messages opens on Active (0c64d4d04) and poster-e2e had exactly 1 live-job thread (Active 1 / All 43). Close it by giving poster-e2e a second is_seed thread on a live job (accepted/in_progress) so the stack is measured nightly, then confirm the UNMEASURED line is gone.
+- [ ] **Q857 /profile?tab=gift_card arrives in two waves at 1440 (2026-09-30).** prod-audit 36766443019 page-settle.spec.ts: `1440 /profile?tab=gift_card: cls=0 waves=2` (new, not in KNOWN). No jump (CLS 0), but content paints in two steps. Find the late query, reserve or co-load it so one wave paints, then re-run page-settle and record waves=1.
+- [ ] **Q858 prod-audit request budget out of date (2026-09-30).** prod-audit 36766443019 request-budget gate: `perTest 137.7 is over its budget 93.5` and `signIns 0 is under half its budget 1: stale budget, lower it to 0`. Find which spec raised per-test load (likely the funded-fixture / Q852 path), then set the exact numbers in the budget file and re-run prod-audit green.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

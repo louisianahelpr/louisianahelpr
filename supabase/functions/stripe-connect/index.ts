@@ -4,6 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { stripeIdentityVerified } from "../_shared/stripeIdentity.ts";
+import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -546,11 +547,9 @@ serve(async (req) => {
     // etc.) so stripe.accounts.retrieve / update / del all 404. Clear the
     // stale link and surface a friendly retry message — next call will
     // create a fresh account.
-    const isStaleAccountErr =
-      err.statusCode === 404 ||
-      err.message?.includes("No such account") ||
-      err.code === "account_invalid" ||
-      err.code === "resource_missing";
+    // Includes an account from the other Stripe mode (a sandbox acct_ under
+    // the live key): see _shared/stripeAccountUsable.ts (#1582).
+    const isStaleAccountErr = isUnusableConnectAccountError(err);
 
     if (isStaleAccountErr) {
       try {

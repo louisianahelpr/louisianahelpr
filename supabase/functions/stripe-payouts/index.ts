@@ -2,6 +2,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 
 interface PayoutSummary {
   connected: boolean;
@@ -89,12 +90,32 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Fetch account status, balance and recent payouts in parallel
-    const [account, balance, payoutsList] = await Promise.all([
-      stripe.accounts.retrieve(accountId),
-      stripe.balance.retrieve({ stripeAccount: accountId }),
-      stripe.payouts.list({ limit: 20 }, { stripeAccount: accountId }),
-    ]);
+    // Fetch account status, balance and recent payouts in parallel.
+    //
+    // An account Stripe will not serve at all (deleted, or created in the other
+    // Stripe mode — a sandbox acct_ under the live key) is NOT connected, and
+    // saying so is the true answer, not an outage: it answered 500 on every
+    // Earnings load for the shared E2E accounts after the live switch (#1582).
+    // This function only reads; stripe-connect clears the stale id on the
+    // user's next payout-setup call. Any other Stripe failure still 500s.
+    let fetched;
+    try {
+      fetched = await Promise.all([
+        stripe.accounts.retrieve(accountId),
+        stripe.balance.retrieve({ stripeAccount: accountId }),
+        stripe.payouts.list({ limit: 20 }, { stripeAccount: accountId }),
+      ]);
+    } catch (stripeErr) {
+      if (!isUnusableConnectAccountError(stripeErr)) throw stripeErr;
+      console.warn(
+        `[stripe-payouts] ${user.id}'s stripe_account_id is unusable, answering not-connected:`,
+        stripeErr instanceof Error ? stripeErr.message : stripeErr,
+      );
+      return new Response(JSON.stringify(empty), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const [account, balance, payoutsList] = fetched;
 
     const result: PayoutSummary = {
       connected: true,

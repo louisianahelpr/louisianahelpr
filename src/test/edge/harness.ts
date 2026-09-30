@@ -452,6 +452,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeIdentity.ts";`,
   );
 
+  // Unusable-Connect-account classifier: `_shared/stripeAccountUsable.ts` is
+  // pure TypeScript with no imports, so the generated file points at the REAL
+  // module. Whether a Stripe error clears a payout account or 500s is behaviour
+  // under test (#1582), never mocked.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeAccountUsable\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeAccountUsable.ts";`,
+  );
+
   // Flat one-time product prices: `_shared/productPrices.ts` is a plain
   // constant module (no Deno/remote imports), so the generated file points at
   // the REAL module. These ARE the amounts Stripe charges for a boost and a

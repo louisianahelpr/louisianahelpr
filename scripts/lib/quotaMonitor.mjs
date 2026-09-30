@@ -48,7 +48,7 @@ const GB = 1024 ** 3;
  * Numbers were NOT re-read from the vendor pages on 2026-09-23 (egress-blocked
  * from the cloud session), which each `source` says.
  */
-export const PLANS = { supabase: "Pro", vercel: "Hobby", resend: "Free (assumed)", sentry: "Developer (assumed)" };
+export const PLANS = { supabase: "Pro", vercel: "Hobby", resend: "Pro", sentry: "Developer (assumed)" };
 
 export const PLAN_LIMITS = {
   supabase_db_bytes: { value: 8 * GB, unit: "bytes", source: "Supabase Pro: 8 GB disk per project included (pricing page; not re-read 2026-09-23)." },
@@ -61,8 +61,7 @@ export const PLAN_LIMITS = {
   vercel_fast_data_transfer_gb_month: { value: 100, unit: "GB/month", source: "Vercel Hobby: 100 GB Fast Data Transfer/month included (the Hobby tables read \"100 GB\", decimal; not re-read 2026-09-23)." },
   vercel_function_invocations_month: { value: 1_000_000, unit: "invocations/month", source: "Vercel Hobby: 1,000,000 function invocations/month included (the Vercel Functions pricing table, \"1 million included\" under Hobby, read 2026-09-14/15; not re-read 2026-09-23)." },
   vercel_build_minutes_month: { value: null, unit: "CPU minutes/month", source: "Vercel Hobby: no build-minute allowance number sourced in this repo; measured and logged, never graded." },
-  resend_emails_month: { value: 3_000, unit: "emails/month", source: "Resend free plan: 3,000 emails/month (ASSUMED: the owner said only 'Resend has plan limits')." },
-  resend_emails_day: { value: 100, unit: "emails/day", source: "Resend free plan: 100 emails/day (ASSUMED as above)." },
+  resend_emails_month: { value: 50_000, unit: "emails/month", source: "Resend Pro: 50,000 emails/month on the lower Pro tier, $20/mo (resend.com/pricing, read 2026-09-30; the owner confirmed Pro 2026-09-30, the 50k vs 100k tier is not confirmed, so the lower figure is graded). Pro has \"No daily email limit\", so there is no daily row." },
   sentry_replays_month: { value: 50, unit: "replays/month", source: "Sentry Developer plan: 50 session replays/month (ASSUMED, not re-read 2026-09-23). Measured 2026-09-23: 63 replays accepted in the trailing 30 days, none after 2026-09-14, and the helpr-4m banner read \"Replay Quota Exceeded\" (docs/OPEN.md Q275)." },
   sentry_errors_month: { value: 5_000, unit: "errors/month", source: "Sentry Developer plan: 5,000 errors/month (ASSUMED: the owner said only 'Sentry has plan limits')." },
   vercel_deployment_storage_gb_month: { value: null, unit: "GB-months", source: "Vercel: no published deployment-storage allowance (\"your plan may include an allowance\", no number); measured and logged, never graded." },
@@ -160,18 +159,7 @@ export const QUOTAS = [
     window: "calendar month to date (UTC)",
     read: "sql",
     env: "LH_QUOTA_RESEND_MONTHLY",
-    limitSource: "Resend free plan: 3,000 emails/month (ASSUMED: the owner said only 'Resend has plan limits'; override with LH_QUOTA_RESEND_MONTHLY). Measured: email_send_log rows with status 'sent' (app mail only; Supabase Auth mail sent over SMTP is not logged there, so this is a floor).",
-  },
-  {
-    id: "resend.sends_day",
-    service: "Resend",
-    name: "Emails sent (last 24h)",
-    limit: PLAN_LIMITS.resend_emails_day.value,
-    unit: "emails/day",
-    window: "trailing 24h",
-    read: "sql",
-    env: "LH_QUOTA_RESEND_DAILY",
-    limitSource: "Resend free plan: 100 emails/day (ASSUMED as above; override with LH_QUOTA_RESEND_DAILY). Same floor caveat as the monthly row.",
+    limitSource: "Resend Pro: 50,000 emails/month, lower Pro tier (resend.com/pricing, read 2026-09-30; owner confirmed Pro 2026-09-30, tier unconfirmed; override with LH_QUOTA_RESEND_MONTHLY). Pro has no daily email limit. Measured: email_send_log rows with status 'sent' (app mail only; Supabase Auth mail sent over SMTP is not logged there, so this is a floor).",
   },
   {
     id: "sentry.errors_30d",

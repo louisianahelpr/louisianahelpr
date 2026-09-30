@@ -394,7 +394,7 @@ describe("#1794: the API request context is metered too", () => {
 
   it("prodTest meters every spec's `request` fixture (core-loop canary measured 0, 2026-09-30)", () => {
     const src = readFileSync(resolve(__dirname, "..", "..", "e2e", "prodTest.ts"), "utf8");
-    expect(src).toMatch(/request:\s*async\s*\(\{\s*request,\s*_requestMeter\s*\},\s*use\)\s*=>\s*\{\s*await use\(_requestMeter\.attachApi\(request\)\);/);
+    expect(src).toMatch(/request:\s*async\s*\(\{\s*request,\s*_requestMeter\s*\},\s*(\w+)\)\s*=>\s*\{\s*await \1\(_requestMeter\.attachApi\(request\)\);/);
   });
 });
 

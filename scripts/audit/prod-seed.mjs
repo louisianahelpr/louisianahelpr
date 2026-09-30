@@ -1022,7 +1022,9 @@ async function verify() {
   await check("account incomplete profile (seed, not legacy)", `profiles?email=eq.${encodeURIComponent(OWNED.incomplete.email)}&is_seed=eq.true&avatar_url=is.null&is_legacy_user=eq.false&select=user_id`, 1);
   await check("account admin role (seed)", `user_roles?id=eq.${sid("role:admin")}&role=eq.admin&select=id`, 1);
   await check("account without Stripe (seed)", `profiles?is_seed=eq.true&stripe_account_id=is.null&select=user_id`, 1);
-  await check("account with Stripe (seed)", `profiles?is_seed=eq.true&stripe_account_id=not.is.null&select=user_id`, 1, "real flow");
+  // No "account with Stripe (seed)" row: Stripe is LIVE, a sandbox Connect id is
+  // unusable under the live key (#1582), and the owner decided 2026-09-30 that
+  // test accounts carry no live payout account before launch.
   await check("IDV not verified (seed)", `profiles?is_seed=eq.true&idv_status=neq.verified&select=user_id`, 1);
   if (heavy) {
     await check("heavy: jobs posted", `jobs?customer_id=eq.${heavy.user_id}&select=id`, 100);

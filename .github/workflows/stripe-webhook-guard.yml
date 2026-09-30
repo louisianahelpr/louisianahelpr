@@ -34,10 +34,13 @@ permissions:
 # old test-mode check was red every day (#1966). No Stripe key lives in GitHub:
 # the live half calls the edge function stripe-webhook-config-check with
 # CRON_SECRET, and that function reads the live key from its own
-# Supabase env, makes one GET /v1/webhook_endpoints, and returns only
-# {id, url, status, livemode, enabled_events} per endpoint plus `keyIsLive`
-# (owner decision 2026-09-30, "Allow the function"). A missing secret or a
-# non-200 from the function is a red job.
+# Supabase env, makes two GETs (/v1/webhook_endpoints, and Q854's
+# /v1/events?delivery_success=false over a bounded window, owner pop-up
+# 2026-09-30), and returns only {id, url, status, livemode, enabled_events} per
+# endpoint, `keyIsLive`, and an `undelivered` count with {id, type} per event
+# (owner decision 2026-09-30, "Allow the function"). A missing secret, a non-200
+# from the function, a missing `undelivered` block, or any undelivered live
+# event is a red job.
 
 on:
   push:
@@ -115,6 +118,23 @@ jobs:
             exit 1
           fi
           echo "Guard correctly failed (exit $code) on the stale-event-list fixture."
+      - name: Self-test — the guard must go red on undelivered live events (Q854)
+        run: |
+          set +e
+          out=$(node scripts/check-stripe-webhook-events.mjs \
+            --events-fixture scripts/fixtures/stripe-webhook-endpoints/undelivered-events.json 2>&1)
+          code=$?
+          set -e
+          echo "$out"
+          if [ "$code" -eq 0 ]; then
+            echo "::error::The guard PASSED on the undelivered-events fixture. Undelivered live events are no longer detected."
+            exit 1
+          fi
+          if ! printf '%s' "$out" | grep -q "NOT delivered"; then
+            echo "::error::The guard failed on the undelivered-events fixture, but not for undelivered events."
+            exit 1
+          fi
+          echo "Guard correctly failed (exit $code) on the undelivered-events fixture."
 
   live-secret-present:
     name: CRON_SECRET is configured
@@ -143,7 +163,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: One enabled endpoint, events matching the handler map
+      - name: One enabled endpoint, events matching the handler map, no undelivered events
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: node scripts/check-stripe-webhook-events.mjs --require-live

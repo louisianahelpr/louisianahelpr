@@ -37,15 +37,20 @@
  * prevent. Skipping it must be asked for explicitly (--static), and that run
  * says so in its own PASS line.
  *
- * READ ONLY. The function makes one GET /v1/webhook_endpoints and nothing else.
+ * READ ONLY. The function makes two GETs and nothing else: /v1/webhook_endpoints,
+ * and /v1/events?delivery_success=false over a bounded window (Q854, owner
+ * pop-up 2026-09-30). From the second it returns only a count plus {id, type}
+ * per event. RED when that count is above zero (a live event Stripe has not
+ * delivered, i.e. still pending or failed every attempt), when the list was
+ * truncated, or when the `undelivered` block is missing (never read as zero).
  * Never prints a secret.
- *
- * Not covered here: undelivered events (pending_webhooks > 0, Q156, Q854).
  *
  * Usage:
  *   node scripts/check-stripe-webhook-events.mjs              # static + live; RED if the key is missing
  *   node scripts/check-stripe-webhook-events.mjs --static     # static half only
  *   node scripts/check-stripe-webhook-events.mjs --require-live  # accepted no-op
+ *   node scripts/check-stripe-webhook-events.mjs --fixture <endpoints.json>      # prove the endpoint half red
+ *   node scripts/check-stripe-webhook-events.mjs --events-fixture <shaped.json>  # prove the undelivered half red
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -55,7 +60,7 @@ import {
   WEBHOOK_URL,
   WEBHOOK_INDEX,
 } from "./stripe-webhook-events.mjs";
-import { gradeConfigCheckResponse, gradeLiveEndpoints } from "./lib/stripeWebhookGuard.mjs";
+import { gradeConfigCheckResponse, gradeLiveEndpoints, gradeUndelivered } from "./lib/stripeWebhookGuard.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const SANDBOX_ON = join(root, "scripts/e2e/stripe-sandbox-on.sh");
@@ -80,6 +85,12 @@ const STATIC_ONLY = args.has("--static");
  * scripts/fixtures/stripe-webhook-endpoints/. Never used by CI's live job.
  */
 const FIXTURE = argv.includes("--fixture") ? argv[argv.indexOf("--fixture") + 1] : null;
+/**
+ * --events-fixture <file>: grade a recorded `undelivered` block (the shape the
+ * edge function returns, {undelivered: {since, until, count, truncated, events}})
+ * so the undelivered-events half can be PROVEN RED without a key. Q854.
+ */
+const EVENTS_FIXTURE = argv.includes("--events-fixture") ? argv[argv.indexOf("--events-fixture") + 1] : null;
 
 const failures = [];
 const notes = [];
@@ -163,7 +174,8 @@ const FUNCTIONS_BASE_OK =
 
 /**
  * The ONLY request this guard makes: an authenticated GET of the edge function,
- * which itself makes one GET to Stripe. There is no write path.
+ * which itself makes two GETs to Stripe (webhook_endpoints, undelivered events).
+ * There is no write path.
  */
 async function readConfigCheck(serviceKey) {
   const res = await fetch(`${FUNCTIONS_BASE}/${CONFIG_CHECK_FN}`, {
@@ -199,6 +211,11 @@ async function liveHalf() {
     record(gradeLiveEndpoints(JSON.parse(readFileSync(FIXTURE, "utf8")), handlers, WEBHOOK_URL));
     return;
   }
+  if (EVENTS_FIXTURE) {
+    notes.push(`FIXTURE MODE: grading ${EVENTS_FIXTURE} instead of the live Stripe account's undelivered events.`);
+    record(gradeUndelivered(JSON.parse(readFileSync(EVENTS_FIXTURE, "utf8")).undelivered));
+    return;
+  }
   const serviceKey = process.env.CRON_SECRET;
   if (!serviceKey) {
     fail(
@@ -220,7 +237,7 @@ async function liveHalf() {
   try {
     body = await readConfigCheck(serviceKey);
   } catch (e) {
-    fail(`Could not list Stripe live-mode webhook endpoints: ${e.message}`);
+    fail(`Could not read Stripe live-mode webhook endpoints and undelivered events: ${e.message}`);
     return;
   }
   record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL));

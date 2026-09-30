@@ -6,6 +6,13 @@
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   const noHandler = subscribed.filter((e) => !handlers.includes(e)); |   const noHandler = [];
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   const ours = list.data.filter((e) => endpointKey(e.url) === target); |   const ours = list.data.filter((e) => e.url === url);
 // @mutate .github/workflows/stripe-webhook-guard.yml | CRON_SECRET: ${{ secrets.CRON_SECRET }} | CRON_SECRET: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!undelivered \|\| typeof undelivered !== "object") { |   if (!undelivered) return { failures, notes }; if (typeof undelivered !== "object") {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Number.isInteger(count) \|\| count < 0 \|\| !Array.isArray(events)) { |   if (!Array.isArray(events)) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (count > 0 \|\| truncated === true) { |   if (count > 1) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |     failures: [...config.failures, ...undelivered.failures], |     failures: [...config.failures],
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Number.isInteger(since) \|\| !Number.isInteger(until) \|\| since >= until) { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (count !== events.length) { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (typeof truncated !== "boolean") { |   if (false) {
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -13,6 +20,7 @@ import { join } from "node:path";
 import {
   gradeConfigCheckResponse,
   gradeLiveEndpoints,
+  gradeUndelivered,
   type WebhookEndpoint,
 } from "../../scripts/lib/stripeWebhookGuard.mjs";
 
@@ -156,7 +164,12 @@ describe("gradeLiveEndpoints", () => {
 });
 
 describe("gradeConfigCheckResponse (the edge function's body)", () => {
-  const body = (over: Record<string, unknown> = {}) => ({ keyIsLive: true, endpoints: [ep()], ...over });
+  const body = (over: Record<string, unknown> = {}) => ({
+    keyIsLive: true,
+    endpoints: [ep()],
+    undelivered: { since: 1_790_000_000, until: 1_790_093_600, count: 0, truncated: false, events: [] },
+    ...over,
+  });
 
   it("passes a live key with one enabled endpoint on exactly the handled events", () => {
     const r = gradeConfigCheckResponse(body(), handlers, WEBHOOK_URL);
@@ -197,6 +210,77 @@ describe("gradeConfigCheckResponse (the edge function's body)", () => {
   });
 });
 
+describe("gradeUndelivered (Q854: GET /v1/events?delivery_success=false)", () => {
+  const u = (over: Record<string, unknown> = {}) => ({
+    since: 1_790_000_000,
+    until: 1_790_093_600,
+    count: 0,
+    truncated: false,
+    events: [],
+    ...over,
+  });
+  const evts = [
+    { id: "evt_A", type: "checkout.session.completed" },
+    { id: "evt_B", type: "charge.refunded" },
+  ];
+
+  it("passes zero undelivered events and says which window it read", () => {
+    const r = gradeUndelivered(u());
+    expect(r.failures).toEqual([]);
+    expect(r.notes.join("\n")).toMatch(/0 undelivered platform-account events created 2026-09-21T14:13:20\.000Z \.\. 2026-09-22T16:13:20\.000Z/);
+  });
+
+  it("is RED on one undelivered event, and on two, naming each id and type", () => {
+    const one = gradeUndelivered(u({ count: 1, events: evts.slice(0, 1) }));
+    expect(one.failures).toHaveLength(1);
+    expect(one.failures[0]).toMatch(/^1 live Stripe platform-account event\(s\) .* are NOT delivered/);
+    const two = gradeUndelivered(u({ count: 2, events: evts }));
+    expect(two.failures[0]).toMatch(/^2 live Stripe platform-account event/);
+    expect(two.failures[0]).toContain("evt_A checkout.session.completed");
+    expect(two.failures[0]).toContain("evt_B charge.refunded");
+  });
+
+  it("is RED when Stripe had more than one page (the count is only a floor)", () => {
+    const r = gradeUndelivered(u({ count: 0, truncated: true }));
+    expect(r.failures[0]).toMatch(/0\+ \(more than one page\)/);
+  });
+
+  it("is RED, never zero, when the block is missing or malformed", () => {
+    for (const bad of [undefined, null, "0", 0]) {
+      expect(gradeUndelivered(bad).failures[0]).toMatch(/no `undelivered` object/);
+    }
+    for (const over of [{ count: undefined }, { count: -1 }, { count: 1.5 }, { count: "0" }, { events: undefined }]) {
+      expect(gradeUndelivered(u(over)).failures[0]).toMatch(/malformed `undelivered` block/);
+    }
+  });
+
+  it("is RED on a block not tied to a real, consistent read (lh-money-escrow review)", () => {
+    for (const over of [{ since: undefined }, { until: undefined }, { since: 1_790_093_600 }, { since: 1_790_093_601 }]) {
+      expect(gradeUndelivered(u(over)).failures[0]).toMatch(/no valid window/);
+    }
+    expect(gradeUndelivered(u({ count: 0, events: evts })).failures[0]).toMatch(/inconsistent `undelivered` block \(count 0, 2 event/);
+    expect(gradeUndelivered(u({ count: 2, events: [] })).failures[0]).toMatch(/inconsistent/);
+    for (const truncated of [undefined, "true", 1]) {
+      expect(gradeUndelivered(u({ truncated })).failures[0]).toMatch(/no boolean `truncated`/);
+    }
+  });
+
+  it("gradeConfigCheckResponse reports undelivered events alongside a clean config, and a missing block", () => {
+    const body = { keyIsLive: true, endpoints: [ep()] };
+    const withEvents = gradeConfigCheckResponse({ ...body, undelivered: u({ count: 2, events: evts }) }, handlers, WEBHOOK_URL);
+    expect(withEvents.failures).toHaveLength(1);
+    expect(withEvents.failures[0]).toMatch(/NOT delivered/);
+    expect(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL).failures[0]).toMatch(/no `undelivered` object/);
+  });
+
+  it("the committed fixture is red for undelivered events", () => {
+    const fx = JSON.parse(
+      readFileSync(join(ROOT, "scripts/fixtures/stripe-webhook-endpoints/undelivered-events.json"), "utf8"),
+    );
+    expect(gradeUndelivered(fx.undelivered).failures[0]).toMatch(/^2 live Stripe platform-account event\(s\) .* NOT delivered/);
+  });
+});
+
 describe("workflow wiring", () => {
   const yml = readFileSync(join(ROOT, ".github/workflows/stripe-webhook-guard.yml"), "utf8");
 
@@ -209,7 +293,13 @@ describe("workflow wiring", () => {
   it("the live job never grades a --fixture (fixture mode skips the keyIsLive check)", () => {
     const live = yml.slice(yml.indexOf("\n  live:\n"), yml.indexOf("\n  notify:\n"));
     expect(live).toContain("check-stripe-webhook-events.mjs");
-    expect(live).not.toMatch(/--fixture/);
+    expect(live).not.toMatch(/--(events-)?fixture/);
+  });
+
+  it("the static job proves the undelivered-events half red on the committed fixture", () => {
+    const stat = yml.slice(yml.indexOf("\n  static:\n"), yml.indexOf("\n  live-secret-present:\n"));
+    expect(stat).toContain("--events-fixture scripts/fixtures/stripe-webhook-endpoints/undelivered-events.json");
+    expect(stat).toContain('grep -q "NOT delivered"');
   });
 
   it("a push never cancels the scheduled run", () => {

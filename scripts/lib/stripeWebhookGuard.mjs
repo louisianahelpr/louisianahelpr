@@ -10,7 +10,8 @@
  * its own env (STRIPE_SECRET_KEY) and returns only {id, url, status, livemode,
  * enabled_events} per endpoint plus `keyIsLive` (owner decision 2026-09-30,
  * "Allow the function", instead of a separate GitHub key). No Stripe key is in
- * GitHub or in this script.
+ * GitHub or in this script. Since Q854 the function also returns `undelivered`
+ * (a count plus {id, type} of live events with delivery_success=false).
  */
 
 /**
@@ -34,7 +35,72 @@ export function gradeConfigCheckResponse(body, handlers, url) {
   if (!Array.isArray(body.endpoints)) {
     return { failures: ["stripe-webhook-config-check returned no `endpoints` array. Refusing to grade."], notes: [] };
   }
-  return gradeLiveEndpoints({ data: body.endpoints }, handlers, url);
+  // Both halves are graded and reported: a config failure must not hide an
+  // undelivered event, nor the other way round.
+  const config = gradeLiveEndpoints({ data: body.endpoints }, handlers, url);
+  const undelivered = gradeUndelivered(body.undelivered);
+  return {
+    failures: [...config.failures, ...undelivered.failures],
+    notes: [...config.notes, ...undelivered.notes],
+  };
+}
+
+/**
+ * Grade the `undelivered` block of stripe-webhook-config-check (Q854): live
+ * events in [since, until] that Stripe reports as delivery_success=false, i.e.
+ * still pending or failed every attempt to a webhook endpoint. RED when the
+ * count is above zero, when the list was truncated, and when the block is
+ * missing or malformed (a read that returned nothing is never "all delivered").
+ * Scope: the platform account's events only (GET /v1/events with the platform
+ * key and no Stripe-Account header); connected-account events are not read.
+ */
+export function gradeUndelivered(undelivered) {
+  const failures = [];
+  const notes = [];
+  if (!undelivered || typeof undelivered !== "object") {
+    failures.push(
+      "stripe-webhook-config-check returned no `undelivered` object, so undelivered events were not read. " +
+        "Refusing to call that zero (is the deployed function older than Q854?).",
+    );
+    return { failures, notes };
+  }
+  const { count, events, since, until, truncated } = undelivered;
+  if (!Number.isInteger(count) || count < 0 || !Array.isArray(events)) {
+    failures.push("stripe-webhook-config-check returned a malformed `undelivered` block (count/events). Refusing to grade.");
+    return { failures, notes };
+  }
+  // The function builds these consistently; a block that is not tied to a
+  // real window, whose count disagrees with its list, or whose truncation flag
+  // is not a boolean is not a read this guard can call clean.
+  if (!Number.isInteger(since) || !Number.isInteger(until) || since >= until) {
+    failures.push("stripe-webhook-config-check returned an `undelivered` block with no valid window (integer since < until). Refusing to grade.");
+    return { failures, notes };
+  }
+  if (count !== events.length) {
+    failures.push(`stripe-webhook-config-check returned an inconsistent \`undelivered\` block (count ${count}, ${events.length} event(s) listed). Refusing to grade.`);
+    return { failures, notes };
+  }
+  if (typeof truncated !== "boolean") {
+    failures.push("stripe-webhook-config-check returned an `undelivered` block with no boolean `truncated`. Refusing to grade.");
+    return { failures, notes };
+  }
+  const window = `${new Date(since * 1000).toISOString()} .. ${new Date(until * 1000).toISOString()}`;
+  if (count > 0 || truncated === true) {
+    const listed = events
+      .slice(0, 20)
+      .map((e) => `     ${e?.id ?? "?"} ${e?.type ?? "?"}`)
+      .join("\n");
+    failures.push(
+      `${count}${truncated === true ? "+ (more than one page)" : ""} live Stripe platform-account event(s) created ${window} are NOT delivered ` +
+        `(delivery_success=false: not delivered yet (pending retry), or failed every attempt to a webhook endpoint):\n` +
+        (listed ? `${listed}\n` : "") +
+        `   A payment, refund or payout the app has not recorded (yet, if a Stripe retry later succeeds). Read the stripe-webhook function logs for the cause, ` +
+        `fix it, then resend each event from the Stripe dashboard (LIVE mode, Developers > Events).`,
+    );
+    return { failures, notes };
+  }
+  notes.push(`Stripe live mode: 0 undelivered platform-account events created ${window} (connected-account events are not read).`);
+  return { failures, notes };
 }
 
 /** Lowercased host + path with trailing slashes stripped; query and hash dropped.

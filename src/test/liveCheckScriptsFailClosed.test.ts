@@ -212,12 +212,14 @@ const HERMETIC: Record<string, Case[]> = {
   ],
   "scripts/check-stripe-webhook-events.mjs": [
     { label: "no service-role key", says: /CRON_SECRET is not set, so the live endpoint check did NOT run/ },
-    { label: "config-check function 500", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/fail" }, says: /Could not list Stripe live-mode webhook endpoints: stripe-webhook-config-check answered HTTP 500/ },
+    { label: "config-check function 500", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/fail" }, says: /Could not read Stripe live-mode webhook endpoints and undelivered events: stripe-webhook-config-check answered HTTP 500/ },
     { label: "config-check function 401", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/unauth" }, says: /stripe-webhook-config-check answered HTTP 401/ },
     { label: "live read is empty", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/empty" }, says: /No enabled live-mode endpoint/ },
     { label: "function reports a test key", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/testkey" }, says: /keyIsLive != true/ },
     { label: "functions base is not loopback or supabase.co", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "https://evil.example/functions/v1" }, says: /Refusing to send CRON_SECRET to https:\/\/evil\.example/ },
     { label: "fixture with no endpoints", args: ["--fixture", "@EMPTYSTRIPE@"], says: /No enabled live-mode endpoint/ },
+    { label: "function returns no undelivered block (Q854)", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/noundelivered" }, says: /returned no `undelivered` object/ },
+    { label: "events fixture with no undelivered block", args: ["--events-fixture", "@EMPTYSTRIPE@"], says: /returned no `undelivered` object/ },
   ],
   // Q117/Q129: `check` reads schema_migrations + the receipt ledger through the
   // Management API (LH_SUPABASE_API_BASE); `record` is a write, not a verdict.

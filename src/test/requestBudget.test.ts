@@ -86,7 +86,9 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
       const labels = new Set<string>();
       for (const m of code.matchAll(/npx playwright test[^\n]*--project=(\S+)/g)) {
         const p = m[1];
-        if (p === "${{" || p.startsWith("${{")) labels.add("${{ matrix.project }}");
+        // A job that sets REQUEST_BUDGET_LABEL meters under that name (e2e/prodTest.ts).
+        if (/REQUEST_BUDGET_LABEL:\s*\$\{\{ matrix\.label \}\}/.test(code)) labels.add("${{ matrix.label }}");
+        else if (p === "${{" || p.startsWith("${{")) labels.add("${{ matrix.project }}");
         else if (!MOCKED_PROJECTS.has(p)) labels.add(p);
       }
       for (const s of Object.values(METERED_SCRIPTS)) if (s.invoke.test(code)) labels.add(s.label);
@@ -176,6 +178,9 @@ describe("backend request budgets (Q104)", () => {
         // The matrix entries of that workflow are the labels.
         const text = read(`.github/workflows/${r.wf.split(" ")[0]}`);
         for (const m of text.matchAll(/^\s*-?\s*project:\s*(\S+)\s*$/gm)) used.add(m[1]);
+      } else if (r.label === "${{ matrix.label }}") {
+        const text = read(`.github/workflows/${r.wf.split(" ")[0]}`);
+        for (const m of text.matchAll(/^\s*-?\s*label:\s*(\S+)\s*$/gm)) used.add(m[1]);
       } else used.add(r.label);
     }
     const listed = new Set(Object.keys(budgets).filter((k) => k !== "*"));
@@ -273,7 +278,7 @@ describe("Q104 calibration: budgets written from the first metered runs", () => 
     // EXACT, two-way: a label calibrated from a measured run (2026-09-23, run
     // ids in the file's _calibrated note) cannot silently go back to null, and
     // a new one is written here in the same commit.
-    expect(calibrated).toEqual(["a11y-prod", "a11y-prod-webkit", "journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "prod-audit", "slow-network"]);
+    expect(calibrated).toEqual(["a11y-prod", "a11y-prod-webkit", "abuse-journeys", "abuse-journeys-webkit", "journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "prod-audit", "slow-network"]);
     for (const k of calibrated) {
       const b = budgets[k];
       expect(typeof b.perTest, `${k}.perTest`).toBe("number");

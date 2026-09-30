@@ -32,7 +32,9 @@ export * from "@playwright/test";
 export const test = base.extend<{ _requestMeterTest: void }, { _requestMeter: RequestMeter }>({
   _requestMeter: [
     async ({ browser }, use, workerInfo) => {
-      const label = workerInfo.project.name || "default";
+      // REQUEST_BUDGET_LABEL: a workflow that runs a slice of a project under
+      // its own budget (e2e-abuse-notifications.yml) meters under that name.
+      const label = process.env.REQUEST_BUDGET_LABEL || workerInfo.project.name || "default";
       const meter = new RequestMeter(label);
       meter.attachBrowser(browser);
       meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers });

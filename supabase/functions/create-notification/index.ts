@@ -8,6 +8,7 @@ import {
   type TemplateFacts,
 } from "../_shared/notification-templates.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { fetchFunction } from "../_shared/functionFetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -483,7 +484,7 @@ serve(async (req) => {
     let emailResult: ChannelResult = { status: "failed", reason: "unknown" };
 
     try {
-      const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
+      const emailRes = await fetchFunction(`${supabaseUrl}/functions/v1/send-notification-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

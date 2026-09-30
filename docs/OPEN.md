@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 203** (156 to do, 47 fixed with protection pending; 422 done). Feeds mirrored in: 19 from the alert ledger, 12 from nightly-red issues, 8 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 204** (156 to do, 48 fixed with protection pending; 422 done). Feeds mirrored in: 19 from the alert ledger, 12 from nightly-red issues, 8 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T21:05Z)_
 - **Remote branches:** 102 carry patches not on main, 0 fully merged, of 103 (Q79). _(2026-09-27T21:05Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 625 items — 422 done, 47 partly done (fixed, protection pending), 156 open.**
+**Queue: 626 items — 422 done, 48 partly done (fixed, protection pending), 156 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -843,6 +843,7 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [ ] **Q848 nightly-red: ui-sweep.** Mirrored 2026-09-28 from alert-ledger row 2e4f3e726722 (nightly_red: nightly-red; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 2e4f3e726722. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '2e4f3e726722e14159d0b5cf50568f30'` => closed
 - [ ] **Q849 nightly-red: open-done-when.** Mirrored 2026-09-28 from alert-ledger row 54b8c187374a (nightly_red: nightly-red; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 54b8c187374a. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54b8c187374af47410a43e9dedb4f4df'` => closed
 - [ ] **Q850 quota: resend emails sent (last #h) at or above #% of its limit.** Mirrored 2026-09-28 from alert-ledger row bbbd1b03f9d6 (workflow: quota-monitor; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger bbbd1b03f9d6. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'bbbd1b03f9d6a74fa78dcecda68ab508'` => closed
+- [~] **Q851 edge-to-edge calls die on the per-trace rate limit (review-nag-cron 500, 2026-09-29 16:26Z).** ~25 send-notification-email fetches in 5 s, then 6 threw `RateLimitError` ("Retry after 54486ms"): 6 review nags never emailed, ledger bea47b14 + 4a759fc3. FIXED: `supabase/functions/_shared/functionFetch.ts` waits the named `retryAfterMs` and retries (max 2 waits, never past a deadline: 60 s per call by default, and the three crons pass start + 120 s so they answer inside the 150 s gateway timeout); review-nag-cron, arrival-confirm-reminder, stalled-completion-reminder, create-notification, admin-test-push use it. Guard `src/test/edgeFunctionCallsSurviveTraceLimit.test.ts` (no raw `functions/v1/` fetch outside the fire-and-forget list; proven red on a reverted review-nag-cron, a dropped cron deadline and a removed deadline check). done-when: the next 16:26Z review-nag-cron run answers 200 with no "Rate limit exceeded" in its logs, then both ledger rows closed.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

@@ -66,6 +66,7 @@
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/forEachBounded.ts",
     "supabase/functions/_shared/boundedFetch.ts",
+    "supabase/functions/_shared/functionFetch.ts",
     "supabase/functions/_shared/reservedRecipient.ts",
     "supabase/functions/_shared/disputePayoutStamp.ts",
     "supabase/functions/_shared/marketing/secretGap.ts",

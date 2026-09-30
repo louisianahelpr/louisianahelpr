@@ -38,7 +38,7 @@
 // @mutate scripts/check-unvalidated-constraints.mjs | failed = true; // stale entry | // stale entry
 // @mutate scripts/check-anon-table-grants.mjs | if (!tablesChecked \|\| !Array.isArray(offenders)) { | if (false) {
 // @mutate scripts/check-ban-gate-coverage.mjs | if (!tablesChecked \|\| !Number(row?.has_ban_helper) \|\| !Array.isArray(offenders)) { | if (false) {
-// @mutate scripts/check-stripe-webhook-events.mjs | fail(\n      `No enabled test-mode endpoint | notes.push(\n      `No enabled test-mode endpoint
+// @mutate scripts/lib/stripeWebhookGuard.mjs | fail(\n      `No enabled live-mode endpoint | notes.push(\n      `No enabled live-mode endpoint
 // @mutate scripts/check-test-account-strikes.mjs | if (missing.length) { | if (false) {
 // @mutate scripts/audit/write-contract.mjs | if (nTables < 20 \|\| nFunctions < 50) { | if (false) {
 // @mutate scripts/check-staleness.mjs | if (process.env.CI) throw new Error( | if (false) throw new Error(
@@ -207,9 +207,9 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "gh returns no successful run", env: { CI: "1" }, cli: { out: "[]", code: 0 }, says: /last passed never/ },
   ],
   "scripts/check-stripe-webhook-events.mjs": [
-    { label: "live read fails", env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/fail" }, says: /Could not list Stripe test-mode webhook endpoints/ },
-    { label: "live read is empty", env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/empty" }, says: /No enabled test-mode endpoint/ },
-    { label: "fixture with no endpoints", args: ["--fixture", "@EMPTYSTRIPE@"], says: /No enabled test-mode endpoint/ },
+    { label: "live read fails", env: { STRIPE_LIVE_READ_KEY: "rk_live_stub", LH_STRIPE_API_BASE: "@HTTP@/fail" }, says: /Could not list Stripe live-mode webhook endpoints/ },
+    { label: "live read is empty", env: { STRIPE_LIVE_READ_KEY: "rk_live_stub", LH_STRIPE_API_BASE: "@HTTP@/empty" }, says: /No enabled live-mode endpoint/ },
+    { label: "fixture with no endpoints", args: ["--fixture", "@EMPTYSTRIPE@"], says: /No enabled live-mode endpoint/ },
   ],
   // Q117/Q129: `check` reads schema_migrations + the receipt ledger through the
   // Management API (LH_SUPABASE_API_BASE); `record` is a write, not a verdict.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Single source of truth for "which Stripe events should the test-mode webhook
+ * Single source of truth for "which Stripe events should the webhook
  * endpoint be subscribed to": the keys of the EVENT_HANDLERS dispatch map in
  * supabase/functions/stripe-webhook/index.ts.
  *
@@ -30,8 +30,9 @@ export const WEBHOOK_INDEX = join(
 );
 
 /**
- * The Supabase function URL the test-mode endpoint must point at. Shared so the
- * guard and the sandbox script cannot disagree about which endpoint they mean.
+ * The Supabase function URL the webhook endpoint must point at (the live one,
+ * and the sandbox script's test one). Shared so the guard and the sandbox
+ * script cannot disagree about which endpoint they mean.
  */
 export const WEBHOOK_URL =
   "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/stripe-webhook";

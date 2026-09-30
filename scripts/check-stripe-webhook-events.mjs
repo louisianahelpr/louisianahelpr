@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Stripe webhook endpoint guard — the class check for issue #1586
- * ("test mode delivers every webhook twice").
+ * ("every webhook delivered twice").
  *
  * Two independent failure modes, neither visible from one side alone:
  *
@@ -12,7 +12,8 @@
  *      were still in the comma-separated STRIPE_WEBHOOK_SECRET that
  *      supabase/functions/stripe-webhook/index.ts accepts, so BOTH copies of
  *      every event verified and were processed. Double refunds, double
- *      transfers, double escrow releases.
+ *      transfers, double escrow releases. The same failure is possible in live
+ *      mode from the dashboard, so the live half asserts exactly one.
  *
  *   B. EVENT DRIFT. The subscription list and the EVENT_HANDLERS dispatch map
  *      drift apart in both directions, and both directions are silent:
@@ -22,23 +23,25 @@
  *      As of 2026-09-12 the shipped script's hardcoded list had EIGHT missing
  *      events and still carried invoice.paid, which has no handler.
  *
- *   C. UNDELIVERED EVENTS (docs/OPEN.md Q156). An event whose pending_webhooks
- *      is still > 0 was never answered 2xx by our endpoint. stripe-webhook now
- *      refuses (non-2xx) anything it cannot verify instead of acknowledging it,
- *      so a wrong signing secret shows up here, on Stripe's side, not only in
- *      our own logs. Measured 2026-09-23: evt_1UIPUPKp2H4b7tECb12rdVVL
- *      (checkout.session.expired) had pending_webhooks=1 after three 500s.
- *
  * Structure: the STATIC half needs no credentials and always runs. The LIVE
- * half needs a Stripe TEST-MODE key in STRIPE_TEST_SECRET_KEY. A missing key is
- * RED on any run that includes the live half, never a skip that still exits 0 —
- * the live half is the only thing that can see a duplicate endpoint, so a pass
- * from a run that never made the request would be exactly the false green this
- * guard exists to prevent. Skipping it must be asked for explicitly (--static),
- * and that run says so in its own PASS line.
+ * half reads Stripe LIVE mode (Stripe went live on prod 2026-09-27; the
+ * test-mode endpoint is disabled on purpose, Q839) with a RESTRICTED read-only
+ * key in STRIPE_LIVE_READ_KEY (owner decision 2026-09-30: rk_live_, only
+ * "Webhook Endpoints: Read"). A missing key is RED on any run that includes the
+ * live half, never a skip that still exits 0 — the live half is the only thing
+ * that can see a duplicate endpoint, so a pass from a run that never made the
+ * request would be exactly the false green this guard exists to prevent.
+ * Skipping it must be asked for explicitly (--static), and that run says so in
+ * its own PASS line.
  *
- * TEST MODE ONLY. The key is asserted to be a test key before any request, and
- * no live-mode object is ever read, created or deleted. Never prints a secret.
+ * READ ONLY. The key must have the rk_live_ shape (sk_ keys, which can write,
+ * and test keys are refused before any request), and the only request made is
+ * GET /v1/webhook_endpoints. Never prints a secret.
+ *
+ * Not covered here: undelivered events (pending_webhooks > 0, Q156). That read
+ * is GET /v1/events, which needs "Events: Read" on the key; the owner's key is
+ * scoped to Webhook Endpoints only, so the check was dropped when the guard
+ * moved to live mode (see docs/OPEN.md).
  *
  * Usage:
  *   node scripts/check-stripe-webhook-events.mjs              # static + live; RED if the key is missing
@@ -53,6 +56,7 @@ import {
   WEBHOOK_URL,
   WEBHOOK_INDEX,
 } from "./stripe-webhook-events.mjs";
+import { gradeLiveEndpoints, liveReadKeyProblem } from "./lib/stripeWebhookGuard.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const SANDBOX_ON = join(root, "scripts/e2e/stripe-sandbox-on.sh");
@@ -69,21 +73,14 @@ const STATIC_ONLY = args.has("--static");
  * while grading nothing. --require-live is kept as an accepted no-op so the
  * workflow and any muscle memory keep working.
  */
-const REQUIRE_LIVE = !STATIC_ONLY;
 /**
  * --fixture <file>: grade a recorded /v1/webhook_endpoints response instead of
  * calling Stripe. This exists so the live half can be PROVEN RED without a key
  * and without recreating the duplicate-endpoint incident on the real account —
  * a check never shown able to fail does not count. Fixtures live in
- * scripts/fixtures/stripe-webhook-endpoints/. Never used by CI.
+ * scripts/fixtures/stripe-webhook-endpoints/. Never used by CI's live job.
  */
 const FIXTURE = argv.includes("--fixture") ? argv[argv.indexOf("--fixture") + 1] : null;
-/**
- * --events-fixture <file>: grade a recorded /v1/events list ({data, since,
- * until}) for undelivered events, so that half is provable red without a key
- * (Q156). Pair with --static to skip the network. Never used by CI's live job.
- */
-const EVENTS_FIXTURE = argv.includes("--events-fixture") ? argv[argv.indexOf("--events-fixture") + 1] : null;
 
 const failures = [];
 const notes = [];
@@ -157,8 +154,10 @@ if (onId) {
 // can point the live read at a stub that fails or returns nothing.
 const STRIPE_API = process.env.LH_STRIPE_API_BASE ?? "https://api.stripe.com";
 
+/** The ONLY request this guard makes: an authenticated GET. There is no write path. */
 async function stripeGet(key, path) {
   const res = await fetch(`${STRIPE_API}/v1/${path}`, {
+    method: "GET",
     headers: { Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}` },
   });
   const body = await res.json();
@@ -169,23 +168,28 @@ async function stripeGet(key, path) {
   return body;
 }
 
+/** Grade a /v1/webhook_endpoints list — the same logic for live and fixture. */
+function grade(list) {
+  const r = gradeLiveEndpoints(list, handlers, WEBHOOK_URL);
+  failures.push(...r.failures);
+  notes.push(...r.notes);
+}
+
 async function liveHalf() {
   if (FIXTURE) {
     notes.push(`FIXTURE MODE: grading ${FIXTURE} instead of the live Stripe account.`);
-    return gradeEndpoints(JSON.parse(readFileSync(FIXTURE, "utf8")));
-  }
-  const key = process.env.STRIPE_TEST_SECRET_KEY;
-  if (!key) {
-    const msg =
-      "STRIPE_TEST_SECRET_KEY is not set, so the live endpoint check did NOT run.\n" +
-      "   This half is what catches a second enabled endpoint on the webhook url — the actual #1586 bug.\n" +
-      "   Add a Stripe TEST-MODE restricted key (read-only on Webhook Endpoints) as the STRIPE_TEST_SECRET_KEY repo secret.";
-    fail(msg);
+    grade(JSON.parse(readFileSync(FIXTURE, "utf8")));
     return;
   }
-  if (!/^(sk|rk)_test_/.test(key)) {
+  const key = process.env.STRIPE_LIVE_READ_KEY;
+  const problem = liveReadKeyProblem(key);
+  if (problem) {
     fail(
-      "STRIPE_TEST_SECRET_KEY is not a test-mode key (expected sk_test_/rk_test_ prefix). Refusing to make any request — Stripe stays in sandbox until launch.",
+      key
+        ? problem
+        : "STRIPE_LIVE_READ_KEY is not set, so the live endpoint check did NOT run.\n" +
+            "   This half is what catches a second enabled endpoint on the webhook url (the #1586 bug) and event drift.\n" +
+            '   Add a Stripe LIVE-mode restricted key (rk_live_, only "Webhook Endpoints: Read") as the STRIPE_LIVE_READ_KEY repo secret.',
     );
     return;
   }
@@ -194,139 +198,10 @@ async function liveHalf() {
   try {
     list = await stripeGet(key, "webhook_endpoints?limit=100");
   } catch (e) {
-    fail(`Could not list Stripe test-mode webhook endpoints: ${e.message}`);
+    fail(`Could not list Stripe live-mode webhook endpoints: ${e.message}`);
     return;
   }
-
-  gradeEndpoints(list);
-
-  // C. Stripe's own count of events it could not deliver (Q156).
-  const since = Math.floor(Date.now() / 1000) - UNDELIVERED_WINDOW_S;
-  const until = Math.floor(Date.now() / 1000) - UNDELIVERED_GRACE_S;
-  const events = [];
-  try {
-    let after = null;
-    for (let page = 0; page < 20; page++) {
-      const q = new URLSearchParams({ limit: "100", "created[gte]": String(since), "created[lte]": String(until) });
-      for (const t of handlers) q.append("types[]", t);
-      if (after) q.set("starting_after", after);
-      const res = await stripeGet(key, `events?${q}`);
-      if (!Array.isArray(res?.data)) throw new Error("the events response has no `data` array");
-      events.push(...res.data);
-      if (!res.has_more || res.data.length === 0) break;
-      after = res.data.at(-1).id;
-    }
-  } catch (e) {
-    fail(`Could not list Stripe test-mode events to check for undelivered ones: ${e.message}`);
-    return;
-  }
-  gradeUndelivered({ data: events, since, until });
-}
-
-// Q156. pending_webhooks > 0 on an event means Stripe has NOT had a 2xx from an
-// endpoint it delivers that event to: stripe-webhook refused it (a signature it
-// could not verify, a missing secret) or failed to process it. Since Q156 every
-// refusal is a non-2xx, so this is Stripe's own failed-delivery count, read from
-// outside our code. A daily run over [now-26h, now-1h] sees every event about
-// once, with overlap; the last hour is left to Stripe's first retries.
-const UNDELIVERED_WINDOW_S = 26 * 3600;
-const UNDELIVERED_GRACE_S = 3600;
-
-/** Grade a list of Stripe events: any still pending delivery is a failure. */
-function gradeUndelivered({ data, since, until }) {
-  if (!Array.isArray(data)) {
-    fail("The events list has no `data` array — refusing to grade a read that returned nothing.");
-    return;
-  }
-  if (data.some((e) => e.livemode)) {
-    fail("Live-mode events came back from a test-mode key. Refusing to grade live mode.");
-    return;
-  }
-  const pending = data.filter((e) => Number(e.pending_webhooks) > 0);
-  notes.push(
-    `Stripe test mode: ${data.length} handled-type event(s) created ${new Date(since * 1000).toISOString()}..${new Date(until * 1000).toISOString()}, ${pending.length} not delivered.`,
-  );
-  if (pending.length) {
-    fail(
-      `${pending.length} Stripe event(s) were never delivered with a 2xx (pending_webhooks > 0):\n` +
-        pending
-          .map((e) => `     ${e.id} ${e.type} created ${new Date(e.created * 1000).toISOString()} pending_webhooks=${e.pending_webhooks}`)
-          .join("\n") +
-        `\n   stripe-webhook refused or failed each of these. Read its function_logs for the event id (a signature failure logs the claimed id), fix the cause, then resend the event from the Stripe dashboard (TEST mode) and confirm it lands in stripe_webhook_events.`,
-    );
-  }
-}
-
-if (EVENTS_FIXTURE) {
-  notes.push(`FIXTURE MODE: grading ${EVENTS_FIXTURE} instead of live Stripe events.`);
-  gradeUndelivered(JSON.parse(readFileSync(EVENTS_FIXTURE, "utf8")));
-}
-
-/** Grade a /v1/webhook_endpoints list — the same logic for live and fixture. */
-function gradeEndpoints(list) {
-  if (!Array.isArray(list?.data)) {
-    fail(`The webhook_endpoints response has no \`data\` array — refusing to grade a read that returned nothing.`);
-    return;
-  }
-  const ours = list.data.filter((e) => e.url === WEBHOOK_URL);
-  // A test key cannot return live objects; assert it anyway so a mis-scoped key
-  // can never let this guard silently inspect live mode.
-  if (ours.some((e) => e.livemode)) {
-    fail("Live-mode webhook endpoints came back from a test-mode key. Refusing to grade live mode.");
-    return;
-  }
-  const enabled = ours.filter((e) => e.status === "enabled");
-  notes.push(
-    `Stripe test mode: ${ours.length} endpoint(s) on ${WEBHOOK_URL}, ${enabled.length} enabled.`,
-  );
-
-  // B1. Exactly one enabled endpoint. Two means every event is delivered twice.
-  if (enabled.length > 1) {
-    fail(
-      `${enabled.length} ENABLED test-mode webhook endpoints point at ${WEBHOOK_URL}:\n` +
-        enabled.map((e) => `     ${e.id} (created ${new Date(e.created * 1000).toISOString()}, ${e.enabled_events.length} events)`).join("\n") +
-        `\n   Every event is delivered once per endpoint, and the edge function accepts a comma-separated STRIPE_WEBHOOK_SECRET, so both copies verify and BOTH are processed. This is issue #1586.\n` +
-        `   Delete all but one in the Stripe dashboard (TEST mode), then re-run scripts/e2e/stripe-sandbox-on.sh to reset the signing secret.`,
-    );
-  } else if (enabled.length === 0) {
-    // FAIL, not a note (Q52, 2026-09-23). This used to push a note and report
-    // PASS, so an empty endpoint list — a mis-scoped key, a deleted endpoint, a
-    // read that came back with nothing — graded as "clean". Stripe stays in
-    // SANDBOX until launch (owner, 2026-09-12), so the sandbox endpoint MUST
-    // exist; when launch retires it, this check is retargeted to live mode on
-    // the launch checklist, not quietly passed.
-    fail(
-      `No enabled test-mode endpoint on ${WEBHOOK_URL} (${list.data.length} endpoint(s) listed in total). ` +
-        "Stripe is meant to be in sandbox until launch, so zero is a broken sandbox or a broken read, not a pass. " +
-        "Re-run scripts/e2e/stripe-sandbox-on.sh, or check the key's scope.",
-    );
-    return;
-  }
-
-  // B2. The kept endpoint's subscription must match the handler map both ways.
-  const kept = enabled[0];
-  const subscribed = [...new Set(kept.enabled_events)].sort();
-  if (subscribed.includes("*")) {
-    fail(`${kept.id} subscribes to "*" (all events). Subscribe to the handled set, not everything.`);
-    return;
-  }
-  const noHandler = subscribed.filter((e) => !handlers.includes(e));
-  const notSubscribed = handlers.filter((e) => !subscribed.includes(e));
-  if (noHandler.length) {
-    fail(
-      `${kept.id} is subscribed to ${noHandler.length} event(s) with NO handler in EVENT_HANDLERS: ${noHandler.join(", ")}.\n` +
-        `   These are delivered and silently dropped ("Unhandled event type"). Either add a handler or unsubscribe.`,
-    );
-  }
-  if (notSubscribed.length) {
-    fail(
-      `${kept.id} does NOT subscribe to ${notSubscribed.length} handled event(s): ${notSubscribed.join(", ")}.\n` +
-        `   Those handlers can never run. Re-run scripts/e2e/stripe-sandbox-on.sh to resubscribe from the handler map.`,
-    );
-  }
-  if (!noHandler.length && !notSubscribed.length) {
-    notes.push(`${kept.id} subscribes to exactly the ${handlers.length} handled events.`);
-  }
+  grade(list);
 }
 
 if (!STATIC_ONLY) await liveHalf();

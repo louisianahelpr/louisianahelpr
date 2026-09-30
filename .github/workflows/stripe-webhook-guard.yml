@@ -21,15 +21,20 @@ permissions:
 #   the two scripts disagreeing about the id file. This is the half that would
 #   have blocked the original commit.
 #
-#   `live` needs a Stripe TEST-MODE key and catches the account-side half: a
-#   second enabled endpoint, and event drift against the EVENT_HANDLERS map in
-#   either direction. It runs with --require-live, so a MISSING key is a red
-#   job, never a silent pass. It is gated on the secret being present only to
-#   keep forks from failing; on this repo the secret is expected, and the
-#   `live-secret-present` job below turns its absence red on main.
+#   `live` reads the Stripe LIVE account and catches the account-side half: a
+#   second enabled endpoint on the webhook url, and event drift against the
+#   EVENT_HANDLERS map in either direction. It runs with --require-live, so a
+#   MISSING key is a red job, never a silent pass. It is gated on the secret
+#   being present only to keep forks from failing; on this repo the secret is
+#   expected, and the `live-secret-present` job below turns its absence red on
+#   main.
 #
-# TEST MODE ONLY. The guard asserts the key is sk_test_/rk_test_ before making
-# any request and never reads, writes or deletes a live-mode object.
+# LIVE MODE, READ ONLY (owner decision 2026-09-30). Stripe went live on prod on
+# 2026-09-27 and the test-mode endpoint is disabled on purpose (Q839), so the
+# old test-mode check was red every day (#1966). The key is STRIPE_LIVE_READ_KEY:
+# a RESTRICTED rk_live_ key with only "Webhook Endpoints: Read". The script
+# refuses sk_ keys (which can write) and test keys before making any request,
+# and its only request is GET /v1/webhook_endpoints.
 
 on:
   push:
@@ -40,6 +45,7 @@ on:
       - "scripts/e2e/stripe-sandbox-off.sh"
       - "scripts/stripe-webhook-events.mjs"
       - "scripts/check-stripe-webhook-events.mjs"
+      - "scripts/lib/stripeWebhookGuard.mjs"
       - ".github/workflows/stripe-webhook-guard.yml"
   pull_request:
     branches: [main]
@@ -49,6 +55,7 @@ on:
       - "scripts/e2e/stripe-sandbox-off.sh"
       - "scripts/stripe-webhook-events.mjs"
       - "scripts/check-stripe-webhook-events.mjs"
+      - "scripts/lib/stripeWebhookGuard.mjs"
       - ".github/workflows/stripe-webhook-guard.yml"
   # Daily: a duplicate endpoint appears from RUNNING the sandbox script, not
   # from editing it, so a paths-filtered trigger alone would never see it.
@@ -99,21 +106,9 @@ jobs:
             exit 1
           fi
           echo "Guard correctly failed (exit $code) on the stale-event-list fixture."
-      - name: Self-test — the guard must go red on an undelivered event (Q156)
-        run: |
-          set +e
-          node scripts/check-stripe-webhook-events.mjs --static \
-            --events-fixture scripts/fixtures/stripe-webhook-endpoints/undelivered-event-q156.json
-          code=$?
-          set -e
-          if [ "$code" -eq 0 ]; then
-            echo "::error::The guard PASSED on an event Stripe never delivered. Undelivered events are no longer detected."
-            exit 1
-          fi
-          echo "Guard correctly failed (exit $code) on the undelivered-event fixture."
 
   live-secret-present:
-    name: STRIPE_TEST_SECRET_KEY is configured
+    name: STRIPE_LIVE_READ_KEY is configured
     runs-on: ubuntu-latest
     timeout-minutes: 2
     # Only on this repo's own branches — forks legitimately lack the secret.
@@ -121,17 +116,17 @@ jobs:
     steps:
       - name: Fail loudly if the key is missing
         env:
-          KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          KEY: ${{ secrets.STRIPE_LIVE_READ_KEY }}
         run: |
           if [ -z "$KEY" ]; then
-            echo "::error::STRIPE_TEST_SECRET_KEY is not set, so the duplicate-endpoint half of the #1586 guard cannot run."
-            echo "Add a Stripe TEST-MODE restricted key with read access to Webhook Endpoints as a repo secret."
+            echo "::error::STRIPE_LIVE_READ_KEY is not set, so the duplicate-endpoint half of the #1586 guard cannot run."
+            echo "Add a Stripe LIVE-mode restricted key (rk_live_, only 'Webhook Endpoints: Read') as the STRIPE_LIVE_READ_KEY repo secret."
             exit 1
           fi
           echo "Secret present."
 
   live:
-    name: Live test-mode endpoint check
+    name: Live-mode endpoint check (read only)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: live-secret-present
@@ -142,7 +137,7 @@ jobs:
           node-version: 20
       - name: One enabled endpoint, events matching the handler map
         env:
-          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_LIVE_READ_KEY: ${{ secrets.STRIPE_LIVE_READ_KEY }}
         run: node scripts/check-stripe-webhook-events.mjs --require-live
 
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after stripe-webhook-guard — along

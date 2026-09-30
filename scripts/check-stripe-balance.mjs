@@ -6,7 +6,7 @@
  *
  * Reads:
  *   1. Stripe GET /v1/balance with STRIPE_TEST_SECRET_KEY (the key
- *      stripe-webhook-guard.yml uses). The key must be sk_test_/rk_test_ and the
+ *      e2e-real-backend.yml uses). The key must be sk_test_/rk_test_ and the
  *      answer livemode=false, or nothing is read. Never prints the key.
  *   2. The payouts due in the next 72h from public.jobs (payout_pending,
  *      payout_scheduled_at), one read-only statement through the Management

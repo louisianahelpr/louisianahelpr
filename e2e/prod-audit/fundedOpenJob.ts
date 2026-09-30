@@ -29,7 +29,8 @@
  * neither reused nor retired: cancel_escrow cannot refund them with the live
  * key (500 "No such payment_intent", 36eebad4, every run until this fix).
  */
-import { test, type APIRequestContext, type Browser } from "@playwright/test";
+import { type APIRequestContext, type Browser } from "@playwright/test";
+import { test } from "../prodTest";
 import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../journeys/fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { openCardFields } from "../stripeCheckoutCard";

@@ -84,6 +84,19 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # (node scripts/check-sensitive-review.mjs record <sha> <reviewer> <verdict>).
   node scripts/check-sensitive-review.mjs --range origin/main..HEAD --strict
 
+  # Exact-count bookkeeping guards. Every main Vitest red on 2026-09-30 (12 of
+  # 12, runs 36740238457..36787599011) was one of these: a commit moved a
+  # count (unused exports, markerless [~] items, a done-when marker, an
+  # unmetered prod spec, the expiry inventory) and --no-verify skipped every
+  # local check; 287ab11c2 then reached main red on the component-size one.
+  # They take ~4s; run them on the rebased tree on every land.
+  npx vitest run \
+    src/test/deadcodeRatchet.test.ts \
+    src/test/openPartlyDoneItemsSayDoneWhen.test.ts \
+    src/test/requestBudget.test.ts \
+    src/test/expiryMonitor.test.ts \
+    src/test/componentSizeRatchet.test.ts
+
   # db-deploy runs the moment a migration reaches main, before CI's vitest
   # does. Its two commonest reds (ledger 00fd2bd0, runs since 2026-09-24:
   # 5x "types.ts matches the live schema", 3x "no allow check says yes to a

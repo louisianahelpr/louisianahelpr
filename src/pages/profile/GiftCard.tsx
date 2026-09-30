@@ -60,6 +60,7 @@ import { GIFT_OCCASIONS, DEFAULT_OCCASION } from "./giftCards/giftCardDesigns";
 import { GiftCardPreview } from "./giftCards/GiftCardPreview";
 import { CreditCard } from "./giftCards/CreditCard";
 import { EmptyState } from "./giftCards/EmptyState";
+import { ReceivedListSkeleton, SentListSkeleton } from "./giftCards/ListSkeleton";
 import { RecipientPicker } from "./giftCards/RecipientPicker";
 import type { RecipientMatch } from "./giftCards/RecipientPicker";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -822,15 +823,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 Gift cards sent to you
               </p>
               {listsLoading ? (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  {[0, 1].map((i) => (
-                    <div
-                      key={i}
-                      className="rounded-ds-md h-24 motion-safe:animate-pulse"
-                      style={{ background: "hsl(var(--olivewood) / 0.07)" }}
-                    />
-                  ))}
-                </div>
+                <ReceivedListSkeleton />
               ) : receivedFailed ? (
                 <div className="flex">
                   <ErrorState
@@ -866,10 +859,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 Gift cards you've sent
               </p>
               {listsLoading ? (
-                <div
-                  className="rounded-ds-md h-16 motion-safe:animate-pulse"
-                  style={{ background: "hsl(var(--olivewood) / 0.07)" }}
-                />
+                <SentListSkeleton />
               ) : donatedFailed ? (
                 <div className="flex">
                   <ErrorState

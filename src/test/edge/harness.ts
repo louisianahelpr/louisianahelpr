@@ -346,6 +346,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/reservedRecipient.ts";`,
   );
 
+  // Test recipients (Q840): `_shared/testRecipient.ts` imports only the
+  // zero-import reservedRecipient.ts, so the generated file runs the REAL
+  // predicate. Its is_seed lookup reaches the test's own Supabase mock.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/testRecipient\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/testRecipient.ts";`,
+  );
+
   // Tier display names: `_shared/tierNames.ts` has ZERO imports and is a plain
   // lookup table, so the generated file points at the REAL module. It is what
   // stops a lapse notification telling a member "Your pro pass ended" with the

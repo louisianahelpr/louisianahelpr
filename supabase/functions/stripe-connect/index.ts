@@ -212,13 +212,44 @@ serve(async (req) => {
         }, { idempotencyKey: `stripe-connect-create-${user.id}` });
         accountId = account.id;
 
-        const { error: profileUpdateErr } = await supabaseAdmin
+        // Compare-and-set (Q868): link the new id only while the profile still
+        // has none. A concurrent onboard or reset may have linked an account
+        // since the read above, and an unscoped write would silently overwrite
+        // that fresh link. `.select("id")` reads the rows back so a zero-row
+        // write is seen rather than reported as linked.
+        const { data: linkedRows, error: profileUpdateErr } = await supabaseAdmin
           .from("profiles")
           .update({ stripe_account_id: accountId })
-          .eq("user_id", user.id);
+          .eq("user_id", user.id)
+          .is("stripe_account_id", null)
+          .select("id");
         if (profileUpdateErr) {
           console.error(`[stripe-connect] Failed to save stripe_account_id for user ${user.id}:`, profileUpdateErr);
           throw new Error("Could not link your payout account — please try again");
+        }
+        if ((linkedRows?.length ?? 0) === 0) {
+          // Another request linked an account first. Use the id now on file
+          // instead of overwriting it. If there is none (or the re-read fails)
+          // we cannot say which account is linked, so fail and let the client
+          // retry.
+          const { data: current, error: reReadErr } = await supabaseAdmin
+            .from("profiles")
+            .select("user_id, stripe_account_id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (reReadErr || !current?.stripe_account_id) {
+            console.error(
+              `[stripe-connect] link of ${accountId} for ${user.id} matched zero rows and the re-read found no linked account:`,
+              reReadErr,
+            );
+            throw new Error("Could not link your payout account — please try again");
+          }
+          if (current.stripe_account_id !== accountId) {
+            console.error(
+              `[stripe-connect] link of ${accountId} for ${user.id} lost to a concurrent link of ${current.stripe_account_id}; keeping the one on file (${accountId} is left unlinked at Stripe).`,
+            );
+          }
+          accountId = current.stripe_account_id;
         }
       }
 

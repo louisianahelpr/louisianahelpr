@@ -44,7 +44,13 @@ export async function handleAccountUpdated(
       chargesEnabled !== helperProfile.stripe_charges_enabled ||
       payoutsEnabled !== helperProfile.stripe_payouts_enabled
     ) {
-      const { error: idvErr } = await supabase
+      // Scoped to the account id this EVENT is about, not just the user (Q866).
+      // The lookup above matched on it, but Stripe delivers late and out of
+      // order: between that read and this write a reset, a Q859 clear or a
+      // re-onboard can null or replace the id, and a user_id-only write would
+      // then stamp the old account's payouts_enabled=true onto a profile that
+      // now points at another account or none. `.select("id")` reads it back.
+      const { data: idvRows, error: idvErr } = await supabase
         .from("profiles")
         .update({
           stripe_identity_verified: identityVerified,
@@ -54,7 +60,21 @@ export async function handleAccountUpdated(
           // historical timestamp alone rather than pretending it never happened.
           ...(identityVerified ? { stripe_identity_verified_at: new Date().toISOString() } : {}),
         })
-        .eq("user_id", helperProfile.user_id);
+        .eq("user_id", helperProfile.user_id)
+        .eq("stripe_account_id", account.id)
+        .select("id");
+      if (!idvErr && (idvRows?.length ?? 0) === 0) {
+        // Zero rows is LEGITIMATE here, not a failed write: this event is for
+        // an account the profile no longer points at (a stale event for a
+        // replaced or cleared account). There is nothing to cache, and the
+        // payout notices below would describe an account the helper no longer
+        // has, so stop. No throw: a Stripe retry would only match zero again.
+        logStep("Skipped stale account.updated: profile no longer links this account", {
+          userId: helperProfile.user_id,
+          accountId: account.id,
+        });
+        return;
+      }
       if (idvErr) {
         // Still log-don't-throw, even now that this gates hiring: throwing here
         // would also block the payout notice below, and a dropped

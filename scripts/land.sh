@@ -1,25 +1,32 @@
 #!/usr/bin/env bash
 # Land the current worktree's commits on main WITH the generated files current.
 #
-#   bash scripts/land.sh            # fetch, rebase, refresh, commit, verify, push
+#   bash scripts/land.sh            # fetch, rebase, refresh, verify, PR, wait for merge
 #   bash scripts/land.sh --dry-run  # everything except the push
-#   bash scripts/land.sh --pr       # same, but land through a PR with auto-merge
+#   bash scripts/land.sh --no-wait  # open/refresh the PR with auto-merge, don't wait
+#   (--pr is accepted and ignored: the PR path is the only path.)
 #
-# --pr (Q44): once main's protection is strict with enforce_admins, a direct
-# push to main is refused. --pr pushes the same verified HEAD to the branch
-# land/<current branch> (force: it is this worktree's own branch), opens a PR
-# for it if none is open, and turns on auto-merge with REBASE (not squash: a
-# squash rewrites the messages and drops per-commit Sensitive-Review trailers).
-# Strict protection needs the branch up to date with main, so if main moves
-# before the checks finish, re-run `bash scripts/land.sh --pr`: it rebases
-# and force-pushes the branch again.
+# Q44 (owner, 2026-09-27; strict confirmed 2026-09-30): main is protected with
+# required checks, strict (up to date with main) and enforce_admins, so a
+# direct push to main is refused. Nothing reaches main that has not passed
+# Vitest, Test, Vacuity and the two Playwright checks against the latest main.
+# Why: main Vitest went red on 12 of 16 finished runs on 2026-09-30 and 37 on
+# 2026-09-27, every time from a direct --no-verify push that skipped a check.
 #
-# Why (2026-09-27): agents land with `git push --no-verify origin HEAD:main`,
-# which skips the pre-commit hook that regenerates the inventories. One new
-# test file moved the guard count and main went red on check:generated
-# (503fd193c: docs/GUARD-BURNDOWN.md 650 vs 651, docs/audit/vacuity-report.json
-# 1195 vs 1196). The generated files depend on the REBASED tree, so they are
-# refreshed after the rebase, then proven with check:generated before pushing.
+# The PR path: push the verified HEAD to land/<branch>-<worktree hash> (force:
+# it is this worktree's own branch), open a PR if none is open, turn on
+# auto-merge with REBASE (not squash: a squash rewrites the messages and drops
+# per-commit Sensitive-Review trailers), then wait. Strict protection needs the
+# branch up to date, so when main moves first (mergeStateStatus BEHIND) this
+# loops: fetch, rebase, refresh, re-run the guards, force-push. A failed check
+# stops the script red with the check names. The work is landed only when the
+# PR shows MERGED.
+#
+# Why the refresh (2026-09-27): agents landed with `git push --no-verify origin
+# HEAD:main`, which skips the pre-commit hook that regenerates the inventories.
+# One new test file moved the guard count and main went red on
+# check:generated (503fd193c). The generated files depend on the REBASED tree,
+# so they are refreshed after the rebase, then proven with check:generated.
 #
 # Commits ONLY what the refresh produced: tracked files must be clean to start
 # (commit your work first; never git stash in this repo), and untracked files
@@ -27,12 +34,13 @@
 set -euo pipefail
 
 DRY=0
-PR=0
+WAIT=1
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY=1 ;;
-    --pr) PR=1 ;;
-    *) echo "land: unknown argument $arg (use --dry-run, --pr)" >&2; exit 1 ;;
+    --no-wait) WAIT=0 ;;
+    --pr) ;;
+    *) echo "land: unknown argument $arg (use --dry-run, --no-wait)" >&2; exit 1 ;;
   esac
 done
 
@@ -112,25 +120,56 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     exit 0
   fi
 
-  if [ "$PR" = 1 ]; then
-    BR="land/$(git rev-parse --abbrev-ref HEAD)"
-    git push --no-verify --force origin "HEAD:refs/heads/$BR"
-    if ! gh pr view "$BR" --json state --jq .state 2>/dev/null | grep -qx OPEN; then
-      gh pr create --base main --head "$BR" --fill-first
-    fi
-    gh pr merge "$BR" --rebase --auto
-    echo "land: $(git rev-parse --short HEAD) is on $BR with auto-merge on; it lands when the required checks pass."
-    echo "land: if main moves first (strict protection), re-run bash scripts/land.sh --pr."
+  # One branch per worktree: a detached HEAD is "HEAD" in every worktree, so
+  # the worktree path's hash keeps two sessions off each other's PR.
+  WT_HASH=$(printf '%s' "$PWD" | shasum | cut -c1-8)
+  BR="land/$(git rev-parse --abbrev-ref HEAD | tr '/' '-')-$WT_HASH"
+  git push --no-verify --force origin "HEAD:refs/heads/$BR"
+  if ! gh pr view "$BR" --json state --jq .state 2>/dev/null | grep -qx OPEN; then
+    gh pr create --base main --head "$BR" --fill-first
+  fi
+  gh pr merge "$BR" --rebase --auto
+  echo "land: $(git rev-parse --short HEAD) is on $BR with auto-merge on."
+  if [ "$WAIT" = 0 ]; then
+    echo "land: --no-wait; not landed until gh pr view $BR --json state says MERGED."
     exit 0
   fi
 
-  if git push --no-verify origin HEAD:main; then
-    echo "land: pushed $(git rev-parse --short HEAD) to main."
-    exit 0
-  fi
-  if [ "$attempt" -ge 3 ]; then
-    echo "land: push rejected $attempt times (main keeps moving); re-run." >&2
+  # Wait for the merge (checks take ~20 min). Loop back to the rebase when
+  # main moved; stop red on a failed check.
+  waited=0
+  while :; do
+    sleep 60
+    waited=$((waited + 1))
+    INFO=$(gh pr view "$BR" --json state,mergeStateStatus)
+    STATE=$(echo "$INFO" | jq -r .state)
+    if [ "$STATE" = MERGED ]; then
+      echo "land: $BR merged into main."
+      exit 0
+    fi
+    if [ "$STATE" = CLOSED ]; then
+      echo "land: $BR was closed without merging." >&2
+      exit 1
+    fi
+    # Only the REQUIRED checks decide; an optional one (Lighthouse, Analyze)
+    # failing does not block the merge, so it does not stop the wait.
+    FAILED=$(gh pr checks "$BR" --required --json name,bucket --jq '[.[] | select(.bucket == "fail") | .name] | unique | join(", ")' 2>/dev/null || true)
+    if [ -n "$FAILED" ]; then
+      echo "land: checks failed on $BR: $FAILED" >&2
+      echo "land: fix, commit, and re-run bash scripts/land.sh." >&2
+      exit 1
+    fi
+    if [ "$(echo "$INFO" | jq -r .mergeStateStatus)" = BEHIND ]; then
+      echo "land: main moved; rebasing $BR again."
+      break
+    fi
+    if [ "$waited" -ge 90 ]; then
+      echo "land: $BR not merged after 90 min; re-run bash scripts/land.sh." >&2
+      exit 1
+    fi
+  done
+  if [ "$attempt" -ge 8 ]; then
+    echo "land: main moved $attempt times while $BR waited; re-run." >&2
     exit 1
   fi
-  echo "land: push rejected (main moved); fetching and rebasing again."
 done

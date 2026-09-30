@@ -420,6 +420,22 @@ async function measureOne(context, { url, persona }) {
   // Last time any chunk or data request started or ended. A stage is quiet
   // only when the screen AND the wire have both been still for SETTLE_MS.
   let lastNet = Date.now();
+  // WIRE LOG (Q1654 P2): every request this surface made, relative to goto, so
+  // a run where data painted while the gate was shut can be read back from the
+  // artifact instead of guessed at. Data requests carry their held/released
+  // timeline; everything else carries its url, type and timing.
+  let t0 = Date.now();
+  const rel = () => Date.now() - t0;
+  const netLog = [];
+  const netOf = new Map();
+  page.on("request", (r) => {
+    const e = { url: r.url().slice(0, 300), method: r.method(), type: r.resourceType(), data: DATA_RX.test(r.url()), start: rel() };
+    netOf.set(r, e);
+    netLog.push(e);
+  });
+  page.on("requestfinished", (r) => { const e = netOf.get(r); if (e) e.end = rel(); });
+  page.on("requestfailed", (r) => { const e = netOf.get(r); if (e) { e.end = rel(); e.failed = r.failure()?.errorText ?? "failed"; } });
+  let releasedBy = "gate";
   page.on("request", (r) => {
     if (DATA_RX.test(r.url())) { inflight++; lastNet = Date.now(); }
     else if (CHUNK_RX.test(r.url())) { chunksInflight++; lastNet = Date.now(); }
@@ -440,14 +456,28 @@ async function measureOne(context, { url, persona }) {
   const releaseHeld = () => { for (const go of held.splice(0)) go(); };
   await page.route("**/*", async (route) => {
     const u = route.request().url();
+    const e = DATA_RX.test(u) ? netOf.get(route.request()) : null;
+    if (e) e[gateOpen ? "passedOpenGate" : "heldAt"] = rel();
     if (DATA_RX.test(u) && !gateOpen) await new Promise((go) => held.push(go));
     else if (CHUNK_RX.test(u)) await sleep(CHUNK_DELAY);
+    if (e && e.heldAt != null) { e.releasedAt = rel(); e.releasedBy = releasedBy; }
     await route.continue().catch(() => {});
   });
-  const openGate = () => { gateOpen = true; releaseHeld(); };
+  const openGate = () => { releasedBy = "gate"; gateOpen = true; releaseHeld(); };
 
   const slug = `${persona}${url.replace(/[^\w]+/g, "_")}`.slice(0, 90);
+  // The wire log goes beside measurements.json (the artifact uploads the whole
+  // directory; only measurements.json is ever landed), one file per surface.
+  const writeNet = () => {
+    try {
+      mkdirSync(resolve(OUT, "net"), { recursive: true });
+      writeFileSync(resolve(OUT, "net", `${slug}.json`), JSON.stringify({
+        url, persona, stage: result.stage ?? null, capturedAt: result.capturedAt ?? null, status: result.status ?? null, requests: netLog,
+      }, null, 1));
+    } catch { /* diagnostic only: never fails a measurement */ }
+  };
   try {
+    t0 = Date.now();
     await page.goto(BASE + url, { waitUntil: "commit", timeout: 60_000 });
 
     // --- loading frame (staged: see "WHICH FRAME" at the top) -------------
@@ -470,10 +500,11 @@ async function measureOne(context, { url, persona }) {
       });
       if (step === "capture") {
         loading = await page.evaluate(MEASURE, [PLACEHOLDER_SEL, null]).catch(() => null);
-        if (loading && loading.found > 0) { ended = "captured"; break; }
+        if (loading && loading.found > 0) { ended = "captured"; result.capturedAt = rel(); break; }
         sigSince = Date.now();
       } else if (step === "release") {
         waves++;
+        releasedBy = `wave${waves}`;
         releaseHeld();
         sigSince = Date.now();
       } else if (step === "empty") {
@@ -495,6 +526,7 @@ async function measureOne(context, { url, persona }) {
         ? `no loading placeholder at any settled stage (${waves} wave(s) of data released)`
         : `no settled stage with a placeholder within 20s (${waves} wave(s) released)`;
       await page.close();
+      writeNet();
       return result;
     }
 
@@ -611,6 +643,7 @@ async function measureOne(context, { url, persona }) {
   }
   openGate();
   await page.close().catch(() => {});
+  writeNet();
   return result;
 }
 

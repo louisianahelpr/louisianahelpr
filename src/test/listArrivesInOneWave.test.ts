@@ -24,6 +24,7 @@
 // @mutate src/hooks/useArrivalGate.ts | const ready = latched \|\| (primaryReady && (secondaryReady \|\| capped)); | const ready = latched \|\| primaryReady;
 // @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
 // @mutate src/pages/post-job/EntryChoice.tsx | recentPosted !== null && form.openJobCount !== null | true
+// @mutate src/pages/post-job/EntryChoice.tsx | form.openJobCount !== null && savedHelpersSettled, | form.openJobCount !== null,
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
 // @mutate src/components/profile/EarningsTab.tsx | view === "earnings" && !earningsReady && | view === "earnings" && loading &&
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
@@ -109,6 +110,14 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     const src = read("pages/post-job/EntryChoice.tsx");
     expect(src).toMatch(/recentPosted !== null && form\.openJobCount !== null/);
     expect(src).toMatch(/if \(!entryReady\) return <EntryChoiceSkeleton \/>;/);
+  });
+
+  it("post-job's entry column also waits for the self-hiding saved-helprs row (Q1654 P1)", () => {
+    const src = read("pages/post-job/EntryChoice.tsx");
+    // The card reads the same hook, so the gate and the card see one query.
+    expect(src).toMatch(/const savedHelpers = useSavedHelpersLite\(\);/);
+    expect(src).toMatch(/form\.openJobCount !== null && savedHelpersSettled,/);
+    expect(read("pages/post-job/OfferToSavedHelpr.tsx")).toMatch(/= useSavedHelpersLite\(\);/);
   });
 
   it("profile tabs wait in the tab's own chunk placeholder, not a second skeleton", () => {

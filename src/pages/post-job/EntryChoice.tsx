@@ -7,7 +7,7 @@ import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/job-card/activityConstants";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
-import { OfferToSavedHelpr } from "./OfferToSavedHelpr";
+import { OfferToSavedHelpr, useSavedHelpersLite } from "./OfferToSavedHelpr";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
@@ -140,7 +140,15 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // landed, measured at 375 on prod, rows arriving late shoved the static cards
   // down (CLS 0.32). The column holds a card-shaped skeleton until both have
   // settled (at most ARRIVAL_CAP_MS), then renders once in its final order.
-  const entryReady = useArrivalGate(true, recentPosted !== null && form.openJobCount !== null);
+  // The saved-helprs card self-hides on an empty list, so whether it is there
+  // is data too: the gate waits on it (a disabled query, no user, counts as
+  // settled). Same cache entry the card reads, so no second request.
+  const savedHelpers = useSavedHelpersLite();
+  const savedHelpersSettled = savedHelpers.fetchStatus === "idle" || savedHelpers.status !== "pending";
+  const entryReady = useArrivalGate(
+    true,
+    recentPosted !== null && form.openJobCount !== null && savedHelpersSettled,
+  );
   if (!entryReady) return <EntryChoiceSkeleton />;
 
   return (

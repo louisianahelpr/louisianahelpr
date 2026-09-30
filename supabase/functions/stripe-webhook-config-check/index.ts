@@ -2,10 +2,12 @@
 // for .github/workflows/stripe-webhook-guard.yml (issue #1586 class check, Q853).
 //
 // Service-role / cron callers only (verifyCronSecret, the same gate as
-// marketing-token-health). One GET to Stripe, no writes of any kind. Returns
-// per endpoint only {id, url, status, livemode, enabled_events} plus
-// `keyIsLive`; never the key, never a signing secret (see ./shape.ts).
-// Any Stripe or env error is a non-200, never an empty list.
+// marketing-token-health). Two GETs to Stripe (webhook_endpoints, and events
+// with delivery_success=false for Q854), no writes of any kind. Returns per
+// endpoint only {id, url, status, livemode, enabled_events}, `keyIsLive`, and
+// `undelivered` {since, until, count, truncated, events: [{id, type}]}; never
+// the key, a signing secret or an event payload (see ./shape.ts).
+// Any Stripe or env error is a non-200, never an empty list or a zero count.
 
 import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";

@@ -731,7 +731,14 @@ async function main() {
     // removes the order dependency on top of it.)
     // Guarded by src/test/loadingStatesColdContext.test.ts.
     const freshContext = async (persona) => {
-      const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+      // serviceWorkers: "block" (Q1654 P2): the app's Workbox SW claims the page
+      // about a second in and answers every Supabase GET through its
+      // NetworkFirst rule, and page.route never sees a fetch the SW handles. The
+      // gate then held only HEAD/POST: run 36784259578 logged 1156 data GETs
+      // that never reached the route (first at 1168ms) against 0 HEAD/POST, so
+      // pages painted their data in the frame judged as "loading".
+      // Guarded by src/test/loadingStatesGateSeesEveryRead.test.ts.
+      const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, serviceWorkers: "block" });
       await ctx.addInitScript(CLS_INIT);
       const s = sessions[persona];
       if (s) {

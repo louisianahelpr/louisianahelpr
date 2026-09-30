@@ -152,6 +152,12 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
   { file: "e2e/a11y-prod/reduced-motion.spec.ts", match: "keyed to a fixture id", verdict: "failure", why: MISSING_FIXTURE },
   { file: "e2e/prod-audit/", match: "GAP:", verdict: "failure", why: MISSING_FIXTURE },
   {
+    file: "e2e/prod-audit/fundedOpenJob.ts",
+    match: "test.skip(true, `${LIVE_PAY_SKIP}",
+    verdict: "justified",
+    why: "Stripe is LIVE on prod: owner decision 2026-09-27, nightly skips pay steps in live mode. The mode is read from the Checkout Session prefix create-payment returned; the live checkout page is never opened",
+  },
+  {
     file: "e2e/prod-audit/messy-input.spec.ts",
     match: "test.skip(!!why, why",
     verdict: "failure",

@@ -16,6 +16,8 @@ import { test as base, expect } from "../prodTest";
 import {
   assertHealthy,
   ensureFundedOpenJob,
+  skipWhenUnfundedLive,
+  unlessLivePay,
   getSession,
   newUserContext,
   resolveFixtures,
@@ -29,6 +31,8 @@ const test = base;
 let poster: Session;
 let helper: Session;
 let fx: Fixtures;
+/** Q865: why setup did not fund the open job (Stripe live), or null. Only the tests that open it skip. */
+let livePay: string | null = null;
 
 test.beforeAll(async ({ request, browser }, info) => {
   // Q100: a real Stripe TEST checkout when no valid funded fixture exists.
@@ -36,8 +40,9 @@ test.beforeAll(async ({ request, browser }, info) => {
   test.setTimeout(30 * 60_000); // a fresh fixture waits out the 20-minute early-access window
   poster = await getSession(request, "poster");
   helper = await getSession(request, "helper");
-  const funded = await ensureFundedOpenJob(request, browser, poster, helper);
-  info.annotations.push({ type: "funded-fixture", description: funded.log.join("; ") });
+  const funded = await unlessLivePay(() => ensureFundedOpenJob(request, browser, poster, helper));
+  livePay = funded.livePay;
+  info.annotations.push({ type: "funded-fixture", description: funded.value?.log.join("; ") ?? `not funded: ${livePay}` });
   fx = await resolveFixtures(request, poster, helper);
 });
 
@@ -76,6 +81,7 @@ test.describe("signed out", () => {
 
 test.describe("signed in (helper)", () => {
   test("/jobs/:id from a notification opens that job's sheet", async ({ browser }, info) => {
+    skipWhenUnfundedLive(fx.openJob, livePay, "this test opens the funded open job");
     test.skip(!fx.openJob, "GAP: no open escrowed job by poster-e2e without an application from helper-e2e (terminal 1 is seeding)");
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
@@ -87,6 +93,7 @@ test.describe("signed in (helper)", () => {
   });
 
   test("/jobs/:id?ref=share share link opens that job's sheet", async ({ browser }, info) => {
+    skipWhenUnfundedLive(fx.openJob, livePay, "this test opens the funded open job");
     test.skip(!fx.openJob, "GAP: no open escrowed job to open");
     const ctx = await newUserContext(browser, helper);
     const page = await ctx.newPage();
@@ -110,6 +117,7 @@ test.describe("signed in (helper)", () => {
   });
 
   test("/jobs/:id of your OWN post goes to My Posts, highlighted", async ({ browser }, info) => {
+    skipWhenUnfundedLive(fx.openJob, livePay, "this test opens the funded open job");
     test.skip(!fx.openJob, "GAP: poster-e2e has no open job");
     const ctx = await newUserContext(browser, poster);
     const page = await ctx.newPage();

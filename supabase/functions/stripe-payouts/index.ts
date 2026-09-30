@@ -140,9 +140,10 @@ serve(async (req) => {
       status: 200,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[stripe-payouts] error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    // Log the detail; never echo it. The raw Stripe / PostgREST message carries
+    // integration and schema detail the caller has no use for (EF-5 class, Q859 (4)).
+    console.error("[stripe-payouts] error:", err instanceof Error ? err.message : err);
+    return new Response(JSON.stringify({ error: "We couldn't load your earnings right now. Please try again." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

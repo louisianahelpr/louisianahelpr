@@ -79,6 +79,9 @@ export interface StripeMock {
   };
   accounts: {
     retrieve: ReturnType<typeof vi.fn>;
+    /** stripe-connect `list_payout_methods` / `delete_payout_method` (Q859). */
+    listExternalAccounts: ReturnType<typeof vi.fn>;
+    deleteExternalAccount: ReturnType<typeof vi.fn>;
   };
   /** instant-payout: the helper's instant_available balance and the payout. */
   balance: { retrieve: ReturnType<typeof vi.fn> };
@@ -167,6 +170,8 @@ export const stripeMock: StripeMock = {
   },
   accounts: {
     retrieve: vi.fn(),
+    listExternalAccounts: vi.fn(),
+    deleteExternalAccount: vi.fn(),
   },
   balance: {
     retrieve: vi.fn(),

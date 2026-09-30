@@ -25,6 +25,10 @@
 // @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
 // @mutate src/pages/post-job/EntryChoice.tsx | recentPosted !== null && form.openJobCount !== null | true
 // @mutate src/pages/post-job/EntryChoice.tsx | form.openJobCount !== null && savedHelpersSettled, | form.openJobCount !== null,
+// @mutate src/pages/post-job/EntryChoice.tsx | form.draftLoaded && draftCheckoutSettled && recentPosted | recentPosted
+// @mutate src/pages/post-job/EntryChoice.tsx | savedHelpersSettled,\n    true,\n | true,\n    savedHelpersSettled,\n
+// @mutate src/pages/post-job/useDraftCheckoutState.ts | return { state, settled: !hasDraft \|\| answered }; | return { state, settled: true };
+// @mutate src/hooks/useDraftJob.ts |     setDraftLoaded(true);\n |
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
 // @mutate src/components/profile/EarningsTab.tsx | view === "earnings" && !earningsReady && | view === "earnings" && loading &&
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
@@ -118,6 +122,22 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     expect(src).toMatch(/const savedHelpers = useSavedHelpersLite\(\);/);
     expect(src).toMatch(/form\.openJobCount !== null && savedHelpersSettled,/);
     expect(read("pages/post-job/OfferToSavedHelpr.tsx")).toMatch(/= useSavedHelpersLite\(\);/);
+  });
+
+  it("post-job's entry HOLDS UNTIL DATA: drafts, recent jobs, count and saved helprs are all primary (owner, 2026-09-30)", () => {
+    const src = read("pages/post-job/EntryChoice.tsx");
+    // All five reads in the PRIMARY slot, secondary `true`: the cap bounds only
+    // secondary data, so nothing paints before every card's data is in.
+    expect(src).toContain(
+      "useArrivalGate(\n    form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled,\n    true,\n  )",
+    );
+    expect(src).toContain("useDraftCheckout(form.hasDraft)");
+    // The draft is read in an effect; the flag says it has been.
+    expect(read("hooks/useDraftJob.ts")).toMatch(/\} catch \{\s*\}\n {4}setDraftLoaded\(true\);\n {2}\}, \[\]\);/);
+    const hook = read("pages/post-job/useDraftCheckoutState.ts");
+    expect(hook).toContain("return { state, settled: !hasDraft || answered };");
+    expect(hook).toMatch(/useState\(\(\) => !safeStorage\.getItem\(DRAFT_CHECKOUT_JOB_KEY\)\)/);
+    expect(hook.match(/setAnswered\(true\);/g)?.length).toBe(3);
   });
 
   it("profile tabs wait in the tab's own chunk placeholder, not a second skeleton", () => {

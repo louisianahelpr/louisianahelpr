@@ -12,7 +12,7 @@ import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
-import { useDraftCheckoutState } from "./useDraftCheckoutState";
+import { useDraftCheckout } from "./useDraftCheckoutState";
 
 /**
  * The entry column while its data rows settle: five collapsed-card shells, the
@@ -77,7 +77,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
      it until /payment-success), never to a server row to pay for. */
   // Q769: the kept draft's last checkout — paid hides "Load Draft", a live
   // session warns that the poster may already have paid.
-  const draftCheckout = useDraftCheckoutState(form.hasDraft);
+  const { state: draftCheckout, settled: draftCheckoutSettled } = useDraftCheckout(form.hasDraft);
   // Quick-start templates pre-fill the form in one tap. We show the first
   // four by default and reveal the rest on "Show all" — the full set now
   // lives entirely on this entry step (the in-form template picker was
@@ -139,15 +139,21 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // and "Repost" — and both sit ABOVE the static cards. Painted as each query
   // landed, measured at 375 on prod, rows arriving late shoved the static cards
   // down (CLS 0.32). The column holds a card-shaped skeleton until both have
-  // settled (at most ARRIVAL_CAP_MS), then renders once in its final order.
+  // settled, then renders once in its final order.
+  // HOLD UNTIL DATA (owner, 2026-09-30, Q1654 P1): every read that adds,
+  // removes or reshapes a card here (the kept draft and its checkout state,
+  // the recent jobs, the open-job count, the saved helprs) is PRIMARY, so the
+  // skeleton stays until all of them are in and the ARRIVAL_CAP_MS cap (which
+  // only bounds secondary data) never paints a half-built column. Each read
+  // settles on an error too, so a failure cannot hold the skeleton forever.
   // The saved-helprs card self-hides on an empty list, so whether it is there
   // is data too: the gate waits on it (a disabled query, no user, counts as
   // settled). Same cache entry the card reads, so no second request.
   const savedHelpers = useSavedHelpersLite();
   const savedHelpersSettled = savedHelpers.fetchStatus === "idle" || savedHelpers.status !== "pending";
   const entryReady = useArrivalGate(
+    form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled,
     true,
-    recentPosted !== null && form.openJobCount !== null && savedHelpersSettled,
   );
   if (!entryReady) return <EntryChoiceSkeleton />;
 

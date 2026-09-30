@@ -30,15 +30,28 @@ export function classifyDraftCheckout(
 }
 
 export function useDraftCheckoutState(hasDraft: boolean): DraftCheckoutState {
+  return useDraftCheckout(hasDraft).state;
+}
+
+/**
+ * The same read, plus whether it has ANSWERED: settled when there is no draft,
+ * no checkout on record, or the jobs row came back (an error is an answer).
+ * /post-job's entry holds its skeleton until this settles, because a paid
+ * draft's card disappears and a live one changes its note (owner, 2026-09-30,
+ * Q1654 P1: "Hold until data").
+ */
+export function useDraftCheckout(hasDraft: boolean): { state: DraftCheckoutState; settled: boolean } {
   // Start on the warning, not the plain card, while a checkout job is on
   // record: until the query answers, a paid draft must not look loadable.
   const [state, setState] = useState<DraftCheckoutState>(() =>
     safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY) ? "open" : "none",
   );
+  const [answered, setAnswered] = useState(() => !safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY));
   useEffect(() => {
     if (!hasDraft) return;
     const jobId = safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY);
-    if (!jobId) return;
+    // The key can go between mount and here (another tab paid): nothing to ask.
+    if (!jobId) { setAnswered(true); return; }
     let cancelled = false;
     void (async () => {
       const { data, error } = await supabase
@@ -51,6 +64,7 @@ export function useDraftCheckoutState(hasDraft: boolean): DraftCheckoutState {
         // Unknown is not "safe to pay again": warn.
         report(error, { tags: { source: "PostJob.draftCheckoutState" }, context: { job_id: jobId } });
         setState("open");
+        setAnswered(true);
         return;
       }
       const next = classifyDraftCheckout(data);
@@ -60,8 +74,9 @@ export function useDraftCheckoutState(hasDraft: boolean): DraftCheckoutState {
         safeStorage.removeItem(DRAFT_CHECKOUT_JOB_KEY);
       }
       setState(next);
+      setAnswered(true);
     })();
     return () => { cancelled = true; };
   }, [hasDraft]);
-  return state;
+  return { state, settled: !hasDraft || answered };
 }

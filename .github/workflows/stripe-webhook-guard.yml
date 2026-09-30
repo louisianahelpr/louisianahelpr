@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
       - name: Static checks
@@ -160,7 +160,7 @@ jobs:
     needs: live-secret-present
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
       - name: One enabled endpoint, events matching the handler map, no undelivered events

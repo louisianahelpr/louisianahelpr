@@ -26,8 +26,8 @@
       "signIns": 1
     },
     "prod-audit": {
-      "perTest": 93.5,
-      "signIns": 1
+      "perTest": 138.2,
+      "signIns": 0
     },
     "chromium": {},
     "a11y-prod": {

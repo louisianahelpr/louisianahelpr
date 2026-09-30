@@ -19,8 +19,8 @@
  * Runs the REAL function source through the edge harness.
  *
  * @mutate supabase/functions/stripe-connect/index.ts |       await stripe.accounts.retrieve(accountId);\n      return "account-usable";\n    } catch (probeErr) {\n      if (!isUnusableConnectAccountError(probeErr)) { |       throw new Error("unconfirmed");\n    } catch (probeErr) {\n      if (false) {
- * @mutate supabase/functions/stripe-connect/index.ts |         stripe_payouts_enabled: false,\n | \n
- * @mutate supabase/functions/stripe-connect/index.ts |         stripe_identity_verified: false,\n | \n
+ * @mutate supabase/functions/stripe-connect/index.ts | null,\n        stripe_payouts_enabled: false,\n | null,\n
+ * @mutate supabase/functions/stripe-connect/index.ts | stripe_charges_enabled: false,\n        stripe_identity_verified: false,\n      }) | stripe_charges_enabled: false,\n      })
  * @mutate supabase/functions/stripe-connect/index.ts |     if (clearErr \|\| (clearedRows?.length ?? 0) === 0) { |     if (false) {
  * @mutate supabase/functions/stripe-connect/index.ts |       .eq("stripe_account_id", accountId)\n      .select("id"); |       .eq("stripe_account_id", accountId);
  */

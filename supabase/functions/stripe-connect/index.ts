@@ -311,7 +311,39 @@ serve(async (req) => {
       if (profileReadErr) throw new Error("Could not load your profile — please try again");
       if (!profile?.stripe_account_id) throw new Error("No account connected");
 
-      await stripe.accounts.deleteExternalAccount(profile.stripe_account_id, method_id);
+      // Q864 — a double tap is idempotent. The second delete 404s /
+      // `resource_missing` on the EXTERNAL account, which the first tap already
+      // removed. That error alone cannot say WHICH resource was missing (it is
+      // also the shape of a gone Connect account), so the same account-scoped
+      // probe Q859 uses decides: if `accounts.retrieve(<id on file>)` succeeds,
+      // the account is healthy and the method is simply not on it any more —
+      // the caller's goal is met, answer success. No second security
+      // notification: the first tap already sent one for the real removal.
+      // Anything else (the probe fails for any reason, or a different error)
+      // rethrows the ORIGINAL error to the outer catch, which keeps Q859's
+      // confirm-then-clear path for a genuinely unusable account.
+      try {
+        await stripe.accounts.deleteExternalAccount(profile.stripe_account_id, method_id);
+      } catch (deleteErr) {
+        const de = deleteErr as { statusCode?: number; code?: string };
+        const methodMissing = de?.statusCode === 404 || de?.code === "resource_missing";
+        if (!methodMissing) throw deleteErr;
+        try {
+          await stripe.accounts.retrieve(profile.stripe_account_id);
+        } catch {
+          // Probe failed: the account itself may be the missing resource, or
+          // the probe hit a network/rate-limit error. Either way it is not
+          // confirmed healthy, so the original error goes to the outer catch.
+          throw deleteErr;
+        }
+        console.warn(
+          `[stripe-connect] delete_payout_method: ${method_id} already gone from healthy account ${profile.stripe_account_id} for ${user.id}; answering success (idempotent).`,
+        );
+        return new Response(JSON.stringify({ success: true, already_removed: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
 
       // Security alert: removing a payout method is a sensitive action.
       // Log an in-app notification so the helpr can spot account takeover
@@ -390,6 +422,14 @@ serve(async (req) => {
       //
       // Failure is logged, not thrown: the caller asked for a status, and the
       // stale value it replaces is the conservative one (gate stays closed).
+      //
+      // Q862 — scoped to the id this call RETRIEVED, not just the user. A
+      // status call that read the old account before a concurrent clear
+      // (Q859 stale-account clear, or `reset`) would otherwise write
+      // payouts_enabled=true back onto a profile that no longer has any
+      // account. With the id in the WHERE clause that write matches zero rows,
+      // which is the correct outcome, so zero rows is legitimate here and not
+      // treated as a failure.
       const { error: cacheErr } = await supabaseAdmin
         .from("profiles")
         .update({
@@ -400,7 +440,8 @@ serve(async (req) => {
             ? { stripe_identity_verified_at: new Date().toISOString() }
             : {}),
         })
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("stripe_account_id", profile.stripe_account_id);
       if (cacheErr) {
         console.error(`[stripe-connect] status cache write-back failed for ${user.id}:`, cacheErr);
       }
@@ -529,10 +570,37 @@ serve(async (req) => {
         }
       }
 
-      const { error: resetUpdateErr } = await supabaseAdmin
+      // Q861 — reset clears the link the same way the Q859 stale-account clear
+      // does: the cached gate columns go with the id (they describe the old
+      // account, and an id-less profile reading payouts_enabled=true passes a
+      // gate for an account it no longer has); the write is scoped to the id
+      // this call just deleted, so a concurrent onboard/reset that already
+      // replaced it is not undone; and it reads back its rows, so a zero-row
+      // clear is not reported as a reset. With no id on file there is nothing
+      // to scope to: the flags are reset only while the id is still null, and
+      // zero rows there is legitimate (a concurrent onboard linked a new
+      // account, which getOrCreateAccount below then picks up).
+      const oldAccountId: string | null = profile?.stripe_account_id ?? null;
+      const resetClear = supabaseAdmin
         .from("profiles")
-        .update({ stripe_account_id: null })
+        .update({
+          stripe_account_id: null,
+          stripe_payouts_enabled: false,
+          stripe_charges_enabled: false,
+          stripe_identity_verified: false,
+        })
         .eq("user_id", user.id);
+      const { data: resetRows, error: resetUpdateErr } = await (oldAccountId
+        ? resetClear.eq("stripe_account_id", oldAccountId)
+        : resetClear.is("stripe_account_id", null)
+      ).select("id");
+
+      if (!resetUpdateErr && oldAccountId && (resetRows?.length ?? 0) === 0) {
+        console.error(
+          `[stripe-connect] reset: clear of ${oldAccountId} for ${user.id} matched zero rows (the id on file changed concurrently)`,
+        );
+        throw new Error("Your payout account changed while resetting — please try again");
+      }
 
       if (resetUpdateErr) {
         // The Stripe account was already deleted above. If we can't null out

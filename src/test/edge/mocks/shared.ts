@@ -141,6 +141,25 @@ export function isNativeRequest(body: unknown): boolean {
   return typeof body === "object" && body !== null && (body as { native?: unknown }).native === true;
 }
 
+/**
+ * Mirrors `safeReturnUrl` in the real module: a client-supplied redirect is
+ * kept only when it is http(s) on our own origin; anything else falls back.
+ */
+export function safeReturnUrl(candidate: unknown, fallbackPath = "/profile"): string {
+  const base = getAppUrl();
+  const fallback = new URL(fallbackPath, base).toString();
+  if (typeof candidate !== "string" || candidate.length === 0) return fallback;
+  let url: URL;
+  try {
+    url = new URL(candidate, base);
+  } catch {
+    return fallback;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return fallback;
+  if (url.origin !== new URL(base).origin) return fallback;
+  return url.toString();
+}
+
 /** Captures every Slack ops alert the function tried to post. */
 export const slackAlerts: unknown[] = [];
 

@@ -126,7 +126,11 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   BR="land/$(git rev-parse --abbrev-ref HEAD | tr '/' '-')-$WT_HASH"
   git push --no-verify --force origin "HEAD:refs/heads/$BR"
   if ! gh pr view "$BR" --json state --jq .state 2>/dev/null | grep -qx OPEN; then
-    gh pr create --base main --head "$BR" --fill-first
+    # Title/body given explicitly: --fill needs a local branch ref, and a
+    # detached HEAD has none (first run, 2026-09-30).
+    gh pr create --base main --head "$BR" \
+      --title "$(git log -1 --format=%s)" \
+      --body "$(printf 'Landed by scripts/land.sh (Q44).\n\n%s\n' "$(git log --format='- %h %s' origin/main..HEAD)")"
   fi
   gh pr merge "$BR" --rebase --auto
   echo "land: $(git rev-parse --short HEAD) is on $BR with auto-merge on."

@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 208** (157 to do, 51 fixed with protection pending; 422 done). Feeds mirrored in: 19 from the alert ledger, 12 from nightly-red issues, 8 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 209** (158 to do, 51 fixed with protection pending; 422 done). Feeds mirrored in: 19 from the alert ledger, 12 from nightly-red issues, 8 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 10 red, 8 stale, 2 unknown, 41 green of 61 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-27T21:05Z)_
 - **Remote branches:** 102 carry patches not on main, 0 fully merged, of 103 (Q79). _(2026-09-27T21:05Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 630 items — 422 done, 51 partly done (fixed, protection pending), 157 open.**
+**Queue: 631 items — 422 done, 51 partly done (fixed, protection pending), 158 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -847,6 +847,7 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [~] **Q853 nightly-red #1966: stripe-webhook-guard checks the LIVE account through the edge function `stripe-webhook-config-check`, read only (owner decision 2026-09-30, "Allow the function" instead of a GitHub key).** Stripe went live 2026-09-27 and the test-mode endpoint is disabled on purpose (Q839), so the test-mode check was red every day. The only live key is the edge env var STRIPE_SECRET_KEY, so the read happens there: the function (service-role/cron callers only, verify_jwt=false) makes one GET /v1/webhook_endpoints and returns only {id, url, status, livemode, enabled_events} per endpoint plus `keyIsLive`; any Stripe/env error is a non-200, never an empty list. The workflow's `live` job calls it with SUPABASE_SERVICE_ROLE_KEY and asserts keyIsLive, live-mode endpoints, exactly one enabled endpoint on the webhook url, and enabled_events == EVENT_HANDLERS both ways (measured 2026-09-30: we_1U5uqvKp2H4b7tECSZVlCM1Q, 15 types). Guards `src/test/stripeWebhookGuard.test.ts` (red on a missing event, an extra event, a second enabled endpoint, a test-mode endpoint, keyIsLive false) and `src/test/stripeWebhookConfigCheckShape.test.ts` (no secret field leaves the function; every failure non-200). Closes after a green stripe-webhook-guard run. done-when: issue #1966 closed
 - [ ] **Q854 restore undelivered-event detection (Q156) on the live webhook.** The live guard dropped the pending_webhooks > 0 check because GET /v1/events needs "Events: Read" and the owner's key is scoped to Webhook Endpoints only (assumed from the scope name, not verified against Stripe's docs). Options: add "Events: Read" to STRIPE_LIVE_READ_KEY and restore the check in `scripts/check-stripe-webhook-events.mjs`, or measure delivery another way (webhook receipt rows vs Stripe events). Also: `scripts/audit/expiry-inventory.json` tracks STRIPE_TEST_SECRET_KEY but not STRIPE_LIVE_READ_KEY.
 - [ ] **Q855 Q840 review follow-ups (lh-silent-failure, 2026-09-30, deferred at landing a4a341007).** (1) send-marketing-blast does one is_seed profile lookup per recipient (batch it); (2) the suppressed-row `email_send_log` insert only logs its error to console, `logSkip` drops its error, and send-account-status-email does not check its pending-row insert; the expiry and dead-letter log inserts in process-email-queue drop their errors too (pre-existing); (3) `_shared/testRecipient.ts` duplicates the SQL `is_fixture_email`/`is_seed_email` rules instead of calling one source; (4) `src/test/testRecipientEmailGate.test.ts` checks that each sender calls the gate, but not that it gates before the send at each call site. done-when: all four fixed or each has a dated owner decision.
+- [ ] **Q856 messages section rhythm is unmeasured while poster-e2e has one Active thread (2026-09-30).** shell-spacing.spec.ts now reports messages@320/375/390/430 as UNMEASURED (annotation + `SECTION` log line) when fewer than two `row-name` rows show, because /messages opens on Active (0c64d4d04) and poster-e2e had exactly 1 live-job thread (Active 1 / All 43). Close it by giving poster-e2e a second is_seed thread on a live job (accepted/in_progress) so the stack is measured nightly, then confirm the UNMEASURED line is gone.
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

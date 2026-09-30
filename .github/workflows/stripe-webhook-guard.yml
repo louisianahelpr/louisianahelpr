@@ -31,10 +31,13 @@ permissions:
 #
 # LIVE MODE, READ ONLY (owner decision 2026-09-30). Stripe went live on prod on
 # 2026-09-27 and the test-mode endpoint is disabled on purpose (Q839), so the
-# old test-mode check was red every day (#1966). The key is STRIPE_LIVE_READ_KEY:
-# a RESTRICTED rk_live_ key with only "Webhook Endpoints: Read". The script
-# refuses sk_ keys (which can write) and test keys before making any request,
-# and its only request is GET /v1/webhook_endpoints.
+# old test-mode check was red every day (#1966). No Stripe key lives in GitHub:
+# the live half calls the edge function stripe-webhook-config-check with
+# SUPABASE_SERVICE_ROLE_KEY, and that function reads the live key from its own
+# Supabase env, makes one GET /v1/webhook_endpoints, and returns only
+# {id, url, status, livemode, enabled_events} per endpoint plus `keyIsLive`
+# (owner decision 2026-09-30, "Allow the function"). A missing secret or a
+# non-200 from the function is a red job.
 
 on:
   push:
@@ -46,6 +49,9 @@ on:
       - "scripts/stripe-webhook-events.mjs"
       - "scripts/check-stripe-webhook-events.mjs"
       - "scripts/lib/stripeWebhookGuard.mjs"
+      # Not supabase/functions/stripe-webhook-config-check/**: a push there would
+      # run the live job before functions-deploy ships the function (a 404 red).
+      # The daily and manual runs read the deployed function.
       - ".github/workflows/stripe-webhook-guard.yml"
   pull_request:
     branches: [main]
@@ -56,6 +62,7 @@ on:
       - "scripts/stripe-webhook-events.mjs"
       - "scripts/check-stripe-webhook-events.mjs"
       - "scripts/lib/stripeWebhookGuard.mjs"
+      - "supabase/functions/stripe-webhook-config-check/**"
       - ".github/workflows/stripe-webhook-guard.yml"
   # Daily: a duplicate endpoint appears from RUNNING the sandbox script, not
   # from editing it, so a paths-filtered trigger alone would never see it.
@@ -65,7 +72,9 @@ on:
 
 concurrency:
   group: stripe-webhook-guard-${{ github.ref }}
-  cancel-in-progress: true
+  # A push must never cancel the scheduled run: notify is skipped on a cancelled
+  # run, so that day's nightly-red issue would silently not update.
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 jobs:
   static:
@@ -108,7 +117,7 @@ jobs:
           echo "Guard correctly failed (exit $code) on the stale-event-list fixture."
 
   live-secret-present:
-    name: STRIPE_LIVE_READ_KEY is configured
+    name: SUPABASE_SERVICE_ROLE_KEY is configured
     runs-on: ubuntu-latest
     timeout-minutes: 2
     # Only on this repo's own branches — forks legitimately lack the secret.
@@ -116,11 +125,10 @@ jobs:
     steps:
       - name: Fail loudly if the key is missing
         env:
-          KEY: ${{ secrets.STRIPE_LIVE_READ_KEY }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           if [ -z "$KEY" ]; then
-            echo "::error::STRIPE_LIVE_READ_KEY is not set, so the duplicate-endpoint half of the #1586 guard cannot run."
-            echo "Add a Stripe LIVE-mode restricted key (rk_live_, only 'Webhook Endpoints: Read') as the STRIPE_LIVE_READ_KEY repo secret."
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set, so the duplicate-endpoint half of the #1586 guard cannot call stripe-webhook-config-check."
             exit 1
           fi
           echo "Secret present."
@@ -137,7 +145,7 @@ jobs:
           node-version: 20
       - name: One enabled endpoint, events matching the handler map
         env:
-          STRIPE_LIVE_READ_KEY: ${{ secrets.STRIPE_LIVE_READ_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/check-stripe-webhook-events.mjs --require-live
 
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after stripe-webhook-guard — along

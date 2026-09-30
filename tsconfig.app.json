@@ -64,6 +64,7 @@
     "e2e/journeys/notifications/producers.ts",
     "e2e/journeys/adminWritePaths.ts",
     "supabase/functions/_shared/businessSeatTiers.ts",
+    "supabase/functions/stripe-webhook-config-check/shape.ts",
     "supabase/functions/_shared/forEachBounded.ts",
     "supabase/functions/_shared/boundedFetch.ts",
     "supabase/functions/_shared/functionFetch.ts",

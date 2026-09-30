@@ -3,12 +3,18 @@ export interface WebhookEndpoint {
   url: string;
   status: string;
   livemode: boolean;
-  created: number;
+  created?: number;
   enabled_events?: string[];
 }
-export function liveReadKeyProblem(key: string | undefined | null): string | null;
+export function gradeConfigCheckResponse(
+  body: { keyIsLive?: unknown; endpoints?: WebhookEndpoint[] } | null | undefined,
+  handlers: string[],
+  url: string,
+): { failures: string[]; notes: string[] };
 export function gradeLiveEndpoints(
   list: { data?: WebhookEndpoint[] } | null | undefined,
   handlers: string[],
   url: string,
 ): { failures: string[]; notes: string[] };
+
+export function endpointKey(u: unknown): string | null;

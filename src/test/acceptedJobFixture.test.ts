@@ -18,7 +18,7 @@
  *      so a new status, or an owner that disappears, fails here instead of as
  *      a skip on the next nightly.
  *
- * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (accepted) return { kind: "reuse", row: accepted, retire }; | if (accepted && false) return { kind: "reuse", row: accepted, retire };
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (accepted) return { kind: "reuse", row: accepted, retire, ...extra }; | if (accepted && false) return { kind: "reuse", row: accepted, retire, ...extra };
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS, | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow",
  * @mutate .github/workflows/a11y-webkit-prod.yml | needs: [preflight, fixtures] | needs: preflight
  * @mutate .github/workflows/a11y-webkit-prod.yml | run: npx playwright test --project=job-status-fixtures | run: echo skipped

@@ -113,3 +113,4 @@
 {"sha":"7594455a1c51046c8a670e120cba6f462fad7ae1","reviewer":"code-review","verdict":"APPROVE (className-only, no auth logic)","date":"2026-09-28"}
 {"sha":"0239d861cd2da5ff0ab71c768f721ec92080df8e","reviewer":"owner","verdict":"APPROVE (owner approved landing 2026-09-27 after independent lh-edge-functions review: APPROVE, zero callers in code, cron or pg_proc)","date":"2026-09-28"}
 {"sha":"8540fbe310da2d2950c633fd57a1893b74ba22ca","reviewer":"owner","verdict":"APPROVE (owner approved landing 2026-09-27 after independent lh-edge-functions review: APPROVE; rebased copy of 0239d861c)","date":"2026-09-28"}
+{"sha":"b21edfecc81000bbd4c7f2c0d607a1e3cf3b1c15","reviewer":"lh-silent-failure","verdict":"approve","date":"2026-09-30"}

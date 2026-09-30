@@ -14,10 +14,10 @@
  *
  * Runs the REAL function source through the edge harness.
  *
- * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | .eq("user_id", helperProfile.user_id)\n        .eq("stripe_account_id", account.id)\n | .eq("user_id", helperProfile.user_id)\n
- * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | .eq("stripe_account_id", account.id)\n        .select("id"); | .eq("stripe_account_id", account.id);
+ * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | .eq("user_id", helperProfile.user_id)\n      .eq("stripe_account_id", account.id)\n | .eq("user_id", helperProfile.user_id)\n
+ * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | .eq("stripe_payouts_enabled", helperProfile.stripe_payouts_enabled)\n      .select("id"); | .eq("stripe_payouts_enabled", helperProfile.stripe_payouts_enabled);
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | if (!idvErr && (idvRows?.length ?? 0) === 0) { | if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | accountId: account.id,\n        });\n        return; | accountId: account.id,\n        });
+ * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | return;\n      }\n      // Still linked, so | }\n      // Still linked, so
  * @mutate supabase/functions/stripe-connect/index.ts | .eq("user_id", user.id)\n          .is("stripe_account_id", null)\n          .select("id"); | .eq("user_id", user.id)\n          .select("id");
  * @mutate supabase/functions/stripe-connect/index.ts | .is("stripe_account_id", null)\n          .select("id"); | .is("stripe_account_id", null);
  * @mutate supabase/functions/stripe-connect/index.ts | if ((linkedRows?.length ?? 0) === 0) { | if (false) {
@@ -63,20 +63,21 @@ describe("Q866 — stripe-webhook account.updated cache write is scoped to the e
         stripe_payouts_enabled: false,
       }],
     };
+    const account = {
+      id: ACCT,
+      charges_enabled: true,
+      payouts_enabled: true,
+      details_submitted: true,
+      capabilities: { transfers: "active" },
+      requirements: { currently_due: [], eventually_due: [], past_due: [], errors: [] },
+    };
     stripeMock.webhooks.constructEventAsync.mockResolvedValue({
       id: "evt_q866",
       type: "account.updated",
-      data: {
-        object: {
-          id: ACCT,
-          charges_enabled: true,
-          payouts_enabled: true,
-          details_submitted: true,
-          capabilities: { transfers: "active" },
-          requirements: { currently_due: [], eventually_due: [], past_due: [], errors: [] },
-        },
-      },
+      data: { object: account },
     });
+    // Q869: the handler caches the account as Stripe holds it now.
+    stripeMock.accounts.retrieve.mockResolvedValue(account);
   });
   afterEach(() => resetEnv());
 

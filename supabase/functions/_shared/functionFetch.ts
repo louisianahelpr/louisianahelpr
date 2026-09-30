@@ -20,15 +20,15 @@
 /** Longest a call may spend waiting when the caller names no deadline. */
 export const DEFAULT_BUDGET_MS = 60_000;
 /** A cron's whole run must answer inside the gateway's 150 s idle timeout. */
-export const INVOCATION_BUDGET_MS = 120_000;
+const INVOCATION_BUDGET_MS = 120_000;
 
 export function invocationDeadline(startedAt: number): number {
   return startedAt + INVOCATION_BUDGET_MS;
 }
 
-export type RateLimitLike = { name?: string; retryAfterMs?: number };
+type RateLimitLike = { name?: string; retryAfterMs?: number };
 
-export function rateLimitRetryAfterMs(err: unknown): number | null {
+function rateLimitRetryAfterMs(err: unknown): number | null {
   if (!err || typeof err !== "object") return null;
   const e = err as RateLimitLike;
   if (e.name !== "RateLimitError" && typeof e.retryAfterMs !== "number") return null;

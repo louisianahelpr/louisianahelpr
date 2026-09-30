@@ -52,6 +52,11 @@ describe("landing path (Q44)", () => {
     .filter((l) => !l.trim().startsWith("#"))
     .join("\n");
 
+  it("names every required check and every count guard", () => {
+    expect(Object.keys(REQUIRED_CHECKS)).toHaveLength(5);
+    expect(COUNT_GUARDS).toHaveLength(5);
+  });
+
   it("land.sh never pushes straight to main", () => {
     expect(code).not.toMatch(/git push[^\n]*HEAD:main/);
     expect(code).toMatch(/gh pr merge "\$BR" --rebase --auto/);

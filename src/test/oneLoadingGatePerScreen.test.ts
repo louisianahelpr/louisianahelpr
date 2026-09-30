@@ -13,7 +13,7 @@
 // none of them may be used on its own as a JSX branch (`{x ? (`). Combine them
 // (`const listsLoading = a || b`) and branch on that instead.
 //
-// @mutate src/pages/profile/GiftCard.tsx | {listsLoading ? (\n                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3"> | {loadingReceived ? (\n                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+// @mutate src/pages/profile/GiftCard.tsx | {listsLoading ? (\n                <ReceivedListSkeleton /> | {loadingReceived ? (\n                <ReceivedListSkeleton />
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";

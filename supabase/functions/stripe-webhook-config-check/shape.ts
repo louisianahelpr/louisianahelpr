@@ -24,7 +24,7 @@ export interface ShapedEndpoint {
   enabled_events: string[];
 }
 
-export interface ConfigCheckBody {
+interface ConfigCheckBody {
   keyIsLive: boolean;
   endpoints: ShapedEndpoint[];
 }
@@ -44,12 +44,12 @@ export function shapeEndpoint(raw: Record<string, unknown>): ShapedEndpoint {
 }
 
 /** Live-ness from the key's prefix, computed here so the key itself is never returned. */
-export function keyIsLive(key: string): boolean {
+function keyIsLive(key: string): boolean {
   return /^(sk|rk)_live_/.test(key);
 }
 
 /** Replace anything shaped like a Stripe key or signing secret with [redacted]. */
-export function redactKeyShapes(s: string): string {
+function redactKeyShapes(s: string): string {
   return s.replace(/\b(?:sk|rk|pk)_(?:live|test)_\S*|\bwhsec_\S*/g, "[redacted]");
 }
 

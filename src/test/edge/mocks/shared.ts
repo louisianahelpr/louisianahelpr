@@ -144,6 +144,9 @@ export function isNativeRequest(body: unknown): boolean {
 /**
  * Mirrors `safeReturnUrl` in the real module: a client-supplied redirect is
  * kept only when it is http(s) on our own origin; anything else falls back.
+ * The harness rewrites `_shared/appUrl.ts` imports to this file at load time
+ * (harness.ts), which knip cannot follow.
+ * @public
  */
 export function safeReturnUrl(candidate: unknown, fallbackPath = "/profile"): string {
   const base = getAppUrl();

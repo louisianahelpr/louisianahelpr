@@ -38,7 +38,7 @@ export interface ShapedEvent {
   type: string;
 }
 
-export interface UndeliveredEvents {
+interface UndeliveredEvents {
   /** Unix seconds; the window read is [since, until]. */
   since: number;
   until: number;
@@ -62,7 +62,7 @@ export const STRIPE_WEBHOOK_ENDPOINTS_URL = "https://api.stripe.com/v1/webhook_e
  *  that is merely in flight is not red; 26h covers a daily cadence with overlap. */
 export const UNDELIVERED_WINDOW_S = 26 * 3600;
 export const UNDELIVERED_GRACE_S = 3600;
-export const UNDELIVERED_EVENTS_LIMIT = 100;
+const UNDELIVERED_EVENTS_LIMIT = 100;
 
 /** Stripe's documented list filter (docs.stripe.com/api/events/list):
  *  delivery_success=false returns "events which are still pending or have

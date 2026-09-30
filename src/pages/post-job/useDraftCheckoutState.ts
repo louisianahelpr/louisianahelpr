@@ -29,10 +29,6 @@ export function classifyDraftCheckout(
   return "paid";
 }
 
-export function useDraftCheckoutState(hasDraft: boolean): DraftCheckoutState {
-  return useDraftCheckout(hasDraft).state;
-}
-
 /**
  * The same read, plus whether it has ANSWERED: settled when there is no draft,
  * no checkout on record, or the jobs row came back (an error is an answer).

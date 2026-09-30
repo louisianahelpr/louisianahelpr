@@ -52,6 +52,12 @@ export const test = base.extend<{ _requestMeterTest: void }, { _requestMeter: Re
     },
     { scope: "worker", auto: true },
   ],
+  // The `request` fixture sends node-side (no browser context), so the
+  // browser wrap never sees it: the canary's sign-in, REST and function calls
+  // measured 0 and the budget step called the meter loose (2026-09-30).
+  request: async ({ request, _requestMeter }, use) => {
+    await use(_requestMeter.attachApi(request));
+  },
   _requestMeterTest: [
     async ({ _requestMeter }, use) => {
       _requestMeter.tests++;

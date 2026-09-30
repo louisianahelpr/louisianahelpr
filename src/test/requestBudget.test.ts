@@ -341,14 +341,15 @@ describe("nightly-red #1582: a sharded run is judged as ONE run", () => {
 describe("#1794: the API request context is metered too", () => {
   function fakeApi() {
     const calls: string[] = [];
+    // Shaped like Playwright's APIRequestContext: every verb calls this.fetch.
     const api = {
-      get: async (u: string) => void calls.push(`GET ${u}`),
-      post: async (u: string) => void calls.push(`POST ${u}`),
-      put: async (u: string) => void calls.push(`PUT ${u}`),
-      patch: async (u: string) => void calls.push(`PATCH ${u}`),
-      delete: async (u: string) => void calls.push(`DELETE ${u}`),
-      head: async (u: string) => void calls.push(`HEAD ${u}`),
-      fetch: async (u: string) => void calls.push(`FETCH ${u}`),
+      fetch: async (u: string, o: { method?: string } = {}) => void calls.push(`${o.method ?? "FETCH"} ${u}`),
+      get(u: string) { return this.fetch(u, { method: "GET" }); },
+      post(u: string) { return this.fetch(u, { method: "POST" }); },
+      put(u: string) { return this.fetch(u, { method: "PUT" }); },
+      patch(u: string) { return this.fetch(u, { method: "PATCH" }); },
+      delete(u: string) { return this.fetch(u, { method: "DELETE" }); },
+      head(u: string) { return this.fetch(u, { method: "HEAD" }); },
     };
     return { api, calls };
   }
@@ -371,6 +372,14 @@ describe("#1794: the API request context is metered too", () => {
     expect(meter.total).toBe(4);
   });
 
+  it("one get counts once: Playwright's verbs call fetch, so only fetch is wrapped (canary proof counted 2, 2026-09-30)", async () => {
+    const meter = new RequestMeter("t");
+    const { api } = fakeApi();
+    meter.attachApi(api as never);
+    await api.get(REST);
+    expect(meter.total).toBe(1);
+  });
+
   it("an unattached context counts nothing (the #1794 zero)", async () => {
     const meter = new RequestMeter("t");
     const { api } = fakeApi();
@@ -381,6 +390,11 @@ describe("#1794: the API request context is metered too", () => {
   it("the job-status-fixtures spec attaches it", () => {
     const src = readFileSync(resolve(__dirname, "..", "..", "e2e", "job-status-fixtures", "accepted.spec.ts"), "utf8");
     expect(src).toMatch(/_requestMeter\.attachApi\(request\);/);
+  });
+
+  it("prodTest meters every spec's `request` fixture (core-loop canary measured 0, 2026-09-30)", () => {
+    const src = readFileSync(resolve(__dirname, "..", "..", "e2e", "prodTest.ts"), "utf8");
+    expect(src).toMatch(/request:\s*async\s*\(\{\s*request,\s*_requestMeter\s*\},\s*use\)\s*=>\s*\{\s*await use\(_requestMeter\.attachApi\(request\)\);/);
   });
 });
 

@@ -30,7 +30,7 @@
  * its own env and returns only {id, url, status, livemode, enabled_events} per
  * endpoint plus `keyIsLive` (owner decision 2026-09-30, "Allow the function").
  * This script holds NO Stripe key: it calls the function with
- * SUPABASE_SERVICE_ROLE_KEY. A missing key or a non-200 is RED on any run that
+ * CRON_SECRET. A missing key or a non-200 is RED on any run that
  * includes the live half, never a skip that still exits 0 — the live half is
  * the only thing that can see a duplicate endpoint, so a pass from a run that
  * never made the request would be exactly the false green this guard exists to
@@ -168,7 +168,7 @@ const FUNCTIONS_BASE_OK =
 async function readConfigCheck(serviceKey) {
   const res = await fetch(`${FUNCTIONS_BASE}/${CONFIG_CHECK_FN}`, {
     method: "GET",
-    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+    headers: { Authorization: `Bearer ${serviceKey}` },
     signal: AbortSignal.timeout(30000),
   });
   const text = await res.text();
@@ -199,18 +199,18 @@ async function liveHalf() {
     record(gradeLiveEndpoints(JSON.parse(readFileSync(FIXTURE, "utf8")), handlers, WEBHOOK_URL));
     return;
   }
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceKey = process.env.CRON_SECRET;
   if (!serviceKey) {
     fail(
-      "SUPABASE_SERVICE_ROLE_KEY is not set, so the live endpoint check did NOT run.\n" +
+      "CRON_SECRET is not set, so the live endpoint check did NOT run.\n" +
         "   This half is what catches a second enabled endpoint on the webhook url (the #1586 bug) and event drift.\n" +
-        `   It calls the ${CONFIG_CHECK_FN} edge function, which needs the service-role key.`,
+        `   It calls the ${CONFIG_CHECK_FN} edge function, which needs CRON_SECRET.`,
     );
     return;
   }
   if (!FUNCTIONS_BASE_OK) {
     fail(
-      `Refusing to send the service-role key to ${FUNCTIONS_BASE}: LH_SUPABASE_FUNCTIONS_BASE must be a loopback stub ` +
+      `Refusing to send CRON_SECRET to ${FUNCTIONS_BASE}: LH_SUPABASE_FUNCTIONS_BASE must be a loopback stub ` +
         "or https://<ref>.supabase.co/functions/v1. The live endpoint check did NOT run.",
     );
     return;

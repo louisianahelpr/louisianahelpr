@@ -211,12 +211,12 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "gh returns no successful run", env: { CI: "1" }, cli: { out: "[]", code: 0 }, says: /last passed never/ },
   ],
   "scripts/check-stripe-webhook-events.mjs": [
-    { label: "no service-role key", says: /SUPABASE_SERVICE_ROLE_KEY is not set, so the live endpoint check did NOT run/ },
-    { label: "config-check function 500", env: { SUPABASE_SERVICE_ROLE_KEY: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/fail" }, says: /Could not list Stripe live-mode webhook endpoints: stripe-webhook-config-check answered HTTP 500/ },
-    { label: "config-check function 401", env: { SUPABASE_SERVICE_ROLE_KEY: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/unauth" }, says: /stripe-webhook-config-check answered HTTP 401/ },
-    { label: "live read is empty", env: { SUPABASE_SERVICE_ROLE_KEY: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/empty" }, says: /No enabled live-mode endpoint/ },
-    { label: "function reports a test key", env: { SUPABASE_SERVICE_ROLE_KEY: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/testkey" }, says: /keyIsLive != true/ },
-    { label: "functions base is not loopback or supabase.co", env: { SUPABASE_SERVICE_ROLE_KEY: "stub", LH_SUPABASE_FUNCTIONS_BASE: "https://evil.example/functions/v1" }, says: /Refusing to send the service-role key to https:\/\/evil\.example/ },
+    { label: "no service-role key", says: /CRON_SECRET is not set, so the live endpoint check did NOT run/ },
+    { label: "config-check function 500", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/fail" }, says: /Could not list Stripe live-mode webhook endpoints: stripe-webhook-config-check answered HTTP 500/ },
+    { label: "config-check function 401", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/unauth" }, says: /stripe-webhook-config-check answered HTTP 401/ },
+    { label: "live read is empty", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/empty" }, says: /No enabled live-mode endpoint/ },
+    { label: "function reports a test key", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/testkey" }, says: /keyIsLive != true/ },
+    { label: "functions base is not loopback or supabase.co", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "https://evil.example/functions/v1" }, says: /Refusing to send CRON_SECRET to https:\/\/evil\.example/ },
     { label: "fixture with no endpoints", args: ["--fixture", "@EMPTYSTRIPE@"], says: /No enabled live-mode endpoint/ },
   ],
   // Q117/Q129: `check` reads schema_migrations + the receipt ledger through the

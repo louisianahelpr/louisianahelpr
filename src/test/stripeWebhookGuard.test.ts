@@ -5,7 +5,7 @@
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   const notSubscribed = handlers.filter((e) => !subscribed.includes(e)); |   const notSubscribed = [];
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   const noHandler = subscribed.filter((e) => !handlers.includes(e)); |   const noHandler = [];
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   const ours = list.data.filter((e) => endpointKey(e.url) === target); |   const ours = list.data.filter((e) => e.url === url);
-// @mutate .github/workflows/stripe-webhook-guard.yml | SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} | SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+// @mutate .github/workflows/stripe-webhook-guard.yml | CRON_SECRET: ${{ secrets.CRON_SECRET }} | CRON_SECRET: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -200,9 +200,9 @@ describe("gradeConfigCheckResponse (the edge function's body)", () => {
 describe("workflow wiring", () => {
   const yml = readFileSync(join(ROOT, ".github/workflows/stripe-webhook-guard.yml"), "utf8");
 
-  it("the live job and the secret-present job read SUPABASE_SERVICE_ROLE_KEY, never a Stripe key", () => {
-    expect(yml).toContain("SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}");
-    expect(yml).toContain("KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}");
+  it("the live job and the secret-present job read CRON_SECRET, never a Stripe key", () => {
+    expect(yml).toContain("CRON_SECRET: ${{ secrets.CRON_SECRET }}");
+    expect(yml).toContain("KEY: ${{ secrets.CRON_SECRET }}");
     expect(yml).not.toMatch(/STRIPE_TEST_SECRET_KEY|STRIPE_SECRET_KEY|STRIPE_LIVE_READ_KEY/);
   });
 

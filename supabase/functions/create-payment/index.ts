@@ -25,6 +25,7 @@ import { jobBudgetOutOfRange, urgentFeeOverCap, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -242,10 +243,23 @@ serve(async (req) => {
       // says this session is complete/paid, or its PaymentIntent is anywhere
       // past `requires_payment_method`, we refuse and let the webhook settle it.
       const previousSessionId: string | null = job.stripe_session_id ?? null;
+      // A session minted under the TEST key (every job funded before prod went
+      // live on 2026-09-27) is unreadable and unpayable under the live key: no
+      // money can sit behind it, so there is nothing to inspect or expire and
+      // a fresh one is minted. previousSessionId itself is KEPT: the stamp
+      // below is guarded on it and the idempotency key is scoped to it.
+      let prior: Stripe.Checkout.Session | null = null;
       if (previousSessionId) {
-        const prior = await stripe.checkout.sessions.retrieve(previousSessionId, {
-          expand: ["payment_intent"],
-        });
+        try {
+          prior = await stripe.checkout.sessions.retrieve(previousSessionId, {
+            expand: ["payment_intent"],
+          });
+        } catch (priorErr) {
+          if (!isTestObjectUnderLiveKey(priorErr)) throw priorErr;
+          console.warn(`[create-payment] prior session ${previousSessionId} on job ${jobId} is a test-mode object under the live key; minting a fresh one`);
+        }
+      }
+      if (previousSessionId && prior) {
         const priorPi = prior.payment_intent as Stripe.PaymentIntent | null;
         // `requires_action` on a still-OPEN session is a 3D Secure challenge the
         // poster walked away from (Q202 requests 3DS from $300): no money has
@@ -1712,9 +1726,46 @@ serve(async (req) => {
       }
 
       if (cancelPaymentIntentId) {
-        const pi = await stripe.paymentIntents.retrieve(cancelPaymentIntentId, {
-          expand: ["latest_charge.balance_transaction"],
-        });
+        let pi: Stripe.PaymentIntent;
+        try {
+          pi = await stripe.paymentIntents.retrieve(cancelPaymentIntentId, {
+            expand: ["latest_charge.balance_transaction"],
+          });
+        } catch (piErr) {
+          if (!isTestObjectUnderLiveKey(piErr)) throw piErr;
+          // A sandbox payment seen through the live key: nothing real to
+          // refund, and nothing this call can do about it. Put the claim back
+          // (no money moved) and answer a clear 409 instead of a 500 that
+          // strands the job in 'cancelling' (function_logs 2026-09-30T15:55Z).
+          // The claim admits 'escrow' OR an earlier stranded 'cancelling' (job
+          // 36eebad4 is one); putting 'cancelling' back would leave it stuck,
+          // so a re-entered claim goes back to 'escrow' (lh-money-escrow review).
+          const restoreTo = job.payment_status === "cancelling" ? "escrow" : job.payment_status;
+          const { data: putBack, error: putBackErr } = await supabaseAdmin
+            .from("jobs")
+            .update({ payment_status: restoreTo })
+            .eq("id", jobId)
+            .eq("status", job.status)
+            .eq("payment_status", "cancelling")
+            .select("id");
+          if (putBackErr || !putBack || putBack.length === 0) {
+            console.error(
+              `CRITICAL: [create-payment] cancel_escrow on job ${jobId}: test-mode payment ${cancelPaymentIntentId} under the live key, and the claim could not be put back (payment_status stays 'cancelling'; no money moved): ${putBackErr?.message ?? "zero rows"}`,
+            );
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Job stuck in 'cancelling' — test-mode payment, claim could not be put back",
+              message: `cancel_escrow claimed job ${jobId}, found its payment ${cancelPaymentIntentId} is a Stripe test-mode object under the live key, and could not restore payment_status. No money moved. Set payment_status back to '${restoreTo}' by hand.`,
+              fields: { job_id: jobId, restore_to: String(restoreTo), db_error: (putBackErr?.message ?? "zero rows").slice(0, 200) },
+            });
+          }
+          console.error(`[create-payment] cancel_escrow REFUSED on job ${jobId}: payment ${cancelPaymentIntentId} is a Stripe test-mode object and prod runs the live key`);
+          return new Response(JSON.stringify({
+            error: "This job was paid in Stripe test mode, so it can't be refunded here. No money was moved.",
+            testModePayment: true,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+        }
         if (pi.status === "succeeded") {
           // Service fee is non-refundable: Stripe already took its cut on the
           // full capture and does NOT return it on a refund, so a full refund
@@ -2950,6 +3001,18 @@ serve(async (req) => {
 
     throw new PublicError("Invalid action");
   } catch (error) {
+    // A stored id from the Stripe sandbox read under the live key (a job paid
+    // before prod went live): retrying never changes Stripe's answer and no
+    // real money sits behind it, so it is a 409 with a plain sentence, not a
+    // 500. The paths that can recover (re-mint, cancel_escrow) handle it
+    // themselves above; this is every other path's floor.
+    if (isTestObjectUnderLiveKey(error)) {
+      console.error("[create-payment] 409 — test-mode Stripe object under the live key:", (error as Error).message);
+      return new Response(JSON.stringify({
+        error: "This job's payment was made in Stripe test mode, so it can't be used here. No money was moved.",
+        testModePayment: true,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+    }
     // Defensive logging: Supabase log API only surfaces status codes, not
     // response bodies. Without console.error, every 500 here would be
     // diagnosable only by reproducing the call. Same pattern shipped in

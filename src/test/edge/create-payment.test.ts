@@ -45,6 +45,18 @@ async function json(res: Response): Promise<Record<string, unknown>> {
   return JSON.parse(await res.text());
 }
 
+/**
+ * The exact error Stripe's live key throws for an id minted in test mode
+ * (function_logs 2026-09-30T15:55:34Z, create-payment cancel_escrow, job
+ * 36eebad4). Every job funded before prod went live (2026-09-27) holds one.
+ */
+function testModeUnderLiveKey(kind: string, id: string) {
+  return Object.assign(
+    new Error(`No such ${kind}: '${id}'; a similar object exists in test mode, but a live mode key was used to make this request.`),
+    { type: "StripeInvalidRequestError", code: "resource_missing", statusCode: 404 },
+  );
+}
+
 /** Seed an authenticated user + a happy customer.list (no Stripe create). */
 function seedAuth(s: SupabaseScenario, user: typeof POSTER) {
   s.authUser = user;
@@ -284,6 +296,41 @@ describe("create-payment edge function", () => {
           );
         });
       }
+
+      // @mutate supabase/functions/create-payment/index.ts | if (!isTestObjectUnderLiveKey(priorErr)) throw priorErr; | throw priorErr;
+      it("treats a prior session minted in Stripe TEST mode as absent and mints a fresh one (not a 500)", async () => {
+        seedRemintable("abandoned", "cs_test_old");
+        stripeMock.checkout.sessions.retrieve.mockRejectedValue(
+          testModeUnderLiveKey("checkout.session", "cs_test_old"),
+        );
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_fresh");
+        // Nothing to expire: the live key cannot touch a test-mode session.
+        expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+        // The stamp is still guarded on the id the row holds, so a concurrent
+        // re-mint cannot be clobbered.
+        const stamp = scenario.writes.find(
+          (w) => w.table === "jobs" && (w.payload as Record<string, unknown>)?.stripe_session_id === "cs_fresh",
+        );
+        expect(stamp!.filters).toContainEqual(
+          expect.objectContaining({ column: "stripe_session_id", value: "cs_test_old" }),
+        );
+      });
+
+      it("any OTHER error reading the prior session still refuses the re-mint", async () => {
+        seedRemintable("abandoned", "cs_dead");
+        stripeMock.checkout.sessions.retrieve.mockRejectedValue(new Error("Stripe is down"));
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(500);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
 
       it("tolerates a concurrent re-mint that already expired the prior session", async () => {
         // `checkout.sessions.expire` is NOT idempotent, and nothing dedupes it
@@ -1264,6 +1311,62 @@ describe("create-payment edge function", () => {
       );
     });
 
+    // @mutate supabase/functions/create-payment/index.ts | if (!isTestObjectUnderLiveKey(piErr)) throw piErr; | throw piErr;
+    it("a job paid in Stripe TEST mode: claim put back, clear 409, no refund, never a 500 that strands it 'cancelling'", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, status: "open", payment_status: "escrow",
+          stripe_payment_intent_id: "pi_3UK0fmKp2H4b7tEC1Srs4HSu", budget: 100, customer_fee_amount: 10,
+        }],
+      };
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(
+        testModeUnderLiveKey("payment_intent", "pi_3UK0fmKp2H4b7tEC1Srs4HSu"),
+      );
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      const body = await json(res);
+      expect(body.error).toMatch(/test mode/i);
+      expect(body.error).toMatch(/No money was moved/);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect((jobUpdates[0]?.payload as Record<string, unknown>).payment_status).toBe("cancelling");
+      // The claim is handed back to what it was, guarded on still holding it.
+      const putBack = jobUpdates[jobUpdates.length - 1];
+      expect((putBack.payload as Record<string, unknown>).payment_status).toBe("escrow");
+      expect(putBack.filters).toContainEqual(
+        expect.objectContaining({ column: "payment_status", value: "cancelling" }),
+      );
+      // Never flipped to cancelled.
+      expect(jobUpdates.some((w) => (w.payload as Record<string, unknown>).status === "cancelled")).toBe(false);
+    });
+
+    // @mutate supabase/functions/create-payment/index.ts | const restoreTo = job.payment_status === "cancelling" ? "escrow" : job.payment_status; | const restoreTo = job.payment_status;
+    it("a job already stranded in 'cancelling' by the old 500 goes back to 'escrow' on retry, not 'cancelling' again", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, status: "open", payment_status: "cancelling",
+          stripe_payment_intent_id: "pi_3UK0fmKp2H4b7tEC1Srs4HSu", budget: 100, customer_fee_amount: 10,
+        }],
+      };
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(
+        testModeUnderLiveKey("payment_intent", "pi_3UK0fmKp2H4b7tEC1Srs4HSu"),
+      );
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect((jobUpdates[jobUpdates.length - 1].payload as Record<string, unknown>).payment_status).toBe("escrow");
+    });
+
     // SC-005: a gift-card-funded job has no charge (or only a shortfall) for
     // the refund to reverse — the gift IS the money. cancel_escrow flipped it
     // to cancelled without restore_gift_card_for_job, so the gift was lost.
@@ -1653,6 +1756,28 @@ describe("create-payment edge function", () => {
       expect((jobUpdate?.payload as Record<string, unknown>).payment_status).toBe(
         "refunded",
       );
+    });
+
+    // @mutate supabase/functions/create-payment/index.ts | if (isTestObjectUnderLiveKey(error)) { | if (false) {
+    it("any other path that reads a Stripe TEST-mode id answers a clear 409, not a 500", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed",
+          title: "Disputed job", stripe_payment_intent_id: "pi_test_old",
+        }],
+      };
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(
+        testModeUnderLiveKey("payment_intent", "pi_test_old"),
+      );
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/test mode.*No money was moved/);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     });
 
     it("admin_refund_dispute falls back to pi.amount when amount_received is absent", async () => {

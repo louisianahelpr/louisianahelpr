@@ -32,6 +32,16 @@ import { cn } from "@/lib/utils";
 const SCREEN_HEADER_ROW_MIN_HEIGHT = "44px";
 
 /**
+ * The desktop-website row's floor (My Posts / My Jobs with `inlineFilters`,
+ * whose icon buttons are `h-7 w-7`). ONE value for the closed row AND the
+ * open-search row: the card must not change height when search opens (owner,
+ * 2026-10-01). The open field's literal `h-[34px]` must equal it —
+ * e2e/prod-audit/expanding-search-geometry.spec.ts measures the card in every
+ * state.
+ */
+export const COMPACT_HEADER_ROW_MIN_HEIGHT = "34px";
+
+/**
  * THE MAGNIFIER'S LANDING SLOT — the whole of the three-click fix.
  *
  * Owner, 2026-09-19 (/posts): "the x on search needed to be clicked 3 times

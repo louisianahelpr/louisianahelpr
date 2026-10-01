@@ -68,7 +68,7 @@ describe("send-notification-email: seed-boundary check retries PGRST002 (Q171)",
     sendWithResend.mockClear();
     resetEnv();
     scenario.reads.notification_preferences = { rows: [{ user_id: "real-user-1", email_work_status: true }] };
-    scenario.reads.profiles = { rows: [{ email: "real@example.com", full_name: "Real User" }] };
+    scenario.reads.profiles = { rows: [{ email: "real.user@gmail.com", full_name: "Real User" }] };
     scenario.reads.suppressed_emails = { rows: [] };
   });
 

@@ -8,12 +8,21 @@
  * every signed-in route in the audit catalog (spacingScreens(), which
  * auditCatalogRoutes.test.ts proves is every route in src/App.tsx):
  *   1. the rail is actually there (<html> carries desktop-rail side-panel-open
- *      and nav[aria-label="Primary"] sits flush on the right edge, 248 wide),
- *      so a route that lost its rail cannot pass by having nothing to overlap;
+ *      and nav[aria-label="Primary"] occupies the reserved 248px strip: its
+ *      left edge at innerWidth - 248, its right edge INSET px in from the
+ *      viewport edge, so 248 - INSET wide), so a route that lost its rail
+ *      cannot pass by having nothing to overlap. The rail is a floating card,
+ *      not a flush panel: owner design f293d8d18 (2026-08-23) insets it 0.75rem
+ *      from the right and starts it below the header. INSET is read from
+ *      DesktopSidebarNav.tsx, so a change there moves this check with it;
  *   2. the ONE shared inset is exactly --desktop-sidebar-w: `.app-shell-frame`
  *      ends 248px from the right on fixed-shell pages, `#root` carries
  *      padding-right 248 on document-scroll pages (CLAUDE.md "desktop rail");
- *   3. nothing visible outside the rail extends past innerWidth - 248;
+ *   3. nothing visible outside the rail extends past innerWidth - 248 AT THE
+ *      RAIL'S HEIGHT (the full-width fixed header above the rail's top is not
+ *      under it); an element carrying the inset as padding-right (#root on
+ *      document-scroll pages) is measured by its content box, since that
+ *      padding IS the inset;
  *   4. zero horizontal overflow;
  *   5. the h1's column is centred in the post-rail area (left and right gaps
  *      within 2px), measured on the column, not on <main>.
@@ -29,7 +38,7 @@
  * `RAIL` line, so the run log is the measurement.
  */
 import { test, expect, type Page } from "../prodTest";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
@@ -41,6 +50,11 @@ import { spacingScreens } from "./shellSpacing";
 const RAIL = 248;
 const WIDTHS = [1024, 1280, 1440, 1920] as const;
 const TOL = 2;
+// The rail card's right inset, taken from the component that sets it. The width
+// must be the strip minus the same inset, or the card no longer fills the strip.
+const RAIL_SRC = readFileSync("src/components/DesktopSidebarNav.tsx", "utf8");
+const INSET_M = RAIL_SRC.match(/right:\s*"([\d.]+)rem",\s*\n\s*width:\s*"calc\(var\(--desktop-sidebar-w, 248px\) - ([\d.]+)rem\)"/);
+const INSET = INSET_M && INSET_M[1] === INSET_M[2] ? parseFloat(INSET_M[1]) * 16 : NaN;
 const SCREENS = spacingScreens().filter((s) => s.auth === "poster");
 const SHOTS = process.env.LH_RAIL_SHOTS;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
@@ -79,7 +93,12 @@ function readRail([rail, tol]: [number, number]): RailRow {
     if (cs.visibility === "hidden" || cs.display === "none" || cs.opacity === "0") continue;
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2 || r.bottom <= 0 || r.top >= innerHeight) continue;
-    if (r.right <= limit + 0.5) continue;
+    // Only what shares the rail's rows can sit under it.
+    if (nr && (r.bottom <= nr.top + 0.5 || r.top >= nr.bottom - 0.5)) continue;
+    // The inset carrier's padding strip is the inset itself, not content.
+    const padR = parseFloat(cs.paddingRight) || 0;
+    const right = padR >= rail - 0.5 ? r.right - padR : r.right;
+    if (right <= limit + 0.5) continue;
     // A layout box that paints nothing (no background, border, shadow, text,
     // or replaced content) is not "under" the rail in any way a user sees.
     const paints =
@@ -138,6 +157,7 @@ async function shot(page: Page, name: string) {
 }
 
 test("the signed-in route inventory is the app's own, and is not empty", () => {
+  expect(INSET, "DesktopSidebarNav's right inset / width pair no longer parses; re-read the rail's geometry").toBeGreaterThanOrEqual(0);
   expect(SCREENS.length, "spacingScreens() poster half came back short").toBeGreaterThan(25);
   expect(SCREENS.map((s) => s.name)).toContain("profile-gift-card");
 });
@@ -173,7 +193,8 @@ test("rail inset: nothing under the open right rail on any signed-in route at 10
       }
       measured++;
       const bad: string[] = [];
-      if (!r.railRect || Math.abs(r.railRect.right - vw) > TOL || Math.abs(r.railRect.width - RAIL) > TOL) bad.push(`rail not flush right/${RAIL} wide: ${JSON.stringify(r.railRect)}`);
+      if (!r.railRect || Math.abs(r.railRect.left - (vw - RAIL)) > TOL || Math.abs(r.railRect.right - (vw - INSET)) > TOL || Math.abs(r.railRect.width - (RAIL - INSET)) > TOL)
+        bad.push(`rail does not fill its ${RAIL}px strip (want left ${vw - RAIL}, right ${vw - INSET}, width ${RAIL - INSET}): ${JSON.stringify(r.railRect)}`);
       if (r.frameRight !== null && Math.abs(r.frameRight - RAIL) > 0.5) bad.push(`.app-shell-frame ends ${r.frameRight}px from the right, want ${RAIL}`);
       if (r.frameRight === null && Math.abs(r.rootPadRight - RAIL) > 0.5) bad.push(`#root padding-right ${r.rootPadRight}, want ${RAIL}`);
       if (r.overflow > 0) bad.push(`scrolls sideways by ${r.overflow}px`);

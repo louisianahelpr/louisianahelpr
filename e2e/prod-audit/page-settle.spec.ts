@@ -42,7 +42,6 @@ const KNOWN: Record<string, string> = {
   // from the count the device saw last, so with nothing seen yet it lands once
   // above the list. Return visits measure 0 (docs/OPEN.md MQ28).
   "375 /messages": "cls=0.0589 (Chromium, 2026-09-26; CI 0.0558)",
-  "1440 /messages": "cls=0.0216 (Chromium, 2026-09-26)",
 };
 
 interface RouteRow { url: string; personas: string[]; redirect: boolean }

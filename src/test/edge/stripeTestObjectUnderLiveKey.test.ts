@@ -57,6 +57,21 @@ describe("a Stripe test-mode object read under the live key is classified, never
     expect(isTestObjectUnderLiveKey("a similar object exists in test mode, but a live mode key was used")).toBe(false);
   });
 
+  it("create-payment uses THE shared classifier, not a local stand-in", () => {
+    // The call sites below are text; without this, a local
+    // `const isTestObjectUnderLiveKey = () => false` keeps every call site
+    // intact while classifying nothing (vacuity run 36882287934 SURVIVED it).
+    const s = code("supabase/functions/create-payment/index.ts");
+    const imports = [...s.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']\.\.\/_shared\/stripeAccountUsable\.ts["']/g)]
+      .flatMap((m) => m[1].split(",").map((n) => n.trim()));
+    expect(imports, "imported from _shared/stripeAccountUsable.ts under its own name").toContain("isTestObjectUnderLiveKey");
+    expect(s, "no local declaration shadows the shared classifier").not.toMatch(
+      /(?:\b(?:const|let|var|function)\s+isTestObjectUnderLiveKey\b)|\bas\s+isTestObjectUnderLiveKey\b/,
+    );
+    // Re-mint, cancel_escrow and the outer catch on 2026-10-01. A floor.
+    expect(s.match(/\bisTestObjectUnderLiveKey\(/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+  });
+
   it("create-payment's outer catch maps it to a 409 before the generic 500", () => {
     const s = code("supabase/functions/create-payment/index.ts");
     const at = s.indexOf("if (isTestObjectUnderLiveKey(error)) {");

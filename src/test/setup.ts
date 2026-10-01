@@ -1,6 +1,6 @@
 import { appendFileSync } from "node:fs";
 import { afterEach, expect } from "vitest";
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom/vitest";
 import { installProdNetworkGuard } from "./prodNetworkGuard";
 
 // Unit tests never reach prod Supabase (Q55a): see src/test/prodNetworkGuard.ts.

@@ -290,6 +290,15 @@
     "nargs": 2
    }
   ],
+  "attach_unconfirmed_email_gate": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "audit_admin_job_status_change": [
    {
     "anon": false,
@@ -383,6 +392,22 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "ban_settlement_action": [
+   {
+    "anon": false,
+    "args": [
+     "p_seat",
+     "p_status",
+     "p_payment_status",
+     "p_work_started",
+     "p_is_crew",
+     "p_is_series"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 6
    }
   ],
   "block_shadowbanned_applications": [
@@ -827,6 +852,17 @@
     "nargs": 2
    }
   ],
+  "deliver_job_match": [
+   {
+    "anon": false,
+    "args": [
+     "p_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "deliver_parish_match_alert": [
    {
     "anon": false,
@@ -954,6 +990,26 @@
     "nargs": 1
    }
   ],
+  "end_series_for_banned_account": [
+   {
+    "anon": false,
+    "args": [
+     "p_user"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "end_series_on_permanent_ban": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enforce_application_credential_tier": [
    {
     "anon": false,
@@ -1054,6 +1110,15 @@
    }
   ],
   "enforce_credential_status_server_owned": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "enforce_crew_fanout_dispute_lock": [
    {
     "anon": false,
     "args": [],
@@ -1364,7 +1429,25 @@
     "nargs": 0
    }
   ],
+  "enforce_series_ban_marker_server_owned": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "enforce_series_columns_client_lock": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "enforce_series_visit_within_end": [
    {
     "anon": false,
     "args": [],
@@ -1379,6 +1462,18 @@
     "args": [
      "queue_name",
      "payload"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "enqueue_instant_job_match": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id",
+     "p_matches"
     ],
     "authenticated": false,
     "nargdefaults": 0,
@@ -2186,6 +2281,17 @@
     "nargs": 1
    }
   ],
+  "is_series_party": [
+   {
+    "anon": false,
+    "args": [
+     "p_parent"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "is_server_context": [
    {
     "anon": true,
@@ -2230,6 +2336,18 @@
     "nargs": 1
    }
   ],
+  "job_announceable_to": [
+   {
+    "anon": false,
+    "args": [
+     "p_job",
+     "p_user_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "job_expires_at_for_schedule": [
    {
     "anon": true,
@@ -2240,6 +2358,17 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "job_has_crew": [
+   {
+    "anon": false,
+    "args": [
+     "p_job"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "job_hours_until_start": [
@@ -2278,6 +2407,17 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 4
+   }
+  ],
+  "job_match_digest_rows": [
+   {
+    "anon": false,
+    "args": [
+     "p_queue_ids"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "job_messaging_closes_at": [
@@ -2406,6 +2546,20 @@
     "nargs": 0
    }
   ],
+  "mark_crew_dispute_executed": [
+   {
+    "anon": false,
+    "args": [
+     "_dispute_id",
+     "_helper_cents",
+     "_refund_cents",
+     "_refund_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 4
+   }
+  ],
   "mark_helper_arrival": [
    {
     "anon": false,
@@ -2417,6 +2571,15 @@
     "authenticated": true,
     "nargdefaults": 2,
     "nargs": 3
+   }
+  ],
+  "mark_message_notifications_read": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "marketing_published_today": [
@@ -3247,6 +3410,15 @@
     "nargs": 2
    }
   ],
+  "refuse_unconfirmed_email_write": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "reject_contact_leak_in_job": [
    {
     "anon": false,
@@ -3529,6 +3701,19 @@
     "nargs": 1
    }
   ],
+  "rpc_decide_crew_dispute": [
+   {
+    "anon": false,
+    "args": [
+     "_dispute_id",
+     "_decision_text",
+     "_refund_helper_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "rpc_decide_dispute": [
    {
     "anon": false,
@@ -3781,6 +3966,66 @@
     "nargs": 0
    }
   ],
+  "series_give_up_strike": [
+   {
+    "anon": false,
+    "args": [
+     "p_parent",
+     "p_helper",
+     "p_dates"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
+  "series_holds_on_hire": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "series_release_dates": [
+   {
+    "anon": false,
+    "args": [
+     "p_parent",
+     "p_helper",
+     "p_dates",
+     "p_reason",
+     "p_title",
+     "p_customer"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 6
+   }
+  ],
+  "series_visit_dates": [
+   {
+    "anon": false,
+    "args": [
+     "p_start",
+     "p_days",
+     "p_weeks"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
+  "session_email_unconfirmed": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "set_available_now": [
    {
     "anon": false,
@@ -3871,6 +4116,26 @@
     "authenticated": false,
     "nargdefaults": 6,
     "nargs": 8
+   }
+  ],
+  "settle_one_off_jobs_for_banned_account": [
+   {
+    "anon": false,
+    "args": [
+     "p_user"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "settle_one_off_jobs_on_permanent_ban": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "snapshot_application_job_point": [
@@ -4050,6 +4315,15 @@
    }
   ],
   "sweep_expired_auto_bans": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sweep_job_match_queue": [
    {
     "anon": false,
     "args": [],
@@ -4430,7 +4704,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "admin_user_notes": {
@@ -4540,6 +4815,7 @@
    ],
    "rls": true,
    "triggers": [
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -4689,7 +4965,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "applications": {
    "checks": [
@@ -4912,6 +5190,7 @@
     "before:delete",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -5047,7 +5326,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "crew_cancellation_fee_shares": {
    "checks": [
@@ -5154,7 +5435,101 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "crew_dispute_member_outcomes": {
+   "checks": [
+    "CHECK ((member_outcome = ANY (ARRAY['pay'::text, 'refund'::text])))",
+    "CHECK ((share_cents >= 0))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "decided_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "decided_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "dispute_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "member_outcome": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "share_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "slot_no": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "crew dispute outcomes: poster, own member, admin",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "cron_catchup_policy": {
    "checks": [
@@ -5203,7 +5578,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "cron_catchup_runs": {
    "checks": [
@@ -5272,7 +5649,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "cron_catchup_schedules": {
    "checks": [],
@@ -5318,7 +5697,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "cron_http_requests": {
    "checks": [],
@@ -5350,7 +5731,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "cron_run_log": {
    "checks": [],
@@ -5427,7 +5810,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "cron_work_expectations": {
    "checks": [
@@ -5534,7 +5919,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "db_saturation_samples": {
    "checks": [],
@@ -5671,7 +6058,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "db_saturation_state": {
    "checks": [
@@ -5719,7 +6108,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "dispute_settlement_claims": {
    "checks": [
@@ -5774,12 +6165,14 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "disputes": {
    "checks": [
     "CHECK (((COALESCE(execution_helper_cents, 0) >= 0) AND (COALESCE(execution_refund_cents, 0) >= 0)))",
-    "CHECK (((execution_status IS NULL) OR (execution_status = ANY (ARRAY['pending'::text, 'executing'::text, 'executed'::text, 'failed'::text]))))",
+    "CHECK (((execution_status IS NULL) OR (execution_status = ANY (ARRAY['pending'::text, 'executing'::text, 'executed'::text, 'failed'::text, 'crew_fanout'::text]))))",
     "CHECK ((status = ANY (ARRAY['open'::text, 'decided'::text, 'withdrawn'::text, 'superseded'::text])))"
    ],
    "columnGrants": {},
@@ -5939,6 +6332,14 @@
     },
     {
      "cmd": "SELECT",
+     "name": "disputes crew members select",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "SELECT",
      "name": "disputes opener select",
      "permissive": "PERMISSIVE",
      "roles": [
@@ -5966,6 +6367,7 @@
    "triggers": [
     "before:delete",
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -6020,7 +6422,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "email_send_log": {
    "checks": [
@@ -6137,7 +6541,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "email_send_state": {
    "checks": [
@@ -6223,7 +6629,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "email_tracking": {
    "checks": [],
@@ -6315,7 +6723,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "error_log_throttle_drops": {
    "checks": [
@@ -6370,7 +6780,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "error_logs": {
    "checks": [
@@ -6567,6 +6979,7 @@
    "rls": true,
    "triggers": [
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -6653,7 +7066,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "gift_cards": {
    "checks": [
@@ -6831,7 +7246,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "group_job_helpers": {
    "checks": [
@@ -7035,6 +7452,7 @@
     "before:delete",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -7146,6 +7564,7 @@
    "rls": true,
    "triggers": [
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -7328,6 +7747,7 @@
    "triggers": [
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -7406,7 +7826,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "helper_verifications": {
    "checks": [],
@@ -7488,7 +7910,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "helper_w9_records": {
    "checks": [],
@@ -7581,7 +8005,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "instant_payouts": {
@@ -7689,6 +8114,7 @@
    ],
    "rls": true,
    "triggers": [
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -7736,7 +8162,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "job_checkins": {
    "checks": [],
@@ -7836,7 +8264,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "job_completion_nudges": {
@@ -7897,7 +8326,131 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "job_match_queue": {
+   "checks": [
+    "CHECK (((status = 'queued'::text) = (settled_at IS NULL)))",
+    "CHECK ((source = ANY (ARRAY['instant'::text, 'parish'::text])))",
+    "CHECK ((status = ANY (ARRAY['queued'::text, 'sent'::text, 'digested'::text, 'dropped'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "attempts": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "integer"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "drop_reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "link": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "message": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "notify_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "retry_after": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "send_email": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "settled_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "source": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "title": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "job_pets": {
    "checks": [],
@@ -7964,6 +8517,7 @@
    "triggers": [
     "before:delete",
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -8068,6 +8622,7 @@
    "triggers": [
     "before:delete",
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -8179,7 +8734,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "job_tracking": {
    "checks": [],
@@ -8296,6 +8853,7 @@
    "triggers": [
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -8369,7 +8927,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "jobs": {
@@ -8379,6 +8938,7 @@
     "CHECK (((sales_tax_rate IS NULL) OR ((sales_tax_rate >= (0)::numeric) AND (sales_tax_rate <= (1)::numeric))))",
     "CHECK (((budget >= (10)::numeric) AND (budget <= (1000)::numeric)))",
     "CHECK (((credential_tier >= 0) AND (credential_tier <= 3)))",
+    "CHECK ((char_length(description) <= 1000))",
     "CHECK ((payment_status = ANY (ARRAY['unpaid'::text, 'escrow'::text, 'payout_pending'::text, 'released'::text, 'refunded'::text, 'cancelled'::text, 'abandoned'::text, 'failed'::text, 'chargeback'::text, 'cancelling'::text])))",
     "CHECK (are_safe_media_urls(photos))",
     "CHECK ((pricing_mode = 'set_price'::text))",
@@ -8386,6 +8946,7 @@
     "CHECK (((recurrence_weeks IS NULL) OR ((recurrence_weeks >= 1) AND (recurrence_weeks <= 52))))",
     "CHECK ((NOT (COALESCE(is_group_job, false) AND (recurrence_days IS NOT NULL))))",
     "CHECK ((COALESCE(is_flexible_schedule, false) OR (start_time IS NOT NULL) OR (is_seed AND (recurrence_days IS NULL))))",
+    "CHECK ((char_length(title) <= 32))",
     "CHECK (((urgent_fee IS NULL) OR ((urgent_fee >= (0)::numeric) AND (urgent_fee <= (250)::numeric))))",
     "CHECK (((is_urgent IS NOT TRUE) OR ((urgent_fee IS NOT NULL) AND (urgent_fee >= (5)::numeric))))"
    ],
@@ -9438,6 +9999,7 @@
     "before:delete",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -9999,6 +10561,7 @@
    ],
    "rls": true,
    "triggers": [
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -10079,7 +10642,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "louisiana_zip_parishes": {
    "checks": [],
@@ -10161,7 +10726,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "marketing_content": {
    "checks": [
@@ -10352,6 +10919,7 @@
    ],
    "rls": true,
    "triggers": [
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -10441,7 +11009,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "match_digest_queue": {
    "checks": [],
@@ -10505,7 +11075,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "message_reactions": {
@@ -10606,6 +11177,7 @@
     "before:delete",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -10829,6 +11401,7 @@
     "before:delete",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -10881,7 +11454,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "notification_dedupe_suppressions": {
    "checks": [],
@@ -10934,7 +11509,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "notification_logs": {
    "checks": [],
@@ -11062,7 +11639,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "notification_preferences": {
    "checks": [],
@@ -11352,6 +11931,7 @@
    ],
    "rls": true,
    "triggers": [
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -11403,7 +11983,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "notifications": {
    "checks": [
@@ -11537,7 +12119,8 @@
    "rls": true,
    "triggers": [
     "after:insert",
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "nps_responses": {
@@ -11634,7 +12217,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "open_jobs_browse": {
@@ -12008,7 +12592,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "ops_alert_ledger": {
    "checks": [
@@ -12179,7 +12765,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "ops_alert_pending": {
@@ -12268,7 +12855,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "ops_route_probe": {
    "checks": [],
@@ -12300,12 +12889,21 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "parish_match_alert_queue": {
    "checks": [],
    "columnGrants": {},
    "columns": {
+    "attempts": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "integer"
+    },
     "created_at": {
      "enum": null,
      "generated": false,
@@ -12334,6 +12932,13 @@
      "notNull": true,
      "type": "timestamp with time zone"
     },
+    "retry_after": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "user_id": {
      "enum": null,
      "generated": false,
@@ -12346,7 +12951,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "payment_refunds": {
    "checks": [
@@ -12484,7 +13091,8 @@
    ],
    "rls": true,
    "triggers": [
-    "after:insert|update|delete"
+    "after:insert|update|delete",
+    "before:insert|update|delete"
    ]
   },
   "payout_transfers": {
@@ -12669,7 +13277,8 @@
    ],
    "rls": true,
    "triggers": [
-    "after:insert|update|delete"
+    "after:insert|update|delete",
+    "before:insert|update|delete"
    ]
   },
   "pet_profiles": {
@@ -12835,6 +13444,7 @@
    "rls": true,
    "triggers": [
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -13002,7 +13612,8 @@
    ],
    "rls": true,
    "triggers": [
-    "after:insert|update|delete"
+    "after:insert|update|delete",
+    "before:insert|update|delete"
    ]
   },
   "profile_search_rate_log": {
@@ -13053,7 +13664,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "profile_views": {
    "checks": [],
@@ -13132,7 +13745,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "profiles": {
@@ -14025,6 +14639,7 @@
     "after:update",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -14120,7 +14735,176 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "recurring_visit_payments": {
+   "checks": [
+    "CHECK ((amount_cents = ((budget_cents + fee_cents) + tax_cents)))",
+    "CHECK ((amount_cents > 0))",
+    "CHECK ((budget_cents > 0))",
+    "CHECK ((fee_cents >= 0))",
+    "CHECK (((status <> ALL (ARRAY['paid'::text, 'funded'::text, 'refunded'::text])) OR (stripe_payment_intent_id IS NOT NULL)))",
+    "CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'funded'::text, 'expired'::text, 'refunded'::text])))",
+    "CHECK ((tax_cents >= 0))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "amount_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "budget_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "child_job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "fee_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "fee_percent": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "numeric"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "hold_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "paid_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "parent_job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "payer_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "stripe_payment_intent_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "stripe_session_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "tax_calculation_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "tax_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "integer"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "visit_date": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "date"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "recurring_visit_payments_payer_reads_own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "recurring_visit_releases": {
    "checks": [],
@@ -14188,7 +14972,8 @@
    "rls": true,
    "triggers": [
     "before:delete",
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "referral_codes": {
@@ -14263,6 +15048,7 @@
    "rls": true,
    "triggers": [
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -14388,7 +15174,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "referrals": {
@@ -14463,7 +15250,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "reports": {
    "checks": [
@@ -14583,7 +15372,8 @@
    "rls": true,
    "triggers": [
     "after:insert",
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "retained_bans": {
@@ -14672,7 +15462,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "retired_client_relations": {
    "checks": [
@@ -14720,7 +15512,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "reviews": {
    "checks": [
@@ -14861,6 +15655,7 @@
     "after:insert",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -14942,7 +15737,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "saved_search_alert_queue": {
@@ -15003,7 +15799,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "saved_searches": {
    "checks": [
@@ -15157,6 +15955,7 @@
    "rls": true,
    "triggers": [
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -15197,7 +15996,9 @@
    "kind": "table",
    "policies": [],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "series_date_offers": {
    "checks": [],
@@ -15249,7 +16050,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "series_visit_holds": {
    "checks": [],
@@ -15308,7 +16111,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "str_calendar_connections": {
    "checks": [
@@ -15445,6 +16250,7 @@
    "rls": true,
    "triggers": [
     "before:insert",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -15517,7 +16323,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "stripe_webhook_events": {
    "checks": [],
@@ -15573,7 +16381,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "suppressed_emails": {
    "checks": [
@@ -15661,7 +16471,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "thread_archives": {
    "checks": [],
@@ -15755,7 +16567,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "thread_mutes": {
    "checks": [],
@@ -15841,7 +16655,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "thread_pins": {
    "checks": [],
@@ -15921,7 +16737,8 @@
    ],
    "rls": true,
    "triggers": [
-    "before:insert"
+    "before:insert",
+    "before:insert|update|delete"
    ]
   },
   "tips": {
@@ -16044,7 +16861,8 @@
    ],
    "rls": true,
    "triggers": [
-    "after:insert|update"
+    "after:insert|update",
+    "before:insert|update|delete"
    ]
   },
   "user_bans": {
@@ -16139,7 +16957,8 @@
    "rls": true,
    "triggers": [
     "after:insert|update|delete",
-    "before:insert|update"
+    "before:insert|update",
+    "before:insert|update|delete"
    ]
   },
   "user_blocks": {
@@ -16236,7 +17055,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "user_roles": {
    "checks": [],
@@ -16332,6 +17153,7 @@
     "after:insert|delete",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
     "before:update"
    ]
   },
@@ -16441,7 +17263,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   },
   "user_violations": {
    "checks": [],
@@ -16541,7 +17365,8 @@
    ],
    "rls": true,
    "triggers": [
-    "after:insert"
+    "after:insert",
+    "before:insert|update|delete"
    ]
   },
   "verification_checks": {
@@ -16667,7 +17492,8 @@
    ],
    "rls": true,
    "triggers": [
-    "after:update"
+    "after:update",
+    "before:insert|update|delete"
    ]
   },
   "verification_exceptions": {
@@ -16799,7 +17625,9 @@
     }
    ],
    "rls": true,
-   "triggers": []
+   "triggers": [
+    "before:insert|update|delete"
+   ]
   }
  }
 }

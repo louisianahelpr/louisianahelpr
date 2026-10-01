@@ -24,7 +24,7 @@
 
 // @mutate e2e/journeys/02-marketplace.spec.ts | await payCheckoutSession(page); | await payOnStripeCheckout(page);
 // @mutate e2e/journeys/fixtures.ts | if (engineOf(page) === "chromium") { | if (engineOf(page) !== "") {
-// @mutate .github/workflows/e2e-journeys.yml | install --with-deps webkit chromium | install --with-deps webkit
+// @mutate .github/workflows/e2e-journeys.yml | playwright-install.sh webkit chromium | playwright-install.sh webkit
 // @mutate e2e/journeys/stripeInChromium.ts | const browser = await chromium.launch(); | const browser = await webkit.launch();
 
 import { describe, it, expect } from "vitest";
@@ -86,7 +86,7 @@ describe("journeys pay Stripe in the engine the product shows it in", () => {
     expect(jobs.length).toBeGreaterThan(1);
     for (const job of jobs) {
       const name = /^([\w-]+):/.exec(job.trimStart())?.[1] ?? "?";
-      const install = /npx playwright install --with-deps ([^\n]+)/.exec(job)?.[1] ?? "";
+      const install = /scripts\/ci\/playwright-install\.sh ([^\n]+)/.exec(job)?.[1] ?? "";
       expect(install.split(/\s+/), `${name} does not install chromium, which payCheckoutSession launches`).toContain("chromium");
     }
   });

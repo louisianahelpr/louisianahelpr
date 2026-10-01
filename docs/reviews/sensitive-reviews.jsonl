@@ -133,3 +133,4 @@
 {"sha":"bd426590bb4d2bd32dd3087b27fc9d09f266320d","reviewer":"lh-money-escrow","verdict":"approved: layout/comment-only; no amount, CTA enabled condition, or checkout write changed","date":"2026-10-02"}
 {"sha":"5d5a2e416939636b047ce5f0929d808033ac5efc","reviewer":"lh-money-escrow","verdict":"PASS (review a63411360: amounts shown = submitted/charged)","date":"2026-10-01"}
 {"sha":"74d10253997300b426596843be4171784618e97e","reviewer":"lh-money-escrow","verdict":"className-only change; branch gift-card read is SELECT-only, user-scoped (recipient_id/email + RLS), error reported not dropped, no writes - no money issue","date":"2026-10-01"}
+{"sha":"ccf4e52be00690d79afe3b1f7951dfecfeb3461e","reviewer":"lh-money-escrow","verdict":"rebase of 74d102539, diff byte-identical: one className change on the Dismiss button (rounded-full -> ctl-exit ctl-tint) in GiftCardTeaser.tsx; no reads, writes, amounts or gift-card logic touched - no money issue","date":"2026-10-01"}

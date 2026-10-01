@@ -31,7 +31,7 @@
 // @mutate src/pages/post-job/useDraftCheckoutState.ts | return { state, settled: !hasDraft \|\| answered }; | return { state, settled: true };
 // @mutate src/hooks/useDraftJob.ts |     setDraftLoaded(true);\n |
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
-// @mutate src/components/profile/EarningsTab.tsx | view === "earnings" && !earningsReady && | view === "earnings" && loading &&
+// @mutate src/components/profile/EarningsTab.tsx | {!pageReady && <EarningsPageSkeleton | {loading && <EarningsPageSkeleton
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
 // @mutate src/pages/home/Dashboard.tsx |         titleCard={isWebDesktop ? undefined : <DashboardTitleBar | titleCard={<DashboardTitleBar
 // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | invisible font-sans leading-none tabular-nums text-ds-17 | invisible h-9 w-16
@@ -174,7 +174,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   });
 
   it("the earnings page and the reviews hero wait for everything above the fold", () => {
-    expect(read("components/profile/EarningsTab.tsx")).toMatch(/view === "earnings" && !earningsReady && <EarningsPageSkeleton/);
+    expect(read("components/profile/EarningsTab.tsx")).toMatch(/\{!pageReady && <EarningsPageSkeleton withHeader=\{false\} withSwitcher \/>\}/);
     expect(read("components/profile/ReviewsTab.tsx")).toMatch(/\{!loading && reviewCount > 0 && avgRating != null && \(/);
   });
 

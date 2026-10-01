@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -86,10 +86,7 @@ function SectionRule() {
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
   const { profile } = useCurrentUser();
-  // One paint (Q169): the streak badge sits above the Earned card, so the
-  // page skeleton holds until it has settled too (capped).
   const streakState = useHelperStreak(helperId);
-  const earningsReady = useArrivalGate(!loading, streakState.settled);
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   // Instant Payout comes with ANY paid membership — Basic and up (see
@@ -124,6 +121,21 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const [historyVisible, setHistoryVisible] = useState(PAGE);
 
   const { stripeData, stripeLoading, stripeError, ledgerError, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
+
+  // ONE PAINT for everything under the header (Q169, Q2007).
+  // The streak badge sits above the Earned card, and — for a helpr whose
+  // Stripe is not connected — the connect card (PaymentTab) sits ABOVE the
+  // view switcher. That card used to be inserted after stripe-payouts
+  // answered and then grow twice as its own queries landed, shoving the
+  // switcher 68→519px down: page-settle measured CLS 0.54 (375) / 0.22 (1440)
+  // on the not-connected poster account, 0 with the same build when
+  // stripe-payouts was forced to "connected" or to an error. So the skeleton
+  // (switcher bone included) holds until stripe has answered and, when the
+  // card will show, until the card's own data is in. Capped like any arrival.
+  const [paymentSettled, setPaymentSettled] = useState(false);
+  const markPaymentSettled = useCallback(() => setPaymentSettled(true), []);
+  const stripeSettled = !stripeLoading && (!!stripeError || !!stripeData?.connected || paymentSettled);
+  const pageReady = useArrivalGate(!loading, streakState.settled && stripeSettled);
 
   // ─── CSV EXPORT (1099 / Tax prep) ─────────────────────────
   const payoutYears = useMemo(() => {
@@ -318,7 +330,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const payoutSection = (
     <section className="space-y-4">
       <Suspense fallback={null}>
-        <PaymentTab totalEarnings={totalEarnings} />
+        <PaymentTab totalEarnings={totalEarnings} onSettled={markPaymentSettled} />
       </Suspense>
     </section>
   );
@@ -367,7 +379,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           a helpr can do sits at the top rather than behind a tab.
           `!stripeError` matters: a failed status fetch is NOT "not
           connected" — that state renders its own retry banner below. */}
-      {!stripeLoading && !stripeError && !stripeData?.connected && payoutSection}
+      {/* Mounted (so its queries run) but hidden until the whole page is ready:
+          see `pageReady` above. */}
+      {!stripeLoading && !stripeError && !stripeData?.connected && (
+        <div hidden={!pageReady}>{payoutSection}</div>
+      )}
 
       {/* 1099-K banner — appears once YTD payouts cross the federal gross
           threshold (FORM_1099K_GROSS_THRESHOLD_DOLLARS). Quiet, dismissible
@@ -380,7 +396,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           (Earnings' subject), so filing it under either hides it from a helpr
           reading the other. It also self-dismisses permanently, which nothing
           inside a view does. */}
-      {show1099Banner && (
+      {pageReady && show1099Banner && (
         <ThresholdBanner
           ytdYear={ytdYear}
           onOpenExport={() => setExportDialogOpen(true)}
@@ -392,7 +408,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           either global (header, celebration) or urgent (the 1099 banner, the
           connect card); below it, "how am I doing" and "where is my money"
           take turns instead of competing for one column. */}
-      <EarningsViewSwitcher value={view} onChange={setView} />
+      {!pageReady && <EarningsPageSkeleton withHeader={false} withSwitcher />}
+      {pageReady && <EarningsViewSwitcher value={view} onChange={setView} />}
 
       {/* ─── EARNINGS ─── what I made, and what it says about my work ───
           Formerly three separate segments (Money · History · Insights) which
@@ -410,8 +427,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           "Your schedule" left this page (it is the Schedule tab's subject),
           and nothing renders piecemeal: until the earnings rows are in, the
           whole view is ONE skeleton with the loaded layout. */}
-      {view === "earnings" && !earningsReady && <EarningsPageSkeleton withHeader={false} />}
-      {view === "earnings" && earningsReady && (
+      {view === "earnings" && pageReady && (
       <section className="space-y-3">
         {helperId && (
           <div className="flex">
@@ -535,7 +551,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           (PaymentTab) used to be a lazy child nested inside this file's Money
           column — settings rendered as a card among the reader's own numbers.
           It is the bottom of its own half now. */}
-      {view === "payouts" && (
+      {view === "payouts" && pageReady && (
       <section className="space-y-3">
         {/* Payout data failed to load — say so, with a Retry. Without this
             the tab silently rendered the "not connected" journey to a

@@ -134,3 +134,5 @@
 {"sha":"0bf2d8d2365c3951db63ebcc7fd242066a445d01","reviewer":"lh-money-escrow","verdict":"Re-record of rebased f0068ea8f (approved): patch byte-identical ignoring hunk offsets/index lines; CSV export moved into usePayoutsCsvExport, pure refactor, no money logic change. OK.","date":"2026-10-01"}
 {"sha":"32376e8586409337fa9648de2826a24724111eac","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 0bf2d8d23/f0068ea8f (approved): git patch-id --stable identical (4b34c4b4); CSV export move only.","date":"2026-10-01"}
 {"sha":"942f5e7a743c2a2217d0a3fff261537e7b77385c","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 8508d8c0c/6438826d5 (approved): git patch-id --stable identical (884947ea); skeleton gating only.","date":"2026-10-01"}
+{"sha":"aec717905c59e81993facfcfb5f6cf271c4cb41a","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 32376e858/f0068ea8f (approved): patch-id identical (4b34c4b4).","date":"2026-10-01"}
+{"sha":"b54229460c2ef8493f08b9b8409047440f631c0f","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 942f5e7a7/6438826d5 (approved): patch-id identical (884947ea).","date":"2026-10-01"}

@@ -131,6 +131,15 @@ if (!jobs.length) console.log("  (none — the marketplace is already empty)");
 const today = schedule[0].count;
 const atHorizon = schedule[schedule.length - 1].count;
 
+// Owner 2026-10-01: prod stays empty of test listings until launch ("Leave it empty").
+// Same switch as scripts/e2e/anon-surface-contract.mjs; flip both to false at launch
+// (launch checklist, docs/OPEN.md).
+const EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH = true;
+if (today === 0 && EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH) {
+  console.log("\nNOTE: the guest marketplace is empty (allowed before launch; see EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH).");
+  process.exit(0);
+}
+
 if (today === 0) {
   console.error(
     `\nFAIL: the guest marketplace is ALREADY DARK — open_jobs_browse returns no listings to a ` +

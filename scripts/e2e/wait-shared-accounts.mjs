@@ -109,6 +109,16 @@ export function matchesLocked(apiName, locked) {
  */
 export const YIELDS_BETWEEN_LEGS = new Set([".github/workflows/press-every-control.yml"]);
 
+// A run created this long before us cannot still be a real queue member: its
+// wait job dies at 350 min and its longest lock job (prod-audit) at 180, so a
+// legitimate run is done inside ~8.8 h. Anything older is a GitHub ghost. On
+// 2026-10-01 e2e-real-backend 36796252514 showed in_progress for 14 h+ while
+// every cancel answered "not in progress"; every queue waited behind it as an
+// "older run that has not reached the lock yet" and timed out (prod-audit
+// 36828817500, 6 h). Same value as the canary's STALE_RUN_MS.
+export const STALE_RUN_MS = 10 * 60 * 60 * 1000;
+const stale = (run, me) => Date.parse(me.created_at) - Date.parse(run.created_at) > STALE_RUN_MS;
+
 const older = (a, b) => (a.created_at === b.created_at ? a.id < b.id : a.created_at < b.created_at);
 
 /**
@@ -117,6 +127,7 @@ const older = (a, b) => (a.created_at === b.created_at ? a.id < b.id : a.created
  * Returns { go: boolean, why: string }.
  */
 export function decide(me, runs, inventory) {
+  runs = runs.filter((run) => !stale(run, me));
   for (const run of runs) {
     if (run.id === me.id) continue;
     const locked = inventory[run.path] ?? [];

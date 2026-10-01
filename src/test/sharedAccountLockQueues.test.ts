@@ -29,7 +29,8 @@ import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parse } from "yaml";
-import { decide, lockedJobs, LOCK, rateLimitWaitMs } from "../../scripts/e2e/wait-shared-accounts.mjs";
+import { decide, lockedJobs, LOCK, rateLimitWaitMs, STALE_RUN_MS } from "../../scripts/e2e/wait-shared-accounts.mjs";
+import { STALE_RUN_MS as CANARY_STALE_RUN_MS } from "../../scripts/canary/shared-accounts-busy.mjs";
 
 const WF_DIR = resolve(__dirname, "../../.github/workflows");
 const WAITER = "scripts/e2e/wait-shared-accounts.mjs";
@@ -206,6 +207,21 @@ describe("Q743: wait-shared-accounts decide()", () => {
       { name: "Report nightly result", status: "in_progress" },
     ]);
     expect(decide({ id: 20, created_at: "2026-09-27T05:10:00Z" }, [skipped], inv).go).toBe(true);
+  });
+
+  it("a ghost run in progress 14 h is not ahead (e2e-real-backend 36796252514, 2026-10-01)", () => {
+    const ghost = run(36796252514, "2026-10-01T00:27:13Z", "e2e-real-backend.yml", [
+      { name: "What can run", status: "completed", conclusion: "success" },
+      { name: "Wait for the shared accounts (queue)", status: "in_progress" },
+    ]);
+    const me = { id: 36828817500, created_at: "2026-10-01T14:39:00Z" };
+    expect(decide(me, [ghost], inv).go).toBe(true);
+    // The same run 9 h old could still be real: it holds the queue.
+    expect(decide({ ...me, created_at: "2026-10-01T09:27:13Z" }, [ghost], inv).go).toBe(false);
+  });
+
+  it("the queue and the canary agree on when a run is a ghost", () => {
+    expect(STALE_RUN_MS).toBe(CANARY_STALE_RUN_MS);
   });
 });
 

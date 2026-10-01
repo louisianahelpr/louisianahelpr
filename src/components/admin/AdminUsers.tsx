@@ -427,7 +427,12 @@ const AdminUsers = () => {
           getKey={(p) => p.id}
           estimateSize={100}
           overscan={8}
-          className="space-y-2"
+          // The gap is PADDING inside each row, never `space-y-*` on the list:
+          // rows are absolutely positioned and sized by measureElement, which
+          // does not count margins, so `space-y-2` pushed only the second row
+          // down 8px and stacked every row after it flush (measured gaps 8, 0,
+          // 0, 0; owner, 2026-10-01). Same pattern as BrowseTasksFeed's `pb-list`.
+          itemClassName="pb-1"
           renderItem={(p) => (
             <AdminUserRow
               p={p}

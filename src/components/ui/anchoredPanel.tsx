@@ -329,7 +329,14 @@ export function useScreenPanelBand(
  * same as any other Radix dropdown in the app, so it slides to stay on screen
  * rather than running off the right edge near a narrow viewport.
  */
-export function screenPanelContentProps(band: ScreenPanelBand): {
+export function screenPanelContentProps(
+  band: ScreenPanelBand,
+  /** Phone band only: round the TOP corners too, with the same radius as the
+   *  bottom ones. Notifications asks for it (owner, 2026-10-01: its bottom
+   *  corners were rounded and its top ones square). Filters does not pass it
+   *  and keeps its square top. Desktop is a `rounded-lg` card either way. */
+  options: { roundTopCorners?: boolean } = {},
+): {
   side: "bottom";
   align: "center" | "end";
   sideOffset: number;
@@ -365,6 +372,12 @@ export function screenPanelContentProps(band: ScreenPanelBand): {
       width: band.width || undefined,
       maxHeight: band.maxHeight || undefined,
       ...screenPanelSurfaceStyle,
+      ...(options.roundTopCorners
+        ? {
+            borderTopLeftRadius: screenPanelSurfaceStyle.borderBottomLeftRadius,
+            borderTopRightRadius: screenPanelSurfaceStyle.borderBottomRightRadius,
+          }
+        : null),
     },
   };
 }

@@ -524,7 +524,7 @@ const NotificationPanel = () => {
         <PopoverDismissLayer />
       </PopoverPortal>
       <PopoverContent
-        {...screenPanelContentProps(band)}
+        {...screenPanelContentProps(band, { roundTopCorners: true })}
         aria-labelledby={titleId}
         className={screenPanelContentClass(band)}
         // Park focus on the PANEL, not on its first focusable child. Radix's

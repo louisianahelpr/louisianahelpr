@@ -32,7 +32,11 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      // `h-auto min-h-10`, not a fixed `h-10`: index.css gives every button a
+      // 44px floor, so a trigger is 44px tall and a 40px track let the selected
+      // pill hang 2px out of its top AND bottom (owner, 2026-10-01, admin User
+      // Profile tabs). The track now grows to trigger + `p-1`, an even 4px inset.
+      "inline-flex h-auto min-h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
       className,
     )}
     {...props}

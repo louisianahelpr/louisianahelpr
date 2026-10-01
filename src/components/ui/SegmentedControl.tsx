@@ -257,7 +257,11 @@ export function SegmentedControl<T extends string | number>({
                 genuinely cannot fit its options scrolls (see the
                 `overflow-x-auto` its call site passes) rather than lying about
                 what the options are called. */}
-            <span>{option.label}</span>
+            {/* `min-w-[1.25rem]` + the segment's `px-3` = 44px, its height: a
+                short label ("All") made the selected pill 38.6px wide at 44px
+                tall, an upright oval that did not sit concentric in the
+                rounded track (owner, 2026-10-01, admin Users tabs). */}
+            <span className="min-w-[1.25rem] text-center">{option.label}</span>
             {option.count !== undefined && option.count > 0 && (
               <span
                 className={cn(

@@ -205,7 +205,7 @@ describe("core-loop canary: a ghost run never stands it down", () => {
   it("a push run never does", () => {
     expect(holdsAccounts(run("push", 60_000), now)).toBe(false);
   });
-  it("a run in progress past GitHub's 6 h job limit does not (36796252514, 14 h)", () => {
+  it("a run in progress past the 10 h a real run can last does not (36796252514, 14 h)", () => {
     expect(holdsAccounts(run("workflow_dispatch", 14 * 3_600_000), now)).toBe(false);
   });
 });

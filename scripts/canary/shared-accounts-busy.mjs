@@ -30,13 +30,13 @@ export const CANARY_WORKFLOW = "core-loop-canary.yml";
 const DRIVES_ACCOUNTS = new Set(["schedule", "workflow_dispatch"]);
 const SHARED_SECRET = /\bPLAYWRIGHT_(POSTER|HELPER)_(EMAIL|PASSWORD|SESSION)\b/;
 
-// A run "in progress" longer than this is a GitHub ghost, not a lock holder.
-// Every job that touches the shared accounts is capped at 60 min
-// (src/test/sharedAccountLockJobsAreShort.test.ts) and GitHub kills any job at
-// 6 h. On 2026-10-01 e2e-real-backend run 36796252514 sat in_progress for 14 h+
+// A run "in progress" longer than this is a GitHub ghost, not a lock holder:
+// its queue job dies at 350 min and the longest lock job (prod-audit) at 180,
+// so a real run is done inside ~8.8 h. Same value as
+// scripts/e2e/wait-shared-accounts.mjs STALE_RUN_MS. On 2026-10-01 e2e-real-backend run 36796252514 sat in_progress for 14 h+
 // while every cancel answered "not in progress"; the canary stood down hourly
 // behind it and nightly-red #1957 could never clear.
-export const STALE_RUN_MS = 6 * 60 * 60 * 1000;
+export const STALE_RUN_MS = 10 * 60 * 60 * 1000;
 
 /** Does this in_progress run really hold the shared accounts now? */
 export function holdsAccounts(run, now = Date.now()) {

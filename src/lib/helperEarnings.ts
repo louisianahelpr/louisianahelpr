@@ -198,3 +198,14 @@ export function sumHelperTakeHomeDollars(
 ): number {
   return jobs.reduce((sum, j) => sum + helperTakeHomeDollars(j, feeFallbackPercent), 0);
 }
+
+/**
+ * What a Helpr received from a set of tips, in dollars: the tip amounts
+ * themselves. ME-006 (owner, 2026-09-25): the poster pays the card-processing
+ * fee ON TOP of a tip (`tipChargeBreakdown`, supabase/functions/_shared/tipFees.ts),
+ * so the Helpr's transfer is exactly `tips.amount`. Subtracting a card fee here
+ * would tell the Helpr they got less than the Terms promise and less than landed.
+ */
+export function sumHelperTipDollars(rows: readonly { amount: number }[]): number {
+  return rows.reduce((sum, t) => sum + (Number.isFinite(t.amount) ? t.amount : 0), 0);
+}

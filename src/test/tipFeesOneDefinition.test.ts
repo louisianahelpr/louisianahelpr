@@ -18,6 +18,13 @@
  *      the Auto-tip settings page) quotes through TipCostBreakdown, which
  *      imports the edge module the server charges with.
  *
+ *   4. Every client surface that reads tip rows (inventory: each src file whose
+ *      code queries `from("tips")` or names a tip sum) shows the Helpr the tip
+ *      amount itself, through `sumHelperTipDollars`, and never subtracts a card
+ *      fee from a tip (the Earnings tab did, after the policy changed).
+ *
+ * @mutate src/lib/helperEarnings.ts | sum + (Number.isFinite(t.amount) ? t.amount : 0) | sum + (Number.isFinite(t.amount) ? t.amount - 0.88 : 0)
+ * @mutate src/components/profile/earningsTab/EarningHistory.tsx | const tipTotal = sumHelperTipDollars(jobTips); | const tipTotal = jobTips.reduce((s, t) => s + (t.amount - stripeProcessingCostCents(Math.round(t.amount * 100)) / 100), 0);
  * @mutate supabase/functions/auto-tip-charge/index.ts | amount: tipQuote.chargeCents, | amount: tipCents,
  * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip }; | helperCents: tip - feeCents };
  * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdownCopy";
@@ -28,6 +35,7 @@ import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import { tipChargeBreakdown, TIP_MAX_CENTS } from "../../supabase/functions/_shared/tipFees";
 import { stripeProcessingCostCents } from "../../supabase/functions/_shared/stripeFees";
+import { sumHelperTipDollars } from "@/lib/helperEarnings";
 
 const ROOT = process.cwd();
 
@@ -144,4 +152,40 @@ describe("every client tip quote uses the server's definition", () => {
       expect(code).not.toMatch(/stripeProcessingCostCents|STRIPE_PCT|STRIPE_FLAT_CENTS|0\.029/);
     });
   }
+});
+
+// ── Client: every place a Helpr is shown what tips paid them ─────────────────
+const tipReaders = srcFiles
+  .filter((f) => /from\(\s*"tips"\s*\)|\b(tipTotal|rangeTips|tipsTotal|totalTips)\b/.test(blankComments(readFileSync(f, "utf8"))))
+  .map((f) => relative(ROOT, f))
+  .sort();
+
+describe("the Helpr is shown the whole tip, never tip minus a card fee", () => {
+  it("sumHelperTipDollars equals the breakdown's helperCents for every published tip", () => {
+    for (const cents of [300, 500, 1000, 2000, 2345]) {
+      expect(Math.round(sumHelperTipDollars([{ amount: cents / 100 }]) * 100)).toBe(tipChargeBreakdown(cents).helperCents);
+    }
+    expect(sumHelperTipDollars([{ amount: 5 }, { amount: 20 }])).toBe(25);
+  });
+
+  it("the inventory is real (the Earnings tab tile and its per-job history)", () => {
+    expect(tipReaders.length).toBeGreaterThan(1);
+    expect(tipReaders).toEqual(expect.arrayContaining([
+      "src/components/profile/EarningsTab.tsx",
+      "src/components/profile/earningsTab/EarningHistory.tsx",
+    ]));
+  });
+
+  for (const f of tipReaders) {
+    it(`${f} subtracts no card fee from a tip`, () => {
+      const code = blankComments(readFileSync(join(ROOT, f), "utf8"));
+      expect(code).not.toMatch(/stripeProcessingCostCents|STRIPE_PCT|STRIPE_FLAT_CENTS|0\.029/);
+    });
+  }
+
+  it("both Earnings surfaces sum tips through sumHelperTipDollars", () => {
+    for (const f of ["src/components/profile/EarningsTab.tsx", "src/components/profile/earningsTab/EarningHistory.tsx"]) {
+      expect(blankComments(readFileSync(join(ROOT, f), "utf8"))).toMatch(/sumHelperTipDollars\(/);
+    }
+  });
 });

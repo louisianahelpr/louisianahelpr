@@ -4,8 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { jobStatusLabel, jobPaymentStatusLabel, CLOSED_NO_PAYMENT_LABEL } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
-import { helperTakeHomeDollars } from "@/lib/helperEarnings";
-import { stripeProcessingCostCents } from "@/lib/stripeFees";
+import { helperTakeHomeDollars, sumHelperTipDollars } from "@/lib/helperEarnings";
 import { isAwaitingTransfer, isEarnedJob } from "./earningsTabHelpers";
 // Same constant the payout cron schedules on — see EarningsSummaryCard.
 import { STANDARD_PAYOUT_DAYS_AFTER_DONE } from "../../../../supabase/functions/_shared/escrowTiming";
@@ -159,14 +158,8 @@ export function EarningHistory({
               job.status === "completed" && !isEarnedJob(job) ? job.payment_status : null;
             const returnedLabel = returnedPayment ? jobPaymentStatusLabel(job.status, returnedPayment) : "";
             const jobTips = tips.filter((t) => t.job_id === job.id);
-            // NET of the card fee — the same calc as the tab's Tips tile
-            // (create-payment retains stripeProcessingCostCents(tip) as the
-            // application fee, so tip − fee is what transferred). Showing
-            // gross here meant the per-row tips didn't sum to the tile.
-            const tipTotal = jobTips.reduce(
-              (s, t) => s + (t.amount - stripeProcessingCostCents(Math.round(t.amount * 100)) / 100),
-              0,
-            );
+            // Tips land in full (ME-006): the same sum as the tab's Tips tile.
+            const tipTotal = sumHelperTipDollars(jobTips);
             return (
               <div key={job.id} className="rounded-ds-md liquid-glass p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-start justify-between gap-3">

@@ -13,8 +13,8 @@ import * as edge from "../../supabase/functions/_shared/recurringSchedule";
 const CASES: Array<[string, number[], number]> = [
   // Mon/Wed/Fri for 3 weeks, starting on a Monday — the owner's example.
   ["2026-09-07", [1, 3, 5], 3],
-  // Started mid-week: week 1 is the week CONTAINING the start, so the Monday
-  // before it is excluded.
+  // Started mid-week: N weeks run FROM the start (21 days), so the Monday
+  // before it is excluded and the Monday of week 4 is included.
   ["2026-09-09", [1, 3, 5], 3],
   // Every Wednesday for a year — the long-run case.
   ["2026-09-02", [3], 52],
@@ -54,8 +54,7 @@ describe("recurringSchedule — client/edge parity", () => {
   });
 });
 
-// Drop the edge copy's start-date floor: a mid-week series would be BILLED for
-// the visits in week 1 that fall before the job the poster actually paid for,
-// while the app quotes the shorter list. The exact divergence this exists for.
-// @mutate supabase/functions/_shared/recurringSchedule.ts | if (d < start) continue;
+// Widen the edge copy's window by a day: the cron would BILL a visit past the
+// end the app quoted. The exact divergence this exists for.
+// @mutate supabase/functions/_shared/recurringSchedule.ts | for (let i = 0; i < capped * 7; i++) { | for (let i = 0; i <= capped * 7; i++) {
 // @mutate src/lib/recurringSchedule.ts | export const MAX_RECURRENCE_WEEKS = 52; | export const MAX_RECURRENCE_WEEKS = 26;

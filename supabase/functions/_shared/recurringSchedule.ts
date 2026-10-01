@@ -32,16 +32,21 @@ function toYmd(d: Date): string {
 /**
  * Every date this series runs, in order.
  *
- * The series starts on `startDate` and runs for `weeks` calendar weeks. Week 1
- * is the week CONTAINING `startDate`, and dates before it are excluded — so a
- * Mon/Wed/Fri series first posted on the Wednesday runs Wed, Fri, then the full
- * Mon/Wed/Fri of the following weeks. Starting a "3 week" series mid-week
- * therefore yields fewer than 3x|days| visits, which is what a poster means by
- * "for the next three weeks".
+ * The series runs for `weeks` weeks counted FROM `startDate` (owner,
+ * 2026-10-01): every date in [startDate, startDate + 7*weeks) whose weekday is
+ * picked, and no other. That is always exactly weeks x |days| visits, and an
+ * unpicked weekday is never one of them — a Mon+Thu series started on Fri
+ * 2 Oct for 2 weeks is Oct 5, 8, 12, 15.
  *
- * @param startDate  the first job's `date_needed`, "YYYY-MM-DD"
+ * The first visit is the first picked weekday on/after `startDate`, and the
+ * post saves the first job ON that date (jobSubmitHelpers). Re-running this on
+ * that saved `date_needed` gives the same dates (the last visit is < start +
+ * 7*weeks either way), so the charge cron, the SQL series_visit_dates and every
+ * reader that re-expands from `date_needed` agree with what the poster saw.
+ *
+ * @param startDate  the poster's chosen start (or the saved `date_needed`), "YYYY-MM-DD"
  * @param days       weekdays the series runs, 0=Sun..6=Sat (order irrelevant)
- * @param weeks      how many calendar weeks, 1..MAX_RECURRENCE_WEEKS
+ * @param weeks      how many weeks from the start, 1..MAX_RECURRENCE_WEEKS
  */
 export function recurringVisitDates(
   startDate: string,
@@ -56,21 +61,15 @@ export function recurringVisitDates(
   const start = parseYmd(startDate);
   if (Number.isNaN(start.getTime())) return [];
 
-  // Walk from the Sunday that opens the start date's week so week boundaries
-  // are calendar weeks, not "7 days from whenever you posted".
-  const cursor = new Date(start);
-  cursor.setUTCDate(cursor.getUTCDate() - cursor.getUTCDay());
-
+  // N weeks FROM THE START DATE (owner, 2026-10-01): every day in
+  // [start, start + 7N) whose weekday is picked. Not calendar weeks — those
+  // dropped the picked days of the start's own week that fell before it, so a
+  // Fri start on Mon+Thu for "2 weeks" gave 2 visits, not 4.
   const out: string[] = [];
-  for (let week = 0; week < capped; week++) {
-    for (let dow = 0; dow < 7; dow++) {
-      if (!wanted.has(dow)) continue;
-      const d = new Date(cursor);
-      d.setUTCDate(cursor.getUTCDate() + week * 7 + dow);
-      // Skip dates in the start week that fall before the job itself.
-      if (d < start) continue;
-      out.push(toYmd(d));
-    }
+  for (let i = 0; i < capped * 7; i++) {
+    const d = new Date(start);
+    d.setUTCDate(start.getUTCDate() + i);
+    if (wanted.has(d.getUTCDay())) out.push(toYmd(d));
   }
   return out;
 }

@@ -2,6 +2,7 @@ import type { APIRequestContext, Page } from "@playwright/test";
 
 import { ANON, SUPABASE_URL, announceUncovered, test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH } from "../prelaunch";
 
 /**
  * Journey 1 — discovery.
@@ -96,8 +97,24 @@ test(guestTitle, async ({ browser, request, journey }) => {
           "looking in the browse components. Fund a job (Stripe test mode) or restore the seeded funded rows.",
       );
     }
+    if (floor === 0 && EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH) return;
     expect(floor, "open_jobs_browse served 0 rows — prod's guest marketplace is empty; see the note above, this journey owns no fixture of its own").toBeGreaterThan(0);
   });
+
+  if (floor === 0 && EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH) {
+    // Before launch prod is empty by the owner's choice (e2e/prelaunch.ts):
+    // the guest must still get the marketplace and its designed empty state,
+    // never a blank page or an error.
+    await test.step("guest opens Browse and sees the empty marketplace", async () => {
+      await page.goto("/browse");
+      await expect(page.getByRole("heading", { name: "Browse Jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByText("Nothing today, neighbor.")).toBeVisible({ timeout: 45_000 });
+      await assertHealthy(page, "guest /browse (empty before launch)");
+      await journey.milestone(page, "guest-browse-empty");
+    });
+    await ctx.close();
+    return;
+  }
 
   await test.step("guest opens Browse and sees real jobs", async () => {
     await page.goto("/browse");
@@ -135,6 +152,8 @@ test(authedTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(authedTitle), "SCENARIO pins another scenario");
   const avail = sessionsAvailable();
   test.skip(!avail.ok, avail.why);
+  const emptyBeforeLaunch = EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH && (await fundedFloor(request)) === 0;
+  test.skip(emptyBeforeLaunch, "prod marketplace is empty before launch (owner 2026-10-01, e2e/prelaunch.ts); search/filter/sort need jobs");
   const helper = await getSession(request, "helper");
   const ctx = await newUserContext(browser, helper, { rotation });
   const page = journey.track("helper", await ctx.newPage());

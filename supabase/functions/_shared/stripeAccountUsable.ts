@@ -36,3 +36,29 @@ export function isUnusableConnectAccountError(err: unknown): boolean {
     /test account created with a testmode key, and therefore can only be used with testmode keys/.test(message)
   );
 }
+
+/**
+ * Is this Stripe error saying a STORED OBJECT ID (payment_intent, checkout
+ * session, customer, setup intent, refund…) belongs to the SANDBOX while the
+ * request ran under the LIVE key?
+ *
+ * Stripe answers 404 resource_missing: "No such payment_intent: 'pi_…'; a
+ * similar object exists in test mode, but a live mode key was used to make
+ * this request." Prod went live 2026-09-27, so a row written under the test
+ * key (every is_seed job funded before then) holds ids the live key can never
+ * read. No retry changes that answer, and no real money sits behind the id,
+ * so callers treat the id as absent (create fresh) or answer a clear 4xx —
+ * never a 500. create-payment cancel_escrow answered 500 on exactly this
+ * (function_logs 2026-09-30T15:55:34Z, job 36eebad4, pi_3UK0fm…).
+ *
+ * ONE direction only, as above: "a similar object exists in live mode, but a
+ * test mode key was used" means prod's key was misconfigured, and must stay
+ * an error so nothing treats a real live payment as absent.
+ */
+export function isTestObjectUnderLiveKey(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const message = typeof (err as { message?: unknown }).message === "string"
+    ? (err as { message: string }).message
+    : "";
+  return /a similar object exists in test mode, but a live mode key was used/.test(message);
+}

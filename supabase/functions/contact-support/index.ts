@@ -59,6 +59,7 @@ import { supportRequestKey } from '../_shared/alertPolicy.ts'
 // only — it makes the support inbox sortable at a glance and never reaches a
 // customer. It is defined in exactly one place now (_shared/resend.ts).
 import { FROM_CONTACT, SUPPORT_EMAIL, sendWithResend } from '../_shared/resend.ts'
+import { isTestRecipient } from '../_shared/testRecipient.ts'
 // The email itself is a react-email component now (see the note on
 // renderSupportEmail below), so nothing in this file builds HTML by hand.
 import { SupportRequestEmail } from '../_shared/email-templates/support-request.tsx'
@@ -286,8 +287,16 @@ serve(async (req) => {
       accountLine,
     })
 
+    // Q840: a request filed by a test or seed account (or from a fixture
+    // address) is not mailed to the support inbox; the reports row and
+    // Slack trail below still record it. For a signed-in sender `email` is
+    // their profile address; for a guest it is what they typed, so a real
+    // guest who types a fixture address (e.g. @mailinator.com) is not mailed
+    // either, and the ops-ledger 'contact-support-guest' item is the trail.
+    const testSubmitter = await isTestRecipient(admin, email)
+    if (testSubmitter) console.log('[contact-support] test/seed submitter; support email not sent (Q840)')
     try {
-      await sendWithResend(resendApiKey, {
+      if (!testSubmitter) await sendWithResend(resendApiKey, {
         to: SUPPORT_EMAIL,
         from: FROM_CONTACT,
         subject: `[${topicLabel}] ${subject || 'No subject'} — ${name}`,

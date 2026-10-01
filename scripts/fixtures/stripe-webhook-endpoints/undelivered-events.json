@@ -1,0 +1,13 @@
+{
+  "_comment": "Q854: the `undelivered` block stripe-webhook-config-check returns (GET /v1/events?delivery_success=false over a bounded window, shaped to {id, type}) when two live events were never delivered to the webhook. Fake ids. Proves the undelivered-events half red without a Stripe key: count > 0 must fail.",
+  "undelivered": {
+    "since": 1790000000,
+    "until": 1790093600,
+    "count": 2,
+    "truncated": false,
+    "events": [
+      { "id": "evt_FIXTURE_undelivered_1", "type": "checkout.session.completed" },
+      { "id": "evt_FIXTURE_undelivered_2", "type": "charge.refunded" }
+    ]
+  }
+}

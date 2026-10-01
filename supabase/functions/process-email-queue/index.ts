@@ -3,6 +3,7 @@ import { verifyCronSecret } from '../_shared/cron-auth.ts'
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts'
 import { FROM_DEFAULT, htmlToPlainText, SEND_TIMEOUT_MS, sendWithResend } from '../_shared/resend.ts'
 import { isReservedRecipient } from '../_shared/reservedRecipient.ts'
+import { isTestRecipient, TEST_RECIPIENT_REASON } from '../_shared/testRecipient.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
 // Email delivery is via Resend exclusively. Helpr's auth-email-hook
@@ -153,6 +154,30 @@ serve(async (req) => {
       const msg = messages[i]
       const payload = msg.message
 
+      // A reserved-domain recipient (example.com, *.test, ...) can never be
+      // delivered and Resend rejects it with a permanent 422. Retrying it five
+      // times only files a DLQ alert for a test account (ledger 2b794ca3).
+      // Checked BEFORE the TTL and max-retry branches, so a stuck fixture
+      // message is logged suppressed, not dlq (review of Q840).
+      // Q840: every other test or seed recipient (fixture inbox, is_seed
+      // profile) is suppressed the same way, so it never spends Resend quota.
+      const reservedRecipient = isReservedRecipient(payload.to)
+      if (reservedRecipient || await isTestRecipient(supabase, payload.to)) {
+        const { error: supLogError } = await supabase.from('email_send_log').insert({
+          message_id: payload.message_id,
+          template_name: payload.label || queue,
+          recipient_email: payload.to,
+          status: 'suppressed',
+          error_message: reservedRecipient
+            ? 'reserved recipient domain (RFC 2606); never deliverable'
+            : TEST_RECIPIENT_REASON,
+        })
+        if (supLogError) defects.record(`suppressed log ${msg.msg_id}: ${supLogError.message}`)
+        const { error: supDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
+        if (supDelError) defects.record(`dequeue suppressed ${msg.msg_id}: ${supDelError.message}`)
+        continue
+      }
+
       // Drop expired messages (TTL exceeded)
       if (payload.queued_at) {
         const ageMs = Date.now() - new Date(payload.queued_at).getTime()
@@ -258,23 +283,6 @@ serve(async (req) => {
         }
       }
 
-      // A reserved-domain recipient (example.com, *.test, ...) can never be
-      // delivered and Resend rejects it with a permanent 422. Retrying it five
-      // times only files a DLQ alert for a test account (ledger 2b794ca3).
-      if (isReservedRecipient(payload.to)) {
-        const { error: supLogError } = await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
-          status: 'suppressed',
-          error_message: 'reserved recipient domain (RFC 2606); never deliverable',
-        })
-        if (supLogError) defects.record(`suppressed log ${msg.msg_id}: ${supLogError.message}`)
-        const { error: supDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
-        if (supDelError) defects.record(`dequeue suppressed ${msg.msg_id}: ${supDelError.message}`)
-        continue
-      }
-
       try {
         // Both auth_emails and transactional_emails route through Resend.
         // The auth-email-hook function pre-renders templates to HTML/text
@@ -361,6 +369,19 @@ serve(async (req) => {
         }
         totalProcessed++
       } catch (error) {
+        // Q840 last line fired (a fixture address sendWithResend refused).
+        // Permanent, so never retried into the DLQ: log it suppressed and drop it.
+        if (error instanceof Error && error.name === 'TestRecipientRefusedError') {
+          const { error: refLogError } = await supabase
+            .from('email_send_log')
+            .update({ status: 'suppressed', error_message: TEST_RECIPIENT_REASON })
+            .eq('message_id', payload.message_id)
+            .eq('status', 'pending')
+          if (refLogError) defects.record(`suppressed log ${msg.msg_id}: ${refLogError.message}`)
+          const { error: refDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
+          if (refDelError) defects.record(`dequeue refused ${msg.msg_id}: ${refDelError.message}`)
+          continue
+        }
         const errorMsg = error instanceof Error ? error.message : String(error)
         console.error('Email send failed', {
           queue,

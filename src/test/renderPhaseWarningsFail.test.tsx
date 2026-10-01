@@ -12,7 +12,9 @@ import { render } from "@testing-library/react";
 function Child({ onRender }: { onRender: () => void }) { onRender(); return null; }
 function Parent() {
   const [, set] = useState(0);
-  return <Child onRender={() => set((n) => n + 1)} />;
+  // Bounded: with the setup.ts hook mutated away nothing throws, and an
+  // unbounded set-per-render loop hung the vacuity run (vitest 5, Linux CI).
+  return <Child onRender={() => set((n) => (n < 3 ? n + 1 : n))} />;
 }
 function Flip() {
   const [v, setV] = useState<string | undefined>(undefined);

@@ -12,6 +12,7 @@
  * Inventory: every `run:` step of every job in .github/workflows, read from
  * the parsed YAML so a comment cannot satisfy or trip it.
  */
+// @mutate .github/workflows/vacuity.yml | run: bash scripts/ci/playwright-install.sh chromium webkit | run: npx playwright install --with-deps chromium webkit
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

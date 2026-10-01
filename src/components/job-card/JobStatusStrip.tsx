@@ -1,5 +1,6 @@
 import { AlertTriangle, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
 import type { JobStatusLine, JobStatusTone } from "./jobStatusLine";
+import DeadlineCountdown from "./DeadlineCountdown";
 
 /**
  * THE COLLAPSED CARD'S STATUS LINE — one strip, on both tabs.
@@ -139,6 +140,30 @@ export function JobStatusStrip({ line }: { line: JobStatusLine }) {
       <span className="font-sans text-ds-11" style={{ color: `hsl(var(${skin.ink}))` }}>
         {line.detail}
       </span>
+      {/* The job's own words (a cancellation reason, a revision note). Not
+          measured against the width budget: it is truncated instead, so a long
+          reason never pushes the strip past two lines. */}
+      {line.suffix && (
+        <span
+          className="min-w-0 flex-1 truncate font-sans text-ds-11"
+          data-job-status-suffix=""
+          style={{ color: `hsl(var(${skin.ink}))` }}
+        >
+          · {line.suffix}
+        </span>
+      )}
+      {/* The state's clock, on its own row under the sentence: the same
+          countdown the expanded tracker shows, in its bare form. */}
+      {line.deadline && (
+        <span className="basis-full" style={{ color: `hsl(var(${skin.ink}))` }}>
+          <DeadlineCountdown
+            compact
+            deadline={line.deadline.at}
+            expiredText={line.deadline.expiredText}
+            consequenceText={line.deadline.consequenceText}
+          />
+        </span>
+      )}
     </p>
   );
 }

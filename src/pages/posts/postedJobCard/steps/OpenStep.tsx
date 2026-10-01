@@ -2,6 +2,8 @@ import { Rocket, Pencil, XCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip, JOB_ACTION_CHIP_CLASS, jobActionChipStyle } from "../../../../components/job-card/JobActionRow";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
+import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
+import { posterDeadline } from "@/components/job-card/jobStatusLine";
 import type { PosterStepCtx } from "./posterStepContract";
 
 /**
@@ -28,13 +30,26 @@ import type { PosterStepCtx } from "./posterStepContract";
 export function OpenStep({ job, onBoost, onEdit, onCancel }: PosterStepCtx) {
   const boostExp = job.boost_expires_at ? new Date(job.boost_expires_at) : null;
   const isBoosted = !!boostExp && boostExp > new Date();
+  // A pending direct offer runs on a clock; the collapsed line shows it, so
+  // the expanded step does too (owner, 2026-10-01: every tracker deadline).
+  const offerClock = job.direct_offer_status === "pending" ? posterDeadline("offer_out", job) : null;
 
   return (
     <JobStepCard
       side="poster"
       step="open"
       notice={
-        isBoosted && boostExp ? (
+        offerClock || (isBoosted && boostExp) ? (
+          <>
+          {offerClock && (
+            <DeadlineCountdown
+              inline
+              deadline={offerClock.at}
+              expiredText={offerClock.expiredText}
+              consequenceText={offerClock.consequenceText}
+            />
+          )}
+          {isBoosted && boostExp && (
           <div
             className="rounded-ds-md px-3 py-2 flex items-center gap-2"
             style={{
@@ -50,6 +65,8 @@ export function OpenStep({ job, onBoost, onEdit, onCancel }: PosterStepCtx) {
               Re-boost available after expiry.
             </p>
           </div>
+          )}
+          </>
         ) : null
       }
       actions={[

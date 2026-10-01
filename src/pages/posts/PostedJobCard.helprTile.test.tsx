@@ -22,6 +22,11 @@ import type { Job } from "../../components/job-card/activityConstants";
    a truthful failure: the card genuinely needs that derivation now. */
 // Q344: the cards read unsettled decided disputes through React Query; none here.
 vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
+// The card reads the poster's instant-release flag; these tests render without a QueryClient.
+vi.mock("@/hooks/useCurrentUser", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/hooks/useCurrentUser")>()),
+  useCurrentUser: () => ({ profile: null }),
+}));
 vi.mock("@/components/JobTracking", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/JobTracking")>()),
   JobTracking: () => <div data-testid="tracker" />,

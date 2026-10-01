@@ -11,6 +11,7 @@ import { JobTracking } from "@/components/JobTracking";
 import { JobStatusStrip } from "../../components/job-card/JobStatusStrip";
 import { posterStatusLine, withDisputeSettling } from "../../components/job-card/jobStatusLine";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
@@ -94,6 +95,10 @@ function PostedJobCardInner({
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
   // Q344: a decided dispute whose money has not moved is not "Done · paid".
   const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
+  // The poster's instant-release setting: with it on there is no auto-complete
+  // clock, so the collapsed line must not show one (InProgressStep agrees).
+  const { profile: ownProfile } = useCurrentUser();
+  const instantRelease = !!(ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
   const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
@@ -826,6 +831,7 @@ function PostedJobCardInner({
                   pendingApplicantCounts?.[job.id] ?? 0,
                   undefined,
                   completedJobMeta[job.id],
+                  instantRelease,
                 )}
               />
             )}

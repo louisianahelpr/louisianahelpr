@@ -12,9 +12,21 @@ interface DeadlineCountdownProps {
    *  at already walks through both paths). Callers pass a clause that reads
    *  after a duration, e.g. "to review — payment auto-releases after". */
   inline?: boolean;
+  /** Bare one-line form for the collapsed card's status strip (owner,
+   *  2026-10-01: every tracker deadline is visible on the collapsed line).
+   *  No box, no border: the strip already supplies the surface and the ink,
+   *  so this inherits its colour. Same clock, same text as `inline`. */
+  compact?: boolean;
 }
 
-const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "warning", inline = false }: DeadlineCountdownProps) => {
+const DeadlineCountdown = ({
+  deadline,
+  expiredText,
+  consequenceText,
+  variant = "warning",
+  inline = false,
+  compact = false,
+}: DeadlineCountdownProps) => {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -70,8 +82,27 @@ const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "
       }
     : undefined;
 
+  if (compact) {
+    return (
+      <span data-deadline-countdown className="flex items-center gap-1 text-ds-11 font-semibold">
+        <Timer className="w-3 h-3 shrink-0" aria-hidden />
+        {isExpired ? (
+          <span>{expiredText}</span>
+        ) : (
+          <span>
+            <span className="tabular-nums">{timeStr}</span> {consequenceText}
+          </span>
+        )}
+      </span>
+    );
+  }
+
   return (
-    <div className={`flex items-start gap-2 p-2 rounded-ds-sm border ${colorClasses}`} style={warningStyle}>
+    <div
+      data-deadline-countdown
+      className={`flex items-start gap-2 p-2 rounded-ds-sm border ${colorClasses}`}
+      style={warningStyle}
+    >
       <Timer className="w-4 h-4 shrink-0 mt-0.5" />
       <div className="min-w-0">
         {isExpired ? (

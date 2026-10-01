@@ -31,6 +31,7 @@
 // @mutate src/hooks/useDraftJob.ts |     setDraftLoaded(true);\n |
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
 // @mutate src/components/profile/EarningsTab.tsx | {!pageReady && <EarningsPageSkeleton | {loading && <EarningsPageSkeleton
+// @mutate src/components/profile/EarningsTab.tsx | useArrivalGate(!loading && stripeSettled, streakState.settled) | useArrivalGate(!loading, streakState.settled && stripeSettled)
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
 // @mutate src/pages/home/Dashboard.tsx |         titleCard={isWebDesktop ? undefined : <DashboardTitleBar | titleCard={<DashboardTitleBar
 // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | invisible font-sans leading-none tabular-nums text-ds-17 | invisible h-9 w-16
@@ -172,6 +173,9 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
 
   it("the earnings page and the reviews hero wait for everything above the fold", () => {
     expect(read("components/profile/EarningsTab.tsx")).toMatch(/\{!pageReady && <EarningsPageSkeleton withHeader=\{false\} withSwitcher \/>\}/);
+    // The Stripe-backed answer (balances, or the connect card's form) is primary:
+    // in the capped slot it opened the page on the card's bones (CLS 0.034/0.2254).
+    expect(read("components/profile/EarningsTab.tsx")).toContain("useArrivalGate(!loading && stripeSettled, streakState.settled)");
     expect(read("components/profile/ReviewsTab.tsx")).toMatch(/\{!loading && reviewCount > 0 && avgRating != null && \(/);
   });
 

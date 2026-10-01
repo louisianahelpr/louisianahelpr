@@ -129,11 +129,18 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // on the not-connected poster account, 0 with the same build when
   // stripe-payouts was forced to "connected" or to an error. So the skeleton
   // (switcher bone included) holds until stripe has answered and, when the
-  // card will show, until the card's own data is in. Capped like any arrival.
+  // card will show, until the card's own data is in.
+  // The Stripe answer is PRIMARY, not capped secondary data: stripe-payouts and
+  // the card's payout-status read both go edge fn -> Stripe and routinely take
+  // longer than ARRIVAL_CAP_MS, so with it in the capped slot the page opened
+  // on the card's own loading bones (154px) and the form landed ~0.1-1.3s
+  // later at 187px, pushing everything below 33px down (page-settle CLS 0.034
+  // at 375, 0.2254 at 1440 in CI). Every one of these reads ends in data or an
+  // error (both count as settled), so the retry schedule bounds the wait.
   const [paymentSettled, setPaymentSettled] = useState(false);
   const markPaymentSettled = useCallback(() => setPaymentSettled(true), []);
   const stripeSettled = !stripeLoading && (!!stripeError || !!stripeData?.connected || paymentSettled);
-  const pageReady = useArrivalGate(!loading, streakState.settled && stripeSettled);
+  const pageReady = useArrivalGate(!loading && stripeSettled, streakState.settled);
 
   const { payoutYears, exportYear, setExportYear, handleExportCSV } = usePayoutsCsvExport(stripeData?.payouts);
 

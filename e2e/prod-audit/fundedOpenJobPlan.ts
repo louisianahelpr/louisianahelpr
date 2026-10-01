@@ -43,6 +43,28 @@ export interface FixtureRow {
   helper_id: string | null;
   date_needed: string; // YYYY-MM-DD, Louisiana civil date
   created_at: string;
+  /** jobs.stripe_session_id: its cs_test_ / cs_live_ prefix says which Stripe mode minted it. */
+  stripe_session_id?: string | null;
+}
+
+/**
+ * STRIPE IS LIVE ON PROD (owner switched it 2026-09-27). The mode is read, never
+ * from a secret, from the prefix of the Checkout Session create-payment returns
+ * (`stripeModeFromCheckoutUrl`, e2e/journeys/fixtures.ts); "unknown" until a
+ * session has been minted this run, and treated as live for every money decision.
+ */
+export type StripeMode = "test" | "live" | "unknown";
+
+/** Why a fixture that needs paying is skipped in live mode. The harness hands this to test.skip. */
+export const LIVE_PAY_SKIP =
+  "Stripe LIVE: owner decision 2026-09-27 \"nightly skips pay steps in live mode\" — a fixture that needs paying is not paid (no 4242 on a live checkout; the checkout page is never opened)";
+
+/** Logged for a fixture a TEST key funded before the switch: cancel_escrow answers 500 "No such payment_intent" with the live key. */
+export const PRE_LIVE_WHY = "pre-live test-mode fixture, not refundable with the live key";
+
+/** A row minted in test mode while the mode is not (known to be) test: neither reuse, retire nor pay it. */
+export function isPreLive(row: { stripe_session_id?: string | null }, mode: StripeMode): boolean {
+  return mode !== "test" && /^cs_test_/.test(row.stripe_session_id ?? "");
 }
 
 export interface FixturePlan {
@@ -52,10 +74,28 @@ export interface FixturePlan {
   pay: FixtureRow | "new" | null;
   /** Funded fixture rows to release through cancel_escrow, each with its reason. */
   retire: Array<{ row: FixtureRow; why: string }>;
+  /** Pre-live test-mode rows left untouched (only present when there are some). */
+  preLive?: Array<{ row: FixtureRow; why: string }>;
+  /** Set (to LIVE_PAY_SKIP) only in live mode when the plan would otherwise pay. */
+  skip?: string;
 }
 
 const FUNDED = new Set(["escrow", "cancelling"]);
 const REPAYABLE = new Set(["unpaid", "abandoned", "failed"]);
+
+/**
+ * helper-e2e's applications, by job id, as `applications.status`.
+ * apply_to_job refuses ANY existing application ("Already applied to this job",
+ * live pg_get_functiondef 2026-09-28: `COUNT(*) ... WHERE job_id AND helper_id`,
+ * no status filter), and accept_application hires only a pending one. So a
+ * fixture whose application is rejected/withdrawn (expire_unanswered_offers
+ * rejects an unanswered offer and re-opens the job) can be neither applied to
+ * nor hired: it is DEAD for helper-e2e (a11y-webkit-prod run 36352716213,
+ * job 36eebad4, #1794).
+ */
+export type HelperApplications = ReadonlyMap<string, string>;
+const isDeadFor = (apps: HelperApplications, jobId: string) => apps.has(jobId) && apps.get(jobId) !== "pending";
+const nextAfterFunding = (apps: HelperApplications, jobId: string): "apply" | "hire" => (apps.get(jobId) === "pending" ? "hire" : "apply");
 
 /** Whole days from `today` to `date` (both YYYY-MM-DD). */
 export function daysBetween(today: string, date: string): number {
@@ -64,11 +104,15 @@ export function daysBetween(today: string, date: string): number {
 
 export function planFundedOpenJob(
   rows: FixtureRow[],
-  opts: { today: string; appliedJobIds: ReadonlySet<string> },
+  opts: { today: string; appliedJobIds: ReadonlySet<string>; mode?: StripeMode },
 ): FixturePlan {
-  const mine = rows
+  const mode = opts.mode ?? "test";
+  const all = rows
     .filter((r) => r.title.startsWith(FUNDED_FIXTURE_TITLE) && r.status === "open" && !r.helper_id)
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const preLive = all.filter((r) => isPreLive(r, mode)).map((row) => ({ row, why: PRE_LIVE_WHY }));
+  const mine = all.filter((r) => !isPreLive(r, mode));
+  const extra = preLive.length ? { preLive } : {};
   const retire: FixturePlan["retire"] = [];
   let reuse: FixtureRow | null = null;
   for (const r of mine.filter((x) => FUNDED.has(x.payment_status ?? ""))) {
@@ -79,11 +123,12 @@ export function planFundedOpenJob(
     else if (reuse) retire.push({ row: r, why: `duplicate of ${reuse.id}` });
     else reuse = r;
   }
-  if (reuse) return { reuse, pay: null, retire };
+  if (reuse) return { reuse, pay: null, retire, ...extra };
+  if (mode === "live") return { reuse: null, pay: null, retire, ...extra, skip: LIVE_PAY_SKIP };
   const repayable = mine.find(
     (r) => REPAYABLE.has(r.payment_status ?? "unpaid") && daysBetween(opts.today, r.date_needed) >= MIN_RUNWAY_DAYS,
   );
-  return { reuse: null, pay: repayable ?? "new", retire };
+  return { reuse: null, pay: repayable ?? "new", retire, ...extra };
 }
 
 /**
@@ -125,7 +170,7 @@ const HIRED = new Set(["accepted", "in_progress", "completed", "revision_request
 /** `rows`: poster-e2e's own jobs titled DISPUTE_FIXTURE_TITLE*, newest first or not. */
 export function planDisputedJob(
   rows: DisputeRow[],
-  opts: { helperId: string; appliedJobIds: ReadonlySet<string> },
+  opts: { helperId: string; applications: HelperApplications },
 ): DisputePlan {
   const mine = rows
     .filter((r) => r.title.startsWith(DISPUTE_FIXTURE_TITLE))
@@ -134,9 +179,10 @@ export function planDisputedJob(
   if (disputed) return { kind: "reuse", row: disputed };
   const hired = mine.find((r) => HIRED.has(r.status) && r.helper_id === opts.helperId && r.payment_status === "escrow");
   if (hired) return { kind: "resume", row: hired, next: "dispute" };
-  const open = mine.find((r) => r.status === "open" && !r.helper_id);
+  // A row helper-e2e's closed application makes dead is skipped: create instead.
+  const open = mine.find((r) => r.status === "open" && !r.helper_id && !isDeadFor(opts.applications, r.id));
   if (open && open.payment_status === "escrow") {
-    return { kind: "resume", row: open, next: opts.appliedJobIds.has(open.id) ? "hire" : "apply" };
+    return { kind: "resume", row: open, next: nextAfterFunding(opts.applications, open.id) };
   }
   if (open && REPAYABLE.has(open.payment_status ?? "unpaid")) return { kind: "resume", row: open, next: "fund" };
   return { kind: "create" };
@@ -158,7 +204,9 @@ export function planDisputedJob(
  *
  * So the accepted state gets an owner, like the disputed one: a funded job of
  * its own, helper-e2e applies (apply_to_job), poster-e2e hires
- * (accept_application), and it is LEFT accepted. The rules:
+ * (accept_application), helper-e2e confirms the offer (the app's Accept Job
+ * write; unconfirmed, expire_unanswered_offers strikes helper-e2e at the
+ * deadline), and it is LEFT accepted. The rules:
  *  - REUSE an accepted fixture hired to helper-e2e, escrowed, with at least
  *    MIN_RUNWAY_DAYS of `date_needed` runway. auto-expire-jobs only reads
  *    accepted jobs dated tomorrow or earlier, so a reused one stays accepted.
@@ -177,31 +225,47 @@ export type AcceptedPlan = (
   | { kind: "reuse"; row: FixtureRow }
   | { kind: "resume"; row: FixtureRow; next: "fund" | "apply" | "hire" }
   | { kind: "create" }
+  /** Live mode and the fixture would need paying: the harness skips with `why` (LIVE_PAY_SKIP). */
+  | { kind: "skip"; why: string }
 ) & {
   /** Funded fixture rows back at open with short runway, to release through cancel_escrow, each with its reason. */
   retire: Array<{ row: FixtureRow; why: string }>;
+  /** Pre-live test-mode rows left untouched (only present when there are some). */
+  preLive?: Array<{ row: FixtureRow; why: string }>;
 };
 
 /** `rows`: poster-e2e's own jobs titled ACCEPTED_FIXTURE_TITLE*, in any order. */
 export function planAcceptedJob(
   rows: FixtureRow[],
-  opts: { today: string; helperId: string; appliedJobIds: ReadonlySet<string> },
+  opts: { today: string; helperId: string; applications: HelperApplications; mode?: StripeMode },
 ): AcceptedPlan {
-  const mine = rows
+  const mode = opts.mode ?? "test";
+  const all = rows
     .filter((r) => r.title.startsWith(ACCEPTED_FIXTURE_TITLE))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const preLive = all.filter((r) => isPreLive(r, mode)).map((row) => ({ row, why: PRE_LIVE_WHY }));
+  const mine = all.filter((r) => !isPreLive(r, mode));
+  const extra = preLive.length ? { preLive } : {};
   const runway = (r: FixtureRow) => daysBetween(opts.today, r.date_needed);
-  const open = mine.filter((r) => r.status === "open" && !r.helper_id);
-  const retire: AcceptedPlan["retire"] = open
-    .filter((r) => FUNDED.has(r.payment_status ?? "") && runway(r) < MIN_RUNWAY_DAYS)
-    .map((row) => ({ row, why: `open again with only ${runway(row)}d of runway (< ${MIN_RUNWAY_DAYS}): release its escrow` }));
+  const openAll = mine.filter((r) => r.status === "open" && !r.helper_id);
+  const retire: AcceptedPlan["retire"] = openAll
+    .filter((r) => FUNDED.has(r.payment_status ?? ""))
+    .flatMap((row) =>
+      runway(row) < MIN_RUNWAY_DAYS
+        ? [{ row, why: `open again with only ${runway(row)}d of runway (< ${MIN_RUNWAY_DAYS}): release its escrow` }]
+        : isDeadFor(opts.applications, row.id)
+          ? [{ row, why: `helper-e2e's application on it is ${opts.applications.get(row.id)}: apply_to_job refuses a second, release its escrow` }]
+          : [],
+    );
+  const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id));
   const accepted = mine.find(
     (r) => r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS,
   );
-  if (accepted) return { kind: "reuse", row: accepted, retire };
+  if (accepted) return { kind: "reuse", row: accepted, retire, ...extra };
   const funded = open.find((r) => r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS);
-  if (funded) return { kind: "resume", row: funded, next: opts.appliedJobIds.has(funded.id) ? "hire" : "apply", retire };
+  if (funded) return { kind: "resume", row: funded, next: nextAfterFunding(opts.applications, funded.id), retire, ...extra };
+  if (mode === "live") return { kind: "skip", why: LIVE_PAY_SKIP, retire, ...extra };
   const unpaid = open.find((r) => REPAYABLE.has(r.payment_status ?? "unpaid") && runway(r) >= MIN_RUNWAY_DAYS);
-  if (unpaid) return { kind: "resume", row: unpaid, next: "fund", retire };
-  return { kind: "create", retire };
+  if (unpaid) return { kind: "resume", row: unpaid, next: "fund", retire, ...extra };
+  return { kind: "create", retire, ...extra };
 }

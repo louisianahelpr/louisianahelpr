@@ -15,7 +15,7 @@ const html = readFileSync(resolve(ROOT, "index.html"), "utf8");
 const mark = readFileSync(resolve(ROOT, "src/components/HelprMark.tsx"), "utf8");
 const navbar = readFileSync(resolve(ROOT, "src/components/Navbar.tsx"), "utf8");
 
-const preload = /<link\s+rel="preload"\s+as="image"([^>]*)>/.exec(html)?.[1] ?? "";
+const preload = /<link\s+(?:id="[^"]*"\s+)?rel="preload"\s+as="image"([^>]*)>/.exec(html)?.[1] ?? "";
 
 describe("the header emblem is preloaded as the <img> renders it", () => {
   it("the public header renders the md emblem", () => {

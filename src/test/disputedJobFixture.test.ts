@@ -10,7 +10,9 @@
  *
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (disputed) return { kind: "reuse", row: disputed }; | if (disputed && false) return { kind: "reuse", row: disputed };
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (hired) return { kind: "resume", row: hired, next: "dispute" }; | if (hired) return { kind: "create" };
- * @mutate e2e/prod-audit/messy-input.spec.ts | const disputed = await ensureDisputedJob(request, browser, sessions.get("poster")!, sessions.get("helper")!); | const disputed = { log: [] as string[] };
+ * @mutate e2e/prod-audit/fundedOpenJob.ts | helper.user.id}&select=job_id,status` | helper.user.id}&status=eq.pending&select=job_id,status`
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = mine.find((r) => r.status === "open" && !r.helper_id && !isDeadFor(opts.applications, r.id)); | const open = mine.find((r) => r.status === "open" && !r.helper_id);
+ * @mutate e2e/prod-audit/messy-input.spec.ts | const disputed = await unlessLivePay(() => ensureDisputedJob(request, browser, sessions.get("poster")!, sessions.get("helper")!)); | const disputed = { value: null, livePay: null };
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -29,7 +31,8 @@ const row = (over: Partial<DisputeRow> = {}): DisputeRow => ({
   created_at: `2020-01-${String(1 + (n % 20)).padStart(2, "0")}T00:00:00Z`,
   ...over,
 });
-const plan = (rows: DisputeRow[], applied: string[] = []) => planDisputedJob(rows, { helperId: HELPER, appliedJobIds: new Set(applied) });
+const plan = (rows: DisputeRow[], apps: Record<string, string> = {}) =>
+  planDisputedJob(rows, { helperId: HELPER, applications: new Map(Object.entries(apps)) });
 
 describe("planDisputedJob", () => {
   it("creates one only when poster-e2e has no dispute fixture at all", () => {
@@ -45,9 +48,24 @@ describe("planDisputedJob", () => {
     expect(plan([hired])).toEqual({ kind: "resume", row: hired, next: "dispute" });
     const funded = row({ status: "open", payment_status: "escrow" });
     expect(plan([funded])).toEqual({ kind: "resume", row: funded, next: "apply" });
-    expect(plan([funded], [funded.id])).toEqual({ kind: "resume", row: funded, next: "hire" });
+    expect(plan([funded], { [funded.id]: "pending" })).toEqual({ kind: "resume", row: funded, next: "hire" });
     const unpaid = row({ status: "open", payment_status: "abandoned" });
     expect(plan([unpaid])).toEqual({ kind: "resume", row: unpaid, next: "fund" });
+  });
+  it("never resumes a funded fixture helper-e2e holds a closed application on (apply_to_job refuses any existing one, #1794)", () => {
+    const dead = row({ status: "open", payment_status: "escrow" });
+    expect(plan([dead], { [dead.id]: "rejected" })).toEqual({ kind: "create" });
+  });
+  it("the fixture drivers hand the planners EVERY application, never only the pending ones", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../../e2e/prod-audit/fundedOpenJob.ts"), "utf8"));
+    const fn = /async function helperApplications\([\s\S]*?\n}/.exec(src)?.[0] ?? "";
+    expect(fn, "helperApplications() is gone").toContain("select=job_id,status");
+    expect(fn).not.toMatch(/status=(eq|in|neq)\./);
+    for (const call of ["planAcceptedJob(", "planDisputedJob("]) {
+      const at = src.indexOf(call);
+      expect(at, `${call} is not called`).toBeGreaterThan(-1);
+      expect(src.slice(at, src.indexOf(");", at))).toContain("applications: await helperApplications(api, helper)");
+    }
   });
   it("ignores other jobs: the funded OPEN fixture, and a dispute with someone else", () => {
     expect(plan([{ ...row({ status: "open", payment_status: "escrow" }), title: `${FUNDED_FIXTURE_TITLE}: hang two shelves` }])).toEqual({ kind: "create" });
@@ -58,7 +76,7 @@ describe("planDisputedJob", () => {
 describe("messy-input builds the dispute fixture before reading fixtures", () => {
   const spec = blankComments(readFileSync(resolve(__dirname, "../../e2e/prod-audit/messy-input.spec.ts"), "utf8"));
   it("ensureDisputedJob runs in beforeAll, before resolveFixtures, when the disputed explores are in scope", () => {
-    const ensure = spec.indexOf("await ensureDisputedJob(request, browser,");
+    const ensure = spec.indexOf("await unlessLivePay(() => ensureDisputedJob(request, browser,");
     const resolveAt = spec.indexOf("fx = await resolveFixtures(");
     expect(ensure).toBeGreaterThan(-1);
     expect(resolveAt).toBeGreaterThan(ensure);

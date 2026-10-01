@@ -1,0 +1,154 @@
+name: Storage image cache-control backfill
+
+# docs/OPEN.md Q655: image objects in job-photos, proof-photos and
+# message-attachments uploaded before the cacheControl fix are served with
+# max-age=3600 or no-cache. Storage serves the header stored on the S3 object,
+# not storage.objects.metadata (measured in Q349), so the only fix is a
+# same-bytes re-upload with cache-control max-age=31536000.
+#
+# Owner approved in-session 2026-09-27 ("Allow the backfill": re-puts the same
+# bytes with a cache-control header; nothing deleted). Scope is fixed below:
+# those three buckets, non-video objects, lacking max-age=31536000.
+#
+# A service-role re-upload sets storage.objects.owner/owner_id to NULL
+# (measured on the Q349 avatar after its re-put). No storage policy or trigger
+# reads owner (pg_policies / pg_trigger, 2026-09-28), but the original owner is
+# restored right after each PUT anyway, from a snapshot taken first.
+#
+# Fail-closed per object: bytes are downloaded, PUT back unchanged, re-downloaded
+# and md5-compared; owner restore must touch exactly one row. Nothing is deleted.
+# Manual only (workflow_dispatch). mode=one does a single named object.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "one = a single object (bucket + name below); all = every object in scope"
+        required: true
+        default: "one"
+        type: choice
+        options: [one, all]
+      bucket:
+        description: "mode=one: bucket (job-photos, proof-photos or message-attachments)"
+        required: false
+        default: ""
+      name:
+        description: "mode=one: object name inside the bucket"
+        required: false
+        default: ""
+      max_objects:
+        description: "mode=all: refuse to run if more objects than this are in scope"
+        required: true
+        default: "400"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: storage-image-cache-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    name: Same-bytes re-upload with max-age=31536000
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Re-upload, restore owner, verify
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          MODE: ${{ inputs.mode }}
+          ONE_BUCKET: ${{ inputs.bucket }}
+          ONE_NAME: ${{ inputs.name }}
+          MAX_OBJECTS: ${{ inputs.max_objects }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'EOF'
+          import { createHash } from "node:crypto";
+          const { SUPABASE_PROJECT_REF: ref, SUPABASE_SERVICE_ROLE_KEY: key, SUPABASE_ACCESS_TOKEN: pat,
+                  MODE, ONE_BUCKET, ONE_NAME, MAX_OBJECTS } = process.env;
+          const fail = (m) => { console.log(`::error::${m}`); process.exit(1); };
+          if (!ref || !key || !pat) fail("SUPABASE_PROJECT_REF, SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ACCESS_TOKEN is empty");
+          const BUCKETS = ["job-photos", "proof-photos", "message-attachments"];
+          const CC = "max-age=31536000";
+          const lit = (s) => (s == null ? "NULL" : `'${String(s).replace(/'/g, "''")}'`);
+          async function sql(query) {
+            let r, text;
+            for (let attempt = 1; attempt <= 6; attempt++) {
+              r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${pat}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ query }),
+              });
+              text = await r.text();
+              if (r.status !== 429) break;
+              await new Promise((res) => setTimeout(res, 5000 * attempt));
+            }
+            if (!r.ok) fail(`SQL ${r.status}: ${text.slice(0, 300)}`);
+            return JSON.parse(text);
+          }
+          const scope = `bucket_id IN (${BUCKETS.map(lit).join(",")})
+            AND coalesce(metadata->>'cacheControl','') <> '${CC}'
+            AND coalesce(metadata->>'mimetype','') NOT LIKE 'video/%'`;
+          let where = scope;
+          if (MODE === "one") {
+            if (!BUCKETS.includes(ONE_BUCKET) || !ONE_NAME) fail("mode=one needs bucket (one of the three) and name");
+            where += ` AND bucket_id = ${lit(ONE_BUCKET)} AND name = ${lit(ONE_NAME)}`;
+          } else if (MODE !== "all") fail(`unknown mode ${MODE}`);
+          const rows = await sql(`SELECT bucket_id, name, owner::text AS owner, owner_id,
+              metadata->>'mimetype' AS mimetype, metadata->>'cacheControl' AS cc
+            FROM storage.objects WHERE ${where} ORDER BY bucket_id, name`);
+          console.log(`in scope: ${rows.length}`);
+          if (rows.length === 0) fail("nothing in scope (already done, or wrong name)");
+          if (rows.length > Number(MAX_OBJECTS)) fail(`${rows.length} objects > max_objects ${MAX_OBJECTS}`);
+
+          const base = `https://${ref}.supabase.co/storage/v1/object`;
+          const auth = { apikey: key, Authorization: `Bearer ${key}` };
+          const enc = (n) => n.split("/").map(encodeURIComponent).join("/");
+          const md5 = (b) => createHash("md5").update(b).digest("hex");
+          async function get(bucket, name) {
+            const r = await fetch(`${base}/authenticated/${bucket}/${enc(name)}`, { headers: auth });
+            if (!r.ok) throw new Error(`GET ${r.status}`);
+            return Buffer.from(await r.arrayBuffer());
+          }
+          let ok = 0; const errors = [];
+          for (const o of rows) {
+            const id = `${o.bucket_id}/${o.name}`;
+            try {
+              const bytes = await get(o.bucket_id, o.name);
+              const before = md5(bytes);
+              const put = await fetch(`${base}/${o.bucket_id}/${enc(o.name)}`, {
+                method: "PUT",
+                headers: { ...auth, "Content-Type": o.mimetype || "application/octet-stream",
+                           "x-upsert": "true", "cache-control": CC },
+                body: bytes,
+              });
+              if (!put.ok) throw new Error(`PUT ${put.status}: ${(await put.text()).slice(0, 200)}`);
+              const restored = await sql(`UPDATE storage.objects SET owner = ${o.owner == null ? "NULL" : lit(o.owner) + "::uuid"},
+                  owner_id = ${lit(o.owner_id)}
+                WHERE bucket_id = ${lit(o.bucket_id)} AND name = ${lit(o.name)} RETURNING 1 AS x`);
+              if (restored.length !== 1) throw new Error(`owner restore touched ${restored.length} rows`);
+              const after = md5(await get(o.bucket_id, o.name));
+              if (after !== before) throw new Error(`bytes changed ${before} -> ${after}`);
+              ok++;
+              if (MODE === "one" || ok % 25 === 0) console.log(`ok ${ok}/${rows.length} ${id} md5 ${before} (was ${o.cc ?? "none"})`);
+            } catch (e) {
+              errors.push(`${id}: ${e.message}`);
+              console.log(`::warning::${id}: ${e.message}`);
+            }
+          }
+          const names = rows.map((o) => `(${lit(o.bucket_id)},${lit(o.name)},${lit(o.owner_id)},${lit(o.owner)})`).join(",");
+          const [check] = await sql(`WITH s(b,n,oid,ow) AS (VALUES ${names})
+            SELECT count(*) FILTER (WHERE coalesce(o.metadata->>'cacheControl','') <> '${CC}')::int AS still_old,
+                   count(*) FILTER (WHERE o.owner_id IS DISTINCT FROM s.oid OR o.owner::text IS DISTINCT FROM s.ow)::int AS owner_mismatch,
+                   count(o.name)::int AS present
+            FROM s LEFT JOIN storage.objects o ON o.bucket_id = s.b AND o.name = s.n`);
+          const [total] = await sql(`SELECT count(*)::int AS n FROM storage.objects WHERE ${scope}`);
+          console.log(`re-put ok: ${ok}/${rows.length}; errors: ${errors.length}`);
+          console.log(`snapshot check: ${JSON.stringify(check)}; whole scope still lacking ${CC}: ${total.n}`);
+          if (errors.length) { errors.forEach((e) => console.log(e)); fail(`${errors.length} objects failed`); }
+          if (check.still_old !== 0 || check.owner_mismatch !== 0 || check.present !== rows.length) fail("post-check failed");
+          console.log("OK");
+          EOF

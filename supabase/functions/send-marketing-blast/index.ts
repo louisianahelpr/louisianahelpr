@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // function used to carry its own copy of each, including the only use of
 // hello@ in the product.
 import { FROM_DEFAULT, POSTAL_ADDRESS, sendWithResend } from "../_shared/resend.ts";
+import { isTestRecipient, TEST_RECIPIENT_REASON } from "../_shared/testRecipient.ts";
 import { buildUnsubscribeUrl, unsubscribeHeaders } from "../_shared/unsubscribe.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { htmlEscape } from "../_shared/safe-strings.ts";
@@ -51,7 +52,7 @@ interface SendLogRow {
   message_id: string;
   template_name: string;
   recipient_email: string;
-  status: "sent" | "failed";
+  status: "sent" | "failed" | "suppressed";
   error_message?: string;
 }
 
@@ -463,7 +464,7 @@ serve(async (req) => {
       );
     };
 
-    let sent = 0, failed = 0;
+    let sent = 0, failed = 0, suppressed = 0;
     const errors: string[] = [];
 
     // ── Audit trail ──────────────────────────────────────────────────────
@@ -501,6 +502,18 @@ serve(async (req) => {
         // type `${string}-${string}-${string}-${string}-${string}`, which the
         // Resend message id assigned below does not satisfy.
         let messageId: string = crypto.randomUUID();
+        // Q840: a test or seed recipient is logged 'suppressed', never mailed.
+        if (await isTestRecipient(supabase, r.email)) {
+          suppressed++;
+          pendingLogs.push({
+            message_id: messageId,
+            template_name: "marketing_blast",
+            recipient_email: r.email,
+            status: "suppressed",
+            error_message: TEST_RECIPIENT_REASON,
+          });
+          return;
+        }
         try {
           // Rendering is per-recipient ({{name}} is substituted before the
           // shell is rendered) and ASYNCHRONOUS, so it is awaited before the
@@ -566,11 +579,11 @@ serve(async (req) => {
         segment: body.segment,
         parish: body.parish,
         recipients: recipients.length,
-        sent, failed,
+        sent, failed, suppressed,
       },
     });
 
-    return new Response(JSON.stringify({ sent, failed, total: recipients.length, errors }), {
+    return new Response(JSON.stringify({ sent, failed, suppressed, total: recipients.length, errors }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

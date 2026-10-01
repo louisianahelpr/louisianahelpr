@@ -18,10 +18,13 @@
  *      so a new status, or an owner that disappears, fails here instead of as
  *      a skip on the next nightly.
  *
- * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (accepted) return { kind: "reuse", row: accepted, retire }; | if (accepted && false) return { kind: "reuse", row: accepted, retire };
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (accepted) return { kind: "reuse", row: accepted, retire, ...extra }; | if (accepted && false) return { kind: "reuse", row: accepted, retire, ...extra };
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS, | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow",
  * @mutate .github/workflows/a11y-webkit-prod.yml | needs: [preflight, fixtures] | needs: preflight
  * @mutate .github/workflows/a11y-webkit-prod.yml | run: npx playwright test --project=job-status-fixtures | run: echo skipped
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id)); | const open = openAll;
+ * @mutate e2e/prod-audit/fundedOpenJob.ts |   await helperConfirmsOffer(api, helper, id, log); |   // confirm removed
+ * @mutate e2e/prod-audit/fundedOpenJob.ts | data: { helper_confirmed_at: now, response_deadline: null } | data: { response_deadline: null }
  * @mutate e2e/job-status-fixtures/accepted.spec.ts | await ensureAcceptedJob(request, browser, poster, helper); | { job: { id: "", title: "", date_needed: "2999-01-01" }, log: [] as string[] };
  */
 import { describe, expect, it } from "vitest";
@@ -53,8 +56,8 @@ const row = (over: Partial<FixtureRow> = {}): FixtureRow => ({
   created_at: `2026-09-${String(1 + (n % 20)).padStart(2, "0")}T00:00:00Z`,
   ...over,
 });
-const plan = (rows: FixtureRow[], applied: string[] = []) =>
-  planAcceptedJob(rows, { today: TODAY, helperId: HELPER, appliedJobIds: new Set(applied) });
+const plan = (rows: FixtureRow[], apps: Record<string, string> = {}) =>
+  planAcceptedJob(rows, { today: TODAY, helperId: HELPER, applications: new Map(Object.entries(apps)) });
 const hired = (over: Partial<FixtureRow> = {}) => row({ status: "accepted", payment_status: "escrow", helper_id: HELPER, ...over });
 
 describe("planAcceptedJob", () => {
@@ -91,10 +94,26 @@ describe("planAcceptedJob", () => {
   it("RESUMES a half-made fixture at the step it stopped on, never paying twice", () => {
     const funded = row({ payment_status: "escrow" });
     expect(plan([funded])).toEqual({ kind: "resume", row: funded, next: "apply", retire: [] });
-    expect(plan([funded], [funded.id])).toEqual({ kind: "resume", row: funded, next: "hire", retire: [] });
+    expect(plan([funded], { [funded.id]: "pending" })).toEqual({ kind: "resume", row: funded, next: "hire", retire: [] });
     const unpaid = row({ payment_status: "abandoned" });
     expect(plan([unpaid])).toEqual({ kind: "resume", row: unpaid, next: "fund", retire: [] });
   });
+
+  // a11y-webkit-prod run 36352716213 (#1794): job 36eebad4 was open/escrow and
+  // helper-e2e's application on it was REJECTED (expire_unanswered_offers); the
+  // plan said "apply" and apply_to_job answered "Already applied to this job".
+  it.each(["rejected", "withdrawn"])(
+    "a funded fixture helper-e2e has a %s application on is never resumed: it is RETIRED (escrow released)",
+    (status) => {
+      const dead = row({ payment_status: "escrow" });
+      const p = plan([dead], { [dead.id]: status });
+      expect(p.kind).toBe("create");
+      expect(p.retire.map((r) => r.row.id)).toEqual([dead.id]);
+      // An unpaid one with a closed application is not funded either.
+      const deadUnpaid = row({ payment_status: "abandoned" });
+      expect(plan([deadUnpaid], { [deadUnpaid.id]: status })).toEqual({ kind: "create", retire: [] });
+    },
+  );
 
   it("ignores other jobs: another fixture's title, a hire to someone else, an unfunded hire", () => {
     expect(plan([{ ...hired(), title: `${DISPUTE_FIXTURE_TITLE}: patch a drywall hole` }]).kind).toBe("create");
@@ -122,6 +141,21 @@ describe("a11y-webkit-prod.yml mints the fixture before the sweep reads it", () 
   it("the nightly issue counts it: a red fixtures job is a red run", () => {
     expect(job("notify")).toMatch(/needs\.fixtures\.result == 'success'/);
   });
+  // prod-audit run 36361548155 (#1754): the fixture was hired and left
+  // UNconfirmed; expire_unanswered_offers swept it at its response_deadline and
+  // filed job_denial dd89291c on helper-e2e (fix a78d95be2). The confirm must
+  // run on EVERY path (reuse included) and prove itself by reading the row.
+  it("helper-e2e confirms the offer on every path, and the confirm proves itself", () => {
+    const src = blankComments(read("e2e/prod-audit/fundedOpenJob.ts"));
+    const ensure = /export async function ensureAcceptedJob\([\s\S]*?\n}/.exec(src)?.[0] ?? "";
+    expect(ensure, "ensureAcceptedJob is gone").toContain("planAcceptedJob(");
+    expect(ensure, "the confirm must sit at function level, after the reuse/drive branch, not inside one branch").toMatch(
+      /\n {2}}\n[\s\S]*?\n {2}await helperConfirmsOffer\(api, helper, id, log\);/,
+    );
+    const confirm = /async function helperConfirmsOffer\([\s\S]*?\n}/.exec(src)?.[0] ?? "";
+    expect(confirm).toContain("helper_confirmed_at: now");
+    expect(confirm).toMatch(/if \(!confirmed\[0\]\?\.helper_confirmed_at\) \{\s*throw new Error/);
+  });
   it("the project is the fixture spec's own, and the spec calls the owner", () => {
     const cfg = read("playwright.config.ts");
     expect(cfg).toMatch(/name: "job-status-fixtures",[\s\S]*?testDir: "\.\/e2e\/job-status-fixtures"/);
@@ -140,7 +174,7 @@ const OWNED: Record<string, { file: string; evidence: string; why: string }> = {
   open: { file: "scripts/audit/prod-seed.mjs", evidence: 'id: sid("job:poster-open")', why: "prod-seed --apply upserts it (prod-audit.yml, before every audit)" },
   pending_approval: { file: "scripts/audit/prod-seed.mjs", evidence: 'id: sid("job:poster-pending-approval")', why: "prod-seed --apply upserts it" },
   accepted: { file: "e2e/job-status-fixtures/accepted.spec.ts", evidence: "await ensureAcceptedJob(", why: "a11y-webkit-prod.yml's fixtures job, before the sweep (#1794)" },
-  disputed: { file: "e2e/prod-audit/messy-input.spec.ts", evidence: "await ensureDisputedJob(", why: "prod-audit's messy-input beforeAll (Q132); a seed dispute is never auto-resolved" },
+  disputed: { file: "e2e/prod-audit/messy-input.spec.ts", evidence: "await unlessLivePay(() => ensureDisputedJob(", why: "prod-audit's messy-input beforeAll (Q132); a seed dispute is never auto-resolved" },
 };
 
 /**

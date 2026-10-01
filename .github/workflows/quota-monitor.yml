@@ -20,7 +20,7 @@ name: Quota and analytics monitors
 #
 # stripe-balance scripts/check-stripe-balance.mjs (Q3 / Q145): the Stripe TEST
 #           platform balance (GET /v1/balance, STRIPE_TEST_SECRET_KEY, the key
-#           stripe-webhook-guard.yml uses) against max($100, 1.5 x the payouts
+#           e2e-real-backend.yml uses) against max($100, 1.5 x the payouts
 #           due in the next 72h from public.jobs). Below it -> ledger error
 #           that says how to top up in TEST mode (the 0077 card), BEFORE the
 #           transfers fail as they did on 2026-09-22. An unreadable balance ->
@@ -43,7 +43,6 @@ on:
 
 permissions:
   contents: read
-  deployments: read
 
 concurrency:
   # Scheduled runs share prod-load; a dispatch gets its own group
@@ -65,7 +64,9 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Deployments are counted from Vercel, not GitHub: GitHub's list shared
+          # the repo's GITHUB_TOKEN rate limit and went 403 (ledger f9b0a8a7).
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           # A personal read token (org:read, project:read): the org token in
           # SENTRY_AUTH_TOKEN is release-upload only and gets 403 on usage stats.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_READ_TOKEN || secrets.SENTRY_AUTH_TOKEN }}

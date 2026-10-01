@@ -1,4 +1,6 @@
 // @mutate scripts/audit/press-every-control.mjs | const item = queue[idx++];\n          await paceToCeiling(page); | const item = queue[idx++];\n          void paceToCeiling;
+// @mutate scripts/audit/press-every-control.mjs | ceiling: Math.floor((LOAD_CEILING * PACE_HEADROOM) / WAVE_WIDTH), | ceiling: Math.floor(LOAD_CEILING * PACE_HEADROOM),
+// @mutate scripts/audit/press-wave.sh | export PRESS_WAVE_WIDTH="$#" | export PRESS_WAVE_WIDTH_UNUSED="$#"
 // @mutate scripts/audit/pressFailureClass.mjs |   if (used === 0 \|\| used + Math.min(burst, ceiling) <= ceiling) return 0; |   return 0;
 /**
  * press-every-control stays under the prod load ceiling it is judged by.
@@ -49,5 +51,16 @@ describe("press-every-control paces itself to ceilingPerMinute", () => {
     expect(loop).toMatch(/await paceToCeiling\(page\);/);
     const budgets = JSON.parse(readFileSync(resolve(ROOT, "e2e/request-budgets.json"), "utf8"));
     expect(typeof budgets.budgets["*"].ceilingPerMinute).toBe("number");
+  });
+
+  // Runs 36297439015 (542/min) and 36348328345 (618/min): two shards of a wave,
+  // each paced to the full ceiling on its own meter, summed over it.
+  it("shards running side by side split the ceiling between them", () => {
+    const src = blankComments(readFileSync(resolve(ROOT, "scripts/audit/press-every-control.mjs"), "utf8"));
+    expect(src).toMatch(/const WAVE_WIDTH = [^;]*process\.env\.PRESS_WAVE_WIDTH/);
+    expect(src).toMatch(/ceilingWaitMs\(\{[^}]*ceiling: Math\.floor\(\(LOAD_CEILING \* PACE_HEADROOM\) \/ WAVE_WIDTH\)/);
+    const wave = readFileSync(resolve(ROOT, "scripts/audit/press-wave.sh"), "utf8")
+      .split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    expect(wave).toMatch(/^export PRESS_WAVE_WIDTH="\$#"$/m);
   });
 });

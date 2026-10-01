@@ -6,7 +6,7 @@
       "id": "we_1Tql6mKp2H4b7tEClf7Bg4OO",
       "object": "webhook_endpoint",
       "created": 1780000000,
-      "livemode": false,
+      "livemode": true,
       "status": "enabled",
       "url": "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/stripe-webhook",
       "enabled_events": [
@@ -24,7 +24,7 @@
       "id": "we_1U8AbhKp2H4b7tECpsHaYA7D",
       "object": "webhook_endpoint",
       "created": 1787626861,
-      "livemode": false,
+      "livemode": true,
       "status": "enabled",
       "url": "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/stripe-webhook",
       "enabled_events": [

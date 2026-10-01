@@ -10,25 +10,33 @@
       "signIns": null
     },
     "journeys": {
-      "perTest": 135.3,
+      "perTest": 49.3,
       "signIns": 1
+    },
+    "abuse-journeys": {
+      "perTest": 3.2,
+      "signIns": 0
+    },
+    "abuse-journeys-webkit": {
+      "perTest": 3.5,
+      "signIns": 0
     },
     "journeys-webkit": {
       "perTest": 51.9,
       "signIns": 1
     },
     "prod-audit": {
-      "perTest": 93.5,
-      "signIns": 1
+      "perTest": 138.2,
+      "signIns": 0
     },
     "chromium": {},
     "a11y-prod": {
       "perTest": 22.2,
-      "signIns": 0
+      "signIns": 6
     },
     "a11y-prod-webkit": {
       "perTest": 24.2,
-      "signIns": 0
+      "signIns": 6
     },
     "job-status-fixtures": {},
     "press-every-control": {
@@ -45,9 +53,9 @@
       "signIns": 0
     },
     "slow-network": {
-      "perTest": 38.4,
+      "perTest": 40.1,
       "signIns": 4
     }
   },
-  "_calibrated": "2026-09-23, the highest value each label's first metered runs printed (perTest/signIns): journeys 135.3/1 from e2e-journeys 35905284660; journeys-webkit 51.9/1 from e2e-journeys 35932913760 (35905284660: 44, raised when the second run measured 51.9); press-every-control 82257/0 per whole run, the four shards summed (2026-09-26, nightly-red #1582: per shard it swung 7859-32839 as the split moved rows), the highest of 36069319716 (82257), 35976390920 (79323), 36208184593 (70917) and 36230166945 (55490, 12 rows not reached); loading-states 4570/0 from loading-states-refresh 36337742847 (2026-09-27 18:10Z, 2557818bd), the highest of it, 36335322192 (4530, a278b76a5) and 36333109886 (4530): no app code changed between a278b76a5 and 2557818bd (docs only), so the +40 (rest +32, rpc +4, fn +4) is prod data moving under the same code, the variance filed as Q766; before that, 4530/0 from loading-states-refresh 36333109886 (2026-09-27 16:24Z, 3cc2fb0e6): +550 over 36297208529 (3980, d427b4f80) is Q756 (c678ce0c3), which binds the bell feed on every route, so each cold page load now reads notifications (recent page x163, unread page x163, unread HEAD x87, their OPTIONS x76+x76 = 565 requests; none in 36297208529); before that, 4023/0, the higher of loading-states-refresh 36214822852 (4023, 2026-09-26 03:53Z) and 36210165188 (4019, 2026-09-26 02:26Z, #1773/Q429: the first run measuring every surface cold with the boot-frame fix and the /jobs/:id fixture job, 82 of 139 measured; the earlier 3323 came from 36069105982 when ~73 surfaces were measured and /jobs/:id was the newest job on prod); privacy 40.5/0 from privacy-journey 35907558297 (35906025953: 37.5); slow-network 35.3/1 from slow-network 35931277278; a11y-prod 22.2/0 and a11y-prod-webkit 24.2/0 from a11y-webkit-prod 36148473443 (2026-09-25, 129 chromium tests, 2861 requests; the first full metered run of both legs); prod-audit 93.5/1 from prod-audit 36069316906 (36003051878: 92.3/1), the first two full metered runs (2026-09-24). Labels still {} inherit null: no single-shape metered run yet (chromium, canary); job-status-fixtures (added 2026-09-26, nightly-red #1794) is bimodal by design, a few reads when it reuses its fixture and a checkout plus polling when it mints one, so it keeps the ceiling only; chromium is shared by three e2e-real-backend jobs of different shapes (authenticated 1282/61 = 21.0 in 35987836495, money loop 39.5 in the same run) (a11y-webkit-prod and core-loop-canary: no metered browser step as of 2026-09-23 17:48Z, when the meter landed in 83235cd20)."
+  "_calibrated": "2026-09-23, the highest value each label's first metered runs printed (perTest/signIns): abuse-journeys 3.2/0 and abuse-journeys-webkit 3.1/0 from e2e-abuse-notifications 36782463223 (2026-09-30, 23 tests per leg, measured under the journeys labels before the job got its own); journeys 135.3/1 from e2e-journeys 35905284660; journeys-webkit 51.9/1 from e2e-journeys 35932913760 (35905284660: 44, raised when the second run measured 51.9); press-every-control 82257/0 per whole run, the four shards summed (2026-09-26, nightly-red #1582: per shard it swung 7859-32839 as the split moved rows), the highest of 36069319716 (82257), 35976390920 (79323), 36208184593 (70917) and 36230166945 (55490, 12 rows not reached); loading-states 4570/0 from loading-states-refresh 36337742847 (2026-09-27 18:10Z, 2557818bd), the highest of it, 36335322192 (4530, a278b76a5) and 36333109886 (4530): no app code changed between a278b76a5 and 2557818bd (docs only), so the +40 (rest +32, rpc +4, fn +4) is prod data moving under the same code, the variance filed as Q766; before that, 4530/0 from loading-states-refresh 36333109886 (2026-09-27 16:24Z, 3cc2fb0e6): +550 over 36297208529 (3980, d427b4f80) is Q756 (c678ce0c3), which binds the bell feed on every route, so each cold page load now reads notifications (recent page x163, unread page x163, unread HEAD x87, their OPTIONS x76+x76 = 565 requests; none in 36297208529); before that, 4023/0, the higher of loading-states-refresh 36214822852 (4023, 2026-09-26 03:53Z) and 36210165188 (4019, 2026-09-26 02:26Z, #1773/Q429: the first run measuring every surface cold with the boot-frame fix and the /jobs/:id fixture job, 82 of 139 measured; the earlier 3323 came from 36069105982 when ~73 surfaces were measured and /jobs/:id was the newest job on prod); privacy 40.5/0 from privacy-journey 35907558297 (35906025953: 37.5); slow-network 40.1/4 from slow-network 36334320915 (2026-09-27, 8fa7dc2ab): +35 requests over 36101678860 (446 = 37.2/test, 511c83ef9) is Q756 (c678ce0c3, not in 511c83ef9), which binds the bell feed on every route: notifications recent x11, unread x11, unread HEAD x9 = 31, none in 36101678860; earlier 38.4 (bffd24802) and 35.3/1 from slow-network 35931277278; a11y-prod 22.2/6 and a11y-prod-webkit 24.2/6 (signIns recalibrated 0->6 from a11y-webkit-prod 36782803845, 2026-09-30, both legs measured 6 password grants and perTest 21.5, after b47cbcfd3 metered the API `request` fixture so the spec getSession sign-ins became visible; perTest kept) from a11y-webkit-prod 36148473443 (2026-09-25, 129 chromium tests, 2861 requests; the first full metered run of both legs); prod-audit 93.5/1 from prod-audit 36069316906 (36003051878: 92.3/1), the first two full metered runs (2026-09-24). Labels still {} inherit null: no single-shape metered run yet (chromium, canary); job-status-fixtures (added 2026-09-26, nightly-red #1794) is bimodal by design, a few reads when it reuses its fixture and a checkout plus polling when it mints one, so it keeps the ceiling only; chromium is shared by three e2e-real-backend jobs of different shapes (authenticated 1282/61 = 21.0 in 35987836495, money loop 39.5 in the same run) (a11y-webkit-prod and core-loop-canary: no metered browser step as of 2026-09-23 17:48Z, when the meter landed in 83235cd20)."
 }

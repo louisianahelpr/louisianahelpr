@@ -17,7 +17,7 @@ import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/sa
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { formatPayoutDollars } from "../_shared/money.ts";
+import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
@@ -2243,7 +2243,7 @@ serve(async (req) => {
           // helper's tier changed) the audit trail shows the discrepancy
           // instead of quietly picking one.
           helper_payout_cents: settledTransfer.amountCents,
-          computed_helper_payout_cents: Math.round(helperPayout * 100),
+          computed_helper_payout_cents: roundPayoutDownCents(Math.round(helperPayout * 100)),
           platform_fee_cents: Math.round((feeAmt / dpHelpersCount) * 100),
           helper_fee_percent: disputeFeePercent,
           payment_intent_id: captureResult.paymentIntentId,
@@ -3603,9 +3603,17 @@ async function transferToHelper(
     return;
   }
 
+  // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). The one
+  // figure both the transfer and its ledger row carry.
+  const amountCents = roundPayoutDownCents(Math.round(amount * 100));
+  if (amountCents <= 0) {
+    // No money moved: the caller hands its settlement claim back.
+    throw new PublicError("The helpr's share rounds down to $0 — nothing to transfer. Resolve this dispute by hand.");
+  }
+
   try {
     const transferParams: any = {
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: amountCents,
       currency: "usd",
       destination: helperProfile.stripe_account_id,
       metadata: { job_id: jobId, helper_id: helperId, initiated_by: "admin" },
@@ -3661,7 +3669,7 @@ async function transferToHelper(
       if (!definite) (stripeErr as { moneyMoved?: boolean }).moneyMoved = true;
       throw stripeErr;
     }
-    console.log(`Transferred $${amount.toFixed(2)} to helper ${helperId} (transfer: ${transfer.id})`);
+    console.log(`Transferred $${(amountCents / 100).toFixed(2)} to helper ${helperId} (transfer: ${transfer.id})`);
 
     // Insert as "paid" immediately — same pattern as release-payout and
     // process-scheduled-payouts. The transfer.created webhook fires within
@@ -3678,7 +3686,7 @@ async function transferToHelper(
         helper_id: helperId,
         stripe_transfer_id: transfer.id,
         stripe_account_id: helperProfile.stripe_account_id,
-        amount_cents: Math.round(amount * 100),
+        amount_cents: amountCents,
         platform_fee_cents: Math.round(platformFeeAmount * 100),
         status: "paid",
         paid_at: new Date().toISOString(),

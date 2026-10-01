@@ -152,9 +152,9 @@ test("each earnings view stays within its length budget", async ({ helperPage: p
   // landing (Earnings) states take-home, not the balance.
   await page.getByRole("tab", { name: "Payouts" }).click();
   await expect(page.getByText(/\$245\.00/).first()).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(/\$1,636\.80/).first()).toHaveCount(0);
+  await expect(page.getByText(/\$1,632\b/).first()).toHaveCount(0);
   await page.getByRole("tab", { name: "Earnings" }).click();
-  await expect(page.getByText(/\$1,636\.80/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/\$1,632\b/).first()).toBeVisible({ timeout: 10_000 });
 
   for (const [name, budget] of Object.entries(BUDGET_SCREENS)) {
     await page.getByRole("tab", { name }).click();
@@ -217,6 +217,6 @@ test("lifetime take-home is stated in exactly one place", async ({ helperPage: p
 // that split is what answered "entirely too long" (owner, 2026-08-28).
 // Dropping the `view === "earnings"` half of the gate mounts the Earnings
 // column underneath Payouts as well, which both blows the Payouts budget and
-// puts lifetime take-home ($1,636.80) on the Payouts view, where this spec
+// puts lifetime take-home ($1,632) on the Payouts view, where this spec
 // asserts it has no business being.
 // @mutate src/components/profile/EarningsTab.tsx | {view === "earnings" && earningsReady && ( | {view === "earnings" && false && (

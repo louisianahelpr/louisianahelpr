@@ -4,16 +4,18 @@ import { hasPerk } from "../../supabase/functions/_shared/tierPerks";
 // productPrices.parity.test.ts so a UI price can never silently diverge from the
 // amount the edge function charges through Stripe Checkout.
 
-import { formatPriceExact } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 
 export const BOOST_FEE_CENTS = 300; // $3.00 — 24h featured placement
 export const BGC_FEE_CENTS = 3499; // $34.99 — one-time background screening
 
 export const BOOST_DURATION_HOURS = 24;
 
-// Format a whole-cent amount as a display price: "$3" when it's a round dollar,
-// "$34.99" otherwise. Delegates to formatPriceExact for float-safe rounding.
-export const formatFeeUsd = (cents: number): string => `$${formatPriceExact(cents / 100)}`;
+// Format a whole-cent amount as a WHOLE-dollar display price ("$3", "$35").
+// Owner decision 2026-09-27 (Q236): only the job-posting checkout shows exact
+// cents; every other user payment (boost, background check, gift card) shows
+// whole dollars. Guarded by src/test/helprPayoutRoundedDown.test.ts.
+export const formatFeeUsd = (cents: number): string => `$${formatPrice(cents / 100)}`;
 
 // ─── Job Boost pricing by subscription tier ──────────────────────────────────
 // The AUTHORITY is supabase/functions/create-boost-payment/index.ts — it is the

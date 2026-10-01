@@ -11,8 +11,8 @@ const AdminSectionHeader = ({ title, onBack }: { title: string; onBack: () => vo
     <div className="flex flex-col leading-none min-w-0">
       <h1
         // THE SAME TITLE TYPE AS EVERY OTHER SCREEN — `font-display font-bold
-        // text-ds-20`, verbatim from ScreenHeaderRow (owner: "title fonts are
-        // not correct in admin").
+        // text-headline-hero`, verbatim from ScreenHeaderRow (owner: "title
+        // fonts are not correct in admin"; one page-title size, Q236(e)).
         //
         // This deliberately reverses an earlier call that set admin in
         // Montserrat, on the reasoning that a moderation queue wants density
@@ -22,7 +22,7 @@ const AdminSectionHeader = ({ title, onBack }: { title: string; onBack: () => vo
         // same instruction that moved this console's top bar and rail onto the
         // app's own pattern. A different heading face was the last thing
         // announcing it as a separate application.
-        className="font-display font-bold leading-tight truncate text-ds-20"
+        className="font-display font-bold leading-tight truncate text-headline-hero"
         style={{
           color: "hsl(var(--ink-deep))",
           letterSpacing: "-0.02em",

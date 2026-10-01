@@ -156,9 +156,10 @@ export function helperPlatformFeeDollars(
 }
 
 /**
- * What the helper took home on one completed job, in dollars:
+ * What the helper took home on one completed job, in WHOLE dollars:
  * `budget/N − platform fee + net urgent bonus/N`, where N is the roster size
- * (1 for every non-group job).
+ * (1 for every non-group job), floored to the dollar the transfer actually
+ * pays (see {@link floorPayoutDollars}).
  */
 export function helperTakeHomeDollars(
   job: HelperEarningsJob,
@@ -166,11 +167,28 @@ export function helperTakeHomeDollars(
 ): number {
   const shares = helperShareCount(job);
   const budget = job.budget ?? 0;
-  return (
+  return floorPayoutDollars(
     budget / shares -
-    helperPlatformFeeDollars(job, feeFallbackPercent) +
-    netUrgentFeeDollars(job.urgent_fee) / shares
+      helperPlatformFeeDollars(job, feeFallbackPercent) +
+      netUrgentFeeDollars(job.urgent_fee) / shares,
   );
+}
+
+/**
+ * Q236 (owner, 2026-09-27): a Helpr payout is REALLY a whole dollar, rounded
+ * DOWN — every payout transfer goes through `roundPayoutDownCents`
+ * (supabase/functions/_shared/money.ts) and the platform keeps the cents. So
+ * the take-home shown is the floored figure too, or a $41.87 job would read
+ * $41.87 against a $41 transfer. Same arithmetic as the edge rule: round to a
+ * whole cent first (float noise must not cost a dollar), then floor; zero and
+ * negative pass through unchanged. Guarded by
+ * src/test/helprPayoutRoundedDown.test.ts.
+ */
+export function floorPayoutDollars(dollars: number): number {
+  if (!Number.isFinite(dollars)) return 0;
+  const cents = Math.round(dollars * 100);
+  if (cents <= 0) return cents / 100;
+  return Math.floor(cents / 100);
 }
 
 /** Sum of {@link helperTakeHomeDollars} across a list of completed jobs. */

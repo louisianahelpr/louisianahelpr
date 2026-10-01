@@ -12,7 +12,8 @@
  *
  * So: for every workflow whose concurrency group can be `prod-load` (derived
  * from the files, never a hand list), list its recent schedule-triggered runs
- * and report every one whose conclusion is `cancelled` inside WINDOW_DAYS.
+ * and report every one whose conclusion is `cancelled` inside WINDOW_DAYS and
+ * that no later completed scheduled or dispatched run has covered.
  * schedule-heartbeat.yml runs this daily and counts each as stalled, which
  * opens the `schedule-stalled` issue and turns the heartbeat red.
  *
@@ -57,10 +58,21 @@ export function prodLoadWorkflows(dir = resolve(process.cwd(), ".github/workflow
     .sort();
 }
 
-/** The runs (GitHub API shape) that were cancelled inside the window. */
+/** Events whose completed run re-tests what a cancelled scheduled run skipped (and reports its own red). */
+const COVERING_EVENTS = new Set(["schedule", "workflow_dispatch"]);
+
+/**
+ * The runs (GitHub API shape) that were cancelled inside the window and not yet
+ * covered: a LATER run of the same workflow that completed (not cancelled or
+ * skipped) re-ran the check, and a red one files its own nightly-red issue. So a
+ * daily monitor's one lost night stops holding the heartbeat red once the next
+ * night ran (expiry-monitor stayed "stalled" 6 days after 5 green nights, 2026-09-30).
+ */
 export function cancelledScheduledRuns(runs, { now = Date.now(), windowDays = WINDOW_DAYS } = {}) {
   const since = now - windowDays * 86_400_000;
-  return runs.filter((r) => r.event === "schedule" && r.status === "completed" && r.conclusion === "cancelled" && Date.parse(r.created_at) >= since);
+  const covered = (r) =>
+    runs.some((o) => COVERING_EVENTS.has(o.event) && o.status === "completed" && o.conclusion !== "cancelled" && o.conclusion !== "skipped" && Date.parse(o.created_at) > Date.parse(r.created_at));
+  return runs.filter((r) => r.event === "schedule" && r.status === "completed" && r.conclusion === "cancelled" && Date.parse(r.created_at) >= since && !covered(r));
 }
 
 function main() {
@@ -73,7 +85,7 @@ function main() {
   for (const f of files) {
     let runs;
     try {
-      runs = JSON.parse(execFileSync("gh", ["api", `repos/${repo}/actions/workflows/${f}/runs?event=schedule&per_page=20`, "--jq", ".workflow_runs"], { encoding: "utf8" }));
+      runs = JSON.parse(execFileSync("gh", ["api", `repos/${repo}/actions/workflows/${f}/runs?branch=main&per_page=50`, "--jq", ".workflow_runs"], { encoding: "utf8" }));
     } catch (e) {
       unread++;
       console.error(`::error::${f}: could not list scheduled runs (${String(e.message).split("\n")[0]})`);

@@ -514,7 +514,7 @@ const CompleteProfile = () => {
           <div className="flex justify-center mb-4">
             <HelprSpinner size={24} />
           </div>
-          <h1 className="text-ds-20 font-display font-bold text-foreground">Checking your saved profile</h1>
+          <h1 className="text-headline-hero font-display font-bold text-foreground">Checking your saved profile</h1>
           <p className="mt-2 text-ds-11 text-muted-foreground">
             Hang tight — we’re making sure your previous submission is loaded before asking for anything again.
           </p>
@@ -578,9 +578,9 @@ const CompleteProfile = () => {
           <div className="text-center mb-7">
             <span className="text-display-eyebrow">Welcome aboard</span>
             <h1
-              className="font-display italic font-bold leading-tight mt-2"
+              // One page-title size everywhere (Q236(e)): text-headline-hero.
+              className="font-display italic font-bold text-headline-hero leading-tight mt-2"
               style={{
-                fontSize: "clamp(2rem, 4vw + 0.5rem, 2.75rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.025em",
               }}

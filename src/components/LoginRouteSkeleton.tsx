@@ -69,7 +69,7 @@ const LoginRouteSkeleton = () => (
             <Skeleton className="w-10 h-10 -ml-2 rounded-full" />
           </div>
           <h1
-            className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight truncate"
+            className="flex-1 min-w-0 font-display italic font-bold text-headline-hero leading-tight truncate"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
           >
             Log In

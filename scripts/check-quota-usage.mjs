@@ -9,7 +9,12 @@
  *      max_connections + client connections, storage.objects bytes, and
  *      email_send_log 'sent' rows (month to date, last 24h).
  *   2. Management API logs query: function_edge_logs rows in the last 24h.
- *   3. GitHub REST: deployments created in the last 24h (all environments).
+ *   3. Vercel REST: deployments created in the last 24h, every project and
+ *      target of the team (the Hobby cap is per account), with VERCEL_TOKEN.
+ *      Not GitHub's deployments list: that read shared the repo's GITHUB_TOKEN
+ *      installation rate limit and went UNREADABLE on a 403 whenever other
+ *      workflows spent it (ledger f9b0a8a7, 2026-09-28), and it never saw a
+ *      deploy made through the API or CLI.
  *   4. Sentry REST: error events over 30 days, accepted + rate_limited (org
  *      stats_v2, all four outcomes read and split in the note; Q311 — an
  *      accepted-only read cannot tell a quiet window from one where events
@@ -29,10 +34,10 @@
  * Quotas with no API at all are listed as NOT MONITORED with a ::warning on
  * every run.
  *
- * Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, GITHUB_TOKEN,
- * GITHUB_REPOSITORY, SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, and the
+ * Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, VERCEL_TOKEN,
+ * SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, and the
  * per-quota LH_QUOTA_* limit overrides. Test seams: LH_SUPABASE_API_BASE,
- * LH_GITHUB_API_BASE, LH_SENTRY_API_BASE. --no-ledger skips ledger writes.
+ * LH_VERCEL_API_BASE, LH_SENTRY_API_BASE. --no-ledger skips ledger writes.
  */
 import { appendFileSync } from "node:fs";
 import { QUOTAS, alertSeverity, alertTitle, evaluateQuotas, unreadableTitle } from "./lib/quotaMonitor.mjs";
@@ -41,7 +46,9 @@ import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
 
 const env = process.env;
 const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
-const GH = env.LH_GITHUB_API_BASE ?? "https://api.github.com";
+const VERCEL = env.LH_VERCEL_API_BASE ?? "https://api.vercel.com";
+// The team scripts/prod-deploy.mjs deploys into.
+const VERCEL_TEAM_ID = "team_UQHppAVoPIPQbyh2b43y21BG";
 const SENTRY = env.LH_SENTRY_API_BASE ?? "https://sentry.io";
 const REF = env.SUPABASE_PROJECT_REF;
 const TOKEN = env.SUPABASE_ACCESS_TOKEN;
@@ -60,14 +67,12 @@ SELECT pg_database_size(current_database())::bigint AS db_bytes,
        (SELECT coalesce(sum((metadata->>'size')::bigint), 0) FROM storage.objects)::bigint AS storage_bytes,
        (SELECT count(*) FROM storage.objects)::int AS storage_objects,
        (SELECT count(*) FROM public.email_send_log
-         WHERE status = 'sent' AND created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS emails_month,
-       (SELECT count(*) FROM public.email_send_log
-         WHERE status = 'sent' AND created_at > now() - interval '24 hours')::int AS emails_day`;
+         WHERE status = 'sent' AND created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS emails_month`;
 
 const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
 
 async function readSql() {
-  const ids = ["supabase.db_size", "supabase.connections", "supabase.storage", "resend.sends_month", "resend.sends_day"];
+  const ids = ["supabase.db_size", "supabase.connections", "supabase.storage", "resend.sends_month"];
   if (!TOKEN || !REF) return fail(ids, "could not read: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
   let rows;
   try {
@@ -99,7 +104,7 @@ async function readSql() {
   const st = num(r.storage_bytes);
   if (!Number.isFinite(st)) fail(["supabase.storage"], `storage read as ${r.storage_bytes}`);
   else readings["supabase.storage"] = { value: st, note: `${num(r.storage_objects)} objects` };
-  for (const [id, key] of [["resend.sends_month", "emails_month"], ["resend.sends_day", "emails_day"]]) {
+  for (const [id, key] of [["resend.sends_month", "emails_month"]]) {
     const v = num(r[key]);
     if (!Number.isFinite(v)) fail([id], `${key} read as ${r[key]}`);
     else readings[id] = { value: v, note: "email_send_log status 'sent' (floor)" };
@@ -128,29 +133,35 @@ async function readEdgeInvocations() {
 
 async function readDeploys() {
   const id = "vercel.deploys_per_day";
-  const token = env.GITHUB_TOKEN ?? env.GH_TOKEN;
-  if (!token) return fail([id], "could not read: GITHUB_TOKEN is required to count deployments");
-  const repo = env.GITHUB_REPOSITORY ?? "louisianahelpr/louisianahelpr";
+  const token = env.VERCEL_TOKEN;
+  if (!token) return fail([id], "could not read: VERCEL_TOKEN is required to count deployments");
   const since = Date.now() - 24 * 3600_000;
   let count = 0;
+  let until = "";
   try {
+    // Newest first; page back with `until` until a page reaches past 24h.
     for (let page = 1; page <= 10; page++) {
-      const res = await fetch(`${GH}/repos/${repo}/deployments?per_page=100&page=${page}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+      const res = await fetch(`${VERCEL}/v6/deployments?limit=100${until ? `&until=${until}` : ""}&teamId=${VERCEL_TEAM_ID}`, {
+        headers: { Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(20_000),
       });
-      if (!res.ok) throw new Error(`GitHub deployments ${res.status}: ${(await res.text()).slice(0, 200)}`);
-      const list = await res.json();
-      if (!Array.isArray(list)) throw new Error("GitHub deployments did not return a list");
-      // The repo has had hundreds of Vercel deployments: an empty FIRST page is a
-      // broken read (wrong repo, no access), not a quiet day.
-      if (page === 1 && list.length === 0) throw new Error("GitHub returned no deployments at all — refusing to report clean");
-      const recent = list.filter((d) => Date.parse(d.created_at) > since);
+      if (!res.ok) throw new Error(`Vercel deployments ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      const body = await res.json();
+      const list = body?.deployments;
+      if (!Array.isArray(list)) throw new Error("Vercel deployments did not return a list");
+      // The team has hundreds of deployments: an empty FIRST page is a broken
+      // read (wrong team, token without access), not a quiet day.
+      if (page === 1 && list.length === 0) throw new Error("Vercel returned no deployments at all — refusing to report clean");
+      const created = list.map((d) => Number(d.created ?? d.createdAt));
+      if (created.some((t) => !Number.isFinite(t))) throw new Error("a Vercel deployment has no created time");
+      const recent = created.filter((t) => t > since);
       count += recent.length;
-      if (recent.length < list.length || list.length < 100) break;
+      const next = body?.pagination?.next;
+      if (recent.length < list.length || !next) break;
       if (page === 10) throw new Error("more than 1,000 deployments in 24h — stopped paging; count is a floor");
+      until = String(next);
     }
-    readings[id] = { value: count, note: "GitHub deployments, all environments (floor: CLI deploys create none)" };
+    readings[id] = { value: count, note: "Vercel deployments API, every project and target of the team" };
   } catch (e) {
     fail([id], `could not read deployments: ${e?.message ?? e}`);
   }

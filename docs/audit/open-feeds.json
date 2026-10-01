@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-09-27T21:05Z",
+  "measured_at": "2026-09-28T02:24Z",
   "issues": {
     "readable": true,
     "open": [
@@ -33,10 +33,6 @@
         "title": "nightly-red: staleness-watch"
       },
       {
-        "number": 1921,
-        "title": "nightly-red: vacuity"
-      },
-      {
         "number": 1930,
         "title": "nightly-red: privacy-journey"
       },
@@ -49,7 +45,7 @@
         "title": "nightly-red: main: Test"
       },
       {
-        "number": 1938,
+        "number": 1941,
         "title": "nightly-red: main: Vitest"
       }
     ]
@@ -79,7 +75,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: vitest",
-        "issue": null
+        "issue": 1941
       },
       {
         "fingerprint": "dee805da3cda46a90b2015a3fe7db0b2",
@@ -87,7 +83,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: test",
-        "issue": null
+        "issue": 1937
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -119,7 +115,23 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": 1921
+        "issue": null
+      },
+      {
+        "fingerprint": "0ead7644a1d90f4c48d355c70f5a5bff",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:stripe_webhook_error",
+        "status": "open",
+        "title": "stripe webhook signature failed",
+        "issue": null
+      },
+      {
+        "fingerprint": "3a55e8af09089860199b4adb8d01fe1b",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: e2e happy-path smoke",
+        "issue": null
       },
       {
         "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
@@ -162,19 +174,35 @@
         "issue": null
       },
       {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
-        "issue": null
-      },
-      {
         "fingerprint": "87dc92b919d8d2bb9b7c0212144c4121",
         "source_kind": "workflow",
         "source": "db-pool-budget",
         "status": "open",
         "title": "postgres connection budget exceeded: pg_cron will be refused under load (q317)",
+        "issue": null
+      },
+      {
+        "fingerprint": "2e4f3e726722e14159d0b5cf50568f30",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: ui-sweep",
+        "issue": 1942
+      },
+      {
+        "fingerprint": "54b8c187374af47410a43e9dedb4f4df",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: open-done-when",
+        "issue": 1951
+      },
+      {
+        "fingerprint": "bbbd1b03f9d6a74fa78dcecda68ab508",
+        "source_kind": "workflow",
+        "source": "quota-monitor",
+        "status": "open",
+        "title": "quota: resend emails sent (last #h) at or above #% of its limit",
         "issue": null
       }
     ]
@@ -184,11 +212,9 @@
     "bus DR-006": "Q799",
     "bus ME-009": "Q797",
     "bus ME-019": "Q441",
-    "bus ME-043": "Q441",
+    "bus ME-043": "Q844",
     "bus NB-004": "Q798",
     "bus OA-018": "Q801",
-    "bus S-005": "Q800",
-    "bus SC-015": "Q373",
     "bus SI-033": "Q802",
     "bus TC-004": "Q226",
     "issue #1582": "Q783",
@@ -203,8 +229,13 @@
     "issue #1931": "Q790",
     "issue #1937": "Q791",
     "issue #1938": "Q792",
+    "issue #1941": "Q792",
+    "ledger 0ead7644a1d9": "Q846",
     "ledger 16e6e91f6701": "Q785",
+    "ledger 2e4f3e726722": "Q848",
+    "ledger 3a55e8af0908": "Q847",
     "ledger 43d77e26f272": "Q784",
+    "ledger 54b8c187374a": "Q849",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
     "ledger 7e141f206640": "Q783",
@@ -212,9 +243,9 @@
     "ledger 88ecf6e765df": "Q788",
     "ledger a8ceee56bbd5": "Q790",
     "ledger b75d265e6201": "Q794",
+    "ledger bbbd1b03f9d6": "Q850",
     "ledger db0fb15c4ec3": "Q787",
     "ledger dee805da3cda": "Q791",
-    "ledger e41c806b9175": "Q795",
     "ledger e49f68d9cbd6": "Q793",
     "ledger e9576de5dfb0": "Q789",
     "ledger f22e3275d50d": "Q792"

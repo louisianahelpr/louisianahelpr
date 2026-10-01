@@ -236,7 +236,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     await srWrite(request, "PATCH", "profiles", `user_id=eq.${userId}&is_seed=eq.true`, { avatar_url: avatarUrl });
     const docPath = `${userId}/credentials/privacy-journey-${Date.now()}.png`;
     const doc = await request.post(`${SUPABASE_URL}/storage/v1/object/user-documents/${docPath}`, {
-      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/png" },
+      headers: { apikey: ANON, Authorization: `Bearer ${session.access_token}`, "Content-Type": "image/png", "cache-control": "max-age=31536000" },
       data: PNG_1PX,
     });
     expect(doc.ok(), `document upload: ${doc.status()} ${await doc.text()}`).toBe(true);

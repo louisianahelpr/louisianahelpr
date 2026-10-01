@@ -141,7 +141,22 @@ else
   : > "$OUT/venue.err"
 fi
 PSQL=("${PSQL_TARGET_SAVED[@]}")
+# STEP 3a — NOT VALID CHECK constraints. Prod keeps some CHECKs NOT VALID on
+# purpose: they bind new writes but tolerate rows written before them. The
+# schema dump re-creates them before data.sql loads, and a CHECK is enforced
+# even under session_replication_role = replica, so one old row fails its
+# table's whole multi-row INSERT. Drill run 36365573863 (2026-09-28) lost ALL
+# of helper_availability to one row from 2026-08-30 (21:00 -> 17:00) under
+# helper_availability_range_forward. So: read them off the restored schema,
+# drop them, load the data, and put each back exactly as prod has it —
+# pg_get_constraintdef keeps the NOT VALID. Runbook step 6 does the same.
+NV_SEL="from pg_constraint where contype = 'c' and not convalidated and connamespace = 'public'::regnamespace"
+NV_DROP=$(psql "$TARGET" -X -At -c "select coalesce(string_agg(format('ALTER TABLE %s DROP CONSTRAINT %I;', conrelid::regclass, conname), E'\n'), '') $NV_SEL" 2> "$OUT/notvalid-read.err") || FAIL=1
+NV_ADD=$(psql "$TARGET" -X -At -c "select coalesce(string_agg(format('ALTER TABLE %s ADD CONSTRAINT %I %s;', conrelid::regclass, conname, pg_get_constraintdef(oid)), E'\n'), '') $NV_SEL" 2>> "$OUT/notvalid-read.err") || FAIL=1
+echo "NOT VALID CHECK constraints held back during the data load: $(printf '%s' "$NV_DROP" | grep -c . || true)"
+printf '%s\n' "$NV_DROP" | step notvalid-drop
 step data -c 'SET session_replication_role = replica' -f "$DIR/data.sql"
+printf '%s\n' "$NV_ADD" | step notvalid-add
 # STEP 4 — cron schedules (db-backup.yml exports them as cron.sql; the data
 # dump carries none). Loaded, then ALL deactivated in the same transaction: on
 # a real restore they are switched back on only after the vault secrets they

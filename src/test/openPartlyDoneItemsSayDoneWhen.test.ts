@@ -1,4 +1,5 @@
 // @mutate docs/OPEN.md | - [ ] **Q7 WebKit only | - [~] **Q7 WebKit only
+// @mutate docs/OPEN.md | SELECT ((SELECT count(*) FROM public.push_tokens) > 0)::text | SELECT ((public.check_push_token_health()->>'tokens')::int > 0)::text
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }
 /*
@@ -16,7 +17,7 @@
  * (or ticking one) without lowering the baseline in the same commit.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
 
@@ -24,7 +25,7 @@ const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 
 /** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-09-27. */
-const MARKERLESS_PARTLY_DONE = 21;
+const MARKERLESS_PARTLY_DONE = 17;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);
@@ -36,6 +37,35 @@ describe("[~] items say when they are done", () => {
   it("markerless [~] count is exactly the baseline (lower it when you add a marker or tick one)", () => {
     const markerless = items.filter((i) => i.markers.length === 0 && i.malformed.length === 0);
     expect(markerless.length, markerless.map((i) => i.id).join(", ")).toBe(MARKERLESS_PARTLY_DONE);
+  });
+
+  // 2026-09-28 (#1951, open-done-when run 36365813029): the Q82 marker called
+  // public.check_push_token_health() and the nightly failed with "permission
+  // denied for function". The Management API's read_only:true runs as
+  // supabase_read_only_user, which (measured on prod with has_function_privilege)
+  // may execute 5 of 435 public functions. A marker reads tables, never an app
+  // function. Inventory: every function any migration creates.
+  it("no sql marker calls an app function (the read-only role cannot execute them)", () => {
+    const migDir = join(ROOT, "supabase", "migrations");
+    const fns = new Set<string>();
+    for (const f of readdirSync(migDir).filter((n) => n.endsWith(".sql"))) {
+      const sqlText = readFileSync(join(migDir, f), "utf8");
+      for (const m of sqlText.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?(\w+)"?\s*\(/gi)) {
+        fns.add(m[1].toLowerCase());
+      }
+    }
+    expect(fns.size, "read no functions from supabase/migrations").toBeGreaterThan(200);
+    const bad = items.flatMap((i) =>
+      i.markers.flatMap((m) =>
+        m.kind !== "sql"
+          ? []
+          : [...String(m.query).matchAll(/(?:public\.)?(\w+)\s*\(/gi)]
+              .map((x) => x[1].toLowerCase())
+              .filter((name) => fns.has(name))
+              .map((name) => `${i.id}: ${name}()`),
+      ),
+    );
+    expect(bad).toEqual([]);
   });
 
   it("every done-when marker in OPEN.md parses", () => {

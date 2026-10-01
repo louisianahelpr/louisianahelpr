@@ -20,7 +20,7 @@ import { HIGH_AT, QUOTAS, WARN_AT, alertSeverity, effectiveLimit, evaluateQuotas
  * Pins (1) the threshold maths, (2) that a failed or missing read is
  * UNREADABLE (a red run), never "ok", (3) that a quota with no API is listed
  * as NOT MONITORED, never dropped and never graded ok, and (4) the CLI end to
- * end against a stub Management / GitHub / Sentry API.
+ * end against a stub Management / Vercel / Sentry API.
  */
 
 const ROOT = join(__dirname, "..", "..");
@@ -126,11 +126,11 @@ describe("evaluateQuotas", () => {
   it("70% alerts as warn, 90% as high, 100% as over; each is on the report", () => {
     const readings = allOk();
     readings["vercel.deploys_per_day"] = { value: 75 };
-    readings["resend.sends_day"] = { value: 100 };
-    readings["resend.sends_month"] = { value: 2800 };
+    readings["sentry.errors_30d"] = { value: 5_000 };
+    readings["resend.sends_month"] = { value: 46_000 };
     const res = evaluateQuotas(readings, { live });
     expect(Object.fromEntries(res.alerts.map((r) => [r.q.id, r.status]))).toEqual({
-      "vercel.deploys_per_day": "warn", "resend.sends_day": "over", "resend.sends_month": "high",
+      "vercel.deploys_per_day": "warn", "sentry.errors_30d": "over", "resend.sends_month": "high",
     });
     expect(res.report).toMatch(/\*\*HIGH\*\*/);
     expect(res.report).toMatch(/Alert at 70% of a limit \(WARN, ledger warning\), at 90% \(HIGH, ledger error\)/);
@@ -139,7 +139,7 @@ describe("evaluateQuotas", () => {
 
 // ── the CLI, end to end, against a stub API ─────────────────────────────────
 type Mode = {
-  sql: "ok" | "empty" | "fail" | "full" | "zero"; logs: "ok" | "fail"; gh: "ok" | "empty"; sentry: "ok" | "forbidden";
+  sql: "ok" | "empty" | "fail" | "full" | "zero"; logs: "ok" | "fail"; vercel: "ok" | "empty" | "forbidden" | "paged"; sentry: "ok" | "forbidden";
   replays?: "low" | "dropping";
   errors?: "low" | "dropping";
   /** Q379: what GET /api/0/customers/{org}/ answers. Absent = 404. */
@@ -148,7 +148,7 @@ type Mode = {
 let lastReplayUrl = "";
 let server: Server;
 let base = "";
-let mode: Mode = { sql: "ok", logs: "ok", gh: "ok", sentry: "ok" };
+let mode: Mode = { sql: "ok", logs: "ok", vercel: "ok", sentry: "ok" };
 
 beforeAll(async () => {
   server = createServer((req, res) => {
@@ -159,13 +159,20 @@ beforeAll(async () => {
       if (mode.sql === "fail") return send(500, { message: "stub failure" });
       if (mode.sql === "empty") return send(200, []);
       const db = mode.sql === "full" ? String(7 * GB) : mode.sql === "zero" ? "0" : String(200 * 1024 * 1024);
-      return send(200, [{ db_bytes: db, max_conns: 60, client_conns: 9, storage_bytes: "21000000", storage_objects: 95, emails_month: 12, emails_day: 1 }]);
+      return send(200, [{ db_bytes: db, max_conns: 60, client_conns: 9, storage_bytes: "21000000", storage_objects: 95, emails_month: 12 }]);
     }
     if (url.includes("/analytics/endpoints/logs?")) return mode.logs === "fail" ? send(500, { message: "x" }) : send(200, { result: [{ n: 1200 }] });
-    if (url.includes("/deployments")) {
-      if (mode.gh === "empty") return send(200, []);
+    if (url.includes("/v6/deployments?")) {
+      // f9b0a8a7: deployments are read from Vercel (newest first, paged with
+      // `until`), never from GitHub's list and its shared GITHUB_TOKEN budget.
+      if (!url.includes("teamId=team_")) return send(404, { error: { code: "not_found" } });
+      if (mode.vercel === "forbidden") return send(403, { error: { code: "forbidden", message: "Not authorized" } });
+      if (mode.vercel === "empty") return send(200, { deployments: [], pagination: { count: 0, next: null } });
       const now = Date.now();
-      return send(200, [{ created_at: new Date(now - 3600_000).toISOString() }, { created_at: new Date(now - 3 * 86400_000).toISOString() }]);
+      if (mode.vercel === "paged" && !url.includes("until=")) {
+        return send(200, { deployments: [{ created: now - 600_000 }, { created: now - 1200_000 }], pagination: { count: 2, next: now - 1200_000 } });
+      }
+      return send(200, { deployments: [{ created: now - 3600_000 }, { created: now - 3 * 86400_000 }], pagination: { count: 2, next: now - 3 * 86400_000 } });
     }
     if (url.includes("/api/0/customers/")) {
       if (mode.period === "monthly") return send(200, { billingPeriodStart: "2026-01-14", onDemandPeriodStart: "2026-09-14" });
@@ -217,9 +224,9 @@ function runCli(m: Mode): Promise<{ code: number; out: string }> {
   mode = m;
   const env: Record<string, string> = {
     PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "/tmp",
-    SUPABASE_ACCESS_TOKEN: "stub", SUPABASE_PROJECT_REF: "stub", GITHUB_TOKEN: "stub",
+    SUPABASE_ACCESS_TOKEN: "stub", SUPABASE_PROJECT_REF: "stub", VERCEL_TOKEN: "stub",
     SENTRY_AUTH_TOKEN: "stub", SENTRY_ORG: "stub", SENTRY_PROJECT: "stub",
-    LH_SUPABASE_API_BASE: base, LH_GITHUB_API_BASE: base, LH_SENTRY_API_BASE: base,
+    LH_SUPABASE_API_BASE: base, LH_VERCEL_API_BASE: base, LH_SENTRY_API_BASE: base,
   };
   return new Promise((done) => {
     execFile(process.execPath, ["scripts/check-quota-usage.mjs", "--no-ledger"], { cwd: ROOT, env, timeout: 60_000 }, (err, stdout, stderr) => {
@@ -230,7 +237,7 @@ function runCli(m: Mode): Promise<{ code: number; out: string }> {
 
 describe("check-quota-usage.mjs (stub APIs)", () => {
   it("everything readable and low -> exit 0, every readable quota measured, no-API quotas warned", async () => {
-    const { code, out } = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok" });
+    const { code, out } = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok" });
     expect(code, out).toBe(0);
     expect(out).not.toMatch(/\*\*UNREADABLE\*\*/);
     expect(out).toMatch(/Deployments created \(last 24h\) \| 1 \| 100/);
@@ -240,26 +247,26 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
   }, 90_000);
 
   it("database at 7 of 8 GB -> warns at 87.5%, run stays green", async () => {
-    const { code, out } = await runCli({ sql: "full", logs: "ok", gh: "ok", sentry: "ok" });
+    const { code, out } = await runCli({ sql: "full", logs: "ok", vercel: "ok", sentry: "ok" });
     expect(code, out).toBe(0);
     expect(out).toMatch(/::warning title=Quota at 87.5%::Supabase Database size/);
   }, 90_000);
 
   it("a failed read -> red, named, never green", async () => {
-    const { code, out } = await runCli({ sql: "ok", logs: "fail", gh: "ok", sentry: "ok" });
+    const { code, out } = await runCli({ sql: "ok", logs: "fail", vercel: "ok", sentry: "ok" });
     expect(code).toBe(1);
     expect(out).toMatch(/Quota unreadable::Supabase Edge function invocations.*could not read edge invocations: Management API logs 500/);
   }, 90_000);
 
   it("an EMPTY read -> red ('refusing to report clean'), not 0%", async () => {
-    const { code, out } = await runCli({ sql: "empty", logs: "ok", gh: "empty", sentry: "ok" });
+    const { code, out } = await runCli({ sql: "empty", logs: "ok", vercel: "empty", sentry: "ok" });
     expect(code).toBe(1);
     expect(out).toMatch(/the usage SQL returned no row — refusing to report clean/);
-    expect(out).toMatch(/GitHub returned no deployments at all — refusing to report clean/);
+    expect(out).toMatch(/Vercel returned no deployments at all — refusing to report clean/);
   }, 90_000);
 
   it("a database that reads as 0 bytes -> red, not 0%", async () => {
-    const { code, out } = await runCli({ sql: "zero", logs: "ok", gh: "ok", sentry: "ok" });
+    const { code, out } = await runCli({ sql: "zero", logs: "ok", vercel: "ok", sentry: "ok" });
     expect(code).toBe(1);
     expect(out).toMatch(/database size read as 0 — refusing to report clean/);
   }, 90_000);
@@ -268,10 +275,10 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
   // @mutate scripts/check-quota-usage.mjs |   await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry(), readSentryReplays()]); |   await Promise.all([readSql(), readEdgeInvocations(), readDeploys(), readSentry()]);
   // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited,\n      note: `org stats_v2 category=replay: |       value: by.accepted,\n      note: `org stats_v2 category=replay:
   it("replays dropped by the Sentry quota -> the replay row reads OVER and alerts", async () => {
-    const low = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low" });
+    const low = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok", replays: "low" });
     expect(low.code, low.out).toBe(0);
     expect(low.out).toMatch(/Session replays sent: accepted \+ dropped by quota \(this usage period\) \| 3 \| 50/);
-    const full = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "dropping" });
+    const full = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok", replays: "dropping" });
     expect(full.code, full.out).toBe(0);
     expect(full.out).toMatch(/::warning title=Quota at 174%::Sentry Session replays sent/);
     expect(full.out).toMatch(/50 accepted, 37 dropped by quota/);
@@ -284,16 +291,16 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
   // @mutate scripts/check-quota-usage.mjs |     const range = "start" in period |     const range = false && "start" in period
   // @mutate scripts/check-quota-usage.mjs |     const raw = body?.onDemandPeriodStart ?? body?.billingPeriodStart; |     const raw = body?.billingPeriodStart;
   it("replays are counted over the Sentry usage period when it is readable, else 30 days, named", async () => {
-    const monthly = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low", period: "monthly" });
+    const monthly = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok", replays: "low", period: "monthly" });
     expect(monthly.code, monthly.out).toBe(0);
     expect(lastReplayUrl).toMatch(/[?&]start=2026-09-14T00:00:00Z&end=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z&/);
     expect(lastReplayUrl).not.toMatch(/statsPeriod=/);
     expect(monthly.out).toMatch(/\| Sentry usage period since 2026-09-14 \|/);
-    const missing = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low" });
+    const missing = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok", replays: "low" });
     expect(missing.code, missing.out).toBe(0);
     expect(lastReplayUrl).toMatch(/statsPeriod=30d/);
     expect(missing.out).toMatch(/\| trailing 30 days \(usage period unreadable: customers 404\) \|/);
-    const garbled = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", replays: "low", period: "garbled" });
+    const garbled = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok", replays: "low", period: "garbled" });
     expect(garbled.code, garbled.out).toBe(0);
     expect(garbled.out).toMatch(/usage period unreadable: customers answered without a usage period start/);
   }, 120_000);
@@ -304,10 +311,10 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
   // against the quota, the way the replay reader already does.
   // @mutate scripts/check-quota-usage.mjs |       value: by.accepted + by.rate_limited,\n      note: `org stats_v2 category=error: |       value: by.accepted,\n      note: `org stats_v2 category=error:
   it("errors dropped by the Sentry quota -> the errors row includes them and warns", async () => {
-    const low = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", errors: "low" });
+    const low = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok", errors: "low" });
     expect(low.code, low.out).toBe(0);
     expect(low.out).toMatch(/42 accepted, 0 dropped by quota \(rate_limited\), 2 filtered, 0 invalid/);
-    const dropping = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "ok", errors: "dropping" });
+    const dropping = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok", errors: "dropping" });
     expect(dropping.code, dropping.out).toBe(0);
     // accepted (0) alone would read as 0/5000 (0%) and never warn; accepted +
     // rate_limited (4500) crosses the 90% high line at LH_QUOTA_SENTRY_ERRORS.
@@ -315,8 +322,23 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
     expect(dropping.out).toMatch(/0 accepted, 4500 dropped by quota \(rate_limited\), 8 filtered, 1 invalid/);
   }, 90_000);
 
+  // f9b0a8a7 (2026-09-28): the GitHub deployments read went 403 "API rate limit
+  // exceeded for installation" on two runs in a row, a red quota-monitor for a
+  // budget other workflows spent. The count now comes from Vercel with
+  // VERCEL_TOKEN; a refused Vercel read is still red and named, and paging
+  // counts every deployment of the last 24h across pages.
+  // @mutate scripts/check-quota-usage.mjs |       if (recent.length < list.length \|\| !next) break; |       break;
+  it("deployments are counted from Vercel: paged, and a refused read is red and named", async () => {
+    const paged = await runCli({ sql: "ok", logs: "ok", vercel: "paged", sentry: "ok" });
+    expect(paged.code, paged.out).toBe(0);
+    expect(paged.out).toMatch(/Deployments created \(last 24h\) \| 3 \| 100/);
+    const refused = await runCli({ sql: "ok", logs: "ok", vercel: "forbidden", sentry: "ok" });
+    expect(refused.code).toBe(1);
+    expect(refused.out).toMatch(/could not read deployments: Vercel deployments 403/);
+  }, 120_000);
+
   it("Sentry refusing both endpoints -> red with both statuses", async () => {
-    const { code, out } = await runCli({ sql: "ok", logs: "ok", gh: "ok", sentry: "forbidden" });
+    const { code, out } = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "forbidden" });
     expect(code).toBe(1);
     expect(out).toMatch(/Sentry stats_v2 403, project stats 403/);
   }, 90_000);
@@ -328,9 +350,11 @@ describe("quota-monitor.yml wiring", () => {
   it("runs the quota check daily with the secrets it reads", () => {
     expect(code).toMatch(/-\s*cron:\s*"\d+ \d+ \* \* \*"/);
     expect(code).toMatch(/run: node scripts\/check-quota-usage\.mjs\s*$/m);
-    for (const s of ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF", "GITHUB_TOKEN", "SENTRY_AUTH_TOKEN", "SENTRY_ORG"]) {
+    for (const s of ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF", "VERCEL_TOKEN", "SENTRY_AUTH_TOKEN", "SENTRY_ORG"]) {
       expect(code, s).toContain(`secrets.${s}`);
     }
-    expect(code).toMatch(/deployments:\s*read/);
+    // f9b0a8a7: the quota step no longer spends the repo's GITHUB_TOKEN budget.
+    const quotaStep = code.slice(code.indexOf("name: Read every quota"), code.indexOf("run: node scripts/check-quota-usage.mjs"));
+    expect(quotaStep).not.toMatch(/GITHUB_TOKEN/);
   });
 });

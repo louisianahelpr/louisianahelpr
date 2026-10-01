@@ -120,24 +120,6 @@
       "ciReadable": false
     },
     {
-      "id": "apple-pass-cert",
-      "label": "Apple Wallet Pass Type ID certificate",
-      "env": ["PASS_CERT_PEM", "PASS_KEY_PEM"],
-      "hosts": [],
-      "sourceOfTruth": "x509 notAfter of PASS_CERT_PEM (edge secret; CI sees it through apple-certificates-asc PASS_TYPE_ID)",
-      "read": { "method": "x509-pem", "env": "PASS_CERT_PEM" },
-      "ciReadable": false
-    },
-    {
-      "id": "apple-wwdr-cert",
-      "label": "Apple WWDR intermediate used to sign passes",
-      "env": ["PASS_WWDR_PEM"],
-      "hosts": [],
-      "sourceOfTruth": "x509 notAfter of PASS_WWDR_PEM (edge secret only)",
-      "read": { "method": "x509-pem", "env": "PASS_WWDR_PEM" },
-      "ciReadable": false
-    },
-    {
       "id": "apple-signin-web-secret",
       "label": "Sign in with Apple web OAuth client secret (Supabase Auth, clientId com.Helpr.signin)",
       "env": [],
@@ -236,7 +218,6 @@
     "APPLE_IAP_BUNDLE_ID": "config, not a credential",
     "APPLE_IAP_ENVIRONMENT": "config flag",
     "APPLE_MAPKIT_TEAM_ID": "identifier, not a credential",
-    "APPLE_TEAM_ID": "identifier, not a credential",
     "APP_URL": "config, not a credential",
     "ASC_TEAM_ID": "identifier, not a credential",
     "BACKUP_PASSPHRASE": "self-generated passphrase; no issuer, no expiry",
@@ -256,7 +237,6 @@
     "META_APP_ID": "identifier, not a credential",
     "META_IG_USER_ID": "identifier, not a credential",
     "META_PAGE_ID": "identifier, not a credential",
-    "PASS_TYPE_IDENTIFIER": "identifier, not a credential",
     "PLAYWRIGHT_ADMIN_EMAIL": "test account identifier",
     "PLAYWRIGHT_ADMIN_PASSWORD": "test account password; no expiry",
     "PLAYWRIGHT_HELPER_EMAIL": "test account identifier",

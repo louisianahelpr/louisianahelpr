@@ -18,11 +18,20 @@
  * FAILURE IS A FAILURE. A refused checkout, a Stripe page that never renders,
  * a webhook that never lands, or a cancel_escrow that does not leave the job
  * cancelled/cancelled all THROW — from a beforeAll, that fails the file's
- * tests. Nothing here calls test.skip: "no fixture" is exactly the unjustified
- * skip Q100 exists to end.
+ * tests. "No fixture" is exactly the unjustified skip Q100 exists to end.
+ *
+ * ONE skip, and it is JUSTIFIED (`skipLivePay`): Stripe is LIVE on prod since
+ * 2026-09-27, and the owner decided that day that nightly journeys skip pay
+ * steps in live mode. The mode is read from the Checkout Session prefix
+ * create-payment returns (never a secret); a fixture that needs paying in live
+ * mode skips BEFORE the checkout page is opened. Rows a TEST key funded before
+ * the switch (cs_test_ session while the mode is not known to be test) are
+ * neither reused nor retired: cancel_escrow cannot refund them with the live
+ * key (500 "No such payment_intent", 36eebad4, every run until this fix).
  */
-import type { APIRequestContext, Browser } from "@playwright/test";
-import { ANON, SUPABASE_URL, type Session } from "../journeys/fixtures";
+import { type APIRequestContext, type Browser } from "@playwright/test";
+import { test } from "../prodTest";
+import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../journeys/fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { openCardFields } from "../stripeCheckoutCard";
 import {
@@ -30,12 +39,73 @@ import {
   planAcceptedJob,
   DISPUTE_FIXTURE_TITLE,
   FUNDED_FIXTURE_TITLE,
+  isPreLive,
+  LIVE_PAY_SKIP,
   NEW_FIXTURE_DAYS,
+  PRE_LIVE_WHY,
   planDisputedJob,
   planFundedOpenJob,
   type DisputeRow,
   type FixtureRow,
+  type HelperApplications,
+  type StripeMode,
 } from "./fundedOpenJobPlan";
+
+/** The Stripe mode, as the last Checkout Session create-payment minted in this worker said. "unknown" counts as live. */
+let stripeMode: StripeMode = "unknown";
+export const knownStripeMode = (): StripeMode => stripeMode;
+
+/** Live mode and a fixture needs paying: the owner's 2026-09-27 decision, a JUSTIFIED skip (e2e/skipAllowlist.ts). */
+export function skipLivePay(detail: string): never {
+  if (deferLivePay) throw new LivePayDeferred(detail);
+  test.skip(true, `${LIVE_PAY_SKIP} — ${detail}`);
+  throw new Error(`unreachable: test.skip returned (${detail})`);
+}
+
+/**
+ * Q865: a live-pay skip in a `beforeAll` skips EVERY test in the file (run
+ * 36766443019: 156 skips, almost none of which pay). Setup wraps its fixture
+ * minting in `unlessLivePay`, which turns the would-be skip into a value; the
+ * tests that need that fixture then skip one by one (`skipWhenUnfundedLive`)
+ * and the rest run. src/test/journeysNeverPayLive.test.ts fails on a bare
+ * fixture call in a hook.
+ */
+class LivePayDeferred extends Error {
+  constructor(readonly detail: string) {
+    super(detail);
+  }
+}
+let deferLivePay = false;
+
+export async function unlessLivePay<T>(mint: () => Promise<T>): Promise<{ value: T | null; livePay: string | null }> {
+  deferLivePay = true;
+  try {
+    return { value: await mint(), livePay: null };
+  } catch (e) {
+    if (e instanceof LivePayDeferred) return { value: null, livePay: e.detail };
+    throw e;
+  } finally {
+    deferLivePay = false;
+  }
+}
+
+/** Per test: skip (justified, LIVE_PAY_SKIP) when the fixture it needs is missing BECAUSE minting it would have paid live. */
+export function skipWhenUnfundedLive(have: unknown, livePay: string | null | undefined, need: string): void {
+  if (!have && livePay) skipLivePay(`${need} — setup did not fund it: ${livePay}`);
+}
+
+/**
+ * EVERY application helper-e2e holds, whatever its status: apply_to_job refuses
+ * any existing one, so a planner that saw only the pending ones planned "apply"
+ * on a job whose offer had lapsed to rejected (#1794, run 36352716213).
+ */
+async function helperApplications(api: APIRequestContext, helper: Session): Promise<HelperApplications> {
+  const rows = await readJson<{ job_id: string; status: string }[]>(
+    await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&select=job_id,status`, { headers: headers(helper) }),
+    "list helper-e2e applications",
+  );
+  return new Map(rows.map((a) => [a.job_id, a.status]));
+}
 
 export const headers = (s: Session, extra: Record<string, string> = {}) => ({
   apikey: ANON,
@@ -65,7 +135,7 @@ export async function invoke(api: APIRequestContext, s: Session, fn: string, bod
   return { status: r.status(), json, text };
 }
 
-const COLS = "id,title,status,payment_status,helper_id,date_needed,created_at,stripe_payment_intent_id";
+const COLS = "id,title,status,payment_status,helper_id,date_needed,created_at,stripe_payment_intent_id,stripe_session_id";
 export type Row = FixtureRow & { stripe_payment_intent_id: string | null };
 
 export async function readRow(api: APIRequestContext, poster: Session, id: string): Promise<Row> {
@@ -79,6 +149,9 @@ export async function readRow(api: APIRequestContext, poster: Session, id: strin
 
 /** Release one funded fixture through the app's own cancel path, and prove it landed. */
 export async function retireFundedJob(api: APIRequestContext, poster: Session, jobId: string): Promise<string> {
+  // A test-mode escrow cannot be refunded with the live key: never cancel_escrow it blind.
+  const before = await readRow(api, poster, jobId);
+  if (isPreLive(before, stripeMode)) return `left ${jobId} untouched (${PRE_LIVE_WHY}; Stripe mode ${stripeMode})`;
   const res = await invoke(api, poster, "create-payment", { action: "cancel_escrow", jobId });
   if (res.status !== 200 || res.json.success !== true) {
     throw new Error(`funded fixture: cancel_escrow on ${jobId} → HTTP ${res.status} ${res.text.slice(0, 300)} — the escrow is still held`);
@@ -163,6 +236,9 @@ export async function fund(api: APIRequestContext, browser: Browser, poster: Ses
   if (esc.status !== 200 || !url) {
     throw new Error(`funded fixture: create-payment escrow on ${row.id} refused → HTTP ${esc.status} ${esc.text.slice(0, 300)}`);
   }
+  // Minting a session charges nothing; its prefix is the mode. Not test → skip before the page is ever opened.
+  stripeMode = stripeModeFromCheckoutUrl(url);
+  if (stripeMode !== "test") skipLivePay(`create-payment minted a ${stripeMode} session for ${row.id}`);
   await payCheckout(browser, url);
   log.push(`paid checkout for ${row.id}`);
   // The webhook, not the redirect, is the authority.
@@ -226,13 +302,15 @@ export async function ensureFundedOpenJob(
     await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&select=job_id`, { headers: headers(helper) }),
     "list helper-e2e applications",
   );
-  const plan = planFundedOpenJob(rows, { today: centralDatePlus(0), appliedJobIds: new Set(apps.map((a) => a.job_id)) });
+  const plan = planFundedOpenJob(rows, { today: centralDatePlus(0), appliedJobIds: new Set(apps.map((a) => a.job_id)), mode: stripeMode });
+  for (const { row, why } of plan.preLive ?? []) log.push(`left ${row.id} untouched — ${why}`);
   for (const { row, why } of plan.retire) log.push(`${await retireFundedJob(api, poster, row.id)} — ${why}`);
   if (plan.reuse) {
     log.push(`reused ${plan.reuse.id}`);
     await waitVisibleToHelper(api, helper, plan.reuse.id, plan.reuse.created_at, log);
     return { job: { id: plan.reuse.id, title: plan.reuse.title }, log };
   }
+  if (plan.skip) skipLivePay(`funded open fixture: ${log.join("; ") || "none held"}`);
   const target = plan.pay === "new" || !plan.pay ? await createFixtureRow(api, poster) : (plan.pay as Row);
   log.push(plan.pay === "new" ? `created ${target.id}` : `re-paying unpaid fixture ${target.id}`);
   const funded = await fund(api, browser, poster, target, log);
@@ -285,6 +363,37 @@ async function driveToHired(
 }
 
 /**
+ * helper-e2e answers the offer: the same conditional UPDATE the app's Accept
+ * Job button makes (useOfferHandlers.ts, `helper_confirmed_at` + clear
+ * `response_deadline`, only while accepted, unconfirmed and not lapsed).
+ * An accepted fixture left UNconfirmed is swept by expire_unanswered_offers
+ * at its response_deadline, which files a job_denial violation on helper-e2e
+ * (user_violations dd89291c, 2026-09-27 20:00, job 36eebad4) and turns
+ * prod-audit's "Shared test accounts carry no strikes" check red. Zero rows
+ * is legitimate (already confirmed on a previous run); the row read after it
+ * is what proves the state.
+ */
+async function helperConfirmsOffer(api: APIRequestContext, helper: Session, id: string, log: string[]): Promise<void> {
+  const now = new Date().toISOString();
+  const rows = await readJson<{ id: string }[]>(
+    await api.patch(
+      `${SUPABASE_URL}/rest/v1/jobs?select=id&id=eq.${id}&status=eq.accepted&helper_confirmed_at=is.null` +
+        `&or=(response_deadline.is.null,response_deadline.gt.${encodeURIComponent(now)})`,
+      { headers: headers(helper, { Prefer: "return=representation" }), data: { helper_confirmed_at: now, response_deadline: null } },
+    ),
+    `helper-e2e confirms the offer on ${id}`,
+  );
+  if (rows.length) log.push(`helper-e2e confirmed the offer on ${id}`);
+  const confirmed = await readJson<{ helper_confirmed_at: string | null }[]>(
+    await api.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=helper_confirmed_at`, { headers: headers(helper) }),
+    `read helper_confirmed_at on ${id}`,
+  );
+  if (!confirmed[0]?.helper_confirmed_at) {
+    throw new Error(`accepted fixture: ${id} is still unconfirmed after helper-e2e's confirm; expire_unanswered_offers would strike helper-e2e`);
+  }
+}
+
+/**
  * nightly-red #1794: make sure one ACCEPTED job of poster-e2e, hired to
  * helper-e2e, exists and will stay accepted (the decision is
  * `planAcceptedJob`, read its header). Returns it plus a log. Throws on any
@@ -305,12 +414,15 @@ export async function ensureAcceptedJob(
     ),
     "list accepted fixture jobs",
   );
-  const pending = await readJson<{ job_id: string }[]>(
-    await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&status=eq.pending&select=job_id`, { headers: headers(helper) }),
-    "list helper-e2e applications",
-  );
-  const plan = planAcceptedJob(rows, { today: centralDatePlus(0), helperId: helper.user.id, appliedJobIds: new Set(pending.map((a) => a.job_id)) });
+  const plan = planAcceptedJob(rows, {
+    today: centralDatePlus(0),
+    helperId: helper.user.id,
+    applications: await helperApplications(api, helper),
+    mode: stripeMode,
+  });
+  for (const { row, why } of plan.preLive ?? []) log.push(`left ${row.id} untouched — ${why}`);
   for (const { row, why } of plan.retire) log.push(`${await retireFundedJob(api, poster, row.id)} — ${why}`);
+  if (plan.kind === "skip") skipLivePay(`accepted fixture: ${log.join("; ") || "none held"}`);
   let id: string;
   if (plan.kind === "reuse") {
     id = plan.row.id;
@@ -328,6 +440,8 @@ export async function ensureAcceptedJob(
     }
     await driveToHired(api, browser, poster, helper, id, from, "accepted", log);
   }
+  // Every run, reuse included: a fixture hired before this fix is still unconfirmed.
+  await helperConfirmsOffer(api, helper, id, log);
   // The row is the fact, not the RPC's 200 (CLAUDE.md "A null error is not a write").
   const after = await readRow(api, poster, id);
   if (after.status !== "accepted" || after.helper_id !== helper.user.id || after.payment_status !== "escrow") {
@@ -360,14 +474,7 @@ export async function ensureDisputedJob(
       ),
       "list dispute fixture jobs",
     );
-  const applied = async () =>
-    new Set(
-      (await readJson<{ job_id: string }[]>(
-        await api.get(`${SUPABASE_URL}/rest/v1/applications?helper_id=eq.${helper.user.id}&status=eq.pending&select=job_id`, { headers: headers(helper) }),
-        "list helper-e2e applications",
-      )).map((a) => a.job_id),
-    );
-  const plan = planDisputedJob(await list(), { helperId: helper.user.id, appliedJobIds: await applied() });
+  const plan = planDisputedJob(await list(), { helperId: helper.user.id, applications: await helperApplications(api, helper) });
   if (plan.kind === "reuse") {
     log.push(`reused disputed ${plan.row.id}`);
     return { job: { id: plan.row.id, title: plan.row.title }, log };

@@ -45,29 +45,27 @@ function walk(dir: string, out: string[] = []): string[] {
 /**
  * The legs no journey can reach yet, each carried in docs/OPEN.md: two
  * time-travel legs (an accepted job the Helpr has not confirmed, a paid
- * membership) and the five Q230 notification legs.
+ * membership). The five Q230 notification placeholders left in c3ad37cae:
+ * direct offer, saved-search and tip are now driven, and the rest are named
+ * by e2e/journeys/notifications/producers.ts (notificationProducersCovered).
  */
 // @two-way src/test/journeyPlaceholderSkips.test.ts:a placeholder listed here no longer exists
 const PLACEHOLDER_KNOWN = [
   "e2e/journeys/time-travel.spec.ts :: Confirm window (day before / day of)",
   "e2e/journeys/time-travel.spec.ts :: Subscription expiring",
-  // Q230: named on purpose (415e52ae7); live coverage is the open half of Q230.
-  "e2e/journeys/notifications/notifications.spec.ts :: cron notifications are not exercised here",
-  "e2e/journeys/notifications/notifications.spec.ts :: direct-offer notification is not exercised here",
-  "e2e/journeys/notifications/notifications.spec.ts :: job-match fan-out notification is not exercised here",
-  "e2e/journeys/notifications/notifications.spec.ts :: saved-search-match notification is not exercised here",
-  "e2e/journeys/notifications/notifications.spec.ts :: tip notification is not exercised here",
 ];
 
 export function placeholders(rel: string, src: string): string[] {
   const code = blankComments(src);
   const out: string[] = [];
+  // A leading `if (…) skipLivePay(…);` still leaves a placeholder: both branches only ever
+  // skip, so the optional prefix below is matched rather than letting it hide the test.
   // Direct form: test("title", async (...) => { skipUncovered(
-  for (const m of code.matchAll(/\btest\(\s*(["'`])((?:(?!\1).)*)\1\s*,\s*async\s*\([^)]*\)\s*=>\s*\{\s*skipUncovered\(/g)) {
+  for (const m of code.matchAll(/\btest\(\s*(["'`])((?:(?!\1).)*)\1\s*,\s*async\s*\([^)]*\)\s*=>\s*\{\s*(?:if \([^)]*\) skipLivePay\([^;]*\);\s*)?skipUncovered\(/g)) {
     if (!m[2].includes("${")) out.push(`${rel} :: ${m[2]}`);
   }
   // Loop form: for (const [title, …] of [["A", …], ["B", …]] as const) { test(`…${title}`, async () => { skipUncovered(
-  for (const m of code.matchAll(/for \(const \[(\w+)[^\]]*\] of \[([\s\S]*?)\] as const\) \{\s*test\(`[^`]*\$\{\1\}[^`]*`\s*,\s*async\s*\([^)]*\)\s*=>\s*\{\s*skipUncovered\(/g)) {
+  for (const m of code.matchAll(/for \(const \[(\w+)[^\]]*\] of \[([\s\S]*?)\] as const\) \{\s*test\(`[^`]*\$\{\1\}[^`]*`\s*,\s*async\s*\([^)]*\)\s*=>\s*\{\s*(?:if \([^)]*\) skipLivePay\([^;]*\);\s*)?skipUncovered\(/g)) {
     for (const t of m[2].matchAll(/\[\s*"([^"]+)"/g)) out.push(`${rel} :: ${t[1]}`);
   }
   return out;
@@ -84,6 +82,9 @@ describe("no journey test is a placeholder that can only skip", () => {
     expect(
       placeholders("x", 'for (const [title, detail] of [\n ["A", "d"],\n ["B", "e"],\n] as const) {\n test(`U: ${title}`, async () => {\n skipUncovered(title, detail);')
     ).toEqual(["x :: A", "x :: B"]);
+    expect(
+      placeholders("x", 'for (const [title, detail] of [\n ["A", "d"],\n] as const) {\n test(`U: ${title}`, async () => {\n if (mode === "live") skipLivePay(`t: ${title}`);\n skipUncovered(title, detail);')
+    ).toEqual(["x :: A"]);
   });
 
   it("every unconditional placeholder is known, and every known one still exists", () => {

@@ -1,3 +1,4 @@
+// @mutate supabase/functions/subscription-reconciliation/index.ts | if (productId && PRODUCT_TO_TIER[productId]) continue; // SC-015 mapped products only | continue; // SC-015 mapped products only
 // @mutate supabase/functions/auto-release-payment/index.ts | seed: seedJobIds.has(job.id), | seed: false,
 // @mutate supabase/functions/auto-release-payment/index.ts | if (seedJobIds.has(jobId)) seedDefects.push(reason); | if (false) seedDefects.push(reason);
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (seedJobIds.has(jobId)) seedDefects.push(reason); | if (false) seedDefects.push(reason);
@@ -38,6 +39,7 @@ import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { PRO_ONE_TIME_AMOUNT_CENTS, PRO_PRICE_MAP, PRO_RECURRING_AMOUNT_CENTS } from "../../../supabase/functions/_shared/proTiers";
+import { PRODUCT_TO_TIER } from "../../../supabase/functions/_shared/productTiers";
 
 const CRON_SECRET = "cron-secret-seed-routing";
 type Alert = { seed?: boolean; title?: string; severity?: string; fields?: Record<string, unknown>; message?: string };
@@ -349,9 +351,29 @@ describe("subscription-reconciliation ?include_seed=1", () => {
     }
     (stripeMock as unknown as { prices: unknown }).prices = {
       retrieve: vi.fn(async (id: string) => ({ id, unit_amount: amountFor.get(id), active: true })),
+      // SC-015: the active-Price listing. By default every one is on a mapped product.
+      list: vi.fn(async () => ({ data: activePrices, has_more: false })),
     };
     return loadEdgeFunction("subscription-reconciliation");
   }
+
+  let activePrices: Array<{ id: string; product: string; nickname: string | null; unit_amount: number }> = [];
+  beforeEach(() => {
+    activePrices = [{ id: "price_mapped", product: Object.keys(PRODUCT_TO_TIER)[0], nickname: null, unit_amount: 500 }];
+  });
+
+  it("SC-015: an ACTIVE Price on a product PRODUCT_TO_TIER does not map is reported", async () => {
+    // The seat ladder's live Prices stayed sellable for a month after the code
+    // that granted them was deleted; a checkout on one charges and grants nothing.
+    scenario.reads.profiles = { rows: [] };
+    activePrices.push({ id: "price_seat", product: "prod_UP8Xunmapped", nickname: "Crew 2 seats", unit_amount: 2000 });
+    const fn = await load();
+    const b = await json(await fn.fetch(cron(fn, URL_SEED)));
+    const orphan = (b.findings as Array<{ check: string; sample: unknown[] }>).find((f) => f.check === "orphan_active_price");
+    expect(orphan, "an unsellable active Price went unreported").toBeTruthy();
+    expect(JSON.stringify(orphan!.sample)).toContain("price_seat");
+    expect(JSON.stringify(orphan!.sample)).not.toContain("price_mapped");
+  });
 
   /** A paid tier with NO expiry and no live subscription: a critical finding. */
   const neverLapsing = (userId: string, isSeed: boolean | undefined, sub: string | null = null) => {

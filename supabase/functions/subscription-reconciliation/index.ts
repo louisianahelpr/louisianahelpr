@@ -253,6 +253,11 @@ serve(async (req) => {
         "critical",
         "A Stripe Price we sell against charges a different amount than the app displays. The storefront and the card reader disagree, and Stripe wins.",
       ),
+      orphanActivePrice: new Check(
+        "orphan_active_price",
+        "warning",
+        "An ACTIVE Stripe Price belongs to a product that is not in PRODUCT_TO_TIER. A checkout against it completes and grants nothing. Archive the Price and product, or map the product (SC-015).",
+      ),
     };
 
     // ── 0. Do our prices still say what Stripe charges? ─────────────────────
@@ -299,6 +304,44 @@ serve(async (req) => {
           );
         }
       }
+    }
+
+    // ── 0b. Is every sellable Price one we can grant a tier for? (SC-015) ──
+    //
+    // The seat ladder (Crew/Team/Enterprise) was deleted from the code on
+    // 2026-08-28 and its six live Prices stayed ACTIVE in Stripe until
+    // 2026-09-28: a checkout against one would have charged and granted
+    // nothing, and no check could see it because every other check starts
+    // from something WE hold (a profile, a PRO_PRICE_MAP id). This one starts
+    // from Stripe. Inline price_data Prices (job payments, boosts, gift cards)
+    // are never active, so they do not appear here; measured on both modes.
+    try {
+      let startingAfter: string | undefined;
+      for (let pageNo = 1; ; pageNo++) {
+        const page: Stripe.ApiList<Stripe.Price> = await stripe.prices.list({
+          active: true,
+          limit: 100,
+          ...(startingAfter ? { starting_after: startingAfter } : {}),
+        });
+        for (const price of page.data) {
+          const productId = typeof price.product === "string" ? price.product : price.product?.id;
+          if (productId && PRODUCT_TO_TIER[productId]) continue; // SC-015 mapped products only
+          checks.orphanActivePrice.add({
+            price_id: price.id,
+            product_id: productId ?? null,
+            nickname: price.nickname ?? null,
+            unit_amount: price.unit_amount,
+          });
+        }
+        if (!page.has_more || page.data.length === 0) break;
+        if (pageNo >= MAX_STRIPE_PAGES) {
+          caps.push(`active Price scan hit MAX_STRIPE_PAGES (${MAX_STRIPE_PAGES}) — orphan_active_price is partial`);
+          break;
+        }
+        startingAfter = page.data[page.data.length - 1].id;
+      }
+    } catch (e) {
+      caps.push(`active Price list could not be read: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     // ── 1. Every profile that holds a tier, or claims a Stripe link ──────────

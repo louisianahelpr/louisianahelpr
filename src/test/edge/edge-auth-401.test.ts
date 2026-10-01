@@ -2,7 +2,7 @@
  * EF-03 (hole hunt 2026-09-15): an AUTH rejection on a money endpoint must
  * return 401/403, never 500.
  *
- * `cash-out-credits` and `helpr-pass-wallet` both `throw` on a missing/invalid
+ * `cash-out-credits` `throw`s on a missing/invalid
  * Authorization header, which fell through to a generic catch that answered
  * 500. On a money path a 500 reads as "the charge broke" — so every expired
  * session and every bot scan of the public URL booked a false 500, drowning
@@ -44,7 +44,7 @@ describe("EF-03 — auth rejection returns 401, not 500", () => {
     resetEnv();
   });
 
-  for (const fnName of ["cash-out-credits", "helpr-pass-wallet"]) {
+  for (const fnName of ["cash-out-credits"]) {
     it(`${fnName}: no Authorization header → 401`, async () => {
       // Before the fix: 500 {"error":"Internal server error" | "..."}.
       baseEnv();

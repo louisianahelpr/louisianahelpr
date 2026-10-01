@@ -7,6 +7,7 @@ import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
 // bonus, take-home. Whole-dollar rounding is right for a headline price and
 // wrong for the lines that justify it, where the column has to add up.
 import { formatPriceExact as formatPrice, formatPriceFloor } from "@/lib/format";
+import { floorPayoutDollars } from "@/lib/helperEarnings";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home block on the apply step.
@@ -49,6 +50,11 @@ export function ApplyEarningsBreakdown({
   // than what lands, so it comes off the total and gets its own line.
   const firstPayoutFee = useFirstPayoutFeeCents() / 100;
   const payout = beforeFirstPayoutFee - firstPayoutFee;
+  // Q236: the transfer pays WHOLE dollars, rounded DOWN (the platform keeps
+  // the cents). The receipt shows the dropped cents as their own line so the
+  // exact-cent rows above still add up to the take-home below.
+  const takeHome = floorPayoutDollars(payout);
+  const droppedCents = payout > 0 ? Math.round((payout - takeHome) * 100) / 100 : 0;
   const hasUrgent = (confirmApplyJob.urgent_fee ?? 0) > 0;
 
   // The plain-words summary. Same facts as the receipt, one line, no columns.
@@ -88,7 +94,7 @@ export function ApplyEarningsBreakdown({
         className="font-sans font-bold tabular-nums leading-none text-ds-32"
         style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
       >
-        ${formatPriceFloor(payout)}
+        ${formatPriceFloor(takeHome)}
       </p>
 
       <button
@@ -131,6 +137,12 @@ export function ApplyEarningsBreakdown({
               <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(firstPayoutFee)}</span>
             </div>
           )}
+          {droppedCents > 0 && (
+            <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <span className="font-sans">− Rounded down to the dollar</span>
+              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(droppedCents)}</span>
+            </div>
+          )}
           <div
             className="flex justify-between pt-1.5 mt-1.5 items-baseline"
             style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
@@ -140,7 +152,7 @@ export function ApplyEarningsBreakdown({
               className="font-sans font-bold tabular-nums text-ds-14"
               style={{ color: "hsl(var(--bark))" }}
             >
-              ${formatPriceFloor(payout)}
+              ${formatPriceFloor(takeHome)}
             </span>
           </div>
         </div>

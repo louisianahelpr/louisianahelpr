@@ -251,6 +251,20 @@ describe("process-scheduled-payouts edge function", () => {
       expect((transferArg.metadata as Record<string, unknown>).onboarding_fee_first_payout).toBe("true");
     });
 
+    it("takes a non-whole-dollar fee BEFORE the one whole-dollar floor, not between two (Q236)", async () => {
+      seedPayableJob(scenario, { job: { urgent_fee: 20 } });
+      scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 230 }] };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(res.status).toBe(200);
+      // $90 + $19.42 net urgent = $109.42 owed − $2.30 fee = $107.12 → $107.
+      // Flooring first ($109 − $2.30 = $106.70 → $106) costs a second dollar.
+      const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
+      expect(transferArg.amount).toBe(10700);
+    });
+
     it("does not claim or deduct when the helper already paid the fee", async () => {
       seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
       const fn = await load();
@@ -575,7 +589,7 @@ describe("process-scheduled-payouts edge function", () => {
       // the full urgent bonus and the platform over-pays N×.
       // budget 300 / 3 helpers = $100 each; 10% commission = $10; urgent $30
       // nets its own 2.9% bundled Stripe cost ($30 − $0.87 = $29.13) then splits
-      // 3 ways = $9.71. Payout = 100 − 10 + 9.71 = $99.71 → 9971¢.
+      // 3 ways = $9.71. Payout = 100 − 10 + 9.71 = $99.71 → paid 9900¢ (Q236).
       // (Fee already paid so no $2 onboarding deduction clouds the urgent math.)
       seedPayableJob(scenario, {
         job: { budget: 300, urgent_fee: 30, is_group_job: true, helpers_needed: 3 },
@@ -587,7 +601,8 @@ describe("process-scheduled-payouts edge function", () => {
       );
       expect(res.status).toBe(200);
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
-      expect(transferArg.amount).toBe(9971);
+      // Q236: $99.71 owed is paid as $99; the platform keeps the 71 cents.
+      expect(transferArg.amount).toBe(9900);
     });
   });
 });

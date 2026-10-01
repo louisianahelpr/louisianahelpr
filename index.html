@@ -76,7 +76,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-6SSGJNaAxv//C19LFgeHG3nZjqzq77WgDNPBhY6snsU=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-SB5u712iE2xrOw2MIIrd5s2xRKyV29CVo2a5EiCA3OM=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-6SSGJNaAxv//C19LFgeHG3nZjqzq77WgDNPBhY6snsU=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -139,10 +139,24 @@
          arrives with the page instead of after the header renders (owner,
          2026-09-25: "on the legal pages it was taking awhile for the h logo
          to show"). imagesrcset/imagesizes match the rendered <img> exactly,
-         so the browser fetches the one file the <img> will use. -->
-    <link rel="preload" as="image" href="/src/assets/helpr-logo-256.webp"
+         so the browser fetches the one file the <img> will use.
+         Off by default (media="not all" fetches nothing) and switched on by
+         the script below everywhere EXCEPT the AuthShell routes, which draw
+         no emblem: preloading it there left an unused preload that Chromium
+         warns about (ui-sweep #1942, /signup). The route list is kept equal
+         to the AuthShell pages by src/test/emblemPreloadSkipsAuthShell.test.ts. -->
+    <link id="emblem-preload" rel="preload" as="image" media="not all"
+          href="/src/assets/helpr-logo-256.webp"
           imagesrcset="/src/assets/helpr-logo-96.webp 96w, /src/assets/helpr-logo-256.webp 256w"
           imagesizes="40px" />
+    <script>
+      (function () {
+        var noEmblem = ["/login", "/signup", "/signup-pending", "/complete-profile", "/account-banned", "/forgot-password", "/reset-password", "/payment-success"];
+        var link = document.getElementById("emblem-preload");
+        var path = location.pathname.replace(/\/+$/, "") || "/";
+        if (link && noEmblem.indexOf(path) === -1) link.media = "all";
+      })();
+    </script>
     <!-- Hero image preloads intentionally removed 2026-05-19.
          The hero used to render a photographic <img> (hero-courtyard-*.webp),
          but the editorial brand polish (4ba790a0) replaced it with the

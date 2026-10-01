@@ -347,6 +347,13 @@
       "kind": "jump",
       "was": "row 118px → 1348px (+1230px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "helper /jobs #1",
+      "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
+      "kind": "jump",
+      "was": "row 32px → 48px (+16px)",
+      "ruling": "Owner ruling Q700 (docs/OPEN.md): \"match each tab: the /jobs skeleton reserves the one-line shape, /posts keeps two lines.\" The /jobs list is bimodal by design (JobCardMetaRow gives a street address its own meta line, Q411); when the first helper card carries the two-line meta, its row grows 16px past the one-line bone. Measured identical in runs 36492960226, 36632943113, 36779284662 (real 115.9px vs skeleton 99px)."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

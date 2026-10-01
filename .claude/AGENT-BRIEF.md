@@ -69,17 +69,17 @@ says more.
   an unrecorded one (Q9).
 
 ## Landing
-- Commit in your worktree, then `bash scripts/land.sh`: it fetches, rebases
-  onto origin/main, runs `npm run inventories:refresh`, commits what that
-  regenerated, proves `check:generated` green, then
-  `git push --no-verify origin HEAD:main`. A bare `--no-verify` push skips the
-  hook that refreshes them and leaves main red (503fd193c, 2026-09-27).
-- Once main's protection requires checks with enforce_admins (Q44), a direct
-  push is refused: land with `bash scripts/land.sh --pr` instead. It does the
-  same rebase, refresh and checks, then pushes `land/<your branch>`, opens a
-  PR and turns on rebase auto-merge. If main moves before the checks pass,
-  re-run it. Your work is not landed until the PR shows MERGED
-  (`gh pr view land/<your branch> --json state`).
+- Commit in your worktree, then `bash scripts/land.sh`. It is the ONLY way
+  onto main (Q44): main requires Vitest, Test, Vacuity and both Playwright
+  checks, strict, with enforce_admins, so a direct push is refused. land.sh
+  fetches, rebases onto origin/main, runs `npm run inventories:refresh`,
+  commits what that regenerated, proves `check:generated` and the exact-count
+  guards green, pushes `land/<branch>-<worktree hash>`, opens a PR with rebase
+  auto-merge, and WAITS (~20 min of checks). When main moves first it rebases
+  and pushes again by itself; a failed required check stops it red with the
+  check's name. Your work is not landed until it prints "merged into main".
+  `--no-wait` returns early; then it is not landed until
+  `gh pr view <branch> --json state` says MERGED.
 - End commits with the Co-Authored-By line from CLAUDE.md.
 - If a rebase stops on a conflict, resolve it (for generated files: take
   origin's version, then regenerate) and `git rebase --continue`. Never

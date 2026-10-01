@@ -30,7 +30,7 @@
  */
 // Registered mutations - each turns this guard RED on its own:
 //   An edge function that sends the caller's own words to someone else.
-// @mutate supabase/functions/cash-out-credits/index.ts | message: `$${formatPayoutDollars(totalAmount)} in referral credits has been sent to your connected Stripe account.`, | message: body.note,
+// @mutate supabase/functions/cash-out-credits/index.ts | message: `$${formatExactDollars(totalAmount)} in referral credits has been sent to your connected Stripe account.`, | message: body.note,
 //   A client-callable RPC that quotes caller text with its admin gate removed.
 // @mutate supabase/migrations/20260907195145_review_credential_clears_boolean_and_queue_reads_helper_credentials.sql | IF NOT has_role(auth.uid(), 'admin') THEN | IF false THEN
 //   A notifications INSERT policy any signed-in user passes.

@@ -552,8 +552,9 @@ describe("release-payout edge function", () => {
       );
       // Untiered helper → free tier → 12%.
       // The urgent fee nets its own bundled 2.9% Stripe cost: $20 − $0.58 =
-      // $19.42. net = (100 − 12% of 100) + 19.42 = 88 + 19.42 = $107.42.
-      expect((await json(res)).amount_cents).toBe(10742);
+      // $19.42. net = (100 − 12% of 100) + 19.42 = 88 + 19.42 = $107.42,
+      // paid as $107 (Q236: whole dollars, rounded down; platform keeps 42c).
+      expect((await json(res)).amount_cents).toBe(10700);
     });
 
     it("deducts the one-time $2 onboarding fee from a helper who has not paid it", async () => {
@@ -579,6 +580,33 @@ describe("release-payout edge function", () => {
       // Untiered helper → free tier → 12%.
       // $88 net - $2 onboarding fee = $86 → 8600 cents
       expect((await json(res)).amount_cents).toBe(8600);
+    });
+
+    it("takes a non-whole-dollar onboarding fee BEFORE the one whole-dollar floor, not between two (Q236)", async () => {
+      seedPayableJob(scenario, { budget: 100, urgent_fee: 20 });
+      scenario.reads.platform_settings = {
+        rows: [{ helper_fee_percent: 10, onboarding_fee_cents: 230 }],
+      };
+      scenario.reads.profiles = {
+        rows: [
+          {
+            stripe_account_id: "acct_helper",
+            full_name: "New Helper",
+            onboarding_fee_paid: false,
+          },
+        ],
+      };
+      scenario.writeSelectRows.profiles = [{ user_id: "helper-1" }];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      // $107.42 owed − $2.30 fee = $105.12 → paid $105. Flooring first
+      // ($107 − $2.30 = $104.70 → $104) would cost the Helpr a second dollar.
+      expect((await json(res)).amount_cents).toBe(10500);
     });
 
     it("returns 502 when the Stripe transfer call fails", async () => {

@@ -23,6 +23,7 @@
 // in a caller.
 
 import { Resend } from 'npm:resend@6.25.0'
+import { isTestAddress, TestRecipientRefusedError } from './testRecipient.ts'
 
 /**
  * ═════════════════════════════════════════════════════════════════════════
@@ -257,6 +258,12 @@ export async function sendWithResend(
     )
     err.status = 0
     throw err
+  }
+  // Q840 last line: a fixture address never reaches the provider, whichever
+  // caller forgot to ask isTestRecipient() first. Permanent: process-email-queue
+  // catches it by name and logs the message suppressed instead of retrying it.
+  if (isTestAddress(params.to)) {
+    throw new TestRecipientRefusedError(params.to)
   }
 
   // The SDK RESOLVES `{ data, error, headers }` — like supabase-js, it does not

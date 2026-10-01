@@ -39,9 +39,9 @@ describe("fixed Stripe product-price parity (UI ↔ edge)", () => {
     expect(BOOST_DURATION_HOURS).toBe(24);
   });
 
-  it("formats round dollars without cents and fractional with two decimals", () => {
+  it("formats fees as whole dollars (Q236: only job checkout shows cents)", () => {
     expect(formatFeeUsd(BOOST_FEE_CENTS)).toBe("$3");
-    expect(formatFeeUsd(BGC_FEE_CENTS)).toBe("$34.99");
+    expect(formatFeeUsd(BGC_FEE_CENTS)).toBe("$35");
   });
 });
 
@@ -67,7 +67,7 @@ describe("job-boost price by tier (UI mirror of create-boost-payment)", () => {
     for (const tier of ["basic", "pro"]) {
       const price = boostPriceForTier(tier, true);
       expect(price).toEqual({ free: false, cents: 240, discounted: true });
-      expect(formatFeeUsd(240)).toBe("$2.40");
+      expect(formatFeeUsd(240)).toBe("$2");
     }
   });
 

@@ -41,6 +41,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { serve } from "../_shared/buildStamp.ts";
+import { fetchFunction } from '../_shared/functionFetch.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -103,7 +104,7 @@ serve(async (req) => {
   let upstreamStatus = 0
   let upstreamBody: unknown = null
   try {
-    const res = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+    const res = await fetchFunction(`${supabaseUrl}/functions/v1/send-push-notification`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${serviceRoleKey}`,

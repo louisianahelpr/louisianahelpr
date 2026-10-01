@@ -35,7 +35,10 @@
  */
 export function formatPriceFloor(amount: number): string {
   if (!Number.isFinite(amount)) return "0";
-  return Math.floor(amount).toLocaleString("en-US");
+  // Round to a whole cent BEFORE flooring, exactly as the transfer does
+  // (`roundPayoutDownCents`, Q236): float noise like 17.999999999 is an $18
+  // payout, and must not read "$17".
+  return Math.floor(Math.round(amount * 100) / 100).toLocaleString("en-US");
 }
 
 export function formatPriceExact(amount: number): string {

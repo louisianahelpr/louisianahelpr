@@ -50,6 +50,7 @@ import { flipJobToReleased } from "../_shared/releaseFlip.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { roundPayoutDownCents } from "../_shared/money.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -679,7 +680,13 @@ serve(async (req) => {
   // helperCommissionDollars for why the product is rounded before the divide.
   const platformFeeDollars = helperCommissionDollars(perHelperBudget, helperFeePercent);
   const payoutDollars = grossDollars - platformFeeDollars;
-  let payoutCents = Math.round(payoutDollars * 100);
+  // Whole dollars, rounded DOWN; the platform keeps the cents (Q236). The
+  // onboarding-fee branch below re-floors from the UNROUNDED cents, so the
+  // fee is taken before the one floor, never between two (a $2.50 fee must
+  // not cost a second dollar). Either way the figure reaching Stripe is a
+  // whole dollar.
+  const unroundedPayoutCents = Math.round(payoutDollars * 100);
+  let payoutCents = roundPayoutDownCents(unroundedPayoutCents);
   const platformFeeCents = Math.round(platformFeeDollars * 100);
 
   // One-time $2 platform onboarding fee: charged at first action (post
@@ -712,7 +719,7 @@ serve(async (req) => {
     }
 
     if (claimed && claimed.length > 0) {
-      if (payoutCents <= onboardingFeeCents) {
+      if (roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents) <= 0) {
         // Edge case: claim succeeded but payout is too small to cover.
         // Roll back the claim and refuse so admin can reconcile manually.
         const { error: rollbackErr } = await supabaseAdmin
@@ -743,7 +750,7 @@ serve(async (req) => {
           422,
         );
       }
-      payoutCents -= onboardingFeeCents;
+      payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeCents);
       onboardingFeeDeductedCents = onboardingFeeCents;
     }
     // Lost the race — flag flipped between read and claim. Don't deduct.

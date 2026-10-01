@@ -457,6 +457,20 @@ async function probeRoute(page: Page, route: string): Promise<void> {
   // is set by some primitives and not others.
   const count = await page.locator("#root button:visible").count();
   const max = Math.min(count, 40); // per-route cap; logged below if it bites
+  // The route's control set at rest. A click that opens no overlay can still
+  // swap the page into another mode: on /home "Search jobs" turns the toolbar
+  // into an inline search field, which hides Filters and Notifications. The
+  // loop indexes buttons by position, so every later index then pointed at a
+  // different control and the bell was never pressed — `probed` stayed at 0
+  // on /home (measured 2026-10-01, on main too) and the vacuity gate scored the
+  // NotificationPanel registration INCONCLUSIVE. Restore the route whenever
+  // the set changed, not only when the URL did.
+  const controlSet = () =>
+    page
+      .locator("#root button:visible")
+      .evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent ?? "").join("|"))
+      .catch(() => "");
+  const atRest = await controlSet();
 
   for (let i = 0; i < max; i++) {
     const btn = page.locator("#root button:visible").nth(i);
@@ -475,7 +489,7 @@ async function probeRoute(page: Page, route: string): Promise<void> {
     if (open === 0) {
       // Not an overlay trigger. If it navigated, go back and continue.
       const now = new URL(page.url()).pathname + new URL(page.url()).search;
-      if (now !== landed) {
+      if (now !== landed || (await controlSet()) !== atRest) {
         await page.goto(route, { waitUntil: "domcontentloaded" }).catch(() => undefined);
         await page.waitForTimeout(350);
       }

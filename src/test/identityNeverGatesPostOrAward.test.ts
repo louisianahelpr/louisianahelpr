@@ -22,7 +22,7 @@
 // `isIdentityVerified` to draw a pill is fine. What is forbidden is the gate
 // vocabulary and the posting/award code paths consulting identity at all.
 //
-// @mutate src/lib/awardGate.ts | export function awardBlockReasonFromStatus( | export const helper_identity_unverified = 1;\nexport function awardBlockReasonFromStatus(
+// @mutate src/lib/awardGate.ts | export function awardBlockCopy( | export const helper_identity_unverified = 1;\nexport function awardBlockCopy(
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";

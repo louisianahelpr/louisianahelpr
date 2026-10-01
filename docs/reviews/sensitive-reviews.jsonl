@@ -130,3 +130,5 @@
 {"sha":"32096263f9ee483cb5e488f8fca9185a1e4d523a","reviewer":"lh-money-escrow","verdict":"PASS","date":"2026-10-01"}
 {"sha":"6438826d595d7a4ba9a956c5a87a72e8b3da72b3","reviewer":"lh-money-escrow","verdict":"approve: no money write/query/amount change; arrival-gate cap prevents stuck skeleton","date":"2026-10-01"}
 {"sha":"f0068ea8f073288faabf3169c5a686197663d6f6","reviewer":"lh-money-escrow","verdict":"approve: pure move of CSV export into usePayoutsCsvExport","date":"2026-10-01"}
+{"sha":"8508d8c0cbae0b46423080fc526d2e0411e30ad9","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 6438826d5 (approved): patch byte-identical ignoring hunk offsets/index lines; earnings skeleton gating only, no change to amounts, transfers or ledger reads. OK.","date":"2026-10-01"}
+{"sha":"0bf2d8d2365c3951db63ebcc7fd242066a445d01","reviewer":"lh-money-escrow","verdict":"Re-record of rebased f0068ea8f (approved): patch byte-identical ignoring hunk offsets/index lines; CSV export moved into usePayoutsCsvExport, pure refactor, no money logic change. OK.","date":"2026-10-01"}

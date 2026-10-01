@@ -12,8 +12,8 @@
  *     in either job card's step trees carries a key the shell pins into `More`.
  *     A new chip with a fresh key would land on the row; this fails it.
  *
- * @mutate src/components/job-card/JobStepCard.tsx | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute"]; | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["dispute"];
- * @mutate src/components/job-card/JobStepCard.tsx | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute"]; | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report"];
+ * @mutate src/components/job-card/JobStepCard.tsx | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute", "sos"]; | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["dispute", "sos"];
+ * @mutate src/components/job-card/JobStepCard.tsx | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute", "sos"]; | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "sos"];
  * @mutate src/components/job-card/JobStepCard.tsx | const moreChips = [...moreOnly, ...rowChips.overflow]; | const moreChips = [...rowChips.overflow];
  * @mutate src/components/job-card/JobStepCard.tsx | const chips = allChips.filter((c) => !isMoreOnly(c)); | const chips = allChips;
  * @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx | key="report" | key="report-problem"

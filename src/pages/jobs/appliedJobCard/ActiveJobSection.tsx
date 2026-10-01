@@ -14,7 +14,7 @@ import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
 import { deriveCurrentStatusIdx, STATUS_IDX, type TrackingData } from "@/components/JobTracking";
 import { HelperTrackerPanel } from "./HelperTrackerPanel";
-import { SosShareButton, sosOffered } from "@/components/SosShareButton";
+import { SosShareButton, SosShareSheet, sosOffered } from "@/components/SosShareButton";
 import { deriveHelperStep, type HelperStepProps } from "./steps/stepContract";
 import { EnRouteStep } from "./steps/EnRouteStep";
 import { OnSiteStep } from "./steps/OnSiteStep";
@@ -141,6 +141,9 @@ export function ActiveJobSection({
   // costs. The client only states it truthfully before the tap.
   const queryClient = useQueryClient();
   const [abortOpen, setAbortOpen] = useState(false);
+  // The SOS sheet lives HERE, not in its chip: the chip sits inside the row's
+  // `More` panel, which unmounts when it closes (see SosShareButton).
+  const [sosOpen, setSosOpen] = useState(false);
   const [abortReason, setAbortReason] = useState("");
   const [aborting, setAborting] = useState(false);
   const [aborted, setAborted] = useState<"reopened" | "disputed" | null>(null);
@@ -301,7 +304,7 @@ export function ActiveJobSection({
         }}
       />
     ) : null,
-    sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null,
+    sosChip: sosOffered(job) ? <SosShareButton key="sos" onOpen={() => setSosOpen(true)} /> : null,
     abortedNotice: aborted ? (
       <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {aborted === "disputed"
@@ -359,6 +362,7 @@ export function ActiveJobSection({
   return (
     <>
       {body}
+      <SosShareSheet jobId={job.id} open={sosOpen} onOpenChange={setSosOpen} />
       <BrandConfirmDialog
         open={abortOpen}
         onOpenChange={(next) => { if (!aborting) setAbortOpen(next); }}

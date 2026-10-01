@@ -29,7 +29,8 @@ export interface HelperStepProps {
   reportChip: ReactNode;
   /** SOS "share my location" (Q366, TS-007): the Helpr is the party at a
    *  stranger's address. Same rule as the poster's card (`sosOffered`); null
-   *  outside it. */
+   *  outside it. Keyed "sos": the shell always draws it inside `More`
+   *  (MORE_ONLY_CHIP_KEYS, owner 2026-10-01). */
   sosChip: ReactNode;
   /** Rendered after an abort has been taken; replaces the exit. */
   abortedNotice: ReactNode;

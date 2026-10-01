@@ -121,8 +121,45 @@ export function sosOffered(job: {
   return !!job.helper_arrived_at && !job.helper_completed_at && !job.poster_completed_at;
 }
 
-export function SosShareButton({ jobId }: { jobId: string }) {
-  const [open, setOpen] = useState(false);
+/**
+ * THE CHIP AND THE SHEET ARE SEPARATE (owner, 2026-10-01: "Report a problem
+ * and SOS must move under one More menu"). The chip now lives inside the
+ * row's `More` panel (MORE_ONLY_CHIP_KEYS in JobStepCard), and that panel
+ * unmounts when it closes. A sheet owned by the chip would unmount with it —
+ * the confirmation would flash and vanish, or never open — so the caller owns
+ * the open state and renders `SosShareSheet` OUTSIDE the panel (the card's
+ * `dialogs` slot, or beside the step). Same button, same sheet, same handler.
+ */
+export function SosShareButton({ onOpen }: { onOpen: () => void }) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className={JOB_ACTION_CHIP_CLASS}
+      style={{ ...SOS_TINT, border: SOS_TINT.border }}
+      aria-label="SOS — share your location"
+      // No stopPropagation any more: the click has to reach the `More`
+      // panel's own onClick so the panel closes behind the sheet, exactly as
+      // Report a Problem's does. JobStepCard's root already stops it before
+      // it can reach the card (which would toggle it).
+      onClick={onOpen}
+    >
+      <ShieldAlert className="w-4 h-4" />
+      <span className={JOB_ROW_LABEL_CLASS}>SOS</span>
+    </Button>
+  );
+}
+
+export function SosShareSheet({
+  jobId,
+  open,
+  onOpenChange,
+}: {
+  jobId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const setOpen = onOpenChange;
   const [locating, setLocating] = useState(false);
 
   /**
@@ -188,21 +225,6 @@ export function SosShareButton({ jobId }: { jobId: string }) {
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className={JOB_ACTION_CHIP_CLASS}
-        style={{ ...SOS_TINT, border: SOS_TINT.border }}
-        aria-label="SOS — share your location"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-      >
-        <ShieldAlert className="w-4 h-4" />
-        <span className={JOB_ROW_LABEL_CLASS}>SOS</span>
-      </Button>
-
       <Sheet open={open} onOpenChange={setOpen}>
         {/* No bespoke padding or ground. `side="bottom"` is a centred modal at
           every width now, not a floor-anchored sheet, so the safe-area bottom

@@ -669,7 +669,7 @@ test.describe("My Posts — card density + header", () => {
     await page.screenshot({ path: `${SHOTS}/tracker-one-line-375.png` });
   });
 
-  test("the action row reads SOS then Message, and Message is one colour everywhere", async ({ page, context, baseURL }) => {
+  test("the action row holds More and Message, SOS is inside More, and Message is one colour everywhere", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     // `helper_arrived_at`, not just `helper_on_the_way_at`. SOS is gated on the
     // helper having ARRIVED — it is the control for something going wrong on
@@ -718,7 +718,9 @@ test.describe("My Posts — card density + header", () => {
     // Re-open the first card for the order assertions below.
     await expandCard(page);
 
-    // Order within the first card's row: SOS · Message.
+    // The first card's row: Message and More. SOS sat first until
+    // 2026-10-01, when the owner moved it (with Report a Problem / Dispute)
+    // under the row's one `More` menu (MORE_ONLY_CHIP_KEYS in JobStepCard).
     //
     // Share used to sit between them and no longer does — a job that already
     // has a helpr has nothing left to advertise, so the link it copied led
@@ -734,8 +736,13 @@ test.describe("My Posts — card density + header", () => {
         .filter((c) => !c.hasAttribute("data-job-step-primary"))
         .map((c) => c.getAttribute("aria-label") ?? c.textContent?.trim() ?? "");
     });
-    expect(order[0]).toMatch(/SOS/i);
-    expect(order[1]).toMatch(/message/i);
+    expect(order.some((l) => /^More\b/.test(l)), `no More on the row: ${order.join(" | ")}`).toBe(true);
+    expect(order.some((l) => /message/i.test(l)), `no Message on the row: ${order.join(" | ")}`).toBe(true);
+    expect(order.some((l) => /SOS/i.test(l)), `SOS is on the row: ${order.join(" | ")}`).toBe(false);
+    await page.locator("[data-job-step-overflow]").first().click();
+    const panel = page.locator("[data-job-step-overflow-panel]");
+    await expect(panel.getByRole("button", { name: /^SOS/ })).toBeVisible();
+    await page.keyboard.press("Escape");
     // No JOB-share control anywhere in the row. Matched on its exact accessible
     // name rather than a loose /share/ — the SOS chip's own label is about
     // sharing your LOCATION, and a loose match reads that as a hit.

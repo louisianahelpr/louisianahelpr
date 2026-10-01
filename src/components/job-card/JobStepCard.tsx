@@ -13,10 +13,12 @@ import { JobStepOverflowChip } from "./JobActionRow";
 /** React keys of chips that ALWAYS live inside `More`, at every width, even
  *  when the row has room (owner, 2026-09-27: "report a problem should be under
  *  more tab"; both job cards). `report` is the Helpr's Report a Problem
- *  (ActiveJobSection), `dispute` the poster's Dispute (InProgressStep). They
- *  lead the popover; the width-driven overflow follows them. Held here, not
- *  per step, so no step can put them back on the row. */
-export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute"];
+ *  (ActiveJobSection), `dispute` the poster's Dispute (InProgressStep), `sos`
+ *  either side's SOS (owner, 2026-10-01: Report a problem and SOS under one
+ *  `More` menu on the tracker, both sides). They lead the popover in this
+ *  order; the width-driven overflow follows them. Held here, not per step, so
+ *  no step can put them back on the row. */
+export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute", "sos"];
 
 /**
  * JobStepCard — the ONE structure every state of BOTH activity job cards is
@@ -143,6 +145,10 @@ export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute"];
  *      (MORE_ONLY_CHIP_KEYS).
  *   9. `dialogs` — portalled confirms. Rendered last, occupies no layout.
  */
+function moreOnlyRank(c: ReactNode): number {
+  return isValidElement(c) && typeof c.key === "string" ? MORE_ONLY_CHIP_KEYS.indexOf(c.key) : -1;
+}
+
 export function JobStepCard({
   side,
   step,
@@ -190,7 +196,9 @@ export function JobStepCard({
     isValidElement(c) && typeof c.key === "string" && MORE_ONLY_CHIP_KEYS.includes(c.key);
   // Chips pinned inside `More` never compete for a row slot; the row sees one
   // extra slot for the `More` control itself instead.
-  const moreOnly = allChips.filter(isMoreOnly);
+  const moreOnly = allChips
+    .filter(isMoreOnly)
+    .sort((a, b) => moreOnlyRank(a) - moreOnlyRank(b));
   const chips = allChips.filter((c) => !isMoreOnly(c));
 
   // Portal hosts. Callback refs into state, so the context re-renders the
@@ -386,8 +394,8 @@ export function JobStepCard({
               card) `overflowChips` is 0 and every chip renders in place. */}
           {/* THE ENDS ARE PINNED AND THE MIDDLE COLLAPSES (owner, 2026-09-19:
               "before and after photos should be to the left of the primary
-              buttons"). Report a Problem / Dispute no longer sit on the left:
-              they live in `More` via MORE_ONLY_CHIP_KEYS (owner, 2026-09-27). The
+              buttons"). Report a Problem / Dispute / SOS no longer sit on the row:
+              they live in `More` via MORE_ONLY_CHIP_KEYS (owner, 2026-09-27; SOS 2026-10-01). The
               allocator says how many chips fit;
               `partitionJobStepRowChips` says which ones, and it never sends a
               pinned end into the popover — the `More` control lands where the

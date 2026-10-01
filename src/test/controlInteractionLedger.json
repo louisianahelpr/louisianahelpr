@@ -133,7 +133,7 @@
     "notTint  src/pages/info/HelpCenter.tsx:139 <button>  hover:opacity-80",
     "notTint  src/pages/auth/Login.tsx:457 <button>  hover:opacity-70",
     "notTint  src/pages/profile/petProfiles/PetForm.tsx:213 <button>  hover:border-border",
-    "notTint  src/pages/post-job/OfferToSavedHelpr.tsx:153 <button>  hover:border-primary/50",
+    "notTint  src/pages/post-job/OfferToSavedHelpr.tsx:178 <button>  hover:border-primary/50",
     "press  src/components/BirthdayPopup.tsx:141 <button>  active:opacity-70",
     "press  src/components/DisputeDialog.tsx:347 <button>  active:opacity-70",
     "press  src/components/DisputeTimelineDialog.tsx:464 <button>  active:opacity-70",

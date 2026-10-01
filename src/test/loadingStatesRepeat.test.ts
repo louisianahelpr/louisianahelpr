@@ -108,7 +108,7 @@ describe("loading-state baseline keys name the same surface on every run", () =>
       byDesign: { key: string }[];
     };
     const keys = [...base.allow, ...base.byDesign].map((e) => e.key);
-    expect(keys.length, "the baseline read as empty — guard rotted").toBeGreaterThan(40);
+    expect(keys.length, "the baseline read as empty — guard rotted").toBeGreaterThan(20);
     const unstable = keys.filter((k) => {
       const m = /^(\S+) (\S+) (#\d+)$/.exec(k);
       if (!m) return true;

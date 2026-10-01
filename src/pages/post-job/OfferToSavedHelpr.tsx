@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronDown, UserCheck } from "lucide-react";
+import { ChevronDown, Heart, UserCheck } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 import { supabase } from "@/integrations/supabase/client";
 import UserAvatar from "@/components/UserAvatar";
@@ -25,8 +26,10 @@ import { track } from "@/lib/analytics";
  * "put direct offer here instead of in each box") because that is what it is —
  * a fifth way to begin, not a setting inside the form.
  *
- * Self-hiding: a poster with no saved helprs sees nothing rather than an empty
- * picker inviting them to choose from nobody.
+ * Always shown, for everyone (owner, 2026-10-01). It used to hide itself for a
+ * poster with no saved Helprs; that made the entry screen a different height
+ * per account. With nobody saved, opening it shows the Saved tab's empty state
+ * (same copy), which says how a Helpr gets onto the list.
  */
 interface SavedHelperLite {
   helper_id: string;
@@ -89,10 +92,11 @@ export function OfferToSavedHelpr({
 
   if (isError) report(error, { tags: { source: "OfferToSavedHelpr.get_my_saved_helpers" } });
 
-  // Hidden once we know there is nobody to offer to. `undefined` means the
-  // query is still in flight, which must NOT hide the card — see the skeleton
-  // note on Repost for why a row that appears late is its own defect.
-  if (helpers && helpers.length === 0) return null;
+  // Never hidden (owner, 2026-10-01): it used to return null once the list
+  // came back empty, so the entry screen had five cards for one account and
+  // four for another, and its loading skeleton could match only one of them
+  // (a 122px jump on arrival). An empty list now opens onto the Saved tab's
+  // own empty state, below.
 
   const toggle = () => onOpenChange(!open);
 
@@ -151,6 +155,17 @@ export function OfferToSavedHelpr({
             >
               Loading your saved Helprs…
             </p>
+          ) : helpers.length === 0 ? (
+            // The SavedHelpersTab never-saved copy, verbatim — no new words
+            // (owner, 2026-10-01). `bare` because this card owns the glass.
+            <div className="sm:col-span-2">
+              <EmptyState
+                variant="bare"
+                icon={Heart}
+                title="No saved Helprs yet."
+                body="After your next job, tap the heart on the Helpr's profile — they'll land here for one-tap rebooking."
+              />
+            </div>
           ) : (
             helpers.map((h) => {
               // `.trim()` before the fallback: a whitespace-only `full_name`

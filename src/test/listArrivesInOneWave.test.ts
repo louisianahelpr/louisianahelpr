@@ -24,9 +24,10 @@
 // @mutate src/hooks/useArrivalGate.ts | const ready = latched \|\| (primaryReady && (secondaryReady \|\| capped)); | const ready = latched \|\| primaryReady;
 // @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
 // @mutate src/pages/post-job/EntryChoice.tsx | recentPosted !== null && form.openJobCount !== null | true
-// @mutate src/pages/post-job/EntryChoice.tsx | form.openJobCount !== null && savedHelpersSettled, | form.openJobCount !== null,
+// @mutate src/pages/post-job/EntryChoice.tsx | form.openJobCount !== null && savedHelpersSettled && giftCardsSettled, | form.openJobCount !== null && giftCardsSettled,
+// @mutate src/pages/post-job/EntryChoice.tsx | savedHelpersSettled && giftCardsSettled, | savedHelpersSettled,
 // @mutate src/pages/post-job/EntryChoice.tsx | form.draftLoaded && draftCheckoutSettled && recentPosted | recentPosted
-// @mutate src/pages/post-job/EntryChoice.tsx | savedHelpersSettled,\n    true,\n | true,\n    savedHelpersSettled,\n
+// @mutate src/pages/post-job/EntryChoice.tsx | savedHelpersSettled && giftCardsSettled,\n    true,\n | true,\n    savedHelpersSettled && giftCardsSettled,\n
 // @mutate src/pages/post-job/useDraftCheckoutState.ts | return { state, settled: !hasDraft \|\| answered }; | return { state, settled: true };
 // @mutate src/hooks/useDraftJob.ts |     setDraftLoaded(true);\n |
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
@@ -120,7 +121,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     const src = read("pages/post-job/EntryChoice.tsx");
     // The card reads the same hook, so the gate and the card see one query.
     expect(src).toMatch(/const savedHelpers = useSavedHelpersLite\(\);/);
-    expect(src).toMatch(/form\.openJobCount !== null && savedHelpersSettled,/);
+    expect(src).toMatch(/form\.openJobCount !== null && savedHelpersSettled && giftCardsSettled,/);
     expect(read("pages/post-job/OfferToSavedHelpr.tsx")).toMatch(/= useSavedHelpersLite\(\);/);
   });
 
@@ -129,8 +130,10 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     // All five reads in the PRIMARY slot, secondary `true`: the cap bounds only
     // secondary data, so nothing paints before every card's data is in.
     expect(src).toContain(
-      "useArrivalGate(\n    form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled,\n    true,\n  )",
+      "useArrivalGate(\n    form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled && giftCardsSettled,\n    true,\n  )",
     );
+    // The gift card banner (top of the column, owner 2026-10-01) is data too.
+    expect(src).toContain("const giftCardsSettled = giftCards.settled;");
     expect(src).toContain("useDraftCheckout(form.hasDraft)");
     // The draft is read in an effect; the flag says it has been.
     expect(read("hooks/useDraftJob.ts")).toMatch(/\} catch \{\s*\}\n {4}setDraftLoaded\(true\);\n {2}\}, \[\]\);/);

@@ -1,5 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { TAB_TITLES } from "@/pages/profile/types";
 
 /**
  * ONE skeleton for Earnings & Payouts (VN-3, owner 2026-09-15: "One skeleton.
@@ -21,11 +23,11 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
     <ProfileTabBody aria-hidden data-testid="earnings-page-skeleton">
       {withHeader && (
         <>
-          <div className="flex items-center gap-3 h-11">
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <Skeleton className="h-7 w-56 rounded" />
-          </div>
-          <Skeleton className="h-12 w-full rounded-full" />
+          {/* The REAL header (68px), not a 44px bone row, and a switcher bone
+              the switcher's measured 50px: the bone pair read 44/48 against
+              68/50 loaded, a +20px jump on prod at 375 (2026-10-01). */}
+          <ProfileTabHeader title={TAB_TITLES.earnings} />
+          <Skeleton className="h-[50px] w-full rounded-full" />
         </>
       )}
       <section className="space-y-3">

@@ -18,15 +18,23 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { useDraftCheckout } from "./useDraftCheckoutState";
 
 /**
- * The entry column while its data rows settle: five collapsed-card shells, the
- * shape and height (104px) of the real rows, so the column holds its place and
- * hands over to the real cards in one step.
+ * The entry column while its data rows settle: one collapsed-card shell per
+ * real card, the shape and height (104px) of the real rows, so the column
+ * holds its place and hands over to the real cards in one step.
+ *
+ * Four cards always render; the fifth ("Offer It to a Saved Helpr") hides on
+ * an empty saved list. Owner, 2026-10-01: the placeholder matches the real
+ * card count — five bones over an account with no saved Helprs collapsed by
+ * 110px. So the fifth bone is drawn only once the list is KNOWN non-empty
+ * (cached, or settled while another row is still loading); while it is
+ * unknown the column is sized to the shorter case and a fifth card grows
+ * below rather than a phantom one vanishing.
  */
-function EntryChoiceSkeleton() {
+function EntryChoiceSkeleton({ cards }: { cards: number }) {
   return (
     <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
       <span className="sr-only">Loading…</span>
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: cards }).map((_, i) => (
         <div key={i} className="rounded-2xl liquid-glass p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
           <div className="flex items-center gap-4 w-full">
             <Skeleton className="w-11 h-11 rounded-full shrink-0" />
@@ -165,7 +173,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled && giftCardsSettled,
     true,
   );
-  if (!entryReady) return <EntryChoiceSkeleton />;
+  if (!entryReady) return <EntryChoiceSkeleton cards={savedHelpers.data?.length ? 5 : 4} />;
 
   return (
     // Top-level cards render as a stacked column on phones and flip to a

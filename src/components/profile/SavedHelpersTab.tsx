@@ -369,7 +369,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
           // (Q169): one skeleton, not two. The three bone rows this replaced
           // sat where the filter/sort row later appears, so every card slid
           // 60px down when the list landed (CLS 0.022 at 375).
-          <ProfileTabBodyReserve />
+          <ProfileTabBodyReserve tab="saved_helpers" />
         ) : loadError ? (
           // A failed RPC fetch shows a recoverable retry surface instead
           // of the misleading "no saved helprs yet" empty state.

@@ -248,7 +248,7 @@ jobs:
 
       - name: Install Playwright Chromium browser
         if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Run sweep
         if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'

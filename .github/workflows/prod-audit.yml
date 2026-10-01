@@ -158,7 +158,7 @@ jobs:
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       # WebKit too: notification-panel-jump.spec.ts (Q51) measures the panel
       # edge in both engines, as the original fix was measured.
-      - run: npx playwright install --with-deps chromium webkit
+      - run: bash scripts/ci/playwright-install.sh chromium webkit
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -226,7 +226,7 @@ jobs:
           ONLY: ${{ inputs.vacuity_only }}
         run: |
           set -euo pipefail
-          npx playwright install --with-deps webkit
+          bash scripts/ci/playwright-install.sh webkit
           npm run vacuity -- --only "${ONLY}"
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and

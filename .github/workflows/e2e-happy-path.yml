@@ -96,7 +96,7 @@ jobs:
 
       - name: Install Playwright Chromium browser
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Run happy-path smoke tests
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'

@@ -144,7 +144,7 @@ jobs:
       - name: Drop the Google Chrome apt source
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps chromium
+      - run: bash scripts/ci/playwright-install.sh chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         # The mint only drives Stripe's hosted page today, but any relative
         # goto a fixture adds must land here, never on the deployed site.
@@ -210,7 +210,7 @@ jobs:
         # Same reason as e2e-happy-path.yml: its bad index fails apt-get update.
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps ${{ matrix.engine }}
+      - run: bash scripts/ci/playwright-install.sh ${{ matrix.engine }}
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:

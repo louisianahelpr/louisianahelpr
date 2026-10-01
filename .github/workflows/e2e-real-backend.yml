@@ -172,7 +172,7 @@ jobs:
         # runs `apt-get update`, and Google's repo is only a source of outages.
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps chromium
+      - run: bash scripts/ci/playwright-install.sh chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -251,7 +251,7 @@ jobs:
         # Playwright, so Google's repo is only ever a source of outages here.
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps chromium
+      - run: bash scripts/ci/playwright-install.sh chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -370,7 +370,7 @@ jobs:
         # Playwright, so Google's repo is only ever a source of outages here.
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps chromium
+      - run: bash scripts/ci/playwright-install.sh chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -450,7 +450,7 @@ jobs:
         # Playwright, so Google's repo is only ever a source of outages here.
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps chromium
+      - run: bash scripts/ci/playwright-install.sh chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -595,7 +595,7 @@ jobs:
         # Same reason as the money loop: dl.google.com's index outages fail `--with-deps`.
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: npx playwright install --with-deps chromium
+      - run: bash scripts/ci/playwright-install.sh chromium
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:

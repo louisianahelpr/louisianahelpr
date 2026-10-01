@@ -15,7 +15,7 @@
  *
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | else if (opts.appliedJobIds.has(r.id)) retire | else if (opts.appliedJobIds.has(r.id) && false) retire
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | else if (runway < MIN_RUNWAY_DAYS) retire | else if (runway < 0) retire
- * @mutate e2e/prod-audit/deep-links.spec.ts | const funded = await ensureFundedOpenJob(request, browser, poster, helper); | const funded = { log: [] as string[] };
+ * @mutate e2e/prod-audit/deep-links.spec.ts | const funded = await unlessLivePay(() => ensureFundedOpenJob(request, browser, poster, helper)); | const funded = { value: null, livePay: null };
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -195,7 +195,8 @@ describe("every prod-audit spec that needs the funded open job sets it up", () =
 
   it.each(needers)("%s calls ensureFundedOpenJob before resolving fixtures", (f) => {
     const code = blankComments(readFileSync(join(dir, f), "utf8"));
-    const ensure = code.search(/await ensureFundedOpenJob\(/);
+    // Q865: the call sits inside unlessLivePay so a live-pay skip cannot take the whole file.
+    const ensure = code.search(/await (?:unlessLivePay\(\(\) => )?ensureFundedOpenJob\(/);
     const resolveAt = code.search(/fx = await resolveFixtures\(/);
     expect(ensure, `${f} reads openJob but never calls ensureFundedOpenJob`).toBeGreaterThan(-1);
     expect(ensure, `${f} resolves fixtures before the funded job exists`).toBeLessThan(resolveAt);

@@ -39,9 +39,13 @@ const VIEWS = adminViews();
  * `admin_stalled_job_queue` added 2026-09-20. Verified live on prod before
  * adding: `LANGUAGE sql STABLE SECURITY DEFINER`, one SELECT over
  * `job_completion_nudges JOIN jobs`, and `pg_proc.provolatile = 's'`.
+ *
+ * `admin_last_activity` and `admin_last_logins` added 2026-09-30. Verified live
+ * on prod: both `LANGUAGE sql STABLE`, one SELECT (jobs/applications and
+ * login_history), `pg_proc.provolatile = 's'`.
  */
 const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_last_logins(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is

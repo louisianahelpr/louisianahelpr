@@ -25,28 +25,32 @@
  *
  * Structure: the STATIC half needs no credentials and always runs. The LIVE
  * half reads Stripe LIVE mode (Stripe went live on prod 2026-09-27; the
- * test-mode endpoint is disabled on purpose, Q839) with a RESTRICTED read-only
- * key in STRIPE_LIVE_READ_KEY (owner decision 2026-09-30: rk_live_, only
- * "Webhook Endpoints: Read"). A missing key is RED on any run that includes the
- * live half, never a skip that still exits 0 — the live half is the only thing
- * that can see a duplicate endpoint, so a pass from a run that never made the
- * request would be exactly the false green this guard exists to prevent.
- * Skipping it must be asked for explicitly (--static), and that run says so in
- * its own PASS line.
+ * test-mode endpoint is disabled on purpose, Q839) through the edge function
+ * supabase/functions/stripe-webhook-config-check, which reads the live key from
+ * its own env and returns only {id, url, status, livemode, enabled_events} per
+ * endpoint plus `keyIsLive` (owner decision 2026-09-30, "Allow the function").
+ * This script holds NO Stripe key: it calls the function with
+ * CRON_SECRET. A missing key or a non-200 is RED on any run that
+ * includes the live half, never a skip that still exits 0 — the live half is
+ * the only thing that can see a duplicate endpoint, so a pass from a run that
+ * never made the request would be exactly the false green this guard exists to
+ * prevent. Skipping it must be asked for explicitly (--static), and that run
+ * says so in its own PASS line.
  *
- * READ ONLY. The key must have the rk_live_ shape (sk_ keys, which can write,
- * and test keys are refused before any request), and the only request made is
- * GET /v1/webhook_endpoints. Never prints a secret.
- *
- * Not covered here: undelivered events (pending_webhooks > 0, Q156). That read
- * is GET /v1/events, which needs "Events: Read" on the key; the owner's key is
- * scoped to Webhook Endpoints only, so the check was dropped when the guard
- * moved to live mode (see docs/OPEN.md).
+ * READ ONLY. The function makes two GETs and nothing else: /v1/webhook_endpoints,
+ * and /v1/events?delivery_success=false over a bounded window (Q854, owner
+ * pop-up 2026-09-30). From the second it returns only a count plus {id, type}
+ * per event. RED when that count is above zero (a live event Stripe has not
+ * delivered, i.e. still pending or failed every attempt), when the list was
+ * truncated, or when the `undelivered` block is missing (never read as zero).
+ * Never prints a secret.
  *
  * Usage:
  *   node scripts/check-stripe-webhook-events.mjs              # static + live; RED if the key is missing
  *   node scripts/check-stripe-webhook-events.mjs --static     # static half only
  *   node scripts/check-stripe-webhook-events.mjs --require-live  # accepted no-op
+ *   node scripts/check-stripe-webhook-events.mjs --fixture <endpoints.json>      # prove the endpoint half red
+ *   node scripts/check-stripe-webhook-events.mjs --events-fixture <shaped.json>  # prove the undelivered half red
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -56,7 +60,7 @@ import {
   WEBHOOK_URL,
   WEBHOOK_INDEX,
 } from "./stripe-webhook-events.mjs";
-import { gradeLiveEndpoints, liveReadKeyProblem } from "./lib/stripeWebhookGuard.mjs";
+import { gradeConfigCheckResponse, gradeLiveEndpoints, gradeUndelivered } from "./lib/stripeWebhookGuard.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const SANDBOX_ON = join(root, "scripts/e2e/stripe-sandbox-on.sh");
@@ -81,6 +85,12 @@ const STATIC_ONLY = args.has("--static");
  * scripts/fixtures/stripe-webhook-endpoints/. Never used by CI's live job.
  */
 const FIXTURE = argv.includes("--fixture") ? argv[argv.indexOf("--fixture") + 1] : null;
+/**
+ * --events-fixture <file>: grade a recorded `undelivered` block (the shape the
+ * edge function returns, {undelivered: {since, until, count, truncated, events}})
+ * so the undelivered-events half can be PROVEN RED without a key. Q854.
+ */
+const EVENTS_FIXTURE = argv.includes("--events-fixture") ? argv[argv.indexOf("--events-fixture") + 1] : null;
 
 const failures = [];
 const notes = [];
@@ -150,27 +160,46 @@ if (onId) {
 
 // ------------------------------------------------------------------ live half
 
-// LH_STRIPE_API_BASE exists only so src/test/liveCheckScriptsFailClosed.test.ts
-// can point the live read at a stub that fails or returns nothing.
-const STRIPE_API = process.env.LH_STRIPE_API_BASE ?? "https://api.stripe.com";
+// LH_SUPABASE_FUNCTIONS_BASE exists only so src/test/liveCheckScriptsFailClosed.test.ts
+// can point the live read at a stub that fails or returns nothing. The default
+// is the functions base of the same project WEBHOOK_URL points at.
+const FUNCTIONS_BASE =
+  process.env.LH_SUPABASE_FUNCTIONS_BASE ?? WEBHOOK_URL.replace(/\/stripe-webhook$/, "");
+const CONFIG_CHECK_FN = "stripe-webhook-config-check";
+// The service-role key is sent to FUNCTIONS_BASE, so the override may only name
+// a loopback stub or a Supabase functions host, never an arbitrary one.
+const FUNCTIONS_BASE_OK =
+  /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(FUNCTIONS_BASE) ||
+  /^https:\/\/[a-z0-9]+\.supabase\.co\/functions\/v1$/.test(FUNCTIONS_BASE);
 
-/** The ONLY request this guard makes: an authenticated GET. There is no write path. */
-async function stripeGet(key, path) {
-  const res = await fetch(`${STRIPE_API}/v1/${path}`, {
+/**
+ * The ONLY request this guard makes: an authenticated GET of the edge function,
+ * which itself makes two GETs to Stripe (webhook_endpoints, undelivered events).
+ * There is no write path.
+ */
+async function readConfigCheck(serviceKey) {
+  const res = await fetch(`${FUNCTIONS_BASE}/${CONFIG_CHECK_FN}`, {
     method: "GET",
-    headers: { Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}` },
+    headers: { Authorization: `Bearer ${serviceKey}` },
+    signal: AbortSignal.timeout(30000),
   });
-  const body = await res.json();
-  if (!res.ok) {
-    // body.error.message is Stripe's own text and never contains our key.
-    throw new Error(`Stripe GET /v1/${path} -> ${res.status}: ${body?.error?.message ?? "unknown error"}`);
+  const text = await res.text();
+  let body = null;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = null;
   }
+  if (res.status !== 200) {
+    // The function's error text is its own message (never a key); a 401 body is "Unauthorized".
+    const msg = typeof body?.error === "string" ? body.error : text.slice(0, 200);
+    throw new Error(`${CONFIG_CHECK_FN} answered HTTP ${res.status}: ${msg || "empty body"}`);
+  }
+  if (body === null) throw new Error(`${CONFIG_CHECK_FN} answered 200 with a non-JSON body`);
   return body;
 }
 
-/** Grade a /v1/webhook_endpoints list — the same logic for live and fixture. */
-function grade(list) {
-  const r = gradeLiveEndpoints(list, handlers, WEBHOOK_URL);
+function record(r) {
   failures.push(...r.failures);
   notes.push(...r.notes);
 }
@@ -178,30 +207,40 @@ function grade(list) {
 async function liveHalf() {
   if (FIXTURE) {
     notes.push(`FIXTURE MODE: grading ${FIXTURE} instead of the live Stripe account.`);
-    grade(JSON.parse(readFileSync(FIXTURE, "utf8")));
+    // A fixture is a recorded /v1/webhook_endpoints list ({data: [...]}).
+    record(gradeLiveEndpoints(JSON.parse(readFileSync(FIXTURE, "utf8")), handlers, WEBHOOK_URL));
     return;
   }
-  const key = process.env.STRIPE_LIVE_READ_KEY;
-  const problem = liveReadKeyProblem(key);
-  if (problem) {
+  if (EVENTS_FIXTURE) {
+    notes.push(`FIXTURE MODE: grading ${EVENTS_FIXTURE} instead of the live Stripe account's undelivered events.`);
+    record(gradeUndelivered(JSON.parse(readFileSync(EVENTS_FIXTURE, "utf8")).undelivered));
+    return;
+  }
+  const serviceKey = process.env.CRON_SECRET;
+  if (!serviceKey) {
     fail(
-      key
-        ? problem
-        : "STRIPE_LIVE_READ_KEY is not set, so the live endpoint check did NOT run.\n" +
-            "   This half is what catches a second enabled endpoint on the webhook url (the #1586 bug) and event drift.\n" +
-            '   Add a Stripe LIVE-mode restricted key (rk_live_, only "Webhook Endpoints: Read") as the STRIPE_LIVE_READ_KEY repo secret.',
+      "CRON_SECRET is not set, so the live endpoint check did NOT run.\n" +
+        "   This half is what catches a second enabled endpoint on the webhook url (the #1586 bug) and event drift.\n" +
+        `   It calls the ${CONFIG_CHECK_FN} edge function, which needs CRON_SECRET.`,
+    );
+    return;
+  }
+  if (!FUNCTIONS_BASE_OK) {
+    fail(
+      `Refusing to send CRON_SECRET to ${FUNCTIONS_BASE}: LH_SUPABASE_FUNCTIONS_BASE must be a loopback stub ` +
+        "or https://<ref>.supabase.co/functions/v1. The live endpoint check did NOT run.",
     );
     return;
   }
 
-  let list;
+  let body;
   try {
-    list = await stripeGet(key, "webhook_endpoints?limit=100");
+    body = await readConfigCheck(serviceKey);
   } catch (e) {
-    fail(`Could not list Stripe live-mode webhook endpoints: ${e.message}`);
+    fail(`Could not read Stripe live-mode webhook endpoints and undelivered events: ${e.message}`);
     return;
   }
-  grade(list);
+  record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL));
 }
 
 if (!STATIC_ONLY) await liveHalf();

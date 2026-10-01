@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
 import { sampleJobs } from "@/data/sampleJobs";
@@ -28,11 +29,11 @@ function EntryChoiceSkeleton() {
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="rounded-2xl liquid-glass p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
           <div className="flex items-center gap-4 w-full">
-            <span className="w-11 h-11 rounded-full shrink-0 animate-pulse" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} />
-            <span className="min-w-0 flex-1">
-              <span className="block h-4 w-40 rounded animate-pulse" style={{ background: "hsl(var(--olivewood) / 0.10)" }} />
-              <span className="block h-3 w-28 rounded mt-1.5 animate-pulse" style={{ background: "hsl(var(--olivewood) / 0.07)" }} />
-            </span>
+            <Skeleton className="w-11 h-11 rounded-full shrink-0" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-4 w-40 rounded" />
+              <Skeleton className="h-3 w-28 rounded mt-1.5" />
+            </div>
           </div>
         </div>
       ))}

@@ -402,9 +402,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           : path
       : path;
 
+    // /browse is Home for everyone (signed-in users redirect to /home; guest-only lit it late: media 2→4).
     const active =
-      location.pathname === effectivePath ||
-      (isGuest && path === "/home" && location.pathname === "/browse");
+      location.pathname === effectivePath || (path === "/home" && location.pathname === "/browse");
 
     const inStack = !isGuest && isInStack(path);
     // Guests never carry a badge (nothing to count). Each badged tab pulls

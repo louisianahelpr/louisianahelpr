@@ -137,3 +137,5 @@
 {"sha":"aec717905c59e81993facfcfb5f6cf271c4cb41a","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 32376e858/f0068ea8f (approved): patch-id identical (4b34c4b4).","date":"2026-10-01"}
 {"sha":"b54229460c2ef8493f08b9b8409047440f631c0f","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 942f5e7a7/6438826d5 (approved): patch-id identical (884947ea).","date":"2026-10-01"}
 {"sha":"18a7d481de299715cbed929c4a4ce449e26b626b","reviewer":"lh-money-escrow","verdict":"PASS: comment-only; every +/- line in EarningsTab.tsx is a // comment (no executable change), baseline 679->677 equals the file's exact line count","date":"2026-10-01"}
+{"sha":"16e3804a0382645e4ea60d012c469e2d8d31b0dd","reviewer":"lh-money-escrow","verdict":"PASS (rebase of aec717905; sensitive-path patch-id 0c7e900f identical)","date":"2026-10-01"}
+{"sha":"84cc9ddb06d17f127dfec1a5ab699147a3aca1c6","reviewer":"lh-money-escrow","verdict":"PASS (rebase of b54229460; full patch-id 884947ea identical)","date":"2026-10-01"}

@@ -113,7 +113,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   it("post-job's entry column holds until its two data rows settle", () => {
     const src = read("pages/post-job/EntryChoice.tsx");
     expect(src).toMatch(/recentPosted !== null && form\.openJobCount !== null/);
-    expect(src).toMatch(/if \(!entryReady\) return <EntryChoiceSkeleton \/>;/);
+    expect(src).toMatch(/if \(!entryReady\) return <EntryChoiceSkeleton cards=\{savedHelpers\.data\?\.length \? 5 : 4\} \/>;/);
   });
 
   it("post-job's entry column also waits for the self-hiding saved-helprs row (Q1654 P1)", () => {
@@ -147,7 +147,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
       "components/profile/SavedHelpersTab.tsx",
       "components/profile/ScheduleTab.tsx",
     ]) {
-      expect(read(f), f).toMatch(/<ProfileTabBodyReserve \/>/);
+      expect(read(f), f).toMatch(/<ProfileTabBodyReserve (tab="[a-z_]+" )?\/>/);
     }
     expect(read("components/NotificationPreferences.tsx")).toMatch(/if \(!loaded\) return <ProfileTabBodyReserve \/>;/);
   });
@@ -155,7 +155,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   it("the security tab waits for its sessions AND two-step reads, then lands once", () => {
     const src = read("components/profile/SecurityTab.tsx");
     expect(src).toMatch(/const securityReady = useArrivalGate\(!sessionsLoading, !factorLoading\);/);
-    expect(src).toMatch(/\{!securityReady \? \(\s*<ProfileTabBodyReserve \/>/);
+    expect(src).toMatch(/\{!securityReady \? \(\s*<ProfileTabBodyReserve tab="security" \/>/);
   });
 
   it("the virtualized feed renders rows on its FIRST pass (no empty panel between skeleton and cards)", () => {

@@ -407,7 +407,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           below twice (CLS 0.019 at 375, content in two waves). The tab keeps
           its chunk placeholder until both have settled (capped), then lands. */}
       {!securityReady ? (
-        <ProfileTabBodyReserve />
+        <ProfileTabBodyReserve tab="security" />
       ) : (
       <>
       {/* Email / Password / Two-step / Face ID all share ONE card shape:

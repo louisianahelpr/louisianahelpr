@@ -5,8 +5,6 @@ import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDeri
 import { IdentityHeader } from "./profileLanding/IdentityHeader";
 import { SettingsSection } from "./profileLanding/SettingsSection";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
-import { VerificationStatusRow } from "./profileLanding/VerificationStatusRow";
-import { verificationPromptFor } from "./profileLanding/verificationPrompt";
 
 export function ProfileLanding({
   profile,
@@ -79,32 +77,25 @@ export function ProfileLanding({
       />
 
       {/* ── Getting-started slot ─────────────────────────────────────
-          The two things that stand between a member and working, in the
-          order the server checks them: can we pay you, and do we know who
-          you are. Both live in ONE card so they read as a checklist rather
-          than two competing alarms, and the card disappears completely once
-          neither has anything to say.
+          The one thing that stands between a member and being hired: can we
+          pay you. The row disappears completely once it has nothing to say.
 
-          The verification row is new (2026-09-06). Before it, identity was
-          surfaced NOWHERE on this screen — the only ID prompt in the whole
-          product was mounted inside PostJob — while `jobs` INSERT and
-          `helper_award_block_reason()` both refused unverified members. See
-          `verificationPrompt.ts`. */}
-      {(payoutPrompt.kind !== "none" || verificationPromptFor(profile).kind !== "none") && (
-        /* NO CARD BEHIND THESE BANNERS. Owner, 2026-09-11: remove the white
-           card behind "Finish setting up". Each row already draws its own
-           bordered, sienna-tinted surface (`PayoutStatusRow`'s BOX,
-           `VerificationStatusRow`'s), so the `liquid-glass` box put a second
-           boundary a single padding step outside the first — the same
-           box-inside-a-box the owner caught on the empty states. The rows are
-           the cards; this is just the gap between them. */
+          There used to be a second row here, "Verify your ID". Identity
+          verification gates nothing any more (owner, 2026-10-01: "we don't do
+          that anymore"), so the prompt went with the server requirement
+          (migration 20261001222911). Guarded by
+          src/test/identityNeverGatesPostOrAward.test.ts. */}
+      {payoutPrompt.kind !== "none" && (
+        /* NO CARD BEHIND THIS BANNER. Owner, 2026-09-11: remove the white
+           card behind "Finish setting up". `PayoutStatusRow` draws its own
+           bordered, sienna-tinted surface, so a `liquid-glass` box behind it
+           would be a box inside a box. */
         <div className="space-y-2">
           <PayoutStatusRow
             prompt={payoutPrompt}
             onSetUp={() => onSelectTab("payment")}
             onRetry={refetchStatus}
           />
-          <VerificationStatusRow profile={profile} />
         </div>
       )}
 

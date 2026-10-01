@@ -8,7 +8,7 @@ import {
   DialogSecondaryAction,
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { BadgeDollarSign, Loader2, ShieldCheck } from "lucide-react";
+import { BadgeDollarSign, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
@@ -16,29 +16,19 @@ import { hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { track, AhaEvent } from "@/lib/analytics";
-import { awardBlockCopy, isIdentityVerified, type AwardBlockReason } from "@/lib/awardGate";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { awardBlockCopy, type AwardBlockReason } from "@/lib/awardGate";
 import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * The blocked state for a helper who cannot yet be awarded a job.
  *
  * This screen carries a lot of weight: it is what a helper sees the first time
- * they try to take work and cannot. This header used to say NO account passed
- * the identity check; measured against prod 2026-09-06 that is no longer true —
- * `helper_award_block_reason` now accepts the Stripe Identity verdict as well
- * as the Connect one, and ZERO profiles are blocked on identity. Twenty are
- * blocked on payout setup, so that arm is the live one.
- *
- * So: it names WHICH of the two requirements is missing, says WHAT Stripe is
- * waiting on, and its primary button goes straight into the right Stripe flow —
- * never a disabled control with no explanation, which this codebase has shipped
- * before (see 41ff2120e and audit item R30).
- *
- * The identity path asks Stripe for `eventually_due`, not the default
- * `currently_due`. Without that the button is a loop: the helper completes
- * Stripe's flow, returns, and is blocked by the very field the link declined to
- * collect. See supabase/functions/stripe-connect/index.ts.
+ * they try to take work and cannot. The one requirement is a payout account
+ * (identity verification stopped being one on 2026-10-01, migration
+ * 20261001222911), so it says what is missing and its primary button goes
+ * straight into Stripe's payout setup, never a disabled control with no
+ * explanation, which this codebase has shipped before (see 41ff2120e and audit
+ * item R30).
  */
 export function AwardGateDialog({
   open,
@@ -51,35 +41,12 @@ export function AwardGateDialog({
 }) {
   const [loading, setLoading] = useState(false);
   const copy = awardBlockCopy(reason);
-  const Icon = reason === "helper_identity_unverified" ? ShieldCheck : BadgeDollarSign;
-  const { profile } = useCurrentUser();
-
-  // The identity row used to be hard-coded `met={false}`, so a helper blocked
-  // ONLY on payout setup was told, in the same session, that their identity was
-  // "Needed" while the poster's applicant card showed them a green "ID verified
-  // by Stripe" badge for the same account. Two screens, one fact, opposite
-  // answers — QA caught exactly this on 2026-09-06.
-  //
-  // The server's refusal wins where it has spoken: `helper_identity_unverified`
-  // means not verified no matter what a cached column says. Otherwise the row
-  // reports the same EITHER-verdict the gate and the badge now read.
-  const identityMet =
-    reason !== "helper_identity_unverified" &&
-    isIdentityVerified({
-      connectIdentityVerified: profile?.stripe_identity_verified,
-      idvStatus: profile?.idv_status,
-    });
-
   const handleFix = async () => {
     setLoading(true);
     try {
       track(AhaEvent.PayoutSetupStarted, { action: "award_gate", reason });
-      // `update_onboarding` needs an account to already exist; `onboard`
-      // creates one. An identity block always implies an account (payouts are
-      // enabled), so it takes the update path.
-      const action = reason === "helper_identity_unverified" ? "update_onboarding" : "onboard";
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action, return_url: getPublicReturnUrl(), collect: copy.collect },
+        body: { action: "onboard", return_url: getPublicReturnUrl(), collect: copy.collect },
       });
       // A non-2xx makes the SDK return a FunctionsHttpError whose `.message` is
       // the useless "Edge Function returned a non-2xx status code"; the real
@@ -108,18 +75,11 @@ export function AwardGateDialog({
           <p>{copy.body}</p>
         </DialogBody>
 
-        {/* The two requirements, with the failing one called out. Showing both
-            answers the question the single-line version left open — "is this
-            the only thing?" — which is the difference between one trip through
-            Stripe and two. */}
+        {/* The requirement, called out as met or needed. */}
         <div className="space-y-2 py-1">
           <RequirementRow
             label="Payout account connected"
             met={reason !== "helper_payout_setup_incomplete"}
-          />
-          <RequirementRow
-            label="Identity verified by Stripe"
-            met={identityMet}
           />
         </div>
 
@@ -137,7 +97,7 @@ export function AwardGateDialog({
             {loading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <Icon className="w-4 h-4 mr-2" />
+              <BadgeDollarSign className="w-4 h-4 mr-2" />
             )}
             {copy.ctaLabel}
           </DialogPrimaryAction>

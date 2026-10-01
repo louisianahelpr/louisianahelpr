@@ -139,7 +139,6 @@ const CLASSIFIED: Record<string, string> = {
   // --- openExternalUrl callers: edge-function-returned Stripe URLs ---
   "components/AwardGateDialog.tsx::data.url": STRIPE_EDGE_URL,
   "components/CompletionPrompts.tsx::data.url": STRIPE_EDGE_URL,
-  "components/IDVPromptDialog.tsx::data.url": STRIPE_EDGE_URL,
   "components/JobBoostDialog.tsx::data.url": STRIPE_EDGE_URL,
   "components/PayoutSetupForm.tsx::data.url": STRIPE_EDGE_URL,
   "components/TipDialog.tsx::data.url": STRIPE_EDGE_URL,

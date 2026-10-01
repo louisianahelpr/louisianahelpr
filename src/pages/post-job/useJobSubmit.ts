@@ -110,10 +110,6 @@ export interface UseJobSubmitParams {
   setRedirecting: (v: boolean) => void;
   setStep: (s: Step) => void;
   setConfirmed: (v: boolean) => void;
-  // IDV dialog setters
-  setIdvStatus: (v: string | undefined) => void;
-  setIdvFailureReason: (v: string | undefined) => void;
-  setIdvDialogOpen: (v: boolean) => void;
   // Draft
   flushDraft: () => void;
   // Details fields
@@ -174,9 +170,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     setRedirecting,
     setStep,
     setConfirmed,
-    setIdvStatus,
-    setIdvFailureReason,
-    setIdvDialogOpen,
     flushDraft,
     title,
     description,
@@ -327,7 +320,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
   /**
    * Pre-flight gating before any job INSERT — double-click guard, submit
-   * cooldown, auth, identity-verification gate, and the open-job limit.
+   * cooldown, auth and the open-job limit. Identity verification gates nothing
+   * (owner, 2026-10-01; migration 20261001222911_remove_idv_requirement).
    *
    * Returns the authenticated `user` when all checks pass, or `null` when
    * a check failed (in which case it has already shown the right toast /
@@ -356,39 +350,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       setSaving(false);
       submittingRef.current = false;
       return null;
-    }
-
-    // Identity verification gate — required before posting. Same Stripe
-    // IDV used at job-acceptance, applied here so posters can't onboard
-    // strangers under a fake identity.
-    {
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("idv_status, idv_failure_reason")
-        .eq("user_id", user.id)
-        .single();
-      // Don't drop this error: on a transient fetch failure `prof` is
-      // undefined, which would read as "not verified" and wrongly trap an
-      // already-verified poster in the IDV dialog. Surface it and abort.
-      if (profErr) {
-        report(profErr, { tags: { source: "usePostJobForm.idvGate" } });
-        toast.error("Couldn't check your verification status — please try again.");
-        setSaving(false);
-        submittingRef.current = false;
-        return null;
-      }
-      const profStatus = (prof as { idv_status?: string })?.idv_status;
-      // Identity verification is unconditionally required (owner, 2026-09-07),
-      // matching the jobs INSERT policy exactly — there is no operator pause
-      // any more, so posting and accepting cannot disagree about it.
-      if (profStatus !== "verified") {
-        setIdvStatus(profStatus);
-        setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
-        setIdvDialogOpen(true);
-        setSaving(false);
-        submittingRef.current = false;
-        return null;
-      }
     }
 
     // Check open job limit (server enforces too, but show friendly message).
@@ -557,7 +518,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // is literally "new row violates row-level security policy for table
       // jobs", which tells a poster nothing they can act on and reads like the
       // app is broken. 42501 here means a server-side gate the client thought
-      // it had already cleared — in practice the identity check — so say that.
+      // it had already cleared (ownership, a business_id, or a blocked offer
+      // target), so say so in words a poster can act on.
       // A contact-leak rejection is the ONE server message shown verbatim:
       // the trigger writes it for the user and names the field.
       const isPolicyRefusal = (error as { code?: string } | null)?.code === "42501";
@@ -566,7 +528,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         leakRejection
           ? leakRejection
           : isPolicyRefusal
-            ? "We couldn't post this because your account isn't cleared to post yet. Check your identity verification in Profile, then try again."
+            ? "We couldn't post this job from your account. Refresh the page and try again."
             // Q270: never the raw text. A dropped connection gets connection
             // copy (and the attempt's key is kept, so the retry is safe);
             // anything else goes through the shared internal-text filter.

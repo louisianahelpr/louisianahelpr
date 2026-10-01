@@ -44,14 +44,11 @@ const STRIPE_WRITE_LABELS: Array<[label: string, source: string]> = [
   ["Complete Stripe Verification", "src/components/PayoutSetupForm.tsx"], // update_onboarding → accountLinks.create
   ["Manage Payouts on Stripe", "src/components/PayoutSetupForm.tsx"], // dashboard → accounts.update + login link
   ["Set Up Payouts", "src/lib/awardGate.ts"], // AwardGateDialog → onboard
-  ["Finish Verification with Stripe", "src/lib/awardGate.ts"], // AwardGateDialog → update_onboarding
-  ["Finish Verification", "src/lib/awardGate.ts"],
-  ["Start Verification", "src/components/IDVPromptDialog.tsx"], // stripe-idv-start → VerificationSession
 ];
 
 describe("press never writes to Stripe while Stripe is live", () => {
   it("every Stripe-writing label exists in the app and is skipped on live (reported as SKIP_STRIPE)", async () => {
-    expect(STRIPE_WRITE_LABELS.length).toBeGreaterThan(5);
+    expect(STRIPE_WRITE_LABELS.length).toBeGreaterThan(3);
     for (const [label, source] of STRIPE_WRITE_LABELS) {
       expect(readFileSync(join(ROOT, source), "utf8"), `${label} no longer in ${source}`).toContain(label);
       // The harness only consults the gate for labels PAYMENT_RX (or another mutating test) admits.

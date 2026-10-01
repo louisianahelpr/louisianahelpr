@@ -20,6 +20,12 @@
 //   get_user_credential_tier   stripe_identity_verified
 //                              OR id_verification_status     (missing idv_status)
 //
+// Since 2026-10-01 identity gates NEITHER posting nor hiring (migration
+// 20261001222911_remove_idv_requirement; guarded by
+// src/test/identityNeverGatesPostOrAward.test.ts). What is left reading identity
+// is display: the credential tier that draws the badge. That tier must still
+// honour both verdicts, or a verified person shows as unverified.
+//
 // This test derives each predicate FROM THE MIGRATIONS rather than from a list
 // written here, because a list of "places that check identity" maintained by
 // hand is the exact shape that cannot fail for a missing member.
@@ -84,11 +90,10 @@ describe("migration discovery is actually finding things", () => {
   });
 });
 
-describe("every identity gate honours the check a user can complete", () => {
-  // `idv_status` is written by stripe-idv-webhook and is the ONLY one of the
-  // four columns a user can move by doing something in the app. Any gate that
-  // ignores it can refuse somebody who did everything asked of them.
-  const GATES = ["helper_award_block_reason", "get_user_credential_tier"];
+describe("every identity verdict honours both sources", () => {
+  // `idv_status` is written by stripe-idv-webhook. A reader that ignores it
+  // shows somebody who completed the check as unverified.
+  const GATES = ["get_user_credential_tier"];
 
   it.each(GATES)("%s is defined in a migration", (fn) => {
     expect(latestDefinitionOf(fn)).not.toBeNull();
@@ -111,33 +116,13 @@ describe("every identity gate honours the check a user can complete", () => {
 describe("the hiring gate still bites", () => {
   const def = latestDefinitionOf("helper_award_block_reason")!;
 
-  it("keeps payout setup as a separate, earlier refusal", () => {
+  it("keeps payout setup as its refusal", () => {
     expect(def).toContain("helper_payout_setup_incomplete");
-    expect(def.indexOf("helper_payout_setup_incomplete"))
-      .toBeLessThan(def.indexOf("helper_identity_unverified"));
-  });
-
-  it("has no operator kill switch left", () => {
-    // Owner decision 2026-09-07: identity verification is always required, and
-    // the `idv_requirement_paused` flag that could lift it was deleted in
-    // migration 20260908001056. This asserts the LATEST definition carries no
-    // escape hatch — a re-introduced pause would fail here.
-    expect(def).not.toContain("idv_requirement_paused");
-    expect(def).not.toContain("feature_flags");
-  });
-
-  it("requires the literal 'verified', not merely a non-null idv_status", () => {
-    // `idv_status IS NOT NULL` would let 'processing' and 'requires_input'
-    // through — the states a user sits in mid-check.
-    expect(def).toMatch(/v_idv\s+IS\s+DISTINCT\s+FROM\s+'verified'/i);
   });
 });
 
-// Stop `helper_award_block_reason` reading the ONE identity column a user can
-// move by doing something in the app: `v_idv` becomes forever NULL, so
-// `v_idv IS DISTINCT FROM 'verified'` is forever true and everybody without
-// `stripe_identity_verified` is refused at Send Offer — the exact
-// ten-of-thirteen defect at the top of this file. The comment two lines below
-// the mutation still says "idv_status", which is why the assertions had to
-// read comment-stripped SQL.
-// @mutate supabase/migrations/20260908001056_identity_always_required.sql | p.idv_status, p.is_seed | NULL::text, p.is_seed
+// Stop `get_user_credential_tier` reading `idv_status`: a person who completed
+// Stripe Identity but carries no Connect flag drops a tier and loses the badge.
+// The comment above the clause still says "idv_status", which is why the
+// assertions read comment-stripped SQL.
+// @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | OR p.idv_status = 'verified') | OR NULL::text = 'verified')

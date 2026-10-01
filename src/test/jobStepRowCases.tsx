@@ -131,6 +131,11 @@ export function controlNeedPx(text: string): number {
 
 const HELPER = "helper-1";
 const POSTER = "poster-1";
+// Clock PINNED to noon in the job's zone: a "today at 23:59" fixture below
+// became "starting now" in the last minute before midnight Central and the
+// card dropped a control (run 36817413591). Only Date is faked.
+vi.useFakeTimers({ toFake: ["Date"], shouldAdvanceTime: true });
+vi.setSystemTime(new Date(process.env.JOB_ROW_PIN ?? "2026-06-15T17:00:00Z"));
 const NOW = Date.now();
 const ago = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 const ahead = (h: number) => new Date(NOW + h * 3_600_000).toISOString();

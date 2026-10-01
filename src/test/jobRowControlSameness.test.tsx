@@ -125,6 +125,12 @@ beforeAll(() => {
 
 const HELPER = "helper-1";
 const POSTER = "poster-1";
+// The clock is PINNED to noon in the job's zone. Several fixtures start
+// "today at 23:59"; with the real clock, a run in the last minute before
+// midnight Central saw that start as now and the card dropped a control
+// (PR #1996, run 36817413591, 04:59Z = 23:59 CDT). Only Date is faked.
+vi.useFakeTimers({ toFake: ["Date"], shouldAdvanceTime: true });
+vi.setSystemTime(new Date(process.env.JOB_ROW_PIN ?? "2026-06-15T17:00:00Z"));
 const NOW = Date.now();
 const ago = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 const ahead = (h: number) => new Date(NOW + h * 3_600_000).toISOString();

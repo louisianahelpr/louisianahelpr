@@ -197,33 +197,21 @@ export function FormStep({ form }: FormStepProps) {
                 it always stays readable. */}
             <span className="inline-flex items-center gap-2 min-w-0 max-w-full">
               <span className="truncate min-w-0">{submitLabel}</span>
-              {/* `totalCharge`, not `budgetNum`. This showed the bare budget on
-                  a button labelled "Review & Pay", so a $100 job read
-                  "Review & Pay · $100" and then charged $112 — the platform
-                  fee, urgent bonus and first-job onboarding fee were all
-                  invisible until the next screen. useJobDerived computes
-                  totalCharge through posterServiceFeeCents, the same authority
-                  create-payment uses, so this figure equals the Stripe charge
-                  (bar sales tax, which resolves on the checkout step).
-
-                  `formatPriceExact`, NOT `formatPrice`. The line above promises
-                  this figure equals the Stripe charge and `formatPrice` broke
-                  that promise: it rounds to whole dollars, so a $120 budget at
-                  the 12% free-tier rate (totalCharge $134.40) rendered
-                  "Review & Pay · $134" and then charged $134.40. Every fee this
-                  button sums carries cents — posterServiceFeeCents returns a
-                  percentage of the budget — so the drift was the common case,
-                  not an edge case, and it ran up to 49c in EITHER direction:
-                  under-quoting a charge on a button the poster is agreeing to,
-                  or over-quoting it. CheckoutStep, the very next screen, has
-                  always been exact, so the same flow quoted two different
-                  numbers. Show the cents. */}
-              {formReady && form.totalCharge > 0 && (
+              {/* The budget the poster typed, the same number as the field
+                  and the "Use $X" chip. Owner, 2026-10-01: "Use 65, 55 went
+                  in the box and like 61 was in the button. It all needs to be
+                  the same number" — they chose "Button shows budget only". This
+                  used to show totalCharge (budget + fees), which read as a
+                  third, unexplained number; the fee breakdown and the exact
+                  charge are on the review screen, which shows them before any
+                  payment. `formatPriceExact` so cents typed into the field
+                  show here exactly as typed. */}
+              {formReady && form.budgetNum > 0 && (
                 <span
                   className="font-sans font-bold tabular-nums shrink-0 text-ds-16"
                   style={{ letterSpacing: "-0.01em" }}
                 >
-                  {" "}· ${formatPriceExact(form.totalCharge)}
+                  {" "}· ${formatPriceExact(form.budgetNum)}
                 </span>
               )}
             </span>

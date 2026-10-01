@@ -185,9 +185,12 @@ describe("scheduled refresh workflows land their files through ONE auto-merging 
     expect(run).toMatch(/if git diff --cached --quiet; then/);
     expect(run).toMatch(/gh pr list [^\n]*--head "\$BRANCH" --state open/);
     expect(run).toMatch(/gh pr merge "\$PR" [^\n]*--auto --squash/);
-    const pushes = [...run.matchAll(/git\b[^\n]*\bpush\b[^\n]*/g)].map((m) => m[0]);
-    expect(pushes.length).toBeGreaterThanOrEqual(1);
-    for (const p of pushes) expect(p, "the step may push only to its bot branch").toMatch(/"HEAD:refs\/heads\/\$BRANCH"$/);
+    // Every push goes through scripts/ci/bot-branch-push.sh (it keeps non-bot
+    // commits; src/test/botBranchPushKeepsHumanCommits.test.ts), always to $BRANCH.
+    expect(run, "the step pushes with git directly").not.toMatch(/\bgit\b[^\n;&|]*?\spush\b/);
+    const pushes = [...run.matchAll(/bash "\$PUSHER" push\b(?:[^\n\\]|\\\n)*/g)].map((m) => m[0]);
+    expect(pushes.length).toBeGreaterThanOrEqual(2);
+    for (const p of pushes) expect(p, "the step may push only to its bot branch").toMatch(/--branch "\$BRANCH"/);
     expect(run).not.toMatch(/refs\/heads\/main"?\s*$/m);
   });
 

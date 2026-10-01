@@ -299,6 +299,12 @@ export function BrowseSearchBar({
           {(!embedded || filters.searchQuery.length > 0) && (
           <button
             type="button"
+            // ONE PRESS (owner, 2026-10-01: "press the X twice"). Without this
+            // the press blurs the field first, iOS drops the keyboard, the
+            // viewport resizes under the finger and the click is lost. Keep
+            // focus on press, as the RECENT rows above already do; the click
+            // then closes. Guarded by e2e/prod-audit/search-close-one-press.spec.ts.
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               filters.setSearchQuery("");
               if (embedded) {

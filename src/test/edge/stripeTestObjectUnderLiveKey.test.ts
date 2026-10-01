@@ -64,12 +64,15 @@ describe("a Stripe test-mode object read under the live key is classified, never
     const s = code("supabase/functions/create-payment/index.ts");
     const imports = [...s.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']\.\.\/_shared\/stripeAccountUsable\.ts["']/g)]
       .flatMap((m) => m[1].split(",").map((n) => n.trim()));
+    // Floor: the import list itself must be non-empty (an unparsed import reads as []).
+    expect(imports.length).toBeGreaterThan(0);
     expect(imports, "imported from _shared/stripeAccountUsable.ts under its own name").toContain("isTestObjectUnderLiveKey");
     expect(s, "no local declaration shadows the shared classifier").not.toMatch(
       /(?:\b(?:const|let|var|function)\s+isTestObjectUnderLiveKey\b)|\bas\s+isTestObjectUnderLiveKey\b/,
     );
     // Re-mint, cancel_escrow and the outer catch on 2026-10-01. A floor.
-    expect(s.match(/\bisTestObjectUnderLiveKey\(/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    const callSites = s.match(/\bisTestObjectUnderLiveKey\(/g) ?? [];
+    expect(callSites.length).toBeGreaterThanOrEqual(3);
   });
 
   it("create-payment's outer catch maps it to a 409 before the generic 500", () => {

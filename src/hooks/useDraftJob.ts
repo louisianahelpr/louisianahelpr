@@ -70,6 +70,10 @@ const emptyDraft: JobDraft = {
 export function useDraftJob() {
   const [draft, setDraft] = useState<JobDraft>(emptyDraft);
   const [hasDraft, setHasDraft] = useState(false);
+  // True once the stored draft has been read (it is read in an effect, so the
+  // first render always says hasDraft=false). /post-job's entry holds its
+  // skeleton on this, or a kept draft's card would pop in after the first paint.
+  const [draftLoaded, setDraftLoaded] = useState(false);
   // Latest pending draft + debounce timer. Refs avoid recreating the
   // saveDraft callback on every state change (which would also reset the
   // debounce timer).
@@ -95,6 +99,7 @@ export function useDraftJob() {
         }
       }
     } catch { /* ignore */ }
+    setDraftLoaded(true);
   }, []);
 
   // Synchronously persist whatever's currently pending and cancel the
@@ -181,5 +186,5 @@ export function useDraftJob() {
     } catch { /* ignore */ }
   }, []);
 
-  return { draft, hasDraft, saveDraft, flushDraft, clearDraft };
+  return { draft, hasDraft, draftLoaded, saveDraft, flushDraft, clearDraft };
 }

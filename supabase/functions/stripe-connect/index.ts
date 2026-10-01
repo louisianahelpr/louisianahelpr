@@ -4,6 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { stripeIdentityVerified } from "../_shared/stripeIdentity.ts";
+import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,6 +30,92 @@ serve(async (req) => {
     (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? ""
   );
 
+  // Hoisted so the catch below can confirm and clear an unusable Connect
+  // account for the SAME authenticated caller with the SAME Stripe client,
+  // without re-deriving either (Q859).
+  let callerId: string | null = null;
+  let stripeClient: Stripe | null = null;
+
+  /**
+   * Q859 (5) — only an ACCOUNT-SCOPED answer may clear a payout account.
+   *
+   * A 404 / `resource_missing` names whichever resource was missing, not the
+   * Connect account: `delete_payout_method` on a method that is already gone
+   * (a double tap) 404s on the EXTERNAL ACCOUNT while the Connect account is
+   * perfectly healthy, and the old catch nulled that valid live
+   * `stripe_account_id` — stranding the helper's balance behind an id nothing
+   * pointed at any more. So a candidate error from ANY call is re-asked of the
+   * one call that is about the account and nothing else,
+   * `stripe.accounts.retrieve(<the id on file>)`, and the link is cleared only
+   * when THAT answer says the account itself is unusable. Anything else
+   * (retrieve succeeds, or fails some other way) clears nothing.
+   *
+   * Q859 (2) — the cached gate columns go with the id. They are written only
+   * from this Connect account (stripe-connect `status` and the
+   * `account.updated` webhook, both via `stripeIdentityVerified(account)` /
+   * `charges_enabled` / `payouts_enabled`), so an id-less profile still
+   * reading payouts_enabled=true describes an account it no longer has.
+   * `stripe_identity_verified` included for the same reason: it is computed
+   * from this account's requirements ledger, never from Stripe Identity
+   * sessions (those are `idv_status`, left untouched).
+   *
+   * Q859 (3) — the clear is checked: `.select("id")` + error + row count. The
+   * `.eq("stripe_account_id", accountId)` scopes it to the exact id just
+   * confirmed unusable, so a concurrent reset/onboard that already replaced
+   * it is not undone; that case, like an error, reports "failed" so the
+   * caller is not told an account was reset when nothing was cleared.
+   */
+  const confirmAndClearUnusableAccount = async (
+    userId: string,
+    stripe: Stripe,
+  ): Promise<"cleared" | "account-usable" | "failed"> => {
+    const { data: onFile, error: readErr } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_account_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (readErr) {
+      console.error(`[stripe-connect] stale-account check: profile read failed for ${userId}:`, readErr);
+      return "failed";
+    }
+    const accountId = onFile?.stripe_account_id;
+    if (!accountId) return "account-usable";
+
+    try {
+      await stripe.accounts.retrieve(accountId);
+      return "account-usable";
+    } catch (probeErr) {
+      if (!isUnusableConnectAccountError(probeErr)) {
+        console.error(
+          `[stripe-connect] stale-account check: could not confirm ${accountId} for ${userId}; link left intact:`,
+          probeErr instanceof Error ? probeErr.message : probeErr,
+        );
+        return "account-usable";
+      }
+    }
+
+    const { data: clearedRows, error: clearErr } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        stripe_account_id: null,
+        stripe_payouts_enabled: false,
+        stripe_charges_enabled: false,
+        stripe_identity_verified: false,
+      })
+      .eq("user_id", userId)
+      .eq("stripe_account_id", accountId)
+      .select("id");
+    if (clearErr || (clearedRows?.length ?? 0) === 0) {
+      console.error(
+        `[stripe-connect] stale-account clear did NOT happen for ${userId} (${accountId}):`,
+        clearErr?.message ?? "update matched zero rows (the id on file changed concurrently)",
+      );
+      return "failed";
+    }
+    console.error(`[stripe-connect] Cleared unusable stripe_account_id ${accountId} for user ${userId}`);
+    return "cleared";
+  };
+
   try {
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
@@ -43,9 +130,11 @@ serve(async (req) => {
       });
     }
 
+    callerId = user.id;
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
+    stripeClient = stripe;
 
     const body = await req.json();
     const { action } = body;
@@ -123,13 +212,44 @@ serve(async (req) => {
         }, { idempotencyKey: `stripe-connect-create-${user.id}` });
         accountId = account.id;
 
-        const { error: profileUpdateErr } = await supabaseAdmin
+        // Compare-and-set (Q868): link the new id only while the profile still
+        // has none. A concurrent onboard or reset may have linked an account
+        // since the read above, and an unscoped write would silently overwrite
+        // that fresh link. `.select("id")` reads the rows back so a zero-row
+        // write is seen rather than reported as linked.
+        const { data: linkedRows, error: profileUpdateErr } = await supabaseAdmin
           .from("profiles")
           .update({ stripe_account_id: accountId })
-          .eq("user_id", user.id);
+          .eq("user_id", user.id)
+          .is("stripe_account_id", null)
+          .select("id");
         if (profileUpdateErr) {
           console.error(`[stripe-connect] Failed to save stripe_account_id for user ${user.id}:`, profileUpdateErr);
           throw new Error("Could not link your payout account — please try again");
+        }
+        if ((linkedRows?.length ?? 0) === 0) {
+          // Another request linked an account first. Use the id now on file
+          // instead of overwriting it. If there is none (or the re-read fails)
+          // we cannot say which account is linked, so fail and let the client
+          // retry.
+          const { data: current, error: reReadErr } = await supabaseAdmin
+            .from("profiles")
+            .select("user_id, stripe_account_id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (reReadErr || !current?.stripe_account_id) {
+            console.error(
+              `[stripe-connect] link of ${accountId} for ${user.id} matched zero rows and the re-read found no linked account:`,
+              reReadErr,
+            );
+            throw new Error("Could not link your payout account — please try again");
+          }
+          if (current.stripe_account_id !== accountId) {
+            console.error(
+              `[stripe-connect] link of ${accountId} for ${user.id} lost to a concurrent link of ${current.stripe_account_id}; keeping the one on file (${accountId} is left unlinked at Stripe).`,
+            );
+          }
+          accountId = current.stripe_account_id;
         }
       }
 
@@ -222,7 +342,39 @@ serve(async (req) => {
       if (profileReadErr) throw new Error("Could not load your profile — please try again");
       if (!profile?.stripe_account_id) throw new Error("No account connected");
 
-      await stripe.accounts.deleteExternalAccount(profile.stripe_account_id, method_id);
+      // Q864 — a double tap is idempotent. The second delete 404s /
+      // `resource_missing` on the EXTERNAL account, which the first tap already
+      // removed. That error alone cannot say WHICH resource was missing (it is
+      // also the shape of a gone Connect account), so the same account-scoped
+      // probe Q859 uses decides: if `accounts.retrieve(<id on file>)` succeeds,
+      // the account is healthy and the method is simply not on it any more —
+      // the caller's goal is met, answer success. No second security
+      // notification: the first tap already sent one for the real removal.
+      // Anything else (the probe fails for any reason, or a different error)
+      // rethrows the ORIGINAL error to the outer catch, which keeps Q859's
+      // confirm-then-clear path for a genuinely unusable account.
+      try {
+        await stripe.accounts.deleteExternalAccount(profile.stripe_account_id, method_id);
+      } catch (deleteErr) {
+        const de = deleteErr as { statusCode?: number; code?: string };
+        const methodMissing = de?.statusCode === 404 || de?.code === "resource_missing";
+        if (!methodMissing) throw deleteErr;
+        try {
+          await stripe.accounts.retrieve(profile.stripe_account_id);
+        } catch {
+          // Probe failed: the account itself may be the missing resource, or
+          // the probe hit a network/rate-limit error. Either way it is not
+          // confirmed healthy, so the original error goes to the outer catch.
+          throw deleteErr;
+        }
+        console.warn(
+          `[stripe-connect] delete_payout_method: ${method_id} already gone from healthy account ${profile.stripe_account_id} for ${user.id}; answering success (idempotent).`,
+        );
+        return new Response(JSON.stringify({ success: true, already_removed: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
 
       // Security alert: removing a payout method is a sensitive action.
       // Log an in-app notification so the helpr can spot account takeover
@@ -301,6 +453,14 @@ serve(async (req) => {
       //
       // Failure is logged, not thrown: the caller asked for a status, and the
       // stale value it replaces is the conservative one (gate stays closed).
+      //
+      // Q862 — scoped to the id this call RETRIEVED, not just the user. A
+      // status call that read the old account before a concurrent clear
+      // (Q859 stale-account clear, or `reset`) would otherwise write
+      // payouts_enabled=true back onto a profile that no longer has any
+      // account. With the id in the WHERE clause that write matches zero rows,
+      // which is the correct outcome, so zero rows is legitimate here and not
+      // treated as a failure.
       const { error: cacheErr } = await supabaseAdmin
         .from("profiles")
         .update({
@@ -311,7 +471,8 @@ serve(async (req) => {
             ? { stripe_identity_verified_at: new Date().toISOString() }
             : {}),
         })
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("stripe_account_id", profile.stripe_account_id);
       if (cacheErr) {
         console.error(`[stripe-connect] status cache write-back failed for ${user.id}:`, cacheErr);
       }
@@ -440,10 +601,37 @@ serve(async (req) => {
         }
       }
 
-      const { error: resetUpdateErr } = await supabaseAdmin
+      // Q861 — reset clears the link the same way the Q859 stale-account clear
+      // does: the cached gate columns go with the id (they describe the old
+      // account, and an id-less profile reading payouts_enabled=true passes a
+      // gate for an account it no longer has); the write is scoped to the id
+      // this call just deleted, so a concurrent onboard/reset that already
+      // replaced it is not undone; and it reads back its rows, so a zero-row
+      // clear is not reported as a reset. With no id on file there is nothing
+      // to scope to: the flags are reset only while the id is still null, and
+      // zero rows there is legitimate (a concurrent onboard linked a new
+      // account, which getOrCreateAccount below then picks up).
+      const oldAccountId: string | null = profile?.stripe_account_id ?? null;
+      const resetClear = supabaseAdmin
         .from("profiles")
-        .update({ stripe_account_id: null })
+        .update({
+          stripe_account_id: null,
+          stripe_payouts_enabled: false,
+          stripe_charges_enabled: false,
+          stripe_identity_verified: false,
+        })
         .eq("user_id", user.id);
+      const { data: resetRows, error: resetUpdateErr } = await (oldAccountId
+        ? resetClear.eq("stripe_account_id", oldAccountId)
+        : resetClear.is("stripe_account_id", null)
+      ).select("id");
+
+      if (!resetUpdateErr && oldAccountId && (resetRows?.length ?? 0) === 0) {
+        console.error(
+          `[stripe-connect] reset: clear of ${oldAccountId} for ${user.id} matched zero rows (the id on file changed concurrently)`,
+        );
+        throw new Error("Your payout account changed while resetting — please try again");
+      }
 
       if (resetUpdateErr) {
         // The Stripe account was already deleted above. If we can't null out
@@ -543,30 +731,29 @@ serve(async (req) => {
 
     // Stale stripe_account_id is a common 500 cause: profile points to a
     // Stripe account that was deleted (manual cleanup, test-mode purge,
-    // etc.) so stripe.accounts.retrieve / update / del all 404. Clear the
-    // stale link and surface a friendly retry message — next call will
-    // create a fresh account.
-    const isStaleAccountErr =
-      err.statusCode === 404 ||
-      err.message?.includes("No such account") ||
-      err.code === "account_invalid" ||
-      err.code === "resource_missing";
+    // etc.) or one from the other Stripe mode (a sandbox acct_ under the live
+    // key: _shared/stripeAccountUsable.ts, #1582). The error only NOMINATES
+    // the account; confirmAndClearUnusableAccount (above) confirms it with an
+    // account-scoped retrieve before clearing anything (Q859).
+    const isStaleAccountErr = isUnusableConnectAccountError(err);
 
     if (isStaleAccountErr) {
-      try {
-        const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
-        const { data: u } = await supabaseClient.auth.getUser(token);
-        if (u?.user?.id) {
-          await supabaseAdmin.from("profiles").update({ stripe_account_id: null }).eq("user_id", u.user.id);
-          console.error("[stripe-connect] Cleared stale stripe_account_id for user", u.user.id);
+      let outcome: "cleared" | "account-usable" | "failed" = "failed";
+      if (callerId && stripeClient) {
+        try {
+          outcome = await confirmAndClearUnusableAccount(callerId, stripeClient);
+        } catch (clearErr) {
+          console.error("[stripe-connect] stale-account check threw:", clearErr);
         }
-      } catch (clearErr) {
-        console.error("[stripe-connect] Failed to clear stale stripe_account_id:", clearErr);
       }
-      return new Response(JSON.stringify({
-        error: "Your previous payout account is no longer valid. Tap Connect again to set up a fresh one.",
-        recoverable: true,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      if (outcome === "cleared") {
+        return new Response(JSON.stringify({
+          error: "Your previous payout account is no longer valid. Tap Connect again to set up a fresh one.",
+          recoverable: true,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+      // Not confirmed, or not cleared: nothing changed, so the generic 500
+      // below is the true answer.
     }
 
     // Client-safe generic message — the raw Stripe/PostgREST detail is already

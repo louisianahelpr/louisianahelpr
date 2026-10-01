@@ -114,3 +114,8 @@
 {"sha":"0239d861cd2da5ff0ab71c768f721ec92080df8e","reviewer":"owner","verdict":"APPROVE (owner approved landing 2026-09-27 after independent lh-edge-functions review: APPROVE, zero callers in code, cron or pg_proc)","date":"2026-09-28"}
 {"sha":"8540fbe310da2d2950c633fd57a1893b74ba22ca","reviewer":"owner","verdict":"APPROVE (owner approved landing 2026-09-27 after independent lh-edge-functions review: APPROVE; rebased copy of 0239d861c)","date":"2026-09-28"}
 {"sha":"b21edfecc81000bbd4c7f2c0d607a1e3cf3b1c15","reviewer":"lh-silent-failure","verdict":"approve","date":"2026-09-30"}
+{"sha":"db542e53651c612f803d2eca46b4a89ecf235a44","reviewer":"code-review","verdict":"approve","date":"2026-09-30"}
+{"sha":"1a711b21c60b728aeed43c64fcb1b625787813e2","reviewer":"lh-silent-failure","verdict":"approve","date":"2026-09-30"}
+{"sha":"1a43f26afd3e33bb200eda3a198883f5d89e039b","reviewer":"lh-money-escrow","verdict":"approve","date":"2026-09-30"}
+{"sha":"ebadf0d47f2bb1fdd83a0359c7fae6a34b03bbd0","reviewer":"lh-money-escrow","verdict":"approve","date":"2026-09-30"}
+{"sha":"e0e0f68f8cc5f6e64db6335ee20bbeefa4e207f5","reviewer":"lh-money-escrow","verdict":"approve","date":"2026-09-30"}

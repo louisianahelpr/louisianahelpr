@@ -79,7 +79,15 @@ export interface StripeMock {
   };
   accounts: {
     retrieve: ReturnType<typeof vi.fn>;
+    /** stripe-connect `list_payout_methods` / `delete_payout_method` (Q859). */
+    listExternalAccounts: ReturnType<typeof vi.fn>;
+    deleteExternalAccount: ReturnType<typeof vi.fn>;
+    /** stripe-connect `reset` deletes the old account, then `getOrCreateAccount` creates one (Q861). */
+    del: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
   };
+  /** stripe-connect onboarding link after connect / reset (Q861). */
+  accountLinks: { create: ReturnType<typeof vi.fn> };
   /** instant-payout: the helper's instant_available balance and the payout. */
   balance: { retrieve: ReturnType<typeof vi.fn> };
   /** charge-recurring-visits: tax quote, then the committed transaction (ME-014). */
@@ -167,6 +175,13 @@ export const stripeMock: StripeMock = {
   },
   accounts: {
     retrieve: vi.fn(),
+    listExternalAccounts: vi.fn(),
+    deleteExternalAccount: vi.fn(),
+    del: vi.fn(),
+    create: vi.fn(),
+  },
+  accountLinks: {
+    create: vi.fn(),
   },
   balance: {
     retrieve: vi.fn(),
@@ -215,6 +230,7 @@ export function resetStripeMock() {
     stripeMock.refunds,
     stripeMock.transfers,
     stripeMock.accounts,
+    stripeMock.accountLinks,
     stripeMock.balance,
     stripeMock.tax.calculations,
     stripeMock.tax.transactions,

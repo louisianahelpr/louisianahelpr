@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { FROM_DEFAULT, sendWithResend } from "../_shared/resend.ts";
+import { isTestRecipient } from "../_shared/testRecipient.ts";
 import { SelfEmailChangeNoticeEmail } from "../_shared/email-templates/email-changed.tsx";
 import { renderEmail } from "../_shared/email-templates/render.ts";
 
@@ -73,6 +74,15 @@ serve(async (req) => {
     if (!newEmail || newEmail === oldEmail) {
       // Nothing meaningful to notify — silently succeed.
       return new Response(JSON.stringify({ success: true, skipped: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Q840: a test or seed account's old address is never mailed. The lookup
+    // runs as the caller (their own profile row); if it errors, isTestRecipient
+    // falls back to the fixture-address check alone.
+    if (await isTestRecipient(supabase, oldEmail)) {
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: "test_recipient" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

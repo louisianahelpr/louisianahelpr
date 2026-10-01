@@ -17,14 +17,14 @@
  *
  * @mutate .claude/AGENT-BRIEF.md | then `bash scripts/land.sh` | then `git push --no-verify origin HEAD:main`
  *
- * --pr (Q44): with strict protection + enforce_admins a direct push is
- * refused, so land.sh can land the same verified HEAD through a PR with
- * REBASE auto-merge (a squash would drop per-commit Sensitive-Review trailers).
+ * Q44: with strict protection + enforce_admins a direct push is refused, so
+ * land.sh lands the same verified HEAD through a PR with REBASE auto-merge (a
+ * squash would drop per-commit Sensitive-Review trailers) and waits for it.
  *
- * @mutate scripts/land.sh |     gh pr merge "$BR" --rebase --auto |     gh pr merge "$BR" --squash --auto
- * @mutate scripts/land.sh |     git push --no-verify --force origin "HEAD:refs/heads/$BR" |     git push --no-verify --force origin "HEAD:main"
- * @mutate scripts/land.sh |     --pr) PR=1 ;; |     --pr) PR=0 ;;
- * @mutate .claude/AGENT-BRIEF.md | land with `bash scripts/land.sh --pr` | land with `git push origin HEAD:main`
+ * @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   gh pr merge "$BR" --squash --auto
+ * @mutate scripts/land.sh |   git push --no-verify --force origin "HEAD:refs/heads/$BR" |   git push --no-verify --force origin "HEAD:main"
+ * @mutate scripts/land.sh |     if [ "$STATE" = MERGED ]; then |     if [ "$STATE" = OPEN ]; then
+ * @mutate .claude/AGENT-BRIEF.md | It is the ONLY way | It is one way
  *
  * Runs the repo-only twins of db-deploy's two commonest reds before a push
  * that touches migrations (ledger 00fd2bd0; the Q807 migration went red on
@@ -57,24 +57,23 @@ describe("scripts/land.sh keeps generated files current on main", () => {
       at(/^\s*git commit -q --no-verify -m "chore: refresh generated inventories$/m),
       at(/^\s*npm run -s check:generated$/m),
       at(/^\s*node scripts\/check-sensitive-review\.mjs --range origin\/main\.\.HEAD --strict$/m),
-      at(/git push --no-verify origin HEAD:main/),
+      at(/^\s*git push --no-verify --force origin "HEAD:refs\/heads\/\$BR"$/m),
     ];
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("--pr lands the same checked HEAD through a PR with rebase auto-merge (Q44)", () => {
-    expect(code).toMatch(/^\s*--pr\) PR=1 ;;$/m);
-    const pr = code.slice(at(/^\s*if \[ "\$PR" = 1 \]; then$/m));
-    // The PR branch is pushed only after check:generated and the review check.
-    expect(at(/^\s*if \[ "\$PR" = 1 \]; then$/m)).toBeGreaterThan(
-      at(/^\s*node scripts\/check-sensitive-review\.mjs --range origin\/main\.\.HEAD --strict$/m),
-    );
-    expect(pr).toMatch(/git push --no-verify --force origin "HEAD:refs\/heads\/\$BR"/);
-    expect(pr).toMatch(/BR="land\/\$\(git rev-parse --abbrev-ref HEAD\)"/);
+  it("lands the same checked HEAD through a PR with rebase auto-merge and waits for MERGED (Q44)", () => {
+    const pr = code.slice(at(/^\s*git push --no-verify --force origin "HEAD:refs\/heads\/\$BR"$/m));
+    // One branch per worktree: a detached HEAD is "HEAD" everywhere.
+    expect(code).toMatch(/BR="land\/\$\(git rev-parse --abbrev-ref HEAD \| tr '\/' '-'\)-\$WT_HASH"/);
     expect(pr).toMatch(/gh pr merge "\$BR" --rebase --auto/);
-    expect(pr).not.toMatch(/--squash/);
+    expect(code).not.toMatch(/--squash/);
+    expect(code).not.toMatch(/git push[^\n]*HEAD:main/);
+    // Success only on MERGED; BEHIND loops back to the rebase.
+    expect(pr).toMatch(/if \[ "\$STATE" = MERGED \]; then\n\s*echo "land: \$BR merged into main\."\n\s*exit 0/);
+    expect(pr).toMatch(/= BEHIND \]; then\n\s*echo "land: main moved; rebasing \$BR again\."\n\s*break/);
     const brief = readFileSync(resolve(ROOT, ".claude/AGENT-BRIEF.md"), "utf8");
-    expect(brief).toMatch(/land with `bash scripts\/land\.sh --pr`/);
+    expect(brief).toMatch(/It is the ONLY way\s+onto main \(Q44\)/);
   });
 
   it("runs db-deploy's repo-only twins before pushing a migration change (ledger 00fd2bd0)", () => {
@@ -88,7 +87,7 @@ describe("scripts/land.sh keeps generated files current on main", () => {
     expect(run).toBeGreaterThan(gate);
     // Before any push.
     expect(run).toBeLessThan(at(/^\s*if \[ "\$DRY" = 1 \]; then$/m));
-    expect(run).toBeLessThan(at(/git push --no-verify origin HEAD:main/));
+    expect(run).toBeLessThan(at(/^\s*git push --no-verify --force origin "HEAD:refs\/heads\/\$BR"$/m));
   });
 
   it("never uses git stash and refuses a dirty tracked tree", () => {

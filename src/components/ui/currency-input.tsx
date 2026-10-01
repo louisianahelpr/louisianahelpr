@@ -46,6 +46,17 @@ function toEditableString(value: number | undefined): string {
   return value.toString();
 }
 
+/**
+ * Whether two field values are the same amount. Empty, NaN and 0 count as one:
+ * callers map "0" to `undefined` (`parseFloat(x) || undefined`), so a typed 0
+ * echoes back as undefined and must not be mistaken for an outside change that
+ * wipes the "0." the user is half-way through typing.
+ */
+function sameAmount(a: number | undefined, b: number | undefined): boolean {
+  const n = (v: number | undefined) => (v === undefined || !Number.isFinite(v) ? 0 : v);
+  return n(a) === n(b);
+}
+
 interface CurrencyInputProps
   extends Omit<
     React.ComponentProps<"input">,
@@ -112,16 +123,32 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       formatUsd(value),
     );
     const [focused, setFocused] = React.useState(false);
+    // The last value this field itself reported. A prop that differs from it
+    // came from OUTSIDE (a "Use $55" chip, a preset), not from the keystroke
+    // being typed.
+    const emitted = React.useRef<number | undefined>(value);
+    const emit = (next: number | undefined) => {
+      emitted.current = next;
+      onChange(next);
+    };
 
     // Sync from the parent when the prop changes externally (controlled
-    // mode) — but only when the field is *not* focused, so we never stomp
-    // on what the user is mid-typing.
+    // mode). While focused, only a value the field did not emit itself is
+    // taken: on iOS tapping a "Use $55" chip does not blur the input, so the
+    // old focused-only guard kept showing the typed 65 and then wrote 65 back
+    // over the 55 on blur (owner, 2026-10-01).
     React.useEffect(() => {
-      if (!focused) setDisplay(formatUsd(value));
+      if (!focused) {
+        setDisplay(formatUsd(value));
+      } else if (!sameAmount(value, emitted.current)) {
+        setDisplay(toEditableString(value));
+      }
+      emitted.current = value;
     }, [value, focused]);
 
     const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
       setFocused(true);
+      emitted.current = value;
       setDisplay(toEditableString(value));
       onFocus?.(event);
     };
@@ -131,17 +158,17 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       const raw = stripFormatting(display);
       if (raw === "" || raw === "-" || raw === ".") {
         setDisplay("");
-        onChange(undefined);
+        emit(undefined);
       } else {
         let parsed = parseFloat(raw);
         if (!Number.isFinite(parsed)) {
           setDisplay("");
-          onChange(undefined);
+          emit(undefined);
         } else {
           if (typeof min === "number" && parsed < min) parsed = min;
           if (typeof max === "number" && parsed > max) parsed = max;
           setDisplay(formatUsd(parsed));
-          onChange(parsed);
+          emit(parsed);
         }
       }
       onBlur?.(event);
@@ -151,11 +178,11 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       const next = stripFormatting(event.target.value);
       setDisplay(next);
       if (next === "" || next === "-" || next === ".") {
-        onChange(undefined);
+        emit(undefined);
         return;
       }
       const parsed = parseFloat(next);
-      onChange(Number.isFinite(parsed) ? parsed : undefined);
+      emit(Number.isFinite(parsed) ? parsed : undefined);
     };
 
     const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
@@ -171,10 +198,10 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       event.preventDefault();
       setDisplay(stripped);
       if (stripped === "" || stripped === "-" || stripped === ".") {
-        onChange(undefined);
+        emit(undefined);
       } else {
         const parsed = parseFloat(stripped);
-        onChange(Number.isFinite(parsed) ? parsed : undefined);
+        emit(Number.isFinite(parsed) ? parsed : undefined);
       }
       onPaste?.(event);
     };

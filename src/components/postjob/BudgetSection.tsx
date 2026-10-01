@@ -2,12 +2,12 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Zap, Lightbulb, TrendingUp, Sparkles, Gift } from "lucide-react";
+import { DollarSign, Zap, Lightbulb, TrendingUp, Sparkles, Gift, Check } from "lucide-react";
 import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
 import { formatPrice, formatPriceExact } from "@/lib/format";
-import { MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
+import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 /**
  * PRICING_MODE_REMOVED — 2026-08-19.
@@ -82,8 +82,8 @@ interface BudgetSectionProps {
  * between. Reading the suggestion and accepting it are now one gesture rather
  * than two screens.
  *
- * The chip is hidden when the midpoint is already the current budget: an
- * action that would change nothing should not look available.
+ * When the midpoint is already the current budget the chip shows selected
+ * (aria-pressed, check mark) rather than disappearing.
  */
 function SuggestionBox({
   budget,
@@ -96,14 +96,15 @@ function SuggestionBox({
   smartPrice: number | null;
   onUse: (v: string) => void;
 }) {
-  // Once the suggestion has been taken, the box has done its job — it would
-  // otherwise sit there restating a number the field already shows. Compared
-  // numerically so "60" and "60.00" both count as taken.
+  // Taken = the field already holds the suggestion. The box stays and the chip
+  // shows selected (owner, 2026-10-01: tapping Use must visibly fill the field
+  // and the button must then read as chosen; hiding the box on tap made the
+  // tap look like it did nothing). Compared numerically so "60" and "60.00"
+  // both count as taken.
   const taken =
     smartPrice != null &&
     budget.trim() !== "" &&
     Number(budget) === Number(smartPrice.toFixed(2));
-  if (taken) return null;
 
   return (
     <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
@@ -114,11 +115,21 @@ function SuggestionBox({
       {smartPrice != null && (
         <button
           type="button"
+          aria-pressed={taken}
           onClick={() => onUse(smartPrice.toFixed(2))}
-          className="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-ds-11 font-semibold tabular-nums text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={
+            "ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-ds-11 font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+            (taken
+              ? "btn-grad-primary text-primary-foreground border border-transparent"
+              : "border border-primary/30 bg-primary/10 text-primary hover:bg-primary/15")
+          }
         >
-          <Sparkles className="w-3 h-3 shrink-0" aria-hidden />
-          Use ${smartPrice}
+          {taken ? (
+            <Check className="w-3 h-3 shrink-0" aria-hidden />
+          ) : (
+            <Sparkles className="w-3 h-3 shrink-0" aria-hidden />
+          )}
+          {taken ? `Using $${smartPrice}` : `Use $${smartPrice}`}
         </button>
       )}
     </div>
@@ -153,7 +164,14 @@ export function BudgetSection({
 
   // Lowball threshold: below 70% of the category minimum
   const lowballFloor = catPricing ? Math.round(catPricing.min * 0.7) : null;
+  // Below the posting minimum. Owner, 2026-10-01: typed $5.00 and the button
+  // stayed "Set a Budget to Continue" with nothing saying why — budgetComplete
+  // needs MIN_JOB_BUDGET_DOLLARS and no line on the form named it. Said here,
+  // in place of the lowball hint (a budget that cannot be posted at all is the
+  // stronger message, and two amber boxes would say the same thing twice).
+  const underBudgetMin = budgetNum > 0 && budgetNum < MIN_JOB_BUDGET_DOLLARS;
   const showLowballWarning =
+    !underBudgetMin &&
     budgetNum > 0 &&
     lowballFloor != null &&
     budgetNum < lowballFloor;
@@ -230,6 +248,21 @@ export function BudgetSection({
               same numbers, same category, ~80px apart. Kept the callout (it
               has the lightbulb affordance and sits with the preset pills) and
               removed this one. */}
+
+          {underBudgetMin && (
+            <div
+              className="flex items-center gap-2 rounded-ds-md px-3 py-2 border"
+              style={{
+                background: "hsl(var(--amber-tint) / 0.10)",
+                borderColor: "hsl(var(--amber-tint) / 0.30)",
+              }}
+              role="status"
+            >
+              <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                The minimum budget is {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}.
+              </p>
+            </div>
+          )}
 
           {/* Lowball warning */}
           {showLowballWarning && (

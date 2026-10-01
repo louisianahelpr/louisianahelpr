@@ -20,7 +20,7 @@ name: Quota and analytics monitors
 #
 # stripe-balance scripts/check-stripe-balance.mjs (Q3 / Q145): the Stripe TEST
 #           platform balance (GET /v1/balance, STRIPE_TEST_SECRET_KEY, the key
-#           stripe-webhook-guard.yml uses) against max($100, 1.5 x the payouts
+#           e2e-real-backend.yml uses) against max($100, 1.5 x the payouts
 #           due in the next 72h from public.jobs). Below it -> ledger error
 #           that says how to top up in TEST mode (the 0077 card), BEFORE the
 #           transfers fail as they did on 2026-09-22. An unreadable balance ->

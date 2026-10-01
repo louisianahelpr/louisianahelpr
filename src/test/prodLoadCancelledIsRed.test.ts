@@ -61,6 +61,15 @@ describe("Q293: a cancelled scheduled prod-load run is red", () => {
     expect(cancelledScheduledRuns([run({ event: "workflow_dispatch" })], { now })).toHaveLength(0);
     expect(cancelledScheduledRuns([run({ status: "in_progress", conclusion: null })], { now })).toHaveLength(0);
     expect(cancelledScheduledRuns([run({ created_at: new Date(now - (WINDOW_DAYS + 1) * 86_400_000).toISOString() })], { now })).toHaveLength(0);
+    // A later completed run (scheduled or dispatched, green or red) covers it; a later cancel or a push run does not.
+    const later = (o: Record<string, unknown>) => ({ event: "schedule", status: "completed", conclusion: "success", created_at: "2026-09-22T03:17:00Z", ...o });
+    expect(cancelledScheduledRuns([run({}), later({})], { now })).toHaveLength(0);
+    expect(cancelledScheduledRuns([run({}), later({ conclusion: "failure" })], { now })).toHaveLength(0);
+    expect(cancelledScheduledRuns([run({}), later({ event: "workflow_dispatch" })], { now })).toHaveLength(0);
+    expect(cancelledScheduledRuns([run({}), later({ conclusion: "cancelled" })], { now })).toHaveLength(2);
+    expect(cancelledScheduledRuns([run({}), later({ event: "push" })], { now })).toHaveLength(1);
+    expect(cancelledScheduledRuns([run({}), later({ status: "in_progress", conclusion: null })], { now })).toHaveLength(1);
+    expect(cancelledScheduledRuns([run({}), later({ created_at: "2026-09-20T03:17:00Z" })], { now })).toHaveLength(1);
     // A weekly workflow's cancelled run is still in the window at the next daily heartbeat.
     expect(WINDOW_DAYS).toBeGreaterThanOrEqual(8);
   });

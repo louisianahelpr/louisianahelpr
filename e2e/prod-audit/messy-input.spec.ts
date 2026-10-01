@@ -73,6 +73,8 @@ import {
   retireApplicantFixtures,
   runtime,
   sessionFor,
+  skipWhenUnfundedLive,
+  unlessLivePay,
   settle,
   shoot,
   sweepField,
@@ -119,6 +121,13 @@ let fx: Fixtures;
 let adminState: Awaited<ReturnType<typeof ensureMessyInputState>> | undefined;
 /** FormSpec names (messyInputForms.ts) that need the Q100 applicant fixture. */
 const APPLICANT_SWEEPS = ["edit-job", "cancel-job", "applicants-note", "decline-applicant"];
+/** FormSpec names that open `jobWithPendingApplicant`, which only the applicant fixture reliably provides. */
+const PENDING_APPLICANT_SWEEPS = ["pending-application-section", "withdraw-application-other"];
+/**
+ * Q865: why each funded fixture was NOT minted (Stripe live, owner decision
+ * 2026-09-27), or undefined. Only the tests that open that fixture skip.
+ */
+const livePay: { openJob?: string | null; applicant?: string | null; disputedJob?: string | null } = {};
 
 test.beforeAll(async ({ request, browser }) => {
   test.setTimeout(30 * 60_000); // a fresh fixture waits out the 20-minute early-access window
@@ -126,22 +135,25 @@ test.beforeAll(async ({ request, browser }) => {
   // Q100: the openJob explores need a FUNDED open job; only a real Stripe TEST
   // checkout makes one. Skipped only when MESSY_INPUT_SCOPE excludes both.
   if (!SCOPE_RE || ["explore: openJob-helper", "explore: openJob-poster"].some((t) => SCOPE_RE.test(t))) {
-    const funded = await ensureFundedOpenJob(request, browser, sessions.get("poster")!, sessions.get("helper")!);
-    console.log(`[messy-input] funded fixture: ${funded.log.join("; ")}`);
+    const funded = await unlessLivePay(() => ensureFundedOpenJob(request, browser, sessions.get("poster")!, sessions.get("helper")!));
+    livePay.openJob = funded.livePay;
+    console.log(`[messy-input] funded fixture: ${funded.value?.log.join("; ") ?? `not funded: ${funded.livePay}`}`);
   }
   // Q100: edit-job / cancel-job / applicants-note / decline-applicant open
   // only from a FUNDED open job with a PENDING applicant; minted per run,
   // released in afterAll through cancel_escrow.
   if (!SCOPE_RE || APPLICANT_SWEEPS.some((t) => SCOPE_RE.test(`sweep: ${t}`))) {
-    const a = await ensureFundedApplicantJob(request, browser, sessions.get("poster")!, sessions.get("helper")!);
-    runtime.applicantJob = a.job;
-    console.log(`[messy-input] applicant fixture: ${a.log.join("; ")}`);
+    const a = await unlessLivePay(() => ensureFundedApplicantJob(request, browser, sessions.get("poster")!, sessions.get("helper")!));
+    livePay.applicant = a.livePay;
+    runtime.applicantJob = a.value?.job ?? null;
+    console.log(`[messy-input] applicant fixture: ${a.value?.log.join("; ") ?? `not funded: ${a.livePay}`}`);
   }
   // Q132: the disputedJob explores need a disputed job between the two
   // accounts; prod-audit run 35844514386 found none and skipped both.
   if (!SCOPE_RE || ["explore: disputedJob-poster", "explore: disputedJob-helper"].some((t) => SCOPE_RE.test(t))) {
-    const disputed = await ensureDisputedJob(request, browser, sessions.get("poster")!, sessions.get("helper")!);
-    console.log(`[messy-input] dispute fixture: ${disputed.log.join("; ")}`);
+    const disputed = await unlessLivePay(() => ensureDisputedJob(request, browser, sessions.get("poster")!, sessions.get("helper")!));
+    livePay.disputedJob = disputed.livePay;
+    console.log(`[messy-input] dispute fixture: ${disputed.value?.log.join("; ") ?? `not funded: ${disputed.livePay}`}`);
   }
   fx = await resolveFixtures(request, sessions.get("poster")!, sessions.get("helper")!);
   mkdirSync(CREDITS, { recursive: true });
@@ -194,6 +206,8 @@ async function open(browser: Browser, f: { url: string; as: Account | null; prep
 test.describe("sweep every field on every form", () => {
   for (const f of FORMS) {
     scoped(`sweep: ${f.name}`, async ({ browser }, info) => {
+      if (APPLICANT_SWEEPS.includes(f.name)) skipWhenUnfundedLive(runtime.applicantJob, livePay.applicant, `sweep ${f.name} opens the funded applicant fixture`);
+      if (PENDING_APPLICANT_SWEEPS.includes(f.name)) skipWhenUnfundedLive(fx.jobWithPendingApplicant, livePay.applicant, `sweep ${f.name} opens a funded job with a pending application`);
       const { ctx, page } = await open(browser, f);
       // Nothing the sweep types may be saved: it is not a submit, and a sweep
       // that could write would be a sweep that could store 5,000 chars of Lorem
@@ -533,7 +547,15 @@ interface Explore {
   url: () => string;
   /** Skip reason when the seeded state this route needs is missing. */
   needs?: () => string | null;
+  /** Q865: the fixture this explore opens, and the setup step that funds it (skips only when that step deferred a live pay). */
+  livePay?: [keyof Omit<Fixtures, "goneJobId">, keyof typeof livePay];
 }
+/** Which funded setup step supplies each fixture an explore opens. */
+const FUNDED_BY: Partial<Record<keyof Omit<Fixtures, "goneJobId">, keyof typeof livePay>> = {
+  openJob: "openJob",
+  jobWithPendingApplicant: "applicant",
+  disputedJob: "disputedJob",
+};
 
 const JOB_FIXTURES: Array<[keyof Omit<Fixtures, "goneJobId">, Account]> = [
   ["openJob", "helper"],
@@ -559,6 +581,7 @@ const EXPLORE: Explore[] = [
     as,
     url: () => `/jobs/${(fx[k] as { id: string } | null)?.id ?? ""}`,
     needs: () => (fx[k] ? null : `GAP: no seeded ${k} between the two accounts`),
+    ...(FUNDED_BY[k] ? { livePay: [k, FUNDED_BY[k]!] as Explore["livePay"] } : {}),
   })),
   { name: "user-helper", url: () => `/user/${sessions.get("helper")!.user.id}`, as: "poster" },
   { name: "user-poster", url: () => `/user/${sessions.get("poster")!.user.id}`, as: "helper" },
@@ -636,6 +659,7 @@ test.describe("explore dialog-gated forms from real records", () => {
 
   for (const ex of EXPLORE) {
     scoped(`explore: ${ex.name}`, async ({ browser }, info) => {
+      if (ex.livePay) skipWhenUnfundedLive(fx[ex.livePay[0]], livePay[ex.livePay[1]], `explore ${ex.name} opens a funded fixture`);
       const why = ex.needs?.();
       test.skip(!!why, why ?? "");
       const url = ex.url();

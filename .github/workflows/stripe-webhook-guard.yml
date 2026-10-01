@@ -21,15 +21,26 @@ permissions:
 #   the two scripts disagreeing about the id file. This is the half that would
 #   have blocked the original commit.
 #
-#   `live` needs a Stripe TEST-MODE key and catches the account-side half: a
-#   second enabled endpoint, and event drift against the EVENT_HANDLERS map in
-#   either direction. It runs with --require-live, so a MISSING key is a red
-#   job, never a silent pass. It is gated on the secret being present only to
-#   keep forks from failing; on this repo the secret is expected, and the
-#   `live-secret-present` job below turns its absence red on main.
+#   `live` reads the Stripe LIVE account and catches the account-side half: a
+#   second enabled endpoint on the webhook url, and event drift against the
+#   EVENT_HANDLERS map in either direction. It runs with --require-live, so a
+#   MISSING key is a red job, never a silent pass. It is gated on the secret
+#   being present only to keep forks from failing; on this repo the secret is
+#   expected, and the `live-secret-present` job below turns its absence red on
+#   main.
 #
-# TEST MODE ONLY. The guard asserts the key is sk_test_/rk_test_ before making
-# any request and never reads, writes or deletes a live-mode object.
+# LIVE MODE, READ ONLY (owner decision 2026-09-30). Stripe went live on prod on
+# 2026-09-27 and the test-mode endpoint is disabled on purpose (Q839), so the
+# old test-mode check was red every day (#1966). No Stripe key lives in GitHub:
+# the live half calls the edge function stripe-webhook-config-check with
+# CRON_SECRET, and that function reads the live key from its own
+# Supabase env, makes two GETs (/v1/webhook_endpoints, and Q854's
+# /v1/events?delivery_success=false over a bounded window, owner pop-up
+# 2026-09-30), and returns only {id, url, status, livemode, enabled_events} per
+# endpoint, `keyIsLive`, and an `undelivered` count with {id, type} per event
+# (owner decision 2026-09-30, "Allow the function"). A missing secret, a non-200
+# from the function, a missing `undelivered` block, or any undelivered live
+# event is a red job.
 
 on:
   push:
@@ -40,6 +51,10 @@ on:
       - "scripts/e2e/stripe-sandbox-off.sh"
       - "scripts/stripe-webhook-events.mjs"
       - "scripts/check-stripe-webhook-events.mjs"
+      - "scripts/lib/stripeWebhookGuard.mjs"
+      # Not supabase/functions/stripe-webhook-config-check/**: a push there would
+      # run the live job before functions-deploy ships the function (a 404 red).
+      # The daily and manual runs read the deployed function.
       - ".github/workflows/stripe-webhook-guard.yml"
   pull_request:
     branches: [main]
@@ -49,6 +64,8 @@ on:
       - "scripts/e2e/stripe-sandbox-off.sh"
       - "scripts/stripe-webhook-events.mjs"
       - "scripts/check-stripe-webhook-events.mjs"
+      - "scripts/lib/stripeWebhookGuard.mjs"
+      - "supabase/functions/stripe-webhook-config-check/**"
       - ".github/workflows/stripe-webhook-guard.yml"
   # Daily: a duplicate endpoint appears from RUNNING the sandbox script, not
   # from editing it, so a paths-filtered trigger alone would never see it.
@@ -58,7 +75,9 @@ on:
 
 concurrency:
   group: stripe-webhook-guard-${{ github.ref }}
-  cancel-in-progress: true
+  # A push must never cancel the scheduled run: notify is skipped on a cancelled
+  # run, so that day's nightly-red issue would silently not update.
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 jobs:
   static:
@@ -99,21 +118,26 @@ jobs:
             exit 1
           fi
           echo "Guard correctly failed (exit $code) on the stale-event-list fixture."
-      - name: Self-test — the guard must go red on an undelivered event (Q156)
+      - name: Self-test — the guard must go red on undelivered live events (Q854)
         run: |
           set +e
-          node scripts/check-stripe-webhook-events.mjs --static \
-            --events-fixture scripts/fixtures/stripe-webhook-endpoints/undelivered-event-q156.json
+          out=$(node scripts/check-stripe-webhook-events.mjs \
+            --events-fixture scripts/fixtures/stripe-webhook-endpoints/undelivered-events.json 2>&1)
           code=$?
           set -e
+          echo "$out"
           if [ "$code" -eq 0 ]; then
-            echo "::error::The guard PASSED on an event Stripe never delivered. Undelivered events are no longer detected."
+            echo "::error::The guard PASSED on the undelivered-events fixture. Undelivered live events are no longer detected."
             exit 1
           fi
-          echo "Guard correctly failed (exit $code) on the undelivered-event fixture."
+          if ! printf '%s' "$out" | grep -q "NOT delivered"; then
+            echo "::error::The guard failed on the undelivered-events fixture, but not for undelivered events."
+            exit 1
+          fi
+          echo "Guard correctly failed (exit $code) on the undelivered-events fixture."
 
   live-secret-present:
-    name: STRIPE_TEST_SECRET_KEY is configured
+    name: CRON_SECRET is configured
     runs-on: ubuntu-latest
     timeout-minutes: 2
     # Only on this repo's own branches — forks legitimately lack the secret.
@@ -121,17 +145,16 @@ jobs:
     steps:
       - name: Fail loudly if the key is missing
         env:
-          KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          KEY: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$KEY" ]; then
-            echo "::error::STRIPE_TEST_SECRET_KEY is not set, so the duplicate-endpoint half of the #1586 guard cannot run."
-            echo "Add a Stripe TEST-MODE restricted key with read access to Webhook Endpoints as a repo secret."
+            echo "::error::CRON_SECRET is not set, so the duplicate-endpoint half of the #1586 guard cannot call stripe-webhook-config-check."
             exit 1
           fi
           echo "Secret present."
 
   live:
-    name: Live test-mode endpoint check
+    name: Live-mode endpoint check (read only)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: live-secret-present
@@ -140,9 +163,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: One enabled endpoint, events matching the handler map
+      - name: One enabled endpoint, events matching the handler map, no undelivered events
         env:
-          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: node scripts/check-stripe-webhook-events.mjs --require-live
 
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after stripe-webhook-guard — along

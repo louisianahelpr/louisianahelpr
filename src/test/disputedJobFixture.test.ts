@@ -12,7 +12,7 @@
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (hired) return { kind: "resume", row: hired, next: "dispute" }; | if (hired) return { kind: "create" };
  * @mutate e2e/prod-audit/fundedOpenJob.ts | helper.user.id}&select=job_id,status` | helper.user.id}&status=eq.pending&select=job_id,status`
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = mine.find((r) => r.status === "open" && !r.helper_id && !isDeadFor(opts.applications, r.id)); | const open = mine.find((r) => r.status === "open" && !r.helper_id);
- * @mutate e2e/prod-audit/messy-input.spec.ts | const disputed = await ensureDisputedJob(request, browser, sessions.get("poster")!, sessions.get("helper")!); | const disputed = { log: [] as string[] };
+ * @mutate e2e/prod-audit/messy-input.spec.ts | const disputed = await unlessLivePay(() => ensureDisputedJob(request, browser, sessions.get("poster")!, sessions.get("helper")!)); | const disputed = { value: null, livePay: null };
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -76,7 +76,7 @@ describe("planDisputedJob", () => {
 describe("messy-input builds the dispute fixture before reading fixtures", () => {
   const spec = blankComments(readFileSync(resolve(__dirname, "../../e2e/prod-audit/messy-input.spec.ts"), "utf8"));
   it("ensureDisputedJob runs in beforeAll, before resolveFixtures, when the disputed explores are in scope", () => {
-    const ensure = spec.indexOf("await ensureDisputedJob(request, browser,");
+    const ensure = spec.indexOf("await unlessLivePay(() => ensureDisputedJob(request, browser,");
     const resolveAt = spec.indexOf("fx = await resolveFixtures(");
     expect(ensure).toBeGreaterThan(-1);
     expect(resolveAt).toBeGreaterThan(ensure);

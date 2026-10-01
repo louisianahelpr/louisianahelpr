@@ -15,17 +15,22 @@
  *
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | else if (opts.appliedJobIds.has(r.id)) retire | else if (opts.appliedJobIds.has(r.id) && false) retire
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | else if (runway < MIN_RUNWAY_DAYS) retire | else if (runway < 0) retire
- * @mutate e2e/prod-audit/deep-links.spec.ts | const funded = await ensureFundedOpenJob(request, browser, poster, helper); | const funded = { log: [] as string[] };
+ * @mutate e2e/prod-audit/deep-links.spec.ts | const funded = await unlessLivePay(() => ensureFundedOpenJob(request, browser, poster, helper)); | const funded = { value: null, livePay: null };
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import {
+  ACCEPTED_FIXTURE_TITLE,
   FUNDED_FIXTURE_TITLE,
+  LIVE_PAY_SKIP,
   MIN_RUNWAY_DAYS,
+  PRE_LIVE_WHY,
+  planAcceptedJob,
   planFundedOpenJob,
   type FixtureRow,
+  type StripeMode,
 } from "../../e2e/prod-audit/fundedOpenJobPlan";
 
 // A fixed era well in the past (jobDayFixtureTimezone: a present-era job
@@ -111,6 +116,73 @@ describe("planFundedOpenJob", () => {
   });
 });
 
+/*
+ * Stripe went LIVE on prod 2026-09-27. Owner decision that day: nightly
+ * journeys skip pay steps in live mode (no 4242 on a live checkout). And the
+ * fixtures a TEST key funded before the switch (36eebad4 "Prod audit accepted
+ * fixture", 9 more open+escrow from 09-19..09-23) cannot be refunded with the
+ * live key: cancel_escrow answered 500 "No such payment_intent ... a similar
+ * object exists in test mode, but a live mode key was used" on every run.
+ */
+describe("Stripe LIVE: no pay step, and pre-live test-mode fixtures are left alone", () => {
+  const planIn = (mode: StripeMode, rows: FixtureRow[]) =>
+    planFundedOpenJob(rows, { today: TODAY, appliedJobIds: new Set(), mode });
+  const preLive = (over: Partial<FixtureRow> = {}) => row({ stripe_session_id: "cs_test_a1B2c3", ...over });
+
+  it("live mode never plans a payment: the would-be pay becomes the justified skip naming the owner decision", () => {
+    const p = planIn("live", []);
+    expect(p.pay).toBeNull();
+    expect(p.skip).toBe(LIVE_PAY_SKIP);
+    expect(LIVE_PAY_SKIP).toMatch(/owner decision 2026-09-27/);
+    expect(LIVE_PAY_SKIP).toMatch(/nightly skips pay steps in live mode/);
+    expect(planIn("live", [row({ payment_status: "unpaid" })]).pay).toBeNull();
+  });
+
+  it("test mode still pays (the skip is live-only)", () => {
+    expect(planIn("test", []).pay).toBe("new");
+    expect(planIn("test", []).skip).toBeUndefined();
+  });
+
+  it("a pre-live cs_test_ fixture is neither reused nor retired in live mode, and is logged as such", () => {
+    const stuck = preLive({ payment_status: "cancelling" });
+    const escrowed = preLive();
+    const short = preLive({ date_needed: "2020-01-19" });
+    const p = planIn("live", [stuck, escrowed, short]);
+    expect(p.reuse).toBeNull();
+    expect(p.retire).toEqual([]);
+    expect(p.preLive?.map((x) => x.row.id).sort()).toEqual([stuck.id, escrowed.id, short.id].sort());
+    expect(p.preLive?.[0].why).toBe(PRE_LIVE_WHY);
+    expect(PRE_LIVE_WHY).toBe("pre-live test-mode fixture, not refundable with the live key");
+  });
+
+  it("an UNKNOWN mode is treated as live for pre-live rows (never cancel_escrow a cs_test_ row blind)", () => {
+    const stuck = preLive({ payment_status: "cancelling" });
+    expect(planIn("unknown", [stuck]).retire).toEqual([]);
+  });
+
+  it("in test mode a cs_test_ fixture is an ordinary fixture: reused / retired as before", () => {
+    const stuck = preLive({ payment_status: "cancelling" });
+    expect(planIn("test", [stuck]).retire.map((x) => x.row.id)).toEqual([stuck.id]);
+  });
+
+  it("planAcceptedJob: the pre-live accepted fixture (36eebad4 shape) is not retired in live mode, and nothing is paid", () => {
+    const fixture = row({
+      id: "36eebad4-723c-4205-b0ee-c38052bd6533",
+      title: `${ACCEPTED_FIXTURE_TITLE}: fix a sticking screen door`,
+      payment_status: "cancelling",
+      date_needed: "2020-01-17",
+      stripe_session_id: "cs_test_b1XyZ",
+    });
+    const p = planAcceptedJob([fixture], { today: TODAY, helperId: "h", applications: new Map(), mode: "live" });
+    expect(p.retire).toEqual([]);
+    expect(p.preLive?.map((x) => x.row.id)).toEqual([fixture.id]);
+    expect(p.kind).toBe("skip");
+    // The same row in test mode is still retired (the pre-fix behaviour, kept where it is right).
+    const t = planAcceptedJob([fixture], { today: TODAY, helperId: "h", applications: new Map(), mode: "test" });
+    expect(t.retire.map((x) => x.row.id)).toEqual([fixture.id]);
+  });
+});
+
 describe("every prod-audit spec that needs the funded open job sets it up", () => {
   const dir = resolve(__dirname, "../../e2e/prod-audit");
   const specs = readdirSync(dir).filter((f) => f.endsWith(".spec.ts"));
@@ -123,7 +195,8 @@ describe("every prod-audit spec that needs the funded open job sets it up", () =
 
   it.each(needers)("%s calls ensureFundedOpenJob before resolving fixtures", (f) => {
     const code = blankComments(readFileSync(join(dir, f), "utf8"));
-    const ensure = code.search(/await ensureFundedOpenJob\(/);
+    // Q865: the call sits inside unlessLivePay so a live-pay skip cannot take the whole file.
+    const ensure = code.search(/await (?:unlessLivePay\(\(\) => )?ensureFundedOpenJob\(/);
     const resolveAt = code.search(/fx = await resolveFixtures\(/);
     expect(ensure, `${f} reads openJob but never calls ensureFundedOpenJob`).toBeGreaterThan(-1);
     expect(ensure, `${f} resolves fixtures before the funded job exists`).toBeLessThan(resolveAt);

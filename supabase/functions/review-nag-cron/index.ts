@@ -56,6 +56,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { forEachBounded, SWEEP_CONCURRENCY } from "../_shared/forEachBounded.ts";
+import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 
 /**
  * Width of each nag window, in hours. MUST be >= the cron period, or jobs fall
@@ -74,6 +75,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  const startedAt = Date.now();
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -115,14 +117,14 @@ serve(async (req) => {
     job_id: string,
   ): Promise<"sent" | "skipped" | "failed"> => {
     try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
+      const res = await fetchFunction(`${supabaseUrl}/functions/v1/send-notification-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": authHeader,
         },
         body: JSON.stringify({ user_id, title, message, type: "review", link, job_id }),
-      });
+      }, { deadlineAt: invocationDeadline(startedAt) });
 
       if (!res.ok) {
         const detail = (await res.text().catch(() => "")).slice(0, 200);

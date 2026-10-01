@@ -68,6 +68,8 @@ import {
   assertHealthy,
   cleanupMarked,
   ensureFundedOpenJob,
+  skipWhenUnfundedLive,
+  unlessLivePay,
   getSession,
   health,
   newUserContext,
@@ -87,6 +89,8 @@ const test = base;
 let poster: Session;
 let helper: Session;
 let fx: Fixtures;
+/** Q865: why setup did not fund the open job (Stripe live), or null. Only the apply tests skip on it. */
+let livePay: string | null = null;
 
 test.beforeAll(async ({ request, browser }, info) => {
   // Q100: a real Stripe TEST checkout when no valid funded fixture exists.
@@ -94,8 +98,9 @@ test.beforeAll(async ({ request, browser }, info) => {
   test.setTimeout(30 * 60_000); // a fresh fixture waits out the 20-minute early-access window
   poster = await getSession(request, "poster");
   helper = await getSession(request, "helper");
-  const funded = await ensureFundedOpenJob(request, browser, poster, helper);
-  info.annotations.push({ type: "funded-fixture", description: funded.log.join("; ") });
+  const funded = await unlessLivePay(() => ensureFundedOpenJob(request, browser, poster, helper));
+  livePay = funded.livePay;
+  info.annotations.push({ type: "funded-fixture", description: funded.value?.log.join("; ") ?? `not funded: ${livePay}` });
   fx = await resolveFixtures(request, poster, helper);
   // A run that died mid-spec may have left marked rows behind. Only rows older
   // than any live run: another run driving these accounts right now owns the rest.
@@ -174,6 +179,7 @@ test.describe("apply", () => {
      * src/test/prodAuditGapRemedies.test.ts fails on a skip that names an
      * impossible remedy.
      */
+    skipWhenUnfundedLive(f.openJob, livePay, "applying needs a funded open job");
     test.skip(
       !f.openJob,
       "GAP: no open escrowed job by poster-e2e that helper-e2e has not applied to. " +

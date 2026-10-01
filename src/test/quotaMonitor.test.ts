@@ -126,11 +126,11 @@ describe("evaluateQuotas", () => {
   it("70% alerts as warn, 90% as high, 100% as over; each is on the report", () => {
     const readings = allOk();
     readings["vercel.deploys_per_day"] = { value: 75 };
-    readings["resend.sends_day"] = { value: 100 };
-    readings["resend.sends_month"] = { value: 2800 };
+    readings["sentry.errors_30d"] = { value: 5_000 };
+    readings["resend.sends_month"] = { value: 46_000 };
     const res = evaluateQuotas(readings, { live });
     expect(Object.fromEntries(res.alerts.map((r) => [r.q.id, r.status]))).toEqual({
-      "vercel.deploys_per_day": "warn", "resend.sends_day": "over", "resend.sends_month": "high",
+      "vercel.deploys_per_day": "warn", "sentry.errors_30d": "over", "resend.sends_month": "high",
     });
     expect(res.report).toMatch(/\*\*HIGH\*\*/);
     expect(res.report).toMatch(/Alert at 70% of a limit \(WARN, ledger warning\), at 90% \(HIGH, ledger error\)/);
@@ -159,7 +159,7 @@ beforeAll(async () => {
       if (mode.sql === "fail") return send(500, { message: "stub failure" });
       if (mode.sql === "empty") return send(200, []);
       const db = mode.sql === "full" ? String(7 * GB) : mode.sql === "zero" ? "0" : String(200 * 1024 * 1024);
-      return send(200, [{ db_bytes: db, max_conns: 60, client_conns: 9, storage_bytes: "21000000", storage_objects: 95, emails_month: 12, emails_day: 1 }]);
+      return send(200, [{ db_bytes: db, max_conns: 60, client_conns: 9, storage_bytes: "21000000", storage_objects: 95, emails_month: 12 }]);
     }
     if (url.includes("/analytics/endpoints/logs?")) return mode.logs === "fail" ? send(500, { message: "x" }) : send(200, { result: [{ n: 1200 }] });
     if (url.includes("/v6/deployments?")) {

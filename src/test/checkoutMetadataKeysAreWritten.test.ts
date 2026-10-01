@@ -27,7 +27,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * 'chargeback'.
  *
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const sessionType = (session.metadata as any)?.type; | const sessionType = (session.metadata as any)?.type ?? (session.metadata as any)?.repay;
- * @mutate supabase/functions/create-payment/index.ts | metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" }, | metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId },
+ * @mutate supabase/functions/create-payment/index.ts | metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" }, | metadata: { ...tipExtra, job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | .in("payment_status", [...REFUND_CLOSABLE_PAYMENT_STATES]) | .neq("id", "")
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | "escrow", "payout_pending", "cancelling", | "escrow", "payout_pending", "cancelling", "released",
  */

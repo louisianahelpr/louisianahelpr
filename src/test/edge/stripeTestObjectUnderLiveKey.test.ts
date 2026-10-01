@@ -14,7 +14,7 @@
  * routes through it.
  *
  * @mutate supabase/functions/_shared/stripeAccountUsable.ts | /a similar object exists in test mode, but a live mode key was used/ | /a similar object exists in (test\|live) mode/
- * @mutate supabase/functions/create-payment/index.ts | import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false;
+ * @mutate supabase/functions/create-payment/index.ts | if (isTestObjectUnderLiveKey(error)) { | if (false) {
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

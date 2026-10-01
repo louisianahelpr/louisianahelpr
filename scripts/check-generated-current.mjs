@@ -122,6 +122,10 @@ export const GENERATED = [
     script: "scripts/archive-done.mjs",
     cmd: ["node", "scripts/archive-done.mjs", "--write"],
     outputs: ["docs/OPEN.md", archivePathFor(new Date().toISOString().slice(0, 10))],
+    // A new month's archive has no file until its first done item moves in
+    // (2026-10-01: every land.sh and staleness run crashed on the missing file).
+    // Absent on both sides is current; committed but not produced still fails.
+    mayBeAbsent: [archivePathFor(new Date().toISOString().slice(0, 10))],
     what: "docs/OPEN.md holds live items only; done items move verbatim to docs/archive/OPEN-done-YYYY-MM.md (Q16)",
   },
   {
@@ -334,7 +338,7 @@ export function coverageProblems({ writers = discoverWriters(), declared = disco
   }
   for (const g of [...GENERATED, ...EVIDENCE]) {
     if (!existsSync(join(REPO, g.script))) problems.push(`${g.id}: generator ${g.script} does not exist — update the registry`);
-    for (const o of g.outputs) if (!existsSync(join(REPO, o))) problems.push(`${g.id}: output ${o} does not exist — update the registry`);
+    for (const o of g.outputs) if (!existsSync(join(REPO, o)) && !g.mayBeAbsent?.includes(o)) problems.push(`${g.id}: output ${o} does not exist — update the registry`);
   }
   const outs = registeredOutputs();
   for (const f of declared) {
@@ -401,6 +405,7 @@ export function checkGenerator(g) {
   for (const o of g.outputs) {
     const before = saved.get(o);
     const after = produced.get(o);
+    if (after === null && before === null && g.mayBeAbsent?.includes(o)) continue;
     if (after === null) { problems.push(`${o}: ${refresh} did not produce it`); continue; }
     if (before === null) { problems.push(`${o}: not committed — run \`${refresh}\` and commit it`); continue; }
     const a = normalise(before, g.volatile);
@@ -448,7 +453,9 @@ function main() {
         continue;
       }
       g.outputs.forEach((o, k) => {
-        const after = readFileSync(join(REPO, o), "utf8");
+        // An output may legitimately not exist: on the 1st of a month the dated
+        // OPEN-done archive has no file until something is archived into it.
+        const after = afterAll[k];
         const moved = normalise(before[k], g.volatile) !== normalise(after, g.volatile);
         // Only a volatile line (a timestamp) moved: keep the committed bytes,
         // so a refresh with nothing to say leaves no diff (Q57 refresh PRs).

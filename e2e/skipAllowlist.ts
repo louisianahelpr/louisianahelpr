@@ -129,7 +129,7 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     file: "e2e/prod-gift-card.spec.ts",
     match: "Stripe is not in test mode",
     verdict: "failure",
-    why: "create-gift-card-checkout returned a non-test Checkout Session, so no gift could be bought safely — the whole journey went untested",
+    why: "create-gift-card-checkout returned a Checkout URL with no recognisable cs_test_/cs_live_ session (a cs_live_ one takes skipLivePay instead), so no gift could be bought safely — the whole journey went untested",
   },
   {
     file: "e2e/prod-gift-card.spec.ts",

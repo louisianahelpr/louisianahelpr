@@ -33,13 +33,11 @@ on:
       - "fastlane/metadata/**"
       - ".github/dependabot.yml"
       - "LICENSE"
+  # No paths-ignore on pull_request: "Lint, type-check, build, test" is a
+  # REQUIRED check (Q44), and a required check that never starts leaves a
+  # docs-only PR waiting forever (src/test/landingPath.test.ts).
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "fastlane/metadata/**"
-      - "LICENSE"
   workflow_dispatch:
 
 # Cancel superseded runs on the same ref to avoid burning minutes on stale commits.

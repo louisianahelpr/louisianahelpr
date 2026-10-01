@@ -402,6 +402,15 @@ export function ApplicantsEmptyState({
     <div className="flex min-h-[calc(100dvh-7rem)] [@media(min-width:900px)]:min-h-[calc(100dvh-11rem)]">
       <EmptyState
         variant="inline"
+        /* Content from the TOP of the card, not centred. The wrapper above
+           stretches this card to the bottom of the screen, and centred in a
+           card that tall the icon sat ~half a screen down under an empty band
+           (owner, 2026-10-01: "This is kind of low."; measured gap from card
+           top to icon 142px at 375 / 173px at 1440 against 56px padding).
+           One return serves every phase (fresh / quiet / imminent / overdue),
+           so all four move together. Guarded by applicantsEmptyTop.test.tsx
+           and e2e/prod-audit/applicants-empty-position.spec.ts. */
+        align="top"
         icon={icon}
         /* NO `eyebrow`. `.text-display-eyebrow` is `display: none` app-wide
            (index.css:1966 — "all eyebrows gone", 2026-07-25), so anything

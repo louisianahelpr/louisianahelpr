@@ -57,6 +57,14 @@ interface EmptyStateProps {
    * is the point of this component.
    */
   surfaceStyle?: CSSProperties;
+  /**
+   * Vertical placement of the content inside the card. `center` (default)
+   * suits a card sized to its content or a short panel. `top` is for a card
+   * a caller stretches to fill the screen: centred in a card that tall, the
+   * icon lands half a screen down with an empty band above it (owner,
+   * 2026-10-01, at the Applicants empty state: "This is kind of low.").
+   */
+  align?: "center" | "top";
 }
 
 /**
@@ -81,8 +89,10 @@ export function EmptyState({
   footnote,
   variant = "dock",
   surfaceStyle,
+  align = "center",
 }: EmptyStateProps) {
   const isDock = variant === "dock";
+  const justify = align === "top" ? "justify-start" : "justify-center";
   const isBare = variant === "bare";
 
   const variantStyle: CSSProperties = isDock
@@ -176,10 +186,10 @@ export function EmptyState({
           // the inner box should have; the answer was that it should not be
           // drawn. The dock now contributes LAYOUT only — it still fills the
           // panel and centres the content, it just paints nothing.
-          ? "empty-state-dock flex-1 min-w-0 max-w-full flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10"
+          ? `empty-state-dock flex-1 min-w-0 max-w-full flex flex-col items-center text-center ${justify} gap-5 px-5 sm:px-8 py-10`
           : isBare
-            ? "flex-1 min-w-0 max-w-full flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10"
-            : "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
+            ? `flex-1 min-w-0 max-w-full flex flex-col items-center text-center ${justify} gap-5 px-5 sm:px-8 py-10`
+            : `flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center ${justify} gap-5 px-5 sm:px-8 py-14 rounded-2xl`
       }
       style={cardStyle}
     >

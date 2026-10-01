@@ -23,6 +23,7 @@
 import { test, expect, webkit, type Browser, type Page } from "../prodTest";
 import { newUserContext, sessionFor, SUPABASE_URL, type Session } from "./harness";
 import { isConsentAcceptance } from "./harness";
+import { isStorageSignPath } from "../readRpc";
 
 /** The gap between two consecutive user rows, in px: `itemClassName="pb-1"`
  *  on AdminUsers' VirtualList. Every gap must be this, within 1px. */
@@ -93,7 +94,9 @@ for (const { width, engine } of RUNS) {
         const req = route.request();
         const m = req.method();
         if (m === "GET" || m === "HEAD" || m === "OPTIONS" || READ_RPC.test(req.url()) || /\/auth\/v1\/(token|user)/.test(req.url())) return route.continue();
-        if (/\/storage\/v1\/object\/(sign|list)/.test(req.url())) return route.continue();
+        // Signing mints a read link (the shared rule); list is a read too.
+        const path = new URL(req.url()).pathname;
+        if (isStorageSignPath(path) || /^\/storage\/v1\/object\/list\//.test(path)) return route.continue();
         if (isConsentAcceptance(m, new URL(req.url()).pathname, req.postData())) return route.continue();
         await route.abort("blockedbyclient").catch(() => {});
       });

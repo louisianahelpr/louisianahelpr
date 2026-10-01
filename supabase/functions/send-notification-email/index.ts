@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
 import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
+import { isTestRecipient, TEST_RECIPIENT_REASON } from '../_shared/testRecipient.ts'
 import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
@@ -409,6 +410,25 @@ serve(async (req) => {
       await logSkip('suppressed', 'on_suppression_list')
       return new Response(
         JSON.stringify({ skipped: true, reason: 'suppressed', to: maskEmail(profile.email) }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Q840: a test or seed recipient (fixture inbox, is_seed profile) is never
+    // mailed — it only spent Resend quota (279 of 282 sends in the week before
+    // this gate). Logged 'suppressed' in both logs so the trail stays whole.
+    if (await isTestRecipient(supabase, profile.email)) {
+      const { error: testLogError } = await supabase.from('email_send_log').insert({
+        message_id: crypto.randomUUID(),
+        template_name: `notification_${category}`,
+        recipient_email: profile.email,
+        status: 'suppressed',
+        error_message: TEST_RECIPIENT_REASON,
+      })
+      if (testLogError) console.error('test-recipient suppressed log insert failed:', testLogError.message)
+      await logSkip('suppressed', 'test_recipient')
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'test_recipient' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }

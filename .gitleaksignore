@@ -73,3 +73,4 @@ a44a65f3d744888ccfa9709f22975476e9c397a3:supabase/functions/mapkit-token/index.t
 47418e9b8246125e81d193df165eaf6d0f2d68ab:src/test/edge/process-scheduled-payouts-crew.test.ts:generic-api-key:195
 806c4ab208e63994b6ce92d8d1cb840914353376:src/test/edge/process-scheduled-payouts-crew.test.ts:generic-api-key:195
 e1ec8e0195c079c87ccc6ce256792635b47084b4:src/test/edge/process-scheduled-payouts-crew.test.ts:generic-api-key:195
+41a897846a9587bde21f3a4f8491d95cbf751b71:src/test/stripeWebhookConfigCheckShape.test.ts:stripe-access-token:23

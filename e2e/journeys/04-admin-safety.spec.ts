@@ -95,14 +95,14 @@ async function postJob(api: APIRequestContext, poster: Session, jobTitle: string
   return job;
 }
 
-/** Fund on Stripe TEST (4242). A live-mode session is reported uncovered, never paid. */
+/**
+ * Fund on Stripe TEST (4242). A live-mode session is never paid: `fund()`
+ * skips it itself through `skipLivePay` (the owner's 2026-09-27 decision),
+ * before `payCheckout`'s cs_test_ refusal could fire — so the old catch that
+ * turned that refusal into `skipUncovered` here was unreachable.
+ */
 async function fundJob(api: APIRequestContext, browser: Browser, poster: Session, jobId: string, log: string[]) {
-  try {
-    await fund(api, browser, poster, { id: jobId } as Row, log);
-  } catch (e) {
-    if (/not a cs_test_ session/.test(String(e))) skipUncovered("Journey funding SKIPPED", `Stripe is not in test mode: ${String(e).slice(0, 160)}`);
-    throw e;
-  }
+  await fund(api, browser, poster, { id: jobId } as Row, log);
 }
 
 /** Mark read, then delete, the notifications a journey produced for `s` on `jobId`. */
@@ -115,12 +115,6 @@ async function clearNotifications(api: APIRequestContext, s: Session, jobFilter:
 }
 
 /** Q281 landed = the ban writers set auth.users.banned_until. Read from THIS checkout's migrations, the same tree CI deploys. */
-async function q281Landed(): Promise<boolean> {
-  const { readdirSync, readFileSync } = await import("node:fs");
-  const dir = "supabase/migrations";
-  return readdirSync(dir).some((f) => f.endsWith(".sql") && /banned_until/.test(readFileSync(`${dir}/${f}`, "utf8")));
-}
-
 test.describe.serial("admin and safety journeys", () => {
   const avail = sessionsAvailable();
   test.skip(!avail.ok, avail.why);
@@ -344,19 +338,20 @@ test.describe.serial("admin and safety journeys", () => {
       expect(msgBody).toContain("account_restricted");
     });
 
-    await test.step("Q281 layers: the session is revoked and ungated tables refuse too", async () => {
-      if (!(await q281Landed())) {
-        test.info().annotations.push({
-          type: "uncovered",
-          description: "Q281 is not on main yet (no migration sets auth.users.banned_until): the banned session's refresh grant and saved_searches write are not asserted. They are asserted automatically once it lands.",
-        });
-        return;
-      }
+    await test.step("Q281 layers: the session survives, and every table refuses its writes", async () => {
+      // Owner decision (Q281/Q294, 2026-09-23): a banned account KEEPS sign-in,
+      // so it can reach Account Suspended (delete + support); the DB gates
+      // refuse everything else. Nothing sets auth.users.banned_until (live
+      // check 2026-09-30: no public function mentions it). This step used to
+      // assert the refresh was REFUSED, gated on a grep of the migrations for
+      // "banned_until" — which matched the comment in
+      // 20260923185224_ban_enforcement_everywhere.sql explaining why it is
+      // never set, so run 36561180641 asserted the opposite of the decision.
       const refresh = await request.post(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
         headers: { apikey: ANON, "Content-Type": "application/json" },
         data: { refresh_token: v.session.refresh_token },
       });
-      expect(refresh.ok(), "a banned account refreshed its session").toBe(false);
+      expect(refresh.ok(), `a banned account lost sign-in, against the owner's Q281 decision: ${await refresh.text()}`).toBe(true);
       const saved = await request.post(`${SUPABASE_URL}/rest/v1/saved_searches?select=id`, {
         headers: rest(v.session, { Prefer: "return=representation" }),
         data: { user_id: v.userId, name: `ban journey ${RUN}` },

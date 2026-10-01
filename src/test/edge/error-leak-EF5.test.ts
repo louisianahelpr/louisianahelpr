@@ -38,6 +38,8 @@ const FUNCTIONS_DIR = path.join(ROOT, "supabase", "functions");
 /** function name → the raw-error fragments that must no longer appear. */
 const LEAKS: Record<string, string[]> = {
   "stripe-connect": ["JSON.stringify({ error: err.message })"],
+  // Q859 (4): the outer catch echoed the raw Stripe / PostgREST message.
+  "stripe-payouts": ["JSON.stringify({ error: message })"],
   "admin-user-actions": ["JSON.stringify({ error: (err as Error).message })"],
   "admin-resend-verification": ["JSON.stringify({ error: (err as Error).message })"],
   "stripe-idv-start": ["JSON.stringify({ error: (err as Error).message })"],
@@ -196,7 +198,7 @@ export function rawErrorResponseSites(files = edgeFunctionFiles()): LeakSite[] {
  *                           owner, on the one path where a thrown Supabase error
  *                           carries table and column names.
  *   instant-payout        — money path; the Stripe error text reaches the helper.
- *   stripe-payouts          Same shape in both.
+ *   (stripe-payouts was here with the same shape; fixed 2026-09-30, Q859 (4).)
  *
  * This list may only SHRINK, and it goes red in both directions: a NEW leaking
  * handler fails, and a fixed one whose entry is still here fails too.
@@ -207,7 +209,6 @@ const KNOWN_LEAK_FILES: string[] = [
   "supabase/functions/auth-email-hook/index.ts",
   "supabase/functions/delete-own-account/index.ts",
   "supabase/functions/instant-payout/index.ts",
-  "supabase/functions/stripe-payouts/index.ts",
 ];
 
 /** Pure, so the "able to fail" proof below can run it against a synthetic world. */

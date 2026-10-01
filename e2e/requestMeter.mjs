@@ -315,13 +315,8 @@ export class RequestMeter {
     if (api.__requestMeter) return api;
     api.__requestMeter = this;
     const seen = new Map();
-    for (const m of ["get", "post", "put", "patch", "delete", "head"]) {
-      const orig = api[m].bind(api);
-      api[m] = (url, ...rest) => {
-        this.record(String(url), m.toUpperCase(), Date.now(), seen);
-        return orig(url, ...rest);
-      };
-    }
+    // Only fetch is wrapped: Playwright's get/post/put/patch/delete/head each
+    // call this.fetch, so wrapping them too counted every call twice.
     const fetch = api.fetch.bind(api);
     api.fetch = (urlOrRequest, options = {}) => {
       const url = typeof urlOrRequest === "string" ? urlOrRequest : urlOrRequest.url();

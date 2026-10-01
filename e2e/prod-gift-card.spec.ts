@@ -1,6 +1,8 @@
 import { test, expect, type APIRequestContext } from "./prodTest";
 import { appendFileSync } from "node:fs";
 import { payWithTestCard } from "./stripeCheckoutCard";
+import { skipLivePay } from "./prod-audit/fundedOpenJob";
+import { stripeModeFromCheckoutUrl } from "./journeys/fixtures";
 import {
   GIFT_COLUMNS,
   cents,
@@ -211,6 +213,8 @@ test.describe.serial("gift card journey against production", () => {
     jobA?: string;
     jobB?: string;
     faceCents?: number;
+    /** The spend test stopped at a live Checkout Session (justified), so nothing was funded. */
+    livePaySkipped?: boolean;
   } = {};
 
   test("buy, deliver, claim and spend a gift card", async ({ page, request }) => {
@@ -264,6 +268,12 @@ test.describe.serial("gift card journey against production", () => {
         "Gift card journey SKIPPED — Stripe is not in test mode",
         `create-gift-card-checkout returned ${checkoutUrl.slice(0, 60)}. Nothing was paid; the pre-registered row stays pending and inert.`,
       );
+      // Live: the owner's 2026-09-27 justified skip (nightly never pays live).
+      // Anything else (no recognisable session id) stays an unjustified skip.
+      if (stripeModeFromCheckoutUrl(checkoutUrl) === "live") {
+        state.livePaySkipped = true;
+        skipLivePay("gift card: create-gift-card-checkout minted a live Checkout Session");
+      }
       test.skip(true, "Stripe is not in test mode");
       return;
     }
@@ -421,6 +431,7 @@ test.describe.serial("gift card journey against production", () => {
   test("cancelling a gift-funded job gives the gift back", async ({ request }) => {
     test.setTimeout(3 * 60_000);
     const { recipient, g0, g1Id, jobA, jobB, faceCents } = state;
+    if (state.livePaySkipped) skipLivePay("gift card cancel→restore: the spend test's jobs were never funded (live Stripe)");
     test.skip(!recipient || !g0 || !g1Id || !jobA || !jobB || !faceCents, "the spend test did not get far enough to fund both jobs");
 
     for (const [leg, jobId] of [["A", jobA!], ["B", jobB!]] as const) {

@@ -181,11 +181,8 @@ export function CheckoutStep({
   const giftCoversEverything = hasGift && totalCharge <= 0;
   return (
     <>
-      {/* A "Review your job before paying" line used to open this card.
-          Removed on owner instruction: the screen is already titled "Order
-          summary", so it restated the instruction before any content. (The
-          DETAILS → REVIEW AND PAY step rail above this card was removed too,
-          owner 2026-10-01.) */}
+      {/* No "Review your job before paying" line or step rail (owner): the
+          screen is already titled "Order summary". */}
 
       {/* ── Review & Post summary card ─────────────────────────────
           A clean read-only summary of everything the poster set. Shows
@@ -219,9 +216,7 @@ export function CheckoutStep({
             </div>
           </div>
 
-          {/* Category — its own row, not stacked under the title (owner,
-              2026-10-01: "Category should be seperate from the title in its
-              own space"). */}
+          {/* Category: its own row, not under the title (owner, 2026-10-01). */}
           <div className="px-4 py-3 flex items-start justify-between gap-3">
             <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Category</span>
             <div className="flex-1 min-w-0 text-right">
@@ -237,8 +232,7 @@ export function CheckoutStep({
             </div>
           </div>
 
-          {/* Description (clamped to 3 lines), right-aligned like every other
-              value in this card (owner, 2026-10-01). */}
+          {/* Description (3 lines), right-aligned like every value (owner, 2026-10-01). */}
           {description && (
             <div className="px-4 py-3 flex items-start gap-3">
               <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Details</span>
@@ -299,10 +293,8 @@ export function CheckoutStep({
           </div>
 
           {/* Location — full street address (the poster's own job, so
-              showing the complete address once at checkout is fine). The
-              address only: a " · X Parish" suffix used to follow it and was
-              removed on owner instruction (2026-10-01, "no need to show
-              vermilion parish in the location or any parish"). */}
+              showing the complete address once at checkout is fine). No parish
+              suffix (owner, 2026-10-01: "no need to show ... any parish"). */}
           <div className="px-4 py-3 flex items-start gap-3">
             <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
               <MapPin className="w-3 h-3" />Location
@@ -839,8 +831,7 @@ export function CheckoutStep({
         </p>
         {/* A second "Back to edit" ghost button used to sit under the CTA.
             Removed on owner instruction — the page-header arrow already goes
-            back, and a back affordance directly
-            beneath the pay button competes with the one action this screen
+            back, and a back affordance directly beneath the pay button competes with the one action this screen
             exists for. It was the only consumer of the edit callback, so that
             prop went with it. */}
       </div>

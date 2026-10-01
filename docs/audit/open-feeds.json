@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-09-30T23:42Z",
+  "measured_at": "2026-10-01T19:01Z",
   "issues": {
     "readable": true,
     "open": [
@@ -41,16 +41,12 @@
         "title": "nightly-red: e2e-real-backend"
       },
       {
-        "number": 1983,
-        "title": "nightly-red: vacuity"
+        "number": 2017,
+        "title": "nightly-red: schedule-heartbeat"
       },
       {
-        "number": 1986,
-        "title": "nightly-red: main: Test"
-      },
-      {
-        "number": 1987,
-        "title": "nightly-red: main: Vitest"
+        "number": 2022,
+        "title": "nightly-red: morning-page"
       }
     ]
   },
@@ -87,14 +83,6 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: vitest",
-        "issue": null
-      },
-      {
-        "fingerprint": "dee805da3cda46a90b2015a3fe7db0b2",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: test",
         "issue": null
       },
       {
@@ -154,30 +142,6 @@
         "issue": 1719
       },
       {
-        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: schedule-heartbeat",
-        "issue": 1968
-      },
-      {
-        "fingerprint": "e9576de5dfb0b5bf8cd0314ff14ff967",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: privacy-journey",
-        "issue": 1930
-      },
-      {
-        "fingerprint": "f82b155013e8814bd865bb372e45a14f",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: secret scan",
-        "issue": 1982
-      },
-      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -194,20 +158,12 @@
         "issue": null
       },
       {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
-        "issue": 1984
-      },
-      {
         "fingerprint": "18539240a894224e952b88b2b21bb927",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 1957
       },
       {
         "fingerprint": "90ea19b3296815d6ab5bcadeb53dcccc",
@@ -226,30 +182,37 @@
         "issue": 1970
       },
       {
-        "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-abuse-notifications",
-        "issue": 1971
-      },
-      {
         "fingerprint": "0cc83c6bc20bc0e007e1ce4a5aee88e1",
         "source_kind": "edge_slack",
         "source": "ops-alert:custom",
         "status": "open",
         "title": "auth email hook: bad signature",
         "issue": null
+      },
+      {
+        "fingerprint": "a3eafa777cb329b518136427da5c251b",
+        "source_kind": "user-report",
+        "source": "user-report",
+        "status": "open",
+        "title": "a user report (read it on /admin?view=health)",
+        "issue": null
+      },
+      {
+        "fingerprint": "1294af1998b49077d6060d61d0e26dfe",
+        "source_kind": "workflow",
+        "source": "uptime",
+        "status": "open",
+        "title": "louisiana helpr is down",
+        "issue": null
       }
     ]
   },
   "mirrored": {
     "bus DR-004": "Q426",
-    "bus DR-006": "Q799",
     "bus ME-009": "Q797",
     "bus ME-019": "Q441",
     "bus ME-043": "Q441",
-    "bus NB-004": "Q798",
+    "bus NB-004": "Q903",
     "bus OA-018": "Q801",
     "bus SI-033": "Q802",
     "bus TC-004": "Q226",
@@ -258,49 +221,35 @@
     "issue #1719": "Q784",
     "issue #1754": "Q785",
     "issue #1794": "Q593",
-    "issue #1890": "Q786",
     "issue #1909": "Q787",
     "issue #1921": "Q788",
-    "issue #1930": "Q789",
-    "issue #1931": "Q790",
-    "issue #1937": "Q791",
     "issue #1938": "Q792",
     "issue #1941": "Q792",
     "issue #1957": "Q877",
     "issue #1959": "Q878",
     "issue #1969": "Q879",
     "issue #1983": "Q788",
-    "issue #1986": "Q791",
     "issue #1987": "Q792",
+    "issue #2017": "Q897",
+    "issue #2022": "Q898",
     "ledger 0cc83c6bc20b": "Q887",
-    "ledger 0ead7644a1d9": "Q846",
+    "ledger 1294af1998b4": "Q902",
     "ledger 16e6e91f6701": "Q785",
     "ledger 18539240a894": "Q877",
-    "ledger 2e4f3e726722": "Q848",
     "ledger 3a3460b71be7": "Q879",
-    "ledger 3a55e8af0908": "Q847",
     "ledger 43d77e26f272": "Q784",
-    "ledger 4aa239aefeb6": "Q881",
-    "ledger 54b8c187374a": "Q849",
-    "ledger 581b00d7a403": "Q885",
-    "ledger 5be6011a46f6": "Q886",
+    "ledger 581b00d7a403": "Q900",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
     "ledger 7e141f206640": "Q783",
-    "ledger 87dc92b919d8": "Q796",
     "ledger 88ecf6e765df": "Q788",
-    "ledger 90ea19b32968": "Q884",
-    "ledger a8ceee56bbd5": "Q790",
+    "ledger 90ea19b32968": "Q899",
+    "ledger a3eafa777cb3": "Q901",
     "ledger ab6fdbe8c882": "Q878",
     "ledger b75d265e6201": "Q794",
-    "ledger bbbd1b03f9d6": "Q850",
     "ledger c4738e326802": "Q880",
     "ledger db0fb15c4ec3": "Q787",
-    "ledger dee805da3cda": "Q791",
-    "ledger e41c806b9175": "Q883",
     "ledger e49f68d9cbd6": "Q793",
-    "ledger e9576de5dfb0": "Q789",
-    "ledger f22e3275d50d": "Q792",
-    "ledger f82b155013e8": "Q882"
+    "ledger f22e3275d50d": "Q792"
   }
 }

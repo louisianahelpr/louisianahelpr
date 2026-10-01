@@ -57,7 +57,7 @@ jobs:
         # Same reason as e2e-happy-path.yml: its bad index fails apt-get update.
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
-      - run: npx playwright install --with-deps webkit
+      - run: bash scripts/ci/playwright-install.sh webkit
 
       - name: Run happy-path in WebKit
         env:

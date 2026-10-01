@@ -99,7 +99,7 @@ jobs:
 
       - name: Install Playwright Chromium browser
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Build and serve this commit locally (real backend, local frontend)
         if: github.event_name != 'pull_request' || steps.filter.outputs.ui == 'true'

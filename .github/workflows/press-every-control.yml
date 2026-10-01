@@ -169,7 +169,7 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
       - name: Install Playwright Chromium browser
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v3
@@ -399,7 +399,7 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
       - name: Install Playwright Chromium browser
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v3
@@ -652,7 +652,7 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
       - name: Install Playwright Chromium browser
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v3
@@ -905,7 +905,7 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
       - name: Install Playwright Chromium browser
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v3
@@ -1158,7 +1158,7 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
       - name: Install Playwright Chromium browser
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v3
@@ -1411,7 +1411,7 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
       - name: Install Playwright Chromium browser
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v3

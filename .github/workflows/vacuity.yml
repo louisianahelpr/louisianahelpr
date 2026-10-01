@@ -158,7 +158,7 @@ jobs:
         # browser that is not on disk. That check exists precisely because a
         # machine with no browsers reported green nightlies, so CI must install
         # them rather than let the check be "green because nothing ran".
-        run: npx playwright install --with-deps chromium webkit
+        run: bash scripts/ci/playwright-install.sh chromium webkit
 
       - name: Give the build the app's public Supabase config
         # The gate rebuilds the bundle itself for Playwright guards, so it does

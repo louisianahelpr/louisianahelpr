@@ -168,11 +168,8 @@ export function CheckoutStep({
   //   0    → exempt category: tax is a known zero, the total is exact.
   //   null → taxable category whose parish rate isn't resolved yet.
   const seriesDates = isRecurring ? recurringVisitDates(dateNeeded, recurrenceDays, recurrenceWeeks) : [];
-  // What the post actually saves (jobSubmitHelpers): a series' first job sits
-  // on its FIRST VISIT, which is not the typed start when the start is a
-  // weekday the poster did not pick, and the series ends on its last visit.
-  // The "When" and "Repeats" rows show those, so this screen names the dates
-  // being booked and charged rather than the date that was typed.
+  // What the post saves (jobSubmitHelpers): a series starts on its FIRST VISIT
+  // (not the typed start) and ends on its last, so "When"/"Repeats" show those.
   const whenDate = seriesDates[0] ?? dateNeeded;
   const seriesEndDate = seriesDates[seriesDates.length - 1] ?? recurrenceEndDate;
   // A gift-funded post is never taxed: the fully-covered branch of
@@ -320,13 +317,9 @@ export function CheckoutStep({
               <p className="flex-1 text-ds-13 text-foreground text-right">
                 {formatJobDate(whenDate)}
                 {/* Routed through the ONE rule (src/lib/jobDate.ts) so this
-                    summary can never disagree with the card and the detail
-                    sheet the poster is about to see. It used to read
-                    `isFlexibleSchedule ? "Flexible" : startTime ? … : ""`,
-                    which SWALLOWED a real start time the moment the poster
-                    also ticked Flexible — the review screen then hid the hour
-                    they had just chosen. Both facts are true, so both print:
-                    the hour, then the flexibility note. */}
+                    summary never disagrees with the card or detail sheet. It
+                    once swallowed a real start time when Flexible was also
+                    ticked; now the hour prints, then the flexibility note. */}
                 {(() => {
                   const timeLabel = jobStartTimeLabel(startTime, isFlexibleSchedule);
                   // Both facts are true when a poster picks an hour AND ticks

@@ -64,6 +64,13 @@
 // rest. Un-holding the chevron's box below 360 moves the hamburger on open
 // (measured 187 -> 235, the first run of this clause).
 // @mutate src/components/messages/ConversationList.tsx | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch" /> | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch max-[359px]:hidden" />
+// Owner, 2026-10-01: "when you click the search in post and jobs it shouldnt
+// make that top piece bigger it should stay the same size." At 1440 the open
+// row fell back to the 44px phone floor while the closed row is held at
+// COMPACT_HEADER_ROW_MIN_HEIGHT, and the card grew 43 -> 53px. Dropping the
+// open row's floor (either page) brings that back.
+// @mutate src/pages/jobs/JobsHeader.tsx | style={inlineFilters ? { minHeight: COMPACT_HEADER_ROW_MIN_HEIGHT } : undefined}\n          expandingSearch={{ | expandingSearch={{
+// @mutate src/pages/posts/PostsHeader.tsx | style={inlineFilters ? { minHeight: COMPACT_HEADER_ROW_MIN_HEIGHT } : undefined}\n          expandingSearch={{ | expandingSearch={{
 
 import { test, expect, type Page, type Browser, type TestInfo } from "../prodTest";
 import { mkdirSync } from "node:fs";
@@ -652,6 +659,58 @@ for (const vw of [320, 375, 1440] as const) {
           soloRow: surface.soloRow,
           minFieldPx: surface.minFieldPx,
           ownLine: surface.ownLine && vw < surface.ownLine.belowPx ? surface.ownLine : undefined,
+        });
+      } finally {
+        await ctx.close();
+      }
+    });
+  }
+}
+
+/**
+ * THE HEADER DOES NOT GROW WHEN SEARCH OPENS (owner, 2026-10-01, /posts and
+ * /jobs). The title card is the `shrink-0 px-5` ancestor of the magnifier;
+ * its height is read with getBoundingClientRect closed, open, typed into, and
+ * closed again by the ✕, and every reading must equal the closed one.
+ * Measured before the fix at 1440: 43 / 53 / 53 / 43. After: 43 throughout;
+ * 375 was 58 throughout both times.
+ */
+for (const vw of [375, 1440] as const) {
+  for (const surface of SURFACES.filter((s) => s.name === "posts" || s.name === "jobs")) {
+    test(`${surface.name}: the header card keeps its height through open, type and ✕ @${vw}`, async ({ browser }, info) => {
+      const ctx = await authedContext(browser, vw, info.project.use.baseURL);
+      const page = await ctx.newPage();
+      try {
+        await page.goto(surface.url, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector(surface.ready, { state: "visible", timeout: 45_000 });
+        await page.waitForTimeout(700);
+        const cardHeight = (sel: string) =>
+          page.evaluate((s) => {
+            let el = document.querySelector(s) as HTMLElement | null;
+            while (el && !(el.classList.contains("shrink-0") && el.classList.contains("px-5"))) el = el.parentElement;
+            return el ? el.getBoundingClientRect().height : null;
+          }, sel);
+        const closed = await cardHeight(surface.triggerSel);
+        expect(closed, `${surface.name}@${vw}: no shrink-0 px-5 header card above the magnifier — nothing was measured`).not.toBeNull();
+        await page.click(surface.triggerSel);
+        await page.waitForSelector(surface.fieldSel, { state: "visible", timeout: 10_000 });
+        await page.waitForTimeout(450);
+        const open = await cardHeight(surface.fieldSel);
+        await page.fill(surface.fieldSel, "zzz");
+        await page.waitForTimeout(300);
+        const typed = await cardHeight(surface.fieldSel);
+        await page.click(surface.closeSel);
+        await page.waitForSelector(surface.triggerSel, { state: "visible", timeout: 10_000 });
+        await page.waitForTimeout(450);
+        const after = await cardHeight(surface.triggerSel);
+        note(info, {
+          type: `${surface.name}@${vw} header card`,
+          description: `closed ${closed} open ${open} typed ${typed} afterX ${after}`,
+        });
+        expect({ open, typed, after }, `${surface.name}@${vw}: the header card changed height (closed ${closed})`).toEqual({
+          open: closed,
+          typed: closed,
+          after: closed,
         });
       } finally {
         await ctx.close();

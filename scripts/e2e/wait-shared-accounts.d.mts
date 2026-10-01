@@ -4,6 +4,8 @@
  * Same pattern as scripts/open-done-when.d.mts.
  */
 export const LOCK: "prod-lifecycle-shared-accounts";
+/** A run created this long before `me` is a GitHub ghost; decide() skips it. */
+export const STALE_RUN_MS: number;
 export interface LockedJob {
   key: string;
   name: string;

@@ -18,7 +18,16 @@ import { TAB_TITLES } from "@/pages/profile/types";
  * layout the loaded page will have. `withHeader` is false where the real
  * ProfileTabHeader and switcher are already on screen.
  */
-export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boolean }) {
+export function EarningsPageSkeleton({
+  withHeader = true,
+  withSwitcher = withHeader,
+}: {
+  withHeader?: boolean;
+  /** The 50px view-switcher bone. Defaults to `withHeader`; EarningsTab passes
+   *  it alone because its real header is up but its switcher is held back
+   *  until the connect card (which sits ABOVE the switcher) has settled. */
+  withSwitcher?: boolean;
+}) {
   return (
     <ProfileTabBody aria-hidden data-testid="earnings-page-skeleton">
       {withHeader && (
@@ -27,9 +36,9 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
               the switcher's measured 50px: the bone pair read 44/48 against
               68/50 loaded, a +20px jump on prod at 375 (2026-10-01). */}
           <ProfileTabHeader title={TAB_TITLES.earnings} />
-          <Skeleton className="h-[50px] w-full rounded-full" />
         </>
       )}
+      {withSwitcher && <Skeleton className="h-[50px] w-full rounded-full" />}
       <section className="space-y-3">
         <div className="rounded-2xl liquid-glass p-card space-y-4">
           <div className="flex items-center gap-2.5">

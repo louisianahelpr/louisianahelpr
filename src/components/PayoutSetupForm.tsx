@@ -29,7 +29,12 @@ import {
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
 
-export function PayoutSetupForm() {
+export function PayoutSetupForm({ onSettled }: {
+  /** Fires once the account status and the saved methods have both answered,
+   *  i.e. once this form has its final height. EarningsTab holds its page
+   *  skeleton until then so the form never grows under the reader (CLS). */
+  onSettled?: () => void;
+} = {}) {
   const qc = useQueryClient();
   const { user } = useAuthReady();
   const userId = user?.id;
@@ -60,6 +65,10 @@ export function PayoutSetupForm() {
   const methods = methodsQuery.data ?? [];
   const statusLoading = statusQuery.isLoading && !statusQuery.data;
   const methodsLoading = methodsQuery.isLoading && !methodsQuery.data;
+  const formSettled = !!userId && !statusLoading && !methodsLoading;
+  useEffect(() => {
+    if (formSettled) onSettled?.();
+  }, [formSettled, onSettled]);
   const loadData = () => {
     // One prefix-match invalidate covers both the status and methods queries —
     // both live under the ["payout-setup"] domain prefix.

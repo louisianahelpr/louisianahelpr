@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard, ChevronRight, DollarSign, Banknote } from "lucide-react";
@@ -48,9 +48,13 @@ interface PaymentTabProps {
   /** Optional: when provided, renders a "See full breakdown →" link
       that jumps to the Earnings tab. */
   onSeeEarnings?: () => void;
+  /** Fires once every query this block renders from has answered — the setup
+   *  form, the last payout and the poster spend — so its height is final.
+   *  EarningsTab keeps the page skeleton up until then (page-settle, Q2007). */
+  onSettled?: () => void;
 }
 
-export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
+export function PaymentTab({ totalEarnings, onSeeEarnings, onSettled }: PaymentTabProps) {
   const { user } = useCurrentUser();
   // Last-paid payout — pulls the most recent `paid` row from
   // payout_transfers (RLS scopes to helper_id automatically). Surfaces
@@ -73,7 +77,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
     setSearchParams(next, { replace: true });
   }
 
-  const { data: lastPayout } = useQuery<PayoutSummaryRow | null>({
+  const { data: lastPayout, isLoading: lastPayoutLoading } = useQuery<PayoutSummaryRow | null>({
     queryKey: ["payment", "lastPayout", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -101,7 +105,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
   // the user WORKED), so it reported their clients' budgets as the user's
   // own spending — fictional money. Scoped query here rather than threading
   // another prop through EarningsTab, which has no poster-side data.
-  const { data: spentJobs = [] } = useQuery<SpentJobRow[]>({
+  const { data: spentJobs = [], isLoading: spentJobsLoading } = useQuery<SpentJobRow[]>({
     queryKey: ["payment", "posterSpend", user?.id],
     queryFn: async () => {
       const rows = unwrap(
@@ -117,6 +121,13 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });
+
+  const [formSettled, setFormSettled] = useState(false);
+  const markFormSettled = useCallback(() => setFormSettled(true), []);
+  const settled = !!user?.id && formSettled && !lastPayoutLoading && !spentJobsLoading;
+  useEffect(() => {
+    if (settled) onSettled?.();
+  }, [settled, onSettled]);
 
   // Lifetime totals — completed jobs only so cancelled/expired don't inflate
   // the headline. Only SPENT is printed now (see the note at the summary
@@ -181,7 +192,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
       )}
       <section className="space-y-2">
         <div className="rounded-2xl liquid-glass p-card">
-          <PayoutSetupForm />
+          <PayoutSetupForm onSettled={markFormSettled} />
         </div>
       </section>
 

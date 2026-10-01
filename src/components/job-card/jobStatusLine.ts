@@ -143,7 +143,7 @@ export type DeadlineSource =
  * the reader, so every leading `[…]` tag is stripped. What is left is dropped
  * when it is empty: "Cancelled ·" over nothing is worse than "Cancelled".
  */
-export function sanitizeCancellationReason(reason: string | null | undefined): string | null {
+function sanitizeCancellationReason(reason: string | null | undefined): string | null {
   if (typeof reason !== "string") return null;
   let out = reason.trim();
   for (;;) {

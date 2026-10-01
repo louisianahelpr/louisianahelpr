@@ -135,8 +135,13 @@ const atHorizon = schedule[schedule.length - 1].count;
 // Same switch as scripts/e2e/anon-surface-contract.mjs; flip both to false at launch
 // (launch checklist, docs/OPEN.md).
 const EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH = true;
-if (today === 0 && EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH) {
-  console.log("\nNOTE: the guest marketplace is empty (allowed before launch; see EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH).");
+// Empty now and going empty are the same state before launch: a lone leftover
+// listing aging out (2026-10-01, "Clean my room") must not red main either.
+if ((today === 0 || atHorizon === 0) && EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH) {
+  console.log(
+    `\nNOTE: the guest marketplace is ${today === 0 ? "empty" : `going empty (${today} listing(s) today, 0 in ${HORIZON_DAYS} day(s))`} ` +
+      "(allowed before launch; see EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH).",
+  );
   process.exit(0);
 }
 

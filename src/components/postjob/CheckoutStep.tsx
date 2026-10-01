@@ -168,6 +168,13 @@ export function CheckoutStep({
   //   0    → exempt category: tax is a known zero, the total is exact.
   //   null → taxable category whose parish rate isn't resolved yet.
   const seriesDates = isRecurring ? recurringVisitDates(dateNeeded, recurrenceDays, recurrenceWeeks) : [];
+  // What the post actually saves (jobSubmitHelpers): a series' first job sits
+  // on its FIRST VISIT, which is not the typed start when the start is a
+  // weekday the poster did not pick, and the series ends on its last visit.
+  // The "When" and "Repeats" rows show those, so this screen names the dates
+  // being booked and charged rather than the date that was typed.
+  const whenDate = seriesDates[0] ?? dateNeeded;
+  const seriesEndDate = seriesDates[seriesDates.length - 1] ?? recurrenceEndDate;
   // A gift-funded post is never taxed: the fully-covered branch of
   // create-payment settles from the platform balance and never reaches
   // Stripe, and the shortfall branch prices its one line `txcd_00000000`
@@ -311,7 +318,7 @@ export function CheckoutStep({
                 <Calendar className="w-3 h-3" />When
               </span>
               <p className="flex-1 text-ds-13 text-foreground text-right">
-                {formatJobDate(dateNeeded)}
+                {formatJobDate(whenDate)}
                 {/* Routed through the ONE rule (src/lib/jobDate.ts) so this
                     summary can never disagree with the card and the detail
                     sheet the poster is about to see. It used to read
@@ -349,7 +356,7 @@ export function CheckoutStep({
                 {recurrenceDays.map((d) => WEEKDAY_LABELS[d]).join(", ")}
                 {" · "}
                 {seriesDates.length} visit{seriesDates.length === 1 ? "" : "s"}
-                {recurrenceEndDate ? ` through ${formatJobDate(recurrenceEndDate)}` : ""}
+                {seriesEndDate ? ` through ${formatJobDate(seriesEndDate)}` : ""}
               </p>
             </div>
           )}

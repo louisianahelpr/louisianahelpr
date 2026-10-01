@@ -22,15 +22,21 @@ describe("recurringVisitDates", () => {
     ]);
   });
 
-  it("counts week 1 as the week CONTAINING the start, not seven days from it", () => {
-    // Posted on Wednesday: the Monday of that same week is in the past and is
-    // excluded, so a 3-week series is 8 visits, not 9. This is what a poster
-    // means by "for the next three weeks" — they do not expect a visit
-    // backdated to before they posted.
+  it("counts N weeks FROM the start date, not calendar weeks (owner, 2026-10-01)", () => {
+    // Posted on Wednesday, Mon/Wed/Fri for 3 weeks: the 21 days from Wed 09-09
+    // hold 9 picked weekdays. Nothing before the start, nothing past day 21.
     const dates = recurringVisitDates("2026-09-09", [1, 3, 5], 3);
     expect(dates[0]).toBe("2026-09-09");
     expect(dates).not.toContain("2026-09-07");
-    expect(dates).toHaveLength(8);
+    expect(dates[dates.length - 1]).toBe("2026-09-28");
+    expect(dates).toHaveLength(9);
+  });
+
+  it("never books the start itself when its weekday was not picked", () => {
+    // Owner case: Fri 2026-10-02, Mon+Thu, 2 weeks.
+    expect(recurringVisitDates("2026-10-02", [1, 4], 2)).toEqual([
+      "2026-10-05", "2026-10-08", "2026-10-12", "2026-10-15",
+    ]);
   });
 
   it("returns dates in chronological order", () => {
@@ -135,6 +141,6 @@ describe("seriesTotalDollars", () => {
 // Noon UTC, not local midnight: the whole series moves a day otherwise. Only
 // visible in a POSITIVE-offset zone — see the per-timezone cases above.
 // @mutate src/lib/recurringSchedule.ts | new Date(`${ymd}T12:00:00Z`) | new Date(`${ymd}T00:00:00`)
-// Week 1 is the week CONTAINING the start; dates before the job itself are not
-// backdated visits the poster gets billed for.
-// @mutate src/lib/recurringSchedule.ts | if (d < start) continue; | if (false) continue;
+// The window is exactly 7N days from the start: one more day books a visit the
+// poster never saw quoted.
+// @mutate src/lib/recurringSchedule.ts | for (let i = 0; i < capped * 7; i++) { | for (let i = 0; i <= capped * 7; i++) {

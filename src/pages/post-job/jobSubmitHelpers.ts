@@ -120,19 +120,28 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   } = input;
   const offerResponseHours = input.offerResponseHours ?? DEFAULT_OFFER_RESPONSE_HOURS;
 
-  // Expire the listing at the job's start (or end of day when there's no start
-  // time), FLOORED so it is always in the future — the job INSERT happens
-  // before create-payment, and an expiry in the past would take the poster's
-  // money for a listing `expires_at > NOW()` hides from every helper. Same
-  // rule is enforced server-side by trg_job_expiry_floor (20260831201631).
-  const expiresAt = computeJobExpiresAt(dateNeeded, startTime);
-
   // The recurring series, expanded from the SAME module the charge cron reads,
   // so the end date written here and the dates that actually get billed can
   // never disagree.
   const seriesDays = isRecurring ? (recurrenceDays ?? []) : [];
   const seriesWeeks = isRecurring ? (recurrenceWeeks ?? 0) : 0;
   const seriesDates = recurringVisitDates(dateNeeded, seriesDays, seriesWeeks);
+
+  // A series' first job is its FIRST VISIT, not the start date the poster
+  // typed (owner, 2026-10-01). The start can be a weekday they did not pick —
+  // Fri 2 Oct for a Mon+Thu series — and this job is the one charged at
+  // checkout, so saving it on the start date billed a visit on an unpicked day
+  // on top of the ones the cron bills later. The cron and the SQL re-expand
+  // the series from this date, and the schedule is unchanged when re-anchored
+  // on its own first visit (recurringSummaryMatchesCharges.test.ts).
+  const firstVisit = seriesDates[0] ?? dateNeeded;
+
+  // Expire the listing at the job's start (or end of day when there's no start
+  // time), FLOORED so it is always in the future — the job INSERT happens
+  // before create-payment, and an expiry in the past would take the poster's
+  // money for a listing `expires_at > NOW()` hides from every helper. Same
+  // rule is enforced server-side by trg_job_expiry_floor (20260831201631).
+  const expiresAt = computeJobExpiresAt(firstVisit, startTime);
 
   // Lock platform fee and sales tax at creation time
   const lockedFeePercent = platformFee ?? 0;
@@ -163,7 +172,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.replace(/\D/g, "").slice(0, 5)}`,
     zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
     parish: parish,
-    date_needed: dateNeeded,
+    date_needed: firstVisit,
     start_time: startTime || null,
     is_flexible_schedule: isFlexibleSchedule,
     estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,

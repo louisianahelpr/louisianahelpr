@@ -32,6 +32,10 @@ const SPLIT = readMigration("20260927012806_recurring_split_days.sql");
 // LANGUAGE sql bodies read prod tables this world does not model, so it is
 // applied with check_function_bodies off; prod validates them on deploy.
 const VIS = readMigration("20260927015010_recurring_vacated_visit_private.sql");
+// series_visit_dates redefined: N weeks FROM the start (owner, 2026-10-01). The
+// TypeScript authority moved with it, so the parity check below needs it too;
+// its own proof is recurringSeriesWeeksFromStart.pglite.mjs.
+const FROM_START = readMigration("20261001215555_recurring_series_weeks_from_start.sql");
 const { P, A, B, C, X } = USERS;
 const { check, failures, fail } = checker();
 
@@ -120,6 +124,7 @@ for (let i = 0; i < 3; i++) {
   await db.exec(LOCK);
   await db.exec(SPLIT);
   await db.exec(`set check_function_bodies = off; ${VIS}; set check_function_bodies = on;`);
+  await db.exec(FROM_START);
 }
 // PROOF_BEFORE_015010=1 puts back the discovery gates as they were before
 // 20260927015010, so the vacated-visit checks below print red.

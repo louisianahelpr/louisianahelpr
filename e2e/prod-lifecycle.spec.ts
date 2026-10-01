@@ -2,6 +2,7 @@ import { test, expect, type APIRequestContext, type Page, type Locator } from ".
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { openCardFields } from "./stripeCheckoutCard";
+import { skipLivePay } from "./prod-audit/fundedOpenJob";
 import { join } from "node:path";
 import { fitJobTitle } from "../scripts/lib/jobTextBounds.mjs";
 import { pathsByJob, rowStillNames, withoutPaths, type ProofRow } from "./proofPhotoTeardown";
@@ -34,17 +35,15 @@ import { pathsByJob, rowStillNames, withoutPaths, type ProofRow } from "./proofP
 //
 // WHAT HAPPENS IF THE KEY EVER GOES LIVE
 // --------------------------------------
-// The suite DEGRADES; it does not break, and it does not charge anyone.
-//   still runs : post → apply → hire → complete  (no card is involved, and an
-//                unfunded job is invisible in browse and triggers no
-//                notifications, because every one of those gates requires
-//                payment_status IN ('escrow','payout_pending','released'))
-//   skipped    : fund → release → payout → review, announced as UNCOVERED via
-//                a ::warning:: and a step-summary line, never silently
-// Review is in the skipped set because it has to be: the
-// `Users can create reviews for eligible jobs` policy requires
-// `payment_status IN ('released','payout_pending')`. That is where the
-// dependency actually lies, not a judgement call made here.
+// The key went live on 2026-09-27. The suite does not charge anyone: after
+// posting, it mints the escrow Checkout Session, reads cs_live_, cancels that
+// unpaid session and takes the owner's 2026-09-27 justified live-pay skip
+// (skipLivePay, e2e/skipAllowlist.ts). Nothing after funding can run on an
+// unfunded job: the `Helpers can create applications` policy requires
+// job_is_funded(job_id) (measured in pg_policies 2026-09-30; run 36746903937
+// died on that 403 at the apply), and the review policy requires
+// `payment_status IN ('released','payout_pending')`. So apply, hire,
+// complete, release, payout and review are all skipped in live mode.
 //
 // REPLACING THE FUNDING LEG, if that day comes: the proper fix is a SECOND
 // Stripe account used only by tests, with its own `sk_test_` key, reached
@@ -683,7 +682,7 @@ test.describe("full money loop against production", () => {
           `funding leg cannot run without charging a real card — Stripe rejects test card 4242 in live mode, ` +
           `and there is no card this suite can safely submit. Escrow funding, payout release and review are ` +
           `therefore UNCOVERED on this run. The fix is a second Stripe account dedicated to tests, not a real ` +
-          `card here. Post, apply, hire and complete still ran.`,
+          `card here. Apply, hire and complete are skipped too: applying needs a funded job (job_is_funded).`,
       );
       test.info().annotations.push({
         type: "uncovered",
@@ -696,6 +695,10 @@ test.describe("full money loop against production", () => {
         headers: rest(poster),
         data: { action: "cancel_escrow", jobId: job.id },
       });
+      // Live: the owner's justified skip; afterEach still deletes the job.
+      // Unrecognised URL: not evidence of either mode, so the run fails.
+      if (mode === "live") skipLivePay(`money loop: create-payment minted a live Checkout Session for ${job.id}`);
+      throw new Error(`create-payment returned a Checkout URL with no cs_test_/cs_live_ session id: ${String(checkoutUrl).slice(0, 80)}`);
     } else {
       await page.goto(String(checkoutUrl), { waitUntil: "domcontentloaded" });
 

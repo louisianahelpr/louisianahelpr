@@ -113,6 +113,9 @@ async function step(
 // in Louisiana and they have not.
 // @mutate src/components/profile/AvailabilityTab.tsx | timeZone: ZONE, | timeZone: undefined,
 
+/** The Stripe mode the countdown test's Checkout Session carried; "unknown" until it runs. */
+let seenStripeMode: "test" | "live" | "unknown" = "unknown";
+
 test.describe("time travel · deployed app, real backend, moved browser clock", () => {
   test.skip(!sessionsAvailable().ok, sessionsAvailable().why);
 
@@ -441,6 +444,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       // Live Stripe: the owner's 2026-09-27 decision, the one justified skip
       // (e2e/prod-audit/fundedOpenJob.ts). The live page is never opened.
       const mode = stripeModeFromCheckoutUrl(body.url!);
+      seenStripeMode = mode;
       expect(mode, `create-payment escrow answered a URL with no Checkout Session id: ${body.url}`).not.toBe("unknown");
       if (mode === "live") skipLivePay(`time-travel funded countdown: create-payment minted a live Checkout Session for ${job.id}`);
       await payCheckoutUrlInChromium(body.url!);
@@ -493,6 +497,12 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     ["Subscription expiring", "neither E2E account holds a paid tier; buying one is a Stripe checkout"],
   ] as const) {
     test(`UNCOVERED: ${title}`, async () => {
+      // Both states need a payment first: an accepted job needs a funded one
+      // (the applications INSERT policy checks job_is_funded) and a paid tier
+      // is a Stripe checkout. In live mode that is the owner's 2026-09-27
+      // justified skip, read from the countdown test's Checkout Session. An
+      // unknown mode (that test never reached create-payment) stays a failure.
+      if (seenStripeMode === "live") skipLivePay(`time travel: ${title} — ${detail}`);
       skipUncovered(`Time travel: ${title}`, detail);
     });
   }

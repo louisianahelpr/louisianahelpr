@@ -126,3 +126,5 @@
 {"sha":"7c64738b0cb341d37a02f118659da185d0276d9e","reviewer":"lh-money-escrow","verdict":"PASS (review a63411360: amounts shown = submitted/charged)","date":"2026-10-01"}
 {"sha":"22d5534575ab32bdf4c29c6b6066aa04afeb319e","reviewer":"lh-money-escrow","verdict":"PASS (comment-only diff, no code change)","date":"2026-10-01"}
 {"sha":"e96d9efbd23bb82675a35e3b570a7f73e796efe8","reviewer":"lh-money-escrow","verdict":"PASS: comment-only diff; TS transpile with removeComments of parent vs commit is byte-identical (19728 bytes); no executable or money behaviour change","date":"2026-10-01"}
+{"sha":"3559357c38f4ab8aee590a0eb55bef19e636220a","reviewer":"lh-money-escrow","verdict":"PASS","date":"2026-10-01"}
+{"sha":"32096263f9ee483cb5e488f8fca9185a1e4d523a","reviewer":"lh-money-escrow","verdict":"PASS","date":"2026-10-01"}

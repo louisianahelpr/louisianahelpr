@@ -125,10 +125,13 @@ describe("the three fixed sites do not drift back", () => {
   // against itself cannot fail for the member it is missing.
   const site = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8");
 
-  it("quotes the post-a-job CTA total exactly", () => {
+  // Owner, 2026-10-01: the CTA shows the budget, the same number as the field
+  // and the "Use $X" chip; fees are shown on the review screen.
+  it("quotes the post-a-job CTA budget exactly, not the fee-inclusive total", () => {
     const src = site("../pages/post-job/FormStep.tsx");
-    expect(src).toMatch(/formatPriceExact\(form\.totalCharge\)/);
-    expect(src).not.toMatch(/formatPrice\(form\.totalCharge\)/);
+    expect(src).toMatch(/formatPriceExact\(form\.budgetNum\)/);
+    expect(src).not.toMatch(/formatPrice\(form\.budgetNum\)/);
+    expect(src).not.toMatch(/formatPrice(Exact)?\(form\.totalCharge\)/);
   });
 
   it("states the payment-success escrow amount exactly", () => {

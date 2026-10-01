@@ -292,12 +292,12 @@ export function JobsHeader({
             /* THE SAME 320–414 BUDGET THE TAB LABELS ARE FIGHTING FOR.
                On a phone this row keeps five legible tab labels while search is
                closed, and a field you can read what you typed in while it is
-               open. The tabs pay with type and shorter words; the open field has
-               no such lever — every other item on the row is fixed-width — so
-               what yields is the visible page name, below 500px only. Measured
-               at 375: the field is 233px wide. See
-               `narrowTitleStepsAside`. */
-            narrowTitleStepsAside: true,
+               open. Every other item on the row is fixed-width, so below 500px
+               the field cannot fit beside the page name — and the page name
+               stays (owner, 2026-10-01: "Search should not cover the page
+               titles in app"). The field takes its own line under the title.
+               See `narrowFieldWraps`. */
+            narrowFieldWraps: true,
             field: (
               <div className={`relative flex-1 min-w-0 ${inlineFilters ? "max-w-md" : ""} origin-right motion-safe:animate-in motion-safe:slide-in-from-right-4 motion-safe:duration-200`}>
                 {/* THE MAGNIFIER IS IN THE FIELD (owner, 2026-09-19: "the

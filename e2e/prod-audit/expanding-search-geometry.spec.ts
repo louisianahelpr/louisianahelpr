@@ -160,7 +160,12 @@ async function fieldAndSiblings(page: Page, fieldSelector: string, rowSel?: stri
         ? document.querySelector<HTMLElement>(rowSelector)
         : (() => {
             let n: HTMLElement = field;
-            while (n.parentElement && !getComputedStyle(n.parentElement).display.includes("flex")) {
+            // ScreenHeaderRow's `narrowFieldWraps` wrapper ([data-search-field-line])
+            // is the field's line, not the header row: walk past it to the row,
+            // so the title and the cluster are still the siblings measured.
+            const isRow = (el: HTMLElement) =>
+              getComputedStyle(el).display.includes("flex") && !el.hasAttribute("data-search-field-line");
+            while (n.parentElement && !isRow(n.parentElement)) {
               n = n.parentElement;
               if (n === document.body) return null;
             }
@@ -171,9 +176,20 @@ async function fieldAndSiblings(page: Page, fieldSelector: string, rowSel?: stri
       // siblings are measured against, whatever depth the input sits at.
       const item = Array.from(row.children).find((c) => c.contains(field)) as HTMLElement | undefined;
       if (!item) return null;
+      // A `display: contents` element has no box of its own (0x0 at 0,0):
+      // measure the union of its children instead, which is what it lays out.
+      // The narrowFieldWraps wrapper is `contents` at 500px and up.
       const box = (el: Element, label: string) => {
-        const r = el.getBoundingClientRect();
-        return { x: r.x, y: r.y, w: r.width, h: r.height, label };
+        const rects =
+          getComputedStyle(el).display === "contents"
+            ? Array.from(el.children).map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0)
+            : [el.getBoundingClientRect()];
+        if (!rects.length) return { x: 0, y: 0, w: 0, h: 0, label };
+        const x = Math.min(...rects.map((r) => r.left));
+        const y = Math.min(...rects.map((r) => r.top));
+        const w = Math.max(...rects.map((r) => r.right)) - x;
+        const h = Math.max(...rects.map((r) => r.bottom)) - y;
+        return { x, y, w, h, label };
       };
       const siblings = Array.from(row.children)
         .filter((c) => c !== item)
@@ -451,8 +467,8 @@ async function assertSurface(
     Math.round(geom!.item.w),
     `${tag}: the open search field is ${Math.round(geom!.item.w)}px wide, under the ${fieldFloor}px ` +
       `floor. 76px of it is the magnifier and the ✕, so what is left cannot show the word being ` +
-      `typed. Take the width out of a FIXED item on the row — the visible title is the one that ` +
-      `yields on a phone (ScreenHeaderRow's narrowTitleStepsAside) — never out of the field.`,
+      `typed. Never take the width out of the field, and never out of the page title (owner, ` +
+      `2026-10-01): on a phone the field takes its own line (ScreenHeaderRow's narrowFieldWraps).`,
   ).toBeGreaterThanOrEqual(fieldFloor);
 
   if (SHOTS) {
@@ -552,6 +568,14 @@ const SURFACES: {
   minFieldPx?: number;
   /** Below this width the field opens on its OWN LINE under the header row. */
   ownLine?: OwnLine & { belowPx: number };
+  /**
+   * Below this width (and at or above `ownLine.belowPx` when both are set)
+   * ScreenHeaderRow's `narrowFieldWraps` puts the open field on its own line
+   * UNDER the title ([data-search-field-line]) so it never covers it (owner,
+   * 2026-10-01: "Search should not cover the page titles in app"). Same
+   * contract as `ownLine`: field below the magnifier's row, cluster unmoved.
+   */
+  wrapLine?: OwnLine & { belowPx: number };
 }[] = [
   {
     name: "browse-desktop-strip",
@@ -577,6 +601,7 @@ const SURFACES: {
     triggerSel: "[data-search-trigger]",
     fieldSel: 'input[aria-label="Search jobs"]',
     closeSel: 'button[aria-label="Close search"]',
+    wrapLine: { belowPx: 500, lineSel: "[data-search-field-line]", clusterSel: 'button[aria-label="Filter by status"]' },
   },
   {
     name: "jobs",
@@ -585,6 +610,7 @@ const SURFACES: {
     triggerSel: "[data-search-trigger]",
     fieldSel: 'input[aria-label="Search jobs"]',
     closeSel: 'button[aria-label="Close search"]',
+    wrapLine: { belowPx: 500, lineSel: "[data-search-field-line]", clusterSel: 'button[aria-label="Filter by status"]' },
   },
   {
     name: "messages",
@@ -602,6 +628,8 @@ const SURFACES: {
       lineSel: "[data-search-own-line]",
       clusterSel: 'button[aria-label="Conversation list options"]',
     },
+    // 360-499: ScreenHeaderRow `narrowFieldWraps` (the title stays, field below).
+    wrapLine: { belowPx: 500, lineSel: "[data-search-field-line]", clusterSel: 'button[aria-label="Conversation list options"]' },
   },
   {
     name: "saved-helprs",
@@ -658,7 +686,12 @@ for (const vw of [320, 375, 1440] as const) {
           rowSel: surface.rowSel,
           soloRow: surface.soloRow,
           minFieldPx: surface.minFieldPx,
-          ownLine: surface.ownLine && vw < surface.ownLine.belowPx ? surface.ownLine : undefined,
+          ownLine:
+            surface.ownLine && vw < surface.ownLine.belowPx
+              ? surface.ownLine
+              : surface.wrapLine && vw < surface.wrapLine.belowPx
+                ? surface.wrapLine
+                : undefined,
         });
       } finally {
         await ctx.close();
@@ -674,6 +707,14 @@ for (const vw of [320, 375, 1440] as const) {
  * closed again by the ✕, and every reading must equal the closed one.
  * Measured before the fix at 1440: 43 / 53 / 53 / 43. After: 43 throughout;
  * 375 was 58 throughout both times.
+ *
+ * BELOW 500px THE CARD GROWS BY EXACTLY ONE FIELD LINE, ON PURPOSE. The same
+ * day the owner also said "Search should not cover the page titles in app",
+ * and at 375 the field cannot be typable beside the title (95px vs the 120px
+ * floor), so ScreenHeaderRow's `narrowFieldWraps` puts it on its own line
+ * under the title. At 375 this asserts the growth is that line and nothing
+ * else (field height + the 8px row gap), that typing changes nothing, and that
+ * the ✕ puts the card back to its closed height. 1440 stays strictly equal.
  */
 for (const vw of [375, 1440] as const) {
   for (const surface of SURFACES.filter((s) => s.name === "posts" || s.name === "jobs")) {
@@ -696,6 +737,7 @@ for (const vw of [375, 1440] as const) {
         await page.waitForSelector(surface.fieldSel, { state: "visible", timeout: 10_000 });
         await page.waitForTimeout(450);
         const open = await cardHeight(surface.fieldSel);
+        const fieldH = (await page.locator(surface.fieldSel).first().boundingBox())?.height ?? null;
         await page.fill(surface.fieldSel, "zzz");
         await page.waitForTimeout(300);
         const typed = await cardHeight(surface.fieldSel);
@@ -707,11 +749,19 @@ for (const vw of [375, 1440] as const) {
           type: `${surface.name}@${vw} header card`,
           description: `closed ${closed} open ${open} typed ${typed} afterX ${after}`,
         });
-        expect({ open, typed, after }, `${surface.name}@${vw}: the header card changed height (closed ${closed})`).toEqual({
-          open: closed,
-          typed: closed,
-          after: closed,
-        });
+        if (vw < 500 /* ScreenHeaderRow NARROW_TITLE_ASIDE_PX */) {
+          expect(
+            { grew: Math.round(open! - closed!), typed, after },
+            `${surface.name}@${vw}: the card may grow by the field's own line only (field ${fieldH}px + 8px gap), ` +
+              `and must return to ${closed} on ✕`,
+          ).toEqual({ grew: Math.round(fieldH! + 8), typed: open, after: closed });
+        } else {
+          expect({ open, typed, after }, `${surface.name}@${vw}: the header card changed height (closed ${closed})`).toEqual({
+            open: closed,
+            typed: closed,
+            after: closed,
+          });
+        }
       } finally {
         await ctx.close();
       }

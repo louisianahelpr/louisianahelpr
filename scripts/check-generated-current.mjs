@@ -48,6 +48,15 @@ import { archivePathFor } from "./lib/openQueue.mjs";
 
 export const REPO = resolve(import.meta.dirname, "..");
 
+// The month's archive exists only once something was archived that month, so
+// listing it unconditionally turned main red on the 1st of every month
+// (2026-10-01, run 36792806904). A generator that creates it still fails the
+// check, because the same run removes the done items from docs/OPEN.md.
+export function archiveOutputsFor(date) {
+  const p = archivePathFor(date);
+  return existsSync(join(REPO, p)) ? [p] : [];
+}
+
 /**
  * CI-runnable generators, in dependency order (COVERAGE reads SURFACE).
  * `volatile`: lines/keys that legitimately change on every run and are
@@ -121,7 +130,7 @@ export const GENERATED = [
     id: "archive-done",
     script: "scripts/archive-done.mjs",
     cmd: ["node", "scripts/archive-done.mjs", "--write"],
-    outputs: ["docs/OPEN.md", archivePathFor(new Date().toISOString().slice(0, 10))],
+    outputs: ["docs/OPEN.md", ...archiveOutputsFor(new Date().toISOString().slice(0, 10))],
     what: "docs/OPEN.md holds live items only; done items move verbatim to docs/archive/OPEN-done-YYYY-MM.md (Q16)",
   },
   {

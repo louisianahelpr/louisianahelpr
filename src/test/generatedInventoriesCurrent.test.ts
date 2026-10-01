@@ -17,6 +17,7 @@ import {
   TWO_WAY,
   HISTORICAL,
   WRITES_NOT_COMMITTED,
+  archiveOutputsFor,
   checkGenerator,
   coverageProblems,
   discoverDeclaredGenerated,
@@ -52,6 +53,11 @@ describe("generated inventories are current", () => {
 
   it("every writer, generated file and timestamped JSON is registered — both directions", () => {
     expect(coverageProblems()).toEqual([]);
+  });
+
+  it("a new month with nothing archived yet is not a missing output (2026-10-01 main red)", () => {
+    expect(archiveOutputsFor("2099-01-01")).toEqual([]);
+    expect(archiveOutputsFor("2026-09-15")).toEqual(["docs/archive/OPEN-done-2026-09.md"]);
   });
 
   it("is RED on an unregistered writer, a stale registry entry, and an unregistered generated file", () => {

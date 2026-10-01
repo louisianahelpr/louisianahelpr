@@ -65,6 +65,7 @@ import {
   remintSession, restorePlan, restoreSource, rowNamesTestOwner, sessionStillAlive, snapshotAccounts, urlOwnership,
 } from "./pressProdSafety.mjs";
 import * as pressSafety from "./pressProdSafety.mjs";
+import { isStripeWriteRequest, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafety.mjs";
 import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
@@ -1048,6 +1049,26 @@ async function main() {
           } catch { /* blocked */ }
         }, [session.key, session.value]);
       }
+      /**
+       * STRIPE-WRITE BACKSTOP (owner, 2026-10-01: "Skip it on live").
+       *
+       * Run 36784893957 pressed "Set Up Payouts with Stripe" for both shared
+       * accounts; its label passed no gate, stripe-connect `onboard` ran
+       * accounts.create, and live Connect accounts acct_1ULXMy3ISOxM8qBC and
+       * acct_1ULXMw40YhFTkeRO exist because of it. Labels are a guess about
+       * what a button does; the request is the fact. So any request to a
+       * Stripe-writing edge function is aborted here, in the browser, unless
+       * the probe proved TEST mode — and the press that caused it is reported
+       * SKIP_STRIPE_WRITE_BLOCKED below, not PASS and not dropped.
+       */
+      const stripeBlocked = [];
+      await ctx.route("**/functions/v1/**", async (route, req) => {
+        if (isStripeWriteRequest(req.url(), req.postData()) && (await stripeMode()).mode !== "test") {
+          stripeBlocked.push(`${req.method()} ${req.url().replace(/\?.*$/, "").split("/").pop()} ${String(req.postData() ?? "").slice(0, 60)}`);
+          return route.abort("blockedbyclient");
+        }
+        return route.fallback();
+      });
 
       const page = await ctx.newPage();
       const consoleErrors = [];
@@ -1586,7 +1607,7 @@ async function main() {
               return submits && !form.checkValidity();
             })
             .catch(() => false);
-          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length, fc0 = fileChoosers.length;
+          const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length, fc0 = fileChoosers.length, stripe0 = stripeBlocked.length;
           // See paymentPaceMs: never outrun create-payment's own limiter.
           if (PAYMENT_RX.test(label) && paymentClock.last) {
             const wait = paymentClock.last + PAYMENT_PACE_MS - Date.now();
@@ -1683,6 +1704,18 @@ async function main() {
             .evaluate(() => { const w = /** @type {any} */ (window); w.__pressAck?.disconnect?.(); return w.__pressAcked === true; })
             .catch(() => false);
           const after = await snapshot();
+
+          // The press tried to write to Stripe and the backstop aborted it
+          // (Stripe not in TEST mode). Not a PASS, not a FAIL: a documented
+          // skip, with the blocked request named, and the page reloaded.
+          if (stripeBlocked.length > stripe0) {
+            rec.pressed--; totalPressed--;
+            skip(SKIP_STRIPE_WRITE_BLOCKED);
+            entry.stripeBlocked = stripeBlocked.slice(stripe0);
+            rec.notes.push(`"${label}": Stripe write blocked on live — ${entry.stripeBlocked[0]}`);
+            pageDirty = true;
+            continue;
+          }
 
           // ---- classify ------------------------------------------------
           const problems = [];

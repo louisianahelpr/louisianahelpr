@@ -1,0 +1,114 @@
+// @mutate scripts/audit/pressProdSafety.mjs | set up payouts\|stripe\| |
+// @mutate scripts/audit/press-every-control.mjs |         if (isStripeWriteRequest(req.url(), req.postData()) && (await stripeMode()).mode !== "test") { |         if (false) {
+// @mutate scripts/audit/pressProdSafety.mjs |   "stripe-connect", |   "stripe-connectX",
+/*
+ * CLASS GUARD: the prod presser never makes the app write to Stripe while
+ * Stripe is LIVE (owner, 2026-10-01: "Skip it on live").
+ *
+ * Measured on press run 36784893957 (dispatched 2026-09-30T22:19Z): the
+ * control "Set Up Payouts with Stripe" on /profile?tab=earnings was PASSED for
+ * both shared accounts, and its recorded outcome was
+ *   customer: navigated → https://connect.stripe.com/setup/e/acct_1ULXMy3ISOxM8qBC/…
+ *   helper:   navigated → https://connect.stripe.com/setup/e/acct_1ULXMw40YhFTkeRO/…
+ * (results.json in the run's press-every-control artifact). The button calls
+ * stripe-connect `onboard`, which runs stripe.accounts.create — a LIVE Connect
+ * account per shared test user. It escaped the Stripe gate because the label
+ * says "Payouts" and PAYMENT_RX only knew "payout" (\b stops at the s), and no
+ * other word in it is in DESTRUCTIVE_RX, so it was never gated at all.
+ *
+ * Two layers, both checked here:
+ *   1. LABEL: every known Stripe-writing control is gated and, on live, skipped
+ *      with SKIP_STRIPE (reported, not dropped).
+ *   2. NETWORK: whatever its label, a press whose request reaches a
+ *      Stripe-writing edge function is aborted on live and the control is
+ *      recorded SKIP_STRIPE_WRITE_BLOCKED. The function list is derived from
+ *      supabase/functions source, two-way.
+ */
+import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
+// @ts-expect-error - plain .mjs tool script, no types
+import * as safety from "../../scripts/audit/pressProdSafety.mjs";
+// @ts-expect-error - plain .mjs tool script, no types
+import * as harness from "../../scripts/audit/press-every-control.mjs";
+
+const ROOT = resolve(__dirname, "../..");
+const PAYMENT_RX = safety.PAYMENT_RX as RegExp;
+const mutationGate = safety.mutationGate as (a: Record<string, unknown>) => Promise<string | null>;
+const live = async () => ({ mode: "live", detail: "cs_live_ probe" });
+
+/** Every visible label of a control that makes the app write to Stripe, and the file that renders it. */
+const STRIPE_WRITE_LABELS: Array<[label: string, source: string]> = [
+  ["Set Up Payouts with Stripe", "src/components/PayoutSetupForm.tsx"], // stripe-connect onboard → accounts.create (run 36784893957)
+  ["Complete Stripe Verification", "src/components/PayoutSetupForm.tsx"], // update_onboarding → accountLinks.create
+  ["Manage Payouts on Stripe", "src/components/PayoutSetupForm.tsx"], // dashboard → accounts.update + login link
+  ["Set Up Payouts", "src/lib/awardGate.ts"], // AwardGateDialog → onboard
+  ["Finish Verification with Stripe", "src/lib/awardGate.ts"], // AwardGateDialog → update_onboarding
+  ["Finish Verification", "src/lib/awardGate.ts"],
+  ["Start Verification", "src/components/IDVPromptDialog.tsx"], // stripe-idv-start → VerificationSession
+];
+
+describe("press never writes to Stripe while Stripe is live", () => {
+  it("every Stripe-writing label exists in the app and is skipped on live (reported as SKIP_STRIPE)", async () => {
+    expect(STRIPE_WRITE_LABELS.length).toBeGreaterThan(5);
+    for (const [label, source] of STRIPE_WRITE_LABELS) {
+      expect(readFileSync(join(ROOT, source), "utf8"), `${label} no longer in ${source}`).toContain(label);
+      // The harness only consults the gate for labels PAYMENT_RX (or another mutating test) admits.
+      expect(PAYMENT_RX.test(label), `PAYMENT_RX misses "${label}"`).toBe(true);
+      const why = await mutationGate({ label, meta: {}, chainOwned: false, persona: "helper", routeUrl: "/profile?tab=earnings", urlOwned: { owned: true }, owners: {}, stripeMode: live });
+      expect(why, label).toBe(safety.SKIP_STRIPE);
+      expect((harness.DOCUMENTED_SKIPS as Set<string>).has(why as string)).toBe(true);
+    }
+  });
+
+  it("read-only payout controls stay pressable (the fix does not shrink the inventory)", () => {
+    for (const label of ["Payouts", "Export Payouts CSV", "Turn on two-step verification"]) {
+      expect(PAYMENT_RX.test(label), label).toBe(false);
+    }
+  });
+
+  it("the blocked-function list is exactly the edge functions whose source writes to Stripe", () => {
+    const WRITE_RX = /stripe\.[a-zA-Z.]+\.(create|update|del|cancel|capture|confirm|createLoginLink|deleteExternalAccount|pay|finalizeInvoice)\(/;
+    const dir = join(ROOT, "supabase/functions");
+    const tsFiles = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? tsFiles(join(d, e.name)) : /\.ts$/.test(e.name) && !/\.test\.ts$/.test(e.name) ? [join(d, e.name)] : []);
+    const writes = (f: string) => WRITE_RX.test(blankComments(readFileSync(f, "utf8")));
+    // _shared modules that write to Stripe; a function importing one writes too.
+    const sharedWriters = tsFiles(join(dir, "_shared")).filter(writes).map((f) => f.split("/").pop()!.replace(/\.ts$/, ""));
+    expect(sharedWriters.length).toBeGreaterThan(0);
+    const derived = readdirSync(dir).filter((fn) => {
+      if (fn.startsWith("_") || !existsSync(join(dir, fn, "index.ts"))) return false;
+      return tsFiles(join(dir, fn)).some((f) => {
+        const src = blankComments(readFileSync(f, "utf8"));
+        return WRITE_RX.test(src) || sharedWriters.some((s) => src.includes(`_shared/${s}.ts"`));
+      });
+    }).sort();
+    expect(derived.length).toBeGreaterThan(10);
+    const blocked = [...(safety.STRIPE_WRITE_FUNCTIONS as Set<string> ?? [])];
+    const exempt = Object.keys((safety.STRIPE_WRITE_EXEMPT as Record<string, string>) ?? {});
+    expect([...blocked, ...exempt].sort()).toEqual(derived);
+  });
+
+  it("the network backstop blocks writes and lets reads through", () => {
+    const f = safety.isStripeWriteRequest as (url: string, body: string | null) => boolean;
+    expect(typeof f).toBe("function");
+    const u = (fn: string) => `https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/${fn}`;
+    expect(f(u("stripe-connect"), JSON.stringify({ action: "onboard", return_url: "x" }))).toBe(true);
+    expect(f(u("stripe-connect"), JSON.stringify({ action: "reset" }))).toBe(true);
+    expect(f(u("stripe-connect"), JSON.stringify({ action: "status" }))).toBe(false);
+    expect(f(u("stripe-connect"), JSON.stringify({ action: "list_payout_methods" }))).toBe(false);
+    expect(f(u("create-payment"), "{}")).toBe(true);
+    expect(f(u("stripe-idv-start"), "{}")).toBe(true);
+    expect(f(u("stripe-payouts"), "{}")).toBe(false);
+    expect(f(u("health-check"), "{}")).toBe(false);
+    expect((harness.DOCUMENTED_SKIPS as Set<string>).has(safety.SKIP_STRIPE_WRITE_BLOCKED)).toBe(true);
+  });
+
+  it("the harness wires the backstop into every browser context", () => {
+    const src = blankComments(readFileSync(join(ROOT, "scripts/audit/press-every-control.mjs"), "utf8"));
+    expect(src).toMatch(/ctx\.route\(\s*"\*\*\/functions\/v1\/\*\*"/);
+    expect(src).toContain('if (isStripeWriteRequest(req.url(), req.postData()) && (await stripeMode()).mode !== "test") {');
+    expect(src).toContain("skip(SKIP_STRIPE_WRITE_BLOCKED)");
+  });
+});

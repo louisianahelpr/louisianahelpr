@@ -31,10 +31,9 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   refresh: () => void | Promise<unknown>;
   setStatusFilter: (filter: string) => void;
   /**
-   * The acceptance gate: payout-ready AND Stripe-identity-verified, from one
-   * live Stripe read. Replaces the previous pair of gates (a Connect status
-   * probe plus an `idv_status = 'verified'` check) — see src/lib/awardGate.ts
-   * for why two gates disagreeing about the word "verified" was the problem.
+   * The acceptance gate: payout-ready, from one live Stripe read. Identity
+   * verification stopped being part of it on 2026-10-01 (migration
+   * 20261001222911); see src/lib/awardGate.ts.
    */
   checkHelperAwardEligibility: ReturnType<typeof useStripeConnectCheck>["checkHelperAwardEligibility"];
   triggerPushNudge: ReturnType<typeof usePushPermissionNudge>;
@@ -316,10 +315,10 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // door they came through.
       const gate = await checkHelperAwardEligibility();
       if (gate.indeterminate) {
-        // "We couldn't ask" is not "you're not verified". Saying the second
-        // when we only know the first is what used to trap a verified helper.
+        // "We couldn't ask" is not "you're not set up". Saying the second
+        // when we only know the first is what used to trap a ready helper.
         hapticError();
-        toast.error("Couldn't check your verification status — please try again.");
+        toast.error("Couldn't check your payout status — please try again.");
         return;
       }
       if (!gate.ok && gate.reason) {
@@ -391,17 +390,17 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       return;
     }
     if (accept) {
-      // The acceptance gate: payout-ready AND identity verified by Stripe.
+      // The acceptance gate: payout-ready.
       // A blocked accept has to carry its own way out — never a refusal with
       // nowhere to go — so the failure opens AwardGateDialog, which names the
       // missing half and links into the right Stripe flow for it.
       const gate = await checkHelperAwardEligibility();
       if (gate.indeterminate) {
         // On a dropped check `ok` is false but we know nothing. That used to
-        // read as "not verified" and trapped an already-verified helper in the
-        // IDV dialog with no way out. Say what actually happened.
+        // read as "not set up" and trapped an already-ready helper in a
+        // dialog with no way out. Say what actually happened.
         hapticError();
-        toast.error("Couldn't check your verification status — please try again.");
+        toast.error("Couldn't check your payout status — please try again.");
         return;
       }
       if (!gate.ok && gate.reason) {

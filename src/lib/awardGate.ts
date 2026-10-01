@@ -3,33 +3,23 @@
  * The acceptance gate, client side.
  *
  * A helper may browse and APPLY freely, but may not be AWARDED a job until
- * Stripe can pay them AND Stripe has finished verifying who they are (owner's
- * decision, 2026-08-27 — "we are verifying this is the person doing the job but
- * also want their payment info set up").
+ * Stripe can pay them. Identity verification used to be a second requirement
+ * (owner, 2026-08-27); it was removed on 2026-10-01 ("Remove finish verifying
+ * id we don't do that anymore", migration 20261001222911). Identity is now
+ * display only: see {@link isIdentityVerified}.
  *
  * THE ENFORCEMENT IS NOT HERE. It is the `jobs_award_gate` trigger in migration
  * 20260827191647, which raises these exact codes from `helper_award_block_reason`
  * on every write that hands someone a job. This module exists so the app can
  * (a) stop the user before the tap, and (b) explain a refusal the server did
  * make. Turning it off would change nothing about who can be hired.
- *
- * THIS HEADER USED TO SAY `idv_status` MEANS NOTHING. It does not say that any
- * more, and the reversal is deliberate rather than a drift. When commit
- * 47eef666 wrote that line, `idv_status` was an unreviewed upload flag an admin
- * flipped by hand. It is now written by `stripe-idv-webhook` from a real Stripe
- * Identity document + selfie session, it is the only identity check a helper
- * can complete from inside this app, and since migration 20260907013734 the
- * server gate accepts it. A client gate that still ignores it refuses people
- * the database would hire — see {@link isIdentityVerified} for the measurement.
  */
 export type AwardBlockReason =
   | "helper_payout_setup_incomplete"
-  | "helper_identity_unverified"
   | "helper_unknown";
 
 const REASONS: readonly string[] = [
   "helper_payout_setup_incomplete",
-  "helper_identity_unverified",
   "helper_unknown",
 ];
 
@@ -57,22 +47,21 @@ export interface AwardGateStatus {
   connected?: boolean;
   details_submitted?: boolean;
   payouts_enabled?: boolean;
-  identity_verified?: boolean;
 }
 
 /**
- * The identity verdict, in the exact shape `helper_award_block_reason` uses.
+ * The identity verdict, for DISPLAY (badges, Work Record, admin). It gates
+ * nothing since 2026-10-01 (migration 20261001222911).
  *
- * TWO checks answer "do we know who this is", and the server accepts EITHER
- * (migration 20260907013734):
+ * TWO checks answer "do we know who this is", and either one counts:
  *
  *   • `stripe_identity_verified` — the Stripe CONNECT verdict, true only when
  *     no identity requirement is outstanding on the payout account. Nothing in
  *     this app can put that flow in front of a person on its own; it clears as
  *     a side effect of payout onboarding.
  *   • `idv_status = 'verified'`  — Stripe IDENTITY, the document + selfie check
- *     `stripe-idv-start` launches. This is the one a helper can actually go and
- *     complete, and it is the stronger of the two.
+ *     `stripe-idv-start` launches (no screen has opened that flow since
+ *     2026-10-01; existing verdicts still draw the badge).
  *
  * Reading only the Connect flag — which is what this module did until now — is
  * a FALSE BLOCK, not a conservative one. Measured against prod 2026-09-06: one
@@ -98,40 +87,18 @@ export function isIdentityVerified(source: {
  *
  * Derived from ONE live Stripe read (`stripe-connect { action: "status" }`),
  * not from a second query of its own. That matters: the same edge-function call
- * writes the live verdict back onto `profiles.stripe_payouts_enabled` /
- * `stripe_identity_verified`, which is exactly what the server trigger
- * enforces — so by construction the answer the user is shown and the answer the
- * database will give cannot drift apart, and a cache left empty by the
- * no-backfill rollout heals on the very attempt it would have blocked.
- *
- * `identity_verified` is absent until the edge function redeploys. Treated as
- * "not verified", which fails CLOSED — the safe direction for a safety gate.
- *
- * `idvStatus` is the SECOND half of the identity verdict and must be passed in
- * by every caller that can reach it: without it this function refuses people
- * the server would let through. See {@link isIdentityVerified}.
+ * writes the live verdict back onto `profiles.stripe_payouts_enabled`, which is
+ * exactly what the server trigger enforces, so the answer the user is shown and
+ * the answer the database will give cannot drift apart.
  */
 // Still async purely so every existing `await` call site keeps working; it no
 // longer awaits anything itself.
 export async function awardBlockReasonFromStatus(
   status: AwardGateStatus | null | undefined,
-  /** `profiles.idv_status` for the same person. Omit only when unreachable. */
-  idvStatus?: string | null,
 ): Promise<AwardBlockReason | null> {
   if (!status) return "helper_unknown";
   if (!status.connected || !status.details_submitted || status.payouts_enabled !== true) {
     return "helper_payout_setup_incomplete";
-  }
-  // Identity verification is unconditionally required (owner, 2026-09-07).
-  // The operator pause flag that used to be able to clear this arm was deleted
-  // in migration 20260908001056 — server and client alike, there is no longer
-  // any path that hires an unverified helper.
-  const identityOk = isIdentityVerified({
-    connectIdentityVerified: status.identity_verified,
-    idvStatus,
-  });
-  if (!identityOk) {
-    return "helper_identity_unverified";
   }
   return null;
 }
@@ -143,15 +110,7 @@ export interface AwardBlockCopy {
   body: string;
   /** The one tap that fixes it. */
   ctaLabel: string;
-  /**
-   * Which Stripe requirement set the CTA's Account Link must collect.
-   *
-   * `eventually_due` for the identity block is load-bearing, not a preference:
-   * the identity verdict is only TRUE when nothing identity-shaped is
-   * outstanding in ANY bucket, so a `currently_due`-only link sends the helper
-   * through Stripe and returns them still blocked. See the matching note in
-   * supabase/functions/stripe-connect/index.ts.
-   */
+  /** Which Stripe requirement set the CTA's Account Link must collect. */
   collect: "currently_due" | "eventually_due";
 }
 
@@ -164,14 +123,6 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
           "Helpr pays through Stripe, so your payout account has to exist before a job can become yours. It takes about two minutes, and you only do it once.",
         ctaLabel: "Set Up Payouts",
         collect: "currently_due",
-      };
-    case "helper_identity_unverified":
-      return {
-        title: "Stripe Is Still Verifying You",
-        body:
-          "Your payout account is connected, but Stripe hasn't finished confirming who you are — it's usually a Social Security number or a photo ID it still needs. People are letting you into their homes, so we wait for that answer before a job becomes yours. Finish what Stripe is asking for and this clears on its own.",
-        ctaLabel: "Finish Verification with Stripe",
-        collect: "eventually_due",
       };
     case "helper_unknown":
       return {
@@ -230,14 +181,6 @@ export function helperApplyBlockNotice(
         ctaLabel: "Set Up Payouts",
         href: "/profile?tab=payment",
       };
-    case "helper_identity_unverified":
-      return {
-        headline: "You can apply — but you can't be hired yet.",
-        body:
-          "Stripe hasn't finished confirming who you are, and no one can hand you a job until it has. Finish what Stripe is asking for and this clears on its own.",
-        ctaLabel: "Finish Verification",
-        href: "/profile",
-      };
   }
 }
 
@@ -252,8 +195,6 @@ export function posterAwardBlockMessage(reason: AwardBlockReason, helperName?: s
   switch (reason) {
     case "helper_payout_setup_incomplete":
       return `${who} hasn't finished setting up payouts yet, so they can't be hired. They'll show as ready once they do.`;
-    case "helper_identity_unverified":
-      return `Stripe hasn't finished verifying ${who}'s identity yet, so they can't be hired. We'll let them know.`;
     case "helper_unknown":
       return `We couldn't check ${who}'s verification status — give it a moment and try again.`;
   }

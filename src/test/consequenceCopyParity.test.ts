@@ -429,7 +429,6 @@ describe("review-turnaround promises come from reviewSla", () => {
    * with two different numbers. The module fixed that screen; the same defect
    * is alive in three OTHER places, each with its own hand-typed number:
    *
-   *   "usually within 24 hours"        src/components/IDVPromptDialog.tsx (manual ID review)
    *   "manually within 24 hours"       src/pages/info/legal/TermsSection.tsx   (manual ID review)
    *   "we review within one business day"
    *                                    src/components/profile/CredentialsTab.tsx
@@ -454,10 +453,11 @@ describe("review-turnaround promises come from reviewSla", () => {
      */
     // @two-way src/test/consequenceCopyParity.test.ts:const stale = Object.keys(KNOWN)
     const KNOWN: Record<string, string> = {
-      "src/components/IDVPromptDialog.tsx":
-        "manual ID review — 'usually within 24 hours'; REVIEW_SLA says 'under 2 hours'",
+      // src/components/IDVPromptDialog.tsx ("usually within 24 hours") was
+      // deleted with the identity requirement (owner, 2026-10-01; migration
+      // 20261001222911_remove_idv_requirement), so it left the inventory.
       "src/pages/info/legal/TermsSection.tsx":
-        "manual ID review — 'within 24 hours'; the SAME fact as IDVPromptDialog, retyped, " +
+        "manual ID review — 'within 24 hours'; it once matched the deleted IDVPromptDialog, retyped, " +
         "and this one is binding copy in a legal document",
       "src/components/profile/CredentialsTab.tsx":
         "credential re-upload — 'within one business day'; a third, different number",
@@ -527,15 +527,17 @@ describe("review-turnaround promises come from reviewSla", () => {
     expect(literal.test(a) || literal.test(b), "a hand-typed business-day count is back").toBe(false);
   });
 
-  it("REVIEW_SLA is still the shared statement it claims to be", () => {
+  it("REVIEW_SLA is still the only place its number is written", () => {
     // AccountPending (the screen the module was created for) was deleted in
-    // Q193; the verification prompt is its remaining reader.
-    expect(
-      repoFile("src/components/profile/profileLanding/verificationPrompt.ts"),
-      "verificationPrompt stopped importing REVIEW_SLA — the manual-review promise " +
-        "must interpolate the shared statement, not retype it",
-    ).toContain("REVIEW_SLA");
+    // Q193, and its last reader, the Profile verification prompt, went with the
+    // identity requirement on 2026-10-01. The module stays as the target the
+    // KNOWN findings above are told to interpolate; what must not happen is the
+    // number being retyped somewhere else meanwhile.
     expect(REVIEW_SLA, "REVIEW_SLA is empty").toBeTruthy();
+    const retyped = sourceFiles().filter(
+      (f) => f !== "src/lib/reviewSla.ts" && stripComments(repoFile(f)).includes(REVIEW_SLA),
+    );
+    expect(retyped, `"${REVIEW_SLA}" retyped outside src/lib/reviewSla.ts`).toEqual([]);
   });
 });
 

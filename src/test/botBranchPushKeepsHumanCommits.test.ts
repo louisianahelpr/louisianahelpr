@@ -1,0 +1,294 @@
+// @mutate .github/actions/refresh-pr/action.yml | git commit -q -m "$REFRESH_TITLE" | git push --force "$REMOTE" "HEAD:refs/heads/$BRANCH"; git commit -q -m "$REFRESH_TITLE"
+// @mutate .github/actions/refresh-pr/action.yml | cp scripts/ci/bot-branch-push.sh "$PUSHER" | cp /dev/null "$PUSHER"
+// @mutate scripts/ci/bot-branch-push.sh | --force-with-lease="$REF:$REMOTE_SHA" | --force
+// @mutate scripts/ci/bot-branch-push.sh | FOREIGN+=("$c") | :
+// @mutate scripts/ci/bot-branch-push.sh | EVIL+=("$c") | :
+// @mutate scripts/ci/bot-branch-push.sh | refuse "the fresh measurement conflicts with the non-bot commits" | git cherry-pick --abort
+/*
+ * CLASS GUARD (2026-09-30): a bot never discards a commit it did not make.
+ *
+ * .github/actions/refresh-pr rebuilt bot/refresh/<id> from latest main and
+ * `git push --force`d it every run. 90fa25368 (a person's fix pushed onto
+ * bot/refresh/loading-states to make PR #1932 green) was wiped by the next bot
+ * run (926ebcbe0), so the PR could never go green.
+ *
+ * The class is "a workflow force-pushes a bot branch". The rule:
+ *   1. No workflow or composite action under .github/ runs `git push` itself.
+ *      Every bot-branch push goes through scripts/ci/bot-branch-push.sh, which
+ *      replaces the branch only when every commit on it is the bot's, replays
+ *      non-bot commits under the fresh one otherwise, and refuses (exit 3,
+ *      nothing pushed, the commits named) on a conflict.
+ *   2. That script pushes only with --force-with-lease=<ref>:<sha it read>.
+ *   3. The script's behaviour is exercised against a throwaway local remote.
+ */
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, relative, resolve } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+
+const ROOT = resolve(__dirname, "../..");
+const SCRIPT = join(ROOT, "scripts/ci/bot-branch-push.sh");
+const ACTION_FILE = join(ROOT, ".github/actions/refresh-pr/action.yml");
+
+/** Blank shell/YAML `#` comments (outside quotes); line count preserved. */
+function blankHashComments(src: string): string {
+  return src
+    .split("\n")
+    .map((line) => {
+      let q: string | null = null;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (q) {
+          if (ch === "\\" && q === '"') i++;
+          else if (ch === q) q = null;
+        } else if (ch === "'" || ch === '"') q = ch;
+        else if (ch === "#" && (i === 0 || /\s/.test(line[i - 1]))) return line.slice(0, i);
+      }
+      return line;
+    })
+    .join("\n");
+}
+
+function walkYaml(dir: string, out: string[] = []): string[] {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) walkYaml(p, out);
+    else if (/\.ya?ml$/.test(e.name)) out.push(p);
+  }
+  return out;
+}
+
+const GIT_PUSH = /\bgit\b[^\n;&|]*?\spush\b/;
+
+describe("no workflow pushes a branch except through scripts/ci/bot-branch-push.sh", () => {
+  const files = walkYaml(join(ROOT, ".github"));
+
+  it("scans the whole .github tree (inventory floor)", () => {
+    expect(files.length).toBeGreaterThan(50);
+    expect(files.filter((f) => f.endsWith("action.yml")).length).toBeGreaterThan(2);
+  });
+
+  it("no workflow or action runs `git push` itself", () => {
+    const hits: string[] = [];
+    for (const f of files) {
+      blankHashComments(readFileSync(f, "utf8"))
+        .split("\n")
+        .forEach((line, i) => {
+          if (GIT_PUSH.test(line)) hits.push(`${relative(ROOT, f)}:${i + 1}: ${line.trim()}`);
+        });
+    }
+    expect(hits, "push bot branches with scripts/ci/bot-branch-push.sh, never a bare git push").toEqual([]);
+  });
+
+  it("refresh-pr pushes through a copy of the script", () => {
+    const src = blankHashComments(readFileSync(ACTION_FILE, "utf8"));
+    expect(src).toContain('cp scripts/ci/bot-branch-push.sh "$PUSHER"');
+    expect(src.match(/bash "\$PUSHER" push\b/g)?.length ?? 0).toBeGreaterThan(1);
+    expect(src).toMatch(/bash "\$PUSHER" foreign\b/);
+  });
+
+  it("the script itself pushes only with a lease on the sha it read", () => {
+    const lines = blankHashComments(readFileSync(SCRIPT, "utf8"))
+      .split("\n")
+      .filter((l) => /\spush\s/.test(l) && /GITX|\bgit\b/.test(l));
+    expect(lines.length).toBeGreaterThan(1);
+    for (const l of lines) {
+      expect(l).toMatch(/--force-with-lease="\$REF:(\$REMOTE_SHA)?"/);
+      expect(l).not.toMatch(/--force(\s|$)|\s-f\s|\s"?\+/);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Behaviour, against a throwaway bare remote.
+const BOT = "41898282+github-actions[bot]@users.noreply.github.com";
+const HUMAN = "person@example.com";
+const BRANCH = "bot/refresh/x";
+
+describe("bot-branch-push.sh against a local remote", () => {
+  let dir = "";
+  let remote = "";
+  let work = "";
+  const baseEnv = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+    GITHUB_REPOSITORY: "",
+  };
+  const as = (email: string) => ({
+    ...baseEnv,
+    GIT_AUTHOR_NAME: email === BOT ? "github-actions[bot]" : "Person",
+    GIT_AUTHOR_EMAIL: email,
+    GIT_COMMITTER_NAME: email === BOT ? "github-actions[bot]" : "Person",
+    GIT_COMMITTER_EMAIL: email,
+  });
+  const git = (args: string[], email = BOT, cwd = work) =>
+    execFileSync("git", args, { cwd, env: as(email), encoding: "utf8" }).trim();
+  const commit = (file: string, body: string, msg: string, email: string) => {
+    writeFileSync(join(work, file), body);
+    git(["add", "-A"], email);
+    git(["commit", "-q", "-m", msg], email);
+    return git(["rev-parse", "HEAD"]);
+  };
+  const remoteSha = () => {
+    const r = spawnSync("git", ["rev-parse", "--verify", "-q", `refs/heads/${BRANCH}`], {
+      cwd: remote,
+      env: baseEnv,
+      encoding: "utf8",
+    });
+    return r.status === 0 ? r.stdout.trim() : "";
+  };
+  /** Publish the current HEAD as the remote bot branch (setup, not the script). */
+  const seedBranch = () => git(["push", "-q", "--force", remote, `HEAD:refs/heads/${BRANCH}`]);
+  /** What the action does: rebuild from main, return BASE. */
+  const startRun = () => {
+    git(["checkout", "-q", "--force", "-B", BRANCH, "main"]);
+    return git(["rev-parse", "HEAD"]);
+  };
+  const run = (cmd: "push" | "foreign", base: string) =>
+    spawnSync(
+      "bash",
+      [SCRIPT, cmd, "--remote", remote, "--branch", BRANCH, "--base", base, "--bot-email", BOT],
+      { cwd: work, env: as(BOT), encoding: "utf8" },
+    );
+  const subjects = (base: string) =>
+    git(["log", "--reverse", "--format=%s", `${base}..${remoteSha()}`], BOT, remote).split("\n").filter(Boolean);
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "bot-branch-push-"));
+    remote = join(dir, "remote.git");
+    work = join(dir, "work");
+    execFileSync("git", ["init", "-q", "--bare", "-b", "main", remote], { env: baseEnv });
+    execFileSync("git", ["init", "-q", "-b", "main", work], { env: baseEnv });
+    commit("data.json", "1\n", "base", HUMAN);
+    commit("other.txt", "a\n", "other", HUMAN);
+    git(["push", "-q", remote, "main"]);
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("creates the branch when it does not exist", () => {
+    startRun();
+    const head = commit("data.json", "2\n", "refresh", BOT);
+    const r = run("push", "main");
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(remoteSha()).toBe(head);
+  });
+
+  it("replaces the branch when every commit on it is the bot's", () => {
+    startRun();
+    commit("data.json", "2\n", "old refresh", BOT);
+    seedBranch();
+    const base = startRun();
+    const head = commit("data.json", "3\n", "new refresh", BOT);
+    expect(run("foreign", base).stdout.trim()).toBe("");
+    const r = run("push", base);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(remoteSha()).toBe(head);
+  });
+
+  it("keeps a person's commit and puts the fresh measurement on top", () => {
+    startRun();
+    commit("data.json", "2\n", "old refresh", BOT);
+    const human = commit("fix.txt", "fixed\n", "human fix", HUMAN);
+    seedBranch();
+    const base = startRun();
+    commit("data.json", "3\n", "new refresh", BOT);
+    expect(run("foreign", base).stdout).toContain(human.slice(0, 7));
+    const r = run("push", base);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(subjects(base)).toEqual(["human fix", "new refresh"]);
+    expect(git(["show", `${remoteSha()}:fix.txt`], BOT, remote)).toBe("fixed");
+    expect(git(["show", `${remoteSha()}:data.json`], BOT, remote)).toBe("3");
+  });
+
+  it("keeps a person's commit when the refresh found nothing new", () => {
+    startRun();
+    commit("data.json", "2\n", "old refresh", BOT);
+    commit("fix.txt", "fixed\n", "human fix", HUMAN);
+    seedBranch();
+    const base = startRun();
+    const r = run("push", base);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(subjects(base)).toEqual(["human fix"]);
+  });
+
+  it("refuses and pushes nothing when the person's commit conflicts", () => {
+    startRun();
+    commit("data.json", "2\n", "old refresh", BOT);
+    const human = commit("data.json", "human\n", "human edit of the data", HUMAN);
+    seedBranch();
+    const before = remoteSha();
+    const base = startRun();
+    const head = commit("data.json", "3\n", "new refresh", BOT);
+    const r = run("push", base);
+    expect(r.status, r.stdout + r.stderr).toBe(3);
+    expect(r.stdout).toContain(human.slice(0, 7));
+    expect(r.stdout).toContain("::error::");
+    expect(remoteSha()).toBe(before);
+    expect(git(["rev-parse", "HEAD"])).toBe(head);
+    expect(existsSync(join(work, ".git/CHERRY_PICK_HEAD"))).toBe(false);
+  });
+
+  it("refuses when the fresh measurement conflicts with the person's commit", () => {
+    startRun();
+    const human = commit("data.json", "human\n", "human edit of the data", HUMAN);
+    seedBranch();
+    const before = remoteSha();
+    const base = startRun();
+    const head = commit("data.json", "3\n", "new refresh", BOT);
+    const r = run("push", base);
+    expect(r.status, r.stdout + r.stderr).toBe(3);
+    expect(r.stdout).toContain("fresh measurement conflicts");
+    expect(r.stdout).toContain(human.slice(0, 7));
+    expect(remoteSha()).toBe(before);
+    expect(git(["rev-parse", "HEAD"])).toBe(head);
+  });
+
+  it("drops a clean merge of main and replaces a bot-only branch", () => {
+    startRun();
+    commit("data.json", "2\n", "old refresh", BOT);
+    git(["checkout", "-q", "main"]);
+    commit("other.txt", "b\n", "main moved", HUMAN);
+    git(["push", "-q", remote, "main"]);
+    git(["checkout", "-q", BRANCH]);
+    git(["merge", "-q", "--no-ff", "--no-edit", "main"], HUMAN);
+    seedBranch();
+    const base = startRun();
+    const head = commit("data.json", "3\n", "new refresh", BOT);
+    const r = run("push", base);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(remoteSha()).toBe(head);
+  });
+
+  it("refuses a merge commit that carries edits of its own", () => {
+    startRun();
+    commit("data.json", "2\n", "old refresh", BOT);
+    git(["checkout", "-q", "main"]);
+    commit("other.txt", "b\n", "main moved", HUMAN);
+    git(["push", "-q", remote, "main"]);
+    git(["checkout", "-q", BRANCH]);
+    git(["merge", "-q", "--no-ff", "--no-commit", "main"], HUMAN);
+    writeFileSync(join(work, "fix.txt"), "slipped into the merge\n");
+    git(["add", "-A"], HUMAN);
+    git(["commit", "-q", "--no-edit"], HUMAN);
+    seedBranch();
+    const before = remoteSha();
+    const base = startRun();
+    commit("data.json", "3\n", "new refresh", BOT);
+    const r = run("push", base);
+    expect(r.status, r.stdout + r.stderr).toBe(3);
+    expect(remoteSha()).toBe(before);
+  });
+
+  it("only ever pushes bot/* branches", () => {
+    const r = spawnSync(
+      "bash",
+      [SCRIPT, "push", "--remote", remote, "--branch", "main", "--base", "main", "--bot-email", BOT],
+      { cwd: work, env: as(BOT), encoding: "utf8" },
+    );
+    expect(r.status).toBe(2);
+  });
+});

@@ -1232,7 +1232,7 @@
     },
     {
       "file": "src/components/SosShareButton.tsx",
-      "line": 166,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4924,17 +4924,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 176,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "copy"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 181,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4954,7 +4944,17 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 200,
+      "line": 187,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
+      "line": 203,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",

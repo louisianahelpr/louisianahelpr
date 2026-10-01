@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, Image, HelpCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip } from "../../../../components/job-card/JobActionRow";
-import { SosShareButton, sosOffered } from "@/components/SosShareButton";
+import { SosShareButton, SosShareSheet, sosOffered } from "@/components/SosShareButton";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import { Dialog, DialogContent, DialogFooter, DialogHero, DialogSecondaryAction } from "@/components/ui/dialog";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
@@ -46,6 +46,9 @@ export function InProgressStep(ctx: PosterStepCtx) {
   // owns its open state. It is the only state this step has: everything that
   // must outlive a re-render is still the container's (PosterStepCtx).
   const [photosOpen, setPhotosOpen] = useState(false);
+  // Owned here, not by the chip: the chip lives inside the row's `More`
+  // panel, which unmounts when it closes (see SosShareButton).
+  const [sosOpen, setSosOpen] = useState(false);
   /* ── OWNER ITEM 7, SECOND PASS (2026-09-19): "trim to one sentence. rest
    *    behind the tap." ──────────────────────────────────────────────────────
    *
@@ -195,7 +198,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
         </>
       }
       actions={[
-        showSos ? <SosShareButton key="sos" jobId={job.id} /> : null,
+        showSos ? <SosShareButton key="sos" onOpen={() => setSosOpen(true)} /> : null,
         showNoShow ? (
           <JobActionChip
             key="noshow"
@@ -285,6 +288,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
       }
       dialogs={
         <>
+          <SosShareSheet jobId={job.id} open={sosOpen} onOpenChange={setSosOpen} />
           {/* Rendered last and occupying no layout (JobStepCard `dialogs`), so
               the gallery costs the row nothing. */}
           <PhotoProofDialog

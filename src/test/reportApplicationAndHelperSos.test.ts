@@ -12,7 +12,7 @@
  *    instead of treating the application id as a person.
  */
 // @mutate src/components/SosShareButton.tsx | return !!job.helper_arrived_at && !job.helper_completed_at && !job.poster_completed_at; | return !!job.helper_arrived_at;
-// @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx | sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null, | sosChip: null,
+// @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx | sosChip: sosOffered(job) ? <SosShareButton key="sos" onOpen={() => setSosOpen(true)} /> : null, | sosChip: null,
 // @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/jobs/appliedJobCard/steps/RevisionStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
@@ -44,7 +44,7 @@ describe("Q366: SOS for the Helpr on site", () => {
   it("both cards read the same gate", () => {
     expect(read("src/pages/posts/postedJobCard/steps/InProgressStep.tsx")).toContain("const showSos = sosOffered(job);");
     expect(read("src/pages/jobs/appliedJobCard/ActiveJobSection.tsx"))
-      .toContain('sosChip: sosOffered(job) ? <SosShareButton key="sos" jobId={job.id} /> : null,');
+      .toContain('sosChip: sosOffered(job) ? <SosShareButton key="sos" onOpen={() => setSosOpen(true)} /> : null,');
   });
 
   const HELPER_ON_SITE_STEPS = ["OnSiteStep", "WorkingStep", "RevisionStep"];

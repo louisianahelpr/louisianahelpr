@@ -22,7 +22,7 @@ import { join, relative, resolve } from "node:path";
  * nothing — ScheduleTab's entire 1024px desktop layer, NotificationPreferences'
  * 360px rows, Footer's 500/620 column grid, ProfileEditForm, PetForm,
  * SavedHelperCard, JobTracking, JobCardMetaRow, CompleteProfile,
- * RecurringSchedulePicker, ScreenHeaderRow's `min-[500px]:block` title, and
+ * RecurringSchedulePicker, ScreenHeaderRow's then `min-[500px]:block` title, and
  * the Activity tab row's short/long label swap — which is how a 414 phone came
  * to paint "You / Soon / Cancel" instead of the owner's five words.
  *

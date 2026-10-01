@@ -89,14 +89,14 @@ export const COMPACT_HEADER_ROW_MIN_HEIGHT = "34px";
 const SEARCH_TRIGGER_SLOT_WIDTH = "44px";
 
 /**
- * The width below which `narrowTitleStepsAside` takes the visible title out of
- * the open-search row, and the floor that decision is made against.
+ * The width below which `narrowFieldWraps` moves the open field onto its own
+ * line under the title, and the floor that decision is made against.
  *
  * Exported for the guard that proves the field stays typable
  * (`src/test/activityHeaderPhoneWidthBudget.test.ts`), which derives both from
- * here rather than restating them. The Tailwind class beside the title is a
- * LITERAL — `min-[500px]:block` — because a template built from this constant
- * compiles to no rule at all and would hide the title at every width.
+ * here rather than restating them. The Tailwind classes on the row, title and
+ * field wrapper are LITERALS — `max-[499px]:flex-wrap`, `max-[499px]:basis-full`
+ * … — because a template built from this constant compiles to no rule at all.
  */
 export const NARROW_TITLE_ASIDE_PX = 500;
 /* The floor lives in its own leaf module so the browser check can import the
@@ -193,31 +193,29 @@ export interface ScreenHeaderRowProps {
     /** Width of the held-open magnifier slot. MUST match the trigger's box. */
     triggerWidth?: string;
     /**
-     * ON A NARROW PHONE THE NAME STEPS ASIDE, so the field is typable.
+     * ON A NARROW PHONE THE FIELD TAKES ITS OWN LINE, UNDER THE TITLE.
      *
-     * ── WHAT THE ROW ACTUALLY HAD, MEASURED AT 375 ON /posts ────────────
+     * ── WHAT THE ROW HAD, MEASURED AT 375 ON /posts ─────────────────────
      *     title 0…132 · field 135…230 (95px) · slot 242…286 · chevron 286…330
      *
-     * 95px of field, and the magnifier and the ✕ live INSIDE it (a 36px inset
-     * between them), so the typing area was ~59px: you could not see the word
-     * you were searching for. Every other claimant on that row is fixed-width
-     * — a page-title-size (text-headline-hero) title, a 44px held-open slot, a
-     * 44px status chevron and three 12px gaps — so the field, the one flexible
-     * item, absorbs the whole shortfall. It is the only thing that can.
+     * 95px of field, with the magnifier and the ✕ inside it, left ~59px to
+     * type into. Every other item on the row is fixed-width, so with the
+     * title beside it the field cannot reach the typable floor below 500px.
      *
-     * The name is not dropped: the `<h1>` is `sr-only` in this state either
-     * way, so the screen keeps exactly one heading and a screen-reader user
-     * still hears where they are. What steps aside is its VISIBLE twin, and
-     * only while the field is open, and only below 500px — which is where
-     * the arithmetic says the field falls under 200px with the title present
-     * (132 + 36 of gaps + 88 of cluster + 200 = 456, plus the 42px the page
-     * gutters and card padding take = 498). At 500 and up nothing changes.
+     * Until 2026-10-01 the visible title stepped aside to pay for it, so on a
+     * phone the open field sat exactly where the page name had been. Owner,
+     * 2026-10-01, from the iOS app: "Search should not cover the page titles
+     * in app." So below 500px the row wraps instead: line one keeps the title
+     * and the cluster (held-open slot + actions, pushed right), line two is
+     * the field at full width. At 500 and up nothing changes — one line, title
+     * beside the field. Measured by e2e/prod-audit/search-keeps-title.spec.ts
+     * (title shown, field box does not intersect it).
      *
-     * Opt-in, not automatic: Browse's strip has no title in this state at all
-     * and the Messages inbox is its own measurement. A row that has not been
-     * measured does not get a behaviour change on a guess.
+     * Opt-in, not automatic: Browse's strip has no title in this state at all.
+     * A row that has not been measured does not get a behaviour change on a
+     * guess.
      */
-    narrowTitleStepsAside?: boolean;
+    narrowFieldWraps?: boolean;
     /** The cluster minus the magnifier. Never unmounted by search. */
     actions?: ReactNode;
   };
@@ -239,7 +237,15 @@ export function ScreenHeaderRow({
   if (expandingSearch?.open) {
     return (
       <div
-        className={cn("flex items-center gap-3", className)}
+        className={cn(
+          "flex items-center gap-3",
+          // A media query, not a JS width branch: the right arrangement is
+          // painted on the first frame, and there is no width state that can
+          // go stale behind a resize. The literals are spelled out so
+          // Tailwind's scanner can see them (see NARROW_TITLE_ASIDE_PX).
+          expandingSearch.narrowFieldWraps && "max-[499px]:flex-wrap max-[499px]:gap-y-2",
+          className,
+        )}
         style={{ minHeight: SCREEN_HEADER_ROW_MIN_HEIGHT, ...style }}
       >
         {/* Exactly one h1 per screen, in EVERY state. Swapping a visible
@@ -257,18 +263,23 @@ export function ScreenHeaderRow({
             aria-hidden
             className={cn(
               "font-display font-bold text-foreground text-headline-hero leading-none shrink-0 max-w-[40%] truncate",
-              // A media query, not a JS width branch: the right arrangement is
-              // painted on the first frame, and there is no width state that
-              // can go stale behind a resize. The literal is spelled out so
-              // Tailwind's scanner can see it (see NARROW_TITLE_ASIDE_PX).
-              expandingSearch.narrowTitleStepsAside && "hidden min-[500px]:block",
+              // On its own line the title has the row to itself, less the cluster.
+              expandingSearch.narrowFieldWraps && "max-[499px]:max-w-none max-[499px]:flex-1 max-[499px]:min-w-0",
             )}
           >
             {title}
           </span>
         )}
         {expandingSearch.leading}
-        {expandingSearch.field}
+        {expandingSearch.narrowFieldWraps ? (
+          // `contents` at 500+ so the field stays a flex item of this row,
+          // exactly as unwrapped; below 500 a full-width line after the cluster.
+          <div data-search-field-line className="contents max-[499px]:flex max-[499px]:order-last max-[499px]:basis-full max-[499px]:min-w-0">
+            {expandingSearch.field}
+          </div>
+        ) : (
+          expandingSearch.field
+        )}
         <div className="flex items-center gap-1 shrink-0">
           <SearchTriggerSlot width={expandingSearch.triggerWidth} />
           {expandingSearch.actions}

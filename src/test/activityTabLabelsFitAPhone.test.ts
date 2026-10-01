@@ -93,8 +93,8 @@ import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 // @mutate src/lib/shortLabelBreakpoint.ts | export const SHORT_LABEL_BELOW_PX = 390; | export const SHORT_LABEL_BELOW_PX = 290;
 // @mutate src/pages/posts/PostsHeader.tsx | tight={!inlineFilters} | tight={false}
 // @mutate src/pages/jobs/JobsHeader.tsx | tight={!inlineFilters} | tight={false}
-// @mutate src/pages/posts/PostsHeader.tsx | narrowTitleStepsAside: true, | narrowTitleStepsAside: false,
-// @mutate src/pages/jobs/JobsHeader.tsx | narrowTitleStepsAside: true, | narrowTitleStepsAside: false,
+// @mutate src/pages/posts/PostsHeader.tsx | narrowFieldWraps: true, | narrowFieldWraps: false,
+// @mutate src/pages/jobs/JobsHeader.tsx | narrowFieldWraps: true, | narrowFieldWraps: false,
 // @mutate src/pages/posts/PostsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
 // @mutate src/pages/jobs/JobsHeader.tsx | triggerWidth: inlineFilters ? "28px" : "44px", | triggerWidth: inlineFilters ? "28px" : "88px",
 // @mutate src/components/job-card/JobListPage.tsx | activeStatusFilters={activeStatusFilters} | activeStatusFilters={[]}
@@ -416,13 +416,17 @@ const chevronPx = (file: string, header: string) => {
  * headers as the wider claim.
  */
 const TITLE_PX = 82;
-const titleStepsAside = (header: string) => /narrowTitleStepsAside: true/.test(header);
+const fieldWraps = (header: string) => /narrowFieldWraps: true/.test(header);
 
+/** Below NARROW_TITLE_ASIDE_PX a wrapping row puts the field on its own line
+ * under the title (owner, 2026-10-01: the title is never given up for it), so
+ * the field has the whole row width. At and above it the field shares the line
+ * with the title and the cluster. */
 const fieldWidth = (viewport: number, file: string, header: string) => {
-  const titleVisible = !(titleStepsAside(header) && viewport < NARROW_TITLE_ASIDE_PX);
+  if (fieldWraps(header) && viewport < NARROW_TITLE_ASIDE_PX) return rowWidth(viewport);
   return (
     rowWidth(viewport) -
-    (titleVisible ? TITLE_PX + ROW_GAP : 0) -
+    (TITLE_PX + ROW_GAP) -
     ROW_GAP -
     (slotPx(file, header) + CLUSTER_GAP + chevronPx(file, header))
   );

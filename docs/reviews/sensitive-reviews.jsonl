@@ -143,3 +143,5 @@
 {"sha":"faa57cda9d6762681903e342145e8e65d7a0927e","reviewer":"lh-money-escrow","verdict":"PASS (rebase of 84cc9ddb0; full patch-id 884947ea identical)","date":"2026-10-01"}
 {"sha":"77a2b10d10c4cc5fc12ec12e054165b15f74bacd","reviewer":"lh-money-escrow","verdict":"PASS (rebase of 0c8c1ac2b; full patch-id 08936119 identical)","date":"2026-10-01"}
 {"sha":"02a0bb0dd2affdd1cd2002e1da5214c567fc96e2","reviewer":"lh-money-escrow","verdict":"PASS (rebase of faa57cda9; full patch-id 884947ea identical)","date":"2026-10-01"}
+{"sha":"9598d59978d175aaee1c7f7f0c6c2d5ad1c59837","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 0bf2d8d23 (approved): code hunks byte-identical; only the file-size baseline number for EarningsTab.tsx differs (696->669 vs 706->679) from main moving under it","date":"2026-10-01"}
+{"sha":"5d594fa6ae444198bbd1d8f9bb508d5b863d6515","reviewer":"lh-money-escrow","verdict":"Re-record of rebased 8508d8c0c (approved): git patch-id --stable identical","date":"2026-10-01"}

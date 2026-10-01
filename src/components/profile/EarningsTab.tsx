@@ -120,23 +120,14 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const { stripeData, stripeLoading, stripeError, ledgerError, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
 
-  // ONE PAINT for everything under the header (Q169, Q2007).
-  // The streak badge sits above the Earned card, and — for a helpr whose
-  // Stripe is not connected — the connect card (PaymentTab) sits ABOVE the
-  // view switcher. That card used to be inserted after stripe-payouts
-  // answered and then grow twice as its own queries landed, shoving the
-  // switcher 68→519px down: page-settle measured CLS 0.54 (375) / 0.22 (1440)
-  // on the not-connected poster account, 0 with the same build when
-  // stripe-payouts was forced to "connected" or to an error. So the skeleton
-  // (switcher bone included) holds until stripe has answered and, when the
-  // card will show, until the card's own data is in.
-  // The Stripe answer is PRIMARY, not capped secondary data: stripe-payouts and
-  // the card's payout-status read both go edge fn -> Stripe and routinely take
-  // longer than ARRIVAL_CAP_MS, so with it in the capped slot the page opened
-  // on the card's own loading bones (154px) and the form landed ~0.1-1.3s
-  // later at 187px, pushing everything below 33px down (page-settle CLS 0.034
-  // at 375, 0.2254 at 1440 in CI). Every one of these reads ends in data or an
-  // error (both count as settled), so the retry schedule bounds the wait.
+  // ONE PAINT under the header (Q169, Q2007). The streak badge and, for a
+  // helpr without Stripe connected, the connect card (PaymentTab) sit above the
+  // view switcher; the card used to land late and grow, shoving the switcher
+  // 68->519px down (page-settle CLS 0.54 at 375). So the skeleton holds until
+  // Stripe has answered and, when the card shows, until its own data is in.
+  // Stripe is PRIMARY, not capped secondary data: both reads go edge fn ->
+  // Stripe and routinely outlast ARRIVAL_CAP_MS (capped, CI measured CLS 0.2254
+  // at 1440). Data or error both count as settled, so retries bound the wait.
   const [paymentSettled, setPaymentSettled] = useState(false);
   const markPaymentSettled = useCallback(() => setPaymentSettled(true), []);
   const stripeSettled = !stripeLoading && (!!stripeError || !!stripeData?.connected || paymentSettled);

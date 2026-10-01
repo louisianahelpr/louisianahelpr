@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import AppPage from "@/components/AppPage";
-import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { usePostJobForm } from "./usePostJobForm";
@@ -69,15 +68,6 @@ const PostJob = () => {
             {form.step === "checkout" && <CheckoutStepView form={form} />}
         </div>
       )}
-
-      <IDVPromptDialog
-        open={form.idvDialogOpen}
-        onOpenChange={form.setIdvDialogOpen}
-        reason="Helpr requires a quick ID + selfie check before you can post a job. This keeps the platform safe for the Helprs you'll be hiring."
-        status={form.idvStatus as never}
-        failureReason={form.idvFailureReason}
-        context="job_post"
-      />
     </AppPage>
   );
 };

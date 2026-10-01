@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { functionInvokeError } from "@/lib/supabaseResult";
 import {
@@ -38,20 +37,14 @@ export type AwardEligibility = {
   /**
    * True only when the check itself failed (network, edge function down) — as
    * opposed to a definite "not eligible". The two must never render the same:
-   * telling a verified helper they are unverified because a fetch dropped is
-   * the bug that used to trap them in the old IDV dialog with no way out.
+   * telling a ready helper they are not set up because a fetch dropped is
+   * the bug that used to trap them in a dialog with no way out.
    */
   indeterminate?: boolean;
 };
 
 export function useStripeConnectCheck() {
   const [checking, setChecking] = useState(false);
-  // The second half of the identity verdict. Read from the already-cached
-  // current profile rather than added as a hook argument, so the eligibility
-  // gate stops disagreeing with the server without every caller having to
-  // learn about a column. See `isIdentityVerified` in @/lib/awardGate.
-  const { profile } = useCurrentUser();
-
   const checkHelperStripeConnect = useCallback(async (): Promise<StripeConnectCheckResult> => {
     setChecking(true);
     try {
@@ -81,18 +74,13 @@ export function useStripeConnectCheck() {
   }, []);
 
   /**
-   * The full acceptance gate: payout-ready AND Stripe-identity-verified.
+   * The full acceptance gate: payout-ready. (Identity verification stopped
+   * being part of it on 2026-10-01, migration 20261001222911.)
    *
-   * One live Stripe read serves both halves, and that same edge-function call
-   * writes the verdict back onto the `profiles` columns the server trigger
-   * enforces (migration 20260827191647) — so the answer shown here and the
-   * answer the database will give are the same fact, refreshed together.
-   *
-   * Identity is EITHER verdict — Stripe Connect's, or the Stripe Identity
-   * document + selfie check the app actually puts in front of people
-   * (`profiles.idv_status`). This comment used to say the opposite, and the
-   * gate matched it: it read the Connect flag alone and so refused live
-   * accounts the server trigger would have let through. See `isIdentityVerified`.
+   * One live Stripe read, and that same edge-function call writes the verdict
+   * back onto the `profiles` columns the server trigger enforces (migration
+   * 20260827191647), so the answer shown here and the answer the database will
+   * give are the same fact, refreshed together.
    */
   const checkHelperAwardEligibility = useCallback(async (): Promise<AwardEligibility> => {
     setChecking(true);
@@ -101,24 +89,21 @@ export function useStripeConnectCheck() {
         body: { action: "status" },
       });
       if (error) throw await functionInvokeError(error);
-      const reason = await awardBlockReasonFromStatus(
-        data as ConnectStatus | null,
-        profile?.idv_status,
-      );
+      const reason = await awardBlockReasonFromStatus(data as ConnectStatus | null);
       return { ok: reason === null, reason };
     } catch (err) {
       report(err, { severity: "warning", tags: { area: "payout", op: "checkHelperAwardEligibility" } });
       // Reported, and never silent to the user: `indeterminate`
       // is the whole point — it says "we could not ask", which both callers in
-      // useOfferHandlers stop on with a "couldn't check your verification
-      // status" toast rather than reading it as "not verified" and trapping an
-      // already-verified helper. The gate fails CLOSED and explains itself;
+      // useOfferHandlers stop on with a "couldn't check your payout
+      // status" toast rather than reading it as "not set up" and trapping an
+      // already-ready helper. The gate fails CLOSED and explains itself;
       // the report is what tells us when "could not ask" stops being a blip.
       return { ok: false, reason: null, indeterminate: true };
     } finally {
       setChecking(false);
     }
-  }, [profile?.idv_status]);
+  }, []);
 
   return { checkHelperStripeConnect, checkHelperAwardEligibility, checking };
 }

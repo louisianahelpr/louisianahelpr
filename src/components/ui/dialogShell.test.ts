@@ -372,15 +372,13 @@ describe("Popup grammar — body voice", () => {
     // other. The ADMIN JobDetailDialog above is a different file and stays.)
 
     // ── NOT converted, and deliberately so ────────────────────────────────
-    // DialogBody is for the dialog's own NARRATION. These three put their
+    // DialogBody is for the dialog's own NARRATION. These two put their
     // muted text inside bordered notice/data panels that carry their own
-    // colour and structure (a bold label with an explanatory line under it, a
-    // numbered policy ladder, a card's empty state). Setting those in
+    // colour and structure (a numbered policy ladder, a card's empty
+    // state). Setting those in
     // editorial serif italic would not make the app more consistent — it would
     // put the body voice on something that is not the body. Listed rather than
     // silently skipped so the decision is on the record and reversible.
-    "src/components/IDVPromptDialog.tsx":
-      "amber notice cards — each is a bold label + explanatory line inside its own panel, not the dialog's narration",
     "src/components/CancellationDialog.tsx":
       "the numbered cancellation-policy ladder — a structured data panel with per-step headings, badges and fee rows",
     "src/components/PhotoProof.tsx":
@@ -451,7 +449,6 @@ describe("Popup grammar — footer", () => {
   };
   /** Footers whose commit is chosen at render time between two components. */
   const BRANCHED_COMMITS: Record<string, string> = {
-    "src/components/IDVPromptDialog.tsx": "pay-the-fee vs start-verification — exactly one renders",
     "src/components/admin/BanDialog.tsx": "warning commits glossy, ban commits red — exactly one renders",
     "src/components/BlockUserDialog.tsx": "see THREE_ACTION_EXCEPTIONS",
   };

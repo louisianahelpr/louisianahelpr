@@ -12,9 +12,11 @@
 // ("Stripe Is Still Verifying You") with a CTA that opens a Stripe Account Link
 // having nothing left to collect. A dead end, on an account that was done.
 //
-// The server's rule since migration 20260907013734 is EITHER verdict. These
-// tests pin the client to that rule, and pin the fail-closed direction so the
-// fix cannot be read as "identity is now optional".
+// The server's rule since migration 20260907013734 was EITHER verdict. Since
+// 2026-10-01 identity gates nothing at all (migration
+// 20261001222911_remove_idv_requirement); isIdentityVerified survives only to
+// draw the verified badge, and these tests pin that display predicate plus the
+// payout-only award gate.
 import { describe, it, expect } from "vitest";
 import {
   isIdentityVerified,
@@ -22,7 +24,7 @@ import {
   awardBlockFromError,
   type AwardGateStatus,
 } from "./awardGate";
-/** Payout-ready in every respect, so only the identity arm is under test. */
+/** Payout-ready in every respect. */
 const PAYOUT_READY: AwardGateStatus = {
   connected: true,
   details_submitted: true,
@@ -55,53 +57,33 @@ describe("isIdentityVerified accepts either verdict, like the server", () => {
 });
 
 describe("awardBlockReasonFromStatus tracks helper_award_block_reason()", () => {
-  it("clears a payout-ready helper whose ONLY verdict is idv_status", async () => {
-    // The regression this whole file exists for: without the second argument
-    // this returns "helper_identity_unverified" for a hirable account.
-    await expect(awardBlockReasonFromStatus(PAYOUT_READY, "verified")).resolves.toBeNull();
-  });
-
-  it("still blocks a payout-ready helper with neither verdict", async () => {
-    await expect(awardBlockReasonFromStatus(PAYOUT_READY, "pending")).resolves.toBe(
-      "helper_identity_unverified",
-    );
-  });
-
-  it("checks payouts BEFORE identity, in the server's order", async () => {
-    // A helper missing both must be told about payouts first — that is the
-    // order helper_award_block_reason returns, and sending someone into a
-    // Stripe Identity flow when they have no payout account at all leaves them
-    // blocked after completing it.
+  // Since 2026-10-01 (migration 20261001222911_remove_idv_requirement) the
+  // server refuses an award for payouts only; identity verification gates
+  // nothing (owner: "Remove finish verifying id we don't do that anymore").
+  it("clears a payout-ready helper whatever their identity state", async () => {
+    await expect(awardBlockReasonFromStatus(PAYOUT_READY)).resolves.toBeNull();
     await expect(
-      awardBlockReasonFromStatus({ ...PAYOUT_READY, payouts_enabled: false }, null),
+      awardBlockReasonFromStatus({ ...PAYOUT_READY, identity_verified: false } as AwardGateStatus),
+    ).resolves.toBeNull();
+  });
+
+  it("still blocks a helper whose payouts are not set up", async () => {
+    await expect(
+      awardBlockReasonFromStatus({ ...PAYOUT_READY, payouts_enabled: false }),
+    ).resolves.toBe("helper_payout_setup_incomplete");
+    await expect(
+      awardBlockReasonFromStatus({ ...PAYOUT_READY, connected: false }),
     ).resolves.toBe("helper_payout_setup_incomplete");
   });
 
   it("reports helper_unknown rather than guessing when status is missing", async () => {
-    await expect(awardBlockReasonFromStatus(null, "verified")).resolves.toBe("helper_unknown");
-  });
-
-  it("has no escape hatch: an unverified helper is refused, always", async () => {
-    // The `idv_requirement_paused` operator switch used to clear this arm.
-    // Owner deleted it 2026-09-07; there is deliberately nothing to mock here.
-    await expect(awardBlockReasonFromStatus(PAYOUT_READY, "pending")).resolves.toBe(
-      "helper_identity_unverified",
-    );
-  });
-
-  it("omitting idv_status keeps the old, stricter answer", async () => {
-    // Callers that genuinely cannot reach the column must not be silently
-    // loosened: absence contributes nothing, it does not vote yes.
-    await expect(awardBlockReasonFromStatus(PAYOUT_READY)).resolves.toBe(
-      "helper_identity_unverified",
-    );
+    await expect(awardBlockReasonFromStatus(null)).resolves.toBe("helper_unknown");
   });
 });
 
 describe("awardBlockFromError reads the codes the trigger actually raises", () => {
   it.each([
     "helper_payout_setup_incomplete",
-    "helper_identity_unverified",
     "helper_unknown",
   ])("recognises %s inside a Postgres error message", (code) => {
     expect(awardBlockFromError({ message: `new row violates: ${code}` })).toBe(code);
@@ -112,7 +94,6 @@ describe("awardBlockFromError reads the codes the trigger actually raises", () =
   });
 });
 
-// The whole file exists for ONE production line: the identity verdict accepts
-// EITHER source, like helper_award_block_reason() since 20260907013734.
+// The display verdict accepts EITHER source; the award gate is payout-only.
 // @mutate src/lib/awardGate.ts | return source.connectIdentityVerified === true \|\| source.idvStatus === "verified"; | return source.connectIdentityVerified === true;
 // @mutate src/lib/awardGate.ts | if (!status.connected \|\| !status.details_submitted \|\| status.payouts_enabled !== true) { | if (false) {

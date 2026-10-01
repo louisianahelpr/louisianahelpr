@@ -16,6 +16,3 @@
 
 /** Typical review turnaround, phrased to drop straight into a sentence. */
 export const REVIEW_SLA = "under 2 hours";
-
-/** The window that turnaround assumes — reviewers are human and local. */
-export const REVIEW_SLA_HOURS = "8a–6p CT";

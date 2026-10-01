@@ -1,5 +1,5 @@
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { isIdentityVerified, type AwardBlockReason } from "@/lib/awardGate";
+import type { AwardBlockReason } from "@/lib/awardGate";
 
 /**
  * Why the CURRENT user cannot be awarded a job right now, or `null` if nothing
@@ -34,9 +34,8 @@ import { isIdentityVerified, type AwardBlockReason } from "@/lib/awardGate";
  * — so the helper is never shown a block the server would not raise, and never
  * shown silence where it would.
  *
- * There is no operator pause any more (owner, 2026-09-07; migration
- * 20260908001056 deleted the flag and every reader of it), so the identity arm
- * is a pure function of the profile already in hand and settles synchronously.
+ * There is no identity arm: identity verification gates nothing since
+ * 2026-10-01 (migration 20261001222911).
  */
 export function useAwardBlockReason(): AwardBlockReason | null {
   const { profile } = useCurrentUser();
@@ -54,12 +53,6 @@ export function useAwardBlockReason(): AwardBlockReason | null {
   if (profile.stripe_account_id == null || profile.stripe_payouts_enabled !== true) {
     return "helper_payout_setup_incomplete";
   }
-
-  const identityOk = isIdentityVerified({
-    connectIdentityVerified: profile.stripe_identity_verified,
-    idvStatus: profile.idv_status,
-  });
-  if (!identityOk) return "helper_identity_unverified";
 
   return null;
 }

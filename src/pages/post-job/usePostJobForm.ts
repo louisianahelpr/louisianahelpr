@@ -32,9 +32,6 @@ export function usePostJobForm() {
   // Preflight open-job count — checked at mount so the user learns
   // about the 5-job cap before filling the entire form.
   const [openJobCount, setOpenJobCount] = useState<number | null>(null);
-  const [idvDialogOpen, setIdvDialogOpen] = useState(false);
-  const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
-  const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
   // Deep-link arrivals (one-tap rebook, direct offer to a saved helpr) come
   // in with the intent already chosen, so they skip the entry landing and
   // drop straight into the pre-filled form. Everyone else sees the
@@ -369,9 +366,6 @@ export function usePostJobForm() {
     setRedirecting,
     setStep,
     setConfirmed,
-    setIdvStatus,
-    setIdvFailureReason,
-    setIdvDialogOpen,
     flushDraft,
     title,
     description,
@@ -492,11 +486,6 @@ export function usePostJobForm() {
     redirecting,
     uploading,
     uploadProgress,
-    // IDV dialog
-    idvDialogOpen,
-    setIdvDialogOpen,
-    idvStatus,
-    idvFailureReason,
     // open-job preflight
     openJobCount,
     // direct offer

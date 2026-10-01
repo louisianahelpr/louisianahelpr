@@ -286,17 +286,6 @@ describe("ApplyConfirmDialog", () => {
       expect(screen.getByRole("button", { name: "Apply Now" })).toBeEnabled();
     });
 
-    it("explains an unfinished identity check", () => {
-      mockAwardBlockReason.mockReturnValue("helper_identity_unverified");
-      render(
-        <MemoryRouter>
-          <ApplyConfirmDialog {...makeProps()} />
-        </MemoryRouter>,
-      );
-      expect(screen.getByText(/confirming who you are/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Apply Now" })).toBeEnabled();
-    });
-
     it("stays silent on helper_unknown — a failed profile read is not news for this screen", () => {
       // That verdict means we could not read the profile at all. Reporting an
       // internal read failure to somebody mid-application helps nobody, and

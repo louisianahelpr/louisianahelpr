@@ -36,7 +36,10 @@ jobs:
   happy-path:
     name: Playwright happy-path smoke (mocked Supabase, mobile viewport)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # One Playwright install attempt may take 15 min on a slow apt mirror
+    # (scripts/ci/playwright-install.sh); at 15 the job died before its tests
+    # (push run 36904969418, cancelled). Guard: playwrightInstallHasTimeout.test.ts.
+    timeout-minutes: 30
     # NOTE: deliberately NOT excluding dependabot[bot]. This job is a REQUIRED
     # status check on main, and GitHub counts a required check that is skipped
     # as unsatisfied — so excluding Dependabot here made every dependency PR

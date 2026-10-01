@@ -1,7 +1,16 @@
 import { appendFileSync } from "node:fs";
 import { afterEach, expect } from "vitest";
 import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
 import { installProdNetworkGuard } from "./prodNetworkGuard";
+
+// Unmount every render after every test, in every file. RTL only registers its
+// own auto-cleanup when a test file imports it statically; a file that loads it
+// with `await import(...)` left its renders mounted, and a React update fired
+// after jsdom teardown failed a whole CI shard with "document global ... not
+// defined anymore" (helperDisputeCopy, CI run 36880636360, twice).
+// Guarded by src/test/rtlCleanupIsGlobal.test.ts.
+afterEach(() => cleanup());
 
 // Unit tests never reach prod Supabase (Q55a): see src/test/prodNetworkGuard.ts.
 installProdNetworkGuard();

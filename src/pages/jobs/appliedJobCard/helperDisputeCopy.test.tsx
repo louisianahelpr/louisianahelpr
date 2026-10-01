@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { helperDisputeCopy } from "./helperDisputeCopy";
@@ -238,6 +238,15 @@ describe("helper dispute panel — copy is aimed at whoever filed", () => {
  * DisputedSection is rendered OUTSIDE AppliedJobCard's expand gate.
  */
 describe("the poster's collapsed card announces the dispute", () => {
+  /* Unmount every render before jsdom is torn down. These renders were left
+     mounted with React Query work pending, and a state update landing after
+     teardown failed the whole Vitest shard with "document global ... not
+     defined anymore" (CI run 36880636360, twice). */
+  afterEach(async () => {
+    const { cleanup } = await import("@testing-library/react");
+    cleanup();
+  });
+
   it("PostedJobCard announces a dispute on a COLLAPSED card", async () => {
     /* RE-POINTED, NOT WEAKENED (2026-09-19). This matched the source text
        `!isExpanded && job.status === "disputed"` — the one-off dispute badge
@@ -250,7 +259,7 @@ describe("the poster's collapsed card announces the dispute", () => {
     const { MemoryRouter } = await import("react-router-dom");
     const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
     const { PostedJobCard } = await import("../../posts/PostedJobCard");
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
     const noop = () => {};
     const job = {
       id: "job-d", title: "Pressure wash the driveway", description: "Front drive.",
@@ -258,7 +267,7 @@ describe("the poster's collapsed card announces the dispute", () => {
       location: "Lafayette, LA", date_needed: jobLocalDateISO(0), payment_status: "escrow",
       status: "disputed", dispute_status: "open",
     } as unknown as import("../../../components/job-card/activityConstants").Job;
-    render(
+    const { unmount } = render(
       <QueryClientProvider client={client}>
       <MemoryRouter>
         <PostedJobCard
@@ -282,6 +291,8 @@ describe("the poster's collapsed card announces the dispute", () => {
     ).not.toBeNull();
     expect(strip!.textContent).toContain("Dispute open");
     expect(strip!.textContent).toContain("Payment on hold");
+    unmount();
+    client.clear();
   });
 
   /* WHAT THIS CASE ASSERTED, AND WHY IT CHANGED — read this before touching it.
@@ -339,8 +350,7 @@ describe("the poster's collapsed card announces the dispute", () => {
       id: "app-d", job_id: "job-d", helper_id: "helper-1", status: "accepted",
       job: { id: "job-d", status: "disputed", dispute_status: "open", date_needed: jobLocalDateISO(0) },
     } as unknown as import("../../../components/job-card/activityConstants").AppliedApp;
-    // Scoped to THIS render's container — the poster case above leaves its own
-    // card in the document, and a document-wide query would find two.
+    // Scoped to THIS render's container, so the query reads only this strip.
     const { container } = render(<JobStatusStrip line={helperStatusLine(app)} />);
     expect(container.textContent).toMatch(/Dispute open/i);
     expect(container.textContent).toMatch(/Payment on hold/i);

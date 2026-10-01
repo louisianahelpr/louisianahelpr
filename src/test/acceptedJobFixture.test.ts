@@ -174,7 +174,7 @@ const OWNED: Record<string, { file: string; evidence: string; why: string }> = {
   open: { file: "scripts/audit/prod-seed.mjs", evidence: 'id: sid("job:poster-open")', why: "prod-seed --apply upserts it (prod-audit.yml, before every audit)" },
   pending_approval: { file: "scripts/audit/prod-seed.mjs", evidence: 'id: sid("job:poster-pending-approval")', why: "prod-seed --apply upserts it" },
   accepted: { file: "e2e/job-status-fixtures/accepted.spec.ts", evidence: "await ensureAcceptedJob(", why: "a11y-webkit-prod.yml's fixtures job, before the sweep (#1794)" },
-  disputed: { file: "e2e/prod-audit/messy-input.spec.ts", evidence: "await ensureDisputedJob(", why: "prod-audit's messy-input beforeAll (Q132); a seed dispute is never auto-resolved" },
+  disputed: { file: "e2e/prod-audit/messy-input.spec.ts", evidence: "await unlessLivePay(() => ensureDisputedJob(", why: "prod-audit's messy-input beforeAll (Q132); a seed dispute is never auto-resolved" },
 };
 
 /**

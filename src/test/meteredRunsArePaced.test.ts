@@ -86,8 +86,12 @@ function budgetedRuns(): Run[] {
       // --ceiling-only) is an option of the checker, not part of the label.
       for (const b of budget) {
         const raw = b[1];
+        // A matrix job judges each leg under `matrix.project`, or under
+        // `matrix.label` when it meters a slice under its own budget
+        // (REQUEST_BUDGET_LABEL, e2e-abuse-notifications.yml).
+        const key = /matrix\.label\b/.test(raw) ? "label" : "project";
         const labels = raw.startsWith("${{")
-          ? [...text.matchAll(/^\s*-?\s*project:\s*(\S+)\s*$/gm)].map((m) => m[1])
+          ? [...text.matchAll(new RegExp(`^\\s*-?\\s*${key}:\\s*(\\S+)\\s*$`, "gm"))].map((m) => m[1])
           : [raw];
         for (const label of labels) out.push({ where: `${file} ${job}`, label, drivers });
       }

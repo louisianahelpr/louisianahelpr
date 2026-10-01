@@ -33,7 +33,7 @@ import {
   type Session,
 } from "./fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
-import { centralDatePlus, fund, invoke, readRow, retireFundedJob } from "../prod-audit/fundedOpenJob";
+import { centralDatePlus, fund, invoke, readRow, retireFundedJob, skipLivePay } from "../prod-audit/fundedOpenJob";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { OUTCOME_UNDRIVEN, filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { uncoveredAdminPaths } from "./adminWritePaths";
@@ -354,7 +354,10 @@ test.describe("money outcomes", () => {
     const tip = await invoke(request, poster, "create-payment", { action: "tip", jobId, amount: 3, tipAttemptId: randomUUID(), native: false });
     const url = typeof tip.json.url === "string" ? tip.json.url : "";
     expect(tip.status === 200 && url, `create-payment tip refused: ${tip.status} ${tip.text.slice(0, 300)}`).toBeTruthy();
-    expect(stripeModeFromCheckoutUrl(url), "the tip Checkout is not a Stripe TEST session — refusing to pay it").toBe("test");
+    const tipMode = stripeModeFromCheckoutUrl(url);
+    // Live Stripe: never paid (owner, 2026-09-27) — the same justified skip fund() takes.
+    if (tipMode === "live") skipLivePay(`tip journey: create-payment minted a live tip Checkout Session for ${jobId}`);
+    expect(tipMode, "the tip Checkout is not a Stripe TEST session — refusing to pay it").toBe("test");
     // An untracked, signed-out context, like fund()'s: after paying, Stripe
     // returns to the app's success_url, and a signed-out landing there is not
     // the screen under test (its client reports must not be read as this leg's).

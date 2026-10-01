@@ -51,7 +51,7 @@ describe("Q769: Load Draft knows the draft's last checkout", () => {
 
   it("Entry hides Load Draft for a paid job and reads the checkout state", () => {
     const src = read("src/pages/post-job/EntryChoice.tsx");
-    expect(src).toContain("useDraftCheckoutState(form.hasDraft)");
+    expect(src).toContain("useDraftCheckout(form.hasDraft)");
     expect(src).toContain('form.hasDraft && draftCheckout !== "paid"');
     expect(src).toMatch(/draftCheckout === "open"/);
   });

@@ -29,7 +29,8 @@
  * neither reused nor retired: cancel_escrow cannot refund them with the live
  * key (500 "No such payment_intent", 36eebad4, every run until this fix).
  */
-import { test, type APIRequestContext, type Browser } from "@playwright/test";
+import { type APIRequestContext, type Browser } from "@playwright/test";
+import { test } from "../prodTest";
 import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../journeys/fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { openCardFields } from "../stripeCheckoutCard";
@@ -56,8 +57,41 @@ export const knownStripeMode = (): StripeMode => stripeMode;
 
 /** Live mode and a fixture needs paying: the owner's 2026-09-27 decision, a JUSTIFIED skip (e2e/skipAllowlist.ts). */
 export function skipLivePay(detail: string): never {
+  if (deferLivePay) throw new LivePayDeferred(detail);
   test.skip(true, `${LIVE_PAY_SKIP} — ${detail}`);
   throw new Error(`unreachable: test.skip returned (${detail})`);
+}
+
+/**
+ * Q865: a live-pay skip in a `beforeAll` skips EVERY test in the file (run
+ * 36766443019: 156 skips, almost none of which pay). Setup wraps its fixture
+ * minting in `unlessLivePay`, which turns the would-be skip into a value; the
+ * tests that need that fixture then skip one by one (`skipWhenUnfundedLive`)
+ * and the rest run. src/test/journeysNeverPayLive.test.ts fails on a bare
+ * fixture call in a hook.
+ */
+class LivePayDeferred extends Error {
+  constructor(readonly detail: string) {
+    super(detail);
+  }
+}
+let deferLivePay = false;
+
+export async function unlessLivePay<T>(mint: () => Promise<T>): Promise<{ value: T | null; livePay: string | null }> {
+  deferLivePay = true;
+  try {
+    return { value: await mint(), livePay: null };
+  } catch (e) {
+    if (e instanceof LivePayDeferred) return { value: null, livePay: e.detail };
+    throw e;
+  } finally {
+    deferLivePay = false;
+  }
+}
+
+/** Per test: skip (justified, LIVE_PAY_SKIP) when the fixture it needs is missing BECAUSE minting it would have paid live. */
+export function skipWhenUnfundedLive(have: unknown, livePay: string | null | undefined, need: string): void {
+  if (!have && livePay) skipLivePay(`${need} — setup did not fund it: ${livePay}`);
 }
 
 /**

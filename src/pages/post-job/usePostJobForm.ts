@@ -26,7 +26,7 @@ export function usePostJobForm() {
   const navigate = useNavigate();
   const { profile } = useCurrentUser();
   const [searchParams] = useSearchParams();
-  const { draft, hasDraft, saveDraft, flushDraft } = useDraftJob();
+  const { draft, hasDraft, draftLoaded, saveDraft, flushDraft } = useDraftJob();
   const [saving, setSaving] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   // Preflight open-job count — checked at mount so the user learns
@@ -507,6 +507,7 @@ export function usePostJobForm() {
     clearOffer,
     // draft prompt
     hasDraft,
+    draftLoaded,
     draftConsumed,
     loadDraft,
     // entry landing

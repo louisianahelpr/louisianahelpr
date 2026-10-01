@@ -11,8 +11,10 @@ import {
   rest,
   sessionsAvailable,
   skipUncovered,
+  stripeModeFromCheckoutUrl,
   type Session,
 } from "./fixtures";
+import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 
 /**
@@ -110,6 +112,9 @@ async function step(
 // Louisiana and today's hours HAVE ended, and at 11:30 PM in LA it is 1:30 AM
 // in Louisiana and they have not.
 // @mutate src/components/profile/AvailabilityTab.tsx | timeZone: ZONE, | timeZone: undefined,
+
+/** The Stripe mode the countdown test's Checkout Session carried; "unknown" until it runs. */
+let seenStripeMode: "test" | "live" | "unknown" = "unknown";
 
 test.describe("time travel · deployed app, real backend, moved browser clock", () => {
   test.skip(!sessionsAvailable().ok, sessionsAvailable().why);
@@ -402,11 +407,21 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     };
     journey.cleanup("refund and cancel the funded job", async () => {
       const now = await read();
+      if (now.status === "cancelled") return;
       if (now.payment_status === "unpaid") {
-        const d = await request.delete(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
-          headers: { ...rest(poster), Prefer: "return=representation" },
+        /* NOT a DELETE. The jobs DELETE policy lets a poster delete an unpaid
+           job only while `stripe_session_id IS NULL`, and create-payment escrow
+           stamps the session the moment it mints a Checkout. In live mode the
+           pay step is skipped after that, so the DELETE matched zero rows (run
+           36561180641: "the unfunded job was not deleted"). The poster's own
+           cancel RPC works with or without a session; an unpaid job moves no
+           money and records no strike (no committed Helpr). */
+        const c = await request.post(`${SUPABASE_URL}/rest/v1/rpc/poster_cancel_job`, {
+          headers: rest(poster),
+          data: { p_job_id: job.id, p_reason: "E2E time-travel teardown" },
         });
-        expect(await d.json(), "cleanup: the unfunded job was not deleted").toHaveLength(1);
+        expect(c.ok(), `cleanup: poster_cancel_job ${c.status()} ${(await c.text()).slice(0, 200)}`).toBe(true);
+        expect((await read()).status, "cleanup: poster_cancel_job answered but the unfunded job is not cancelled").toBe("cancelled");
         return;
       }
       const c = await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
@@ -426,6 +441,12 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       });
       const body = (await esc.json().catch(() => ({}))) as { url?: string };
       expect(esc.ok() && typeof body.url === "string", `create-payment escrow refused: ${esc.status()}`).toBe(true);
+      // Live Stripe: the owner's 2026-09-27 decision, the one justified skip
+      // (e2e/prod-audit/fundedOpenJob.ts). The live page is never opened.
+      const mode = stripeModeFromCheckoutUrl(body.url!);
+      seenStripeMode = mode;
+      expect(mode, `create-payment escrow answered a URL with no Checkout Session id: ${body.url}`).not.toBe("unknown");
+      if (mode === "live") skipLivePay(`time-travel funded countdown: create-payment minted a live Checkout Session for ${job.id}`);
       await payCheckoutUrlInChromium(body.url!);
       await expect
         .poll(async () => (await read()).payment_status, { timeout: 90_000, message: "the webhook never funded the job" })
@@ -476,6 +497,12 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     ["Subscription expiring", "neither E2E account holds a paid tier; buying one is a Stripe checkout"],
   ] as const) {
     test(`UNCOVERED: ${title}`, async () => {
+      // Both states need a payment first: an accepted job needs a funded one
+      // (the applications INSERT policy checks job_is_funded) and a paid tier
+      // is a Stripe checkout. In live mode that is the owner's 2026-09-27
+      // justified skip, read from the countdown test's Checkout Session. An
+      // unknown mode (that test never reached create-payment) stays a failure.
+      if (seenStripeMode === "live") skipLivePay(`time travel: ${title} — ${detail}`);
       skipUncovered(`Time travel: ${title}`, detail);
     });
   }

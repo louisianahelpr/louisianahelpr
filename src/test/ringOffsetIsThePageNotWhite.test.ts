@@ -46,6 +46,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * A class string that declares a ring OFFSET of non-zero width. `ring-offset-0`
@@ -103,9 +104,17 @@ function walk(dir: string, out: string[] = []): string[] {
  */
 const SEGMENTS = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|`((?:[^`\\]|\\.)*)`/gs;
 
+/**
+ * Comments are prose, and prose has apostrophes ("the panel's") and stray
+ * quotes. Left in, one of them flips the quote pairing for the rest of the
+ * file, so a real className lands OUTSIDE every segment and is never checked:
+ * on 2026-10-01 that is exactly how `anchoredPanel.tsx`'s close button went
+ * unseen, and the vacuity gate showed its mutation SURVIVING. Comments are
+ * blanked (string-aware, string bodies kept) before segmenting.
+ */
 export function offenders(file: string, src: string): string[] {
   const out: string[] = [];
-  for (const m of src.matchAll(SEGMENTS)) {
+  for (const m of blankComments(src).matchAll(SEGMENTS)) {
     const text = m[1] ?? m[2] ?? m[3] ?? "";
     if (!DECLARES_OFFSET.test(text)) continue;
     if (PINS_OFFSET_COLOUR.test(text)) continue;

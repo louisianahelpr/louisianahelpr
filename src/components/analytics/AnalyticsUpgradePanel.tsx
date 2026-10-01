@@ -79,15 +79,24 @@ export function AnalyticsUpgradePanel({
         <TrendingUp className="h-5 w-5" style={{ color: "hsl(var(--bark) / 0.6)" }} aria-hidden="true" />
       }
     >
+      {/* ONE box for both states (owner, 2026-10-01): the intro line used to
+          sit bare while the fee comparison wore this box, so the panel was
+          30px shorter for an account with no completed jobs than for one with
+          them, and the loading reserve could match only one. Same box, same
+          padding, both states, and a floor of five lines (the intro's height
+          at 375; the two-sentence fee comparison is four lines plus a gap),
+          so the two states are one height and the reserve matches both. */}
+      <div
+        className="rounded-ds-md px-3 py-3 text-ds-12 leading-snug space-y-1"
+        style={{
+          background: "hsl(var(--bark) / 0.06)",
+          border: "0.5px solid hsl(var(--bark) / 0.18)",
+          color: "hsl(var(--olivewood))",
+          minHeight: "calc(5 * 1.375em + 1.5rem + 1px)",
+        }}
+      >
       {showMath ? (
-        <div
-          className="rounded-ds-md px-3 py-3 text-ds-12 leading-snug space-y-1"
-          style={{
-            background: "hsl(var(--bark) / 0.06)",
-            border: "0.5px solid hsl(var(--bark) / 0.18)",
-            color: "hsl(var(--olivewood))",
-          }}
-        >
+        <>
           <div>
             Over the last {windowLabel} you paid{" "}
             <span className="font-semibold tabular-nums">{money(paid)}</span> in platform fees on{" "}
@@ -110,14 +119,15 @@ export function AnalyticsUpgradePanel({
               </>
             )}
           </div>
-        </div>
+        </>
       ) : (
-        <p className="text-ds-12 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+        <p style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
           You haven&rsquo;t completed a job yet, so there is nothing here to measure. Finish your
           first job and this page starts filling in — on any plan, your earnings and fees stay on
           the Earnings tab.
         </p>
       )}
+      </div>
 
       <ul className="space-y-2 pt-1">
         {WHAT_YOU_GET.map((line) => (

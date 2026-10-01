@@ -113,10 +113,14 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   it("post-job's entry column holds until its two data rows settle", () => {
     const src = read("pages/post-job/EntryChoice.tsx");
     expect(src).toMatch(/recentPosted !== null && form\.openJobCount !== null/);
-    expect(src).toMatch(/if \(!entryReady\) return <EntryChoiceSkeleton cards=\{savedHelpers\.data\?\.length \? 5 : 4\} \/>;/);
+    expect(src).toMatch(/if \(!entryReady\) return <EntryChoiceSkeleton \/>;/);
+    // Owner, 2026-10-01: the saved-helprs card renders for everyone, so the
+    // placeholder draws one fixed count and the card never hides itself.
+    expect(src).toMatch(/const ENTRY_CARD_COUNT = 5;/);
+    expect(read("pages/post-job/OfferToSavedHelpr.tsx")).not.toMatch(/length === 0\) return null/);
   });
 
-  it("post-job's entry column also waits for the self-hiding saved-helprs row (Q1654 P1)", () => {
+  it("post-job's entry column also waits for the saved-helprs row (Q1654 P1)", () => {
     const src = read("pages/post-job/EntryChoice.tsx");
     // The card reads the same hook, so the gate and the card see one query.
     expect(src).toMatch(/const savedHelpers = useSavedHelpersLite\(\);/);

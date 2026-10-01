@@ -26,7 +26,7 @@
  * @mutate scripts/e2e/request-budget.mjs | (allowEmpty ? notes : failures).push( | notes.push(
  * @mutate scripts/e2e/request-budget.mjs | .replace(UUID, ":id"); | ;
  * @mutate scripts/e2e/request-budget.mjs | kv && !/^t= | kv && !/^NOPE=
- * @mutate e2e/request-budgets.json | "perTest": 135.3, | "perTest": null,
+ * @mutate e2e/request-budgets.json | "perTest": 49.3, | "perTest": null,
  * @mutate .github/workflows/loading-states-refresh.yml | if: ${{ !cancelled() && steps.measure.outcome == 'success' }} | env: {}
  * @mutate scripts/e2e/request-budget.mjs | aggregate(dirs.flatMap(readSamples)) | aggregate(readSamples(dirs[0]))
  * @mutate .github/workflows/press-every-control.yml |  --dir request-budget/shard-4 |

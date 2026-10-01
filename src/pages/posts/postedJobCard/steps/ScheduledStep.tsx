@@ -2,6 +2,8 @@ import { MessageSquare, XCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip } from "../../../../components/job-card/JobActionRow";
 import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
+import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
+import { posterDeadline } from "@/components/job-card/jobStatusLine";
 import type { PosterStepCtx } from "./posterStepContract";
 
 /**
@@ -38,6 +40,9 @@ export function ScheduledStep({
   confirmingArrivalJobId,
   confirmingWorkingJobId,
 }: PosterStepCtx) {
+  // The Helpr's window to confirm the booking, the same clock the collapsed
+  // line shows (owner, 2026-10-01: every tracker deadline is visible).
+  const confirmClock = job.helper_confirmed_at ? null : posterDeadline("unconfirmed", job);
   return (
     <JobStepCard
       side="poster"
@@ -47,6 +52,15 @@ export function ScheduledStep({
          claims the primary slot itself, which stands the `primary` prop down —
          the shell's existing one-primary rule, not a second one. */
       notice={
+        <>
+        {confirmClock && (
+          <DeadlineCountdown
+            inline
+            deadline={confirmClock.at}
+            expiredText={confirmClock.expiredText}
+            consequenceText={confirmClock.consequenceText}
+          />
+        )}
         <PosterConfirmationPrimary
           job={job}
           step="scheduled"
@@ -55,6 +69,7 @@ export function ScheduledStep({
           onConfirmArrival={onConfirmArrival}
           onConfirmWorking={onConfirmWorking}
         />
+        </>
       }
       actions={[
         <JobActionChip

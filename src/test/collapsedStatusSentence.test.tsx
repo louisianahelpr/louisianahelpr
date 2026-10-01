@@ -272,8 +272,31 @@ const POSTER_FIXTURES: Record<
       poster_confirmed_arrival_at: ago(100), poster_confirmed_working_at: ago(99),
     }),
   },
-  overdue: {
+  /* The day passed: one fixture per step the job is stuck before. */
+  overdue_unhired: { job: job({ status: "open", date_needed: YESTERDAY }) },
+  overdue_unconfirmed: {
+    job: job({ status: "accepted", helper_id: HELPER, helper_confirmed_at: null, date_needed: YESTERDAY }),
+  },
+  overdue_not_started: {
     job: job({ status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY }),
+  },
+  overdue_not_arrived: {
+    job: job({
+      status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48),
+      helper_on_the_way_at: ago(30), date_needed: YESTERDAY,
+    }),
+  },
+  overdue_no_show: {
+    job: job({ status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY }),
+  },
+  /* A multi-day job: its day has passed but its scheduled end has not, so it
+     is not yet `stalled` (which is the same situation 2h after the end). */
+  overdue_unfinished: {
+    job: job({
+      status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY,
+      estimated_hours: 72,
+      helper_arrived_at: ago(30), poster_confirmed_arrival_at: ago(30), poster_confirmed_working_at: ago(29),
+    }),
   },
   dispute: { job: job({ status: "disputed", helper_id: HELPER, dispute_status: "open" }) },
   dispute_escalated: { job: job({ status: "disputed", helper_id: HELPER, dispute_status: "escalated" }) },
@@ -354,7 +377,13 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
     status: "revision_requested", helper_id: HELPER, date_needed: TODAY,
     revision_requested_at: ago(6), helper_completed_at: ago(1), revision_completed_at: ago(1),
   }),
-  overdue: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY }),
+  overdue_not_started: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY }),
+  overdue_not_arrived: makeApp({}, {
+    status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), helper_on_the_way_at: ago(30), date_needed: YESTERDAY,
+  }),
+  overdue_unfinished: makeApp({}, {
+    status: "in_progress", helper_id: HELPER, helper_confirmed_at: ago(48), helper_arrived_at: ago(30), date_needed: YESTERDAY,
+  }),
   dispute: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "open" }),
   dispute_escalated: makeApp({}, { status: "disputed", helper_id: HELPER, dispute_status: "escalated" }),
   bank_dispute: makeApp({}, { status: "completed", helper_id: HELPER, payment_status: "chargeback" }),
@@ -521,7 +550,7 @@ describe("the sentence says whose move it is, and does not lie about it", () => 
     /* The four honesty cases — the ones where `postedActivityBucket` says
        Needs You and nothing is actually owed by the reader. Each is a reported
        disagreement with the bucket, not a copy preference. */
-    for (const id of ["on_the_way", "working", "revision_out"] as PosterWait[]) {
+    for (const id of ["on_the_way", "working", "revision_out", "overdue_unfinished"] as PosterWait[]) {
       const f = POSTER_FIXTURES[id];
       const line = posterStatusLine(f.job, f.pending ?? 0, undefined, f.completion);
       expect(

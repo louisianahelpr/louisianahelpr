@@ -12,6 +12,7 @@ import { assertNever } from "@/lib/assertNever";
 import type { AppliedApp, Job } from "./activityConstants";
 import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/postedJobCard/steps/posterStepContract";
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
+import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -94,6 +95,107 @@ export interface JobStatusLine {
   /** True while the reader themselves owes a CONFIRMATION tap (the old
    *  `PosterConfirmationBadge`'s whole job, now one value of this line). */
   owesConfirmation: boolean;
+  /**
+   * What follows the detail after a middle dot, when THIS job has one: the
+   * cancellation reason on a cancelled job, the poster's note on a revision.
+   * It is the job's own words, so it is never measured against the width
+   * budget; the strip truncates it instead.
+   */
+  suffix?: string | null;
+  /**
+   * The clock this state runs on, when it has one. Every deadline the live
+   * tracker counts down is also on the collapsed line (owner, 2026-10-01:
+   * "every deadline or countdown in the live tracker must be visible").
+   * Rendered by the shared `DeadlineCountdown` in its `compact` form.
+   */
+  deadline?: StatusDeadline | null;
+}
+
+/** One countdown on the collapsed line. */
+export interface StatusDeadline {
+  /** Which column (or derived clock) it reads: the guard's inventory key. */
+  source: DeadlineSource;
+  at: string;
+  /** Reads after a duration: "1d 2h 5m left to answer". */
+  consequenceText: string;
+  /** Shown instead once the clock has run out. */
+  expiredText: string;
+}
+
+/**
+ * Every clock the tracker counts down. The `jobs` columns are spelled as their
+ * column names; `auto_complete` is `helper_completed_at + AUTO_COMPLETE_HOURS`.
+ */
+export type DeadlineSource =
+  | "direct_offer_expires_at"
+  | "response_deadline"
+  | "revision_deadline"
+  | "revision_acceptance_deadline"
+  | "dispute_deadline"
+  | "auto_complete";
+
+/**
+ * The reason shown after "Cancelled ·", or null.
+ *
+ * Reasons are written by people AND by machinery, and the machinery tags its
+ * own: `[ADMIN REFUND] …`, `[Admin removed] …`, `[Admin override] …`,
+ * `[SWEEP] …`. Those tags are bookkeeping for the admin console, not words for
+ * the reader, so every leading `[…]` tag is stripped. What is left is dropped
+ * when it is empty: "Cancelled ·" over nothing is worse than "Cancelled".
+ */
+export function sanitizeCancellationReason(reason: string | null | undefined): string | null {
+  if (typeof reason !== "string") return null;
+  let out = reason.trim();
+  for (;;) {
+    const next = out.replace(/^\[[^\]]+\]\s*/, "");
+    if (next === out) break;
+    out = next.trim();
+  }
+  return out.length > 0 ? out : null;
+}
+
+/** A note the job carries, trimmed, or null. */
+function noteOrNull(note: string | null | undefined): string | null {
+  if (typeof note !== "string") return null;
+  const t = note.trim();
+  return t.length > 0 ? t : null;
+}
+
+function columnDeadline(
+  source: Exclude<DeadlineSource, "auto_complete">,
+  at: string | null | undefined,
+  consequenceText: string,
+  expiredText: string,
+): StatusDeadline | null {
+  return at ? { source, at, consequenceText, expiredText } : null;
+}
+
+/** When submitted work auto-completes, or null when there is nothing to count. */
+function autoCompleteAt(job: Pick<Job, "helper_completed_at">): string | null {
+  if (!job.helper_completed_at) return null;
+  const t = new Date(job.helper_completed_at).getTime();
+  if (Number.isNaN(t)) return null;
+  return new Date(t + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString();
+}
+
+/** The offer's clock: the same `??` OfferedActions reads. */
+function offerDeadline(job: Job, consequenceText: string): StatusDeadline | null {
+  if (job.response_deadline) {
+    return columnDeadline("response_deadline", job.response_deadline, consequenceText, "Offer expired");
+  }
+  return columnDeadline("direct_offer_expires_at", job.direct_offer_expires_at, consequenceText, "Offer expired");
+}
+
+/** A dispute's clock runs only until an admin takes it (posterDisputeControls). */
+function disputeDeadline(job: Job): StatusDeadline | null {
+  const status = (job as { dispute_status?: string | null }).dispute_status;
+  if (status === "escalated" || status === "resolved") return null;
+  return columnDeadline(
+    "dispute_deadline",
+    job.dispute_deadline,
+    "until payment auto-releases",
+    "Deadline passed — payment auto-releasing",
+  );
 }
 
 /** A row of the copy tables. `eyebrow`/`tone` override the bucket's own. */
@@ -153,7 +255,12 @@ export type PosterWait =
   | "revision_out"
   | "revision_fixed"
   | "stalled"
-  | "overdue"
+  | "overdue_unhired"
+  | "overdue_unconfirmed"
+  | "overdue_not_started"
+  | "overdue_not_arrived"
+  | "overdue_no_show"
+  | "overdue_unfinished"
   | "dispute"
   | "dispute_escalated"
   | "bank_dispute"
@@ -206,12 +313,23 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      bucket never consults. */
   revision_out: { detail: "They're making the fix", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
   revision_fixed: { detail: "Check their fix" },
-  stalled: { detail: "Nobody marked it done" },
-  /* STATE THEN ACTION (owner, 2026-09-21). "The day has passed" said what
-     happened and left the poster to work out what to do — and it was the most
-     common line on the whole tab. The date is already on the card above, so the
-     state half is short and the action half is the point. */
-  overdue: { detail: "Day passed — mark it done or cancel" },
+  /* Owner, 2026-10-01: say WHO is being waited on. "Waiting on your Helpr to
+     mark the work done" was asked for; at 215.4px it breaks the 194px budget
+     at 320, so this is the same sentence with "it" for "the work". */
+  stalled: { detail: "Waiting on your Helpr to mark it done" },
+  /* PAST THE DAY, NAMED BY THE STEP THAT IS ACTUALLY NEXT (owner, 2026-10-01).
+     "Day passed — mark it done or cancel" offered the poster a "mark it done"
+     their tracker never has before the Helpr submits. Each of these names the
+     tracker's own next move for the state the job is in: the open and
+     scheduled steps carry Cancel, an in-progress job whose Helpr never arrived
+     carries No-Show (InProgressStep), and an in-progress job whose Helpr is
+     there has nothing for the poster to do until the work is submitted. */
+  overdue_unhired: { detail: "Day passed, nobody hired — cancel?" },
+  overdue_unconfirmed: { detail: "Your Helpr never confirmed — cancel?" },
+  overdue_not_started: { detail: "Your Helpr never started — cancel?" },
+  overdue_not_arrived: { detail: "Your Helpr never arrived — cancel?" },
+  overdue_no_show: { detail: "Your Helpr never arrived — No-Show?" },
+  overdue_unfinished: { detail: "Waiting on your Helpr to finish", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
   /* THE OLD `DisputeOpenBadge`, VERBATIM — the words, the tone and the
      consequence line are unchanged, because this strip IS that badge
      generalised (owner: "similar to how dispute open displays"). The eyebrow
@@ -254,7 +372,8 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   done_tip_open: { detail: "Reviewed — tip still open", tone: "them" },
   done_review_open: { detail: "Tip left — review still open", tone: "them" },
   done_both_open: { detail: "Review and tip still open", tone: "them" },
-  cancelled: { detail: "This job didn't happen" },
+  /* The reason, when the job has one, follows as the line's `suffix`. */
+  cancelled: { detail: "Cancelled" },
 };
 
 /**
@@ -351,7 +470,7 @@ export function derivePosterWait(
       return "in_review";
     case "open":
       if (job.direct_offer_status === "pending") return "offer_out";
-      if (jobIsOverdue(job)) return "overdue";
+      if (jobIsOverdue(job)) return "overdue_unhired";
       if (pendingApplicantCount > 0) return "applicants";
       if (listingHasExpired(job.expires_at, now)) return "listing_expired";
       return "no_applicants";
@@ -380,7 +499,14 @@ export function derivePosterWait(
       const rung = posterConfirmationRung(job, derivePosterStep(job.status)!, now);
       if (rung?.stalled) return "stalled";
       if (rung?.enabled) return rung.action === "working" ? "confirm_working" : "confirm_arrival";
-      if (jobIsOverdue(job)) return "overdue";
+      if (jobIsOverdue(job)) {
+        if (job.status === "in_progress") {
+          return job.helper_arrived_at ? "overdue_unfinished" : "overdue_no_show";
+        }
+        if (!job.helper_confirmed_at) return "overdue_unconfirmed";
+        if (!job.helper_on_the_way_at) return "overdue_not_started";
+        return "overdue_not_arrived";
+      }
       if (job.status === "accepted" && !job.helper_confirmed_at) return "unconfirmed";
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       if (job.status === "in_progress") return "working";
@@ -406,6 +532,12 @@ export function posterStatusLine(
    * that cannot see the loose end should not invent one.
    */
   completion?: { tipped: boolean; reviewed: boolean },
+  /**
+   * The poster's instant-release setting (`profiles.auto_release_on_complete`).
+   * It is not on the job row, so only a caller that has it can pass it; with it
+   * on there is no auto-complete clock to show (InProgressStep hides it too).
+   */
+  instantRelease = false,
 ): JobStatusLine {
   const id = derivePosterWait(job, pendingApplicantCount, now, completion);
   const copy = POSTER_WAIT[id];
@@ -416,7 +548,43 @@ export function posterStatusLine(
     detail: copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival" || id === "confirm_working",
+    suffix: id === "cancelled" ? sanitizeCancellationReason(job.cancellation_reason) : null,
+    deadline: posterDeadline(id, job, instantRelease),
   };
+}
+
+/** The clock behind each poster state that has one; null for the rest. */
+export function posterDeadline(id: PosterWait, job: Job, instantRelease = false): StatusDeadline | null {
+  switch (id) {
+    case "offer_out":
+      return offerDeadline(job, "left for them to answer");
+    case "unconfirmed":
+      return columnDeadline("response_deadline", job.response_deadline, "left for them to confirm", "Confirm window passed");
+    case "revision_out":
+      return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed");
+    case "revision_fixed":
+      return columnDeadline(
+        "revision_acceptance_deadline",
+        job.revision_acceptance_deadline,
+        "to accept the fix",
+        "Window passed — payment releasing",
+      );
+    case "dispute":
+      return disputeDeadline(job);
+    case "approve": {
+      const at = instantRelease ? null : autoCompleteAt(job);
+      return at
+        ? {
+            source: "auto_complete",
+            at,
+            consequenceText: "to review — payment auto-releases after",
+            expiredText: "Payment auto-releasing",
+          }
+        : null;
+    }
+    default:
+      return null;
+  }
 }
 
 /* ═══════════════════════════ THE HELPER'S SIDE ═══════════════════════════ */
@@ -435,7 +603,9 @@ export type HelperWait =
   | "submitted"
   | "revision"
   | "revision_sent"
-  | "overdue"
+  | "overdue_not_started"
+  | "overdue_not_arrived"
+  | "overdue_unfinished"
   | "dispute"
   | "dispute_escalated"
   | "bank_dispute"
@@ -455,7 +625,8 @@ export type HelperWait =
 export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   job_gone: { detail: "This job has closed" },
   not_selected: { detail: "You weren't picked" },
-  cancelled: { detail: "This job didn't happen" },
+  /* The reason, when the job has one, follows as the line's `suffix`. */
+  cancelled: { detail: "Cancelled" },
   applied: { detail: "They haven't replied yet" },
   offer: { detail: "Accept or decline it" },
   confirm_booking: { detail: "Confirm you'll be there" },
@@ -469,19 +640,20 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   on_the_way: { detail: "You're on the way", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   working: { detail: "Finish and mark it done", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   submitted: { detail: "With them for approval" },
-  revision: { detail: "They asked for a fix" },
+  /* The poster's note, when there is one, follows as the line's `suffix`. */
+  revision: { detail: "Revision requested" },
   /* FINDING #4, the helper's half of finding #3: `appliedActivityBucket`
      returns Needs You for `revision_requested` unconditionally, so a Helpr who
      has already resubmitted is told they still owe something. */
   revision_sent: { detail: "Your fix is with them", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
-  /* THE HELPER'S SIDE OF THE SAME CHANGE (owner, 2026-09-21: "all of this also
-     goes for jobs"). The poster's table got state-then-action and this one was
-     missed on the first pass — caught by looking at a /jobs screenshot,
-     which still read "The day has passed" while /posts had moved on.
-     Both actions genuinely exist on this side: a Helpr can mark the job done,
-     and `helper_cancel_booking` is the other way out, so the sentence is the
-     same one rather than a softer helper-only variant. */
-  overdue: { detail: "Day passed — mark it done or cancel" },
+  /* PAST THE DAY, NAMED BY THE NEXT TRACKER STEP (owner, 2026-10-01). "Mark
+     it done or cancel" offered a "mark it done" the Helpr's tracker does not
+     have until they are at the job. A Helpr who has not set off owes On My
+     Way (or `helper_cancel_booking`), one on the way owes I've Arrived, and
+     one at the job owes finishing and Mark Done. */
+  overdue_not_started: { detail: "Day passed — On My Way or cancel" },
+  overdue_not_arrived: { detail: "Day passed — tap I've Arrived" },
+  overdue_unfinished: { detail: "Day passed — finish and mark it done" },
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
   dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
   ...problemCopy(),
@@ -532,7 +704,7 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
       // Submitted and sitting on the poster — the bucket says Waiting here too,
       // and stays Waiting even past the day: the Helpr has done everything.
       if (job.helper_completed_at && !job.poster_completed_at) return "submitted";
-      if (jobIsOverdue(job)) return "overdue";
+      if (jobIsOverdue(job)) return helperOverdue(job);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       return "working";
     case "open":
@@ -546,7 +718,7 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
       }
       if (app.status !== "accepted") return "applied";
       if (!job.helper_confirmed_at) return "confirm_booking";
-      if (jobIsOverdue(job)) return "overdue";
+      if (jobIsOverdue(job)) return helperOverdue(job);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       if (appliedActivityBucket(app) === "needs_you") return "today";
       return "confirmed";
@@ -556,7 +728,22 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
   }
 }
 
-export function helperStatusLine(app: AppliedApp): JobStatusLine {
+/**
+ * Which step an overdue Helpr is stuck before. Arrived and working are one
+ * answer here: the job row's stamps do not separate them (the tracking row
+ * does), and the move owed is the same: finish and mark it done.
+ */
+function helperOverdue(job: Job): HelperWait {
+  if (job.helper_arrived_at) return "overdue_unfinished";
+  if (job.helper_on_the_way_at) return "overdue_not_arrived";
+  return job.status === "in_progress" ? "overdue_unfinished" : "overdue_not_started";
+}
+
+export function helperStatusLine(
+  app: AppliedApp,
+  /** The poster's instant-release setting; see `posterStatusLine`. */
+  posterInstantRelease = false,
+): JobStatusLine {
   const id = deriveHelperWait(app);
   const copy = HELPER_WAIT[id];
   const bucket = appliedActivityBucket(app);
@@ -566,7 +753,48 @@ export function helperStatusLine(app: AppliedApp): JobStatusLine {
     detail: copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking",
+    suffix:
+      id === "cancelled"
+        ? sanitizeCancellationReason(app.job?.cancellation_reason)
+        : id === "revision"
+          ? noteOrNull(app.job?.revision_note)
+          : null,
+    deadline: app.job ? helperDeadline(id, app.job, posterInstantRelease) : null,
   };
+}
+
+/** The clock behind each Helpr state that has one; null for the rest. */
+export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = false): StatusDeadline | null {
+  switch (id) {
+    case "offer":
+      return offerDeadline(job, "left to answer");
+    case "confirm_booking":
+      return columnDeadline("response_deadline", job.response_deadline, "left to confirm", "Confirm window passed");
+    case "revision":
+      return columnDeadline("revision_deadline", job.revision_deadline, "left to send the fix", "Fix deadline passed");
+    case "revision_sent":
+      return columnDeadline(
+        "revision_acceptance_deadline",
+        job.revision_acceptance_deadline,
+        "for them to review",
+        "No response — payment auto-releasing",
+      );
+    case "dispute":
+      return disputeDeadline(job);
+    case "submitted": {
+      const at = posterInstantRelease ? null : autoCompleteAt(job);
+      return at
+        ? {
+            source: "auto_complete",
+            at,
+            consequenceText: "until it auto-completes",
+            expiredText: "Completing automatically",
+          }
+        : null;
+    }
+    default:
+      return null;
+  }
 }
 
 /** Every id both tables define — the inventory the guard measures against. */

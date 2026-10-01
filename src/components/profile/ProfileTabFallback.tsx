@@ -72,9 +72,43 @@ import { TAB_TITLES, type Tab } from "@/pages/profile/types";
  * The bones themselves stay deliberately few — two cards, a handful of bars.
  * A placeholder holds the shape and gets out of the way; drawing a tab's real
  * furniture would be inventing content we do not have yet.
+ *
+ * OWNER, 2026-10-01 (pop-up): SHORT TABS ARE "SIZE TO CONTENT". Point 3 above
+ * did not hold up when measured: a screenful over a tab shorter than the
+ * screen is a placeholder 236-678px TALLER than what replaces it, and the
+ * check counts that collapse as a jump. So a tab shorter than one screen now
+ * draws its own silhouette (TAB_SHAPES): one block per real row, each the
+ * height that row measured at 375 on prod with both test accounts, with the
+ * same number of avatar/icon circles. `"fill"` is the rest of the screen, for
+ * a long list that grows below. Tabs not in the table keep the screenful.
+ * Pets depends on the account (two pets: 216px; none: a 363px empty state)
+ * and is sized to the shorter, so the other case grows below, never collapses.
+ * Analytics likewise (no completed jobs: 439px; a fee comparison: 469px), and
+ * Saved Helprs sits between its empty state (340px) and a two-card list (348px).
  */
+type Block = { h: number | "fill"; media?: number };
+export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
+  availability: [{ h: 85 }, { h: 768 }],
+  security: [{ h: 74, media: 1 }, { h: 74, media: 1 }, { h: 74, media: 1 }, { h: 360, media: 4 }],
+  reviews: [{ h: 86 }, { h: "fill" }],
+  subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
+  support: [{ h: 469 }, { h: 43 }],
+  warnings: [{ h: 243, media: 1 }],
+  credentials: [{ h: 92 }, { h: 152 }, { h: 169 }, { h: 70 }],
+  accessibility: [{ h: 99 }, { h: 76 }],
+  pets: [{ h: 216, media: 2 }],
+  home_history: [{ h: 384, media: 1 }],
+  str_settings: [{ h: 508, media: 1 }],
+  auto_tip: [{ h: 527 }],
+  saved_helpers: [{ h: 344, media: 1 }],
+  analytics: [{ h: 439 }],
+};
+
+/** Avatar circles a screenful-reserve tab draws in its first card. */
+const RESERVE_MEDIA: Partial<Record<Exclude<Tab, "landing">, number>> = { profile: 1 };
+
 export interface ProfileTabFallbackProps {
-  /** Which tab is loading — decides the title, and nothing else. */
+  /** Which tab is loading — decides the title and the body's silhouette. */
   tab: Exclude<Tab, "landing">;
   /** Back out of the tab. Live during loading, which it was not before. */
   onBack?: () => void;
@@ -95,20 +129,64 @@ export interface ProfileTabFallbackProps {
  * their info", verbatim. Both now wait in the same clothes they waited in a
  * moment earlier, so the sequence is one placeholder, not two.
  */
-export const ProfileTabBodyReserve = () => {
+export const ProfileTabBodyReserve = ({ tab }: { tab?: Exclude<Tab, "landing"> } = {}) => {
+  const shape = tab ? TAB_SHAPES[tab] : undefined;
+  if (shape) {
+    // Siblings, not a wrapper: each block lines up with the real row that
+    // replaces it, so the row count matches as well as the height.
+    return (
+      <>
+        {shape.map((b, i) => (
+          <ShapeBlock key={i} block={b} first={i === 0} />
+        ))}
+      </>
+    );
+  }
+  return <ScreenfulReserve media={tab ? (RESERVE_MEDIA[tab] ?? 0) : 0} />;
+};
+
+/** One screenful from where the element starts. Read once: the placeholder's
+ *  whole life is a few hundred ms, and a resize observer here would fight the
+ *  content that is about to replace it. */
+const useScreenfulBelow = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [reserve, setReserve] = useState<number | undefined>(undefined);
-
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // One screenful from where the body actually starts. Read once: the
-    // placeholder's whole life is a few hundred ms, and a resize observer
-    // here would fight the content that is about to replace it.
     const top = el.getBoundingClientRect().top;
     setReserve(Math.max(0, Math.round(window.innerHeight - top)));
   }, []);
+  return { ref, reserve };
+};
 
+const Circles = ({ n }: { n: number }) =>
+  n > 0 ? (
+    <div className="flex gap-2">
+      {Array.from({ length: n }, (_, i) => (
+        <Skeleton key={i} className="h-9 w-9 rounded-full" />
+      ))}
+    </div>
+  ) : null;
+
+const ShapeBlock = ({ block, first }: { block: Block; first: boolean }) => {
+  const { ref, reserve } = useScreenfulBelow();
+  const height = block.h === "fill" ? reserve : block.h;
+  const testId = first ? "profile-tab-fallback" : undefined;
+  if (typeof block.h === "number" && block.h < 60) {
+    return <Skeleton aria-hidden data-testid={testId} style={{ height }} className="w-full rounded-2xl" />;
+  }
+  return (
+    <div ref={ref} aria-hidden data-testid={testId} style={{ height }} className="rounded-2xl liquid-glass p-card space-y-3 overflow-hidden">
+      <Circles n={block.media ?? 0} />
+      <Skeleton className="h-4 w-1/3 rounded" />
+      <Skeleton className="h-4 w-2/3 rounded" />
+    </div>
+  );
+};
+
+const ScreenfulReserve = ({ media }: { media: number }) => {
+  const { ref, reserve } = useScreenfulBelow();
   return (
     <div
       ref={ref}
@@ -118,6 +196,7 @@ export const ProfileTabBodyReserve = () => {
       className="space-y-section"
     >
       <div className="rounded-2xl liquid-glass p-card space-y-3">
+        <Circles n={media} />
         <Skeleton className="h-5 w-32 rounded" />
         <Skeleton className="h-4 w-2/3 rounded" />
         <Skeleton className="h-4 w-1/2 rounded" />
@@ -134,7 +213,7 @@ export const ProfileTabBodyReserve = () => {
 export const ProfileTabFallback = ({ tab, onBack }: ProfileTabFallbackProps) => (
   <ProfileTabBody>
     <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} />
-    <ProfileTabBodyReserve />
+    <ProfileTabBodyReserve tab={tab} />
   </ProfileTabBody>
 );
 

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { ProfileTabFallback } from "./ProfileTabFallback";
+import { ProfileTabFallback, TAB_SHAPES } from "./ProfileTabFallback";
 import { TAB_TITLES, type Tab } from "@/pages/profile/types";
 
 /**
@@ -71,7 +71,7 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
   });
 
   it("fills the reserve with SPACE, not with bones (short tabs settle flat)", () => {
-    const { container } = renderFallback("security");
+    const { container } = renderFallback("legal");
     const reserve = container.querySelector<HTMLElement>('[data-testid="profile-tab-fallback"]');
     const bones = reserve!.querySelectorAll('[class*="shimmer"], [class*="animate-pulse"]');
     // A screenful of drawn bones is the variant the owner DECLINED. The
@@ -79,6 +79,28 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     expect(bones.length, "the screenful is being drawn rather than reserved").toBeLessThanOrEqual(12);
     expect(bones.length, "no bones at all is not a placeholder").toBeGreaterThan(0);
     expect(reserve!.children.length, "more than a couple of bone cards is a drawn screenful").toBeLessThanOrEqual(3);
+  });
+
+  it("a SHORT tab draws its own silhouette: one block per real row, at that row's height (owner, 2026-10-01)", () => {
+    // "Size to content": a screenful over a tab shorter than the screen is a
+    // placeholder hundreds of px taller than what replaces it.
+    const shaped = Object.entries(TAB_SHAPES);
+    expect(shaped.length, "TAB_SHAPES came back empty").toBeGreaterThanOrEqual(10);
+    const wrong: string[] = [];
+    for (const [tab, blocks] of shaped) {
+      const { container } = renderFallback(tab as Exclude<Tab, "landing">);
+      const first = container.querySelector<HTMLElement>('[data-testid="profile-tab-fallback"]');
+      const rows = first ? [...first.parentElement!.children].slice(1) : [];
+      if (rows.length !== blocks!.length) wrong.push(`${tab}: ${rows.length} block(s), real tab has ${blocks!.length}`);
+      blocks!.forEach((b, i) => {
+        const el = rows[i] as HTMLElement | undefined;
+        if (typeof b.h === "number" && el && el.style.height !== `${b.h}px`) {
+          wrong.push(`${tab} #${i}: height ${el.style.height}, expected ${b.h}px`);
+        }
+      });
+      cleanup();
+    }
+    expect(wrong).toEqual([]);
   });
 
   it("Profile's boot skeleton is the tab's placeholder, never the landing's", () => {
@@ -109,3 +131,5 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
 // and it is the measured 118px against 447-3,477px of real content again.
 // @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} /> |
 // @mutate src/components/profile/ProfileTabFallback.tsx | setReserve(Math.max(0, Math.round(window.innerHeight - top))); | setReserve(118);
+// Size to content: a shaped tab falling back to the screenful is the 236-678px collapse again.
+// @mutate src/components/profile/ProfileTabFallback.tsx | const shape = tab ? TAB_SHAPES[tab] : undefined; | const shape = undefined as Block[] | undefined;

@@ -28,8 +28,8 @@
  * whose CODE (comments stripped) names a live source. Each is then either
  * RUN here against an injected failed read AND an injected empty read — a stub
  * `supabase` / `gh` / `npx` first on PATH, and a local HTTP stub for the REST /
- * Management / Stripe APIs (via LH_SUPABASE_API_BASE, LH_STRIPE_API_BASE,
- * SUPABASE_URL) — and must exit non-zero FOR THAT REASON (its own message, not
+ * Management / Stripe APIs and edge functions (via LH_SUPABASE_API_BASE,
+ * LH_STRIPE_API_BASE, LH_SUPABASE_FUNCTIONS_BASE, SUPABASE_URL) — and must exit non-zero FOR THAT REASON (its own message, not
  * any crash), or it is in NOT_HERMETIC with a reason. Both lists are two-way.
  */
 
@@ -38,7 +38,8 @@
 // @mutate scripts/check-unvalidated-constraints.mjs | failed = true; // stale entry | // stale entry
 // @mutate scripts/check-anon-table-grants.mjs | if (!tablesChecked \|\| !Array.isArray(offenders)) { | if (false) {
 // @mutate scripts/check-ban-gate-coverage.mjs | if (!tablesChecked \|\| !Number(row?.has_ban_helper) \|\| !Array.isArray(offenders)) { | if (false) {
-// @mutate scripts/check-stripe-webhook-events.mjs | fail(\n      `No enabled test-mode endpoint | notes.push(\n      `No enabled test-mode endpoint
+// @mutate scripts/check-stripe-webhook-events.mjs |   if (!FUNCTIONS_BASE_OK) { |   if (false) {
+// @mutate scripts/lib/stripeWebhookGuard.mjs | fail(\n      `No enabled live-mode endpoint | notes.push(\n      `No enabled live-mode endpoint
 // @mutate scripts/check-test-account-strikes.mjs | if (missing.length) { | if (false) {
 // @mutate scripts/audit/write-contract.mjs | if (nTables < 20 \|\| nFunctions < 50) { | if (false) {
 // @mutate scripts/check-staleness.mjs | if (process.env.CI) throw new Error( | if (false) throw new Error(
@@ -75,7 +76,7 @@ const stripComments = (s: string) =>
     .filter((l) => !/^\s*(\/\/|\/\*|\*)/.test(l))
     .join("\n");
 
-/** A live source: prod DB / REST / auth, the Management or Stripe API, GitHub, or a minted prod session. */
+/** A live source: prod DB / REST / auth, the Management or Stripe API, a prod edge function, GitHub, or a minted prod session. */
 const LIVE_MARKERS: RegExp[] = [
   /\(\s*["'`]supabase["'`]\s*,\s*\[/, // execFileSync("supabase", [...])
   /\[\s*["'`]supabase["'`]\s*,\s*["'`]gen/, // npx supabase gen types
@@ -83,6 +84,9 @@ const LIVE_MARKERS: RegExp[] = [
   /\(\s*["'`]psql["'`]/,
   /api\.supabase\.com/,
   /api\.stripe\.com/,
+  // A prod edge-function call (check-stripe-webhook-events reads Stripe through
+  // stripe-webhook-config-check; its base is overridable only for this test).
+  /LH_SUPABASE_FUNCTIONS_BASE/,
   /\.supabase\.co\b/,
   /\/rest\/v1\//,
   /\/auth\/v1\//,
@@ -207,9 +211,15 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "gh returns no successful run", env: { CI: "1" }, cli: { out: "[]", code: 0 }, says: /last passed never/ },
   ],
   "scripts/check-stripe-webhook-events.mjs": [
-    { label: "live read fails", env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/fail" }, says: /Could not list Stripe test-mode webhook endpoints/ },
-    { label: "live read is empty", env: { STRIPE_TEST_SECRET_KEY: "sk_test_stub", LH_STRIPE_API_BASE: "@HTTP@/empty" }, says: /No enabled test-mode endpoint/ },
-    { label: "fixture with no endpoints", args: ["--fixture", "@EMPTYSTRIPE@"], says: /No enabled test-mode endpoint/ },
+    { label: "no service-role key", says: /CRON_SECRET is not set, so the live endpoint check did NOT run/ },
+    { label: "config-check function 500", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/fail" }, says: /Could not read Stripe live-mode webhook endpoints and undelivered events: stripe-webhook-config-check answered HTTP 500/ },
+    { label: "config-check function 401", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/unauth" }, says: /stripe-webhook-config-check answered HTTP 401/ },
+    { label: "live read is empty", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/empty" }, says: /No enabled live-mode endpoint/ },
+    { label: "function reports a test key", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/testkey" }, says: /keyIsLive != true/ },
+    { label: "functions base is not loopback or supabase.co", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "https://evil.example/functions/v1" }, says: /Refusing to send CRON_SECRET to https:\/\/evil\.example/ },
+    { label: "fixture with no endpoints", args: ["--fixture", "@EMPTYSTRIPE@"], says: /No enabled live-mode endpoint/ },
+    { label: "function returns no undelivered block (Q854)", env: { CRON_SECRET: "stub", LH_SUPABASE_FUNCTIONS_BASE: "@HTTP@/noundelivered" }, says: /returned no `undelivered` object/ },
+    { label: "events fixture with no undelivered block", args: ["--events-fixture", "@EMPTYSTRIPE@"], says: /returned no `undelivered` object/ },
   ],
   // Q117/Q129: `check` reads schema_migrations + the receipt ledger through the
   // Management API (LH_SUPABASE_API_BASE); `record` is a write, not a verdict.
@@ -338,7 +348,14 @@ beforeAll(async () => {
       res.end(JSON.stringify({ message: "stub failure", error: { message: "stub failure" } }));
       return;
     }
-    if (req.url?.includes("webhook_endpoints")) return void res.end(JSON.stringify({ object: "list", data: [] }));
+    // stripe-webhook-config-check (check-stripe-webhook-events' live read).
+    if (req.url?.includes("stripe-webhook-config-check")) {
+      if (mode === "unauth") {
+        res.statusCode = 401;
+        return void res.end(JSON.stringify({ error: "Unauthorized" }));
+      }
+      return void res.end(JSON.stringify({ keyIsLive: mode !== "testkey", endpoints: [] }));
+    }
     // An empty but well-formed Stripe list (check-stripe-restore-drift: zero
     // Stripe objects since T is a true answer; the empty DATABASE is not).
     if (mode === "stripelist") return void res.end(JSON.stringify({ object: "list", data: [], has_more: false }));

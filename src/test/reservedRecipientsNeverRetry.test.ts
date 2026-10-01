@@ -7,7 +7,7 @@
  * 2026-09-23), which filed the email-dlq-transactional alert (ledger 2b794ca3).
  */
 // @mutate supabase/functions/_shared/reservedRecipient.ts | return list.length > 0 && list.every( | return list.length > 0 && list.some(
-// @mutate supabase/functions/process-email-queue/index.ts |       if (isReservedRecipient(payload.to)) { |       if (false) {
+// @mutate supabase/functions/process-email-queue/index.ts |       if (reservedRecipient \|\| await isTestRecipient(supabase, payload.to)) { |       if (false) {
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -25,7 +25,10 @@ describe("reserved recipients never retry into the DLQ", () => {
 
   it("the queue suppresses and dequeues a reserved recipient before calling Resend", () => {
     const src = readFileSync(QUEUE, "utf8");
-    const check = src.indexOf("if (isReservedRecipient(payload.to)) {");
+    // Q840 widened the branch to every test or seed recipient; reserved domains
+    // are still the first half of the condition.
+    expect(src).toContain("const reservedRecipient = isReservedRecipient(payload.to)");
+    const check = src.indexOf("if (reservedRecipient || await isTestRecipient(supabase, payload.to)) {");
     const send = src.indexOf("sendWithResend(", check);
     expect(check).toBeGreaterThan(0);
     expect(send).toBeGreaterThan(check);

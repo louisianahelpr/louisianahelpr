@@ -164,6 +164,12 @@ const SURFACES: Surface[] = [
     url: "/jobs",
     as: "helper",
     hold: /supabase\.co\/rest\/v1\/(rpc\/get_jobs_for_my_applications|applications\?select=\*)/,
+    /* Q700 (owner, 2026-09-27): /jobs reserves the ONE-line card shape (130px).
+       That matched while helper-e2e's list was mostly one-line cards (131px x8,
+       151px x7). On 2026-09-28 00:43Z 18 of its applications became rejected on
+       cancelled jobs, and prod-audit 36744778439 (2026-09-30) measured 130 vs
+       151px x7: a 21px jump. Owner, 2026-09-30: keep Q700 and pin the jump. */
+    rowJump: { px: 21, owner: "docs/OPEN.md Q700 (one-line /jobs placeholder; list now 151px x7)" },
   },
   /* THE TAB-ROW RESERVATION (2026-09-26). The two surfaces above open on the
      DEFAULT filter, where the phone tab row starts folded (owner, 2026-09-25)

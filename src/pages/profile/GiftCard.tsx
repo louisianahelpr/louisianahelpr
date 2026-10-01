@@ -60,6 +60,7 @@ import { GIFT_OCCASIONS, DEFAULT_OCCASION } from "./giftCards/giftCardDesigns";
 import { GiftCardPreview } from "./giftCards/GiftCardPreview";
 import { CreditCard } from "./giftCards/CreditCard";
 import { EmptyState } from "./giftCards/EmptyState";
+import { ReceivedListSkeleton, SentListSkeleton } from "./giftCards/ListSkeleton";
 import { RecipientPicker } from "./giftCards/RecipientPicker";
 import type { RecipientMatch } from "./giftCards/RecipientPicker";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -364,6 +365,13 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     },
     enabled: !!user?.id,
   });
+
+  // ONE gate for both lists (Q1754, prod-audit page-settle 1440, 2026-09-30):
+  // "sent" is one request, "sent to you" is two (rows, then donor names), so
+  // gated apart the empty "sent" block landed at 700ms and the nine received
+  // cards at 900ms — the page arriving in two waves. Both lists show their
+  // placeholders until BOTH have settled, then arrive in one paint.
+  const listsLoading = loadingReceived || loadingDonated;
 
   // ── Donate mutation — launches Stripe Checkout, never writes the row ───────
   const donateMutation = useMutation({
@@ -814,16 +822,8 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>
                 Gift cards sent to you
               </p>
-              {loadingReceived ? (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  {[0, 1].map((i) => (
-                    <div
-                      key={i}
-                      className="rounded-ds-md h-24 motion-safe:animate-pulse"
-                      style={{ background: "hsl(var(--olivewood) / 0.07)" }}
-                    />
-                  ))}
-                </div>
+              {listsLoading ? (
+                <ReceivedListSkeleton />
               ) : receivedFailed ? (
                 <div className="flex">
                   <ErrorState
@@ -858,11 +858,8 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>
                 Gift cards you've sent
               </p>
-              {loadingDonated ? (
-                <div
-                  className="rounded-ds-md h-16 motion-safe:animate-pulse"
-                  style={{ background: "hsl(var(--olivewood) / 0.07)" }}
-                />
+              {listsLoading ? (
+                <SentListSkeleton />
               ) : donatedFailed ? (
                 <div className="flex">
                   <ErrorState

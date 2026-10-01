@@ -12,7 +12,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { OPEN, appendToArchive, archivePathFor, splitDone } from "./lib/openQueue.mjs";
+import { OPEN, appendToArchive, archiveHeader, archivePathFor, splitDone } from "./lib/openQueue.mjs";
 
 const ROOT = resolve(process.env.LH_REPO_ROOT ?? join(import.meta.dirname, ".."));
 const date = process.env.LH_ARCHIVE_DATE ?? new Date().toISOString().slice(0, 10);
@@ -21,10 +21,16 @@ const { kept, moved } = splitDone(md);
 const target = archivePathFor(date);
 
 if (process.argv.includes("--write")) {
+  const abs = join(ROOT, target);
   if (moved.length) {
-    const abs = join(ROOT, target);
     writeFileSync(abs, appendToArchive(existsSync(abs) ? readFileSync(abs, "utf8") : "", moved, date));
     writeFileSync(join(ROOT, OPEN), kept);
+  } else if (!existsSync(abs)) {
+    // This month's archive is a registered output (check-generated-current.mjs),
+    // so it must exist from the 1st even before anything is ticked: on
+    // 2026-10-01T00:00Z every PR went red on "output docs/archive/OPEN-done-2026-10.md
+    // does not exist" until it did. Header only; the first move appends below it.
+    writeFileSync(abs, archiveHeader(date.slice(0, 7)));
   }
   console.log(`archive-done: moved ${moved.length} done item(s) from ${OPEN} to ${target}`);
 } else {

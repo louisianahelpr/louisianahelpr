@@ -67,14 +67,12 @@ SELECT pg_database_size(current_database())::bigint AS db_bytes,
        (SELECT coalesce(sum((metadata->>'size')::bigint), 0) FROM storage.objects)::bigint AS storage_bytes,
        (SELECT count(*) FROM storage.objects)::int AS storage_objects,
        (SELECT count(*) FROM public.email_send_log
-         WHERE status = 'sent' AND created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS emails_month,
-       (SELECT count(*) FROM public.email_send_log
-         WHERE status = 'sent' AND created_at > now() - interval '24 hours')::int AS emails_day`;
+         WHERE status = 'sent' AND created_at >= date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS emails_month`;
 
 const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
 
 async function readSql() {
-  const ids = ["supabase.db_size", "supabase.connections", "supabase.storage", "resend.sends_month", "resend.sends_day"];
+  const ids = ["supabase.db_size", "supabase.connections", "supabase.storage", "resend.sends_month"];
   if (!TOKEN || !REF) return fail(ids, "could not read: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
   let rows;
   try {
@@ -106,7 +104,7 @@ async function readSql() {
   const st = num(r.storage_bytes);
   if (!Number.isFinite(st)) fail(["supabase.storage"], `storage read as ${r.storage_bytes}`);
   else readings["supabase.storage"] = { value: st, note: `${num(r.storage_objects)} objects` };
-  for (const [id, key] of [["resend.sends_month", "emails_month"], ["resend.sends_day", "emails_day"]]) {
+  for (const [id, key] of [["resend.sends_month", "emails_month"]]) {
     const v = num(r[key]);
     if (!Number.isFinite(v)) fail([id], `${key} read as ${r[key]}`);
     else readings[id] = { value: v, note: "email_send_log status 'sent' (floor)" };

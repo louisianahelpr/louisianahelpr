@@ -101,12 +101,12 @@ stories go in the lessons file, never here.
 - WebKit, minifier, fixed-position and gloss rules live under Verification and UI above.
 
 ## Process
-- **Commit directly to `main`**, no branch/PR. Locally run `npm run typecheck` (+ `npx vitest run` for tested code); CI runs lint/build/full suite. Re-run the full local gate only with specific reason to distrust CI. [L](docs/lessons/CLAUDE-lessons.md#commit-main)
+- **Land ONLY with `bash scripts/land.sh`** (owner Q44, strict confirmed 2026-09-30): it rebases, refreshes inventories, runs the exact-count guards, opens a PR with rebase auto-merge and waits for MERGED. Main requires Vitest, Test, Vacuity and both Playwright checks, strict, enforce_admins; a direct push is refused. Locally run `npm run typecheck` (+ `npx vitest run` for tested code). [L](docs/lessons/CLAUDE-lessons.md#commit-main)
 - If commits start reaching prod red, check `gh workflow list --all` for `disabled_manually` before assuming the local gate is the only option.
 - **Review money/auth/data-model diffs before committing** with `lh-silent-failure`, `lh-authz-rls`, `lh-money-escrow` (tell them REVIEW ONLY, ignore their fleet preamble), or `/code-review` / `/security-review`. `code-reviewer`, `silent-failure-hunter`, `security-auditor` do NOT exist. Record it as a `Sensitive-Review: <reviewer>: <verdict>` trailer on the commit itself; `node scripts/check-sensitive-review.mjs record <sha> ...` only for one that landed without it (it always leaves one red run and a nightly-red alert). Main goes red on an unrecorded one (Q9). [L](docs/lessons/CLAUDE-lessons.md#commit-main)
 - `/code-review ultra` is user-triggered and billed: recommend it, never attempt it.
 - End every commit message with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
-- **Never idle on a blocked git operation.** Apply the documented fallback (commit direct to main) at once; if still stuck after a couple of attempts, stop the run cleanly. [L](docs/lessons/CLAUDE-lessons.md#git-idle)
+- **Never idle on a blocked git operation.** Apply the documented fallback (re-run `bash scripts/land.sh`) at once; if still stuck after a couple of attempts, stop the run cleanly. [L](docs/lessons/CLAUDE-lessons.md#git-idle)
 - **Every agent spawn tells the agent to read `.claude/AGENT-BRIEF.md` first** (worktree, checks, guards, landing, OPEN.md rules). Keep it current; don't re-paste its rules per spawn.
 - **YOU pick every agent's model; never ask.** Pass `model:` on every spawn: money/authz/data-model/guard chains → `opus`; exhaustive visual driving and design judgement → `opus`; NEVER `fable`, for any agent, terminal or routine (owner, 2026-09-13); mechanical specced edits → `sonnet`; never `haiku` for an answer that will be believed. [L](docs/lessons/CLAUDE-lessons.md#pick-models)
 - Re-verification of untrusted prior work goes to a DIFFERENT model than produced it.

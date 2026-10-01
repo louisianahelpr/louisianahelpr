@@ -58,12 +58,14 @@ const PLACEHOLDER_KNOWN = [
 export function placeholders(rel: string, src: string): string[] {
   const code = blankComments(src);
   const out: string[] = [];
+  // A leading `if (…) skipLivePay(…);` still leaves a placeholder: both branches only ever
+  // skip, so the optional prefix below is matched rather than letting it hide the test.
   // Direct form: test("title", async (...) => { skipUncovered(
-  for (const m of code.matchAll(/\btest\(\s*(["'`])((?:(?!\1).)*)\1\s*,\s*async\s*\([^)]*\)\s*=>\s*\{\s*skipUncovered\(/g)) {
+  for (const m of code.matchAll(/\btest\(\s*(["'`])((?:(?!\1).)*)\1\s*,\s*async\s*\([^)]*\)\s*=>\s*\{\s*(?:if \([^)]*\) skipLivePay\([^;]*\);\s*)?skipUncovered\(/g)) {
     if (!m[2].includes("${")) out.push(`${rel} :: ${m[2]}`);
   }
   // Loop form: for (const [title, …] of [["A", …], ["B", …]] as const) { test(`…${title}`, async () => { skipUncovered(
-  for (const m of code.matchAll(/for \(const \[(\w+)[^\]]*\] of \[([\s\S]*?)\] as const\) \{\s*test\(`[^`]*\$\{\1\}[^`]*`\s*,\s*async\s*\([^)]*\)\s*=>\s*\{\s*skipUncovered\(/g)) {
+  for (const m of code.matchAll(/for \(const \[(\w+)[^\]]*\] of \[([\s\S]*?)\] as const\) \{\s*test\(`[^`]*\$\{\1\}[^`]*`\s*,\s*async\s*\([^)]*\)\s*=>\s*\{\s*(?:if \([^)]*\) skipLivePay\([^;]*\);\s*)?skipUncovered\(/g)) {
     for (const t of m[2].matchAll(/\[\s*"([^"]+)"/g)) out.push(`${rel} :: ${t[1]}`);
   }
   return out;
@@ -80,6 +82,9 @@ describe("no journey test is a placeholder that can only skip", () => {
     expect(
       placeholders("x", 'for (const [title, detail] of [\n ["A", "d"],\n ["B", "e"],\n] as const) {\n test(`U: ${title}`, async () => {\n skipUncovered(title, detail);')
     ).toEqual(["x :: A", "x :: B"]);
+    expect(
+      placeholders("x", 'for (const [title, detail] of [\n ["A", "d"],\n] as const) {\n test(`U: ${title}`, async () => {\n if (mode === "live") skipLivePay(`t: ${title}`);\n skipUncovered(title, detail);')
+    ).toEqual(["x :: A"]);
   });
 
   it("every unconditional placeholder is known, and every known one still exists", () => {

@@ -143,6 +143,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/publicError.ts";`,
   );
 
+  // Function-to-function fetch: `_shared/functionFetch.ts` has ZERO imports and
+  // calls the global `fetch` at call time, so the real module still hits each
+  // test's stubbed fetch while its trace-limit retry stays exercised.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/functionFetch\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/functionFetch.ts";`,
+  );
+
   // Cron result envelope: `_shared/cron-result.ts` is a pure shape helper (no
   // Deno, no network) that decides a cron's HTTP status from its defect count.
   // Point at the REAL module — whether a failed run answers non-2xx is exactly
@@ -338,6 +346,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/reservedRecipient.ts";`,
   );
 
+  // Test recipients (Q840): `_shared/testRecipient.ts` imports only the
+  // zero-import reservedRecipient.ts, so the generated file runs the REAL
+  // predicate. Its is_seed lookup reaches the test's own Supabase mock.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/testRecipient\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/testRecipient.ts";`,
+  );
+
   // Tier display names: `_shared/tierNames.ts` has ZERO imports and is a plain
   // lookup table, so the generated file points at the REAL module. It is what
   // stops a lapse notification telling a member "Your pro pass ended" with the
@@ -434,6 +450,15 @@ function rewriteExternalImports(src: string): string {
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeIdentity\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/stripeIdentity.ts";`,
+  );
+
+  // Unusable-Connect-account classifier: `_shared/stripeAccountUsable.ts` is
+  // pure TypeScript with no imports, so the generated file points at the REAL
+  // module. Whether a Stripe error clears a payout account or 500s is behaviour
+  // under test (#1582), never mocked.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeAccountUsable\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeAccountUsable.ts";`,
   );
 
   // Flat one-time product prices: `_shared/productPrices.ts` is a plain

@@ -5,37 +5,32 @@
     {
       "key": "customer /profile?tab=notifications #0",
       "kind": "jump",
-      "was": "row 736px → 1308px (+572px)"
+      "was": "row 744px → 1323px (+579px)"
     },
     {
       "key": "customer /profile?tab=notifications #0",
       "kind": "media",
-      "was": "0 avatar/media bone(s) → 46 real"
+      "was": "0 avatar/media bone(s) → 17 real"
     },
     {
       "key": "helper /profile?tab=notifications #0",
       "kind": "jump",
-      "was": "row 736px → 1236px (+500px)"
+      "was": "row 744px → 1251px (+507px)"
     },
     {
       "key": "helper /profile?tab=notifications #0",
       "kind": "media",
-      "was": "0 avatar/media bone(s) → 46 real"
-    },
-    {
-      "key": "helper /profile?tab=saved_helpers #0",
-      "kind": "jump",
-      "was": "row 736px → 400px (-336px)"
+      "was": "0 avatar/media bone(s) → 17 real"
     },
     {
       "key": "helper /profile?tab=analytics #0",
       "kind": "jump",
-      "was": "row 614px → 477px (-137px)"
+      "was": "row 439px → 469px (+30px)"
     },
     {
       "key": "customer /jobs #1",
       "kind": "jump",
-      "was": "row 52px → 154px (+102px)"
+      "was": "row 32px → 154px (+122px)"
     },
     {
       "key": "customer /posts #1",
@@ -45,32 +40,22 @@
     {
       "key": "helper /profile?tab=referral #0",
       "kind": "jump",
-      "was": "row 743px → 910px (+167px)"
+      "was": "row 744px → 902px (+158px)"
     },
     {
       "key": "customer /profile?tab=referral #0",
       "kind": "jump",
-      "was": "row 736px → 910px (+174px)"
-    },
-    {
-      "key": "customer /profile?tab=saved_helpers #0",
-      "kind": "jump",
-      "was": "row 736px → 200px (-536px)"
+      "was": "row 744px → 902px (+158px)"
     },
     {
       "key": "customer /profile?tab=saved_helpers #0",
       "kind": "media",
-      "was": "0 avatar/media bone(s) → 3 real"
+      "was": "1 avatar/media bone(s) → 3 real"
     },
     {
       "key": "customer /profile?tab=work_record #0",
       "kind": "jump",
-      "was": "row 742px → 818px (+76px)"
-    },
-    {
-      "key": "customer /profile?tab=analytics #0",
-      "kind": "jump",
-      "was": "row 614px → 447px (-167px)"
+      "was": "row 744px → 830px (+86px)"
     },
     {
       "key": "helper /posts #1",
@@ -108,19 +93,7 @@
     {
       "key": "customer /profile?tab=schedule #0",
       "kind": "jump",
-      "was": "row 506px → 1207px (+701px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=security #1",
-      "kind": "jump",
-      "was": "row 104px → 44px (-60px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=reviews #0",
-      "kind": "jump",
-      "was": "row 54px → 86px (+32px)",
+      "was": "row 744px → 1667px (+923px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
     },
     {
@@ -130,57 +103,15 @@
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
     },
     {
-      "key": "customer /profile?tab=warnings #0",
-      "kind": "jump",
-      "was": "row 188px → 243px (+55px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=warnings #1",
-      "kind": "jump",
-      "was": "row 188px → 243px (+55px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
       "key": "customer /profile?tab=warnings #2",
       "kind": "jump",
       "was": "row 188px → 243px (+55px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
     },
     {
-      "key": "customer /profile?tab=saved_helpers #0",
-      "kind": "jump",
-      "was": "row 270px → 398px (+128px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=accessibility #0",
-      "kind": "jump",
-      "was": "row 118px → 76px (-42px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=accessibility #1",
-      "kind": "jump",
-      "was": "row 118px → 76px (-42px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=pets #0",
-      "kind": "jump",
-      "was": "row 118px → 216px (+98px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=pets #1",
-      "kind": "jump",
-      "was": "row 118px → 216px (+98px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
       "key": "customer /profile?tab=work_record #0",
       "kind": "jump",
-      "was": "row 118px → 830px (+712px)",
+      "was": "row 744px → 830px (+86px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
     },
     {
@@ -192,43 +123,7 @@
     {
       "key": "customer /profile?tab=home_history #0",
       "kind": "jump",
-      "was": "row 118px → 3477px (+3359px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=home_history #1",
-      "kind": "jump",
-      "was": "row 118px → 3477px (+3359px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=str_settings #0",
-      "kind": "jump",
-      "was": "row 118px → 508px (+390px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=str_settings #1",
-      "kind": "jump",
-      "was": "row 118px → 508px (+390px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=auto_tip #0",
-      "kind": "jump",
-      "was": "row 118px → 559px (+441px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=auto_tip #1",
-      "kind": "jump",
-      "was": "row 118px → 559px (+441px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=wrapped #0",
-      "kind": "jump",
-      "was": "row 118px → 751px (+633px)",
+      "was": "row 384px → 18068px (+17684px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
     },
     {
@@ -238,21 +133,9 @@
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
     },
     {
-      "key": "customer /profile?tab=analytics #0",
-      "kind": "jump",
-      "was": "row 118px → 447px (+329px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
-      "key": "customer /profile?tab=analytics #1",
-      "kind": "jump",
-      "was": "row 118px → 447px (+329px)",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
-    },
-    {
       "key": "customer /profile?tab=gift_card #0",
       "kind": "jump",
-      "was": "row 118px → 1348px (+1230px)",
+      "was": "row 744px → 2885px (+2141px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
     },
     {
@@ -267,6 +150,42 @@
       "kind": "jump",
       "was": "row 32px → 48px (+16px)",
       "ruling": "Owner ruling Q700 (docs/OPEN.md): \"match each tab: the /jobs skeleton reserves the one-line shape, /posts keeps two lines.\" The /jobs list is bimodal by design (JobCardMetaRow gives a street address its own meta line, Q411); when the first helper card carries the two-line meta, its row grows 16px past the one-line bone. Measured identical in runs 36492960226, 36632943113, 36779284662 (real 115.9px vs skeleton 99px)."
+    },
+    {
+      "key": "customer /profile?tab=profile #0",
+      "kind": "jump",
+      "was": "row 744px → 1234px (+490px)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "helper /profile?tab=profile #0",
+      "kind": "jump",
+      "was": "row 744px → 1234px (+490px)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "customer /profile?tab=legal #0",
+      "kind": "jump",
+      "was": "row 744px → 1155px (+411px)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "helper /profile?tab=legal #0",
+      "kind": "jump",
+      "was": "row 744px → 1155px (+411px)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "helper /profile?tab=schedule #0",
+      "kind": "jump",
+      "was": "row 744px → 923px (+179px)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "helper /profile?tab=gift_card #0",
+      "kind": "jump",
+      "was": "row 744px → 2990px (+2246px)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

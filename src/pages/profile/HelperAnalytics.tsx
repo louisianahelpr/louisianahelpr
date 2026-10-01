@@ -25,7 +25,7 @@
 
 import { useState } from "react";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarChart3 } from "lucide-react";
@@ -101,17 +101,9 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
   );
 
   if (userLoading || isLoading) {
-    return wrap(
-      <>
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-2xl liquid-glass p-card space-y-3">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-3 w-56" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        ))}
-      </>,
-    );
+    // Size to content (owner, 2026-10-01): the three bone cards were 305px
+    // taller than the upgrade panel that replaces them.
+    return wrap(<ProfileTabBodyReserve tab="analytics" />);
   }
 
   if (isError) {

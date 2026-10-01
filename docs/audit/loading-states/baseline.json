@@ -3,46 +3,6 @@
   "generated": "2026-09-26T21:25:01.687Z",
   "allow": [
     {
-      "key": "customer /profile?tab=reviews #1",
-      "kind": "jump",
-      "was": "row 348px → 86px (-262px)"
-    },
-    {
-      "key": "customer /profile?tab=reviews #1",
-      "kind": "rows",
-      "was": "2 placeholder row(s) → 3 real row(s)"
-    },
-    {
-      "key": "customer /profile?tab=reviews #2",
-      "kind": "jump",
-      "was": "row 348px → 86px (-262px)"
-    },
-    {
-      "key": "customer /profile?tab=reviews #2",
-      "kind": "rows",
-      "was": "2 placeholder row(s) → 3 real row(s)"
-    },
-    {
-      "key": "helper /profile?tab=reviews #1",
-      "kind": "jump",
-      "was": "row 348px → 86px (-262px)"
-    },
-    {
-      "key": "helper /profile?tab=reviews #1",
-      "kind": "rows",
-      "was": "2 placeholder row(s) → 3 real row(s)"
-    },
-    {
-      "key": "helper /profile?tab=reviews #2",
-      "kind": "jump",
-      "was": "row 348px → 86px (-262px)"
-    },
-    {
-      "key": "helper /profile?tab=reviews #2",
-      "kind": "rows",
-      "was": "2 placeholder row(s) → 3 real row(s)"
-    },
-    {
       "key": "customer /profile?tab=notifications #0",
       "kind": "jump",
       "was": "row 736px → 1308px (+572px)"
@@ -68,27 +28,7 @@
       "was": "row 736px → 400px (-336px)"
     },
     {
-      "key": "helper /profile?tab=work_record #0",
-      "kind": "jump",
-      "was": "row 740px → 752px (+12px)"
-    },
-    {
-      "key": "customer /profile?tab=analytics #2",
-      "kind": "jump",
-      "was": "row 614px → 447px (-167px)"
-    },
-    {
       "key": "helper /profile?tab=analytics #0",
-      "kind": "jump",
-      "was": "row 614px → 477px (-137px)"
-    },
-    {
-      "key": "helper /profile?tab=analytics #1",
-      "kind": "jump",
-      "was": "row 614px → 477px (-137px)"
-    },
-    {
-      "key": "helper /profile?tab=analytics #2",
       "kind": "jump",
       "was": "row 614px → 477px (-137px)"
     },
@@ -101,11 +41,6 @@
       "key": "customer /posts #1",
       "kind": "rows",
       "was": "2 placeholder row(s) → 5 real row(s)"
-    },
-    {
-      "key": "customer /jobs/:id #0",
-      "kind": "jump",
-      "was": "row 487px → 120px (-367px)"
     },
     {
       "key": "helper /profile?tab=referral #0",
@@ -134,11 +69,6 @@
     },
     {
       "key": "customer /profile?tab=analytics #0",
-      "kind": "jump",
-      "was": "row 614px → 447px (-167px)"
-    },
-    {
-      "key": "customer /profile?tab=analytics #1",
       "kind": "jump",
       "was": "row 614px → 447px (-167px)"
     },

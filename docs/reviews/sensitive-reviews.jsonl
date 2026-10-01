@@ -119,3 +119,4 @@
 {"sha":"1a43f26afd3e33bb200eda3a198883f5d89e039b","reviewer":"lh-money-escrow","verdict":"approve","date":"2026-09-30"}
 {"sha":"ebadf0d47f2bb1fdd83a0359c7fae6a34b03bbd0","reviewer":"lh-money-escrow","verdict":"approve","date":"2026-09-30"}
 {"sha":"e0e0f68f8cc5f6e64db6335ee20bbeefa4e207f5","reviewer":"lh-money-escrow","verdict":"approve","date":"2026-09-30"}
+{"sha":"ea0fc14689f1e32f6f8b8586b7470b6d49e34b8c","reviewer":"lh-authz-rls","verdict":"pass (owner approved recording 2026-10-01): 3 CREATE INDEX IF NOT EXISTS on FK columns; no policy/grant/function/DML; replay order verified; live in pg_indexes","date":"2026-10-01"}

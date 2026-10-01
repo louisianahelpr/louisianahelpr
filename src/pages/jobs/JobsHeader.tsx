@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
-import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
+import { COMPACT_HEADER_ROW_MIN_HEIGHT, ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { hapticLight } from "@/lib/haptics";
 import type { StatusFilter } from "@/components/job-card/activityFilters";
 import { defaultStatusFilterFor } from "@/components/job-card/activityConstants";
@@ -262,6 +262,14 @@ export function JobsHeader({
         <ScreenHeaderRow
           title={TITLE}
           titleSrOnly={titleSrOnly}
+          /* THE ROW DOES NOT GROW WHEN SEARCH OPENS (owner, 2026-10-01: "when
+             you click the search in post and jobs it shouldnt make that top
+             piece bigger it should stay the same size"). The closed desktop
+             row below is held at COMPACT_HEADER_ROW_MIN_HEIGHT; this one used
+             to fall back to the 44px phone floor with a 36px field, and the
+             card grew 43 -> 53px at 1440. Same floor, and a field no taller
+             than it (see the input's height below). */
+          style={inlineFilters ? { minHeight: COMPACT_HEADER_ROW_MIN_HEIGHT } : undefined}
           expandingSearch={{
             open: true,
             /* DESKTOP: THE TABS STAY UP WHILE SEARCHING, and the field is
@@ -310,7 +318,7 @@ export function JobsHeader({
                   /* Escape is the keyboard's X. Same single activation, same
                      pre-open state, same focus return — see closeSearch above. */
                   onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
-                  className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                  className={`w-full pl-9 pr-10 ${inlineFilters ? "h-[34px]" : "h-9"} text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
                 />
                 {/* The X lives INSIDE the field, on its right (owner), and is
                     the only control in the field. Always present, not only once
@@ -364,7 +372,7 @@ export function JobsHeader({
         <ScreenHeaderRow
           title={TITLE}
           titleSrOnly={titleSrOnly}
-          style={inlineFilters ? { minHeight: "34px" } : undefined}
+          style={inlineFilters ? { minHeight: COMPACT_HEADER_ROW_MIN_HEIGHT } : undefined}
           className={inlineFilters ? "[&>div:first-child]:!py-0" : undefined}
           /* The desktop tabs sit to the RIGHT of the name, in the row's `meta`
              slot — the same shape Messages uses for "1 unread". They carry the

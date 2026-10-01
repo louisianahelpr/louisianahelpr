@@ -23,7 +23,6 @@ import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Map, MapPinned } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import GiftCardTeaser from "@/components/dashboard/GiftCardTeaser";
 import { DashboardBannedScreen } from "@/components/dashboard/DashboardBlockedScreen";
 
 // Dialogs and overlays — none are visible on first paint. Each is code-split
@@ -145,9 +144,8 @@ const Dashboard = () => {
   // the surface that knows how to apply to it. Not persisted — a lens you
   // look through and step back out of, not a layout preference.
   const {
-    giftCardCount,
     savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
-  } = useDashboardSideQueries({ userId: user?.id, userEmail: user?.email, allJobs });
+  } = useDashboardSideQueries({ userId: user?.id, allJobs });
   const [savedOnly, setSavedOnly] = useState(false);
   const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
 
@@ -335,13 +333,6 @@ const Dashboard = () => {
   // Desktop split-screen hover sync — hovering a list card scales up the
   // corresponding map pin. null = no card hovered.
   const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
-
-  // Gift cards — count of funded, unspent gift cards addressed to THIS user.
-  // Shown as a teaser banner above the community teaser when > 0. The email
-  // is needed as well as the id: a gift is named to an address and only gains
-  // a `recipient_id` once claimed, so an unclaimed one is invisible by id.
-  // (This was keyed off the user's parish, which matched nothing — see the
-  // query's comment in useDashboardSideQueries.)
 
   // Profile-completion is no longer nudged on the home feed — the full
   // "Finish your profile" card pushed the job feed below the fold. The
@@ -788,7 +779,6 @@ const Dashboard = () => {
                     hasNextPage={hasNextPage}
                     isFetchingNextPage={isFetchingNextPage}
                     fetchNextPage={fetchNextPage}
-                    lead={giftCardCount > 0 ? <GiftCardTeaser giftCardCount={giftCardCount} /> : null}
                     hoveredJobId={hoveredJobId}
                     setHoveredJobId={setHoveredJobId}
                     exclusions={exclusions}

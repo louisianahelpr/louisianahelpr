@@ -7,8 +7,7 @@ import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayou
 import {
   FORM_1099K_GROSS_THRESHOLD_DOLLARS,
 } from "@/lib/moneyLimits";
-import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
-import { stripeProcessingCostCents } from "@/lib/stripeFees";
+import { helperTakeHomeDollars, sumHelperTakeHomeDollars, sumHelperTipDollars } from "@/lib/helperEarnings";
 import { tierFeePercent, profileHasPerk } from "@/lib/subscriptionTiers";
 import { toast } from "sonner";
 import { EarningsExport } from "@/components/EarningsExport";
@@ -183,16 +182,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // across a group job's roster (#114), so a group helper sees only their share
   // — shown == transferred.
   const totalEarnings = sumHelperTakeHomeDollars(completedJobs, helperFeeFallbackPct);
-  // NET of the card fee, because that is what lands (R17). A tip covers its
-  // own Stripe processing cost: create-payment retains exactly
-  // stripeProcessingCostCents(tip) as the application fee, so the transfer is
-  // tip − fee. Summing the gross overstated a $20 tip by 88¢ on the very tile
-  // that tells a helpr what they earned.
-  const sumNetTipDollars = (rows: { amount: number }[]) =>
-    rows.reduce(
-      (sum, t) => sum + (t.amount - stripeProcessingCostCents(Math.round(t.amount * 100)) / 100),
-      0,
-    );
 
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
@@ -276,7 +265,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       ? tips
       : tips.filter((t) => new Date(t.created_at).getTime() >= rangeSince);
   const rangeEarnings = sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct);
-  const rangeTips = sumNetTipDollars(rangeTipRows);
+  // Tips land in full: the poster pays the card fee on top (ME-006).
+  const rangeTips = sumHelperTipDollars(rangeTipRows);
 
   // ─── 1099-K threshold awareness ───────────────────────────────
   // Once YTD payouts cross the FEDERAL gross threshold we surface a quiet,

@@ -49,7 +49,7 @@ interface EarningsSummaryCardProps {
   earnedDollars: number;
   /** Completed jobs inside the selected range. */
   jobCount: number;
-  /** Tips (net of their own processing cost) inside the selected range. */
+  /** Tips inside the selected range: the whole tip, which is what the Helpr receives (ME-006). */
   tipsDollars: number;
   tipCount: number;
   /** Jobs in flight. Deliberately NOT range-scoped — see the note above. */

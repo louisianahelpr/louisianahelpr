@@ -216,7 +216,13 @@ for (const entry of entries) {
   }
   if (entry.object === "open_jobs_browse") browseRows = r.rows;
 }
-if (browseRows === 0) {
+// Owner, 2026-10-01: prod was emptied of test jobs and stays empty until launch,
+// so before launch an empty browse is reported, not failed. Flip this to false
+// on launch day (docs/OPEN.md launch checklist); the 200 checks above still bind.
+const EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH = true;
+if (browseRows === 0 && EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH) {
+  console.log("NOTE: open_jobs_browse has 0 rows (allowed before launch; see EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH).");
+} else if (browseRows === 0) {
   failures.push(
     "open_jobs_browse answered 200 with ZERO rows. A dark marketplace responds exactly like a " +
       "healthy one to a status-code check; the row count is the part that means anything.",

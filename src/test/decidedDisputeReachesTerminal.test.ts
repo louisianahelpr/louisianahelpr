@@ -192,7 +192,8 @@ describe("Q344: a decision is not announced as a settlement", () => {
   });
 
   it("both cards attach the flag from the dispute row", () => {
-    expect(read("src/pages/posts/PostedJobCard.tsx")).toMatch(/posterStatusLine\(\s*withDisputeSettling\(job, unsettledDisputeJobIds\)/);
+    expect(read("src/pages/posts/PostedJobCard.tsx")).toMatch(/<PosterStatusStrip\s+job=\{withDisputeSettling\(job, unsettledDisputeJobIds\)\}/);
+    expect(read("src/pages/posts/postedJobCard/PosterStatusStrip.tsx")).toMatch(/posterStatusLine\(job,/);
     expect(read("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/helperStatusLine\([^)]*withDisputeSettling\(app\.job, unsettledDisputeJobIds\)/);
     const hook = read("src/hooks/useUnsettledDisputeJobIds.ts");
     expect(hook).toMatch(/\.eq\("status", "decided"\)/);

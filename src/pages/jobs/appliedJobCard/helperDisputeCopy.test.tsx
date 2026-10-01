@@ -339,8 +339,9 @@ describe("the poster's collapsed card announces the dispute", () => {
     // BOTH CARDS MOUNT THE SAME COMPONENT, so the two ends of one dispute
     // cannot drift into two vocabularies again.
     const posted = readFileSync(resolve(__dirname, "../../posts/PostedJobCard.tsx"), "utf8");
+    const posterStrip = readFileSync(resolve(__dirname, "../../posts/postedJobCard/PosterStatusStrip.tsx"), "utf8");
     expect(
-      /<JobStatusStrip/.test(posted),
+      /<PosterStatusStrip/.test(posted) && /<JobStatusStrip/.test(posterStrip),
       "PostedJobCard no longer mounts the shared JobStatusStrip",
     ).toBe(true);
 

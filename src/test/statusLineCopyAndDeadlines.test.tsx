@@ -178,6 +178,12 @@ describe("every deadline shows on the collapsed line, on both tabs", () => {
     }
   });
 
+  it("a state whose expanded step shows a clock shows it collapsed too", () => {
+    // ScheduledStep shows the confirm window whenever helper_confirmed_at is
+    // unset, including past the day.
+    expect(posterDeadline("overdue_unconfirmed", clockedJob())?.source).toBe("response_deadline");
+  });
+
   it("states without a clock render none (null-safe on an ownerless job)", () => {
     const ownerless = clockedJob({ customer_id: null, helper_id: null, dispute_status: "escalated" });
     expect(posterDeadline("dispute", ownerless)).toBeNull();

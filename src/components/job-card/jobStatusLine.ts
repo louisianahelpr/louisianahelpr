@@ -558,7 +558,10 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
   switch (id) {
     case "offer_out":
       return offerDeadline(job, "left for them to answer");
+    // Past the day and still unconfirmed: the Helpr's confirm window is still
+    // running (ScheduledStep shows it expanded), so the collapsed line shows it too.
     case "unconfirmed":
+    case "overdue_unconfirmed":
       return columnDeadline("response_deadline", job.response_deadline, "left for them to confirm", "Confirm window passed");
     case "revision_out":
       return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed");

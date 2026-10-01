@@ -3,6 +3,7 @@
 // @mutate scripts/ci/bot-branch-push.sh | --force-with-lease="$REF:$REMOTE_SHA" | --force
 // @mutate scripts/ci/bot-branch-push.sh | FOREIGN+=("$c") | :
 // @mutate scripts/ci/bot-branch-push.sh | EVIL+=("$c") | :
+// @mutate scripts/ci/bot-branch-push.sh | UNSHALLOW=(--unshallow) | UNSHALLOW=()
 // @mutate scripts/ci/bot-branch-push.sh | refuse "the fresh measurement conflicts with the non-bot commits" | git cherry-pick --abort
 /*
  * CLASS GUARD (2026-09-30): a bot never discards a commit it did not make.
@@ -259,6 +260,39 @@ describe("bot-branch-push.sh against a local remote", () => {
     const base = startRun();
     const head = commit("data.json", "3\n", "new refresh", BOT);
     const r = run("push", base);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(remoteSha()).toBe(head);
+  });
+
+  // Morning page run 36904833835 (2026-10-01): refresh-pr runs in a DEPTH-1
+  // checkout (actions/checkout default). BASE had no parents locally, so
+  // BASE..remote listed the repo's whole history as "non-bot commits" and the
+  // clean main-merge looked evil (no merge base): exit 3, nothing pushed.
+  it("in a shallow (CI-shaped) checkout, a clean main-merge on a bot-only branch is replaced", () => {
+    startRun();
+    commit("data.json", "2\n", "old refresh", BOT);
+    git(["checkout", "-q", "main"]);
+    commit("other.txt", "b\n", "main moved", HUMAN);
+    git(["push", "-q", remote, "main"]);
+    git(["checkout", "-q", BRANCH]);
+    git(["merge", "-q", "--no-ff", "--no-edit", "main"], HUMAN);
+    seedBranch();
+    const ci = join(dir, "ci");
+    execFileSync("git", ["clone", "-q", "--depth", "1", "--branch", "main", `file://${remote}`, ci], { env: baseEnv });
+    expect(git(["rev-parse", "--is-shallow-repository"], BOT, ci)).toBe("true");
+    git(["checkout", "-q", "--force", "-B", BRANCH, "main"], BOT, ci);
+    const base = git(["rev-parse", "HEAD"], BOT, ci);
+    writeFileSync(join(ci, "data.json"), "3\n");
+    git(["commit", "-q", "-am", "new refresh"], BOT, ci);
+    const head = git(["rev-parse", "HEAD"], BOT, ci);
+    const runIn = (cmd: "push" | "foreign") =>
+      spawnSync(
+        "bash",
+        [SCRIPT, cmd, "--remote", remote, "--branch", BRANCH, "--base", base, "--bot-email", BOT],
+        { cwd: ci, env: as(BOT), encoding: "utf8" },
+      );
+    expect(runIn("foreign").stdout.trim()).toBe("");
+    const r = runIn("push");
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(remoteSha()).toBe(head);
   });

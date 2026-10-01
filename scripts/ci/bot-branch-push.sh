@@ -56,7 +56,13 @@ REMOTE_SHA=$("${GITX[@]}" ls-remote "$REMOTE" "$REF" | cut -f1)
 FOREIGN=()   # non-bot, non-merge: replayed
 EVIL=()      # merge commits whose tree is not git's own merge result: refused
 if [ -n "$REMOTE_SHA" ]; then
-  "${GITX[@]}" fetch -q --no-tags "$REMOTE" "+$REF:$TRACK"
+  # A depth-1 checkout (actions/checkout's default) gives BASE no parents, so
+  # BASE..TRACK would be the repo's whole history and a clean main-merge would
+  # have no merge base (morning page run 36904833835: exit 3 on a bot-only
+  # branch). Classify against complete history.
+  UNSHALLOW=()
+  [ "$(git rev-parse --is-shallow-repository)" = true ] && UNSHALLOW=(--unshallow)
+  "${GITX[@]}" fetch -q --no-tags ${UNSHALLOW[@]+"${UNSHALLOW[@]}"} "$REMOTE" "+$REF:$TRACK"
   while IFS= read -r c; do
     [ -z "$c" ] && continue
     parents=$(git rev-list --parents -n 1 "$c" | wc -w)

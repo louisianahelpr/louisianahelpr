@@ -36,7 +36,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { blankComments } from "./helpers/blankNonCode";
-import { CANARY_WORKFLOW, sharedAccountWorkflows } from "../../scripts/canary/shared-accounts-busy.mjs";
+import { CANARY_WORKFLOW, STALE_RUN_MS, holdsAccounts, sharedAccountWorkflows } from "../../scripts/canary/shared-accounts-busy.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const SPEC_PATH = "e2e/canary/core-loop.spec.ts";
@@ -192,5 +192,20 @@ describe("core-loop canary: it stands down for the suites that share its account
     expect(set).not.toContain(CANARY_WORKFLOW);
     // The canary itself carries the shared secrets, so the exclusion is real.
     expect(wfSrc).toMatch(/PLAYWRIGHT_HELPER_EMAIL/);
+  });
+});
+
+describe("core-loop canary: a ghost run never stands it down", () => {
+  const now = Date.parse("2026-10-01T14:39:00Z");
+  const run = (event: string, startedAgoMs: number) => ({ event, run_started_at: new Date(now - startedAgoMs).toISOString() });
+  it("a fresh scheduled or dispatched run holds the accounts", () => {
+    expect(holdsAccounts(run("schedule", 10 * 60_000), now)).toBe(true);
+    expect(holdsAccounts(run("workflow_dispatch", STALE_RUN_MS - 1), now)).toBe(true);
+  });
+  it("a push run never does", () => {
+    expect(holdsAccounts(run("push", 60_000), now)).toBe(false);
+  });
+  it("a run in progress past GitHub's 6 h job limit does not (36796252514, 14 h)", () => {
+    expect(holdsAccounts(run("workflow_dispatch", 14 * 3_600_000), now)).toBe(false);
   });
 });

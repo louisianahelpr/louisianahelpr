@@ -30,6 +30,21 @@ export const CANARY_WORKFLOW = "core-loop-canary.yml";
 const DRIVES_ACCOUNTS = new Set(["schedule", "workflow_dispatch"]);
 const SHARED_SECRET = /\bPLAYWRIGHT_(POSTER|HELPER)_(EMAIL|PASSWORD|SESSION)\b/;
 
+// A run "in progress" longer than this is a GitHub ghost, not a lock holder.
+// Every job that touches the shared accounts is capped at 60 min
+// (src/test/sharedAccountLockJobsAreShort.test.ts) and GitHub kills any job at
+// 6 h. On 2026-10-01 e2e-real-backend run 36796252514 sat in_progress for 14 h+
+// while every cancel answered "not in progress"; the canary stood down hourly
+// behind it and nightly-red #1957 could never clear.
+export const STALE_RUN_MS = 6 * 60 * 60 * 1000;
+
+/** Does this in_progress run really hold the shared accounts now? */
+export function holdsAccounts(run, now = Date.now()) {
+  if (!DRIVES_ACCOUNTS.has(run.event)) return false;
+  const started = Date.parse(run.run_started_at ?? run.created_at ?? "");
+  return !(Number.isFinite(started) && now - started > STALE_RUN_MS);
+}
+
 /** Workflow files (basename) that drive the shared test accounts, the canary excluded. */
 export function sharedAccountWorkflows(dir = join(process.cwd(), ".github", "workflows")) {
   return readdirSync(dir)
@@ -69,7 +84,11 @@ async function main() {
       // Only scheduled and dispatched runs sign in as the shared accounts: the
       // push/PR legs of e2e-real-backend and vacuity do not, and main takes
       // pushes all day, so counting them would stand the canary down for nothing.
-      for (const run of runs) if (DRIVES_ACCOUNTS.has(run.event)) busy.push(`${f} ${run.html_url}`);
+      for (const run of runs) {
+        if (holdsAccounts(run)) busy.push(`${f} ${run.html_url}`);
+        else if (DRIVES_ACCOUNTS.has(run.event))
+          console.log(`::warning title=Ignoring a stale run::${f} ${run.html_url} has been in progress over ${STALE_RUN_MS / 3_600_000} h; GitHub ghost, not a lock holder.`);
+      }
     } catch (e) {
       console.log(`::warning title=Canary could not check ${f}::${e instanceof Error ? e.message : e} — counted as not busy, the canary runs.`);
     }

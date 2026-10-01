@@ -44,7 +44,7 @@ import { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 // @mutate src/components/PageHeader.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block`} /> | <span className="w-10 h-10 -ml-2 block" />
 // @mutate src/components/BackButton.tsx | export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2"; | export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
 // @mutate src/components/profile/ProfileLanding.tsx | hideBack\n          width="none" | hideBack\n          reserveBackSlot\n          width="none"
-// @mutate src/components/SkeletonLoaders.tsx | <Skeleton className="h-7 w-44 rounded-md" /> | <span className="w-11 h-11 -ml-2 block shrink-0" aria-hidden="true" /><Skeleton className="h-7 w-44 rounded-md" />
+// @mutate src/components/SkeletonLoaders.tsx | <Skeleton className="h-[calc(var(--headline-hero)*1.1)] w-44 rounded-md" /> | <span className="w-11 h-11 -ml-2 block shrink-0" aria-hidden="true" /><Skeleton className="h-[calc(var(--headline-hero)*1.1)] w-44 rounded-md" />
 // @mutate src/components/profile/profileLanding/IdentityHeader.tsx | <div className="flex-1 min-w-0 text-left"> | <div className="flex-1 min-w-0 text-left"><h1>{displayName}</h1>
 
 const ROOT = resolve(__dirname, "../..");

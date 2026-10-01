@@ -91,8 +91,14 @@ const DashboardRouteSkeleton = () => (
               because 56px of solid fill would read as a button that isn't
               there; the RESERVATION is what has to match, and it does. */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 -mr-2">
-            <Skeleton className="h-10 w-10 rounded-ds-md" />
-            <Skeleton className="h-10 w-10 rounded-ds-md" />
+            {/* 44px, not the buttons' declared `h-10 w-10`: index.css's
+                `:where(button…)` floor (min-height/min-width 44px, every
+                pointer) renders those two buttons 44x44. Measured on prod
+                2026-10-01 at 375: real cluster 156px wide, this one 148px,
+                which moved the row the loading-state measurer climbs to
+                (customer / and /browse #0: rowH 56→44, rows 2→3). */}
+            <Skeleton className="h-11 w-11 rounded-ds-md" />
+            <Skeleton className="h-11 w-11 rounded-ds-md" />
             {/* `dashboard-title-bell` for the same reason as the emblem:
                 index.css:1582 hides the real bell on web-desktop, where the
                 top nav carries it. Without this the skeleton reserved a

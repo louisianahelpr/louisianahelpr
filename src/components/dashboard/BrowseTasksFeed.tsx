@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
-import type { Dispatch, ReactNode, Ref, SetStateAction } from "react";
+import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Search, Plus, Bell } from "lucide-react";
@@ -138,21 +138,18 @@ function MainFeedSection({
   common,
   containerRef,
   setHoveredJobId,
-  lead,
 }: {
   jobs: EnrichedJob[];
   recommendedBadgeId: string | null;
   common: JobCardCommonProps;
   containerRef: PullToRefresh["containerRef"];
   setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
-  lead?: ReactNode;
 }) {
   return (
     <div
       className="px-4 pt-3"
       style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))" }}
     >
-      {lead}
       <VirtualizedJobList
         items={jobs}
         scrollElementRef={containerRef}
@@ -236,8 +233,6 @@ interface BrowseTasksFeedProps {
    * See src/pages/home/viewerFeedExclusions.ts.
    */
   exclusions?: ViewerFeedExclusions;
-  /** Rendered at the head of the scrolling list, above the first card. */
-  lead?: ReactNode;
 }
 
 /**
@@ -280,7 +275,6 @@ export function BrowseTasksFeed({
   hoveredJobId,
   setHoveredJobId,
   exclusions,
-  lead,
 }: BrowseTasksFeedProps) {
   // Personalize the signed-in empty state — greet by first name instead of
   // the generic "neighbor" the guest screen uses. Falls back to "neighbor"
@@ -715,7 +709,6 @@ export function BrowseTasksFeed({
                   paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
                 }}
               >
-                {lead && <li className="px-4 pt-3">{lead}</li>}
                 {combinedVisible.map((job) => (
                   <CompactFeedCard key={job.id} job={job} recommended={job.id === recommendedBadgeId} common={compactCardCommon} />
                 ))}
@@ -727,7 +720,6 @@ export function BrowseTasksFeed({
                 common={cardCommon}
                 containerRef={containerRef}
                 setHoveredJobId={setHoveredJobId}
-                lead={lead}
               />
             )}
             {/* Infinite scroll sentinel + manual fallback */}

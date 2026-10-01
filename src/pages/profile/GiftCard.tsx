@@ -225,8 +225,8 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
           },
         );
         // Surface the freshly-attached credit in the received list, and clear
-        // the dashboard teaser's 5-minute cache so it stops saying a gift is
-        // waiting for one that has just been claimed.
+        // the gift card banner's 5-minute cache (useSpendableGiftCards, top of
+        // Post a Job) so its count and dismissal key follow the claim.
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["gift-cards-received"] }),
           queryClient.invalidateQueries({ queryKey: ["gift-card-count"] }),

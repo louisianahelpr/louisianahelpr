@@ -574,12 +574,9 @@ const DashboardGuest = () => {
   // original comment this replaced): on web the page ends in the real
   // Footer, not a bottom dock, so a small fixed gap stands in for it instead.
   const feedBottomClass = isNativePlatform ? "pb-safe-nav" : "pb-4";
-  const emptyWrapperClass = isNativePlatform
-    ? "flex-1 min-h-full flex"
-    : // Phones: the same height the loading skeleton reserves
-      // (`min-h-screen md:min-h-0`), so the empty state replacing it does not
-      // pull the Footer up (CLS 0.1318 at 375 on 2026-10-01, run 36898448810).
-      "min-h-screen md:min-h-[50vh] flex";
+  // Phones keep the skeleton's `min-h-screen`, so the empty state replacing it
+  // does not pull the Footer up (CLS 0.1318 at 375 on 2026-10-01, run 36898448810).
+  const emptyWrapperClass = isNativePlatform ? "flex-1 min-h-full flex" : "min-h-screen md:min-h-[50vh] flex";
 
   const feedList = (
     <>

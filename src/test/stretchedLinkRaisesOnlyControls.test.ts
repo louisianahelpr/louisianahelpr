@@ -1,4 +1,4 @@
-// @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx |       <div className={isEditingNote ? "relative z-10" : undefined}> |       <div className="relative z-10">
+// @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx | <div className={isEditingNote ? "relative z-10 md:col-span-2 md:row-start-2" : "md:col-span-2 md:row-start-2"}> | <div className="relative z-10 md:col-span-2 md:row-start-2">
 /**
  * CLASS GUARD: inside a card whose whole-card tap is a STRETCHED LINK (a
  * <Link>/<a> positioned `absolute inset-0` over the card), only CONTROLS are

@@ -57,6 +57,7 @@
 import { test, type Browser, type BrowserContext } from "../prodTest";
 import { ADMIN_SCREENS, ANON_SCREENS, AUTHED_SCREENS, type ScreenSpec } from "../happy-path/auditRoutes";
 import { VARIANTS, captureScreen, writeReport, inScope, assertSweepGate, OUTPUT_DIR, reportMeta } from "../happy-path/sweepCore";
+import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ANON, AUTH_STORAGE_KEY, SUPABASE_URL, getSession, optionalSession, rest, sessionsAvailable, type Session } from "../journeys/fixtures";
 
 /**
@@ -267,6 +268,14 @@ test.describe("UI audit evidence sweep (prod)", () => {
       const i = ++index;
       test(`${String(i).padStart(3, "0")} job-detail-${status} (customer/${v.tag})`, async ({ browser }) => {
         const id = jobByStatus.get(status);
+        // `accepted` exists only once a hire is escrowed, and the fixtures job
+        // mints it by paying; in live mode it takes skipLivePay instead (owner,
+        // 2026-09-27), so the sweep has nothing to render. Any other reason the
+        // fixture is missing turns the fixtures job red on its own (#1794, run
+        // 36782803845: 4 "no is_seed job in status accepted" skips).
+        if (!id && status === "accepted") {
+          skipLivePay("job-detail-accepted: job-status-fixtures holds no accepted job; minting one pays a live checkout");
+        }
         test.skip(
           !id,
           `no is_seed job in status "${status}" owned by the poster on prod — ` +

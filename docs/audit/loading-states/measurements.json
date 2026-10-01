@@ -7,7 +7,7 @@
   "capture": "staged-gate",
   "settleMs": 600,
   "chunkDelay": 400,
-  "at": "2026-10-01T05:28:58.426Z",
+  "at": "2026-10-01T14:59:19.677Z",
   "results": [
     {
       "url": "/",
@@ -39,7 +39,7 @@
       "url": "/",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2045,
+      "capturedAt": 2033,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -205,7 +205,7 @@
       "url": "/signup",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3116,
+      "capturedAt": 3034,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -549,7 +549,7 @@
       "url": "/signup-pending",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3190,
+      "capturedAt": 3165,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -878,9 +878,332 @@
     },
     {
       "url": "/complete-profile",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 33243,
+      "stage": {
+        "waves": 1,
+        "ended": "captured"
+      },
+      "finalUrl": "/home",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_complete_profile.loading.png",
+      "loading": {
+        "found": 5,
+        "docH": 812,
+        "landmarks": {
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 4,
+            "probe": {
+              "px": 187.5,
+              "py": 32,
+              "containerW": 333
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 12,
+              "w": 335,
+              "h": 800
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 714,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 23,
+            "textLeaves": 1,
+            "media": 1,
+            "controls": 4,
+            "placeholders": 4,
+            "text": "6HomeLoading jobs near you…"
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "3HH"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_complete_profile.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "section > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 143,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 241,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(3) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 339,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(4) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 437,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(5) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 535,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(6) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 633,
+            "h": 19
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 12,
+              "w": 335,
+              "h": 800
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 714,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 289,
+            "textLeaves": 50,
+            "media": 1,
+            "controls": 10,
+            "placeholders": 0,
+            "text": "6HomeNot interestedApplyHandymanRecommendedProd audit funded fixture: hang$22Baton Rouge·Fri, Oct 23Not interestedApplyCleaningDeep clean a 3-bed before move-i$"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "31HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 12,
+            "w": 335,
+            "h": 800
+          },
+          "realBox": {
+            "x": 20,
+            "y": 12,
+            "w": 335,
+            "h": 800
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            714,
+            714
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            1
+          ],
+          "controls": [
+            4,
+            10
+          ],
+          "textLeaves": [
+            1,
+            50
+          ],
+          "placeholderCount": 4,
+          "shapeMatch": true
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            4,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            2,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 2,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 46
+    },
+    {
+      "url": "/complete-profile",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 32037,
+      "capturedAt": 34776,
       "stage": {
         "waves": 1,
         "ended": "captured"
@@ -1209,329 +1532,6 @@
     },
     {
       "url": "/complete-profile",
-      "persona": "helper",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 30418,
-      "stage": {
-        "waves": 1,
-        "ended": "captured"
-      },
-      "finalUrl": "/home",
-      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_complete_profile.loading.png",
-      "loading": {
-        "found": 5,
-        "docH": 812,
-        "landmarks": {
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 4,
-            "probe": {
-              "px": 187.5,
-              "py": 32,
-              "containerW": 333
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 12,
-              "w": 335,
-              "h": 800
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 714,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 23,
-            "textLeaves": 1,
-            "media": 1,
-            "controls": 4,
-            "placeholders": 4,
-            "text": "6HomeLoading jobs near you…"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 38,
-            "textLeaves": 2,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "3HH"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_complete_profile.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "section > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 143,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 241,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(3) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 339,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(4) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 437,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(5) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 535,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(6) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 633,
-            "h": 19
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 12,
-              "w": 335,
-              "h": 800
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 714,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 289,
-            "textLeaves": 50,
-            "media": 1,
-            "controls": 10,
-            "placeholders": 0,
-            "text": "6HomeNot interestedApplyHandymanRecommendedProd audit funded fixture: hang$22Baton Rouge·Fri, Oct 23Not interestedApplyCleaningDeep clean a 3-bed before move-i$"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 39,
-            "textLeaves": 3,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "31HH"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 12,
-            "w": 335,
-            "h": 800
-          },
-          "realBox": {
-            "x": 20,
-            "y": 12,
-            "w": 335,
-            "h": 800
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            714,
-            714
-          ],
-          "deltaRowH": 0,
-          "media": [
-            1,
-            1
-          ],
-          "controls": [
-            4,
-            10
-          ],
-          "textLeaves": [
-            1,
-            50
-          ],
-          "placeholderCount": 4,
-          "shapeMatch": true
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            4,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            2,
-            3
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": 0,
-      "worstDeltaRowH": null,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
-      "clustersMeasured": 2,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 46
-    },
-    {
-      "url": "/complete-profile",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -1560,7 +1560,7 @@
       "url": "/account-banned",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1973,
+      "capturedAt": 1964,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -1775,332 +1775,9 @@
     },
     {
       "url": "/home",
-      "persona": "helper",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 3384,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/home",
-      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_home.loading.png",
-      "loading": {
-        "found": 5,
-        "docH": 812,
-        "landmarks": {
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 4,
-            "probe": {
-              "px": 187.5,
-              "py": 32,
-              "containerW": 333
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 12,
-              "w": 335,
-              "h": 800
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 714,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 22,
-            "textLeaves": 0,
-            "media": 1,
-            "controls": 4,
-            "placeholders": 4,
-            "text": "HomeLoading jobs near you…"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_home.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "section > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 143,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 241,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(3) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 339,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(4) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 437,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(5) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 535,
-            "h": 19
-          },
-          "section > div > div > div > div > div > div:nth-of-type(6) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 633,
-            "h": 19
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 12,
-              "w": 335,
-              "h": 800
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 714,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 289,
-            "textLeaves": 50,
-            "media": 1,
-            "controls": 10,
-            "placeholders": 0,
-            "text": "6HomeNot interestedApplyHandymanRecommendedProd audit funded fixture: hang$22Baton Rouge·Fri, Oct 23Not interestedApplyCleaningDeep clean a 3-bed before move-i$"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 39,
-            "textLeaves": 3,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "31HH"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 12,
-            "w": 335,
-            "h": 800
-          },
-          "realBox": {
-            "x": 20,
-            "y": 12,
-            "w": 335,
-            "h": 800
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            714,
-            714
-          ],
-          "deltaRowH": 0,
-          "media": [
-            1,
-            1
-          ],
-          "controls": [
-            4,
-            10
-          ],
-          "textLeaves": [
-            0,
-            50
-          ],
-          "placeholderCount": 4,
-          "shapeMatch": true
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            3,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            3
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": 0,
-      "worstDeltaRowH": null,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
-      "clustersMeasured": 2,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 45
-    },
-    {
-      "url": "/home",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3417,
+      "capturedAt": 2404,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -2429,6 +2106,329 @@
     },
     {
       "url": "/home",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 3506,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/home",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_home.loading.png",
+      "loading": {
+        "found": 5,
+        "docH": 812,
+        "landmarks": {
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 4,
+            "probe": {
+              "px": 187.5,
+              "py": 32,
+              "containerW": 333
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 12,
+              "w": 335,
+              "h": 800
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 714,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 22,
+            "textLeaves": 0,
+            "media": 1,
+            "controls": 4,
+            "placeholders": 4,
+            "text": "HomeLoading jobs near you…"
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_home.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "section > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 143,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 241,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(3) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 339,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(4) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 437,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(5) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 535,
+            "h": 19
+          },
+          "section > div > div > div > div > div > div:nth-of-type(6) > div > div > div:nth-of-type(5) > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 633,
+            "h": 19
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 12,
+              "w": 335,
+              "h": 800
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 714,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 289,
+            "textLeaves": 50,
+            "media": 1,
+            "controls": 10,
+            "placeholders": 0,
+            "text": "6HomeNot interestedApplyHandymanRecommendedProd audit funded fixture: hang$22Baton Rouge·Fri, Oct 23Not interestedApplyCleaningDeep clean a 3-bed before move-i$"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "31HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 12,
+            "w": 335,
+            "h": 800
+          },
+          "realBox": {
+            "x": 20,
+            "y": 12,
+            "w": 335,
+            "h": 800
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            714,
+            714
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            1
+          ],
+          "controls": [
+            4,
+            10
+          ],
+          "textLeaves": [
+            0,
+            50
+          ],
+          "placeholderCount": 4,
+          "shapeMatch": true
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            3,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 2,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 45
+    },
+    {
+      "url": "/home",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -2444,13 +2444,13 @@
       "url": "/profile",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2031,
+      "capturedAt": 47404,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile.loading.png",
       "loading": {
         "found": 31,
         "docH": 812,
@@ -2505,7 +2505,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -2521,7 +2521,7 @@
         },
         "shifts": [
           {
-            "t": 2494.7000000476837,
+            "t": 2577.3000000715256,
             "v": 0.00001739001189060642
           }
         ],
@@ -2632,15 +2632,28 @@
     },
     {
       "url": "/profile",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/profile",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2029,
+      "capturedAt": 1965,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile.loading.png",
       "loading": {
         "found": 31,
         "docH": 812,
@@ -2695,7 +2708,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -2711,7 +2724,7 @@
         },
         "shifts": [
           {
-            "t": 2478.7999999523163,
+            "t": 2405.6999999284744,
             "v": 0.00001739001189060642
           }
         ],
@@ -2821,29 +2834,16 @@
       "requests": 24
     },
     {
-      "url": "/profile",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
       "url": "/profile?tab=profile",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2071,
+      "capturedAt": 1992,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=profile",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_profile.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_profile.loading.png",
       "loading": {
         "found": 9,
         "docH": 812,
@@ -2902,7 +2902,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_profile.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_profile.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -3030,13 +3030,13 @@
       "url": "/profile?tab=profile",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2071,
+      "capturedAt": 2014,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=profile",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_profile.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_profile.loading.png",
       "loading": {
         "found": 9,
         "docH": 812,
@@ -3095,7 +3095,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_profile.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_profile.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -3242,7 +3242,7 @@
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=earnings",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_earnings.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_earnings.loading.png",
       "loading": {
         "found": 25,
         "docH": 812,
@@ -3338,7 +3338,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 2,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_earnings.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_earnings.loaded.png",
       "loaded": {
         "found": 2,
         "docH": 812,
@@ -3556,13 +3556,13 @@
       "url": "/profile?tab=earnings",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1984,
+      "capturedAt": 1998,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=earnings",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_earnings.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_earnings.loading.png",
       "loading": {
         "found": 25,
         "docH": 812,
@@ -3658,7 +3658,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 2,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_earnings.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_earnings.loaded.png",
       "loaded": {
         "found": 2,
         "docH": 812,
@@ -3668,8 +3668,8 @@
             "h": 24.6
           },
           "testid:payout-celebration-particles": {
-            "y": 69,
-            "h": 76
+            "y": 62.5,
+            "h": 74.6
           },
           "testid:helper-streak-badge": {
             "y": 130,
@@ -3893,13 +3893,13 @@
       "url": "/profile?tab=schedule",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2041,
+      "capturedAt": 1993,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=schedule",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_schedule.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_schedule.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -3958,7 +3958,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_schedule.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_schedule.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -4106,13 +4106,13 @@
       "url": "/profile?tab=schedule",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1960,
+      "capturedAt": 2019,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=schedule",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_schedule.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_schedule.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -4171,7 +4171,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_schedule.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_schedule.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -4332,13 +4332,13 @@
       "url": "/profile?tab=availability",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1969,
+      "capturedAt": 30864,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=availability",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_availability.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_availability.loading.png",
       "loading": {
         "found": 6,
         "docH": 812,
@@ -4433,7 +4433,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_availability.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_availability.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -4449,8 +4449,8 @@
         },
         "shifts": [
           {
-            "t": 2762.5999999046326,
-            "v": 0.0015441359138780363
+            "t": 2906.899999976158,
+            "v": 0.016967278272040087
           }
         ],
         "clusters": [
@@ -4516,8 +4516,8 @@
           }
         ]
       },
-      "clsTotal": 0.0015,
-      "clsDuringSwap": 0.0015,
+      "clsTotal": 0.017,
+      "clsDuringSwap": 0.017,
       "clusters": [
         {
           "path": "main#main-content > div > div > div",
@@ -4657,13 +4657,13 @@
       "url": "/profile?tab=availability",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1973,
+      "capturedAt": 1961,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=availability",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_availability.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_availability.loading.png",
       "loading": {
         "found": 6,
         "docH": 812,
@@ -4758,7 +4758,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_availability.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_availability.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -4774,7 +4774,7 @@
         },
         "shifts": [
           {
-            "t": 2791.2000000476837,
+            "t": 2793.100000023842,
             "v": 0.00010045363270159432
           }
         ],
@@ -4969,13 +4969,13 @@
       "url": "/profile?tab=payment",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 37415,
+      "capturedAt": 1991,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=payment",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_payment.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_payment.loading.png",
       "loading": {
         "found": 25,
         "docH": 812,
@@ -5071,7 +5071,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 2,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_payment.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_payment.loaded.png",
       "loaded": {
         "found": 2,
         "docH": 812,
@@ -5289,13 +5289,13 @@
       "url": "/profile?tab=payment",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 37264,
+      "capturedAt": 1971,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=payment",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_payment.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_payment.loading.png",
       "loading": {
         "found": 25,
         "docH": 812,
@@ -5391,7 +5391,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 2,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_payment.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_payment.loaded.png",
       "loaded": {
         "found": 2,
         "docH": 812,
@@ -5401,8 +5401,8 @@
             "h": 24.6
           },
           "testid:payout-celebration-particles": {
-            "y": 69,
-            "h": 76
+            "y": 61.3,
+            "h": 74.5
           },
           "testid:helper-streak-badge": {
             "y": 130,
@@ -5446,7 +5446,7 @@
               "h": 812
             },
             "scrollH": 4043,
-            "elements": 364,
+            "elements": 363,
             "textLeaves": 148,
             "media": 2,
             "controls": 12,
@@ -5626,13 +5626,13 @@
       "url": "/profile?tab=security",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1984,
+      "capturedAt": 1982,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=security",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_security.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_security.loading.png",
       "loading": {
         "found": 17,
         "docH": 812,
@@ -5727,7 +5727,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_security.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_security.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -5949,13 +5949,13 @@
       "url": "/profile?tab=security",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1983,
+      "capturedAt": 1955,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=security",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_security.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_security.loading.png",
       "loading": {
         "found": 17,
         "docH": 812,
@@ -6050,7 +6050,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_security.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_security.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -6285,13 +6285,13 @@
       "url": "/profile?tab=legal",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1986,
+      "capturedAt": 1966,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=legal",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_legal.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_legal.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -6350,7 +6350,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_legal.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_legal.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -6494,13 +6494,13 @@
       "url": "/profile?tab=legal",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1971,
+      "capturedAt": 1973,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=legal",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_legal.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_legal.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -6559,7 +6559,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_legal.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_legal.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -6716,13 +6716,13 @@
       "url": "/profile?tab=reviews",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2019,
+      "capturedAt": 31283,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=reviews",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_reviews.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_reviews.loading.png",
       "loading": {
         "found": 6,
         "docH": 812,
@@ -6817,7 +6817,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_reviews.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_reviews.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -7036,13 +7036,13 @@
       "url": "/profile?tab=reviews",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1988,
+      "capturedAt": 1959,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=reviews",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_reviews.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_reviews.loading.png",
       "loading": {
         "found": 6,
         "docH": 812,
@@ -7137,7 +7137,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_reviews.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_reviews.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -7343,13 +7343,13 @@
       "url": "/profile?tab=referral",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 36151,
+      "capturedAt": 2003,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=referral",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_referral.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_referral.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -7408,7 +7408,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_referral.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_referral.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -7536,13 +7536,13 @@
       "url": "/profile?tab=referral",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 35988,
+      "capturedAt": 1982,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=referral",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_referral.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_referral.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -7601,7 +7601,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_referral.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_referral.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -7742,13 +7742,13 @@
       "url": "/profile?tab=subscription",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1973,
+      "capturedAt": 1983,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=subscription",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_subscription.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_subscription.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -7879,7 +7879,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_subscription.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_subscription.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -8185,28 +8185,15 @@
     },
     {
       "url": "/profile?tab=subscription",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dsubscription",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
-      "url": "/profile?tab=subscription",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2007,
+      "capturedAt": 1991,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=subscription",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_subscription.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_subscription.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -8337,7 +8324,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_subscription.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_subscription.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -8642,16 +8629,29 @@
       "requests": 19
     },
     {
+      "url": "/profile?tab=subscription",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dsubscription",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
       "url": "/profile?tab=support",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1980,
+      "capturedAt": 1984,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=support",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_support.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_support.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -8746,7 +8746,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_support.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_support.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -8952,13 +8952,13 @@
       "url": "/profile?tab=support",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1971,
+      "capturedAt": 2020,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=support",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_support.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_support.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -9053,7 +9053,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_support.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_support.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -9272,13 +9272,13 @@
       "url": "/profile?tab=notifications",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1990,
+      "capturedAt": 33431,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=notifications",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_notifications.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_notifications.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -9337,7 +9337,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_notifications.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_notifications.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -9474,13 +9474,13 @@
       "url": "/profile?tab=notifications",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1988,
+      "capturedAt": 1954,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=notifications",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_notifications.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_notifications.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -9539,7 +9539,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_notifications.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_notifications.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -9663,13 +9663,13 @@
       "url": "/profile?tab=warnings",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 37257,
+      "capturedAt": 1949,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=warnings",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_warnings.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_warnings.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -9764,7 +9764,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_warnings.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_warnings.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -9974,13 +9974,13 @@
       "url": "/profile?tab=warnings",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 37132,
+      "capturedAt": 1985,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=warnings",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_warnings.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_warnings.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -10075,7 +10075,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_warnings.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_warnings.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -10298,13 +10298,13 @@
       "url": "/profile?tab=credentials",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1992,
+      "capturedAt": 1953,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=credentials",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_credentials.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_credentials.loading.png",
       "loading": {
         "found": 10,
         "docH": 812,
@@ -10471,7 +10471,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_credentials.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_credentials.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -10845,13 +10845,13 @@
       "url": "/profile?tab=credentials",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1964,
+      "capturedAt": 1951,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=credentials",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_credentials.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_credentials.loading.png",
       "loading": {
         "found": 10,
         "docH": 812,
@@ -11018,7 +11018,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_credentials.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_credentials.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -11405,13 +11405,13 @@
       "url": "/profile?tab=saved_helpers",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2032,
+      "capturedAt": 1972,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=saved_helpers",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/customer_profile_tab_saved_helpers.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_saved_helpers.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -11506,7 +11506,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/customer_profile_tab_saved_helpers.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_saved_helpers.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -11550,7 +11550,7 @@
             "media": 3,
             "controls": 12,
             "placeholders": 0,
-            "text": "Saved HelprsFilterRecent activity2 savedJ0Jean-Baptiste 0.Offer a JobHHHallie H.90 jobs together·Last 3 days agoOffer a Job"
+            "text": "Saved HelprsFilterRecent activity2 savedJ0Jean-Baptiste 0.Offer a JobHHHallie H.90 jobs together·Last 4 days agoOffer a Job"
           },
           {
             "found": true,
@@ -11712,13 +11712,13 @@
       "url": "/profile?tab=saved_helpers",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2031,
+      "capturedAt": 1973,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=saved_helpers",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/helper_profile_tab_saved_helpers.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_saved_helpers.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -11813,7 +11813,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/helper_profile_tab_saved_helpers.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_saved_helpers.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -12032,13 +12032,13 @@
       "url": "/profile?tab=accessibility",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1979,
+      "capturedAt": 32930,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=accessibility",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_accessibility.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_accessibility.loading.png",
       "loading": {
         "found": 6,
         "docH": 812,
@@ -12133,7 +12133,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_accessibility.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_accessibility.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -12337,15 +12337,28 @@
     },
     {
       "url": "/profile?tab=accessibility",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Daccessibility",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/profile?tab=accessibility",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1986,
+      "capturedAt": 1950,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=accessibility",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_accessibility.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_accessibility.loading.png",
       "loading": {
         "found": 6,
         "docH": 812,
@@ -12440,7 +12453,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_accessibility.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_accessibility.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -12643,29 +12656,16 @@
       "requests": 19
     },
     {
-      "url": "/profile?tab=accessibility",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Daccessibility",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
       "url": "/profile?tab=pets",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2020,
+      "capturedAt": 1980,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=pets",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/customer_profile_tab_pets.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_pets.loading.png",
       "loading": {
         "found": 6,
         "docH": 812,
@@ -12760,7 +12760,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/customer_profile_tab_pets.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_pets.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -12966,13 +12966,13 @@
       "url": "/profile?tab=pets",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2020,
+      "capturedAt": 1958,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=pets",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/helper_profile_tab_pets.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_pets.loading.png",
       "loading": {
         "found": 6,
         "docH": 812,
@@ -13067,7 +13067,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/helper_profile_tab_pets.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_pets.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -13286,13 +13286,13 @@
       "url": "/profile?tab=work_record",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1993,
+      "capturedAt": 1960,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=work_record",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_work_record.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_work_record.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -13351,7 +13351,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_work_record.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_work_record.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -13492,13 +13492,13 @@
       "url": "/profile?tab=work_record",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1993,
+      "capturedAt": 1952,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=work_record",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_work_record.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_work_record.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -13557,7 +13557,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_work_record.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_work_record.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -13685,13 +13685,13 @@
       "url": "/profile?tab=home_history",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2042,
+      "capturedAt": 2008,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=home_history",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_home_history.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_home_history.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -13786,7 +13786,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_home_history.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_home_history.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -13992,13 +13992,13 @@
       "url": "/profile?tab=home_history",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1988,
+      "capturedAt": 1987,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=home_history",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_home_history.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_home_history.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -14093,7 +14093,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_home_history.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_home_history.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -14312,13 +14312,13 @@
       "url": "/profile?tab=str_settings",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2004,
+      "capturedAt": 32488,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=str_settings",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_str_settings.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_str_settings.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -14413,7 +14413,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_str_settings.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_str_settings.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -14632,13 +14632,13 @@
       "url": "/profile?tab=str_settings",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2004,
+      "capturedAt": 1947,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=str_settings",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_str_settings.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_str_settings.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -14733,7 +14733,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_str_settings.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_str_settings.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -14937,330 +14937,15 @@
     },
     {
       "url": "/profile?tab=auto_tip",
-      "persona": "helper",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 35683,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/profile?tab=auto_tip",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_auto_tip.loading.png",
-      "loading": {
-        "found": 4,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 3,
-            "probe": {
-              "px": 187.5,
-              "py": 20,
-              "containerW": 335
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 595
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 527,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 14,
-            "textLeaves": 1,
-            "media": 0,
-            "controls": 1,
-            "placeholders": 3,
-            "text": "After a Job"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_auto_tip.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(2) > section:nth-of-type(1) > h2": {
-            "y": 85,
-            "h": 20.3
-          },
-          "h2#instant-release-heading": {
-            "y": 422.8,
-            "h": 20.3
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 594.9
-            },
-            "containerRect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 527,
-            "rect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 26,
-            "textLeaves": 9,
-            "media": 0,
-            "controls": 6,
-            "placeholders": 0,
-            "text": "After a JobAutomatic TipTip automatically once a job is finished, without having to remember. Charged after completion — never before — so you only ever tip for"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 39,
-            "textLeaves": 3,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "31HH"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 595
-          },
-          "realBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 594.9
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 8,
-            "y": 0,
-            "w": 359,
-            "h": 812
-          },
-          "deltaRowPx": -0.1,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            527,
-            527
-          ],
-          "deltaRowH": 0,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            1,
-            6
-          ],
-          "textLeaves": [
-            1,
-            9
-          ],
-          "placeholderCount": 3,
-          "shapeMatch": true
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            3,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            3
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": -0.1,
-      "worstDeltaRowH": null,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
-      "clustersMeasured": 2,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 19
-    },
-    {
-      "url": "/profile?tab=auto_tip",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 35683,
+      "capturedAt": 1961,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=auto_tip",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_auto_tip.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_auto_tip.loading.png",
       "loading": {
         "found": 4,
         "docH": 812,
@@ -15355,7 +15040,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_auto_tip.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_auto_tip.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -15567,6 +15252,321 @@
     },
     {
       "url": "/profile?tab=auto_tip",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 1957,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=auto_tip",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_auto_tip.loading.png",
+      "loading": {
+        "found": 4,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 3,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 595
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 527,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 14,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 3,
+            "text": "After a Job"
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_auto_tip.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(2) > section:nth-of-type(1) > h2": {
+            "y": 85,
+            "h": 20.3
+          },
+          "h2#instant-release-heading": {
+            "y": 422.8,
+            "h": 20.3
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 594.9
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 527,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 26,
+            "textLeaves": 9,
+            "media": 0,
+            "controls": 6,
+            "placeholders": 0,
+            "text": "After a JobAutomatic TipTip automatically once a job is finished, without having to remember. Charged after completion — never before — so you only ever tip for"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "31HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 595
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 594.9
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.1,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            527,
+            527
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            6
+          ],
+          "textLeaves": [
+            1,
+            9
+          ],
+          "placeholderCount": 3,
+          "shapeMatch": true
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            3,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": -0.1,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 2,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 19
+    },
+    {
+      "url": "/profile?tab=auto_tip",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -15582,13 +15582,13 @@
       "url": "/profile?tab=wrapped",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2036,
+      "capturedAt": 1965,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=wrapped",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_wrapped.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_wrapped.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -15647,7 +15647,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_wrapped.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_wrapped.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -15773,15 +15773,28 @@
     },
     {
       "url": "/profile?tab=wrapped",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dwrapped",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/profile?tab=wrapped",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1982,
+      "capturedAt": 1967,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=wrapped",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_wrapped.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_wrapped.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -15840,7 +15853,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_wrapped.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_wrapped.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -15965,29 +15978,16 @@
       "requests": 24
     },
     {
-      "url": "/profile?tab=wrapped",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dwrapped",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
       "url": "/profile?tab=analytics",
-      "persona": "customer",
+      "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2012,
+      "capturedAt": 2070,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=analytics",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/customer_profile_tab_analytics.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_analytics.loading.png",
       "loading": {
         "found": 4,
         "docH": 812,
@@ -16015,7 +16015,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 507
+              "h": 549
             },
             "containerRect": {
               "x": 0,
@@ -16024,7 +16024,7 @@
               "h": 812
             },
             "rows": 2,
-            "rowH": 439,
+            "rowH": 481,
             "rect": {
               "x": 0,
               "y": 0,
@@ -16082,7 +16082,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/customer_profile_tab_analytics.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_analytics.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -16108,7 +16108,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 506.9
+              "h": 548.4
             },
             "containerRect": {
               "x": 8,
@@ -16117,7 +16117,7 @@
               "h": 812
             },
             "rows": 2,
-            "rowH": 439,
+            "rowH": 480,
             "rect": {
               "x": 8,
               "y": 0,
@@ -16125,7 +16125,318 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 42,
+            "elements": 47,
+            "textLeaves": 12,
+            "media": 0,
+            "controls": 3,
+            "placeholders": 0,
+            "text": "AnalyticsAdvanced AnalyticsIncluded with Pro · $10/monthOver the last 12 months you paid $299.40 in platform fees on $2,495 of completed work.On Pro’s 10% commi"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 39,
+            "textLeaves": 3,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "31HH"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 549
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 548.4
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.6,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            481,
+            480
+          ],
+          "deltaRowH": -1,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            3
+          ],
+          "textLeaves": [
+            1,
+            12
+          ],
+          "placeholderCount": 3,
+          "shapeMatch": true
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            3,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": -0.6,
+      "worstDeltaRowH": -1,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 2,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 20
+    },
+    {
+      "url": "/profile?tab=analytics",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2069,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=analytics",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_analytics.loading.png",
+      "loading": {
+        "found": 4,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 3,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 549
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 481,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 14,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 3,
+            "text": "Analytics"
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_analytics.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(2) > section > div:nth-of-type(1) > div:nth-of-type(1) > h2": {
+            "y": 85,
+            "h": 23
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 549.4
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 481,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 43,
             "textLeaves": 10,
             "media": 0,
             "controls": 3,
@@ -16173,13 +16484,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 507
+            "h": 549
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 506.9
+            "h": 549.4
           },
           "skeletonContainer": {
             "x": 0,
@@ -16193,15 +16504,15 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.1,
+          "deltaRowPx": 0.4,
           "deltaContainerPx": 0,
           "rows": [
             2,
             2
           ],
           "rowH": [
-            439,
-            439
+            481,
+            481
           ],
           "deltaRowH": 0,
           "media": [
@@ -16272,321 +16583,10 @@
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": -0.1,
+      "worstDeltaRowPx": 0.4,
       "worstDeltaRowH": null,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
-      "clustersMeasured": 2,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 20
-    },
-    {
-      "url": "/profile?tab=analytics",
-      "persona": "helper",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 2012,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/profile?tab=analytics",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/helper_profile_tab_analytics.loading.png",
-      "loading": {
-        "found": 4,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 3,
-            "probe": {
-              "px": 187.5,
-              "py": 20,
-              "containerW": 335
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 507
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 439,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 14,
-            "textLeaves": 1,
-            "media": 0,
-            "controls": 1,
-            "placeholders": 3,
-            "text": "Analytics"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/helper_profile_tab_analytics.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(2) > section > div:nth-of-type(1) > div:nth-of-type(1) > h2": {
-            "y": 85,
-            "h": 23
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 536.9
-            },
-            "containerRect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 469,
-            "rect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 47,
-            "textLeaves": 12,
-            "media": 0,
-            "controls": 3,
-            "placeholders": 0,
-            "text": "AnalyticsAdvanced AnalyticsIncluded with Pro · $10/monthOver the last 12 months you paid $299.40 in platform fees on $2,495 of completed work.On Pro’s 10% commi"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 39,
-            "textLeaves": 3,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "31HH"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 507
-          },
-          "realBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 536.9
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 8,
-            "y": 0,
-            "w": 359,
-            "h": 812
-          },
-          "deltaRowPx": 29.9,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            439,
-            469
-          ],
-          "deltaRowH": 30,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            1,
-            3
-          ],
-          "textLeaves": [
-            1,
-            12
-          ],
-          "placeholderCount": 3,
-          "shapeMatch": false
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            3,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            3
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": 29.9,
-      "worstDeltaRowH": 30,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 1,
       "clustersMeasured": 2,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
@@ -16616,13 +16616,13 @@
       "url": "/profile?tab=gift_card",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1998,
+      "capturedAt": 32670,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=gift_card",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_gift_card.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_gift_card.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -16681,7 +16681,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/customer_profile_tab_gift_card.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_profile_tab_gift_card.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -16826,13 +16826,13 @@
       "url": "/profile?tab=gift_card",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1998,
+      "capturedAt": 1954,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=gift_card",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_gift_card.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_gift_card.loading.png",
       "loading": {
         "found": 8,
         "docH": 812,
@@ -16891,7 +16891,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m1/helper_profile_tab_gift_card.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_profile_tab_gift_card.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -17023,15 +17023,15 @@
       "url": "/post-job",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2021,
+      "capturedAt": 2002,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/post-job",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/helper_post_job.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_post_job.loading.png",
       "loading": {
-        "found": 14,
+        "found": 17,
         "docH": 812,
         "landmarks": {
           "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
@@ -17047,7 +17047,7 @@
         "clusters": [
           {
             "path": "main#main-content > div > div > div > div",
-            "placeholderCount": 13,
+            "placeholderCount": 16,
             "probe": {
               "px": 187.5,
               "py": 20,
@@ -17057,7 +17057,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 520
+              "h": 636
             },
             "containerRect": {
               "x": 8,
@@ -17066,7 +17066,7 @@
               "h": 812
             },
             "rows": 2,
-            "rowH": 452,
+            "rowH": 568,
             "rect": {
               "x": 8,
               "y": 0,
@@ -17074,11 +17074,11 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 37,
+            "elements": 43,
             "textLeaves": 1,
-            "media": 4,
+            "media": 5,
             "controls": 1,
-            "placeholders": 13,
+            "placeholders": 16,
             "text": "Post a JobLoading…"
           },
           {
@@ -17124,7 +17124,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/helper_post_job.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_post_job.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -17146,7 +17146,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 526
+              "h": 642
             },
             "containerRect": {
               "x": 8,
@@ -17155,7 +17155,7 @@
               "h": 812
             },
             "rows": 2,
-            "rowH": 458,
+            "rowH": 574,
             "rect": {
               "x": 8,
               "y": 0,
@@ -17163,10 +17163,10 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 56,
-            "textLeaves": 9,
-            "media": 4,
-            "controls": 5,
+            "elements": 68,
+            "textLeaves": 11,
+            "media": 5,
+            "controls": 6,
             "placeholders": 0,
             "text": "Post a JobStart FreshBuild your request from a blank form.Repost a Recent JobQuickest way to ask for the same help again.Use a TemplateStart from a common job a"
           },
@@ -17211,13 +17211,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 520
+            "h": 636
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 526
+            "h": 642
           },
           "skeletonContainer": {
             "x": 8,
@@ -17238,23 +17238,23 @@
             2
           ],
           "rowH": [
-            452,
-            458
+            568,
+            574
           ],
           "deltaRowH": 6,
           "media": [
-            4,
-            4
+            5,
+            5
           ],
           "controls": [
             1,
-            5
+            6
           ],
           "textLeaves": [
             1,
-            9
+            11
           ],
-          "placeholderCount": 13,
+          "placeholderCount": 16,
           "shapeMatch": false
         },
         {
@@ -17330,15 +17330,15 @@
       "url": "/post-job",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2021,
+      "capturedAt": 2002,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/post-job",
-      "loadingPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/customer_post_job.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_post_job.loading.png",
       "loading": {
-        "found": 14,
+        "found": 17,
         "docH": 812,
         "landmarks": {
           "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
@@ -17354,7 +17354,7 @@
         "clusters": [
           {
             "path": "main#main-content > div > div > div > div",
-            "placeholderCount": 13,
+            "placeholderCount": 16,
             "probe": {
               "px": 187.5,
               "py": 20,
@@ -17364,7 +17364,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 520
+              "h": 636
             },
             "containerRect": {
               "x": 8,
@@ -17373,7 +17373,7 @@
               "h": 812
             },
             "rows": 2,
-            "rowH": 452,
+            "rowH": 568,
             "rect": {
               "x": 8,
               "y": 0,
@@ -17381,11 +17381,11 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 37,
+            "elements": 43,
             "textLeaves": 1,
-            "media": 4,
+            "media": 5,
             "controls": 1,
-            "placeholders": 13,
+            "placeholders": 16,
             "text": "Post a JobLoading…"
           },
           {
@@ -17431,7 +17431,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/private/tmp/claude-501/-Users-lexilombas-louisianahelpr/c6ad75ef-d625-4e5f-8b05-43ce452349d2/scratchpad/m2/customer_post_job.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_post_job.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -17518,7 +17518,7 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 520
+            "h": 636
           },
           "realBox": {
             "x": 20,
@@ -17538,19 +17538,19 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": 122,
+          "deltaRowPx": 6,
           "deltaContainerPx": 0,
           "rows": [
             2,
             2
           ],
           "rowH": [
-            452,
+            568,
             574
           ],
-          "deltaRowH": 122,
+          "deltaRowH": 6,
           "media": [
-            4,
+            5,
             5
           ],
           "controls": [
@@ -17561,7 +17561,7 @@
             1,
             11
           ],
-          "placeholderCount": 13,
+          "placeholderCount": 16,
           "shapeMatch": false
         },
         {
@@ -17617,8 +17617,8 @@
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": 122,
-      "worstDeltaRowH": 122,
+      "worstDeltaRowPx": 6,
+      "worstDeltaRowH": 6,
       "worstDeltaRows": 0,
       "shapeMismatches": 1,
       "clustersMeasured": 2,
@@ -17650,7 +17650,7 @@
       "url": "/jobs",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1987,
+      "capturedAt": 1969,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -18084,7 +18084,7 @@
       "url": "/jobs",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1963,
+      "capturedAt": 1986,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -18531,320 +18531,9 @@
     },
     {
       "url": "/posts",
-      "persona": "helper",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 38200,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/posts",
-      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_posts.loading.png",
-      "loading": {
-        "found": 47,
-        "docH": 812,
-        "landmarks": {
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(2)",
-            "placeholderCount": 2,
-            "probe": {
-              "px": 264,
-              "py": 39,
-              "containerW": 44
-            },
-            "rowRect": {
-              "x": 242,
-              "y": 19,
-              "w": 44,
-              "h": 44
-            },
-            "containerRect": {
-              "x": 242,
-              "y": 19,
-              "w": 92,
-              "h": 44
-            },
-            "rows": 2,
-            "rowH": 44,
-            "rect": {
-              "x": 242,
-              "y": 19,
-              "w": 92,
-              "h": 44
-            },
-            "scrollH": 44,
-            "elements": 4,
-            "textLeaves": 0,
-            "media": 0,
-            "controls": 0,
-            "placeholders": 2,
-            "text": ""
-          },
-          {
-            "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
-            "placeholderCount": 45,
-            "probe": {
-              "px": 187.5,
-              "py": 172,
-              "containerW": 267
-            },
-            "rowRect": {
-              "x": 54,
-              "y": 152,
-              "w": 267,
-              "h": 52
-            },
-            "containerRect": {
-              "x": 38,
-              "y": 96,
-              "w": 299,
-              "h": 119
-            },
-            "rows": 2,
-            "rowH": 52,
-            "rect": {
-              "x": 38,
-              "y": 96,
-              "w": 299,
-              "h": 119
-            },
-            "scrollH": 118,
-            "elements": 11,
-            "textLeaves": 0,
-            "media": 0,
-            "controls": 0,
-            "placeholders": 7,
-            "text": ""
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_posts.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > h1": {
-            "y": 29.8,
-            "h": 22.4
-          },
-          "main#main-content > div > div > div > div > section > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 183.3,
-            "h": 20.9
-          },
-          "main#main-content > div > div > div > div > section > div > div > div > div:nth-of-type(2) > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 346.2,
-            "h": 20.9
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 242,
-              "y": 19,
-              "w": 44,
-              "h": 44
-            },
-            "containerRect": {
-              "x": 242,
-              "y": 19,
-              "w": 92,
-              "h": 44
-            },
-            "rows": 2,
-            "rowH": 44,
-            "rect": {
-              "x": 242,
-              "y": 19,
-              "w": 92,
-              "h": 44
-            },
-            "scrollH": 44,
-            "elements": 7,
-            "textLeaves": 0,
-            "media": 0,
-            "controls": 2,
-            "placeholders": 0,
-            "text": ""
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 38,
-              "y": 156.3,
-              "w": 299,
-              "h": 115.9
-            },
-            "containerRect": {
-              "x": 37,
-              "y": 155.3,
-              "w": 301,
-              "h": 150.9
-            },
-            "rows": 5,
-            "rowH": 44,
-            "rect": {
-              "x": 37,
-              "y": 155.3,
-              "w": 301,
-              "h": 150.9
-            },
-            "scrollH": 149,
-            "elements": 31,
-            "textLeaves": 6,
-            "media": 0,
-            "controls": 2,
-            "placeholders": 0,
-            "text": "EventsExpand Job DetailsSetup crew for a backyard recept$210Job address: 1125 Jackson St, Alexandria, LA 71301Open 1125 Jackson St, Alexandria, LA 71301 in Maps"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 242,
-            "y": 19,
-            "w": 44,
-            "h": 44
-          },
-          "realBox": {
-            "x": 242,
-            "y": 19,
-            "w": 44,
-            "h": 44
-          },
-          "skeletonContainer": {
-            "x": 242,
-            "y": 19,
-            "w": 92,
-            "h": 44
-          },
-          "realContainer": {
-            "x": 242,
-            "y": 19,
-            "w": 92,
-            "h": 44
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            44,
-            44
-          ],
-          "deltaRowH": 0,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            0,
-            2
-          ],
-          "textLeaves": [
-            0,
-            0
-          ],
-          "placeholderCount": 2,
-          "shapeMatch": true
-        },
-        {
-          "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 54,
-            "y": 152,
-            "w": 267,
-            "h": 52
-          },
-          "realBox": {
-            "x": 38,
-            "y": 156.3,
-            "w": 299,
-            "h": 115.9
-          },
-          "skeletonContainer": {
-            "x": 38,
-            "y": 96,
-            "w": 299,
-            "h": 119
-          },
-          "realContainer": {
-            "x": 37,
-            "y": 155.3,
-            "w": 301,
-            "h": 150.9
-          },
-          "deltaRowPx": 63.9,
-          "deltaContainerPx": 31.9,
-          "rows": [
-            2,
-            5
-          ],
-          "rowH": [
-            52,
-            44
-          ],
-          "deltaRowH": -8,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            0,
-            2
-          ],
-          "textLeaves": [
-            0,
-            6
-          ],
-          "placeholderCount": 45,
-          "shapeMatch": false
-        }
-      ],
-      "worstDeltaRowPx": 63.9,
-      "worstDeltaRowH": -8,
-      "worstDeltaRows": 3,
-      "shapeMismatches": 1,
-      "clustersMeasured": 2,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 25
-    },
-    {
-      "url": "/posts",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 38749,
+      "capturedAt": 38610,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -19181,6 +18870,317 @@
     },
     {
       "url": "/posts",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 38401,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/posts",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_posts.loading.png",
+      "loading": {
+        "found": 47,
+        "docH": 812,
+        "landmarks": {
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(2)",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 264,
+              "py": 39,
+              "containerW": 44
+            },
+            "rowRect": {
+              "x": 242,
+              "y": 19,
+              "w": 44,
+              "h": 44
+            },
+            "containerRect": {
+              "x": 242,
+              "y": 19,
+              "w": 92,
+              "h": 44
+            },
+            "rows": 2,
+            "rowH": 44,
+            "rect": {
+              "x": 242,
+              "y": 19,
+              "w": 92,
+              "h": 44
+            },
+            "scrollH": 44,
+            "elements": 4,
+            "textLeaves": 0,
+            "media": 0,
+            "controls": 0,
+            "placeholders": 2,
+            "text": ""
+          },
+          {
+            "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
+            "placeholderCount": 45,
+            "probe": {
+              "px": 187.5,
+              "py": 172,
+              "containerW": 267
+            },
+            "rowRect": {
+              "x": 54,
+              "y": 152,
+              "w": 267,
+              "h": 52
+            },
+            "containerRect": {
+              "x": 38,
+              "y": 96,
+              "w": 299,
+              "h": 119
+            },
+            "rows": 2,
+            "rowH": 52,
+            "rect": {
+              "x": 38,
+              "y": 96,
+              "w": 299,
+              "h": 119
+            },
+            "scrollH": 118,
+            "elements": 11,
+            "textLeaves": 0,
+            "media": 0,
+            "controls": 0,
+            "placeholders": 7,
+            "text": ""
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_posts.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > h1": {
+            "y": 29.8,
+            "h": 22.4
+          },
+          "main#main-content > div > div > div > div > section > div > div > div > div:nth-of-type(2) > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 183.3,
+            "h": 20.9
+          },
+          "main#main-content > div > div > div > div > section > div > div > div > div:nth-of-type(2) > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 346.2,
+            "h": 20.9
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 242,
+              "y": 19,
+              "w": 44,
+              "h": 44
+            },
+            "containerRect": {
+              "x": 242,
+              "y": 19,
+              "w": 92,
+              "h": 44
+            },
+            "rows": 2,
+            "rowH": 44,
+            "rect": {
+              "x": 242,
+              "y": 19,
+              "w": 92,
+              "h": 44
+            },
+            "scrollH": 44,
+            "elements": 7,
+            "textLeaves": 0,
+            "media": 0,
+            "controls": 2,
+            "placeholders": 0,
+            "text": ""
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 38,
+              "y": 156.3,
+              "w": 299,
+              "h": 115.9
+            },
+            "containerRect": {
+              "x": 37,
+              "y": 155.3,
+              "w": 301,
+              "h": 150.9
+            },
+            "rows": 5,
+            "rowH": 44,
+            "rect": {
+              "x": 37,
+              "y": 155.3,
+              "w": 301,
+              "h": 150.9
+            },
+            "scrollH": 149,
+            "elements": 31,
+            "textLeaves": 6,
+            "media": 0,
+            "controls": 2,
+            "placeholders": 0,
+            "text": "EventsExpand Job DetailsSetup crew for a backyard recept$210Job address: 1125 Jackson St, Alexandria, LA 71301Open 1125 Jackson St, Alexandria, LA 71301 in Maps"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 242,
+            "y": 19,
+            "w": 44,
+            "h": 44
+          },
+          "realBox": {
+            "x": 242,
+            "y": 19,
+            "w": 44,
+            "h": 44
+          },
+          "skeletonContainer": {
+            "x": 242,
+            "y": 19,
+            "w": 92,
+            "h": 44
+          },
+          "realContainer": {
+            "x": 242,
+            "y": 19,
+            "w": 92,
+            "h": 44
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            44,
+            44
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            0,
+            2
+          ],
+          "textLeaves": [
+            0,
+            0
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 54,
+            "y": 152,
+            "w": 267,
+            "h": 52
+          },
+          "realBox": {
+            "x": 38,
+            "y": 156.3,
+            "w": 299,
+            "h": 115.9
+          },
+          "skeletonContainer": {
+            "x": 38,
+            "y": 96,
+            "w": 299,
+            "h": 119
+          },
+          "realContainer": {
+            "x": 37,
+            "y": 155.3,
+            "w": 301,
+            "h": 150.9
+          },
+          "deltaRowPx": 63.9,
+          "deltaContainerPx": 31.9,
+          "rows": [
+            2,
+            5
+          ],
+          "rowH": [
+            52,
+            44
+          ],
+          "deltaRowH": -8,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            0,
+            2
+          ],
+          "textLeaves": [
+            0,
+            6
+          ],
+          "placeholderCount": 45,
+          "shapeMatch": false
+        }
+      ],
+      "worstDeltaRowPx": 63.9,
+      "worstDeltaRowH": -8,
+      "worstDeltaRows": 3,
+      "shapeMismatches": 1,
+      "clustersMeasured": 2,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 25
+    },
+    {
+      "url": "/posts",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -19235,7 +19235,7 @@
       "url": "/user/437de07d-1bd7-46c8-a451-6b46aa3bcad5",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3785,
+      "capturedAt": 3773,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -19400,7 +19400,7 @@
         },
         "shifts": [
           {
-            "t": 4321.700000047684,
+            "t": 4309.400000095367,
             "v": 0.0001309746252841208
           }
         ],
@@ -19677,7 +19677,7 @@
       "url": "/user/437de07d-1bd7-46c8-a451-6b46aa3bcad5",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3781,
+      "capturedAt": 3779,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -20127,7 +20127,7 @@
       "url": "/user/71c56dfb-b326-4010-b960-b18dd3966e7f",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 41650,
+      "capturedAt": 41616,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -20562,9 +20562,22 @@
     },
     {
       "url": "/user/71c56dfb-b326-4010-b960-b18dd3966e7f",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fuser%2F71c56dfb-b326-4010-b960-b18dd3966e7f",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/user/71c56dfb-b326-4010-b960-b18dd3966e7f",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3774,
+      "capturedAt": 3818,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -20729,7 +20742,7 @@
         },
         "shifts": [
           {
-            "t": 4241.700000047684,
+            "t": 4397.100000023842,
             "v": 0.0001309746252841208
           }
         ],
@@ -21003,23 +21016,10 @@
       "requests": 37
     },
     {
-      "url": "/user/71c56dfb-b326-4010-b960-b18dd3966e7f",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fuser%2F71c56dfb-b326-4010-b960-b18dd3966e7f",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
       "url": "/messages",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1953,
+      "capturedAt": 1913,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -21338,7 +21338,7 @@
       "url": "/messages",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1956,
+      "capturedAt": 1969,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -21467,7 +21467,7 @@
         },
         "shifts": [
           {
-            "t": 2505.2999999523163,
+            "t": 2587,
             "v": 0.03944138416365357
           }
         ],
@@ -21688,7 +21688,7 @@
       "url": "/support",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 45635,
+      "capturedAt": 45603,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -21769,7 +21769,7 @@
         },
         "shifts": [
           {
-            "t": 2560.2000000476837,
+            "t": 2382.8000000715256,
             "v": 0.04265838368641154
           }
         ],
@@ -21882,7 +21882,7 @@
       "url": "/legal?tab=terms",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1950,
+      "capturedAt": 1974,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -22137,7 +22137,7 @@
       "url": "/legal?tab=privacy",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1976,
+      "capturedAt": 1958,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -22395,7 +22395,7 @@
       "url": "/legal?tab=community",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1946,
+      "capturedAt": 1950,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -22653,7 +22653,7 @@
       "url": "/terms",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1948,
+      "capturedAt": 2067,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -22895,7 +22895,7 @@
       "url": "/privacy",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2019,
+      "capturedAt": 1952,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -23137,16 +23137,16 @@
       "requests": 14
     },
     {
-      "url": "/jobs/c7649153-15b1-4b42-bd47-e2fef08cb5db",
+      "url": "/jobs/6cce8fff-fcec-447e-a810-458de3e134f3",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3826,
+      "capturedAt": 3842,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
-      "finalUrl": "/posts?filter=waiting",
-      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_jobs_c7649153_15b1_4b42_bd47_e2fef08cb5db.loading.png",
+      "finalUrl": "/posts?highlight=6cce8fff-fcec-447e-a810-458de3e134f3&filter=waiting",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_jobs_6cce8fff_fcec_447e_a810_458de3e134f3.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -23237,7 +23237,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_jobs_c7649153_15b1_4b42_bd47_e2fef08cb5db.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/customer_jobs_6cce8fff_fcec_447e_a810_458de3e134f3.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -23324,20 +23324,20 @@
         ]
       },
       "status": "redirected",
-      "note": "left the route between frames: /jobs/c7649153-15b1-4b42-bd47-e2fef08cb5db → /posts?filter=waiting",
-      "requests": 52
+      "note": "left the route between frames: /jobs/6cce8fff-fcec-447e-a810-458de3e134f3 → /posts?highlight=6cce8fff-fcec-447e-a810-458de3e134f3&filter=waiting",
+      "requests": 55
     },
     {
-      "url": "/jobs/c7649153-15b1-4b42-bd47-e2fef08cb5db",
+      "url": "/jobs/6cce8fff-fcec-447e-a810-458de3e134f3",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3771,
+      "capturedAt": 3784,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/home",
-      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_jobs_c7649153_15b1_4b42_bd47_e2fef08cb5db.loading.png",
+      "loadingPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_jobs_6cce8fff_fcec_447e_a810_458de3e134f3.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -23428,7 +23428,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_jobs_c7649153_15b1_4b42_bd47_e2fef08cb5db.loaded.png",
+      "loadedPng": "/Users/lexilombas/louisianahelpr/.claude/worktrees/agent-a7ce30d8ac7b4c2bc/docs/audit/loading-states/helper_jobs_6cce8fff_fcec_447e_a810_458de3e134f3.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -23527,18 +23527,18 @@
         ]
       },
       "status": "redirected",
-      "note": "left the route between frames: /jobs/c7649153-15b1-4b42-bd47-e2fef08cb5db → /home",
+      "note": "left the route between frames: /jobs/6cce8fff-fcec-447e-a810-458de3e134f3 → /home",
       "requests": 50
     },
     {
-      "url": "/jobs/c7649153-15b1-4b42-bd47-e2fef08cb5db",
+      "url": "/jobs/6cce8fff-fcec-447e-a810-458de3e134f3",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
         "waves": 0,
         "ended": "empty"
       },
-      "finalUrl": "/login?redirect=%2Fjobs%2Fc7649153-15b1-4b42-bd47-e2fef08cb5db",
+      "finalUrl": "/login?redirect=%2Fjobs%2F6cce8fff-fcec-447e-a810-458de3e134f3",
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
@@ -23547,7 +23547,7 @@
       "url": "/browse",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 27340,
+      "capturedAt": 27687,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -23758,7 +23758,7 @@
       "url": "/browse",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1951,
+      "capturedAt": 1947,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -24051,7 +24051,7 @@
       "url": "/rules",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1998,
+      "capturedAt": 2120,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -24294,22 +24294,9 @@
     },
     {
       "url": "/help",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/help",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
-      "url": "/help",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 1944,
+      "capturedAt": 2002,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -24493,6 +24480,19 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
       "requests": 14
+    },
+    {
+      "url": "/help",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/help",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     },
     {
       "url": "/this-route-does-not-exist",

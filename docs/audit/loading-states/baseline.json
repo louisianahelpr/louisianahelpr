@@ -23,11 +23,6 @@
       "was": "0 avatar/media bone(s) → 17 real"
     },
     {
-      "key": "helper /profile?tab=analytics #0",
-      "kind": "jump",
-      "was": "row 439px → 469px (+30px)"
-    },
-    {
       "key": "customer /jobs #1",
       "kind": "jump",
       "was": "row 32px → 154px (+122px)"
@@ -186,6 +181,12 @@
       "kind": "jump",
       "was": "row 744px → 2990px (+2246px)",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The placeholder reserves ONE SCREENFUL, not the real content's full height; anything taller grows below the fold. A per-tab skeleton reserving full height (Home History's 3,477px of bones) was DECLINED in that same pop-up. A positive jump on a profile tab is therefore the decision working as made — see the docblock in src/components/profile/ProfileTabFallback.tsx."
+    },
+    {
+      "key": "helper /profile?tab=pets #0",
+      "kind": "jump",
+      "was": "row 216px → 363px (+147px)",
+      "ruling": "Owner ruling, 2026-10-01: accepted as by-design \"grows below\" (two pets: the 216px silhouette; no pets: the taller empty state grows below it, never collapses)."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

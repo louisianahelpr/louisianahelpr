@@ -22,19 +22,18 @@ import { useDraftCheckout } from "./useDraftCheckoutState";
  * real card, the shape and height (104px) of the real rows, so the column
  * holds its place and hands over to the real cards in one step.
  *
- * Four cards always render; the fifth ("Offer It to a Saved Helpr") hides on
- * an empty saved list. Owner, 2026-10-01: the placeholder matches the real
- * card count — five bones over an account with no saved Helprs collapsed by
- * 110px. So the fifth bone is drawn only once the list is KNOWN non-empty
- * (cached, or settled while another row is still loading); while it is
- * unknown the column is sized to the shorter case and a fifth card grows
- * below rather than a phantom one vanishing.
+ * Five cards, always. Owner, 2026-10-01: "Offer It to a Saved Helpr" renders
+ * for everyone, including an account with no saved Helprs (it used to hide
+ * itself, so the real column was 4 or 5 cards and this placeholder could match
+ * only one of them — a 122px jump on arrival at 375). One count, so no jump.
  */
-function EntryChoiceSkeleton({ cards }: { cards: number }) {
+const ENTRY_CARD_COUNT = 5;
+
+function EntryChoiceSkeleton() {
   return (
     <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
       <span className="sr-only">Loading…</span>
-      {Array.from({ length: cards }).map((_, i) => (
+      {Array.from({ length: ENTRY_CARD_COUNT }).map((_, i) => (
         <div key={i} className="rounded-2xl liquid-glass p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
           <div className="flex items-center gap-4 w-full">
             <Skeleton className="w-11 h-11 rounded-full shrink-0" />
@@ -157,9 +156,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // skeleton stays until all of them are in and the ARRIVAL_CAP_MS cap (which
   // only bounds secondary data) never paints a half-built column. Each read
   // settles on an error too, so a failure cannot hold the skeleton forever.
-  // The saved-helprs card self-hides on an empty list, so whether it is there
-  // is data too: the gate waits on it (a disabled query, no user, counts as
-  // settled). Same cache entry the card reads, so no second request.
+  // The saved-helprs card always renders now (owner, 2026-10-01), but the gate
+  // still waits on its list so the card never opens onto "Loading…" (a
+  // disabled query, no user, counts as settled). Same cache entry the card
+  // reads, so no second request.
   const savedHelpers = useSavedHelpersLite();
   const savedHelpersSettled = savedHelpers.fetchStatus === "idle" || savedHelpers.status !== "pending";
   // The gift card banner sits at the very top of the column, so whether it is
@@ -173,7 +173,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled && giftCardsSettled,
     true,
   );
-  if (!entryReady) return <EntryChoiceSkeleton cards={savedHelpers.data?.length ? 5 : 4} />;
+  if (!entryReady) return <EntryChoiceSkeleton />;
 
   return (
     // Top-level cards render as a stacked column on phones and flip to a

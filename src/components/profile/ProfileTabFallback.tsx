@@ -83,7 +83,8 @@ import { TAB_TITLES, type Tab } from "@/pages/profile/types";
  * a long list that grows below. Tabs not in the table keep the screenful.
  * Pets depends on the account (two pets: 216px; none: a 363px empty state)
  * and is sized to the shorter, so the other case grows below, never collapses.
- * Analytics likewise (no completed jobs: 439px; a fee comparison: 469px), and
+ * Analytics is one height either way (481px; owner, 2026-10-01: its intro and
+ * its fee comparison share one five-line box in AnalyticsUpgradePanel), and
  * Saved Helprs sits between its empty state (340px) and a two-card list (348px).
  */
 type Block = { h: number | "fill"; media?: number };
@@ -101,7 +102,7 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   str_settings: [{ h: 508, media: 1 }],
   auto_tip: [{ h: 527 }],
   saved_helpers: [{ h: 344, media: 1 }],
-  analytics: [{ h: 439 }],
+  analytics: [{ h: 481 }],
 };
 
 /** Avatar circles a screenful-reserve tab draws in its first card. */

@@ -90,6 +90,7 @@ describe("retired status-line copy", () => {
  * Two-way: each must still exist in the inventory, so a renamed column cannot
  * leave a dead exemption behind.
  */
+// @two-way src/test/statusLineCopyAndDeadlines.test.tsx:every exemption names a real column
 const EXEMPT: Record<string, string> = {
   boost_expires_at: "a paid promotion's end, shown in OpenStep's boost banner; not a step of the job",
   expires_at: "the listing's own expiry, shown on every card by JobCardMetaRow (useExpiryClock)",

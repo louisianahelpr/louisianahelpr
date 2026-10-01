@@ -21,7 +21,10 @@
  *   2. no OLDER in-flight run (created_at, then id) is still on its way to the
  *      group: it has jobs but none of its locked jobs has started, or it is
  *      between two locked legs (e2e-journeys chromium -> webkit). Older goes
- *      first: that is the FIFO.
+ *      first: that is the FIFO. A workflow in YIELDS_BETWEEN_LEGS is the
+ *      exception: its legs are split precisely so other suites can take the
+ *      accounts between them, so a run of it between legs bumps nobody and
+ *      blocks nobody (each of its legs queues again through its own waiter).
  * The group stays as the mutual exclusion; this only decides WHEN to join it.
  * A run parked at WORKFLOW level (no jobs yet) is not in this queue and is not
  * waited for, so two prod-load runs can never deadlock on each other.
@@ -98,6 +101,14 @@ export function matchesLocked(apiName, locked) {
   });
 }
 
+/**
+ * Workflows whose locked legs deliberately let go of the accounts between legs
+ * (press-every-control: 6 legs of under an hour each,
+ * src/test/sharedAccountLockJobsAreShort.test.ts). Between two of its legs
+ * other runs may go first; every leg re-queues through its own waiter.
+ */
+export const YIELDS_BETWEEN_LEGS = new Set([".github/workflows/press-every-control.yml"]);
+
 const older = (a, b) => (a.created_at === b.created_at ? a.id < b.id : a.created_at < b.created_at);
 
 /**
@@ -124,7 +135,7 @@ export function decide(me, runs, inventory) {
       if (lockJobs.length > 0 && lockJobs.every((j) => j.status === "completed")) continue; // all skipped
       return { go: false, why: `older run ${run.name} ${run.html_url} has not reached the lock yet (first in, first served)` };
     }
-    if (lockJobs.length < locked.length) {
+    if (lockJobs.length < locked.length && !YIELDS_BETWEEN_LEGS.has(run.path)) {
       return { go: false, why: `older run ${run.name} ${run.html_url} is between two locked legs` };
     }
   }

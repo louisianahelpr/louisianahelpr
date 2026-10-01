@@ -30,7 +30,7 @@
  * once on an expanded one, outside the tracker. That half of this file
  * survived both rulings untouched.
  *
- * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <JobStatusStrip | {false && (\n              <JobStatusStrip
+ * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <PosterStatusStrip | {false && (\n              <PosterStatusStrip
  * @mutate src/pages/posts/PostedJobCard.tsx | <div className="pt-3" data-job-card-tracker-gap="">{trackerBlock}</div> | <div className="pt-3" data-job-card-tracker-gap="">{null}</div>
  */
 import { describe, it, expect, vi } from "vitest";

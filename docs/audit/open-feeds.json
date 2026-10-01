@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-01T19:01Z",
+  "measured_at": "2026-10-01T23:16Z",
   "issues": {
     "readable": true,
     "open": [
@@ -29,24 +29,16 @@
         "title": "nightly-red: staleness-watch"
       },
       {
-        "number": 1957,
-        "title": "nightly-red: core-loop-canary"
-      },
-      {
         "number": 1959,
         "title": "nightly-red: nightly-red-age"
-      },
-      {
-        "number": 1969,
-        "title": "nightly-red: e2e-real-backend"
       },
       {
         "number": 2017,
         "title": "nightly-red: schedule-heartbeat"
       },
       {
-        "number": 2022,
-        "title": "nightly-red: morning-page"
+        "number": 2036,
+        "title": "nightly-red: main: Sensitive review record"
       }
     ]
   },
@@ -78,14 +70,6 @@
         "issue": 1582
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": null
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -100,14 +84,6 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 1654
-      },
-      {
-        "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
-        "source_kind": "error_logs",
-        "source": "push-tokens-empty",
-        "status": "open",
-        "title": "no device can receive a push",
-        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -131,7 +107,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: e2e-real-backend",
-        "issue": 1969
+        "issue": null
       },
       {
         "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
@@ -140,6 +116,14 @@
         "status": "open",
         "title": "nightly-red: e2e-journeys",
         "issue": 1719
+      },
+      {
+        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: schedule-heartbeat",
+        "issue": 2017
       },
       {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
@@ -155,6 +139,14 @@
         "source": "quota-monitor",
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
+        "issue": null
+      },
+      {
+        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: sensitive review record",
         "issue": null
       },
       {
@@ -198,12 +190,20 @@
         "issue": null
       },
       {
-        "fingerprint": "1294af1998b49077d6060d61d0e26dfe",
-        "source_kind": "workflow",
-        "source": "uptime",
+        "fingerprint": "02dfc97e2155da8a4f271b5ea6d7bdb5",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
         "status": "open",
-        "title": "louisiana helpr is down",
-        "issue": null
+        "title": "nightly-red: morning-page",
+        "issue": 2022
+      },
+      {
+        "fingerprint": "8a5eda1d93db04a8bc5310caf5150938",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: db-backup",
+        "issue": 2028
       }
     ]
   },
@@ -232,23 +232,28 @@
     "issue #1987": "Q792",
     "issue #2017": "Q897",
     "issue #2022": "Q898",
+    "issue #2036": "Q906",
+    "ledger 02dfc97e2155": "Q907",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 1294af1998b4": "Q902",
     "ledger 16e6e91f6701": "Q785",
     "ledger 18539240a894": "Q877",
     "ledger 3a3460b71be7": "Q879",
     "ledger 43d77e26f272": "Q784",
+    "ledger 4aa239aefeb6": "Q897",
     "ledger 581b00d7a403": "Q900",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
     "ledger 7e141f206640": "Q783",
     "ledger 88ecf6e765df": "Q788",
+    "ledger 8a5eda1d93db": "Q908",
     "ledger 90ea19b32968": "Q899",
     "ledger a3eafa777cb3": "Q901",
     "ledger ab6fdbe8c882": "Q878",
     "ledger b75d265e6201": "Q794",
     "ledger c4738e326802": "Q880",
     "ledger db0fb15c4ec3": "Q787",
+    "ledger e41c806b9175": "Q906",
     "ledger e49f68d9cbd6": "Q793",
     "ledger f22e3275d50d": "Q792"
   }

@@ -324,7 +324,7 @@ jobs:
       (needs.preflight.outputs.have_lifecycle == 'true' || needs.preflight.outputs.have_two_role == 'true') &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the longest holder (press) is 330.
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
     timeout-minutes: 350
     permissions:
       actions: read

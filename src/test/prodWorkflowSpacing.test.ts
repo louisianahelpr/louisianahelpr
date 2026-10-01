@@ -639,7 +639,7 @@ describe("prod-hitting workflow schedules", () => {
     // Inventory floor: the model must see the long suites, or it proves nothing.
     expect(modelled.length).toBeGreaterThan(10);
     const press = wfs.find((w) => w.file === "press-every-control.yml")!;
-    // 4 shards, max-parallel 2 -> two 150-min waves, then cleanup and notify.
+    // Six leg jobs of 57 min in a chain, then the summary and notify.
     expect(worstCaseMinutes(press.src)).toBeGreaterThan(300);
     const print = modelled
       .map((w) => `${w.file}: ${worstCaseMinutes(w.src)} min @ ${w.crons.join(" ; ")}`)
@@ -655,7 +655,9 @@ describe("prod-hitting workflow schedules", () => {
   it("Q322: the free :17 slots in the prod-load week are exactly these", () => {
     const free = freeSlots(wfs).map(fmt);
     // 2026-09-27: open-done-when.yml took both (Sun + Thu 05:17).
-    expect(free).toEqual([]);
+    // 2026-10-01: the timeout cuts that put every shared-account lock holder
+    // under 60 minutes (sharedAccountLockJobsAreShort) freed these two.
+    expect(free).toEqual(["Tue 03:17", "Fri 03:17"]);
   });
 
   it("rule 5 can fail: the Q318 shape (press 03:17 with two waves, drift 05:17, backup 07:17) is red", () => {

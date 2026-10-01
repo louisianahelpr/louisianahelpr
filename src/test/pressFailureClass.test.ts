@@ -17,6 +17,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parse } from "yaml";
 import * as cls from "../../scripts/audit/pressFailureClass.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as harness from "../../scripts/audit/press-every-control.mjs";
@@ -105,17 +106,21 @@ describe("Q128 class 6: the sweep stops inside its own budget instead of being c
     expect(cls.overTimeBudget({ startedAt: 0, now: 134 * 60_000, budgetMs: 135 * 60_000 })).toBe(false);
     expect(cls.overTimeBudget({ startedAt: 0, now: 10 ** 12, budgetMs: 0 })).toBe(false);
   });
-  it("the workflow's budget is below its job timeout", () => {
-    const wf = readFileSync(resolve(ROOT, ".github/workflows/press-every-control.yml"), "utf8");
-    const budget = Number(/TIME_BUDGET_MIN:\s*"(\d+)"/.exec(wf)?.[1]);
-    // The press job runs its shards in WAVES (scripts/audit/press-wave.sh,
-    // Q326), each wave bounded by the per-shard budget, so the job's timeout
-    // must cover every wave's budget plus set-up and the restore.
-    const timeout = Number(/\n {2}press:\n[\s\S]*?\n {4}timeout-minutes:\s*(\d+)/.exec(wf)?.[1]);
-    const waves = [...wf.matchAll(/bash scripts\/audit\/press-wave\.sh [\d ]+/g)].length;
-    expect(budget).toBeGreaterThan(60);
-    expect(waves).toBeGreaterThan(0);
-    expect(timeout).toBeGreaterThan(waves * budget + 10);
+  it("every leg's budget is below its job timeout", () => {
+    const wf = parse(readFileSync(resolve(ROOT, ".github/workflows/press-every-control.yml"), "utf8")) as {
+      jobs: Record<string, { "timeout-minutes"?: number; env?: Record<string, string>; steps?: Array<{ run?: string }> }>;
+    };
+    // Since 2026-10-01 the run is LEG jobs (one wave of scripts/audit/press-wave.sh
+    // each), so each leg's timeout must cover its own wave's budget plus set-up
+    // and the restore, and the budget must leave the shards real time.
+    const legs = Object.entries(wf.jobs).filter(([, j]) => (j.steps ?? []).some((st) => /press-wave\.sh/.test(st.run ?? "")));
+    expect(legs.length).toBeGreaterThan(0);
+    for (const [key, j] of legs) {
+      const budget = Number(j.env?.TIME_BUDGET_MIN);
+      const waves = (j.steps ?? []).filter((st) => /press-wave\.sh/.test(st.run ?? "")).length;
+      expect(budget, key).toBeGreaterThan(30);
+      expect(j["timeout-minutes"] ?? 0, key).toBeGreaterThan(waves * budget + 10);
+    }
   });
 });
 

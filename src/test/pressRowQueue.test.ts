@@ -22,7 +22,7 @@
  * @mutate scripts/audit/pressFailureClass.mjs | return lastWave ? "not-reached" : "stop"; | return "not-reached";
  * @mutate scripts/audit/pressFailureClass.mjs | if (e && e.code === "EEXIST") return false; | if (e && e.code === "EEXIST") return true;
  * @mutate scripts/audit/press-wave.sh | export PRESS_QUEUE_DIR="${PRESS_QUEUE_DIR:-test-results/press-queue/$RUN_BASE}" | export PRESS_QUEUE_DIR=""
- * @mutate .github/workflows/press-every-control.yml |           PRESS_LAST_WAVE: "0" |           PRESS_LAST_WAVE: "1"
+ * @mutate .github/workflows/press-every-control.yml |           PRESS_LAST_WAVE: "1" |           PRESS_LAST_WAVE: "0"
  */
 import { describe, expect, it } from "vitest";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";

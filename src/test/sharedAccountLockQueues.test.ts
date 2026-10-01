@@ -20,7 +20,8 @@
  */
 // @mutate .github/workflows/prod-audit.yml |     needs: [preflight, wait-accounts]\n    if: needs.preflight.outputs.have_accounts == 'true' |     needs: preflight\n    if: needs.preflight.outputs.have_accounts == 'true'
 // @mutate .github/workflows/e2e-journeys.yml | if: always() && needs.wait-accounts.result == 'success' && needs.preflight | if: always() && needs.preflight
-// @mutate .github/workflows/press-every-control.yml |     timeout-minutes: 350\n    permissions:\n      actions: read |     timeout-minutes: 350\n    permissions:\n      actions: none
+// @mutate .github/workflows/press-every-control.yml |     timeout-minutes: 350 # waiter, leg 1\n    permissions:\n      actions: read |     timeout-minutes: 350 # waiter, leg 1\n    permissions:\n      actions: none
+// @mutate scripts/e2e/wait-shared-accounts.mjs | lockJobs.length < locked.length && !YIELDS_BETWEEN_LEGS.has(run.path) | lockJobs.length < locked.length
 // @mutate scripts/e2e/wait-shared-accounts.mjs | /rate limit/i.test(body)) return 5 * 60_000; | false) return 5 * 60_000;
 // @mutate scripts/e2e/wait-shared-accounts.mjs |       if (e?.waitMs != null) { |       if (false) {
 // @mutate scripts/e2e/wait-shared-accounts.mjs |   if (status !== 403 && status !== 429) return null; |   if (status !== 403) return null;
@@ -68,7 +69,7 @@ export function lockQueueViolations(dir = WF_DIR): string[] {
         const perms = wj.permissions;
         if (typeof perms !== "object" || perms.actions !== "read")
           out.push(`${file}:${w} needs \`permissions: actions: read\` to see the queue`);
-        if ((wj["timeout-minutes"] ?? 0) < 330) out.push(`${file}:${w} times out before the longest holder (press, 330 min) can finish`);
+        if ((wj["timeout-minutes"] ?? 0) < 180) out.push(`${file}:${w} times out before the longest holder (prod-audit, 180 min) can finish`);
       }
     }
   }
@@ -110,7 +111,10 @@ describe("Q743: the shared-accounts lock is entered through a FIFO queue", () =>
 // The decision itself, on the measured shapes.
 const inv = {
   ".github/workflows/prod-audit.yml": [{ key: "prod-audit", name: "Prod audit (prod-audit)" }],
-  ".github/workflows/press-every-control.yml": [{ key: "press", name: "Press every control" }],
+  ".github/workflows/press-every-control.yml": [1, 2, 3, 4, 5, 6].map((n) => ({
+    key: `press-${n}`,
+    name: `Press every control (leg ${n} of 6, shards ${2 * n - 1} and ${2 * n}, 375, prod)`,
+  })),
   ".github/workflows/e2e-journeys.yml": [
     { key: "journeys", name: "Journeys (journeys)" },
     { key: "journeys-webkit", name: "Journeys (journeys-webkit)" },
@@ -132,7 +136,7 @@ describe("Q743: wait-shared-accounts decide()", () => {
     { name: "Prod audit (prod-audit)", status: "in_progress" },
   ]);
   const pressPending = run(36297157445, "2026-09-27T05:20:00Z", "press-every-control.yml", [
-    { name: "Press every control", status: "pending" },
+    { name: "Press every control (leg 1 of 6, shards 1 and 2, 375, prod)", status: "pending" },
   ]);
 
   it("the 2026-09-27 05:26Z shape: loading-states must NOT join while press waits in the group", () => {
@@ -162,6 +166,26 @@ describe("Q743: wait-shared-accounts decide()", () => {
       { name: "Journeys (journeys)", status: "completed", conclusion: "success" },
     ]);
     expect(decide({ id: 20, created_at: "2026-09-27T05:10:00Z" }, [between], inv).go).toBe(false);
+  });
+
+  it("press-every-control yields between its legs: a newer run goes, a journeys run between legs still blocks", () => {
+    const pressBetween = run(10, "2026-09-27T05:00:00Z", "press-every-control.yml", [
+      { name: "Wait for the shared accounts (queue, leg 1)", status: "completed", conclusion: "success" },
+      { name: "Press every control (leg 1 of 6, shards 1 and 2, 375, prod)", status: "completed", conclusion: "success" },
+      { name: "Wait for the shared accounts (queue, leg 2)", status: "in_progress" },
+    ]);
+    const me = { id: 20, created_at: "2026-09-27T05:10:00Z" };
+    expect(decide(me, [pressBetween], inv)).toEqual({ go: true, why: "no job waiting for the lock and no older run ahead" });
+    const journeysBetween = run(11, "2026-09-27T05:01:00Z", "e2e-journeys.yml", [
+      { name: "Journeys (journeys)", status: "completed", conclusion: "success" },
+    ]);
+    expect(decide(me, [pressBetween, journeysBetween], inv).go).toBe(false);
+    // A press leg that is WAITING in the group still blocks, like any other job.
+    const pressLegPending = run(10, "2026-09-27T05:00:00Z", "press-every-control.yml", [
+      { name: "Press every control (leg 1 of 6, shards 1 and 2, 375, prod)", status: "completed", conclusion: "success" },
+      { name: "Press every control (leg 2 of 6, shards 3 and 4, 375, prod)", status: "pending" },
+    ]);
+    expect(decide(me, [pressLegPending], inv).go).toBe(false);
   });
 
   it("a matrix leg waiting for the lock counts as waiting", () => {

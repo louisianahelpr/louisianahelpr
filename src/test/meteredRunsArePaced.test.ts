@@ -57,31 +57,45 @@ const launchesBrowser = (file: string) => /\b(?:chromium|webkit|firefox)\.launch
 
 const pkgScripts = (JSON.parse(read("package.json")) as { scripts: Record<string, string> }).scripts;
 
+/** What a job's own steps run that sends the metered load. */
+function driversOf(code: string): Driver[] {
+  const drivers: Driver[] = [];
+  if (/npx playwright test\b[^\n]*--project=/.test(code)) drivers.push({ kind: "playwright" });
+  const scripts: string[] = [];
+  for (const m of code.matchAll(/run: npm run ([\w:-]+)\s*$/gm)) {
+    const f = /^node (\S+\.mjs)/.exec(pkgScripts[m[1]] ?? "");
+    if (f) scripts.push(f[1]);
+  }
+  for (const m of code.matchAll(/run: node (scripts\/\S+\.mjs)\s*$/gm)) scripts.push(m[1]);
+  // A wrapper shell script (press-wave.sh runs the sharded press waves)
+  // drives whatever node scripts it launches.
+  for (const m of code.matchAll(/run: bash (scripts\/\S+\.sh)\b/gm)) {
+    for (const n of read(m[1]).matchAll(/\bnode (scripts\/\S+\.mjs)/g)) scripts.push(n[1]);
+  }
+  // Only a script that LAUNCHES a browser sends the metered load; the
+  // budget checker itself and the loading-state verdict do not.
+  for (const f of scripts) if (launchesBrowser(f)) drivers.push({ kind: "script", file: f });
+  return drivers;
+}
+
 /** Every budget step in every workflow, with what its job runs to produce the label. */
 function budgetedRuns(): Run[] {
   const out: Run[] = [];
   const files = readdirSync(join(ROOT, ".github/workflows")).filter((f) => f.endsWith(".yml"));
   for (const file of files) {
     const text = read(`.github/workflows/${file}`);
-    for (const [job, code] of jobs(text)) {
+    const fileJobs = jobs(text);
+    for (const [job, code] of fileJobs) {
       const budget = [...code.matchAll(/run: node scripts\/e2e\/request-budget\.mjs --label (\$\{\{[^}]*\}\}|\S+)[^\n]*$/gm)];
       if (!budget.length) continue;
-      const drivers: Driver[] = [];
-      if (/npx playwright test\b[^\n]*--project=/.test(code)) drivers.push({ kind: "playwright" });
-      const scripts: string[] = [];
-      for (const m of code.matchAll(/run: npm run ([\w:-]+)\s*$/gm)) {
-        const f = /^node (\S+\.mjs)/.exec(pkgScripts[m[1]] ?? "");
-        if (f) scripts.push(f[1]);
+      let drivers = driversOf(code);
+      // A whole-run budget step judges the request logs its sibling legs
+      // uploaded (--dir request-budget/<leg>; press-every-control's summary
+      // job since the 2026-10-01 leg split), so it is driven by what those
+      // sibling jobs run.
+      if (!drivers.length && /request-budget\.mjs[^\n]*--dir /.test(code)) {
+        drivers = fileJobs.filter(([j]) => j !== job).flatMap(([, c]) => driversOf(c));
       }
-      for (const m of code.matchAll(/run: node (scripts\/\S+\.mjs)\s*$/gm)) scripts.push(m[1]);
-      // A wrapper shell script (press-wave.sh runs the sharded press waves)
-      // drives whatever node scripts it launches.
-      for (const m of code.matchAll(/run: bash (scripts\/\S+\.sh)\b/gm)) {
-        for (const n of read(m[1]).matchAll(/\bnode (scripts\/\S+\.mjs)/g)) scripts.push(n[1]);
-      }
-      // Only a script that LAUNCHES a browser sends the metered load; the
-      // budget checker itself and the loading-state verdict do not.
-      for (const f of scripts) if (launchesBrowser(f)) drivers.push({ kind: "script", file: f });
       // The label is the flag's own value; anything after it (--dir <shard>,
       // --ceiling-only) is an option of the checker, not part of the label.
       for (const b of budget) {

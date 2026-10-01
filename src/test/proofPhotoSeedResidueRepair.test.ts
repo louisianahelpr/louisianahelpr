@@ -9,11 +9,12 @@
  *
  * @mutate scripts/proof-photo-reference-check.mjs |     if (!row \|\| row.is_seed !== true) continue; |     if (!row) continue;
  * @mutate scripts/proof-photo-reference-check.mjs |     if (!Number.isFinite(created) \|\| !(created < before)) continue; |
- * @mutate .github/workflows/press-every-control.yml | node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z | node scripts/proof-photo-reference-check.mjs
+ * @mutate .github/workflows/press-every-control.yml | node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z # leg 3 | node scripts/proof-photo-reference-check.mjs # leg 3
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parse } from "yaml";
 // @ts-expect-error - plain .mjs tool script, no types
 import { seedRepairPlan } from "../../scripts/proof-photo-reference-check.mjs";
 
@@ -44,8 +45,18 @@ describe("proof-photo check repairs only the pre-fix seed residue (#1582)", () =
     expect([...plan.keys()]).toEqual(["seed-old"]);
   });
 
-  it("the clean-up job passes the fix's own timestamp, not a moving one", () => {
-    const wf = readFileSync(resolve(ROOT, ".github/workflows/press-every-control.yml"), "utf8");
-    expect(wf).toMatch(/node scripts\/proof-photo-reference-check\.mjs --repair-seed-before 2026-09-25T05:42:00Z/);
+  it("every clean-up leg passes the fix's own timestamp, not a moving one", () => {
+    // Since 2026-10-01 press-every-control is six leg jobs, each with its own
+    // restore + residue check, so each leg must pass the timestamp.
+    const wf = parse(readFileSync(resolve(ROOT, ".github/workflows/press-every-control.yml"), "utf8")) as {
+      jobs: Record<string, { steps?: Array<{ run?: string }> }>;
+    };
+    const legs = Object.entries(wf.jobs).filter(([, j]) => (j.steps ?? []).some((s) => /CLEANUP_SINCE=/.test(s.run ?? "")));
+    expect(legs.length).toBeGreaterThan(0);
+    for (const [key, j] of legs) {
+      const checks = (j.steps ?? []).filter((s) => /proof-photo-reference-check\.mjs/.test(s.run ?? ""));
+      expect(checks.length, key).toBeGreaterThan(0);
+      for (const s of checks) expect(s.run, key).toMatch(/proof-photo-reference-check\.mjs --repair-seed-before 2026-09-25T05:42:00Z/);
+    }
   });
 });

@@ -9,6 +9,8 @@ import { categoryColors } from "@/components/job-card/activityConstants";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { OfferToSavedHelpr, useSavedHelpersLite } from "./OfferToSavedHelpr";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
+import GiftCardTeaser from "./GiftCardTeaser";
+import { useSpendableGiftCards } from "@/hooks/useSpendableGiftCards";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
@@ -151,8 +153,15 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // settled). Same cache entry the card reads, so no second request.
   const savedHelpers = useSavedHelpersLite();
   const savedHelpersSettled = savedHelpers.fetchStatus === "idle" || savedHelpers.status !== "pending";
+  // The gift card banner sits at the very top of the column, so whether it is
+  // there is primary data too (owner, 2026-10-01: moved here from /home).
+  const giftCards = useSpendableGiftCards();
+  const giftCardsSettled = giftCards.settled;
+  // Already spending a gift (`?gift_card=` from "Use This Gift"): telling the
+  // user a gift is waiting is noise, so the banner stays out of the way.
+  const showGiftBanner = !!giftCards.userId && giftCards.ids.length > 0 && !searchParams.has("gift_card");
   const entryReady = useArrivalGate(
-    form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled,
+    form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled && giftCardsSettled,
     true,
   );
   if (!entryReady) return <EntryChoiceSkeleton />;
@@ -174,6 +183,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // `items-start` the expanded one grows and the others stay the size of
     // their content.
     <div className="flex flex-col gap-3 animate-ds-page-in">
+      {showGiftBanner && giftCards.userId && <GiftCardTeaser userId={giftCards.userId} ids={giftCards.ids} />}
+
       {/* AT THE DOOR, not at the end of the wizard. The cap used to be told to
           the poster only on the form step and again at submit, so someone
           already at five picked an intent, filled three steps of details and

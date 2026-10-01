@@ -2828,7 +2828,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 510,
+      "line": 504,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4602,7 +4602,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 206,
+      "line": 204,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4612,7 +4612,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 210,
+      "line": 208,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4622,7 +4622,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 373,
+      "line": 364,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4632,7 +4632,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 826,
+      "line": 816,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

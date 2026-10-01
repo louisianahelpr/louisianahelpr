@@ -19,7 +19,18 @@ import { blankComments } from "./helpers/blankNonCode";
  *     `metadata` (inline, via a named const, or shorthand), payment_intent_data
  *     and subscription_data included.
  *   - READERS: every `session.metadata…?.<key>` in checkoutSessionCompleted.ts.
- * Every read key must be written by at least one creator.
+ * Every read key must be written by at least one creator, in the SESSION's own
+ * metadata: the handler reads `session.metadata`, so a key written only into
+ * payment_intent_data/subscription_data metadata lands on a different Stripe
+ * object and is invisible to it.
+ *
+ * Every string literal the handler compares a metadata value against
+ * (`sessionType === "tip"`, `kind === "job_boost"`, ...) must likewise be
+ * written as that value into some creator's session metadata (or as a
+ * non-literal value the creator computes). Key names alone could not see a
+ * creator dropping `type: "tip"` from its session metadata: other creators
+ * still write `type`, and the tip's own payment_intent_data still writes
+ * `type: "tip"`, yet the webhook would then settle the tip as a JOB payment.
  *
  * Also pinned here (the race-class scanner credits only a `status` predicate):
  * chargeRefunded's payment_status write is a CAS on REFUND_CLOSABLE_PAYMENT_STATES
@@ -97,6 +108,80 @@ export function writtenMetadataKeys(src: string): { keys: Set<string>; spread: b
   return { keys, spread };
 }
 
+/** True when the `{…}` enclosing src[at] is the value of payment_intent_data / subscription_data. */
+function nestedInSubObject(src: string, at: number): boolean {
+  let depth = 0;
+  for (let i = at - 1; i >= 0; i--) {
+    if (src[i] === "}") depth++;
+    else if (src[i] === "{") {
+      if (depth === 0) return /(?:payment_intent_data|subscription_data)\s*[:=]\s*$/.test(src.slice(Math.max(0, i - 60), i));
+      depth--;
+    }
+  }
+  return false;
+}
+
+/** key -> literal value, or "*" when the value is computed (shorthand, variable, call). */
+export function objectEntries(obj: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const inner = obj.slice(1, -1);
+  const parts: string[] = [];
+  let depth = 0, cur = "", quote: string | null = null;
+  for (const ch of inner) {
+    if (quote) { cur += ch; if (ch === quote) quote = null; continue; }
+    if (ch === '"' || ch === "'" || ch === "`") { quote = ch; cur += ch; continue; }
+    if ("{[(".includes(ch)) depth++;
+    if ("}])".includes(ch)) depth--;
+    if (ch === "," && depth === 0) { parts.push(cur); cur = ""; continue; }
+    cur += ch;
+  }
+  parts.push(cur);
+  for (const raw of parts.map((p) => p.trim()).filter(Boolean)) {
+    if (raw.startsWith("...")) continue;
+    const m = raw.match(/^["'`]?([A-Za-z_$][\w$]*)["'`]?\s*(?::\s*([\s\S]*))?$/);
+    if (!m) continue;
+    const lit = m[2]?.trim().match(/^"([^"]*)"$|^'([^']*)'$/);
+    out.set(m[1], lit ? (lit[1] ?? lit[2]) : "*");
+  }
+  return out;
+}
+
+/** key -> values written into a checkout SESSION's own metadata (not payment_intent_data / subscription_data). */
+export function sessionMetadataValues(src: string): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const add = (obj: string) => {
+    for (const [k, v] of objectEntries(obj)) {
+      if (!out.has(k)) out.set(k, new Set());
+      out.get(k)!.add(v);
+    }
+  };
+  const varAt = (v: string) => {
+    const decl = new RegExp(`(?:const|let)\\s+${v}\\b[^=]*=\\s*\\{`).exec(src);
+    if (!decl) throw new Error(`metadata variable ${v} has no object-literal declaration`);
+    add(block(src, decl.index + decl[0].length - 1));
+  };
+  for (const m of src.matchAll(/\bmetadata\s*:\s*(\{|[A-Za-z_$][\w$]*)/g)) {
+    if (nestedInSubObject(src, m.index!)) continue;
+    if (m[1] === "{") add(block(src, m.index! + m[0].length - 1));
+    else varAt(m[1]);
+  }
+  for (const m of src.matchAll(/[{,]\s*metadata\s*[,}]/g)) {
+    if (!nestedInSubObject(src, m.index! + 1)) varAt("metadata");
+  }
+  return out;
+}
+
+/** Every string literal the handler compares a `session.metadata` value against. */
+export function comparedMetadataValues(src: string): Array<{ key: string; value: string }> {
+  const READ = String.raw`\(?\s*session\.metadata(?:\s+as\s+[^)]*\))?\s*\??\.\s*([A-Za-z_]\w*)`;
+  const out: Array<{ key: string; value: string }> = [];
+  for (const m of src.matchAll(new RegExp(READ + String.raw`\s*[!=]==?\s*["'](\w+)["']`, "g"))) out.push({ key: m[1], value: m[2] });
+  for (const a of src.matchAll(new RegExp(String.raw`(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*` + READ + String.raw`\s*;`, "g"))) {
+    for (const c of src.matchAll(new RegExp(String.raw`(?<!typeof\s+)\b${a[1]}\s*[!=]==?\s*["'](\w+)["']`, "g"))) out.push({ key: a[2], value: c[1] });
+  }
+  return out;
+}
+
 /** Every `session.metadata…?.<key>` the handler reads. */
 export function readMetadataKeys(src: string): Set<string> {
   const out = new Set<string>();
@@ -126,6 +211,14 @@ describe("Q343: checkout metadata the webhook reads is metadata a creator writes
     anySpread ||= r.spread;
   }
   const readKeys = readMetadataKeys(read(HANDLER));
+  const sessionWritten = new Map<string, Set<string>>();
+  for (const f of creators) {
+    for (const [k, vs] of sessionMetadataValues(read(f))) {
+      if (!sessionWritten.has(k)) sessionWritten.set(k, new Set());
+      vs.forEach((v) => sessionWritten.get(k)!.add(v));
+    }
+  }
+  const compared = comparedMetadataValues(read(HANDLER));
 
   it("inventories every checkout creator and every key read", () => {
     // 6 files / 8 create calls on 2026-09-26. A floor, so a new creator is
@@ -143,6 +236,38 @@ describe("Q343: checkout metadata the webhook reads is metadata a creator writes
   it("every metadata key the handler branches on is written by some creator", () => {
     const unwritten = [...readKeys].filter((k) => !written.has(k)).sort();
     expect(unwritten, `read by ${HANDLER} but written by no checkout creator`).toEqual([]);
+  });
+
+  it("every metadata key the handler reads is written into some creator's SESSION metadata", () => {
+    const unwritten = [...readKeys].filter((k) => !sessionWritten.has(k)).sort();
+    expect(unwritten, `read from session.metadata by ${HANDLER} but no creator puts it in session metadata`).toEqual([]);
+  });
+
+  it("every value the handler branches on is written into some creator's SESSION metadata", () => {
+    // tip, the five kinds, one_time, "true" on 2026-10-01. A floor.
+    expect(compared.length).toBeGreaterThanOrEqual(8);
+    expect(compared).toContainEqual({ key: "type", value: "tip" });
+    expect(compared).toContainEqual({ key: "kind", value: "job_boost" });
+    const unwritten = compared
+      .filter(({ key, value }) => {
+        const vs = sessionWritten.get(key);
+        return !vs || !(vs.has(value) || vs.has("*"));
+      })
+      .map(({ key, value }) => `${key}=${value}`);
+    expect(unwritten, `branched on by ${HANDLER} but no creator writes that value into session metadata`).toEqual([]);
+  });
+
+  it("the session-level parsers are not vacuous", () => {
+    const src = `const m = { kind: "x", y }; create({ payment_intent_data: { metadata: { type: "tip", only_pi: "1" } }, metadata: { job_id: id, type: "tip" } }); create({ payment_intent_data: { metadata: m } }); p.payment_intent_data = { metadata: { z: "1" } };`;
+    const v = sessionMetadataValues(src);
+    expect([...v.keys()].sort()).toEqual(["job_id", "type"]);
+    expect([...v.get("type")!]).toEqual(["tip"]);
+    expect([...v.get("job_id")!]).toEqual(["*"]);
+    const shorthand = sessionMetadataValues(`const metadata = { kind: "k" }; create({ payment_intent_data: { metadata }, metadata, });`);
+    expect([...shorthand.get("kind")!]).toEqual(["k"]);
+    expect(
+      comparedMetadataValues(`const t = (session.metadata as any)?.type;\nif (typeof t === "string" && t === "tip") {}\nif ((session.metadata as Record<string, string> | null)?.kind === "rv") {}`),
+    ).toEqual([{ key: "kind", value: "rv" }, { key: "type", value: "tip" }]);
   });
 
   it("the retired repay key is neither read nor written", () => {

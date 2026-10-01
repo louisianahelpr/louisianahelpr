@@ -110,31 +110,60 @@ export const DashboardSkeleton = () => (
 );
 
 /**
- * Identity hero skeleton — matches the new horizontal Profile header
- * (75px avatar + name/stats stacked to its right) inside a rounded-ds-lg squircle card.
+ * The landing's identity card, as bones: IdentityHeader's own box
+ * (`liquid-glass p-card`), its 88px ROUND avatar beside the name/location/bio
+ * column, and the `mt-3.5 grid grid-cols-4 gap-2` row of 64px tiles (Share,
+ * rating, Edit, Preview) INSIDE the card.
+ *
+ * It used to be a 75px rounded-square avatar in a `p-4` card with no tiles,
+ * followed by a separate 3-up grid of 78px menu tiles the landing no longer
+ * has. Measured on prod 2026-10-01 at 375 (customer and helper /profile #0):
+ * the column's middle row went 80px → 201px (+121), 3 rows → 4, and the round
+ * avatar arrived out of nothing (media 0 → 1).
  */
-const IdentityHeroSkeleton = () => (
-  <div className="rounded-ds-lg bg-card shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-4 flex items-center gap-4">
-    <Skeleton className="w-[75px] h-[75px] rounded-2xl shrink-0" />
-    <div className="flex-1 space-y-2.5">
-      <Skeleton className="h-5 w-2/3 rounded-md" />
-      <Skeleton className="h-3 w-1/2 rounded-md" />
-      <div className="flex gap-2 pt-1">
-        <Skeleton className="h-4 w-16 rounded-full" />
-        <Skeleton className="h-4 w-12 rounded-full" />
+const IdentityCardSkeleton = () => (
+  <div className="relative liquid-glass shrink-0 p-card overflow-hidden">
+    <div className="flex flex-row items-center gap-4">
+      <Skeleton className="w-[88px] h-[88px] rounded-full shrink-0" />
+      <div className="flex-1 min-w-0 space-y-2">
+        <Skeleton className="h-3 w-1/2 rounded-md" />
+        <Skeleton className="h-3 w-full rounded-md" />
+        <Skeleton className="h-3 w-3/4 rounded-md" />
+        <Skeleton className="h-4 w-20 rounded-md" />
       </div>
+    </div>
+    <div className="mt-3.5 grid grid-cols-4 gap-2">
+      {[0, 1, 2, 3].map((i) => (
+        <Skeleton key={i} className="min-h-[64px] rounded-ds-md" />
+      ))}
     </div>
   </div>
 );
 
 /**
- * Menu group card skeleton — one of the three "neighborhood" boxes
- * (Account / Money / Settings) at rounded-ds-lg squircle radius.
+ * The landing's settings list, as bones: SettingsSection's quiet eyebrow over
+ * one `rounded-ds-lg liquid-glass` card of 64px rows (`py-3` around a 40px
+ * icon tile, then a title and a description line). Enough rows to fill a
+ * phone screen; the real list runs on below the fold.
  */
-const MenuGroupCardSkeleton = () => (
-  <div className="rounded-ds-lg bg-card shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] min-h-[78px] p-3 flex flex-col items-center justify-center gap-2">
-    <Skeleton className="w-9 h-9 rounded-ds-md" />
-    <Skeleton className="h-3 w-12 rounded-md" />
+const SettingsListSkeleton = () => (
+  <div className="space-y-4">
+    <div>
+      <div className="px-1 pb-1.5 h-[21px] flex items-center">
+        <Skeleton className="h-2.5 w-12 rounded-md" />
+      </div>
+      <div className="rounded-ds-lg liquid-glass overflow-hidden">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex items-center gap-3.5 pl-4 pr-3.5 py-3">
+            <Skeleton className="w-10 h-10 rounded-ds-md shrink-0" />
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <Skeleton className="h-3 w-1/3 rounded-md" />
+              <Skeleton className="h-2.5 w-2/3 rounded-md" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   </div>
 );
 
@@ -142,34 +171,47 @@ const MenuGroupCardSkeleton = () => (
  * The landing's PAGE TITLE, as bones.
  *
  * The landing renders a real `<PageHeader>`, so its skeleton carries the
- * same title row; without it the identity card would paint 75px higher than
- * the screen that replaces it.
+ * same title row; without it the identity card would paint higher than the
+ * screen that replaces it.
  *
  * Horizontally the bar starts on the column edge, like the real title (the
  * owner's "line up with the card", 2026-09-25): no back slot is reserved.
  * The vertical values (`--shell-gap` on phone, `sm:pt-6 sm:pb-6`) are copied from
- * PageHeader's "equal air above and below" block; `h-7` is the measured height
- * of a rendered `.text-page-title` (27px at 1440, 25px at 375).
+ * PageHeader's "equal air above and below" block. The bar's height is the
+ * title's own line box, `--headline-hero` x `.text-page-title`'s 1.1
+ * line-height (25px at 375, 27px at 1440), so it is exact at every width; a
+ * fixed `h-7` made the row 52px against the real 49 at 375.
+ *
+ * `-mb-3 lg:-mb-4` is the landing's own (ProfileLanding.tsx): it cancels the
+ * column gap under the title so the air below it equals the air above.
  */
 const LandingTitleSkeleton = () => (
-  <div className="pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6 flex items-center gap-3">
-    <Skeleton className="h-7 w-44 rounded-md" />
+  <div className="-mb-3 lg:-mb-4">
+    <div className="pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6 flex items-center gap-3">
+      <Skeleton className="h-[calc(var(--headline-hero)*1.1)] w-44 rounded-md" />
+    </div>
   </div>
 );
 
 /**
- * Full Profile-page skeleton — page title + identity hero + 3-up menu grid.
- * Bottom action row is intentionally omitted; the top + bottom nav are
- * rendered solid by the shell so they appear instantly.
+ * Full Profile-landing skeleton: the landing's column, child for child.
+ *
+ * ProfileLanding renders into Profile.tsx's `flex flex-col gap-3 lg:gap-4`
+ * column: title, identity card, the "Finish setting up" row, the settings
+ * list. This draws the same four children with the same gap, so each bone
+ * holds the slot its content lands in.
+ *
+ * The setup row is CONDITIONAL in the real landing (it disappears once payout
+ * and identity are both done); the bone is always drawn, because whether it
+ * shows is not known until the profile and the Stripe status load, and the
+ * state every new member starts in is "something left to set up". A finished
+ * account sees the list rise 64px on load.
  */
 export const ProfilePageSkeleton = () => (
-  <div className="space-y-3">
+  <div className="flex flex-col gap-3 lg:gap-4">
     <LandingTitleSkeleton />
-    <IdentityHeroSkeleton />
-    <div className="grid grid-cols-3 gap-2.5">
-      <MenuGroupCardSkeleton />
-      <MenuGroupCardSkeleton />
-      <MenuGroupCardSkeleton />
-    </div>
+    <IdentityCardSkeleton />
+    <Skeleton className="h-[52px] rounded-ds-md" />
+    <SettingsListSkeleton />
   </div>
 );

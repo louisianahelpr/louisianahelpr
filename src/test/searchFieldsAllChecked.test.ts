@@ -144,7 +144,7 @@ function specRunsBothWidthsAndEngines(spec: string) {
 
 describe("every search field is driven in a real browser (inventory minus checked = empty)", () => {
   it("the source inventory is what it is (exact counts, both directions)", () => {
-    // 12 search fields in 12 files; 6 render a ✕; 3 expanding header searches.
+    // Measured 2026-10-01: 12 search fields in 12 files; 6 render a ✕; 3 expanding header searches.
     expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(12);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",

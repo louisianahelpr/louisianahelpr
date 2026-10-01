@@ -132,4 +132,4 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
 // @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={TAB_TITLES[tab]} onBack={onBack} /> |
 // @mutate src/components/profile/ProfileTabFallback.tsx | setReserve(Math.max(0, Math.round(window.innerHeight - top))); | setReserve(118);
 // Size to content: a shaped tab falling back to the screenful is the 236-678px collapse again.
-// @mutate src/components/profile/ProfileTabFallback.tsx | const shape = tab ? TAB_SHAPES[tab] : undefined; | const shape = undefined as Block[] | undefined;
+// @mutate src/components/profile/ProfileTabFallback.tsx | const shape = tab ? TAB_SHAPES[tab] : undefined; | const shape = undefined as Block[] \| undefined;

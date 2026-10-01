@@ -71,7 +71,7 @@ export function SavedHelperCard({
     // that is correct link behaviour, not a regression.
     <div
       key={h.helper_id}
-      className="relative rounded-2xl liquid-glass p-card space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className="relative rounded-2xl liquid-glass p-card grid gap-2.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
       {/* The stretched link. `inset-0` + the card's own `rounded-2xl` so the
           hit area and the focus ring both match the card exactly. It has no
@@ -91,12 +91,15 @@ export function SavedHelperCard({
           instead of below it. When the column is taller than the avatar (name +
           history + skills) the two are identical, so nothing moves on a full
           card. */}
-      {/* `!mt-0` because the stretched link above is now the card's FIRST
-          child, so `space-y-2.5` would otherwise start putting 10px on this
-          row (it used to be first and got none). The link is out of flow, so
-          that margin would be pure regression — the card gets 10px taller and
-          everything under the avatar drops. Measured before/after: identical. */}
-      <div className="flex items-center gap-3 !mt-0">
+      {/* The card is a GRID (owner, 2026-10-01: "move offer a job to the right
+          along the same line as the name and the heart and note up too").
+          From md up: avatar + name in column 1, the action row (Offer a Job,
+          note, heart) in column 2 on the SAME row, the note spanning both
+          below. Under md the 375 card is 277px wide and that row alone needs
+          ~230px, so it stays stacked: name, note, actions — the DOM order.
+          The stretched link is absolutely positioned, so it takes no cell.
+          e2e/prod-audit/saved-helper-row.spec.ts measures both widths. */}
+      <div className="flex items-center gap-3 md:col-start-1 md:row-start-1">
         {/* Migrated onto the shared `UserAvatar` (2026-08-31). This card used
             to hand-roll both halves and got both wrong: a bare `<img>` with no
             error path at all — so a deleted storage object rendered an empty
@@ -193,7 +196,7 @@ export function SavedHelperCard({
           17px line of tertiary text. That affordance now lives in the action
           row below, where a 44px row already exists and it costs nothing. */}
       {(isEditingNote || hasNote) && (
-      <div className={isEditingNote ? "relative z-10" : undefined}>
+      <div className={isEditingNote ? "relative z-10 md:col-span-2 md:row-start-2" : "md:col-span-2 md:row-start-2"}>
         {isEditingNote ? (
           <div
             className="rounded-ds-md p-2.5 space-y-2"
@@ -271,7 +274,7 @@ export function SavedHelperCard({
           overflows its own box instead of wrapping or erroring. */}
       {/* `relative z-10` — same reason as the note block above: these three
           controls have to sit over the stretched link, not under it. */}
-      <div className="relative z-10 flex items-center gap-2">
+      <div className="relative z-10 flex items-center gap-2 md:col-start-2 md:row-start-1">
         <Button
           variant="primary"
           size="sm"

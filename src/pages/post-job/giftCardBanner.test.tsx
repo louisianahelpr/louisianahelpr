@@ -2,6 +2,8 @@
  * The gift card banner lives at the top of Post a Job, not on /home, and its
  * X dismisses it for this set of gifts (owner, 2026-10-01: "remove it from
  * /home, put it at the top of Post a Job, add an x on the right side").
+ * Shown able to fail: with the dismissed check dropped, the X and private-mode tests red.
+ * @mutate src/pages/post-job/GiftCardTeaser.tsx | if (count <= 0 || dismissed === signature) return null; | if (count <= 0) return null;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";

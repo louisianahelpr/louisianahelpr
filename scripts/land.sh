@@ -6,18 +6,18 @@
 #   bash scripts/land.sh --no-wait  # open/refresh the PR with auto-merge, don't wait
 #   (--pr is accepted and ignored: the PR path is the only path.)
 #
-# Q44 (owner, 2026-09-27; strict confirmed 2026-09-30): main is protected with
-# required checks, strict (up to date with main) and enforce_admins, so a
+# Q44 (owner, 2026-09-27; strict turned off by the owner 2026-09-30): main is protected
+# with required checks and enforce_admins (not strict), so a
 # direct push to main is refused. Nothing reaches main that has not passed
-# Vitest, Test, Vacuity and the two Playwright checks against the latest main.
+# Vitest, Test, Vacuity and the two Playwright checks.
 # Why: main Vitest went red on 12 of 16 finished runs on 2026-09-30 and 37 on
 # 2026-09-27, every time from a direct --no-verify push that skipped a check.
 #
 # The PR path: push the verified HEAD to land/<branch>-<worktree hash> (force:
 # it is this worktree's own branch), open a PR if none is open, turn on
 # auto-merge with REBASE (not squash: a squash rewrites the messages and drops
-# per-commit Sensitive-Review trailers), then wait. Strict protection needs the
-# branch up to date, so when main moves first (mergeStateStatus BEHIND) this
+# per-commit Sensitive-Review trailers), then wait. Strict is off, but the
+# script still keeps the branch current: when main moves first (BEHIND) it
 # loops: fetch, rebase, refresh, re-run the guards, force-push. A failed check
 # stops the script red with the check names. The work is landed only when the
 # PR shows MERGED.

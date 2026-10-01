@@ -44,7 +44,7 @@ const stores = new Map<string, UnreadStore>();
 
 function openStore(userId: string): UnreadStore {
   const store: UnreadStore = {
-    count: readCachedUnread(),
+    count: readCachedUnread(userId),
     listeners: new Set(),
     publish: (n) => {
       store.count = n;
@@ -99,7 +99,7 @@ function openStore(userId: string): UnreadStore {
         !isArchived(userId, m.job_id ?? "", m.sender_id ?? "", m.created_at),
     ).length;
     store.publish(next);
-    writeCachedUnread(next);
+    writeCachedUnread(userId, next);
   };
 
   loadCounts();
@@ -135,7 +135,7 @@ export function useNavUnreadCount(user: User | null | undefined) {
   // no flicker-to-0 while the live query resolves. The shared store's live
   // query overwrites this on success and also writes back to the cache so
   // the next session is up to date.
-  const [unreadCount, setUnreadCount] = useState<number>(() => readCachedUnread());
+  const [unreadCount, setUnreadCount] = useState<number>(() => readCachedUnread(user?.id));
 
   useEffect(() => {
     if (!user) return;
@@ -198,7 +198,7 @@ export function useNavUnreadCount(user: User | null | undefined) {
     if (!user) return;
     const prevCount = unreadCount;
     setSharedCount(0);
-    writeCachedUnread(0);
+    writeCachedUnread(user.id, 0);
     const { error } = await supabase
       .from("messages")
       .update({ read: true })
@@ -207,7 +207,7 @@ export function useNavUnreadCount(user: User | null | undefined) {
     if (error) {
       // Roll the badge back so the user sees the unread state honestly.
       setSharedCount(prevCount);
-      writeCachedUnread(prevCount);
+      writeCachedUnread(user.id, prevCount);
       toast.error("Couldn't mark messages read — give it another try.");
       return;
     }

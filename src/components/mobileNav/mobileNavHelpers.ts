@@ -13,13 +13,25 @@ import { safeStorage } from "@/lib/safeStorage";
  * prefix) so the badge doesn't flicker to 0 on a cold start with no network.
  * The number is re-validated as soon as the live query lands, but the
  * cached value is what paints on the FIRST frame.
+ *
+ * ONE PER ACCOUNT: the key is "<base>:<userId>". A global key painted one
+ * account's unread count on the next account to sign in on the device until
+ * a live read succeeded (owner report 2026-10-01; guarded by
+ * src/test/countCachesArePerUser.test.tsx).
  */
 const UNREAD_CACHE_KEY = "helpr_nav_unread_count";
 
-/** Read the cached unread count, defaulting to 0 if missing/malformed. */
-export function readCachedUnread(): number {
+/** Read this user's cached unread count; 0 with no user or a missing/malformed
+ *  value. Also drops the pre-2026-10-01 global key (best-effort). */
+export function readCachedUnread(userId?: string | null): number {
   try {
-    const raw = safeStorage.getItem(UNREAD_CACHE_KEY);
+    if (safeStorage.getItem(UNREAD_CACHE_KEY) !== null) safeStorage.removeItem(UNREAD_CACHE_KEY);
+  } catch {
+    /* best-effort */
+  }
+  if (!userId) return 0;
+  try {
+    const raw = safeStorage.getItem(`${UNREAD_CACHE_KEY}:${userId}`);
     if (!raw) return 0;
     const n = Number.parseInt(raw, 10);
     return Number.isFinite(n) && n >= 0 ? n : 0;
@@ -28,9 +40,9 @@ export function readCachedUnread(): number {
   }
 }
 
-export function writeCachedUnread(n: number) {
+export function writeCachedUnread(userId: string, n: number) {
   try {
-    safeStorage.setItem(UNREAD_CACHE_KEY, String(Math.max(0, n)));
+    safeStorage.setItem(`${UNREAD_CACHE_KEY}:${userId}`, String(Math.max(0, n)));
   } catch {
     /* best-effort */
   }

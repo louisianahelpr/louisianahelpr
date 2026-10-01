@@ -37,14 +37,27 @@ import { safeStorage } from "@/lib/safeStorage";
  * on a hidden page. src/test/hotQueryLoad.test.ts pins all three.
  */
 
-const POSTS_CACHE_KEY = "helpr_nav_posts_count";
-const JOBS_CACHE_KEY = "helpr_nav_jobs_count";
+/**
+ * Durable first-frame cache, ONE PER ACCOUNT. These were global keys
+ * ("helpr_nav_posts_count"), so a count written while one account was signed
+ * in painted on the next account to sign in on the same device, and stayed
+ * there whenever that account's live read errored (an errored read never
+ * overwrites the cache). Owner report 2026-10-01: Posts badge "1" on an
+ * account with no posted jobs. The key is now "<base>:<userId>";
+ * src/test/countCachesArePerUser.test.tsx guards the class.
+ */
+const CACHE_KEYS = {
+  posts: "helpr_nav_posts_count",
+  jobs: "helpr_nav_jobs_count",
+} as const;
+type CacheKind = keyof typeof CACHE_KEYS;
 
 const BADGE_REFRESH_DEBOUNCE_MS = 400;
 
-function readCached(key: string): number {
+function readCached(kind: CacheKind, userId: string | undefined): number {
+  if (!userId) return 0;
   try {
-    const raw = safeStorage.getItem(key);
+    const raw = safeStorage.getItem(`${CACHE_KEYS[kind]}:${userId}`);
     if (!raw) return 0;
     const n = Number.parseInt(raw, 10);
     return Number.isFinite(n) && n >= 0 ? n : 0;
@@ -53,11 +66,24 @@ function readCached(key: string): number {
   }
 }
 
-function writeCached(key: string, n: number) {
+function writeCached(kind: CacheKind, userId: string, n: number) {
   try {
-    safeStorage.setItem(key, String(Math.max(0, n)));
+    safeStorage.setItem(`${CACHE_KEYS[kind]}:${userId}`, String(Math.max(0, n)));
   } catch {
     /* best-effort */
+  }
+}
+
+/** Drop the pre-2026-10-01 global keys (best-effort; safeStorage.removeItem
+ *  clears the Capacitor Preferences mirror too, so hydrate() cannot bring
+ *  them back). */
+function clearLegacyGlobalCache() {
+  for (const key of Object.values(CACHE_KEYS)) {
+    try {
+      if (safeStorage.getItem(key) !== null) safeStorage.removeItem(key);
+    } catch {
+      /* best-effort */
+    }
   }
 }
 
@@ -83,8 +109,9 @@ function isHidden(): boolean {
 }
 
 function openStore(userId: string): BadgeStore {
+  clearLegacyGlobalCache();
   const store: BadgeStore = {
-    counts: { postsCount: readCached(POSTS_CACHE_KEY), jobsCount: readCached(JOBS_CACHE_KEY) },
+    counts: { postsCount: readCached("posts", userId), jobsCount: readCached("jobs", userId) },
     listeners: new Set(),
     close: () => {},
   };
@@ -132,14 +159,14 @@ function openStore(userId: string): BadgeStore {
                 if (fallbackError) return;
                 const next = fallbackCount || 0;
                 publish({ postsCount: next });
-                writeCached(POSTS_CACHE_KEY, next);
+                writeCached("posts", userId, next);
               });
           }
           return;
         }
         const next = count || 0;
         publish({ postsCount: next });
-        writeCached(POSTS_CACHE_KEY, next);
+        writeCached("posts", userId, next);
       });
 
     // Direct offers extended to me, still awaiting my response. Via the RPC,
@@ -152,7 +179,7 @@ function openStore(userId: string): BadgeStore {
       if (error) return;
       const next = data?.length || 0;
       publish({ jobsCount: next });
-      writeCached(JOBS_CACHE_KEY, next);
+      writeCached("jobs", userId, next);
     });
   };
 
@@ -222,8 +249,8 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
   // Seed from the durable cache so a cold start with no network still
   // paints the last-known counts on the first frame (no flicker-to-0).
   const [counts, setCounts] = useState<ActivityBadgeCounts>(() => ({
-    postsCount: readCached(POSTS_CACHE_KEY),
-    jobsCount: readCached(JOBS_CACHE_KEY),
+    postsCount: readCached("posts", userId),
+    jobsCount: readCached("jobs", userId),
   }));
 
   useEffect(() => {

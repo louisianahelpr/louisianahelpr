@@ -274,7 +274,15 @@ export async function urlOwnership(session, url, owners) {
 // test-mode probe, not ownership, not the shared-SEED rule. (The eight
 // "[PRESS DO NOT ACCEPT]" drafts beside them were gated only by luck: their
 // title contains "accept".)
-export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit)\b/i;
+// `set up payouts` / `stripe` / `(finish|complete|start) verification`: run
+// 36784893957 (2026-09-30, Stripe LIVE) pressed "Set Up Payouts with Stripe" on
+// /profile?tab=earnings for BOTH shared accounts with NO gate — `\bpayout\b`
+// stops at "Payouts" and nothing in it is DESTRUCTIVE_RX — and stripe-connect
+// `onboard` created live Connect accounts acct_1ULXMy3ISOxM8qBC (poster) and
+// acct_1ULXMw40YhFTkeRO (helper). Bare "payouts" stays OUT on purpose: the
+// "Payouts" tab and "Export Payouts CSV" are reads. The network backstop
+// (isStripeWriteRequest) catches any Stripe-writing label this still misses.
+export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit|set up payouts|stripe|(?:finish|complete|start) verification)\b/i;
 /** Labels that would destroy or lock the SHARED test account. Never pressed. */
 export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my )?account|delete profile|request deletion|erase my data)\b/i;
 /**
@@ -378,7 +386,14 @@ export const SELF_ROUTE_RX = /^\/(profile|post-job|support|complete-profile|post
 export const SKIP_DESTROY = "would destroy or lock the shared test account";
 export const SKIP_SESSION_END = "ends the session this sharded run is driving (a sign-out revokes the other shards too)";
 export const SKIP_STRIPE = "payment control — Stripe is not in TEST mode";
-export const SKIP_ADMIN = "admin action without a seed test target";
+/**
+ * The network backstop's reason: the press reached an edge function that
+ * writes to Stripe while Stripe is not in TEST mode. The request is aborted
+ * before it leaves the browser and the control is reported SKIPPED (never
+ * PASS, never dropped), whatever its label said.
+ */
+export const SKIP_STRIPE_WRITE_BLOCKED = "writes to Stripe — Stripe is not in TEST mode (request aborted in the browser; control not counted as pressed)";
+export const SKIP_ADMIN ="admin action without a seed test target";
 export const SKIP_ACCOUNT_SETTING = "flips a setting on a SHARED test account (every other sweep renders with it)";
 export const SKIP_SHARED_SEED = "shared SEED fixture (test-owned, but other sweeps depend on it; the run's own fixture covers the action)";
 export const SKIP_NOT_OWNED_URL = "not test-owned (mutating control; target is not a test-account record)";
@@ -696,4 +711,61 @@ async function unwindJob(s, j) {
   if (r.ok && r.removed === 1) return { ok: true, note: "deleted" };
   const c = await fetch(`${base}/rest/v1/rpc/poster_cancel_job`, { method: "POST", headers: headers(s), body: JSON.stringify({ p_job_id: j.id, p_reason: "press-every-control teardown" }) });
   return { ok: c.ok, note: `delete matched ${r.removed} rows (HTTP ${r.status}); poster_cancel_job HTTP ${c.status}` };
+}
+
+/**
+ * Edge functions whose source calls a Stripe write (create / update / del /
+ * cancel / capture / confirm / login link / external-account delete / pay /
+ * finalizeInvoice). Derived two-way from supabase/functions by
+ * src/test/pressNeverWritesToLiveStripe.test.ts: a new Stripe-writing
+ * function fails that test until it is listed here or in STRIPE_WRITE_EXEMPT.
+ * Server-only ones (crons, the webhook) are listed too so the list is exactly
+ * the derived set; the browser never calls them, so listing them costs nothing.
+ */
+export const STRIPE_WRITE_FUNCTIONS = new Set([
+  "admin-delete-user", // purgeAccount → subscriptions.cancel
+  "auto-tip-charge",
+  "cleanup-abandoned-accounts", // purgeAccount
+  "cash-out-credits",
+  "charge-recurring-visits",
+  "create-bgc-payment",
+  "create-boost-payment",
+  "create-gift-card-checkout",
+  "create-payment",
+  "create-pro-checkout",
+  "delete-own-account", // purgeAccount → subscriptions.cancel
+  "execute-dispute-split",
+  "instant-payout",
+  "pay-onboarding-fee",
+  "pro-customer-portal",
+  "process-scheduled-payouts",
+  "release-payout",
+  "stripe-connect",
+  "stripe-idv-start",
+  "stripe-webhook",
+  "void-cancelled-payments",
+]);
+
+/** Stripe-writing functions the press may still reach on live, and why. */
+// @two-way src/test/pressNeverWritesToLiveStripe.test.ts:expect([...blocked, ...exempt].sort()).toEqual(derived)
+export const STRIPE_WRITE_EXEMPT = {
+  "calculate-tax": "stateless tax quote (stripe.tax.calculations.create: no account, customer or charge is created); fires on page load, so blocking it would fail unrelated presses",
+  "export-my-data": "imports only listAllObjects (a storage read) from _shared/accountPurge.ts, never purgeAccount",
+};
+
+/** stripe-connect actions that only READ from Stripe. Every other action writes. */
+export const STRIPE_CONNECT_READ_ACTIONS = new Set(["status", "list_payout_methods"]);
+
+/**
+ * Does this browser request make the app write to Stripe? `url` is the full
+ * request URL, `body` its POST data (string or null). An unparseable body or
+ * an unknown stripe-connect action counts as a write (fail closed).
+ */
+export function isStripeWriteRequest(url, body) {
+  const m = /\/functions\/v1\/([a-z0-9-]+)/.exec(String(url ?? ""));
+  if (!m || !STRIPE_WRITE_FUNCTIONS.has(m[1])) return false;
+  if (m[1] !== "stripe-connect") return true;
+  let action = null;
+  try { action = JSON.parse(body ?? "{}")?.action ?? null; } catch { action = null; }
+  return !STRIPE_CONNECT_READ_ACTIONS.has(action);
 }

@@ -368,11 +368,12 @@ const CASES: Array<{
     // The fixture carries both proof photos, so the capture chip is absent —
     // the row is legitimately three. Its companion above pins the other side.
     // Q366: SOS is in the Helpr's row from arrival to completion, as on the
-    // poster's card, so the ceiling counts it.
-    name: "Jobs · Arrived (Start Working + SOS · Message · Report a Problem)",
+    // poster's card, so the ceiling counts it. SOS, Report a Problem and
+    // Dispute now share the row's one More menu: Message · More · Start Working.
+    name: "Jobs · Arrived (Start Working + Message · More with SOS and Report a Problem)",
     render: active(makeJob({ ...VERIFIED, poster_confirmed_working_at: null }), "arrived"),
-    minControls: 4,
-    maxControls: 4,
+    minControls: 3,
+    maxControls: 3,
     primary: ["Start Working"],
   },
   {
@@ -389,8 +390,8 @@ const CASES: Array<{
        narrower here and nowhere else. */
     name: "Jobs · Arrived, unverified arrival (Start Working alone — no retry chip)",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
-    minControls: 4,
-    maxControls: 4,
+    minControls: 3,
+    maxControls: 3,
     primary: ["Start Working"],
   },
   {
@@ -406,12 +407,13 @@ const CASES: Array<{
     /* THE CAPTURE IS IN THE ROW NOW (owner, 2026-09-19: "before and after
        buttons should also be on the same lines as the other buttons"). It was
        a titled panel with a full-width "Add Photo" button in the `ask` slot
-       ABOVE the row — the block in the owner's screenshot. Four controls, not
-       three: After Photo · Message · Report a Problem + the disabled primary. */
+       ABOVE the row — the block in the owner's screenshot. Four controls:
+       Message · After Photo · More (Report a Problem, Dispute and SOS) + the
+       disabled primary. */
     name: "Jobs · Working, after photo still owed (After Photo chip IN the row, disabled Mark Job Complete)",
     render: active(makeJob({ ...VERIFIED, proof_after_urls: [] }), "working"),
-    minControls: 5,
-    maxControls: 5,
+    minControls: 4,
+    maxControls: 4,
     primary: ["Mark Job Complete"],
   },
   {

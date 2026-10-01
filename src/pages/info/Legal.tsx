@@ -489,25 +489,19 @@ const Legal = () => {
   // is where the labels-still-fit claim above finally became true: at 320 they
   // did not fit and had not for as long as the row existed (see `tabBar`).
   //
-  // WHY THIS IS NOT ScreenHeaderRow's `expandingSearch.narrowTitleStepsAside`,
-  // which solves the same arithmetic on Activity. That prop hides the VISIBLE
-  // TWIN OF AN `sr-only` h1 — the row keeps its heading, a screen-reader user
-  // still hears where they are, and nothing is lost but a duplicate label. It
-  // acts on `title`. This row has no title at all: its leading content is the
-  // Terms/Rules/Privacy tab group, which `ScreenHeaderRow` would take as
-  // `leading` — a slot documented as content that STAYS beside the field, with
-  // `shrink-0` the caller's job. Pointing that prop at this row would either do
-  // nothing (no title to hide) or, if `leading` were made to obey it, hide
-  // NAVIGATION rather than a duplicate. The behaviour is shared; the prop
-  // cannot be, and the justification is different too — the tabs may go
-  // because search renders all three policies at once, not because something
-  // else is still announcing them.
+  // WHY THIS IS NOT ScreenHeaderRow's `expandingSearch.narrowFieldWraps`,
+  // which solves the same arithmetic on Activity and Messages by moving the
+  // field to its own line under the page title (owner, 2026-10-01: search must
+  // not cover the page title). This row is not a ScreenHeaderRow and holds no
+  // title: "Legal" is in the PageHeader above it, untouched by search. Its
+  // leading content is the Terms/Rules/Privacy tab group, which may step aside
+  // because search renders all three policies at once — the tab selection is
+  // inert exactly when the field is up.
   const controlRow = (
     <div className="flex items-center gap-2 p-1 sm:gap-4">
       {/* THE TAB GROUP STEPS ASIDE WHILE THE FIELD IS OPEN, BELOW 500px.
-          Same behaviour as PostsHeader's `narrowTitleStepsAside`, reached by
-          the same arithmetic — but not the same prop; see below for why it
-          cannot be.
+          Reached by the same arithmetic as PostsHeader's open row, but a
+          different answer: see above for why the tabs, not a title, yield.
 
           ── WHAT THIS ROW ACTUALLY HAD, MEASURED AT 320 ───────────────────
           tabs 107px · field 107px. 107px of tab for three labels needing

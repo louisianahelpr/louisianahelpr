@@ -14,8 +14,10 @@
  * So this presses the way a person aiming at the top stroke does: 30% down the
  * glyph, holds, reads the rect while :active, then releases. The ✕ must not
  * move, and the press must act (field closed, or emptied where the ✕ clears).
- * Inventory: the six search clear-Xs in src/test/pressKeepsTranslate.test.ts,
- * which derives the list from source and fails when it drifts.
+ * It also asserts the ✕ is centred in its field (|centre offset| < 1px).
+ * Inventory: src/test/searchFieldsAllChecked.test.ts derives every search
+ * field with a ✕ from source and fails unless each has a surface here at 375
+ * and 1440 (BrowseSearchBar twice: the phone /home bar and the desktop strip).
  *
  * Run: PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit search-x-off-center-press
  */
@@ -25,6 +27,8 @@ import { test, expect, webkit, type Browser } from "../prodTest";
 import { getSession, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 
+const SHOTS = process.env.LH_SEARCH_SHOTS;
+
 let poster: Session;
 test.beforeAll(async ({ request }) => {
   poster = await getSession(request, "poster");
@@ -32,25 +36,37 @@ test.beforeAll(async ({ request }) => {
 
 const CLOSE = 'button[aria-label="Close search"]';
 
-const SURFACES: { name: string; url: string; trigger: string; field: string; close: string; minWidth?: number }[] = [
-  { name: "jobs", url: "/jobs", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]', close: CLOSE },
-  { name: "posts", url: "/posts", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]', close: CLOSE },
+/** `file` is the component that renders the field and its ✕. The inventory
+ * guard (src/test/searchFieldsAllChecked.test.ts) scans src for every search
+ * field with a ✕ and fails unless each file has a surface here at 375 AND at
+ * 1440 — inventory minus checked is empty. */
+const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; close: string; minWidth?: number; maxWidth?: number }[] = [
   {
-    name: "saved-helprs",
+    name: "browse-phone", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
+    url: "/home",
+    trigger: "[data-search-trigger]",
+    field: 'input[aria-label="Search jobs"]',
+    close: CLOSE,
+    maxWidth: 899,
+  },
+  { name: "jobs", file: "src/pages/jobs/JobsHeader.tsx", url: "/jobs", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]', close: CLOSE },
+  { name: "posts", file: "src/pages/posts/PostsHeader.tsx", url: "/posts", trigger: "[data-search-trigger]", field: 'input[aria-label="Search jobs"]', close: CLOSE },
+  {
+    name: "saved-helprs", file: "src/components/profile/SavedHelpersTab.tsx",
     url: "/profile?tab=saved_helpers",
     trigger: 'button[aria-label="Search saved Helprs"]',
     field: 'input[aria-label="Search saved Helprs"]',
     close: CLOSE,
   },
   {
-    name: "messages",
+    name: "messages", file: "src/components/messages/ConversationList.tsx",
     url: "/messages",
     trigger: "[data-search-trigger]",
     field: 'input[aria-label="Search conversations"]',
     close: CLOSE,
   },
   {
-    name: "browse-desktop-strip",
+    name: "browse-desktop-strip", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
     url: "/home",
     trigger: "[data-feed-strip] [data-search-trigger]",
     field: '[data-feed-strip] input[aria-label="Search jobs"]',
@@ -58,7 +74,7 @@ const SURFACES: { name: string; url: string; trigger: string; field: string; clo
     minWidth: 900,
   },
   {
-    name: "legal",
+    name: "legal", file: "src/pages/info/Legal.tsx",
     url: "/legal",
     trigger: 'button[aria-label="Search all policies"]',
     field: 'input[aria-label="Search all policies"]',
@@ -71,6 +87,7 @@ for (const engine of ["chromium", "webkit"] as const) {
     for (const s of SURFACES) {
       test(`${s.name}: an off-centre press on the ✕ acts and the ✕ stays put @${vw} ${engine}`, async ({ browser: def }, info) => {
         test.skip(!!s.minWidth && vw < s.minWidth, `${s.name} does not render at ${vw}`);
+        test.skip(!!s.maxWidth && vw > s.maxWidth, `${s.name} does not render at ${vw}`);
         test.setTimeout(120_000);
         const browser: Browser = engine === "chromium" ? def : await webkit.launch();
         const ctx = await browser.newContext({
@@ -102,6 +119,11 @@ for (const engine of ["chromium", "webkit"] as const) {
           const x = page.locator(s.close).first();
           const rest = await x.boundingBox();
           expect(rest, `${s.name}: no ✕ in the open field — nothing was pressed`).not.toBeNull();
+          // CENTRED: the ✕'s vertical centre is the field's (owner, 2026-10-01:
+          // "check the x's on the search bars globally").
+          const fb = (await field.boundingBox())!;
+          const centreOff = rest!.y + rest!.height / 2 - (fb.y + fb.height / 2);
+          if (SHOTS) await page.screenshot({ path: `${SHOTS}/x-${s.name}-${vw}-${engine}-open.png` });
           // A person aiming at the X's top stroke: 30% down the glyph.
           await page.mouse.move(rest!.x + rest!.width / 2, rest!.y + rest!.height * 0.3);
           await page.mouse.down();
@@ -111,11 +133,12 @@ for (const engine of ["chromium", "webkit"] as const) {
           await page.waitForTimeout(600);
           const stillOpen = await field.count();
           const value = stillOpen ? await field.inputValue() : "";
-          const msg = `${s.name}@${vw} ${engine}: rest y ${rest!.y.toFixed(2)}, pressed y ${pressed?.y.toFixed(2)}, field open after ${stillOpen}, value "${value}"`;
+          const msg = `${s.name}@${vw} ${engine}: ✕ centre off field centre ${centreOff.toFixed(2)}px, rest y ${rest!.y.toFixed(2)}, pressed y ${pressed?.y.toFixed(2)}, field open after ${stillOpen}, value "${value}"`;
           info.annotations.push({ type: "press", description: msg });
           console.log(msg);
           // :active scales 0.97 about the centre, so y moves by ~0.4px; a
           // replaced translate moves it by half its height.
+          expect(Math.abs(centreOff), `${msg} — the ✕ is not centred in its field`).toBeLessThan(1);
           expect(Math.abs((pressed?.y ?? Infinity) - rest!.y), `${msg} — the ✕ moved while pressed`).toBeLessThan(1);
           expect(stillOpen === 0 || value === "", `${msg} — the press did nothing`).toBe(true);
         } finally {

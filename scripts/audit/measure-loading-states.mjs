@@ -574,6 +574,24 @@ async function measureOne(context, { url, persona }) {
     result.loadedPng = loadedPng;
     result.loaded = loaded;
 
+    // The page can ALSO leave the route between the two frames: the loading
+    // frame is this route's guard placeholder and the "loaded" frame is the
+    // page it redirected to. finalUrl above is read before the content wait,
+    // so it never saw that. Measured 2026-10-01: customer /account-banned
+    // (a member who is not banned) painted AuthShell's card, was sent to
+    // /home, and the Home feed was scored as the card's real content
+    // (256px → 714px). Comparing two different pages is not a measurement
+    // of either, so it is reported as a redirect, not graded.
+    const loadedUrl = page.url().replace(BASE, "");
+    if (new URL(loadedUrl, BASE).pathname !== new URL(result.finalUrl, BASE).pathname) {
+      result.status = "redirected";
+      result.note = `left the route between frames: ${result.finalUrl} → ${loadedUrl}`;
+      result.finalUrl = loadedUrl;
+      await page.close().catch(() => {});
+      writeNet();
+      return result;
+    }
+
     const totalShift = (loaded?.shifts ?? []).reduce((a, s) => a + s.v, 0);
     result.clsTotal = +totalShift.toFixed(4);
     result.clsDuringSwap = +(totalShift - result.shiftsAtLoading).toFixed(4);

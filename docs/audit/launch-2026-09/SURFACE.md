@@ -23,14 +23,14 @@ reports coverage against THIS file, not against the route list.
 | Toast messages | **call site** | 565 (across 141 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 17 |
 | Multi-step flows — probable | flow | 15 |
-| Back/next navigation only | flow | 40 |
+| Back/next navigation only | flow | 38 |
 | Forms (submittable) | form | 41 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 108 |
 | Email templates | **exported template** | 19 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **453** |
+| **Navigable surfaces** (places a person can stand) | mixed | **451** |
 | **Copy surfaces** (strings a person may read) | mixed | **602** |
-| **Total auditable surface** | mixed | **1055** |
+| **Total auditable surface** | mixed | **1053** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -389,8 +389,6 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/ProfileRouteSkeleton.tsx` | nav-handler |
 | `src/hooks/useDeleteAccount.ts` | nav-handler |
 | `src/pages/info/Legal.tsx` | nav-handler |
-| `src/pages/post-job/CheckoutStepIndicator.tsx` | nav-handler |
-| `src/pages/post-job/CheckoutStepView.tsx` | nav-handler |
 | `src/pages/post-job/useJobEntry.ts` | nav-handler |
 | `src/pages/post-job/useJobSubmit.ts` | nav-handler |
 | `src/pages/posts/postedJobs/ApplicantsPanel.tsx` | nav-handler |

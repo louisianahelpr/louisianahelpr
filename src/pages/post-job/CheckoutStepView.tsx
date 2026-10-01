@@ -1,5 +1,4 @@
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
-import { CheckoutStepIndicator } from "./CheckoutStepIndicator";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface CheckoutStepViewProps {
@@ -10,9 +9,10 @@ interface CheckoutStepViewProps {
  * STEP 2: order summary / checkout. Thin wrapper that wires the
  * usePostJobForm state into the existing CheckoutStep component.
  *
- * A two-step rail at the top makes it visible that the form (step 1) is
- * still tappable to go back. Without this, the only way back from the
- * checkout was the page-header arrow, which the user often missed.
+ * A DETAILS → REVIEW AND PAY step rail (CheckoutStepIndicator) used to sit
+ * at the top. Removed on owner instruction (2026-10-01: "Remove detail and
+ * review and pay at the top"); the page-header arrow is the way back to the
+ * form. It was the indicator's only consumer, so the component went with it.
  *
  * The `gift*` props are load-bearing, not decoration: without them this screen
  * quoted the full budget + service fee + tax while create-payment settled the
@@ -22,7 +22,6 @@ interface CheckoutStepViewProps {
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
   return (
     <div key="checkout-step" className="space-y-section animate-ds-page-in">
-      <CheckoutStepIndicator onBackToForm={() => form.setStep("form")} />
       {/* The PostingQualityMeter ("Post quality: Good 73%" + a checklist) used
           to sit here. Removed on owner instruction: this is the pay screen, and
           grading the post at the moment of payment asks the poster to go back
@@ -71,7 +70,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         uploading={form.uploading}
         uploadProgress={form.uploadProgress}
         onSubmit={form.handleSubmit}
-        parish={form.parish}
       />
     </div>
   );

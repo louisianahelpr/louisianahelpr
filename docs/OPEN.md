@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 230** (173 to do, 57 fixed with protection pending; 432 done). Feeds mirrored in: 30 from the alert ledger, 15 from nightly-red issues, 8 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 231** (174 to do, 57 fixed with protection pending; 432 done). Feeds mirrored in: 30 from the alert ledger, 15 from nightly-red issues, 8 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 9 red, 8 stale, 1 unknown, 47 green of 65 — [SCOREBOARD](SCOREBOARD.md). _(2026-09-30T23:41Z)_
 - **Remote branches:** 30 carry patches not on main, 0 fully merged, of 31 (Q79). _(2026-09-30T23:41Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 662 items — 432 done, 57 partly done (fixed, protection pending), 173 open.**
+**Queue: 663 items — 432 done, 57 partly done (fixed, protection pending), 174 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1703,3 +1703,4 @@ Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02
 - [ ] **Q775 `chromium` request-budget label is uncalibrated (split from Q385, 2026-09-27).** e2e-real-backend.yml passes `--label chromium` to 5 jobs (authenticated journeys, money loop and others, lines 226/302/391/510/641) with three different per-test shapes (21.0/test vs 39.5/test measured), and e2e/request-budgets.json has `"chromium": {}`, so no perTest/signIns ceiling applies. Give each job its own label and calibrate from a green run.
 - [ ] **Q776 press-every-control run 36297439015: 542 req/min over the 400 ceiling, and its residue was not swept (no SUPABASE_ACCESS_TOKEN in that job).** Found by lane B 2026-09-27 from the run's own log. Pace the press to the ceiling (as Q382 did for journeys) and give the sweep step the secret or a sweep that needs none.
 - [~] **Q852 prod-audit fixtures under LIVE Stripe (nightly-red #1754, 2026-09-30).** Since the 2026-09-27 switch, `retireFundedJob` called cancel_escrow on test-funded seed job 36eebad4 (500 "No such payment_intent … exists in test mode, but a live mode key was used") every run, and `fund()` would open a checkout that can no longer take 4242. FIXED (harness only): the mode is read from the minted Checkout Session prefix (`stripeModeFromCheckoutUrl`); in live/unknown mode a fixture that needs paying is a JUSTIFIED skip naming the owner decision 2026-09-27 "nightly skips pay steps in live mode" (e2e/skipAllowlist.ts), taken before the checkout page opens; cs_test_ rows are neither reused nor retired ("pre-live test-mode fixture, not refundable with the live key"; 36eebad4 + 9 is_seed escrow rows 09-19..09-23 stay untouched). GUARD: src/test/fundedOpenJobPlan.test.ts "Stripe LIVE" block (4 of its tests red on the pre-fix planner). Left: planDisputedJob relies on the fund() guard only; the 10 pre-live escrow rows need a decision (refund with the test key, or leave). done-when: issue #1754 closed
+- [ ] **Q888 prod-audit holds the shared test accounts for up to 180 minutes; split it under 60 (found 2026-10-01 splitting press-every-control into six 57-minute legs).** Every other job that takes `prod-lifecycle-shared-accounts` now holds it for at most 60 minutes (press legs 57, e2e-journeys 60, slow-network 30). prod-audit's one job runs the whole prod-audit project, led by messy-input.spec.ts, and its measured max (100 min x 1.8) is why its timeout is 180. done-when: prod-audit's locked job(s) have timeout-minutes <= 60 (split messy-input.spec.ts or the project across lock-holding legs, each with its own clean-up), and the ALLOWED entry for `prod-audit.yml:prod-audit` is deleted. Guard: src/test/sharedAccountLockJobsAreShort.test.ts (ALLOWED is exact and two-way, so the entry must go in the same commit that splits the job).

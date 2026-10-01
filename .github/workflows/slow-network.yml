@@ -61,7 +61,7 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the longest holder (press) is 330.
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
     timeout-minutes: 350
     permissions:
       actions: read
@@ -83,7 +83,9 @@ jobs:
     needs: [preflight, wait-accounts]
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts);
+    # the last 10 runs measured 3.1-7.3 min (2026-09-30).
+    timeout-minutes: 30
     concurrency:
       group: prod-lifecycle-shared-accounts
       cancel-in-progress: false

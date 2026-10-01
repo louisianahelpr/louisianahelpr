@@ -23,7 +23,7 @@ permissions:
 #   - payment presses only while Stripe is in TEST mode (cs_test_ on a real
 #     Checkout Session, as e2e/prod-lifecycle.spec.ts detects it)
 #   - the run creates its own fixture job and cleans up everything it made;
-#     the final job here sweeps again after every shard, even on failure
+#     every leg restores and sweeps again after its own shards, even on failure
 #
 # FAILS on: any failed press, or any control that was neither pressed nor
 # skipped for a DOCUMENTED reason (DOCUMENTED_SKIPS in the script). Coverage
@@ -64,7 +64,7 @@ concurrency:
   # per group, so a dispatch parked in prod-load was cancelled by the next
   # suite to queue there, e.g. run 36215841191 at 03:46Z on 2026-09-26).
   #
-  # The ACCOUNT lock is the press job's job-level
+  # The ACCOUNT lock is each press leg's job-level
   # `prod-lifecycle-shared-accounts` group below, the one every job that drives
   # the shared test accounts holds (docs/OPEN.md Q326;
   # src/test/sharedAccountJobsHoldOneLock.test.ts). Until 2026-09-26 this
@@ -81,16 +81,16 @@ env:
   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
 
 jobs:
-  wait-accounts:
-    # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
+  wait-1:
+    # Q743: the job-level lock on each leg is NOT a queue. GitHub keeps ONE pending job
     # per concurrency group and CANCELS it when a third arrives (press 36297157445,
     # e2e-journeys 36215839785 / 36215921402 / 36217255758). This lock-free job
     # waits its turn first and joins the group only when that bumps nobody
     # (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountLockQueues.test.ts).
-    name: Wait for the shared accounts (queue)
+    name: Wait for the shared accounts (queue, leg 1)
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the longest holder (press) is 330.
-    timeout-minutes: 350
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350 # waiter, leg 1
     permissions:
       actions: read
       contents: read
@@ -106,19 +106,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-  press:
-    name: Press every control (4 shards, 2 at a time, 375, prod)
-    needs: [wait-accounts]
+  press-1:
+    name: Press every control (leg 1 of 6, shards 1 and 2, 375, prod)
+    needs: [wait-1]
+    if: ${{ !cancelled() && needs.wait-1.result == 'success' }}
     runs-on: ubuntu-latest
-    # ONE job for the whole run, so it holds the account lock from the
-    # snapshot to the restore (Q326) and nothing else can touch the accounts
-    # between the two (Q272). The shards run in two WAVES of two
-    # (scripts/audit/press-wave.sh): the Q317 load ceiling, which the old
-    # matrix held with `max-parallel: 2`. Each shard stops itself at
-    # TIME_BUDGET_MIN (Q128), so two waves take at most 2 x 135 min plus
-    # set-up, snapshot and restore; 330 leaves ~40 min of slack and stays under
-    # GitHub's 360-minute job limit.
-    timeout-minutes: 330
+    # One LEG of the run (2026-10-01): the run is 6 legs of two shards, each
+    # its own job holding the account lock for under an hour
+    # (src/test/sharedAccountLockJobsAreShort.test.ts). The single 330-minute
+    # press job (Q326) parked every other prod suite behind it for ~4.5 h (run
+    # 36697559350). Each leg takes its OWN snapshot before its shards and
+    # restores + sweeps after them (Q272/Q325), because other suites may use
+    # the accounts between legs. Two shards side by side is the Q317 load
+    # ceiling (scripts/audit/press-wave.sh). Each shard stops itself at
+    # TIME_BUDGET_MIN (Q128); set-up measured ~1.5 min and a 135-min wave
+    # overran its budget by ~1 min (run 36697559350), so 45 plus restore and
+    # residue fits inside 57. 12 shards x 45 = the old 4 x 135.
+    # The shards claim rows from ONE queue across the legs (#1582): each leg
+    # hands the rows claimed so far to the next as the press-queue-leg-N artifact.
+    timeout-minutes: 57 # press leg 1
     concurrency:
       group: prod-lifecycle-shared-accounts
       cancel-in-progress: false
@@ -128,12 +134,12 @@ jobs:
       ROUTES: ${{ github.event.inputs.routes }}
       PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
       RUN_BASE: ${{ github.run_id }}
-      # The run-level "before" of every shared account (Q272/Q325). Taken once,
-      # before the first shard; the only thing any restore reads.
-      SNAPSHOT_IN: test-results/press-snapshot.json
-      # Q128: each shard stops itself inside the wave and reports the rows it
-      # did not reach, instead of being cancelled with no report.
-      TIME_BUDGET_MIN: "135"
+      # This leg's "before" of every shared account (Q272/Q325): taken before
+      # its first shard; the only thing its restore reads.
+      SNAPSHOT_IN: test-results/press-snapshot-leg-1.json
+      # Q128: each shard stops itself inside the wave and reports (or hands on)
+      # the rows it did not reach, instead of being cancelled with no report.
+      TIME_BUDGET_MIN: "45" # leg 1
       PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
       PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
       PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
@@ -142,8 +148,8 @@ jobs:
       PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
       # The restore signs in as every persona the presses used, so the job
       # carries every persona's credentials (src/test/pressCleanupPersonas.test.ts).
-      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona
-      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona, leg 1
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona, leg 1
 
     steps:
       - name: Checkout
@@ -200,61 +206,45 @@ jobs:
         with:
           supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
-      - name: Snapshot the shared accounts (run-level, before any shard)
+      - name: Snapshot the shared accounts (leg 1, before its shards)
         id: snapshot
         # Records the clean-up window's start too: everything created after
-        # this moment is the run's own, whichever shard made it.
+        # this moment is this leg's own, whichever shard made it.
         run: |
           set -euo pipefail
           mkdir -p test-results
-          echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV" # leg 1
           SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
 
-      - name: Press every control (wave 1, shards 1 and 2)
-        id: wave1
-        # #1582: shards claim rows from one queue; wave 1 hands what it could
-        # not reach to wave 2 instead of reporting it.
+      - name: Press every control (leg 1, shards 1 and 2)
+        if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
+        # #1582: shards claim rows from one queue; an earlier leg hands the rows
+        # it could not reach to the next leg instead of reporting them.
         env:
           PRESS_LAST_WAVE: "0"
         run: bash scripts/audit/press-wave.sh 1 2
 
-      - name: Press every control (wave 2, shards 3 and 4)
-        id: wave2
-        # A red wave 1 still leaves shards 3-4 unpressed; run them, but only
-        # on top of a snapshot (nothing could be restored without one).
-        if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
-        env:
-          PRESS_LAST_WAVE: "1"
-        run: bash scripts/audit/press-wave.sh 3 4
-
       # Whatever a shard created and could not remove itself (a shard that
-      # stopped mid-press) is swept here, on every outcome, and THIS is the one
-      # restore of the run (Q272): profiles and the weekly availability grid go
-      # back to the run-level snapshot (Q325). Same RLS-scoped clean-up the
-      # script runs at each shard's end.
-      - name: Restore the shared accounts and sweep what the presses created
+      # stopped mid-press) is swept here, on every outcome, and THIS is the
+      # leg's restore (Q272): profiles and the weekly availability grid go back
+      # to the leg's snapshot (Q325). Same RLS-scoped clean-up the script runs
+      # at each shard's end.
+      - name: Restore the shared accounts and sweep what leg 1 created
         id: restore
         if: always()
         env:
-          OUT: test-results/press-every-control-cleanup
+          OUT: test-results/press-every-control-cleanup/leg-1
         run: |
           set -euo pipefail
           if [ ! -f "$SNAPSHOT_IN" ]; then
-            echo "::error title=press restore::no run-level snapshot ($SNAPSHOT_IN); nothing to restore from"
+            echo "::error title=press restore::no leg snapshot ($SNAPSHOT_IN); nothing to restore from"
             exit 1
           fi
+          mkdir -p "$OUT"
           # The snapshot step wrote PRESS_STARTED_AT before any shard began.
           # If it never ran there is no snapshot either, and the line above failed.
-          echo "CLEANUP_SINCE=$PRESS_STARTED_AT"
+          echo "leg 1: CLEANUP_SINCE=$PRESS_STARTED_AT"
           CLEANUP_SINCE="$PRESS_STARTED_AT" node scripts/audit/press-every-control.mjs
-
-      # Each shard meters into its own directory (press-wave.sh sets
-      # REQUEST_BUDGET_DIR); the budget judges the RUN, all four summed. Per
-      # shard it could not be two-way: the split moves rows between shards,
-      # one shard measured 7859-32839 (nightly-red #1582). Not on cancel.
-      - name: Backend request budget (Q104), whole run
-        if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-1 --dir request-budget/shard-2 --dir request-budget/shard-3 --dir request-budget/shard-4
 
       # The poster's own teardown CANNOT remove a fixture job it had to cancel:
       # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE
@@ -297,41 +287,1334 @@ jobs:
           # teardown bug a8d75d3b3 fixed, on is_seed jobs made before that fix
           # ONLY; a real job, or a seed job made since, still fails here.
           SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
-            node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z
+            node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z # leg 1
+
       - name: Shred the key
         if: always()
         run: rm -f .env
 
+      # upload-artifact drops empty directories and a claimed row IS an empty
+      # directory (claimRow's mkdir), so the queue travels as a tar.
+      - name: Pack the row queue for the next leg (leg 1)
+        if: always()
+        run: |
+          mkdir -p test-results/press-queue
+          tar -C test-results -cf test-results/press-queue-leg-1.tar press-queue
+      - name: Upload the row queue (leg 1)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-queue-leg-1
+          path: test-results/press-queue-leg-1.tar
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 1)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-every-control-leg-1
+          path: |
+            test-results/press-every-control/
+            test-results/press-every-control-cleanup/
+            test-results/press-snapshot-leg-1.json
+            request-budget/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  wait-2:
+    # Queues for leg 2 only after leg 1 has let go of the lock, so other
+    # prod suites can take it between legs (YIELDS_BETWEEN_LEGS in
+    # scripts/e2e/wait-shared-accounts.mjs). Runs whatever leg 1's result:
+    # a red leg must not leave these shards unpressed.
+    name: Wait for the shared accounts (queue, leg 2)
+    needs: [press-1]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350 # waiter, leg 2
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  press-2:
+    name: Press every control (leg 2 of 6, shards 3 and 4, 375, prod)
+    needs: [wait-2]
+    if: ${{ !cancelled() && needs.wait-2.result == 'success' }}
+    runs-on: ubuntu-latest
+    # Same shape as press-1 (see there): own snapshot, two shards, own restore.
+    timeout-minutes: 57 # press leg 2
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      BASE: http://127.0.0.1:4173
+      WIDTH: "375"
+      ROUTES: ${{ github.event.inputs.routes }}
+      PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
+      RUN_BASE: ${{ github.run_id }}
+      # This leg's "before" of every shared account (Q272/Q325): taken before
+      # its first shard; the only thing its restore reads.
+      SNAPSHOT_IN: test-results/press-snapshot-leg-2.json
+      # Q128: each shard stops itself inside the wave and reports (or hands on)
+      # the rows it did not reach, instead of being cancelled with no report.
+      TIME_BUDGET_MIN: "45" # leg 2
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # The restore signs in as every persona the presses used, so the job
+      # carries every persona's credentials (src/test/pressCleanupPersonas.test.ts).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona, leg 2
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona, leg 2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Drop the Google Chrome apt source
+        # See e2e-happy-path.yml — dl.google.com's index breaks apt-get update.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Write .env (service-role key for session minting; never printed)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" > .env
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): personas that cannot be minted go UNCOVERED,
+            # and a run that did not press them is not a green run.
+            echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
+          echo ".env written ($(wc -l < .env) lines)"
+
+      # Real backend, LOCAL frontend: the shared action every frontend suite
+      # uses (src/test/noTestTrafficOnVercel.test.ts), same build as before.
+      - name: Build and serve this commit locally (prod VITE_* env)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      # #1582: the rows earlier legs claimed, so these shards take the rest.
+      # Missing (an earlier leg died before uploading) = those rows are pressed
+      # again, never skipped.
+      - name: Fetch the row queue the earlier legs claimed (leg 2)
+        id: queue_in
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: press-queue-leg-*
+          merge-multiple: true
+          path: test-results/press-queue-in
+      - name: Unpack the row queue (leg 2)
+        env:
+          QUEUE_IN: ${{ steps.queue_in.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "$QUEUE_IN" != "success" ]; then echo "::warning::leg 2: no row queue from the earlier legs ($QUEUE_IN); their rows are pressed again"; fi
+          mkdir -p test-results
+          for t in test-results/press-queue-in/press-queue-leg-*.tar; do
+            if [ -f "$t" ]; then tar -C test-results -xf "$t"; fi
+          done
+          echo "rows already claimed: $(find test-results/press-queue -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l)"
+
+      - name: Snapshot the shared accounts (leg 2, before its shards)
+        id: snapshot
+        # Records the clean-up window's start too: everything created after
+        # this moment is this leg's own, whichever shard made it.
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV" # leg 2
+          SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
+
+      - name: Press every control (leg 2, shards 3 and 4)
+        if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
+        # #1582: shards claim rows from one queue; an earlier leg hands the rows
+        # it could not reach to the next leg instead of reporting them.
+        env:
+          PRESS_LAST_WAVE: "0"
+        run: bash scripts/audit/press-wave.sh 3 4
+
+      # Whatever a shard created and could not remove itself (a shard that
+      # stopped mid-press) is swept here, on every outcome, and THIS is the
+      # leg's restore (Q272): profiles and the weekly availability grid go back
+      # to the leg's snapshot (Q325). Same RLS-scoped clean-up the script runs
+      # at each shard's end.
+      - name: Restore the shared accounts and sweep what leg 2 created
+        id: restore
+        if: always()
+        env:
+          OUT: test-results/press-every-control-cleanup/leg-2
+        run: |
+          set -euo pipefail
+          if [ ! -f "$SNAPSHOT_IN" ]; then
+            echo "::error title=press restore::no leg snapshot ($SNAPSHOT_IN); nothing to restore from"
+            exit 1
+          fi
+          mkdir -p "$OUT"
+          # The snapshot step wrote PRESS_STARTED_AT before any shard began.
+          # If it never ran there is no snapshot either, and the line above failed.
+          echo "leg 2: CLEANUP_SINCE=$PRESS_STARTED_AT"
+          CLEANUP_SINCE="$PRESS_STARTED_AT" node scripts/audit/press-every-control.mjs
+
+      # The poster's own teardown CANNOT remove a fixture job it had to cancel:
+      # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE
+      # in the allowed matrix) and the DELETE policy requires `status = 'open'`.
+      # 26 such rows had accumulated by 2026-09-19, one per shard per night.
+      # This is the service-role pass that can remove them, scoped to the
+      # "PRESS DO NOT ACCEPT" title marker + the shared test accounts +
+      # is_seed=true, with a 50-row cap (scripts/e2e/prod-audit-sweeper.mjs).
+      - name: Remove the cancelled fixture jobs, then check every proof-photo reference resolves
+        id: residue
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): this step also runs the proof-photo reference
+            # CHECK; skipping it green meant the check silently never ran.
+            echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          # Exit 1 = a real problem (over the cap, or a delete failed): red, loudly.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/e2e/prod-audit-sweeper.mjs
+          # CLASS CHECK for the 400 POST /object/sign/proof-photos/… stream this
+          # workflow's own run 35768341847 produced: a jobs row naming an object
+          # storage does not have. READ-ONLY, and it belongs here because this is
+          # the workflow that surfaces it — it presses the screens that sign those
+          # paths. Exit 1 = a dangling reference; the nightly-red job below files
+          # it. Same $KEY, same masked shell, shredded in the next step.
+          # --repair-seed-before (#1582, Q389(a)): clears the residue of the
+          # teardown bug a8d75d3b3 fixed, on is_seed jobs made before that fix
+          # ONLY; a real job, or a seed job made since, still fails here.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z # leg 2
+
+      - name: Shred the key
+        if: always()
+        run: rm -f .env
+
+      # upload-artifact drops empty directories and a claimed row IS an empty
+      # directory (claimRow's mkdir), so the queue travels as a tar.
+      - name: Pack the row queue for the next leg (leg 2)
+        if: always()
+        run: |
+          mkdir -p test-results/press-queue
+          tar -C test-results -cf test-results/press-queue-leg-2.tar press-queue
+      - name: Upload the row queue (leg 2)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-queue-leg-2
+          path: test-results/press-queue-leg-2.tar
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 2)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-every-control-leg-2
+          path: |
+            test-results/press-every-control/
+            test-results/press-every-control-cleanup/
+            test-results/press-snapshot-leg-2.json
+            request-budget/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  wait-3:
+    # Queues for leg 3 only after leg 2 has let go of the lock, so other
+    # prod suites can take it between legs (YIELDS_BETWEEN_LEGS in
+    # scripts/e2e/wait-shared-accounts.mjs). Runs whatever leg 2's result:
+    # a red leg must not leave these shards unpressed.
+    name: Wait for the shared accounts (queue, leg 3)
+    needs: [press-2]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350 # waiter, leg 3
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  press-3:
+    name: Press every control (leg 3 of 6, shards 5 and 6, 375, prod)
+    needs: [wait-3]
+    if: ${{ !cancelled() && needs.wait-3.result == 'success' }}
+    runs-on: ubuntu-latest
+    # Same shape as press-1 (see there): own snapshot, two shards, own restore.
+    timeout-minutes: 57 # press leg 3
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      BASE: http://127.0.0.1:4173
+      WIDTH: "375"
+      ROUTES: ${{ github.event.inputs.routes }}
+      PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
+      RUN_BASE: ${{ github.run_id }}
+      # This leg's "before" of every shared account (Q272/Q325): taken before
+      # its first shard; the only thing its restore reads.
+      SNAPSHOT_IN: test-results/press-snapshot-leg-3.json
+      # Q128: each shard stops itself inside the wave and reports (or hands on)
+      # the rows it did not reach, instead of being cancelled with no report.
+      TIME_BUDGET_MIN: "45" # leg 3
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # The restore signs in as every persona the presses used, so the job
+      # carries every persona's credentials (src/test/pressCleanupPersonas.test.ts).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona, leg 3
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona, leg 3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Drop the Google Chrome apt source
+        # See e2e-happy-path.yml — dl.google.com's index breaks apt-get update.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Write .env (service-role key for session minting; never printed)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" > .env
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): personas that cannot be minted go UNCOVERED,
+            # and a run that did not press them is not a green run.
+            echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
+          echo ".env written ($(wc -l < .env) lines)"
+
+      # Real backend, LOCAL frontend: the shared action every frontend suite
+      # uses (src/test/noTestTrafficOnVercel.test.ts), same build as before.
+      - name: Build and serve this commit locally (prod VITE_* env)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      # #1582: the rows earlier legs claimed, so these shards take the rest.
+      # Missing (an earlier leg died before uploading) = those rows are pressed
+      # again, never skipped.
+      - name: Fetch the row queue the earlier legs claimed (leg 3)
+        id: queue_in
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: press-queue-leg-*
+          merge-multiple: true
+          path: test-results/press-queue-in
+      - name: Unpack the row queue (leg 3)
+        env:
+          QUEUE_IN: ${{ steps.queue_in.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "$QUEUE_IN" != "success" ]; then echo "::warning::leg 3: no row queue from the earlier legs ($QUEUE_IN); their rows are pressed again"; fi
+          mkdir -p test-results
+          for t in test-results/press-queue-in/press-queue-leg-*.tar; do
+            if [ -f "$t" ]; then tar -C test-results -xf "$t"; fi
+          done
+          echo "rows already claimed: $(find test-results/press-queue -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l)"
+
+      - name: Snapshot the shared accounts (leg 3, before its shards)
+        id: snapshot
+        # Records the clean-up window's start too: everything created after
+        # this moment is this leg's own, whichever shard made it.
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV" # leg 3
+          SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
+
+      - name: Press every control (leg 3, shards 5 and 6)
+        if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
+        # #1582: shards claim rows from one queue; an earlier leg hands the rows
+        # it could not reach to the next leg instead of reporting them.
+        env:
+          PRESS_LAST_WAVE: "0"
+        run: bash scripts/audit/press-wave.sh 5 6
+
+      # Whatever a shard created and could not remove itself (a shard that
+      # stopped mid-press) is swept here, on every outcome, and THIS is the
+      # leg's restore (Q272): profiles and the weekly availability grid go back
+      # to the leg's snapshot (Q325). Same RLS-scoped clean-up the script runs
+      # at each shard's end.
+      - name: Restore the shared accounts and sweep what leg 3 created
+        id: restore
+        if: always()
+        env:
+          OUT: test-results/press-every-control-cleanup/leg-3
+        run: |
+          set -euo pipefail
+          if [ ! -f "$SNAPSHOT_IN" ]; then
+            echo "::error title=press restore::no leg snapshot ($SNAPSHOT_IN); nothing to restore from"
+            exit 1
+          fi
+          mkdir -p "$OUT"
+          # The snapshot step wrote PRESS_STARTED_AT before any shard began.
+          # If it never ran there is no snapshot either, and the line above failed.
+          echo "leg 3: CLEANUP_SINCE=$PRESS_STARTED_AT"
+          CLEANUP_SINCE="$PRESS_STARTED_AT" node scripts/audit/press-every-control.mjs
+
+      # The poster's own teardown CANNOT remove a fixture job it had to cancel:
+      # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE
+      # in the allowed matrix) and the DELETE policy requires `status = 'open'`.
+      # 26 such rows had accumulated by 2026-09-19, one per shard per night.
+      # This is the service-role pass that can remove them, scoped to the
+      # "PRESS DO NOT ACCEPT" title marker + the shared test accounts +
+      # is_seed=true, with a 50-row cap (scripts/e2e/prod-audit-sweeper.mjs).
+      - name: Remove the cancelled fixture jobs, then check every proof-photo reference resolves
+        id: residue
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): this step also runs the proof-photo reference
+            # CHECK; skipping it green meant the check silently never ran.
+            echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          # Exit 1 = a real problem (over the cap, or a delete failed): red, loudly.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/e2e/prod-audit-sweeper.mjs
+          # CLASS CHECK for the 400 POST /object/sign/proof-photos/… stream this
+          # workflow's own run 35768341847 produced: a jobs row naming an object
+          # storage does not have. READ-ONLY, and it belongs here because this is
+          # the workflow that surfaces it — it presses the screens that sign those
+          # paths. Exit 1 = a dangling reference; the nightly-red job below files
+          # it. Same $KEY, same masked shell, shredded in the next step.
+          # --repair-seed-before (#1582, Q389(a)): clears the residue of the
+          # teardown bug a8d75d3b3 fixed, on is_seed jobs made before that fix
+          # ONLY; a real job, or a seed job made since, still fails here.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z # leg 3
+
+      - name: Shred the key
+        if: always()
+        run: rm -f .env
+
+      # upload-artifact drops empty directories and a claimed row IS an empty
+      # directory (claimRow's mkdir), so the queue travels as a tar.
+      - name: Pack the row queue for the next leg (leg 3)
+        if: always()
+        run: |
+          mkdir -p test-results/press-queue
+          tar -C test-results -cf test-results/press-queue-leg-3.tar press-queue
+      - name: Upload the row queue (leg 3)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-queue-leg-3
+          path: test-results/press-queue-leg-3.tar
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 3)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-every-control-leg-3
+          path: |
+            test-results/press-every-control/
+            test-results/press-every-control-cleanup/
+            test-results/press-snapshot-leg-3.json
+            request-budget/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  wait-4:
+    # Queues for leg 4 only after leg 3 has let go of the lock, so other
+    # prod suites can take it between legs (YIELDS_BETWEEN_LEGS in
+    # scripts/e2e/wait-shared-accounts.mjs). Runs whatever leg 3's result:
+    # a red leg must not leave these shards unpressed.
+    name: Wait for the shared accounts (queue, leg 4)
+    needs: [press-3]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350 # waiter, leg 4
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  press-4:
+    name: Press every control (leg 4 of 6, shards 7 and 8, 375, prod)
+    needs: [wait-4]
+    if: ${{ !cancelled() && needs.wait-4.result == 'success' }}
+    runs-on: ubuntu-latest
+    # Same shape as press-1 (see there): own snapshot, two shards, own restore.
+    timeout-minutes: 57 # press leg 4
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      BASE: http://127.0.0.1:4173
+      WIDTH: "375"
+      ROUTES: ${{ github.event.inputs.routes }}
+      PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
+      RUN_BASE: ${{ github.run_id }}
+      # This leg's "before" of every shared account (Q272/Q325): taken before
+      # its first shard; the only thing its restore reads.
+      SNAPSHOT_IN: test-results/press-snapshot-leg-4.json
+      # Q128: each shard stops itself inside the wave and reports (or hands on)
+      # the rows it did not reach, instead of being cancelled with no report.
+      TIME_BUDGET_MIN: "45" # leg 4
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # The restore signs in as every persona the presses used, so the job
+      # carries every persona's credentials (src/test/pressCleanupPersonas.test.ts).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona, leg 4
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona, leg 4
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Drop the Google Chrome apt source
+        # See e2e-happy-path.yml — dl.google.com's index breaks apt-get update.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Write .env (service-role key for session minting; never printed)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" > .env
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): personas that cannot be minted go UNCOVERED,
+            # and a run that did not press them is not a green run.
+            echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
+          echo ".env written ($(wc -l < .env) lines)"
+
+      # Real backend, LOCAL frontend: the shared action every frontend suite
+      # uses (src/test/noTestTrafficOnVercel.test.ts), same build as before.
+      - name: Build and serve this commit locally (prod VITE_* env)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      # #1582: the rows earlier legs claimed, so these shards take the rest.
+      # Missing (an earlier leg died before uploading) = those rows are pressed
+      # again, never skipped.
+      - name: Fetch the row queue the earlier legs claimed (leg 4)
+        id: queue_in
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: press-queue-leg-*
+          merge-multiple: true
+          path: test-results/press-queue-in
+      - name: Unpack the row queue (leg 4)
+        env:
+          QUEUE_IN: ${{ steps.queue_in.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "$QUEUE_IN" != "success" ]; then echo "::warning::leg 4: no row queue from the earlier legs ($QUEUE_IN); their rows are pressed again"; fi
+          mkdir -p test-results
+          for t in test-results/press-queue-in/press-queue-leg-*.tar; do
+            if [ -f "$t" ]; then tar -C test-results -xf "$t"; fi
+          done
+          echo "rows already claimed: $(find test-results/press-queue -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l)"
+
+      - name: Snapshot the shared accounts (leg 4, before its shards)
+        id: snapshot
+        # Records the clean-up window's start too: everything created after
+        # this moment is this leg's own, whichever shard made it.
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV" # leg 4
+          SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
+
+      - name: Press every control (leg 4, shards 7 and 8)
+        if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
+        # #1582: shards claim rows from one queue; an earlier leg hands the rows
+        # it could not reach to the next leg instead of reporting them.
+        env:
+          PRESS_LAST_WAVE: "0"
+        run: bash scripts/audit/press-wave.sh 7 8
+
+      # Whatever a shard created and could not remove itself (a shard that
+      # stopped mid-press) is swept here, on every outcome, and THIS is the
+      # leg's restore (Q272): profiles and the weekly availability grid go back
+      # to the leg's snapshot (Q325). Same RLS-scoped clean-up the script runs
+      # at each shard's end.
+      - name: Restore the shared accounts and sweep what leg 4 created
+        id: restore
+        if: always()
+        env:
+          OUT: test-results/press-every-control-cleanup/leg-4
+        run: |
+          set -euo pipefail
+          if [ ! -f "$SNAPSHOT_IN" ]; then
+            echo "::error title=press restore::no leg snapshot ($SNAPSHOT_IN); nothing to restore from"
+            exit 1
+          fi
+          mkdir -p "$OUT"
+          # The snapshot step wrote PRESS_STARTED_AT before any shard began.
+          # If it never ran there is no snapshot either, and the line above failed.
+          echo "leg 4: CLEANUP_SINCE=$PRESS_STARTED_AT"
+          CLEANUP_SINCE="$PRESS_STARTED_AT" node scripts/audit/press-every-control.mjs
+
+      # The poster's own teardown CANNOT remove a fixture job it had to cancel:
+      # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE
+      # in the allowed matrix) and the DELETE policy requires `status = 'open'`.
+      # 26 such rows had accumulated by 2026-09-19, one per shard per night.
+      # This is the service-role pass that can remove them, scoped to the
+      # "PRESS DO NOT ACCEPT" title marker + the shared test accounts +
+      # is_seed=true, with a 50-row cap (scripts/e2e/prod-audit-sweeper.mjs).
+      - name: Remove the cancelled fixture jobs, then check every proof-photo reference resolves
+        id: residue
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): this step also runs the proof-photo reference
+            # CHECK; skipping it green meant the check silently never ran.
+            echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          # Exit 1 = a real problem (over the cap, or a delete failed): red, loudly.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/e2e/prod-audit-sweeper.mjs
+          # CLASS CHECK for the 400 POST /object/sign/proof-photos/… stream this
+          # workflow's own run 35768341847 produced: a jobs row naming an object
+          # storage does not have. READ-ONLY, and it belongs here because this is
+          # the workflow that surfaces it — it presses the screens that sign those
+          # paths. Exit 1 = a dangling reference; the nightly-red job below files
+          # it. Same $KEY, same masked shell, shredded in the next step.
+          # --repair-seed-before (#1582, Q389(a)): clears the residue of the
+          # teardown bug a8d75d3b3 fixed, on is_seed jobs made before that fix
+          # ONLY; a real job, or a seed job made since, still fails here.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z # leg 4
+
+      - name: Shred the key
+        if: always()
+        run: rm -f .env
+
+      # upload-artifact drops empty directories and a claimed row IS an empty
+      # directory (claimRow's mkdir), so the queue travels as a tar.
+      - name: Pack the row queue for the next leg (leg 4)
+        if: always()
+        run: |
+          mkdir -p test-results/press-queue
+          tar -C test-results -cf test-results/press-queue-leg-4.tar press-queue
+      - name: Upload the row queue (leg 4)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-queue-leg-4
+          path: test-results/press-queue-leg-4.tar
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 4)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-every-control-leg-4
+          path: |
+            test-results/press-every-control/
+            test-results/press-every-control-cleanup/
+            test-results/press-snapshot-leg-4.json
+            request-budget/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  wait-5:
+    # Queues for leg 5 only after leg 4 has let go of the lock, so other
+    # prod suites can take it between legs (YIELDS_BETWEEN_LEGS in
+    # scripts/e2e/wait-shared-accounts.mjs). Runs whatever leg 4's result:
+    # a red leg must not leave these shards unpressed.
+    name: Wait for the shared accounts (queue, leg 5)
+    needs: [press-4]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350 # waiter, leg 5
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  press-5:
+    name: Press every control (leg 5 of 6, shards 9 and 10, 375, prod)
+    needs: [wait-5]
+    if: ${{ !cancelled() && needs.wait-5.result == 'success' }}
+    runs-on: ubuntu-latest
+    # Same shape as press-1 (see there): own snapshot, two shards, own restore.
+    timeout-minutes: 57 # press leg 5
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      BASE: http://127.0.0.1:4173
+      WIDTH: "375"
+      ROUTES: ${{ github.event.inputs.routes }}
+      PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
+      RUN_BASE: ${{ github.run_id }}
+      # This leg's "before" of every shared account (Q272/Q325): taken before
+      # its first shard; the only thing its restore reads.
+      SNAPSHOT_IN: test-results/press-snapshot-leg-5.json
+      # Q128: each shard stops itself inside the wave and reports (or hands on)
+      # the rows it did not reach, instead of being cancelled with no report.
+      TIME_BUDGET_MIN: "45" # leg 5
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # The restore signs in as every persona the presses used, so the job
+      # carries every persona's credentials (src/test/pressCleanupPersonas.test.ts).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona, leg 5
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona, leg 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Drop the Google Chrome apt source
+        # See e2e-happy-path.yml — dl.google.com's index breaks apt-get update.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Write .env (service-role key for session minting; never printed)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" > .env
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): personas that cannot be minted go UNCOVERED,
+            # and a run that did not press them is not a green run.
+            echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
+          echo ".env written ($(wc -l < .env) lines)"
+
+      # Real backend, LOCAL frontend: the shared action every frontend suite
+      # uses (src/test/noTestTrafficOnVercel.test.ts), same build as before.
+      - name: Build and serve this commit locally (prod VITE_* env)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      # #1582: the rows earlier legs claimed, so these shards take the rest.
+      # Missing (an earlier leg died before uploading) = those rows are pressed
+      # again, never skipped.
+      - name: Fetch the row queue the earlier legs claimed (leg 5)
+        id: queue_in
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: press-queue-leg-*
+          merge-multiple: true
+          path: test-results/press-queue-in
+      - name: Unpack the row queue (leg 5)
+        env:
+          QUEUE_IN: ${{ steps.queue_in.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "$QUEUE_IN" != "success" ]; then echo "::warning::leg 5: no row queue from the earlier legs ($QUEUE_IN); their rows are pressed again"; fi
+          mkdir -p test-results
+          for t in test-results/press-queue-in/press-queue-leg-*.tar; do
+            if [ -f "$t" ]; then tar -C test-results -xf "$t"; fi
+          done
+          echo "rows already claimed: $(find test-results/press-queue -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l)"
+
+      - name: Snapshot the shared accounts (leg 5, before its shards)
+        id: snapshot
+        # Records the clean-up window's start too: everything created after
+        # this moment is this leg's own, whichever shard made it.
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV" # leg 5
+          SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
+
+      - name: Press every control (leg 5, shards 9 and 10)
+        if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
+        # #1582: shards claim rows from one queue; an earlier leg hands the rows
+        # it could not reach to the next leg instead of reporting them.
+        env:
+          PRESS_LAST_WAVE: "0"
+        run: bash scripts/audit/press-wave.sh 9 10
+
+      # Whatever a shard created and could not remove itself (a shard that
+      # stopped mid-press) is swept here, on every outcome, and THIS is the
+      # leg's restore (Q272): profiles and the weekly availability grid go back
+      # to the leg's snapshot (Q325). Same RLS-scoped clean-up the script runs
+      # at each shard's end.
+      - name: Restore the shared accounts and sweep what leg 5 created
+        id: restore
+        if: always()
+        env:
+          OUT: test-results/press-every-control-cleanup/leg-5
+        run: |
+          set -euo pipefail
+          if [ ! -f "$SNAPSHOT_IN" ]; then
+            echo "::error title=press restore::no leg snapshot ($SNAPSHOT_IN); nothing to restore from"
+            exit 1
+          fi
+          mkdir -p "$OUT"
+          # The snapshot step wrote PRESS_STARTED_AT before any shard began.
+          # If it never ran there is no snapshot either, and the line above failed.
+          echo "leg 5: CLEANUP_SINCE=$PRESS_STARTED_AT"
+          CLEANUP_SINCE="$PRESS_STARTED_AT" node scripts/audit/press-every-control.mjs
+
+      # The poster's own teardown CANNOT remove a fixture job it had to cancel:
+      # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE
+      # in the allowed matrix) and the DELETE policy requires `status = 'open'`.
+      # 26 such rows had accumulated by 2026-09-19, one per shard per night.
+      # This is the service-role pass that can remove them, scoped to the
+      # "PRESS DO NOT ACCEPT" title marker + the shared test accounts +
+      # is_seed=true, with a 50-row cap (scripts/e2e/prod-audit-sweeper.mjs).
+      - name: Remove the cancelled fixture jobs, then check every proof-photo reference resolves
+        id: residue
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): this step also runs the proof-photo reference
+            # CHECK; skipping it green meant the check silently never ran.
+            echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          # Exit 1 = a real problem (over the cap, or a delete failed): red, loudly.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/e2e/prod-audit-sweeper.mjs
+          # CLASS CHECK for the 400 POST /object/sign/proof-photos/… stream this
+          # workflow's own run 35768341847 produced: a jobs row naming an object
+          # storage does not have. READ-ONLY, and it belongs here because this is
+          # the workflow that surfaces it — it presses the screens that sign those
+          # paths. Exit 1 = a dangling reference; the nightly-red job below files
+          # it. Same $KEY, same masked shell, shredded in the next step.
+          # --repair-seed-before (#1582, Q389(a)): clears the residue of the
+          # teardown bug a8d75d3b3 fixed, on is_seed jobs made before that fix
+          # ONLY; a real job, or a seed job made since, still fails here.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z # leg 5
+
+      - name: Shred the key
+        if: always()
+        run: rm -f .env
+
+      # upload-artifact drops empty directories and a claimed row IS an empty
+      # directory (claimRow's mkdir), so the queue travels as a tar.
+      - name: Pack the row queue for the next leg (leg 5)
+        if: always()
+        run: |
+          mkdir -p test-results/press-queue
+          tar -C test-results -cf test-results/press-queue-leg-5.tar press-queue
+      - name: Upload the row queue (leg 5)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-queue-leg-5
+          path: test-results/press-queue-leg-5.tar
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 5)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-every-control-leg-5
+          path: |
+            test-results/press-every-control/
+            test-results/press-every-control-cleanup/
+            test-results/press-snapshot-leg-5.json
+            request-budget/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  wait-6:
+    # Queues for leg 6 only after leg 5 has let go of the lock, so other
+    # prod suites can take it between legs (YIELDS_BETWEEN_LEGS in
+    # scripts/e2e/wait-shared-accounts.mjs). Runs whatever leg 5's result:
+    # a red leg must not leave these shards unpressed.
+    name: Wait for the shared accounts (queue, leg 6)
+    needs: [press-5]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350 # waiter, leg 6
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  press-6:
+    name: Press every control (leg 6 of 6, shards 11 and 12, 375, prod)
+    needs: [wait-6]
+    if: ${{ !cancelled() && needs.wait-6.result == 'success' }}
+    runs-on: ubuntu-latest
+    # Same shape as press-1 (see there): own snapshot, two shards, own restore.
+    timeout-minutes: 57 # press leg 6
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      BASE: http://127.0.0.1:4173
+      WIDTH: "375"
+      ROUTES: ${{ github.event.inputs.routes }}
+      PERSONAS: ${{ github.event.inputs.personas || 'anon,customer,helper,admin,incomplete' }}
+      RUN_BASE: ${{ github.run_id }}
+      # This leg's "before" of every shared account (Q272/Q325): taken before
+      # its first shard; the only thing its restore reads.
+      SNAPSHOT_IN: test-results/press-snapshot-leg-6.json
+      # Q128: each shard stops itself inside the wave and reports (or hands on)
+      # the rows it did not reach, instead of being cancelled with no report.
+      TIME_BUDGET_MIN: "45" # leg 6
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # The restore signs in as every persona the presses used, so the job
+      # carries every persona's credentials (src/test/pressCleanupPersonas.test.ts).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }} # swept persona, leg 6
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona, leg 6
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Drop the Google Chrome apt source
+        # See e2e-happy-path.yml — dl.google.com's index breaks apt-get update.
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Write .env (service-role key for session minting; never printed)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_URL" "$VITE_SUPABASE_PUBLISHABLE_KEY" > .env
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): personas that cannot be minted go UNCOVERED,
+            # and a run that did not press them is not a green run.
+            echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$KEY" >> .env
+          echo ".env written ($(wc -l < .env) lines)"
+
+      # Real backend, LOCAL frontend: the shared action every frontend suite
+      # uses (src/test/noTestTrafficOnVercel.test.ts), same build as before.
+      - name: Build and serve this commit locally (prod VITE_* env)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-publishable-key: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      # #1582: the rows earlier legs claimed, so these shards take the rest.
+      # Missing (an earlier leg died before uploading) = those rows are pressed
+      # again, never skipped.
+      - name: Fetch the row queue the earlier legs claimed (leg 6)
+        id: queue_in
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: press-queue-leg-*
+          merge-multiple: true
+          path: test-results/press-queue-in
+      - name: Unpack the row queue (leg 6)
+        env:
+          QUEUE_IN: ${{ steps.queue_in.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "$QUEUE_IN" != "success" ]; then echo "::warning::leg 6: no row queue from the earlier legs ($QUEUE_IN); their rows are pressed again"; fi
+          mkdir -p test-results
+          for t in test-results/press-queue-in/press-queue-leg-*.tar; do
+            if [ -f "$t" ]; then tar -C test-results -xf "$t"; fi
+          done
+          echo "rows already claimed: $(find test-results/press-queue -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l)"
+
+      - name: Snapshot the shared accounts (leg 6, before its shards)
+        id: snapshot
+        # Records the clean-up window's start too: everything created after
+        # this moment is this leg's own, whichever shard made it.
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          echo "PRESS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV" # leg 6
+          SNAPSHOT_OUT="$SNAPSHOT_IN" node scripts/audit/press-every-control.mjs
+
+      - name: Press every control (leg 6, shards 11 and 12)
+        if: ${{ !cancelled() && steps.snapshot.outcome == 'success' }}
+        # #1582: shards claim rows from one queue; the last leg reports every
+        # row nobody reached.
+        env:
+          PRESS_LAST_WAVE: "1"
+        run: bash scripts/audit/press-wave.sh 11 12
+
+      # Whatever a shard created and could not remove itself (a shard that
+      # stopped mid-press) is swept here, on every outcome, and THIS is the
+      # leg's restore (Q272): profiles and the weekly availability grid go back
+      # to the leg's snapshot (Q325). Same RLS-scoped clean-up the script runs
+      # at each shard's end.
+      - name: Restore the shared accounts and sweep what leg 6 created
+        id: restore
+        if: always()
+        env:
+          OUT: test-results/press-every-control-cleanup/leg-6
+        run: |
+          set -euo pipefail
+          if [ ! -f "$SNAPSHOT_IN" ]; then
+            echo "::error title=press restore::no leg snapshot ($SNAPSHOT_IN); nothing to restore from"
+            exit 1
+          fi
+          mkdir -p "$OUT"
+          # The snapshot step wrote PRESS_STARTED_AT before any shard began.
+          # If it never ran there is no snapshot either, and the line above failed.
+          echo "leg 6: CLEANUP_SINCE=$PRESS_STARTED_AT"
+          CLEANUP_SINCE="$PRESS_STARTED_AT" node scripts/audit/press-every-control.mjs
+
+      # The poster's own teardown CANNOT remove a fixture job it had to cancel:
+      # `cancelled` is terminal in enforce_job_status_transition (never a SOURCE
+      # in the allowed matrix) and the DELETE policy requires `status = 'open'`.
+      # 26 such rows had accumulated by 2026-09-19, one per shard per night.
+      # This is the service-role pass that can remove them, scoped to the
+      # "PRESS DO NOT ACCEPT" title marker + the shared test accounts +
+      # is_seed=true, with a 50-row cap (scripts/e2e/prod-audit-sweeper.mjs).
+      - name: Remove the cancelled fixture jobs, then check every proof-photo reference resolves
+        id: residue
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            # exit 1, not 0 (Q52): this step also runs the proof-photo reference
+            # CHECK; skipping it green meant the check silently never ran.
+            echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
+            exit 1
+          fi
+          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
+            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+            echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
+            exit 1
+          fi
+          echo "::add-mask::$KEY"
+          # Exit 1 = a real problem (over the cap, or a delete failed): red, loudly.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/e2e/prod-audit-sweeper.mjs
+          # CLASS CHECK for the 400 POST /object/sign/proof-photos/… stream this
+          # workflow's own run 35768341847 produced: a jobs row naming an object
+          # storage does not have. READ-ONLY, and it belongs here because this is
+          # the workflow that surfaces it — it presses the screens that sign those
+          # paths. Exit 1 = a dangling reference; the nightly-red job below files
+          # it. Same $KEY, same masked shell, shredded in the next step.
+          # --repair-seed-before (#1582, Q389(a)): clears the residue of the
+          # teardown bug a8d75d3b3 fixed, on is_seed jobs made before that fix
+          # ONLY; a real job, or a seed job made since, still fails here.
+          SUPABASE_URL="$VITE_SUPABASE_URL" SUPABASE_SERVICE_ROLE_KEY="$KEY" \
+            node scripts/proof-photo-reference-check.mjs --repair-seed-before 2026-09-25T05:42:00Z # leg 6
+
+      - name: Shred the key
+        if: always()
+        run: rm -f .env
+
+      - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 6)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: press-every-control-leg-6
+          path: |
+            test-results/press-every-control/
+            test-results/press-every-control-cleanup/
+            test-results/press-snapshot-leg-6.json
+            request-budget/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Lock-free: judges the whole run once every leg is done.
+  summary:
+    name: Press every control (whole-run request budget and coverage)
+    needs: [press-1, press-2, press-3, press-4, press-5, press-6]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Fetch every leg's results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: press-every-control-leg-*
+          merge-multiple: true
+
+      # Each shard meters into its own directory (press-wave.sh sets
+      # REQUEST_BUDGET_DIR); the budget judges the RUN, all 12 summed. Per
+      # shard it could not be two-way: the split moves rows between shards,
+      # one shard measured 7859-32839 (nightly-red #1582).
+      - name: Backend request budget (Q104), whole run
+        run: node scripts/e2e/request-budget.mjs --label press-every-control --dir request-budget/shard-1 --dir request-budget/shard-2 --dir request-budget/shard-3 --dir request-budget/shard-4 --dir request-budget/shard-5 --dir request-budget/shard-6 --dir request-budget/shard-7 --dir request-budget/shard-8 --dir request-budget/shard-9 --dir request-budget/shard-10 --dir request-budget/shard-11 --dir request-budget/shard-12
+
       - name: Coverage summary
         if: always()
         run: |
-          for n in 1 2 3 4; do
+          for n in 1 2 3 4 5 6 7 8 9 10 11 12; do
             f="test-results/press-every-control/shard-$n/coverage.md"
             if [ -f "$f" ]; then
               { echo "## Shard $n"; head -80 "$f"; } >> "$GITHUB_STEP_SUMMARY"
             fi
           done
 
-      - name: Upload coverage reports, screenshots, snapshot and clean-up log
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: press-every-control
-          path: |
-            test-results/press-every-control/
-            test-results/press-every-control-cleanup/
-            test-results/press-snapshot.json
-          if-no-files-found: ignore
-          retention-days: 14
-
   # Owner-requested (2026-09-12): a red nightly used to land nowhere — nobody
   # watches this Actions tab. This opens/updates ONE `nightly-red` issue per
-  # workflow and closes it on the next green run. The press job fails when a
-  # wave, the restore, the budget or the residue/proof-photo CHECK fails (Q52:
-  # a red clean-up used to close the issue as long as the presses passed).
+  # workflow and closes it on the next green run. A leg fails when its wave,
+  # restore or residue/proof-photo CHECK fails (Q52: a red clean-up used to
+  # close the issue as long as the presses passed); the summary fails on the
+  # request budget. Every one of them must be green.
   notify:
     name: Report nightly result
-    needs: [press]
+    needs: [press-1, press-2, press-3, press-4, press-5, press-6, summary]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -342,6 +1625,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: press-every-control
-          status: ${{ needs.press.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.press-1.result == 'success' && needs.press-2.result == 'success' && needs.press-3.result == 'success' && needs.press-4.result == 'success' && needs.press-5.result == 'success' && needs.press-6.result == 'success' && needs.summary.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

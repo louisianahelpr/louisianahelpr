@@ -92,7 +92,7 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
-    # Up to GitHub's 360-minute job limit: the longest holder (press) is 330.
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
     timeout-minutes: 350
     permissions:
       actions: read
@@ -114,7 +114,10 @@ jobs:
     needs: [preflight, wait-accounts]
     if: needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts).
+    # Measured 2026-09-30: journeys max 30.3 min over 44 runs, journeys-webkit max
+    # 24.3 min among completed runs.
+    timeout-minutes: 60
     # Workflow-level group is prod-load now; this job-level lock keeps the
     # shared-account serialisation with e2e-real-backend's push-triggered
     # prod-lifecycle job, which holds the same group.
@@ -242,7 +245,10 @@ jobs:
     needs: [preflight, journeys, wait-accounts]
     if: always() && needs.wait-accounts.result == 'success' && needs.preflight.outputs.have_accounts == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts).
+    # Measured 2026-09-30: journeys max 30.3 min over 44 runs, journeys-webkit max
+    # 24.3 min among completed runs.
+    timeout-minutes: 60
     # Workflow-level group is prod-load now; this job-level lock keeps the
     # shared-account serialisation with e2e-real-backend's push-triggered
     # prod-lifecycle job, which holds the same group.

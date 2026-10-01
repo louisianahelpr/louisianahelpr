@@ -81,7 +81,8 @@ function jobs(text: string): [string, string][] {
 function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
   const out: { wf: string; label: string; has: boolean }[] = [];
   for (const file of workflows) {
-    for (const [job, code] of jobs(read(`.github/workflows/${file}`))) {
+    const fileJobs = jobs(read(`.github/workflows/${file}`));
+    for (const [job, code] of fileJobs) {
       const wf = `${file} ${job}`;
       const labels = new Set<string>();
       for (const m of code.matchAll(/npx playwright test[^\n]*--project=(\S+)/g)) {
@@ -94,7 +95,14 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
       for (const s of Object.values(METERED_SCRIPTS)) if (s.invoke.test(code)) labels.add(s.label);
       for (const label of labels) {
         const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        out.push({ wf, label, has: new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)*(?: \\$\\{(?:GREP:\\+--ceiling-only|SCENARIO:\\+--ceiling-only --allow-empty)\\})?\\s*$`, "m").test(code) });
+        const step = new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)*(?: \\$\\{(?:GREP:\\+--ceiling-only|SCENARIO:\\+--ceiling-only --allow-empty)\\})?\\s*$`, "m");
+        // A leg job (press-every-control since 2026-10-01) is judged by the
+        // whole-run budget step of a job that `needs:` it and reads the
+        // per-shard request logs with --dir.
+        const judgedAfter = fileJobs.some(([other, c]) =>
+          other !== job && step.test(c) && /request-budget\.mjs[^\n]*--dir /.test(c) &&
+          new RegExp(`^ {4}needs: \\[[^\\]\\n]*\\b${job.replace(/[-]/g, "\\-")}\\b(?!-)`, "m").test(c));
+        out.push({ wf, label, has: step.test(code) || judgedAfter });
       }
     }
   }
@@ -333,7 +341,7 @@ describe("nightly-red #1582: a sharded run is judged as ONE run", () => {
     expect(one.stdout).toMatch(/under half its budget/);
   });
 
-  it("the press workflow judges all four shards in one step", () => {
+  it("the press workflow judges every shard of every leg in one step", () => {
     const wf = read(".github/workflows/press-every-control.yml");
     const steps = wf.match(/run: node scripts\/e2e\/request-budget\.mjs --label press-every-control[^\n]*/g) ?? [];
     expect(steps).toHaveLength(1);

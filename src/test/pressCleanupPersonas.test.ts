@@ -1,4 +1,4 @@
-// @mutate .github/workflows/press-every-control.yml | PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona | NOT_A_SECRET: "" # swept persona
+// @mutate .github/workflows/press-every-control.yml | PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }} # swept persona, leg 4 | NOT_A_SECRET: "" # swept persona, leg 4
 /**
  * CLASS GUARD: the press-every-control clean-up job can sign in as every
  * persona it sweeps.
@@ -37,33 +37,43 @@ const personas = defaults.split(",").filter((p) => p && p !== "anon");
 // Since Q326 (2026-09-26) the restore/sweep is a step of the press job itself
 // (the job that holds the account lock), so a step sees the JOB env plus its own.
 const effective = (job: Job | undefined, step: Step | undefined) => ({ ...(job?.env ?? {}), ...(step?.env ?? {}) });
-const jobWith = (rx: RegExp) => Object.values(wf.jobs).find((j) => j.steps?.some((s) => rx.test(s.run ?? "")));
-const sweepJob = jobWith(/CLEANUP_SINCE=/);
-const sweep = sweepJob?.steps?.find((s) => /CLEANUP_SINCE=/.test(s.run ?? ""));
-const pressJob = jobWith(/press-wave\.sh|press-every-control\.mjs/);
-const press = pressJob?.steps?.find((s) => /press-wave\.sh/.test(s.run ?? "")) ?? pressJob?.steps?.find((s) => /press-every-control\.mjs/.test(s.run ?? ""));
+// Since 2026-10-01 the press is six LEG jobs, each with its own restore/sweep,
+// so every leg is checked.
+const legs = Object.entries(wf.jobs).filter(([, j]) => j.steps?.some((s) => /CLEANUP_SINCE=/.test(s.run ?? "")));
+const legSteps = (j: Job) => ({
+  sweep: j.steps?.find((s) => /CLEANUP_SINCE=/.test(s.run ?? "")),
+  press: j.steps?.find((s) => /press-wave\.sh/.test(s.run ?? "")) ?? j.steps?.find((s) => /press-every-control\.mjs/.test(s.run ?? "") && !/CLEANUP_SINCE=/.test(s.run ?? "")),
+});
 const secretsFor = (persona: string) => {
   const role = String((PERSONA_ACCOUNT as Record<string, string>)[persona] ?? "").toUpperCase();
   return [`PLAYWRIGHT_${role}_EMAIL`, `PLAYWRIGHT_${role}_PASSWORD`];
 };
 
 describe("press clean-up signs in as every persona it sweeps", () => {
-  it("finds the default personas and the Sweep step (inventory floor)", () => {
+  it("finds the default personas and each leg's Sweep step (inventory floor)", () => {
     expect(personas.length).toBeGreaterThanOrEqual(4);
-    expect(sweep).toBeDefined();
-    expect(press).toBeDefined();
+    expect(legs.length).toBeGreaterThan(0);
+    for (const [key, j] of legs) {
+      expect(legSteps(j).sweep, key).toBeDefined();
+      expect(legSteps(j).press, key).toBeDefined();
+    }
   });
 
-  it("the Sweep step carries each persona's password-grant secrets", () => {
-    const env = Object.keys(effective(sweepJob, sweep));
-    const missing = personas.flatMap(secretsFor).filter((k) => !env.includes(k));
-    expect(missing).toEqual([]);
+  it("every leg's Sweep step carries each persona's password-grant secrets", () => {
+    for (const [key, j] of legs) {
+      const env = Object.keys(effective(j, legSteps(j).sweep));
+      const missing = personas.flatMap(secretsFor).filter((k) => !env.includes(k));
+      expect(missing, key).toEqual([]);
+    }
   });
 
-  it("the Sweep step carries every PLAYWRIGHT_* credential the press step has", () => {
-    const pressKeys = Object.keys(effective(pressJob, press)).filter((k) => k.startsWith("PLAYWRIGHT_"));
-    expect(pressKeys.length).toBeGreaterThanOrEqual(8);
-    const env = Object.keys(effective(sweepJob, sweep));
-    expect(pressKeys.filter((k) => !env.includes(k))).toEqual([]);
+  it("every leg's Sweep step carries every PLAYWRIGHT_* credential its press step has", () => {
+    for (const [key, j] of legs) {
+      const { press, sweep } = legSteps(j);
+      const pressKeys = Object.keys(effective(j, press)).filter((k) => k.startsWith("PLAYWRIGHT_"));
+      expect(pressKeys.length, key).toBeGreaterThanOrEqual(8);
+      const env = Object.keys(effective(j, sweep));
+      expect(pressKeys.filter((k) => !env.includes(k)), key).toEqual([]);
+    }
   });
 });

@@ -74,7 +74,7 @@ const GiftCardTeaser = ({ userId, ids }: GiftCardTeaserProps) => {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss"
-        className="shrink-0 -mr-2 -my-2 w-11 h-11 inline-flex items-center justify-center rounded-full active:bg-secondary/40 transition-colors"
+        className="shrink-0 -mr-2 -my-2 w-11 h-11 inline-flex items-center justify-center ctl-exit ctl-tint active:bg-secondary/40 transition-colors"
         style={{ color: "hsl(var(--success-ink))" }}
       >
         <X className="w-4 h-4" aria-hidden="true" />

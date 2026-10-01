@@ -99,8 +99,6 @@ interface CheckoutStepProps {
   uploading: boolean;
   uploadProgress?: { done: number; total: number } | null;
   onSubmit: () => void;
-  /** Poster's parish — shown in the location row when available. */
-  parish?: string | null;
   /** Preferred helper stub — shown as a "Send to [name] first?" shortcut
    *  when the poster has a trusted repeat helper set on their profile. */
   /** Whether the "send to preferred helper first" checkbox is checked. */
@@ -147,7 +145,6 @@ export function CheckoutStep({
   uploading,
   uploadProgress,
   onSubmit,
-  parish,
 }: CheckoutStepProps) {
   // The tax STRIPE WILL CHARGE, asked of Stripe rather than recomputed here.
   //
@@ -186,8 +183,9 @@ export function CheckoutStep({
     <>
       {/* A "Review your job before paying" line used to open this card.
           Removed on owner instruction: the screen is already titled "Order
-          summary" and carries a DETAILS → REVIEW AND PAY step rail, so it was
-          the third statement of the same instruction before any content. */}
+          summary", so it restated the instruction before any content. (The
+          DETAILS → REVIEW AND PAY step rail above this card was removed too,
+          owner 2026-10-01.) */}
 
       {/* ── Review & Post summary card ─────────────────────────────
           A clean read-only summary of everything the poster set. Shows
@@ -213,13 +211,22 @@ export function CheckoutStep({
           </p>
         </div>
         <div className="divide-y divide-border">
-          {/* Title + category */}
+          {/* Title */}
           <div className="px-4 py-3 flex items-start justify-between gap-3">
             <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Job</span>
             <div className="flex-1 min-w-0 text-right">
               <p className="text-ds-13 font-semibold text-foreground truncate">{title}</p>
+            </div>
+          </div>
+
+          {/* Category — its own row, not stacked under the title (owner,
+              2026-10-01: "Category should be seperate from the title in its
+              own space"). */}
+          <div className="px-4 py-3 flex items-start justify-between gap-3">
+            <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Category</span>
+            <div className="flex-1 min-w-0 text-right">
               <span
-                className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-ds-10 font-semibold capitalize"
+                className="inline-block px-2 py-0.5 rounded-full text-ds-10 font-semibold capitalize"
                 style={{
                   background: "hsl(var(--bark) / 0.09)",
                   color: "hsl(var(--bark))",
@@ -230,12 +237,13 @@ export function CheckoutStep({
             </div>
           </div>
 
-          {/* Description (clamped to 3 lines) */}
+          {/* Description (clamped to 3 lines), right-aligned like every other
+              value in this card (owner, 2026-10-01). */}
           {description && (
             <div className="px-4 py-3 flex items-start gap-3">
               <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Details</span>
               <p
-                className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3"
+                className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3 text-right"
                 style={{ wordBreak: "break-word" }}
               >
                 {description}
@@ -291,14 +299,16 @@ export function CheckoutStep({
           </div>
 
           {/* Location — full street address (the poster's own job, so
-              showing the complete address once at checkout is fine). */}
+              showing the complete address once at checkout is fine). The
+              address only: a " · X Parish" suffix used to follow it and was
+              removed on owner instruction (2026-10-01, "no need to show
+              vermilion parish in the location or any parish"). */}
           <div className="px-4 py-3 flex items-start gap-3">
             <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
               <MapPin className="w-3 h-3" />Location
             </span>
             <p className="flex-1 text-ds-13 text-foreground text-right">
               {[streetAddress, city, addrState, zipCode].filter(Boolean).join(", ")}
-              {parish ? ` · ${parish} Parish` : ""}
             </p>
           </div>
 
@@ -828,9 +838,8 @@ export function CheckoutStep({
           Held safely until the job's done.
         </p>
         {/* A second "Back to edit" ghost button used to sit under the CTA.
-            Removed on owner instruction — the step rail at the top of the
-            screen (CheckoutStepIndicator's tappable "Details" step) and the
-            page-header arrow already go back, and a back affordance directly
+            Removed on owner instruction — the page-header arrow already goes
+            back, and a back affordance directly
             beneath the pay button competes with the one action this screen
             exists for. It was the only consumer of the edit callback, so that
             prop went with it. */}

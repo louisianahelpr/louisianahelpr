@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -9,12 +9,10 @@ import {
 } from "@/lib/moneyLimits";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars, sumHelperTipDollars } from "@/lib/helperEarnings";
 import { tierFeePercent, profileHasPerk } from "@/lib/subscriptionTiers";
-import { toast } from "sonner";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
 import { safeStorage } from "@/lib/safeStorage";
-import { saveOrShareFile } from "@/lib/fileExport";
 import { EarningsBreakdownCharts } from "@/components/profile/EarningsBreakdownCharts";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
@@ -28,13 +26,13 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
 import {
-  buildPayoutsCsv,
   completedWithin,
   isAwaitingTransfer,
   isEarnedJob,
   rangeStartMs,
 } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { useEarningsData } from "@/components/profile/earningsTab/useEarningsData";
+import { usePayoutsCsvExport } from "@/components/profile/earningsTab/usePayoutsCsvExport";
 import { EarningsToolsMenu } from "@/components/profile/earningsTab/EarningsToolsMenu";
 import { EarningsViewSwitcher, type EarningsView } from "@/components/profile/earningsTab/EarningsViewSwitcher";
 import { type EarningsRange } from "@/components/profile/earningsTab/EarningsRangeToggle";
@@ -137,48 +135,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const stripeSettled = !stripeLoading && (!!stripeError || !!stripeData?.connected || paymentSettled);
   const pageReady = useArrivalGate(!loading, streakState.settled && stripeSettled);
 
-  // ─── CSV EXPORT (1099 / Tax prep) ─────────────────────────
-  const payoutYears = useMemo(() => {
-    const years = new Set<number>();
-    (stripeData?.payouts ?? []).forEach((p) => years.add(new Date(p.arrival_date * 1000).getFullYear()));
-    const current = new Date().getFullYear();
-    years.add(current);
-    return Array.from(years).sort((a, b) => b - a);
-  }, [stripeData]);
-
-  const [exportYear, setExportYear] = useState<string>(String(new Date().getFullYear()));
-
-  useEffect(() => {
-    if (payoutYears.length && !payoutYears.includes(Number(exportYear))) {
-      setExportYear(String(payoutYears[0]));
-    }
-  }, [payoutYears, exportYear]);
-
-  const handleExportCSV = async () => {
-    const year = Number(exportYear);
-    const { rows, csv } = buildPayoutsCsv(stripeData?.payouts ?? [], year);
-
-    if (!rows.length) {
-      toast("No payouts to export", { description: `No payouts found for ${year}.` });
-      return;
-    }
-
-    // Was `URL.createObjectURL` + `<a download>` + click, inline here. That
-    // idiom is a silent no-op in WKWebView — the tap did nothing at all in the
-    // shipped app (owner: "Download csv pdf etc does not work"). saveOrShareFile
-    // keeps the anchor on web and routes native through the OS share sheet, and
-    // toasts on every outcome. See src/lib/fileExport.ts.
-    // saveOrShareFile owns the messaging now, so the old "Export ready" toast
-    // is gone rather than doubled up. (Note: it never actually rendered —
-    // toastPolicy.ts suppresses every non-actionable `toast.success` app-wide.
-    // On web the browser's own download is the confirmation; what matters is
-    // that a FAILURE is now stated, which is the half that was missing.)
-    await saveOrShareFile({
-      blob: new Blob([csv], { type: "text/csv;charset=utf-8;" }),
-      filename: `helpr-payouts-${year}.csv`,
-      label: `your ${year} payouts CSV`,
-    });
-  };
+  const { payoutYears, exportYear, setExportYear, handleExportCSV } = usePayoutsCsvExport(stripeData?.payouts);
 
   // EARNED, not merely "completed". `status === "completed"` was the whole
   // test until 2026-09-06, and it counts a job whose money was refunded to the

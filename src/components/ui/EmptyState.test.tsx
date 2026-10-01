@@ -128,7 +128,7 @@ describe("EmptyState", () => {
 
 // The box-in-a-box the owner rejected three times: the dock variant painting
 // its own glass card inside PageScaffold's panel.
-// @mutate src/components/ui/EmptyState.tsx | ? "empty-state-dock flex-1 min-w-0 | ? "empty-state-dock liquid-glass flex-1 min-w-0
+// @mutate src/components/ui/EmptyState.tsx | ? `empty-state-dock flex-1 min-w-0 | ? `empty-state-dock liquid-glass flex-1 min-w-0
 // The illustration/icon branch: the line art must REPLACE the frosted bubble,
 // never sit beside it (and the bubble must still render when there is none).
 // @mutate src/components/ui/EmptyState.tsx | {illustration ? ( | {!illustration ? (

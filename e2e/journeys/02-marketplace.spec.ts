@@ -22,6 +22,7 @@ import {
 // The teardown's third disposition, shared with scripts/e2e/settle-stranded-escrow.mjs.
 import { isSettleForwardRefusal, settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { isoDayIn } from "../calendarPicker";
+import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead } from "./postJobForm";
 
@@ -91,6 +92,8 @@ type Shared = {
   helperPage: Page;
   jobId?: string;
   funded: boolean;
+  /** Set when J2 met a live Checkout Session: J3-J5 skip as justified, not as failures. */
+  livePay?: string;
   fileDir: string;
 };
 const S = {} as Shared;
@@ -333,10 +336,15 @@ test.describe.serial("marketplace chain", () => {
 
       const url = String((body as { url?: string }).url ?? page.url());
       const mode = stripeModeFromCheckoutUrl(url);
-      if (mode !== "test") {
-        announceUncovered("Journey funding SKIPPED", `Stripe mode is ${mode}; J2 Browse visibility, J4 and J5 money legs cannot run without charging a real card.`);
-        test.info().annotations.push({ type: "uncovered", description: `Stripe ${mode} mode: funding skipped` });
-        return;
+      expect(mode, `posting did not reach a Stripe Checkout Session: ${url}`).not.toBe("unknown");
+      if (mode === "live") {
+        // The owner's 2026-09-27 decision: journeys create checkouts but never
+        // pay a live one. An unfunded job is hidden from My Posts and Browse by
+        // design (src/lib/neverPaidStatuses.ts), so the rest of J2 and all of
+        // J3-J5 cannot run: the one justified skip, not an uncovered failure
+        // (run 36561180641 failed "missing from My Posts" here instead).
+        S.livePay = `J2 posted ${S.jobId} and create-payment minted a live Checkout Session`;
+        skipLivePay(S.livePay);
       }
       await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
       await journey.milestone(page, "stripe-checkout");
@@ -395,6 +403,7 @@ test.describe.serial("marketplace chain", () => {
   const j3 = title("apply", "smooth");
   test(j3, async ({ request, journey }) => {
     test.skip(filteredOut(j3), "SCENARIO pins another scenario");
+    if (S.livePay) skipLivePay(`J3 needs J2's funded job — ${S.livePay}`);
     test.skip(!S.jobId, "J2 did not create a job");
     test.skip(!S.funded, "unfunded jobs cannot be found or applied to (Stripe not in test mode); announced in J2");
     const hp = journey.track("helper", S.helperPage);
@@ -462,6 +471,7 @@ test.describe.serial("marketplace chain", () => {
   const j4 = title("hire-and-message", "smooth");
   test(j4, async ({ browser, request, journey }) => {
     test.skip(filteredOut(j4), "SCENARIO pins another scenario");
+    if (S.livePay) skipLivePay(`J4 needs J2's funded job — ${S.livePay}`);
     test.skip(!S.jobId || !S.funded, "needs J2's funded job and J3's application");
     const hp = journey.track("helper", S.helperPage);
     const pp = journey.track("poster", S.posterPage);
@@ -796,6 +806,7 @@ test.describe.serial("marketplace chain", () => {
   test(j5, async ({ browser, request, journey }) => {
     test.setTimeout(12 * 60_000);
     test.skip(filteredOut(j5), "SCENARIO pins another scenario");
+    if (S.livePay) skipLivePay(`J5 needs J4's hired, funded job — ${S.livePay}`);
     test.skip(!S.jobId || !S.funded, "needs J4's hired, funded job");
     const hp = journey.track("helper", S.helperPage);
     const pp = journey.track("poster", S.posterPage);

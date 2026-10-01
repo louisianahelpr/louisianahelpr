@@ -32,7 +32,9 @@ export * from "@playwright/test";
 export const test = base.extend<{ _requestMeterTest: void }, { _requestMeter: RequestMeter }>({
   _requestMeter: [
     async ({ browser }, use, workerInfo) => {
-      const label = workerInfo.project.name || "default";
+      // REQUEST_BUDGET_LABEL: a workflow that runs a slice of a project under
+      // its own budget (e2e-abuse-notifications.yml) meters under that name.
+      const label = process.env.REQUEST_BUDGET_LABEL || workerInfo.project.name || "default";
       const meter = new RequestMeter(label);
       meter.attachBrowser(browser);
       meter.paceTo(ceilingFor(label), { workers: workerInfo.config.workers });
@@ -52,6 +54,14 @@ export const test = base.extend<{ _requestMeterTest: void }, { _requestMeter: Re
     },
     { scope: "worker", auto: true },
   ],
+  // The `request` fixture sends node-side (no browser context), so the
+  // browser wrap never sees it: the canary's sign-in, REST and function calls
+  // measured 0 and the budget step called the meter loose (2026-09-30).
+  // (`provide`, not `use`: React's rules-of-hooks reads a `use` call inside a
+  // function named `request` as a hook call and fails lint.)
+  request: async ({ request, _requestMeter }, provide) => {
+    await provide(_requestMeter.attachApi(request));
+  },
   _requestMeterTest: [
     async ({ _requestMeter }, use) => {
       _requestMeter.tests++;

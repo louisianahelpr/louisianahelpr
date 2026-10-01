@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { timingSafeEqual } from '../_shared/safe-strings.ts'
 import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
+import { isTestRecipient, TEST_RECIPIENT_REASON } from '../_shared/testRecipient.ts'
 import { AccountStatusEmail } from '../_shared/email-templates/account-status.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
@@ -236,6 +237,21 @@ serve(async (req) => {
     )
 
     const messageId = crypto.randomUUID()
+
+    // Q840: a test or seed recipient is logged 'suppressed', never mailed.
+    if (await isTestRecipient(supabaseAdmin, profile.email)) {
+      const { error: testLogError } = await supabaseAdmin.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: `account_${status}`,
+        recipient_email: profile.email,
+        status: 'suppressed',
+        error_message: TEST_RECIPIENT_REASON,
+      })
+      if (testLogError) console.error('test-recipient suppressed log insert failed:', testLogError.message)
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: 'test_recipient' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     await supabaseAdmin.from('email_send_log').insert({
       message_id: messageId,

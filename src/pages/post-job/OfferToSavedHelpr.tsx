@@ -40,22 +40,15 @@ interface SavedHelperLite {
 // `split(" ").map(w => w[0]).join("")` into an empty string and paints a
 // coloured circle with nothing in it.
 
-export function OfferToSavedHelpr({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (next: boolean) => void;
-}) {
-  const navigate = useNavigate();
-  // Preserve whatever is already on /post-job — above all `gift_card` and
-  // its `budget`. This card sits on the entry screen a gift recipient lands
-  // on, so rebuilding the query string from scratch meant "offer it to a
-  // saved Helpr" quietly threw the gift away and billed them in full.
-  const [searchParams] = useSearchParams();
+/**
+ * The saved-helprs read this card paints from. Exported so EntryChoice can hold
+ * its arrival gate on the SAME query (one cache entry, one request): the card
+ * self-hides when the list is empty, so painting the column before this read
+ * settled meant a row that could vanish under the reader (Q1654 P1).
+ */
+export function useSavedHelpersLite() {
   const { user } = useCurrentUser();
-
-  const { data: helpers, isError, error } = useQuery({
+  return useQuery({
     queryKey: queryKeys.savedHelpers.byUser(user?.id),
     queryFn: async () => {
       const { data, error: rpcError } = await supabase.rpc("get_my_saved_helpers");
@@ -76,6 +69,23 @@ export function OfferToSavedHelpr({
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
+}
+
+export function OfferToSavedHelpr({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+}) {
+  const navigate = useNavigate();
+  // Preserve whatever is already on /post-job — above all `gift_card` and
+  // its `budget`. This card sits on the entry screen a gift recipient lands
+  // on, so rebuilding the query string from scratch meant "offer it to a
+  // saved Helpr" quietly threw the gift away and billed them in full.
+  const [searchParams] = useSearchParams();
+
+  const { data: helpers, isError, error } = useSavedHelpersLite();
 
   if (isError) report(error, { tags: { source: "OfferToSavedHelpr.get_my_saved_helpers" } });
 

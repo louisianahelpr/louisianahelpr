@@ -40,6 +40,7 @@ import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { arrivalNudgeStage, NEAR_MISS_ESCALATE_AFTER_HOURS, type NudgeLedger } from "../_shared/arrivalNudge.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,6 +59,7 @@ type DueJob = {
 };
 
 serve(async (req) => {
+  const startedAt = Date.now();
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const url = new URL(req.url);
   if (url.searchParams.get("health") === "1") {
@@ -99,11 +101,11 @@ serve(async (req) => {
       throw new Error(`notification insert matched 0 rows for ${userId}`);
     }
     try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
+      const res = await fetchFunction(`${supabaseUrl}/functions/v1/send-notification-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRoleKey}` },
         body: JSON.stringify({ user_id: userId, title, message, type, link, job_id: jobId }),
-      });
+      }, { deadlineAt: invocationDeadline(startedAt) });
       if (!res.ok) defects.record(`email ${userId}: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
     } catch (e) {
       defects.record(`email ${userId}: ${(e as Error).message}`);

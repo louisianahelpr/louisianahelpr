@@ -284,6 +284,18 @@ const NO_SECTION_STACK = new Set([
   "profile-notifications", "profile-warnings", "analytics", "str-settings", "work-record", "wrapped",
 ]);
 
+/**
+ * Stacks made of the account's own DATA rows, with the selector of one row. The
+ * stack only exists with two rows or more: /messages opens on the Active tab
+ * (owner, 0c64d4d04), which lists only threads on a live job, and poster-e2e had
+ * exactly one on 2026-09-30 — one row, no gap, nothing to measure, a correct
+ * page. With fewer than two rows the cell is reported UNMEASURED (annotation +
+ * log), never passed; with two or more and no stack it still fails.
+ */
+const DATA_ROW_STACKS: Record<string, string> = {
+  messages: '[data-testid="row-name"]',
+};
+
 // Shown able to fail on the original (every Profile tab back on its 16px, a
 // page back on its 24px) and on the token:
 // @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-section"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4";
@@ -323,6 +335,14 @@ test("every page's sections sit --section-gap apart at every phone width", async
           continue;
         }
         if (!row.stack || !row.sectionGaps.length) {
+          const rowSel = DATA_ROW_STACKS[s.name];
+          const rows = rowSel ? await phone.locator(rowSel).count() : Infinity;
+          if (rows < 2) {
+            const note = `${at}: UNMEASURED, the account shows ${rows} ${rowSel} row(s); the stack needs two`;
+            console.log(`SECTION ${note}`);
+            info.annotations.push({ type: "unmeasured", description: note });
+            continue;
+          }
           wrong.push(`${at}: no section stack found (${row.why ?? "no gaps"}) — list it in NO_SECTION_STACK if it genuinely has one section`);
           continue;
         }

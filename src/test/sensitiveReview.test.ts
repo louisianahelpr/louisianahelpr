@@ -78,6 +78,8 @@ describe("what counts as a recorded review", () => {
     expect(rejectedTrailerReviewers("x\n\nSensitive-Review: lead: comment-only")).toEqual(["lead"]);
     expect(rejectedTrailerReviewers("x\n\nSensitive-Review: not-needed: comment-only")).toEqual([]);
     expect(rejectedTrailerReviewers("x\n\nSensitive-Review: code-review: clean")).toEqual([]);
+    // fa2ee5424 (2026-10-02): a trailer with no `<reviewer>:` recorded nothing, silently.
+    expect(rejectedTrailerReviewers("x\n\nSensitive-Review: behaviour-preserving refactor; same branches")).toEqual(["(no reviewer named)"]);
   });
 
   it("the review log rejects malformed lines instead of dropping them", () => {

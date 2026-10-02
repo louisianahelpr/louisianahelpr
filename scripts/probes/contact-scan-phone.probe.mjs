@@ -41,7 +41,7 @@ const repo = (rel) => readFileSync(new URL(`../../${rel}`, import.meta.url), "ut
 const MIG = repo("supabase/migrations/20260915020258_contact_scan_phone_digit_boundary_and_hidden_copy.sql");
 const FIXTURES = JSON.parse(repo("src/lib/contactLeakPhoneFixtures.json"));
 // `export const PHONE_PATTERN = "..." + "...";` — join the string pieces.
-const PHONE_PATTERN = [...repo("src/lib/contactLeakRules.ts").match(/PHONE_PATTERN =((?:\s*"[^"]*"\s*\+?)+);/)[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]).join("");
+const PHONE_PATTERN = [...repo("src/lib/contactLeakRules.ts").match(/PHONE_PATTERN\s*=\s*("[^"]*"(?:\s*\+\s*"[^"]*")*)\s*;/)[1].matchAll(/"([^"]*)"/g)].map((m) => m[1]).join("");
 
 /** `CREATE OR REPLACE FUNCTION public.<name>(` … closing dollar tag + `;`, verbatim. */
 function fnFrom(file, name) {

@@ -73,7 +73,7 @@ const RULE = "|---|---|---|---|---|---|---|---|---|---|";
 
 // ── rendering ───────────────────────────────────────────────────────────────
 
-const cell = (v) => (v === null || v === undefined || v === "" ? "—" : String(v).replace(/\|/g, "\\|").replace(/\n/g, " "));
+const cell = (v) => (v === null || v === undefined || v === "" ? "—" : String(v).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " "));
 
 /** @param {{group:string, signal:string, status:string, pass?:any, fail?:any, skipped?:any, total?:any, at:string, source?:string, note?:string}} r */
 export function renderRow(r) {

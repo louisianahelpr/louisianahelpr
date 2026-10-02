@@ -13,6 +13,7 @@
  * checked within ~20 min. These tests pin both halves: no per-push trigger,
  * and a dispatcher that still reaches each one.
  */
+// @mutate .github/workflows/secret-scan.yml | branches-ignore: ["land/**"] | branches-ignore: []
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";

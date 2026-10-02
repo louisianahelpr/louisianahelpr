@@ -297,6 +297,45 @@ describe("create-payment edge function", () => {
         });
       }
 
+      // Prod 2026-10-02, job cbe2496c: expiring cs_dead fires
+      // checkout.session.expired and stripe-webhook nulls the hold before our
+      // stamp lands, so the compare-and-set on cs_dead matched 0 rows and the
+      // retapped Pay returned 500.
+      it("takes a hold the expire webhook already released instead of failing", async () => {
+        seedRemintable("unpaid", "cs_dead");
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+          id: "cs_dead",
+          status: "open",
+          payment_status: "unpaid",
+          payment_intent: null,
+        });
+        let stampCalls = 0;
+        Object.defineProperty(scenario.writeSelectRows, "jobs:update", {
+          configurable: true,
+          enumerable: true,
+          get: () => (stampCalls++ === 0 ? [] : undefined),
+        });
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_fresh");
+
+        const stamps = scenario.writes.filter(
+          (w) => w.table === "jobs" && (w.payload as Record<string, unknown>)?.stripe_session_id === "cs_fresh",
+        );
+        expect(stamps).toHaveLength(2);
+        // The retry targets only a released hold and keeps the funding guards.
+        expect(stamps[1].filters).toContainEqual(
+          expect.objectContaining({ op: "is", column: "stripe_session_id", value: null }),
+        );
+        expect(stamps[1].filters).not.toContainEqual(
+          expect.objectContaining({ column: "stripe_session_id", value: "cs_dead" }),
+        );
+        expect(JSON.stringify(stamps[1].filters)).toContain("payment_status.in.(unpaid,abandoned,failed)");
+      });
+
       // @mutate supabase/functions/create-payment/index.ts | if (!isTestObjectUnderLiveKey(priorErr)) throw priorErr; | throw priorErr;
       it("treats a prior session minted in Stripe TEST mode as absent and mints a fresh one (not a 500)", async () => {
         seedRemintable("abandoned", "cs_test_old");

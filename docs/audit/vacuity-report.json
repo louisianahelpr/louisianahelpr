@@ -1,8 +1,10 @@
 {
-  "generated": "2026-10-01T23:57:53.207Z",
-  "guards": 1284,
+  "generated": "2026-10-02T00:46:58.413Z",
+  "guards": 1285,
   "registered": 1284,
-  "unregistered": [],
+  "unregistered": [
+    "src/test/pageColumnNotReCapped.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",

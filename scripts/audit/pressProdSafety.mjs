@@ -225,20 +225,27 @@ export async function createPressJob(poster, runId, suffix = "", source = "press
  * Session for a fixture job and read `cs_test_` / `cs_live_` off its url.
  * "unknown" is treated as live by callers. Memoised: one probe per run.
  */
-export function makeStripeProbe(poster, runId) {
+// Q895: the probe used to create a press job and POST create-payment
+// {action:"escrow"} to read the mode off the Checkout Session URL, so with
+// Stripe LIVE every nightly run minted a real cs_live_ session (and a job) just
+// to learn it must not press payment controls. It now reads health-check's
+// `checks.stripe_mode`, which is derived from the STRIPE_SECRET_KEY prefix and
+// creates no Stripe object. health-check needs CRON_SECRET (or an admin); with
+// neither the mode is "unknown", which every caller treats as live (skip).
+// The poster/runId parameters are kept so the call site does not change.
+export function makeStripeProbe(_poster, _runId, env = process.env) {
   let cached = null;
   return async () => {
     if (cached) return cached;
-    if (!poster) return (cached = { mode: "unknown", detail: "no poster session to mint a Checkout Session with" });
+    const secret = env.CRON_SECRET;
+    if (!secret) return (cached = { mode: "unknown", detail: "no CRON_SECRET to read health-check stripe_mode; treating Stripe as live" });
     try {
-      const job = await createPressJob(poster, runId, " stripe-probe");
-      const r = await fetch(`${supabaseUrl()}/functions/v1/create-payment`, {
-        method: "POST", headers: headers(poster), body: JSON.stringify({ action: "escrow", jobId: job.id }),
+      const r = await fetch(`${supabaseUrl()}/functions/v1/health-check`, {
+        method: "GET", headers: { Authorization: `Bearer ${secret}` },
       });
       const body = await r.json().catch(() => ({}));
-      const url = String(body?.url ?? "");
-      const m = /\/(cs_(test|live)_[A-Za-z0-9]+)/.exec(url);
-      cached = { mode: m ? (m[2] === "live" ? "live" : "test") : "unknown", detail: r.ok ? `checkout session ${m?.[1]?.slice(0, 12) ?? "?"}…` : `create-payment HTTP ${r.status}`, probeJobId: job.id };
+      const m = body?.checks?.stripe_mode;
+      cached = { mode: m === "live" || m === "test" ? m : "unknown", detail: `health-check HTTP ${r.status} stripe_mode=${m ?? "?"}` };
     } catch (e) {
       cached = { mode: "unknown", detail: String(e.message).slice(0, 200) };
     }

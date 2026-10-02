@@ -67,6 +67,36 @@ export function parseVerdict(raw) {
   }
 }
 
+/** Where src/lib/socialAuth.ts sends GoTrue back after a social sign-in on the web. */
+const OAUTH_RETURN_URL = "https://www.louisianahelpr.com/home";
+
+/**
+ * Q445a: does GoTrue accept `url` as a redirect_to? It does when the host is
+ * site_url's host, or when a uri_allow_list entry matches (`*` = one path or
+ * host segment, `**` = anything). Returns what matched, or null.
+ */
+function redirectCovered(config, url) {
+  let target;
+  try {
+    target = new URL(url);
+  } catch {
+    return null;
+  }
+  try {
+    if (config.site_url && new URL(config.site_url).hostname === target.hostname) return `site_url ${config.site_url}`;
+  } catch {
+    // Silent by design: an unparseable site_url covers nothing; the allow-list is still read.
+  }
+  const entries = String(config.uri_allow_list ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  for (const e of entries) {
+    const re = new RegExp(
+      `^${e.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\u0000").replace(/\*/g, "[^/.]*").replace(/\u0000/g, ".*")}$`,
+    );
+    if (re.test(url)) return `uri_allow_list ${e}`;
+  }
+  return null;
+}
+
 async function mgmt(path, init = {}) {
   const base = process.env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
   const res = await fetch(`${base}/v1/projects/${process.env.SUPABASE_PROJECT_REF}${path}`, {
@@ -154,6 +184,15 @@ if (config) {
     `${extra.length || missing.length ? "FAIL" : "PASS"} config enabled sign-in methods = ${enabled.join(", ") || "none"} (want exactly ${EXPECTED_SIGN_IN_METHODS.join(", ")}; extra: ${extra.join(", ") || "none"}, missing: ${missing.join(", ") || "none"}; ${externalKeys.length} checked)`,
   );
   console.log(`info config security_manual_linking_enabled = ${JSON.stringify(config.security_manual_linking_enabled)}`);
+  // Q445a: GoTrue only returns to redirect_to when it is on site_url's host or
+  // matches a uri_allow_list glob; otherwise a refused social sign-in lands on
+  // the Site URL and the app's /home notice never shows. socialAuth.ts sends
+  // `${origin}/home`, so the production origin's /home must be covered.
+  const cover = redirectCovered(config, OAUTH_RETURN_URL);
+  if (!cover) failed = true;
+  console.log(
+    `${cover ? "PASS" : "FAIL"} config redirect allow-list covers ${OAUTH_RETURN_URL} (site_url ${JSON.stringify(config.site_url)}; ${cover ? `via ${cover}` : "neither site_url's host nor any uri_allow_list entry matches"})`,
+  );
 }
 console.log(`auth.identities present: ${verdict.identities_table}${verdict.identities_table ? "" : " (replayed schema: identity rows skipped, user/profile writes still run)"}`);
 for (const c of checks) {

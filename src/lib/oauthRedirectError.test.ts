@@ -2,7 +2,10 @@
  * OA-018: a web Apple/Google sign-in that GoTrue refused comes back as
  * ?error=…&error_code=…#error=… on /home. Nothing read it; Login showed "That
  * page needs an account" instead. These pin the capture and its scoping.
- * @mutate src/lib/oauthRedirectError.ts | if (!pending) return null; | if (!pending && !hasError) return null;
+ * @mutate src/lib/oauthRedirectError.ts | if (!hash.has("sb")) return null; | if (false) return null;
+ * @mutate src/lib/oauthRedirectError.ts | case "user_cancelled_authorize": | case "__never__":
+ * @mutate src/lib/oauthRedirectError.ts | if (!pending) return captureUnmarked(loc, hist, query, hash, get); | if (!pending) return null;
+ * @mutate src/lib/oauthRedirectError.ts | if (!UNMARKED_RETURN_PATHS.includes(loc.pathname)) return null; | if (false) return null;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -101,10 +104,12 @@ describe("captureOAuthRedirectError — review fixes (lh-authz-rls, #1806)", () 
     expect(sessionStorage.getItem("helpr_oauth_pending")).not.toBeNull();
   });
 
-  it("ignores a marker written before the path was recorded", () => {
+  it("treats a marker written before the path was recorded as no marker (provider not named)", () => {
     sessionStorage.setItem("helpr_oauth_pending", JSON.stringify({ provider: "google", at: Date.now() }));
     const f = fakeLocation(errorUrl("provider_email_needs_verification"));
-    expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
+    const got = captureOAuthRedirectError(f.loc, f.hist);
+    expect(got?.provider).toBeNull();
+    expect(got?.message).not.toMatch(/Google/);
   });
 
   it("does not surface a captured reason on a Login visit long after the bounce", () => {
@@ -118,6 +123,64 @@ describe("captureOAuthRedirectError — review fixes (lh-authz-rls, #1806)", () 
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("captureOAuthRedirectError — no marker, flow-state reuse, Apple cancel (Q445)", () => {
+  it("captures a GoTrue social refusal with no marker, in provider-neutral words", () => {
+    const f = fakeLocation(errorUrl("provider_email_needs_verification"));
+    const got = captureOAuthRedirectError(f.loc, f.hist);
+    expect(got?.provider).toBeNull();
+    expect(got?.code).toBe("provider_email_needs_verification");
+    expect(got?.message).toMatch(/Verify it with your sign-in provider/);
+    expect(got?.message).not.toMatch(/Google|Apple/);
+    expect(f.replaced()).toBe("/home");
+    expect(takeOAuthRedirectError()?.code).toBe("provider_email_needs_verification");
+  });
+
+  it("captures the two-accounts refusal with no marker", () => {
+    const f = fakeLocation(
+      errorUrl("unexpected_failure", "Multiple accounts with the same email address in the same linking domain detected: default"),
+    );
+    expect(captureOAuthRedirectError(f.loc, f.hist)?.code).toBe("multiple_accounts");
+  });
+
+  it("leaves an unmarked error without GoTrue's sb marker alone", () => {
+    const f = fakeLocation("/home?error=access_denied&error_code=user_banned&error_description=User+is+banned");
+    expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
+    expect(f.replaced()).toBeNull();
+  });
+
+  it("leaves an unmarked error whose code is not a social one alone (an expired email link)", () => {
+    const f = fakeLocation(errorUrl("otp_expired", "Email link is invalid or has expired"));
+    expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
+    expect(f.replaced()).toBeNull();
+    expect(takeOAuthRedirectError()).toBeNull();
+  });
+
+  it("leaves an unmarked social code on a page a social round trip never returns to", () => {
+    const f = fakeLocation(errorUrl("flow_state_expired", "Flow state expired").replace("/home", "/reset-password"));
+    expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
+    expect(f.replaced()).toBeNull();
+  });
+
+  it("captures an unmarked refusal GoTrue sent to the Site URL root", () => {
+    const f = fakeLocation(errorUrl("user_banned", "User is banned").replace("/home", "/"));
+    expect(captureOAuthRedirectError(f.loc, f.hist)?.code).toBe("user_banned");
+  });
+
+  it("names a reused flow state (flow_state_already_used)", () => {
+    markOAuthPending("google", "/home");
+    const f = fakeLocation(errorUrl("flow_state_already_used", "Flow state already used"));
+    expect(captureOAuthRedirectError(f.loc, f.hist)?.message).toMatch(/took too long or was interrupted/);
+  });
+
+  it("says nothing when Apple reports a cancel as user_cancelled_authorize", () => {
+    markOAuthPending("apple", "/home");
+    const f = fakeLocation("/home?error=user_cancelled_authorize#error=user_cancelled_authorize");
+    expect(captureOAuthRedirectError(f.loc, f.hist)).toBeNull();
+    expect(f.replaced()).toBe("/home");
+    expect(takeOAuthRedirectError()).toBeNull();
   });
 });
 

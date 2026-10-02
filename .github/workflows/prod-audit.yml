@@ -194,7 +194,12 @@ jobs:
       # seeded Helpr), so a drifted fixture showed up here as a selector
       # timeout on an empty tab (2026-09-24: favorite_helpers 0 of 2). Repair
       # them first; --apply is idempotent and writes only seed-owned rows.
+      # The passwords re-sync the accounts CI signs in as (owner, 2026-10-01):
+      # a re-created account otherwise keeps a password no secret matches (#1582).
       - name: Repair seed fixtures before the audit
+        env:
+          SEED_PASSWORD_INCOMPLETE: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+          SEED_PASSWORD_ADMIN: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
         run: node scripts/audit/prod-seed.mjs --apply || { sleep 10; node scripts/audit/prod-seed.mjs --apply; }
 
       # The playwright line stays literal: src/test/e2eSpecsReachableInCi reads

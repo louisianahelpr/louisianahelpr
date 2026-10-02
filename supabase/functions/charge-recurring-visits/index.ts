@@ -178,7 +178,7 @@ async function seriesCard(stripe: Stripe, paymentIntentId: string | null): Promi
   const customerId = typeof pi.customer === "string" ? pi.customer : pi.customer?.id;
   const paymentMethodId = typeof pi.payment_method === "string" ? pi.payment_method : pi.payment_method?.id;
   if (!customerId || !paymentMethodId) {
-    return { kind: "none", reason: `checkout payment ${paymentIntentId} has no saved customer card` };
+    return { kind: "none", reason: `checkout payment ${paymentIntentId} has no saved card to charge` };
   }
   return { kind: "card", customerId, paymentMethodId };
 }

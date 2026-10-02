@@ -1026,7 +1026,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Race conditions — proven on prod 2026-09-13 (terminal 3, seed accounts, all fixture rows deleted)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM OPEN: RichMessageInput send has a same-frame double-send risk (sync onSend + stale text closure) — RichMessageInput double-send guard (different shape from the fixed apply/release races) still not applied. (archive L3463)
 
 ### Bugs found but not fixed
 Reconciled 2026-09-23; detail in the archive at the line shown.

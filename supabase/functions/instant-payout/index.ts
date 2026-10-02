@@ -442,7 +442,8 @@ serve(async (req) => {
       // ME-015: this is the one branch where the HELPER is out money (the fee
       // left their Connect balance, no payout followed). It used to alert only
       // if the DB write below failed; the marker alone reached nobody.
-      if (feeCents > 0 && feeTransferSucceeded) {
+      const feeTakenNoPayout = feeCents > 0 && feeTransferSucceeded;
+      if (feeTakenNoPayout) {
         await postSlackOpsAlert({
           kind: "money_at_risk",
           severity: "critical",
@@ -490,7 +491,7 @@ serve(async (req) => {
       }
       // The fee left the helper's balance and no payout followed: a retry would
       // take a second fee, so say what happened instead of "try again".
-      if (feeCents > 0 && feeTransferSucceeded) {
+      if (feeTakenNoPayout) {
         throw new PublicError(
           "Your instant payout didn't go through, but the instant payout fee was already taken. Our team has been alerted to refund it. Please don't retry.",
         );

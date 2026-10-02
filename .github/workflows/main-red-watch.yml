@@ -31,6 +31,7 @@ name: Main red watch
 on:
   workflow_run:
     workflows:
+      - Branch prune
       - Bundle Size Check
       - Supabase DB Deploy
       - Deploy iOS (TestFlight / App Store)

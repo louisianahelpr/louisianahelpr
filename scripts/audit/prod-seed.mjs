@@ -55,6 +55,7 @@ import { fileURLToPath } from "node:url";
 import { STUCK_SEED_SPLIT_QUERY, isStuckSeedSplit, retireStuckSplitPatch, stuckSplitCasFilter } from "./seedDisputeFixture.mjs";
 import { removeJobMediaRest, removeUserStorageRest } from "../lib/jobMediaRest.mjs";
 import { latestConsentVersions } from "../lib/acceptCurrentTerms.mjs";
+import { seedPasswordFor } from "./seedPasswords.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));
@@ -235,6 +236,8 @@ async function profileByEmail(email) {
 }
 
 async function ensureOwnedAccount(key, spec) {
+  // Resolve (and refuse on a missing CI password) BEFORE creating anything.
+  const pw = seedPasswordFor(key);
   let user = await findAuthUser(spec.email);
   if (user) {
     // Pre-existing account: refuse BEFORE the profile patch below, which would
@@ -280,8 +283,8 @@ async function ensureOwnedAccount(key, spec) {
   // CI has no service role, so the prod a11y sweep signs these accounts in by
   // password (PLAYWRIGHT_INCOMPLETE_* / PLAYWRIGHT_ADMIN_* secrets). The
   // password is re-applied on every --apply so a teardown/apply cycle cannot
-  // silently turn that CI leg into a skip. Local only: SEED_PASSWORD_<KEY>.
-  const pw = process.env[`SEED_PASSWORD_${key.toUpperCase()}`];
+  // silently turn that CI leg into a skip. Local only: SEED_PASSWORD_<KEY>;
+  // seedPasswordFor() above already refused if a CI-password account lacks it.
   if (pw) {
     const r = await fetch(`${BASE}/auth/v1/admin/users/${user.id}`, { method: "PUT", headers: SRH, body: JSON.stringify({ password: pw }) });
     if (!r.ok) throw new Error(`set password for ${spec.email} → ${r.status} ${await r.text()}`);

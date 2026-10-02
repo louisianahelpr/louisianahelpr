@@ -1,4 +1,4 @@
-// @mutate src/components/DisputeDialog.tsx | const ext = storageExtFor(file, "jpg"); | const ext = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "jpg";
+// @mutate src/components/DisputeDialog.tsx | const ext = storageExtFor(file, "jpg"); | const ext = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) \|\| "jpg";
 /**
  * docs/OPEN.md LIVE DEFECT #5 — a storage object key's extension must never
  * come from the client-supplied file NAME. `file.name.split(".").pop()`

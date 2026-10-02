@@ -1,3 +1,4 @@
+// @mutate src/lib/storageExt.ts | "image/png": "png", | "image/png": "jpg",
 import { describe, it, expect } from "vitest";
 import { storageExtFor } from "@/lib/storageExt";
 

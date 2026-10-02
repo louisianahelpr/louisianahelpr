@@ -737,11 +737,11 @@ const CORE_STALE = 60 * 1000;
  * result, so a core that comes back changed re-keys them and they refetch on
  * their own; forcing them too would double the wave for no extra freshness.
  *
- * This composes with the empty-state hold added in a520a50a8: with the
- * revalidation now actually firing, `loading` stays true over a zero-row
- * cached result while the refetch is in flight, so the window between the
- * stale answer and the real one shows the skeleton rather than the false
- * claim.
+ * The empty-state hold from a520a50a8 (skeleton over a zero-row cached result
+ * while this refetch ran) was removed 2026-10-01 at the owner's request: it
+ * made /jobs flash a skeleton on every visit for anyone with no applications,
+ * while /posts and /messages painted from cache. A cached result now paints
+ * at once and this revalidation corrects it behind it — see `loading` below.
  */
 const ACTIVITY_REFETCH_ON_MOUNT = "always" as const;
 
@@ -993,34 +993,25 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
 
   const activeCore = isPosted ? postedCore : appliedCore;
 
-  // AN EMPTY STATE IS A CLAIM ABOUT THE ACCOUNT, SO IT MUST WAIT FOR AN ANSWER.
+  // THE SKELETON IS FOR A COLD CACHE ONLY — the same rule as the Messages inbox
+  // (useMessagesData: `loading = conversationsPending && !allConversations`).
   //
-  // Activity renders `ActivityEmptyState` ("No applications yet — while you
-  // scout for the right job, post one of your own") from `loading === false`
-  // plus a zero-length list. `isLoading` is `isPending && isFetching`, which
-  // is false in two states where we do NOT have an answer yet:
-  //   - the query is DISABLED (userId not resolved yet) — pending, not
-  //     fetching, so `isLoading` is false and the page confidently says the
-  //     account has nothing;
-  //   - a cached-empty result is being REFETCHED — data is `[]` and settled
-  //     from a previous fetch, so `isLoading` is false while the request that
-  //     will return the user's actual work is still in flight.
-  // Measured on /jobs at 375 with one real application: "No applications
-  // yet" from 0.7s, replaced by the real card only once the read landed.
+  // This used to also hold the skeleton while a ZERO-ROW cached result was
+  // being refetched (a520a50a8), so an empty list could never be shown before
+  // the network confirmed it. Combined with `refetchOnMount: "always"` that
+  // meant: every visit to a tab whose list is empty showed the skeleton first,
+  // every time, while a tab with rows painted from cache at once. Owner,
+  // 2026-10-01: "messages and post load immediately but jobs has a skeleton
+  // then loads ... i prefer it load immediately like the other". Measured on
+  // prod the owner's account has 1 posted job and 0 applications — exactly
+  // the zero-row branch, on /jobs only.
   //
-  // So: hold the skeleton until this tab's core query has actually settled,
-  // and keep holding it while a refetch is in flight *with nothing to show*.
-  // The `rowCount > 0` guard is what keeps this from being a regression — a
-  // background refetch over an existing list must not blank the page back to
-  // skeletons; only the zero-row case, where the alternative is a false
-  // claim, waits.
-  const activeRowCount = isPosted
-    ? (postedCore.data?.postedJobs.length ?? 0)
-    : (appliedCore.data?.appliedApps.length ?? 0);
-  const activeSettled = activeCore.isSuccess || activeCore.isError;
-  const loading =
-    !activeCore.isError &&
-    (!activeSettled || (activeCore.isFetching && activeRowCount === 0));
+  // So /jobs and /posts now behave like /messages: a cached answer (empty or
+  // not) paints on the first frame and is revalidated behind it
+  // (refetchOnMount "always" still fires); only a genuinely cold cache — or a
+  // query still waiting on identity — shows the skeleton.
+  // src/hooks/useActivityData.firstPaint.test.tsx pins this.
+  const loading = !activeCore.isError && activeCore.data === undefined;
 
   return {
     loading,

@@ -6,7 +6,7 @@
  *   1. does https://www.louisianahelpr.com/ answer 200?
  *   2. does the database answer a read the app itself makes —
  *      `open_jobs_browse?select=id&limit=1` — with 200 inside 10s AND at
- *      least one row? An empty marketplace is down; see probe()'s note.
+ *      least one row? An empty marketplace is never "up"; see probe()'s note.
  *
  * The second one is the point. Prod is a free-tier t4g.nano; on 2026-09-13 it
  * went down for a day and nothing told anyone. A static-host GET stays 200
@@ -28,7 +28,13 @@
  * waiting out another 10-minute cron tick.
  *
  * Exit code is always 0: the caller decides what to do with the verdict.
- * Outputs (GITHUB_OUTPUT): status=up|down, summary=<one line>.
+ * Outputs (GITHUB_OUTPUT): status=up|down|empty, summary=<one line>.
+ *   up     the site answered, and the database returned at least one row
+ *   down   the site or the database did not answer (critical; pages)
+ *   empty  both answered, but every failure in the failed rounds was the
+ *          database's ZERO-row answer: an empty guest marketplace, not an
+ *          outage. Before launch it is its own WARNING ledger item; see
+ *          EMPTY_IS_WARNING_BEFORE_LAUNCH.
  * Writes uptime-report.md when down.
  *
  * Env:
@@ -37,6 +43,8 @@
  *   SUPABASE_URL                    required for the REST probe
  *   SUPABASE_PUBLISHABLE_KEY        required for the REST probe
  *   ROUNDS / ROUND_GAP_MS / TIMEOUT_MS  overridable for the failure-path proof
+ *   UPTIME_EMPTY_IS_DOWN=1          the launch-day verdict (empty is down), for
+ *                                   the test that proves both settings
  */
 import { appendFileSync, writeFileSync } from "node:fs";
 
@@ -50,6 +58,14 @@ const REST_PATH = process.env.REST_PROBE_PATH || "/rest/v1/open_jobs_browse?sele
 const TIMEOUT_MS = Number(process.env.TIMEOUT_MS || 10_000);
 const ROUNDS = Number(process.env.ROUNDS || 3);
 const ROUND_GAP_MS = Number(process.env.ROUND_GAP_MS || 30_000);
+
+// Owner, 2026-10-02 ("Split the alert until launch"): prod has no funded jobs
+// before launch (money states cannot be seeded while Stripe is live), so a
+// database that answers 200 with ZERO rows reports status=empty, a WARNING,
+// instead of paging "DOWN" as critical while the site is up. Set this to false
+// on launch day (docs/OPEN.md launch checklist) and an empty marketplace is
+// down again.
+const EMPTY_IS_WARNING_BEFORE_LAUNCH = process.env.UPTIME_EMPTY_IS_DOWN === "1" ? false : true;
 
 /**
  * One probe. Never throws: a thrown fetch IS the failure we are looking for.
@@ -65,8 +81,10 @@ const ROUND_GAP_MS = Number(process.env.ROUND_GAP_MS || 30_000);
  * days after the fact. `open_jobs_browse` admits a row only at
  * payment_status in (escrow, payout_pending, released), so 115 open-but-
  * unfunded rows render a marketplace with nothing in it. A logged-out visitor
- * landing on /browse sees an empty page; that is down, whatever the status
- * line says. Reading the body is the whole fix.
+ * landing on /browse sees an empty page; that is never "up", whatever the
+ * status line says. Reading the body is the whole fix. The zero-row answer is
+ * flagged `empty` so the verdict can tell it apart from an outage (see
+ * EMPTY_IS_WARNING_BEFORE_LAUNCH).
  */
 async function probe(name, url, headers, { expectRows = false } = {}) {
   const started = Date.now();
@@ -88,7 +106,7 @@ async function probe(name, url, headers, { expectRows = false } = {}) {
       }
       if (!Array.isArray(rows)) return { name, ok: false, ms, detail: "200 but the body is not a row array" };
       if (rows.length === 0) {
-        return { name, ok: false, ms, detail: `200 in ${ms}ms but ZERO rows — a guest opening /browse sees an empty marketplace` };
+        return { name, ok: false, empty: true, ms, detail: `200 in ${ms}ms but ZERO rows — a guest opening /browse sees an empty marketplace` };
       }
       return { name, ok: true, ms, detail: `200 in ${ms}ms, ${rows.length} row(s)` };
     }
@@ -112,7 +130,7 @@ async function round() {
           authorization: `Bearer ${KEY}`,
           accept: "application/json",
         },
-        // Zero rows is down, not up — see probe()'s note.
+        // Zero rows is never up — see probe()'s note.
         { expectRows: true },
       ),
     );
@@ -148,13 +166,21 @@ for (let i = 0; i < ROUNDS; i++) {
 
 const last = history[history.length - 1];
 const failing = last.results.filter((r) => !r.ok);
-const summary = down
-  ? `DOWN — ${failing.map((r) => `${r.name}: ${r.detail}`).join(", ")} (${consecutive} consecutive failed rounds)`
-  : `up — ${last.results.map((r) => `${r.name} ${r.detail}`).join(", ")}`;
+// Empty, not down, only when EVERY failure in the failed rounds was the
+// database's zero-row answer, i.e. the site and the database both responded.
+// Any other failure in those rounds (a timeout, a 5xx, the site) is an outage.
+const onlyEmpty = history.slice(-consecutive).every((r) => r.results.every((x) => x.ok || x.empty));
+const status = !down ? "up" : onlyEmpty && EMPTY_IS_WARNING_BEFORE_LAUNCH ? "empty" : "down";
+const summary =
+  status === "down"
+    ? `DOWN — ${failing.map((r) => `${r.name}: ${r.detail}`).join(", ")} (${consecutive} consecutive failed rounds)`
+    : status === "empty"
+      ? `EMPTY — the site and the database answer, but open_jobs_browse returned ZERO rows in ${consecutive} consecutive rounds: no funded job is browsable (pre-launch, owner 2026-10-02)`
+      : `up — ${last.results.map((r) => `${r.name} ${r.detail}`).join(", ")}`;
 
 console.log(summary);
 
-if (down) {
+if (status === "down") {
   const lines = [
     "## Production is not answering",
     "",
@@ -173,5 +199,5 @@ if (down) {
 }
 
 if (process.env.GITHUB_OUTPUT) {
-  appendFileSync(process.env.GITHUB_OUTPUT, `status=${down ? "down" : "up"}\nsummary=${summary.replace(/\n/g, " ")}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `status=${status}\nsummary=${summary.replace(/\n/g, " ")}\n`);
 }

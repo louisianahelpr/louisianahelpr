@@ -1,6 +1,9 @@
 // @mutate scripts/audit/pressProdSafety.mjs | set up payouts\|stripe\| |
 // @mutate scripts/audit/press-every-control.mjs |         if (isStripeWriteRequest(req.url(), req.postData()) && (await stripeMode()).mode !== "test") { |         if (false) {
 // @mutate scripts/audit/pressProdSafety.mjs |   "stripe-connect", |   "stripe-connectX",
+// @mutate scripts/audit/pressProdSafety.mjs |         method: "GET", headers: { Authorization: `Bearer ${secret}` }, |         method: "POST", headers: { Authorization: `Bearer ${secret}` },
+// @mutate scripts/audit/pressProdSafety.mjs |     if (!secret) return (cached = { mode: "unknown", |     if (!secret) return (cached = { mode: "test",
+// @mutate scripts/audit/pressProdSafety.mjs |       cached = { mode: m === "live" \|\| m === "test" ? m : "unknown", |       cached = { mode: "test",
 /*
  * CLASS GUARD: the prod presser never makes the app write to Stripe while
  * Stripe is LIVE (owner, 2026-10-01: "Skip it on live").
@@ -24,7 +27,7 @@
  *      recorded SKIP_STRIPE_WRITE_BLOCKED. The function list is derived from
  *      supabase/functions source, two-way.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
@@ -107,5 +110,41 @@ describe("press never writes to Stripe while Stripe is live", () => {
     expect(src).toMatch(/ctx\.route\(\s*"\*\*\/functions\/v1\/\*\*"/);
     expect(src).toContain('if (isStripeWriteRequest(req.url(), req.postData()) && (await stripeMode()).mode !== "test") {');
     expect(src).toContain("skip(SKIP_STRIPE_WRITE_BLOCKED)");
+  });
+
+  // Q895: the mode probe itself used to mint a live Checkout Session — it
+  // created a press job and POSTed create-payment {action:"escrow"} to read
+  // cs_live_/cs_test_ off the URL. It must learn the mode without any write.
+  describe("the Stripe mode probe never writes (Q895)", () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const poster = { accessToken: "tok", userId: "00000000-0000-0000-0000-000000000001" };
+    const stubFetch = (body: unknown) => {
+      const calls: Array<{ url: string; method: string }> = [];
+      vi.stubGlobal("fetch", async (url: string, init?: { method?: string }) => {
+        calls.push({ url: String(url), method: (init?.method ?? "GET").toUpperCase() });
+        return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+      });
+      return calls;
+    };
+    const probe = safety.makeStripeProbe as (p: unknown, r: string, env?: Record<string, string>) => () => Promise<{ mode: string }>;
+
+    it("with no CRON_SECRET it makes no request and reports unknown (treated as live)", async () => {
+      const calls = stubFetch([{ id: "job-1", url: "https://checkout.stripe.com/c/pay/cs_live_abc" }]);
+      const r = await probe(poster, "run", {})();
+      expect(calls).toEqual([]);
+      expect(r.mode).toBe("unknown");
+    });
+
+    it("with CRON_SECRET it only GETs health-check and reads checks.stripe_mode", async () => {
+      for (const m of ["live", "test"]) {
+        const calls = stubFetch({ checks: { stripe_mode: m } });
+        const r = await probe(poster, "run", { CRON_SECRET: "s" })();
+        expect(calls.map((c) => c.method)).toEqual(["GET"]);
+        expect(calls[0].url).toMatch(/\/functions\/v1\/health-check$/);
+        expect(r.mode).toBe(m);
+      }
+      stubFetch({ checks: { stripe_mode: "missing" } });
+      expect((await probe(poster, "run", { CRON_SECRET: "s" })()).mode).toBe("unknown");
+    });
   });
 });

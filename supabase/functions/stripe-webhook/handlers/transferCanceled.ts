@@ -6,6 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { requeueBlockers } from "./_chargebackHold.ts";
 
@@ -20,6 +21,27 @@ export async function handleTransferCanceled(
   // state that hides an unpaid helper from ops and from the payout cron.
   const transfer = event.data.object as Stripe.Transfer;
   logStep("Transfer CANCELED", { id: transfer.id, amount: transfer.amount });
+
+  // A single-Helpr cancellation fee is not a job payout (LOW-2): mark its own
+  // ledger row failed (void-cancelled-payments retries failed rows) and page.
+  // It must not touch payout_transfers or re-queue the refunded job.
+  if (isSingleHelprFeeTransfer(transfer)) {
+    const rowId = await settleCancellationFeeTransfer(transfer, "failed", { supabase, logStep }, "transfer_canceled");
+    if (rowId) {
+      await postSlackOpsAlert({
+        kind: "payout_failed",
+        severity: "critical",
+        title: "Helpr cancellation-fee transfer canceled",
+        message: `Stripe transfer ${transfer.id} (a Helpr's cancellation fee) was canceled before it settled. The fee ledger row is marked failed; void-cancelled-payments retries it.`,
+        fields: {
+          "Transfer ID": transfer.id,
+          "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+          "Job": String((transfer.metadata ?? {}).job_id ?? "—"),
+        },
+      });
+    }
+    return;
+  }
 
   const { data: canceledLedger, error: ledgerErr } = await supabase
     .from("payout_transfers")

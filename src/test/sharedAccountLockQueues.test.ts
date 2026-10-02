@@ -29,7 +29,7 @@ import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parse } from "yaml";
-import { decide, lockedJobs, LOCK, rateLimitWaitMs, STALE_RUN_MS } from "../../scripts/e2e/wait-shared-accounts.mjs";
+import { decide, drivesAccounts, lockedJobs, LOCK, rateLimitWaitMs, STALE_RUN_MS } from "../../scripts/e2e/wait-shared-accounts.mjs";
 import { STALE_RUN_MS as CANARY_STALE_RUN_MS } from "../../scripts/canary/shared-accounts-busy.mjs";
 
 const WF_DIR = resolve(__dirname, "../../.github/workflows");
@@ -222,6 +222,16 @@ describe("Q743: wait-shared-accounts decide()", () => {
 
   it("the queue and the canary agree on when a run is a ghost", () => {
     expect(STALE_RUN_MS).toBe(CANARY_STALE_RUN_MS);
+  });
+
+  // 2026-10-02: e2e-real-backend's push leg became a dispatched main batch
+  // (scripts/ci/main-batch.mjs); its locked jobs are gated off inputs.batch,
+  // so it must not be counted as a run in the queue.
+  it("a main-batch dispatch is not in the queue; schedule and manual dispatch are; push is not", () => {
+    expect(drivesAccounts({ event: "workflow_dispatch", display_title: "E2E real backend (main batch 0123abcd)" })).toBe(false);
+    expect(drivesAccounts({ event: "workflow_dispatch", display_title: "E2E real backend" })).toBe(true);
+    expect(drivesAccounts({ event: "schedule", display_title: "E2E real backend" })).toBe(true);
+    expect(drivesAccounts({ event: "push", display_title: "x" })).toBe(false);
   });
 });
 

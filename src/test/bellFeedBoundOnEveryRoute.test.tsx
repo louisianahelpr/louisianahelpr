@@ -47,7 +47,7 @@ vi.mock("@/lib/pushNotifications", () => ({
   showLocalNotification: () => {},
   getPushPermission: () => "default",
 }));
-vi.mock("@/lib/nativePush", () => ({ useRequestPushPermission: () => async () => false }));
+vi.mock("@/lib/nativePush", () => ({ useRequestPushPermissionOutcome: () => async () => "dismissed" }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: () => {} }));
 vi.mock("@/lib/errorLogger", () => ({ report: () => {} }));
 vi.mock("sonner", () => ({

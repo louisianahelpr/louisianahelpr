@@ -134,7 +134,7 @@ describe("Q75 secret-scan gate", () => {
 
   it("CI scans every push and PR with both engines, redacted, and fails on a finding", () => {
     const wf = read(".github/workflows/secret-scan.yml");
-    expect(wf).toMatch(/^on:\n(?:\s*#.*\n)*\s+push:\s*\n\s+pull_request:/m);
+    expect(wf).toMatch(/^on:\n(?:\s*#.*\n)*(?:\s*#.*\n)*\s+push:\s*\n\s+branches-ignore: \["land\/\*\*"\]\n\s+pull_request:/m);
     expect(wf).toMatch(/gitleaks git [^\n]*--config \.gitleaks\.toml[^\n]*--redact[^\n]*--exit-code 1/);
     expect(wf).toContain('node scripts/secret-scan.mjs --range "${RANGE}"');
     expect(wf).toMatch(/sha256sum -c/);

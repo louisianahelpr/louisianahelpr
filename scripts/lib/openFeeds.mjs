@@ -152,10 +152,15 @@ function coverTokens(key) {
 /**
  * Apply open source groups to OPEN.md text.
  *   status(key) -> "open" | "closed" | null (feed unreadable: leave it alone)
- * Returns { md, created: [{id, keys}], attached: [{id, keys}], flipped: [id] }.
+ * Returns { md, created: [{id, keys}], attached: [{id, keys}], flipped: [id], ambiguous: [{keys, ids}] }.
+ *
+ * A source whose name opens the first line of MORE than one open item is
+ * AMBIGUOUS: it is neither attached nor filed again (a new item would be one
+ * more copy of it), but returned so the sync exits 1 until a human tags the
+ * one item that owns it (2026-10-02: issue #1719 opened 10 items, #1582 9).
  */
 export function applyFeeds(md, groups, { status, nextFree, today }) {
-  const created = [], attached = [], flipped = [];
+  const created = [], attached = [], flipped = [], ambiguous = [];
   let lines = md.split("\n");
   const snapshotMd = () => lines.join("\n");
   const newItems = [];
@@ -174,6 +179,7 @@ export function applyFeeds(md, groups, { status, nextFree, today }) {
       // issue in passing (Q743 citing #1890) is not the item for it.
       const hits = items.filter((it) => it.state === " " && g.keys.some((k) => coverTokens(k).some((re) => re.test(it.text.split("\n")[0]))));
       if (hits.length === 1) target = hits[0];
+      else if (hits.length > 1) { ambiguous.push({ keys: g.keys, ids: hits.map((it) => it.id) }); continue; }
     }
     if (target) {
       const add = missing(target.id);
@@ -217,5 +223,5 @@ export function applyFeeds(md, groups, { status, nextFree, today }) {
       flipped.push(it.id);
     }
   }
-  return { md: lines.join("\n"), created, attached, flipped };
+  return { md: lines.join("\n"), created, attached, flipped, ambiguous };
 }

@@ -983,7 +983,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ### Alerting: few, critical-only, reaching the owner (2026-09-14)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] MEDIUM OWNER: enable Slack #ops-alerts notifications for all new messages, confirm correct account — Open (owner): cannot confirm #ops-alerts Slack notification settings from the repo. (archive L3134)
-- [ ] MEDIUM OWNER: delete 3 stale Sentry alert rules — Open (owner): cannot confirm the 3 Sentry alert rules were deleted. (archive L3135)
 - [ ] MEDIUM Known and accepted (lh-silent-failure F5): contact-support await chain can add ~20s under Supabase/Slack brownout — Open but accepted-as-is: contact-support latency under brownout is a deliberate tradeoff, no fix planned. (archive L3142)
 
 ### Money: concurrent release / Quick Release / Quick Refund (2026-09-13)

@@ -77,7 +77,13 @@ async function probe(name, url, headers, { expectRows = false } = {}) {
     const ms = Date.now() - started;
     // A 200 that took longer than the budget is a failure too — the owner
     // cares about "usable", not "eventually answered".
-    if (res.status !== 200) return { name, ok: false, ms, detail: `HTTP ${res.status}` };
+    if (res.status !== 200) {
+      // The body says WHY (PostgREST/the gateway name the cause: "Invalid API
+      // key" = a rotated secret, "permission denied" = a revoked grant), and a
+      // bare "HTTP 401" cannot tell those two apart.
+      const why = (await res.text().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 160);
+      return { name, ok: false, ms, detail: why ? `HTTP ${res.status}: ${why}` : `HTTP ${res.status}` };
+    }
     if (ms > TIMEOUT_MS) return { name, ok: false, ms, detail: `200 but ${ms}ms > ${TIMEOUT_MS}ms` };
     if (expectRows) {
       let rows;

@@ -156,7 +156,38 @@ jobs:
         # button, a guard or a finding without regenerating its inventory goes
         # red HERE. Docs-only pushes (paths-ignored above) are covered by
         # staleness-watch.yml's push trigger. (OPEN.md Q36, 2026-09-23.)
-        run: npm run check:generated
+        #
+        # Exit 3 is DRIFT only (every problem is a stale committed output).
+        # Aggregate counts (vacuity guards, burn-down, queue score) merge
+        # cleanly to the WRONG number when two branches change them, and main's
+        # required checks are not strict, so drift reaches main with no one at
+        # fault and then turned every open PR red (2026-10-01, #2051: "guards
+        # 1285, regenerated 1286"). So on drift:
+        #   - pull_request: judge the PR on its OWN tree. --attribute re-runs the
+        #     check at the PR head and at its merge base; red only for an output
+        #     the PR itself left stale (current at the base, stale at the head).
+        #   - push to main: a warning. staleness-watch.yml's run for the same
+        #     push regenerates main and lands it as bot/refresh/inventories.
+        # Any other failure (crash, registry gap) is exit 1 and stays red.
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_TIP: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          npm run -s check:generated
+          rc=$?
+          set -e
+          [ "$rc" -eq 0 ] && exit 0
+          [ "$rc" -ne 3 ] && exit "$rc"
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "::warning::Committed inventories drifted on main (an aggregate count merged from two branches). staleness-watch.yml regenerates and lands bot/refresh/inventories for this push."
+            exit 0
+          fi
+          MB=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE_TIP...$HEAD_SHA" --jq .merge_base_commit.sha)
+          git fetch --no-tags --depth=1 origin "$HEAD_SHA" "$MB"
+          node scripts/check-generated-current.mjs --attribute --head "$HEAD_SHA" --base "$MB"
 
       - name: Every stated count is generated, dated, or baselined (two-way)
         # A number typed into a doc or a test comment is a measurement frozen

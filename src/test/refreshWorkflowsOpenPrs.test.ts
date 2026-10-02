@@ -1,6 +1,8 @@
 // @mutate .github/workflows/scoreboard.yml | uses: ./.github/actions/refresh-pr | uses: ./.github/actions/nightly-issue-sync
 // @mutate .github/workflows/loading-states-refresh.yml | pull-requests: write | pull-requests: read
-// @mutate .github/workflows/staleness-watch.yml | if: github.event_name != 'push' && needs.generated-current.result != 'cancelled' | if: needs.generated-current.result != 'cancelled'
+// @mutate .github/workflows/staleness-watch.yml | (github.event_name != 'push' \|\| needs.generated-current.outputs.drift == 'true') | (needs.generated-current.outputs.drift == 'true')
+// @mutate .github/workflows/staleness-watch.yml | (github.event_name != 'push' \|\| needs.generated-current.outputs.drift == 'true') | (github.event_name != 'push' \|\| true)
+// @mutate .github/workflows/staleness-watch.yml | if [ "$rc" -eq 3 ] && [ "$EVENT" = "push" ]; then | if [ "$EVENT" = "push" ]; then
 // @mutate .github/actions/refresh-pr/action.yml | --auto --squash | --squash
 // @mutate .github/actions/refresh-pr/action.yml | if git diff --cached --quiet; then | if false; then
 /*
@@ -61,8 +63,37 @@ const ALSO_LANDED: Record<string, string> = {
     "regenerates the Xcode project/Info.plist/capacitor.config.ts and the App Store name/URL/category files via `bundle exec fastlane ios sync_xcode_metadata`, not a scripts/check-generated-current.mjs generator; Q285 moved its old direct `git push` onto this shared step for the same branch-protection reason",
 };
 
-type Step = { run?: string; uses?: string; with?: Record<string, unknown> };
-type Job = { steps?: Step[]; permissions?: Record<string, string> | string; if?: string; needs?: string | string[] };
+type Step = { id?: string; run?: string; uses?: string; with?: Record<string, unknown> };
+type Job = { steps?: Step[]; permissions?: Record<string, string> | string; if?: string; needs?: string | string[]; outputs?: Record<string, string> };
+
+/*
+ * The ONE exception to "a land job never runs on push" (2026-10-01, #2051):
+ * `github.event_name != 'push' || needs.<job>.outputs.drift == 'true'`, where
+ * <job>'s `drift` output comes from a step that sets it only when
+ * check:generated exits 3 (pure drift) on a push. That drift merged in from two
+ * non-strict PRs and is no pusher's to regenerate; landing it on the push keeps
+ * main current instead of red until the nightly.
+ */
+const DRIFT_EXCEPTION = /\(\s*github\.event_name != 'push' \|\| needs\.([\w-]+)\.outputs\.drift == 'true'\s*\)/;
+function pushGateProblem(w: Wf, name: string, j: Job): string | null {
+  const cond = j.if ?? "";
+  const m = DRIFT_EXCEPTION.exec(cond);
+  const rest = m ? cond.replace(m[0], "") : cond;
+  if (!m && !/github\.event_name != 'push'/.test(rest)) {
+    return `${w.file}/${name}: the workflow runs on push/PR, so the land job must be gated \`github.event_name != 'push'\` (a refresh PR per push would race the pusher), or use the drift exception`;
+  }
+  if (/\|\|/.test(rest)) return `${w.file}/${name}: the land job's \`if\` has an \`||\` besides the drift exception, so it can run on push for other reasons: ${cond}`;
+  if (!m) return null;
+  const src = w.jobs[m[1]];
+  const out = String(src?.outputs?.drift ?? "");
+  const sid = /steps\.([\w-]+)\.outputs\.drift/.exec(out)?.[1];
+  const step = (src?.steps ?? []).find((s) => s.id === sid);
+  const run = String(step?.run ?? "");
+  if (!step || !/npm run -s check:generated/.test(run) || !/if \[ "\$rc" -eq 3 \] && \[ "\$EVENT" = "push" \]; then\s+echo "drift=true" >> "\$GITHUB_OUTPUT"/.test(run)) {
+    return `${w.file}/${name}: the drift exception needs ${m[1]}.outputs.drift set by a step that runs check:generated and writes drift=true only on exit 3 during a push`;
+  }
+  return null;
+}
 type Wf = { file: string; on: Record<string, unknown>; permissions?: Record<string, string> | string; jobs: Record<string, Job> };
 
 const pkgScripts = (JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { scripts: Record<string, string> }).scripts;
@@ -157,7 +188,10 @@ describe("scheduled refresh workflows land their files through ONE auto-merging 
         if (!isLand) continue;
         const p = (typeof j.permissions === "object" ? j.permissions : {}) as Record<string, string>;
         if (p.contents !== "write" || p["pull-requests"] !== "write") problems.push(`${w.file}/${name}: needs explicit permissions contents: write + pull-requests: write`);
-        if (("push" in w.on || "pull_request" in w.on) && !/github\.event_name != 'push'/.test(j.if ?? "")) problems.push(`${w.file}/${name}: the workflow runs on push/PR, so the land job must be gated \`github.event_name != 'push'\` (a refresh PR per push would race the pusher)`);
+        if ("push" in w.on || "pull_request" in w.on) {
+          const gate = pushGateProblem(w, name, j);
+          if (gate) problems.push(gate);
+        }
         const step = (j.steps ?? []).find((s) => s.uses === ACTION)!;
         const id = String(step.with?.id ?? "");
         if (!/^[a-z0-9-]+$/.test(id)) problems.push(`${w.file}/${name}: step id "${id}" is not a slug`);

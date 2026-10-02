@@ -1,5 +1,9 @@
 // @mutate scripts/burndown-score.mjs | r.files++; | r.files += 2;
 // @mutate scripts/check-generated-current.mjs | return after.every((text, k) => text === before[k]); | return false;
+// @mutate scripts/check-generated-current.mjs | return { ok: own.length === 0, own, inherited, other: [] }; | return { ok: true, own, inherited, other: [] };
+// @mutate scripts/check-generated-current.mjs | if (head.other.length) return | if (false) return
+// @mutate scripts/check-generated-current.mjs | problems.every((p) => p.startsWith("STALE ")) | problems.every(() => true)
+// @mutate scripts/check-generated-current.mjs | if (m) stale.add(m[1]); | if (m) other.push(line);
 /*
  * Every committed inventory is current (OPEN.md Q36; owner, 2026-09-23:
  * "nothing at all should ever be stale").
@@ -21,9 +25,12 @@ import {
   coverageProblems,
   discoverDeclaredGenerated,
   discoverWriters,
+  attributeDrift,
   firstDiff,
   generatorFailed,
+  isPureDrift,
   normalise,
+  parseCheckOutput,
   // @ts-expect-error — plain .mjs script, no declaration file
 } from "../../scripts/check-generated-current.mjs";
 
@@ -101,5 +108,56 @@ describe("a generator that crashes is a failure even when it may exit non-zero",
   });
   it("an opted-in generator that wrote nothing (a crash) fails", () => {
     expect(generatorFailed(opted, { status: 1 }, ["same"], ["same"])).toBe(true);
+  });
+});
+
+/*
+ * Drift attribution (2026-10-01, PR #2051). Aggregate counts merge cleanly to
+ * the wrong number when two non-strict PRs each change them, so a stale merge
+ * ref is not proof the PR is at fault. Fixtures are the real #2051 output:
+ * its head 9173aa294 left both files stale (current at merge base d81c16a5c),
+ * so it is red; a PR whose own head is current is not.
+ */
+describe("drift on a PR's merge ref is attributed to whoever caused it", () => {
+  const PR2051_HEAD = [
+    "::error::STALE docs/audit/vacuity-report.json — the committed copy differs from what its generator produces now",
+    "      committed:     \"guards\": 1284,",
+    "::error::STALE docs/GUARD-BURNDOWN.md — the committed copy differs from what its generator produces now",
+  ].join("\n");
+
+  it("parses every version's ::error:: lines into stale outputs and other problems", () => {
+    const p = parseCheckOutput(`${PR2051_HEAD}\n::error::REGISTRY scripts/x.mjs writes docs/x.md but is not registered`);
+    expect(p.stale).toEqual(["docs/GUARD-BURNDOWN.md", "docs/audit/vacuity-report.json"]);
+    expect(p.other).toEqual(["REGISTRY scripts/x.mjs writes docs/x.md but is not registered"]);
+    expect(parseCheckOutput("all current\n")).toEqual({ stale: [], other: [] });
+  });
+
+  it("exit 3 only when every problem is a stale output", () => {
+    expect(isPureDrift(["STALE docs/a.md — differs", "STALE docs/b.json — differs"])).toBe(true);
+    expect(isPureDrift(["STALE docs/a.md — differs", "docs/x.md: generator crashed"])).toBe(false);
+    expect(isPureDrift([])).toBe(false);
+  });
+
+  it("#2051: stale at the PR head, current at its merge base = the PR's own, red", () => {
+    const v = attributeDrift(parseCheckOutput(PR2051_HEAD), { stale: [], other: [] });
+    expect(v.ok).toBe(false);
+    expect(v.own).toEqual(["docs/GUARD-BURNDOWN.md", "docs/audit/vacuity-report.json"]);
+  });
+
+  it("current at the PR head = drift from main's other merges, green", () => {
+    expect(attributeDrift({ stale: [], other: [] }, { stale: [], other: [] }).ok).toBe(true);
+  });
+
+  it("stale at the head only because it was stale at the base = inherited, green", () => {
+    const base = parseCheckOutput(PR2051_HEAD);
+    const v = attributeDrift(parseCheckOutput(PR2051_HEAD), base);
+    expect(v.ok).toBe(true);
+    expect(v.inherited).toEqual(["docs/GUARD-BURNDOWN.md", "docs/audit/vacuity-report.json"]);
+  });
+
+  it("a crash or registry gap at the PR head is never excused as drift", () => {
+    const v = attributeDrift({ stale: [], other: ["docs/x.md: generator crashed"] }, { stale: [], other: [] });
+    expect(v.ok).toBe(false);
+    expect(v.other).toEqual(["docs/x.md: generator crashed"]);
   });
 });

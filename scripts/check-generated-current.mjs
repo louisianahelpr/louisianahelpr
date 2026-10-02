@@ -35,13 +35,36 @@
  *   node scripts/check-generated-current.mjs --list     # print the inventory table
  *   node scripts/check-generated-current.mjs --outputs  # every CI generator's output path, one per line
  *   node scripts/check-generated-current.mjs --fix      # regenerate all in place (npm run inventories:refresh)
+ *   node scripts/check-generated-current.mjs --attribute --head <sha> --base <sha>
+ *                                                       # PR CI after exit 3: whose drift is it?
+ *
+ * Exit codes: 0 current; 1 a generator crashed, a registry scan found a gap,
+ * or (with --attribute) the PR itself left an inventory stale; 3 DRIFT, when
+ * every problem is a committed output that differs from its regenerated copy.
+ *
+ * WHY DRIFT IS ITS OWN EXIT (2026-10-01, PR #2051). Several outputs are
+ * AGGREGATE counts over the whole tree (the vacuity report's guard total, the
+ * burn-down score, the OPEN.md queue score). Two branches that each add a guard
+ * both change "guards": 1284 to 1285; git merges that text cleanly to 1285 while
+ * the merged tree has 1286. Main's required checks are not strict, so a PR that
+ * went green on an older main merges without re-running, and main is stale with
+ * no one at fault. Before this, every open PR's merge-ref check then went red on
+ * a count it never touched (#2051: "guards 1285, regenerated 1286"). Now:
+ *   - a PR whose merge ref drifts is judged on its OWN tree (--attribute): red
+ *     only for an output stale at the PR head that was current at its merge
+ *     base, i.e. the PR changed inputs and did not regenerate;
+ *   - drift on main is not the pusher's failure: staleness-watch.yml's land
+ *     job regenerates main and lands it through the bot/refresh/inventories PR
+ *     on the push that drifted, not the next night. The nightly run stays
+ *     strict, so a refresh that never lands still goes red.
  *
  * Run per push by test.yml and staleness-watch.yml (push trigger, so a
  * docs-only commit is covered too), nightly by staleness-watch.yml, and by
  * `npm run gate`.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, unlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { listEvidence } from "./check-staleness.mjs";
 import { archivePathFor } from "./lib/openQueue.mjs";
@@ -430,9 +453,106 @@ function printList() {
   for (const [f, how] of Object.entries(TWO_WAY)) console.log(`| \`${f}\` | hand-lowered baseline | when a fix lowers it, same commit | ${how} |`);
 }
 
+/** Exit code for "only committed outputs differ" (see the header). */
+export const DRIFT_EXIT = 3;
+
+/** True when there are problems and every one is a STALE output: drift, not a crash or a registry gap. */
+export function isPureDrift(problems) {
+  return problems.length > 0 && problems.every((p) => p.startsWith("STALE "));
+}
+
+/**
+ * Read a checker run's output (every version of this script prints one
+ * `::error::<problem>` line per problem) into stale output paths and every
+ * other problem.
+ */
+export function parseCheckOutput(text) {
+  const stale = new Set();
+  const other = [];
+  for (const line of String(text).split("\n")) {
+    if (!line.startsWith("::error::")) continue;
+    const m = /^::error::STALE (\S+)/.exec(line);
+    if (m) stale.add(m[1]);
+    else other.push(line.slice("::error::".length));
+  }
+  return { stale: [...stale].sort(), other };
+}
+
+/**
+ * The verdict for a PR whose merge ref drifted. `head` and `base` are
+ * parseCheckOutput() results for the PR head and its merge base.
+ *   - the head has a crash or registry gap of its own: fail, name it;
+ *   - the head is current: pass, the drift is a concurrent change on main;
+ *   - an output stale at the head but current at the base: the PR's own, fail;
+ *   - every stale output was already stale at the base: inherited, pass.
+ */
+export function attributeDrift(head, base) {
+  if (head.other.length) return { ok: false, own: [], inherited: [], other: head.other };
+  const own = head.stale.filter((o) => !base.stale.includes(o));
+  const inherited = head.stale.filter((o) => base.stale.includes(o));
+  return { ok: own.length === 0, own, inherited, other: [] };
+}
+
+/** Run THAT commit's own checker in a throwaway worktree outside the repo. */
+function checkAtCommit(sha) {
+  const dir = mkdtempSync(join(tmpdir(), "lh-generated-"));
+  const tree = join(dir, "tree");
+  git("worktree", "add", "--detach", "--quiet", tree, sha);
+  try {
+    if (existsSync(join(REPO, "node_modules"))) symlinkSync(join(REPO, "node_modules"), join(tree, "node_modules"));
+    const run = spawnSync("node", ["scripts/check-generated-current.mjs"], { cwd: tree, encoding: "utf8", maxBuffer: 1 << 26 });
+    const parsed = parseCheckOutput(`${run.stdout}\n${run.stderr}`);
+    if (run.status !== 0 && !parsed.stale.length && !parsed.other.length) {
+      parsed.other.push(`checker at ${sha} exited ${run.status} without naming a problem: ${(run.stderr || run.stdout || "").trim().split("\n").slice(-3).join(" | ")}`);
+    }
+    return parsed;
+  } finally {
+    try { git("worktree", "remove", "--force", tree); } catch { /* the rm below still clears it */ }
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function attributeMain(argv) {
+  const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? String(argv[i + 1] ?? "") : ""; };
+  const head = arg("--head");
+  const base = arg("--base");
+  if (!/^[0-9a-f]{7,40}$/.test(head) || !/^[0-9a-f]{7,40}$/.test(base)) {
+    console.error("::error::--attribute needs --head <sha> --base <merge-base sha>");
+    process.exit(1);
+  }
+  console.log(`attribute: running the PR head's own check (${head.slice(0, 9)})`);
+  const h = checkAtCommit(head);
+  let b = { stale: [], other: [] };
+  if (h.stale.length && !h.other.length) {
+    console.log(`attribute: running the merge base's own check (${base.slice(0, 9)})`);
+    b = checkAtCommit(base);
+  }
+  const v = attributeDrift(h, b);
+  if (!v.ok) {
+    for (const p of v.other) console.error(`::error::at the PR head: ${p}`);
+    for (const o of v.own) {
+      console.error(
+        `::error::STALE ${o} — this PR changed what it is generated from and did not regenerate it ` +
+          `(current at the merge base ${base.slice(0, 9)}, stale at the PR head ${head.slice(0, 9)}). ` +
+          "Run `npm run inventories:refresh` on the branch and commit (scripts/land.sh does this).",
+      );
+    }
+    process.exit(1);
+  }
+  const why = v.inherited.length
+    ? `stale outputs were already stale at the merge base (${v.inherited.join(", ")}): inherited from main`
+    : "inventory is current at the PR head: the drift comes only from commits that reached main after this PR branched";
+  console.log(
+    `::warning::The merge with current main drifts, but every ${why}. An aggregate count (guards, burn-down, queue score) ` +
+      "merges cleanly to the wrong number when two branches change it; staleness-watch.yml regenerates main on the push " +
+      "that drifts and lands it as bot/refresh/inventories. Not this PR's to fix.",
+  );
+}
+
 function main() {
   const argv = process.argv.slice(2);
   if (argv.includes("--list")) return printList();
+  if (argv.includes("--attribute")) return attributeMain(argv);
   if (argv.includes("--outputs")) {
     // One path per line: what staleness-watch.yml's Q57 refresh PR may commit.
     for (const o of [...new Set(GENERATED.flatMap((g) => g.outputs))]) console.log(o);
@@ -482,7 +602,8 @@ function main() {
   if (!only && selected.length < 7) problems.push(`only ${selected.length} generators registered — the registry shrank; floor is 7`);
   if (problems.length) {
     for (const p of problems) console.error(`::error::${p}`);
-    process.exit(1);
+    // 3 = drift only (the caller decides whose it is); 1 = anything else.
+    process.exit(isPureDrift(problems) ? DRIFT_EXIT : 1);
   }
   console.log("OK: every generated inventory is current.");
 }

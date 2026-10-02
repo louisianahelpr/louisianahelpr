@@ -8,7 +8,10 @@
  * World: src/test/pglite/seriesWorld.mjs (the real trigger chain on jobs, read
  * from the newest migrations). The migration chain under test,
  * 20260927012804, 20260927012805 and 20260927012806, is applied verbatim
- * THREE times.
+ * THREE times, then Q415 (a)'s 20261002192425_q415a_offer_series_dates_past_helprs
+ * (offers also go to a Helpr who completed a job for this poster).
+ * PROOF_BEFORE_Q415A=1 leaves 211502 out: the past-Helpr check then fails,
+ * which is how that check was shown able to fail.
  *
  * OLD STATE (052841 only): a one-person series has no per-date holder, the
  * poster's split choice does not exist, a visit is created for whoever the
@@ -36,6 +39,9 @@ const VIS = readMigration("20260927015010_recurring_vacated_visit_private.sql");
 // TypeScript authority moved with it, so the parity check below needs it too;
 // its own proof is recurringSeriesWeeksFromStart.pglite.mjs.
 const FROM_START = readMigration("20261001215555_recurring_series_weeks_from_start.sql");
+// Q415 (a): the poster may also offer dates to a Helpr who completed a job for
+// them. PROOF_BEFORE_Q415A=1 leaves it out, so the past-Helpr check prints red.
+const PAST = readMigration("20261002192425_q415a_offer_series_dates_past_helprs.sql");
 const { P, A, B, C, X } = USERS;
 const { check, failures, fail } = checker();
 
@@ -125,6 +131,7 @@ for (let i = 0; i < 3; i++) {
   await db.exec(SPLIT);
   await db.exec(`set check_function_bodies = off; ${VIS}; set check_function_bodies = on;`);
   await db.exec(FROM_START);
+  if (!process.env.PROOF_BEFORE_Q415A) await db.exec(PAST);
 }
 // PROOF_BEFORE_015010=1 puts back the discovery gates as they were before
 // 20260927015010, so the vacated-visit checks below print red.
@@ -221,6 +228,19 @@ check("a second claim of your own dates says already_yours, not taken",
 // 5. The poster offers the rest to someone who applied.
 r = await as(db, "authenticated", P, `select public.offer_series_dates('${J(2)}', '${B}') as v`);
 check("an offer needs a pending application", refused(r, /not_an_applicant/), r.err);
+// Q415 (a): a completed job for THIS poster also qualifies; one for someone
+// else, or one not yet completed, does not.
+await server(db, `insert into public.jobs (id, title, customer_id, helper_id, status, date_needed) values
+  ('${J(90)}', 'past, other poster', '${X}', '${B}', 'completed', ${d(-10)}),
+  ('${J(91)}', 'past, not finished', '${P}', '${B}', 'in_progress', ${d(-9)})`);
+r = await as(db, "authenticated", P, `select public.offer_series_dates('${J(2)}', '${B}') as v`);
+check("Q415a: a job for another poster, or an unfinished one, does not qualify", refused(r, /not_an_applicant/), r.err);
+await server(db, `update public.jobs set status = 'completed' where id = '${J(91)}'`);
+r = await as(db, "authenticated", P, `select public.offer_series_dates('${J(2)}', '${B}') as v`);
+check("Q415a: the poster can offer dates to a Helpr who completed a job for them", r.ok && r.rows[0].v.open_dates > 0, r.err);
+await server(db, `delete from public.series_date_offers where parent_job_id='${J(2)}' and helper_id='${B}'`);
+await server(db, `delete from public.notifications where user_id='${B}' and title='Visit dates offered to you'`);
+await server(db, `delete from public.jobs where id in ('${J(90)}', '${J(91)}')`);
 await server(db, `insert into public.applications (job_id, helper_id) values ('${J(2)}', '${B}'), ('${J(2)}', '${C}')`);
 r = await as(db, "authenticated", A, `select public.offer_series_dates('${J(2)}', '${B}') as v`);
 check("only the poster offers dates", refused(r, /not_authorized/), r.err);

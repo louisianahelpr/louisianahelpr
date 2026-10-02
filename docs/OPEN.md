@@ -924,7 +924,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### DONE 2026-09-20 — Profile tab gutter + every Profile loading state
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW TAB_TITLES.wrapped drifts from rendered h1 (Helpr Wrapped vs Your 2026 so far) — Open: Wrapped tab title still drifts from its rendered heading; needs a decision. (archive L2297)
 - [ ] LOW Profile LANDING sits at a different gutter than its own tabs — Open, owner decision needed: Profile landing gutter [40,40]/[36,36] vs tabs [24,24]/[20,20]. (archive L2304)
 - [ ] LOW /jobs applied-card pitch unverified against a populated list — Open, not reached: applied-card skeleton pitch still unverified against real data. (archive L2310)
 
@@ -1054,7 +1053,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### ### Notification count — ruled out
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Bell abbreviates at '99+' while panel chip prints the true total (minor disagreement) — Bell badge still abbreviates to 99+ while the panel's own chip shows the true unread count. (archive L3829)
 
 ### FOR THE OWNER — the dead avatar URL is CLEARED (2026-09-12); the duplicate FILE is still there.
 Reconciled 2026-09-23; detail in the archive at the line shown.

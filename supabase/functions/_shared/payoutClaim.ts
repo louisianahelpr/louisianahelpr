@@ -386,9 +386,16 @@ export async function checkUnrecordedTransfers(
   );
   if (unrecorded.length === 0) return { kind: "clear" };
 
-  // This helper's claim rows. A row with no helper_id (a redacted helper) is
-  // treated as this job's claim rather than ignored.
-  const helperRows = rows.filter((r) => r.helper_id == null || r.helper_id === args.helperId);
+  // This helper's claim rows — EXACTLY the set claimPayout reads
+  // (`.eq("helper_id", helperId)`) and the unique index
+  // payout_transfers_one_live_per_job_helper arbitrates (NULL-distinct). A row
+  // whose helper_id was SET NULL by an account deletion is a deleted helper's
+  // claim, never this helper's: counting it here (as this used to) let a
+  // redacted orphan be "adopted" under a claimId claimPayout can never resume,
+  // so the adopt guard 409'd forever (docs/OPEN.md LOW-3). Its transfer id is
+  // still in `recorded` above, job-wide; an unrecorded transfer it may have
+  // sent now reads as conflict and pages — fail closed.
+  const helperRows = rows.filter((r) => r.helper_id === args.helperId);
   const { openClaim, inFlightClaim } = classifyLedger(helperRows, args.nowMs);
   if (inFlightClaim) return { kind: "inflight" };
 

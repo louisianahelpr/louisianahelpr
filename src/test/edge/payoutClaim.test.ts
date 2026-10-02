@@ -130,6 +130,26 @@ describe("checkUnrecordedTransfers adopt-amount — MEDIUM-1", () => {
     expect(res).toEqual({ kind: "adopt", claimId: "led-orphan", transferId: "tr_net" });
   });
 
+  // LOW-3 (docs/OPEN.md): a row whose helper_id was SET NULL by an account
+  // deletion. claimPayout reads `.eq("helper_id", helperId)` and the unique
+  // index is NULL-distinct, so neither ever counts it as this helper's claim;
+  // checkUnrecordedTransfers used to, and "adopted" it under a claimId the
+  // claim could never resume — a 409 on every run.
+  // @mutate supabase/functions/_shared/payoutClaim.ts | rows.filter((r) => r.helper_id === args.helperId) | rows.filter((r) => r.helper_id == null \|\| r.helper_id === args.helperId)
+  it("never treats a redacted (NULL helper_id) claim as this helper's — agrees with claimPayout's read", async () => {
+    const redacted = { ...orphanClaim, helper_id: null };
+    const db = makeDb({ readRows: [redacted] });
+    const stripe = stripeWith([{ id: "tr_net", amount: 4800, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1" } }]);
+    const res = await checkUnrecordedTransfers(db as never, stripe as never, { ...baseArgs });
+    expect(res).toEqual({ kind: "conflict", transferIds: ["tr_net"] });
+    // A redacted claim INSIDE the in-flight window is not this helper's either.
+    const fresh = makeDb({ readRows: [{ ...redacted, created_at: new Date().toISOString() }] });
+    expect((await checkUnrecordedTransfers(fresh as never, stripe as never, { ...baseArgs })).kind).toBe("conflict");
+    // And claimPayout's own read is the per-helper equality the index arbitrates.
+    const src = readFileSync("supabase/functions/_shared/payoutClaim.ts", "utf8");
+    expect(src).toMatch(/\.eq\("helper_id", args\.helperId\)/);
+  });
+
   it("still refuses (conflict) when the amount matches neither the claim nor this run", async () => {
     const db = makeDb({ readRows: [orphanClaim] });
     const stripe = stripeWith([{ id: "tr_other", amount: 1234, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1" } }]);

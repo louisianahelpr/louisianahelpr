@@ -1246,6 +1246,67 @@ serve(async (req) => {
         }
       };
 
+      // ── Step 4b: HARD CAP — never transfer more than the escrow was funded with ──
+      //
+      // `jobs.budget` is writable by the poster under RLS while
+      // `payment_status` is still 'unpaid', and the Checkout Session freezes its
+      // amount at creation — so a poster can pay a $10 session, raise the
+      // budget, and this cron would compute the payout from the raised figure.
+      //
+      // `release-payout` and `execute-dispute-split` have carried this
+      // assertion for some time. This function — the one that pays MOST jobs,
+      // on the normal schedule — did not, and `source_transaction` below is not
+      // a substitute: it is deliberately omitted for gift-funded jobs, because
+      // there is no charge to draw from. On that path this check is the only
+      // thing standing between a raised budget and an uncapped transfer out of
+      // the platform's own balance.
+      //
+      // It runs BEFORE the claim (docs/OPEN.md LOW-7): every input is final
+      // by here, and an exit after claimPayout left a pending claim row with a
+      // null transfer id that nothing settled or failed — an orphan the next
+      // run's classifyLedger resumes and checkUnrecordedTransfers must reason
+      // about. Refusing before the INSERT leaves the ledger untouched.
+      //
+      // The gift leg counts toward the cap: it is real value leaving the
+      // platform, denominated in credit rather than dollars.
+      const escrowValueCents = capturedCents + giftAppliedCents;
+      const payoutCents = roundPayoutDownCents(Math.round(helperPayout * 100));
+      if (payoutCents > escrowValueCents) {
+        console.error(
+          `[process-scheduled-payouts] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +
+            `(captured ${capturedCents}c + gift ${giftAppliedCents}c) for job ${job.id}`,
+        );
+        await rollBackOnboardingFeeClaim();
+        await postSlackOpsAlert({
+          kind: "custom",
+          seed: seedJobIds.has(job.id),
+          severity: "critical",
+          title: "Scheduled payout blocked — exceeds captured escrow",
+          message:
+            "A scheduled payout computed to more than the escrow was funded with. Nothing moved. " +
+            "The job's budget may have been altered after checkout.",
+          fields: {
+            job_id: job.id,
+            helper_id: helperId,
+            payout_cents: payoutCents,
+            captured_cents: capturedCents,
+            gift_applied_cents: giftAppliedCents,
+          },
+        });
+        results.push({
+          job_id: job.id,
+          status: "exceeds_captured_escrow",
+          payout_cents: payoutCents,
+          escrow_cents: escrowValueCents,
+        });
+        // A defect, not an outcome: a payout that should have been payable and
+        // was not means something upstream is wrong, and it must not answer 2xx.
+        jobDefect(job.id,
+          `payout ${payoutCents}c exceeds escrow ${escrowValueCents}c for job ${job.id}`,
+        );
+        continue;
+      }
+
       // ── Claim the payout BEFORE calling Stripe ──────────────────────────
       // The ledger read above cannot close the race the comment at Step 4
       // claims it closes. This cron and release-payout target the same jobs
@@ -1339,61 +1400,6 @@ serve(async (req) => {
       if (unrecorded.kind === "adopt" && !adoptedTransferId) {
         await rollBackOnboardingFeeClaim();
         results.push({ job_id: job.id, status: "already_claimed", detail: "claim changed while verifying prior transfers" });
-        continue;
-      }
-
-      // ── Step 4b: HARD CAP — never transfer more than the escrow was funded with ──
-      //
-      // `jobs.budget` is writable by the poster under RLS while
-      // `payment_status` is still 'unpaid', and the Checkout Session freezes its
-      // amount at creation — so a poster can pay a $10 session, raise the
-      // budget, and this cron would compute the payout from the raised figure.
-      //
-      // `release-payout` and `execute-dispute-split` have carried this
-      // assertion for some time. This function — the one that pays MOST jobs,
-      // on the normal schedule — did not, and `source_transaction` below is not
-      // a substitute: it is deliberately omitted for gift-funded jobs, because
-      // there is no charge to draw from. On that path this check is the only
-      // thing standing between a raised budget and an uncapped transfer out of
-      // the platform's own balance.
-      //
-      // The gift leg counts toward the cap: it is real value leaving the
-      // platform, denominated in credit rather than dollars.
-      const escrowValueCents = capturedCents + giftAppliedCents;
-      const payoutCents = roundPayoutDownCents(Math.round(helperPayout * 100));
-      if (payoutCents > escrowValueCents) {
-        console.error(
-          `[process-scheduled-payouts] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +
-            `(captured ${capturedCents}c + gift ${giftAppliedCents}c) for job ${job.id}`,
-        );
-        await rollBackOnboardingFeeClaim();
-        await postSlackOpsAlert({
-          kind: "custom",
-          seed: seedJobIds.has(job.id),
-          severity: "critical",
-          title: "Scheduled payout blocked — exceeds captured escrow",
-          message:
-            "A scheduled payout computed to more than the escrow was funded with. Nothing moved. " +
-            "The job's budget may have been altered after checkout.",
-          fields: {
-            job_id: job.id,
-            helper_id: helperId,
-            payout_cents: payoutCents,
-            captured_cents: capturedCents,
-            gift_applied_cents: giftAppliedCents,
-          },
-        });
-        results.push({
-          job_id: job.id,
-          status: "exceeds_captured_escrow",
-          payout_cents: payoutCents,
-          escrow_cents: escrowValueCents,
-        });
-        // A defect, not an outcome: a payout that should have been payable and
-        // was not means something upstream is wrong, and it must not answer 2xx.
-        jobDefect(job.id,
-          `payout ${payoutCents}c exceeds escrow ${escrowValueCents}c for job ${job.id}`,
-        );
         continue;
       }
 

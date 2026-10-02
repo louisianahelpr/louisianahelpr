@@ -62,7 +62,7 @@ const repoRoot = path.resolve(__dirname, "..");
  * Both rows are `is_seed = true` in prod. Keep the ids in sync with that doc
  * and with scripts/audit-capture.mjs.
  */
-const ACCOUNTS = {
+export const ACCOUNTS = {
   poster: {
     email: "helpr-audit-web-0824@mailinator.com",
     userId: "96c9899e-87a2-49e2-bbdd-268717d52aee",
@@ -70,7 +70,11 @@ const ACCOUNTS = {
   },
   helper: {
     email: "eli.test.helper@louisianahelpr.com",
-    userId: "f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+    // Re-created again: f6cc3ebb-… was gone from auth.users on 2026-10-01
+    // (Q905). Live id measured 2026-10-02 (execute_sql, auth.users by email).
+    // scripts/check-test-account-strikes.mjs fails nightly if any pinned id
+    // here stops matching the live account for its email.
+    userId: "f55112c7-612e-44a0-b6aa-443cdfbc33d6",
     label: "Account B — Audit Helper (works Account A's jobs)",
   },
   // The `poster` account above owns ZERO rows in prod `jobs` as of 2026-09-07
@@ -312,7 +316,10 @@ async function main() {
   );
 }
 
-main().catch((e) => {
-  console.error(`FATAL: ${e?.message ?? e}`);
-  process.exit(1);
-});
+// Run only as a CLI, so check-test-account-strikes.mjs can import ACCOUNTS.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((e) => {
+    console.error(`FATAL: ${e?.message ?? e}`);
+    process.exit(1);
+  });
+}

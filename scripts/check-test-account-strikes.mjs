@@ -11,6 +11,9 @@
  * Load: 3 service-role REST reads (profiles, user_strikes, user_violations),
  * each filtered to the six accounts below. No writes.
  *
+ * Also exit 1 when a userId pinned in scripts/test-signin-link.mjs ACCOUNTS no
+ * longer matches the live account for its email (Q905, findPinnedIdDrift).
+ *
  *   node scripts/check-test-account-strikes.mjs        # exit 1 on any strike
  *
  * Env: .env (VITE_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY) locally, or
@@ -24,6 +27,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ACCOUNTS } from "./test-signin-link.mjs";
 
 export const SHARED_TEST_ACCOUNTS = [
   "helpr-e2e-poster-0902@mailinator.com",
@@ -62,6 +66,24 @@ export function findStrikes(profiles, strikes, violations) {
   return problems;
 }
 
+/**
+ * Pure: every pinned `userId` in test-signin-link's ACCOUNTS must be the live
+ * auth id for its email (Q905). On 2026-10-01 the `helper` entry pinned
+ * f6cc3ebb-…, an id gone from auth.users after the account was re-created, and
+ * three probes that hard-coded it targeted nobody. A null pin means "resolved
+ * at run time" and is not checked. Exported for the unit test.
+ */
+export function findPinnedIdDrift(accounts, profiles) {
+  const drift = [];
+  for (const [role, a] of Object.entries(accounts)) {
+    if (!a.userId) continue;
+    const live = profiles.find((p) => p.email?.toLowerCase() === a.email.toLowerCase());
+    if (!live) drift.push({ role, email: a.email, pinned: a.userId, live: null });
+    else if (live.user_id !== a.userId) drift.push({ role, email: a.email, pinned: a.userId, live: live.user_id });
+  }
+  return drift;
+}
+
 async function main() {
   const env = readEnv();
   const base = (env.SUPABASE_URL || env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
@@ -94,9 +116,17 @@ async function main() {
   if (missing.length) {
     throw new Error(`${missing.length} of ${SHARED_TEST_ACCOUNTS.length} shared test accounts were not returned (${missing.join(", ")}) — their strikes were NOT checked`);
   }
-  if (problems.length === 0) {
-    console.log("[test-account-strikes] OK: no strikes, no violations, every account active.");
+  const drift = findPinnedIdDrift(ACCOUNTS, profiles);
+  for (const d of drift) {
+    console.error(`\n✗ scripts/test-signin-link.mjs ACCOUNTS.${d.role} pins ${d.pinned} but ${d.email} is ${d.live ?? "not in profiles"} on prod — update the pin and every probe that hard-codes it.`);
+  }
+  if (problems.length === 0 && drift.length === 0) {
+    console.log(`[test-account-strikes] OK: no strikes, no violations, every account active, ${Object.values(ACCOUNTS).filter((a) => a.userId).length} pinned ids match.`);
     return;
+  }
+  if (problems.length === 0) {
+    console.error("\n[test-account-strikes] FAIL: a pinned test-account id no longer matches prod.");
+    process.exit(1);
   }
   for (const p of problems) {
     console.error(`\n✗ ${p.email} (${p.user_id}) ban_status=${p.ban_status}`);

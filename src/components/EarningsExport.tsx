@@ -339,7 +339,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
                       {customStart ? format(customStart, "MMM d, yyyy") : "Start"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0" align="start" aria-label="Choose a start date">
                     <Suspense fallback={calendarFallback}>
                       <Calendar mode="single" selected={customStart} onSelect={setCustomStart} autoFocus className={cn("p-3 pointer-events-auto")} />
                     </Suspense>
@@ -355,7 +355,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
                       {customEnd ? format(customEnd, "MMM d, yyyy") : "End"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
+                  <PopoverContent className="w-auto p-0" align="end" aria-label="Choose an end date">
                     <Suspense fallback={calendarFallback}>
                       <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} autoFocus className={cn("p-3 pointer-events-auto")} />
                     </Suspense>

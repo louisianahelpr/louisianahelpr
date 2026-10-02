@@ -42,7 +42,7 @@ const rotation = rotationFor(0);
  */
 async function fundedFloor(api: APIRequestContext): Promise<number> {
   const res = await api.get(`${SUPABASE_URL}/rest/v1/open_jobs_browse?select=id`, {
-    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, Prefer: "count=exact", Range: "0-0" },
+    headers: { apikey: ANON, Prefer: "count=exact", Range: "0-0" },
   });
   expect(res.ok(), `open_jobs_browse is not readable as a guest (HTTP ${res.status()}) — the marketplace cannot render for anyone logged out`).toBeTruthy();
   const total = Number((res.headers()["content-range"] ?? "").split("/")[1]);

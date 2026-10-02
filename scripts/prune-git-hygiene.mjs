@@ -29,9 +29,13 @@
  * The worktree rule lives in scripts/lib/worktreeHygiene.mjs (tested on a fixture
  * repo by src/test/pruneAgentWorktrees.test.ts).
  *
- * A local BRANCH is deleted only if it is in `git branch --merged origin/main`, is not
- * main, is not checked out in ANY worktree, was created/moved more than 2h ago, and
- * `git branch -d` (never -D) accepts it.
+ * A local BRANCH is deleted only if it is LANDED — its tip is an ancestor of
+ * origin/main, OR `git cherry origin/main <branch>` shows no `+` line (land.sh
+ * rebases every PR, so landed work sits on main under new SHAs) — is not main, is
+ * not checked out in ANY worktree, and was created/moved more than 2h ago. An
+ * ancestor goes through `git branch -d` (never -D); a patch-landed one through a
+ * compare-and-delete `git update-ref -d` that refuses if the branch moved. Rule in
+ * scripts/lib/branchHygiene.mjs (tested by src/test/pruneLandedBranches.test.ts).
  *
  * Never touches remote branches, never stashes, never resets, never --force.
  */
@@ -44,6 +48,7 @@ import { dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { staleUntracked } from "./lib/staleUntracked.mjs";
 import { planWorktreeCleanup, applyWorktreePlan, parseWorktrees } from "./lib/worktreeHygiene.mjs";
+import { planBranchCleanup, applyBranchPlan } from "./lib/branchHygiene.mjs";
 
 const args = process.argv.slice(2);
 const AUTO = args.includes("--auto");
@@ -191,35 +196,15 @@ function main() {
     ? parseWorktrees(git(["worktree", "list", "--porcelain"]))
     : entries.filter((e) => !removed.includes(e.path));
   const checkedOut = new Set(afterEntries.map((e) => e.branch).filter(Boolean));
-  const merged = git(["branch", "--merged", BASE, "--format=%(refname:short)"])
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const deleted = [];
-  const branchSkipped = [];
-  for (const b of merged) {
-    if (b === "main" || b === "master") continue;
-    if (checkedOut.has(b)) {
-      branchSkipped.push([b, "checked out in a worktree"]);
-      continue;
-    }
-    if (outOfTime()) {
-      branchSkipped.push([b, "time box reached"]);
-      continue;
-    }
-    const age = branchAgeMs(commonDir, b);
-    if (age !== null && age < MIN_AGE_MS) {
-      branchSkipped.push([b, `created/moved ${Math.round(age / 60_000)}m ago (< ${MIN_AGE_MS / 60_000}m)`]);
-      continue;
-    }
-    if (!APPLY) {
-      deleted.push(b);
-      continue;
-    }
-    const r = tryGit(["branch", "-d", b]); // never -D
-    if (r.ok) deleted.push(b);
-    else branchSkipped.push([b, `git refused: ${r.out}`]);
+  const bplan = planBranchCleanup(process.cwd(), { checkedOut, base: BASE, minAgeMs: MIN_AGE_MS, outOfTime });
+  const label = (b, how) => (how === "patch" ? `${b} (patch-equivalent to ${BASE})` : b);
+  let deleted = bplan.delete.map((d) => label(d.branch, d.how));
+  const branchSkipped = bplan.skip.map((s) => [s.branch, s.reason]);
+  if (APPLY) {
+    const res = applyBranchPlan(process.cwd(), bplan);
+    const how = new Map(bplan.delete.map((d) => [d.branch, d.how]));
+    deleted = res.deleted.map((b) => label(b, how.get(b)));
+    for (const r of res.refused) branchSkipped.push([r.branch, r.reason]);
   }
 
   /* ── summary ───────────────────────────────────────────────────────────── */
@@ -258,13 +243,4 @@ function main() {
       `skipped ${allSkipped.length} (${skipped.length} worktrees, ${branchSkipped.length} branches), ` +
       `reported ${plan.report.length} unmerged agent worktrees`,
   );
-}
-
-/** Age of the branch's reflog (last creation/move); null if there is no reflog. */
-function branchAgeMs(commonDir, b) {
-  try {
-    return Date.now() - statSync(join(commonDir, "logs", "refs", "heads", ...b.split("/"))).mtimeMs;
-  } catch {
-    return null;
-  }
 }

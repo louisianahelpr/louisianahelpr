@@ -99,6 +99,7 @@ describe("rebase-landed branches are cleaned up; unlanded ones are kept", () => 
     expect(git(main, "cherry", "origin/main", "rebased").split("\n").every((l) => l.startsWith("-"))).toBe(true);
     const p = plan();
     expect(p.delete.length + p.skip.length).toBeGreaterThan(3);
+    expect(p.delete.length).toBeGreaterThan(1);
   });
 
   it("a rebased-and-landed branch is eligible (patch-equivalent), as is an ancestor", () => {

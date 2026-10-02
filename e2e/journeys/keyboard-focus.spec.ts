@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable, rest, SUPABASE_URL, E2E_TITLE_MARKER } from "./fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { defaultInboxTab } from "../../src/lib/inboxDefault";
 
 /**
  * Journey — a keyboard user keeps their place (owner, 2026-09-12: "prevent,
@@ -198,6 +199,18 @@ test(authedTitle, async ({ browser, request, journey }) => {
     );
 
     await page.goto("/messages");
+    // The inbox lands on the Active tab (owner 2026-09-19, lib/inboxDefault),
+    // which keeps only threads whose job is live (accepted onwards). The
+    // seeded thread's job is a still-"open" direct offer, so it is only ever
+    // listed under All: switch to All before looking for the row. On a phone
+    // the strip is folded behind the "Filter conversations" chevron.
+    if (defaultInboxTab(0) !== "all") {
+      const allTab = page.getByRole("tab", { name: /^All/ }).or(page.getByRole("button", { name: /^All/ })).first();
+      const chevron = page.locator('button[aria-expanded="false"][aria-label="Filter conversations"]');
+      await expect(allTab.or(chevron).first(), "the inbox never rendered its tab strip").toBeVisible({ timeout: 60_000 });
+      if (!(await allTab.isVisible()) && (await chevron.count())) await chevron.first().click();
+      await allTab.click();
+    }
     const row = page.locator("button.flex-1.min-w-0.text-left").filter({ hasText: title }).first();
     await expect(row, "the seeded thread never reached the helper inbox").toBeVisible({ timeout: 60_000 });
     await row.focus();

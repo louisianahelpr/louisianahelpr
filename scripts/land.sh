@@ -68,6 +68,14 @@ while :; do
   git fetch -q origin main
   git rebase -q origin/main
 
+  # Queue numbers are taken from each lane's own base, so two lanes file the
+  # same Q (Q743, Q904/Q905, Q909-Q914 collided 2026-09-30..10-01). After the
+  # rebase, the item already on main keeps the number and this branch's copy
+  # moves to the next number free on both; the refresh below commits it. Exits
+  # 1 (stopping the land) only when main itself carries the duplicate.
+  # Guard: src/test/openRenumber.test.ts.
+  node scripts/open-renumber.mjs --base origin/main
+
   npm run -s inventories:refresh
 
   CHANGED=$( { git diff --name-only; comm -13 <(printf '%s\n' "$UNTRACKED_BEFORE") <(git ls-files --others --exclude-standard | sort); } | sed '/^$/d' | sort -u)
@@ -102,6 +110,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   npx vitest run \
     src/test/deadcodeRatchet.test.ts \
     src/test/openPartlyDoneItemsSayDoneWhen.test.ts \
+    src/test/openUnnumberedRatchet.test.ts \
+    src/test/openRenumber.test.ts \
     src/test/requestBudget.test.ts \
     src/test/expiryMonitor.test.ts \
     src/test/componentSizeRatchet.test.ts

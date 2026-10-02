@@ -17,4 +17,4 @@ export function applyFeeds(
   md: string,
   groups: FeedSource[],
   opts: { status: (key: string) => "open" | "closed" | null; nextFree: number; today: string },
-): { md: string; created: { id: string; keys: string[] }[]; attached: { id: string; keys: string[] }[]; flipped: string[] };
+): { md: string; created: { id: string; keys: string[] }[]; attached: { id: string; keys: string[] }[]; flipped: string[]; ambiguous: { keys: string[]; ids: string[] }[] };

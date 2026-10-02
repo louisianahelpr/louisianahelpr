@@ -38,6 +38,8 @@ describe("PR runs cancel superseded runs", () => {
   );
 
   it("every pull_request workflow cancels the older run on a new push", () => {
+    // 65 workflow files on 2026-10-02; an empty read would pass every check below.
+    expect(Object.keys(files).length).toBeGreaterThan(50);
     // Floor: a trigger regex that matched nothing would pass vacuously.
     expect(Object.values(files).filter(hasPrTrigger).length).toBeGreaterThan(5);
     expect(prRunsWithoutCancel(files)).toEqual([]);
@@ -49,3 +51,4 @@ describe("PR runs cancel superseded runs", () => {
     expect(prRunsWithoutCancel({ "y.yml": "on:\n  pull_request:\njobs: {}\n" })).toEqual(["y.yml"]);
   });
 });
+// @mutate .github/workflows/vitest.yml | cancel-in-progress: ${{ github.event_name == 'pull_request' }} | cancel-in-progress: false

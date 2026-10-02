@@ -338,8 +338,7 @@ const NotificationPanel = () => {
     if (outcome === "granted") {
       setPushEnabled(true);
     } else if (outcome === "refused" && pushDeclineNeedsSettingsHint(await readPushPermission())) {
-      // Never for "Not Now" in our own rationale dialog ("dismissed"): the
-      // person just chose that, even when the browser was already denied.
+      // Never after "Not Now" in our rationale dialog ("dismissed"): they just chose it.
       toast.error(
         Capacitor.isNativePlatform()
           ? "Notifications are off. Turn them on in your device settings."

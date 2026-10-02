@@ -5,6 +5,10 @@ name: Branch prune
 # This runs the same cleanup for branches whose every patch is already on main
 # (`git cherry` shows no `+`) and that no open PR uses. Anything with work not
 # on main is UNLANDED: kept, and listed in the job summary for a human.
+# STRANDED branches (work on neither main nor an open PR) get an auto-land PR
+# with rebase auto-merge, opened with REFRESH_PR_TOKEN because PRs opened with
+# GITHUB_TOKEN never trigger the required checks. An auto-land PR open over 6h
+# turns this red.
 # Script + decision function: scripts/prune-stale-branches.mjs
 # Guard: src/test/pruneStaleBranches.test.ts
 
@@ -21,7 +25,7 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   prune:
@@ -31,9 +35,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Prune branches already on main
+      - name: Prune branches on main; auto-land stranded ones
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.REFRESH_PR_TOKEN || secrets.GITHUB_TOKEN }}
         run: node scripts/prune-stale-branches.mjs --apply
 
   # A red scheduled run files/updates one nightly-red issue (closed on the next

@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 202** (161 to do, 41 fixed with protection pending; 498 done). Plus 206 unnumbered open lines not yet given a Q number. Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 7 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 202** (161 to do, 41 fixed with protection pending; 498 done). Plus 205 unnumbered open lines not yet given a Q number. Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 7 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 8 stale, 0 unknown, 49 green of 65 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-02T04:20Z)_
 - **Remote branches:** 8 carry patches not on main, 0 fully merged, of 9 (Q79). _(2026-10-02T04:20Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 700 items — 498 done, 41 partly done (fixed, protection pending), 161 open; plus 206 unnumbered open lines still to number.**
+**Queue: 700 items — 498 done, 41 partly done (fixed, protection pending), 161 open; plus 205 unnumbered open lines still to number.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -967,7 +967,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Money: concurrent release / Quick Release / Quick Refund (2026-09-13)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] OPEN LOW-2 (pre-existing): void-cancelled-payments fee transfer writes no payout_transfers row — Fee transfer in void-cancelled-payments still lacks a payout_transfers ledger row — reconciliation blind spot documented, not fixed. (archive L3190)
 - [ ] OPEN LOW-3 (pre-existing): payout_transfers_one_live_per_job_helper NULL-distinct on helper_id disagrees with claimPayout read — Redacted-helper (NULL helper_id) rows still escape claim arbitration; zero such rows on prod but the code disagreement is unfixed. (archive L3191)
 - [ ] OPEN LOW-4 (pre-existing): jobs.dispute_evidence_urls legacy mirror still party-writable, unvalidated server-side — Legacy jobs.dispute_evidence_urls column still directly party-writable with only a client render guard; server-side validation not added. (see also line 3171) (archive L3192)
 - [ ] OPEN LOW-7 (pre-existing): process-scheduled-payouts step 4b leaves an orphaned claim row on payout>escrow exit — A payout-exceeds-escrow exit still leaves a permanent pending claim row with a null transfer id. (archive L3193)

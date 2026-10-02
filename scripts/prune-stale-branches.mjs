@@ -33,6 +33,13 @@
  * land/* branches count too: a land PR closed unmerged strands its head.
  * Resolve one by landing it (bash scripts/land.sh) or deleting the branch.
  *
+ * AUTO-LAND (2026-10-02, owner: "fix this for good"): reporting alone left the
+ * stranded work sitting for days. With --apply, every STRANDED branch now gets
+ * a PR titled AUTO_LAND_PREFIX + branch, with rebase auto-merge on, so the
+ * required checks decide and it lands with nobody in the loop. An auto-land
+ * PR still open after AUTO_LAND_STUCK_HOURS (conflict or red check) makes
+ * this exit 1, so a stalled one cannot hide behind "it has a PR".
+ *
  * Fails closed: if the open-PR list or any cherry cannot be read, it exits
  * non-zero before deleting anything. Each delete is leased on the tip it
  * measured (--force-with-lease), so a branch pushed to since is left alone.
@@ -45,6 +52,25 @@ export const PROTECTED = new Set(["main", "HEAD"]);
 export const PROTECTED_PREFIXES = ["land/"];
 export const MIN_AGE_HOURS = 24;
 export const STRANDED_AFTER_HOURS = 1;
+export const AUTO_LAND_PREFIX = "auto-land: ";
+export const AUTO_LAND_STUCK_HOURS = 6;
+
+export function autoLandTitle(name) {
+  return `${AUTO_LAND_PREFIX}${name}`;
+}
+
+/**
+ * Pure: auto-land PRs open long enough that they must be stuck.
+ * @param {{ title: string, createdAt: string, headRefName: string }[]} prs
+ * @param {number} nowMs
+ */
+export function stuckAutoLandPrs(prs, nowMs) {
+  return prs.filter(
+    (p) =>
+      String(p.title).startsWith(AUTO_LAND_PREFIX) &&
+      (nowMs - Date.parse(p.createdAt)) / 3_600_000 >= AUTO_LAND_STUCK_HOURS,
+  );
+}
 
 export function isProtected(name) {
   return PROTECTED.has(name) || PROTECTED_PREFIXES.some((p) => name.startsWith(p));
@@ -124,20 +150,25 @@ function listRemoteBranches() {
     .filter((b) => b.name && b.name !== "HEAD");
 }
 
-function listOpenPrHeads() {
+function listOpenPrs() {
   const out = execFileSync(
     "gh",
-    ["pr", "list", "--state", "open", "--limit", "1000", "--json", "headRefName"],
+    ["pr", "list", "--state", "open", "--limit", "1000", "--json", "number,headRefName,title,createdAt"],
     { encoding: "utf8" },
   );
   const rows = JSON.parse(out);
   if (!Array.isArray(rows)) throw new Error("gh pr list did not return an array");
-  return new Set(rows.map((r) => r.headRefName));
+  return rows;
+}
+
+function gh(args) {
+  return execFileSync("gh", args, { encoding: "utf8" });
 }
 
 function main() {
   const apply = process.argv.includes("--apply");
-  const openHeads = listOpenPrHeads();
+  const openPrs = listOpenPrs();
+  const openHeads = new Set(openPrs.map((r) => r.headRefName));
   const branches = listRemoteBranches();
   const tipOf = new Map(branches.map((b) => [b.name, b.sha]));
   const rows = branches.map(({ name, ageHours }) =>
@@ -185,7 +216,23 @@ function main() {
   }
 
   let failed = 0;
+  const autoOpened = [];
   if (apply) {
+    for (const b of stranded) {
+      try {
+        const body =
+          `Opened by branch-prune: \`${b.name}\` held ${b.uncovered.length} commit(s) on neither main nor an open PR ` +
+          `for ${Math.round(b.ageHours)}h.\n\n${b.uncovered.map((c) => `- ${c.sha.slice(0, 9)} ${c.subject}`).join("\n")}\n\n` +
+          `Rebase auto-merge is on; the required checks decide. Still open after ${AUTO_LAND_STUCK_HOURS}h turns branch-prune red.`;
+        const url = gh(["pr", "create", "--base", "main", "--head", b.name, "--title", autoLandTitle(b.name), "--body", body]).trim();
+        gh(["pr", "merge", url, "--rebase", "--auto"]);
+        autoOpened.push({ name: b.name, url });
+        console.log(`auto-land PR ${url} for ${b.name}`);
+      } catch (e) {
+        failed++;
+        console.error(`FAILED to open auto-land PR for ${b.name}: ${e.message}`);
+      }
+    }
     for (const r of rows.filter((x) => x.action === "DELETE")) {
       try {
         // Leased on the tip we measured: a push since then makes this fail, not delete.
@@ -196,6 +243,11 @@ function main() {
         console.error(`FAILED to delete ${r.name}: ${e.message}`);
       }
     }
+  }
+
+  const stuck = stuckAutoLandPrs(openPrs, Date.now());
+  for (const p of stuck) {
+    console.log(`STUCK: auto-land PR #${p.number} (${p.headRefName}) open over ${AUTO_LAND_STUCK_HOURS}h: fix its conflict or red check`);
   }
 
   const summary = process.env.GITHUB_STEP_SUMMARY;
@@ -210,9 +262,17 @@ function main() {
       md += `\n### STRANDED (red): work on neither main nor an open PR\n\nLand each with \`bash scripts/land.sh\` or delete the branch.\n\n| branch | age | commits |\n|---|---|---|\n`;
       for (const b of stranded) md += `| \`${b.name}\` | ${Math.round(b.ageHours)}h | ${b.uncovered.map((c) => c.subject).join("<br>")} |\n`;
     }
+    if (autoOpened.length) {
+      md += `\n### Auto-land PRs opened\n\n${autoOpened.map((a) => `- \`${a.name}\`: ${a.url}`).join("\n")}\n`;
+    }
+    if (stuck.length) {
+      md += `\n### STUCK auto-land PRs (red)\n\n${stuck.map((p) => `- #${p.number} \`${p.headRefName}\``).join("\n")}\n`;
+    }
     appendFileSync(summary, md);
   }
-  if (failed || stranded.length) process.exit(1);
+  // With --apply a stranded branch now has an auto-land PR, so it is handled;
+  // a dry run still exits 1 on it. A stuck auto-land PR is always red.
+  if (failed || stuck.length || (!apply && stranded.length)) process.exit(1);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

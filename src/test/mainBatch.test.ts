@@ -115,6 +115,7 @@ describe("main-batch helpers", () => {
 
 describe("main-batch wiring", () => {
   it("every target titles its batch runs with the marker the dispatcher, main-red-watch and the account lock look for", () => {
+    expect(TARGETS.length).toBeGreaterThan(1);
     for (const t of TARGETS) {
       const src = readFileSync(path.join(REPO, ".github/workflows", t.file), "utf8");
       const runName = src.match(/^run-name: (.*)$/m)?.[1] ?? "";

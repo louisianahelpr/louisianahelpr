@@ -16,10 +16,7 @@
     "src/integrations/supabase/types.ts"
   ],
   "ignoreDependencies": [
-    "npm",
-    "puppeteer",
     "cordova-plugin-purchase",
-    "pg",
     "@electric-sql/pglite"
   ],
   "rules": {

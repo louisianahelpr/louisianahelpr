@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-02T05:17:28.540Z",
-  "guards": 1296,
-  "registered": 1295,
+  "generated": "2026-10-02T05:54:24.639Z",
+  "guards": 1300,
+  "registered": 1299,
   "unregistered": [
     "src/test/prRunsCancelSuperseded.test.ts"
   ],

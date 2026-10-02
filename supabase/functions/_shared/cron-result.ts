@@ -125,12 +125,12 @@ export function cronResult(
  */
 export function cronError(
   fn: string,
-  message: string,
+  _message: string,
   headers: Record<string, string> = {},
   status = 500,
 ): Response {
   return new Response(
-    JSON.stringify({ ok: false, fn, error: message, defects: 1 }),
+    JSON.stringify({ ok: false, fn, error: "Internal server error", defects: 1 }),
     { status, headers: { ...headers, "Content-Type": "application/json" } },
   );
 }

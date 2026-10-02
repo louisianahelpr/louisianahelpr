@@ -495,7 +495,6 @@ serve(async (req) => {
     // when recordLog had just written status='failed'. The outcome now travels
     // in the response body.
     let delivery: 'queued' | 'direct' | null = null
-    let deliveryError: string | null = null
 
     try {
       // supabase-js `.rpc()` RESOLVES with { data, error } — it does not throw on a
@@ -542,7 +541,6 @@ serve(async (req) => {
         }).eq('message_id', messageId)
         if (failedLogError) console.error('email_send_log failed update failed:', failedLogError.message)
         await recordLog('failed', sendErrMsg)
-        deliveryError = sendErrMsg
       }
     }
 
@@ -551,7 +549,7 @@ serve(async (req) => {
         JSON.stringify({
           success: false,
           reason: 'send_failed',
-          error: deliveryError ?? 'Email delivery failed',
+          error: 'Email delivery failed',
           to: maskEmail(profile.email),
           message_id: messageId,
         }),

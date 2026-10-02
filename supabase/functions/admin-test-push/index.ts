@@ -35,9 +35,9 @@
 //   into a "push anything to anyone" endpoint even by an admin.
 // * Title and body are fixed here. Nothing caller-supplied reaches APNs/FCM.
 //
-// Returns the push function's own JSON body verbatim (plus `upstream_status`)
-// so the button can report what actually happened rather than a generic
-// success.
+// Returns the push function's JSON body on success so the button can report
+// what happened. Failure responses stay generic; implementation details are
+// logged server-side, not returned to the caller.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { serve } from "../_shared/buildStamp.ts";
@@ -129,7 +129,7 @@ serve(async (req) => {
   } catch (err) {
     console.error('[admin-test-push] send-push-notification unreachable:', err)
     return json(
-      { error: 'Could not reach the push service', detail: err instanceof Error ? err.message : String(err) },
+      { error: 'Could not reach the push service' },
       502,
     )
   }
@@ -166,7 +166,7 @@ serve(async (req) => {
 
   if (upstreamStatus < 200 || upstreamStatus >= 300) {
     console.error('[admin-test-push] send-push-notification returned', upstreamStatus, upstreamBody)
-    return json({ upstream_status: upstreamStatus, ...(upstreamBody as Record<string, unknown> ?? {}) }, 502)
+    return json({ error: 'Push service returned an error', upstream_status: upstreamStatus }, 502)
   }
 
   return json({ upstream_status: upstreamStatus, ...(upstreamBody as Record<string, unknown> ?? {}) })

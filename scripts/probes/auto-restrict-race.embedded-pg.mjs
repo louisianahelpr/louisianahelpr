@@ -81,6 +81,7 @@ CREATE FUNCTION public.log_cron_defect(a text, b text, c text, d jsonb) RETURNS 
     FOR EACH ROW EXECUTE FUNCTION public.auto_restrict_repeat_violators();`);
   for (const f of CHAIN.slice(1)) await admin.query(mig(f));
   if (withQ744) for (let i = 0; i < 3; i++) await admin.query(mig(Q744));
+  // seed-policy: not prod — the throwaway embedded-postgres this probe boots in a temp data dir
   await admin.query(`INSERT INTO public.profiles (user_id, full_name) VALUES ('${U}', 'Racer')`);
   const stop = async () => {
     await admin.end().catch(() => {});

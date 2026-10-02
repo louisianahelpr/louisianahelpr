@@ -59,6 +59,7 @@ const MIG = join(ROOT, "supabase", "migrations");
 /** Files whose writes never reach prod, each with the text that proves it. */
 const NOT_PROD_WRITERS: Record<string, RegExp> = {
   "scripts/ci/race-runner.mjs": /\["localhost", "127\.0\.0\.1", "::1"\]\.includes\(process\.env\.PGHOST/,
+  "scripts/probes/auto-restrict-race.embedded-pg.mjs": /import\(`\$\{DIR\}\/node_modules\/embedded-postgres\/dist\/index\.js`\)/,
 };
 
 // ── migrations (newest state) ──────────────────────────────────────────────

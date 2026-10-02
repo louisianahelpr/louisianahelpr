@@ -5,8 +5,14 @@
 // @mutate src/components/admin/adminJobs/JobListItem.tsx | {job.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/AdminNotificationLogs.tsx | const seedIds = await fetchSeedUserIds(logRows.map((r) => r.user_id)); | const seedIds = new Set<string>();
 // @mutate src/components/admin/AdminAnalytics.tsx | .select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false }); | .select(JOB_READABLE_COLUMNS).order("created_at", { ascending: false });
-// @mutate src/lib/capturedPayment.ts | !!job.stripe_payment_intent_id | true
-// @mutate src/pages/admin/Admin.tsx | select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null) | select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
+// @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.payment_captured === true) | true
+// @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.payment_captured === true) | (!!job.stripe_payment_intent_id)
+// @mutate src/pages/admin/Admin.tsx | select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true) | select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null)
+// @mutate src/components/admin/useAdminUserSummaries.ts | .filter("payment_captured", "eq", true); | ;
+// @mutate src/components/admin/AdminAnalytics.tsx | .select(`${JOB_READABLE_COLUMNS}, payment_captured`).eq("is_seed", false).range( | .select(JOB_READABLE_COLUMNS).eq("is_seed", false).range(
+// @mutate supabase/migrations/20261002050635_q443_job_payment_captured.sql |        OR (\n         public.has_role(auth.uid(), 'admin') |        OR (\n         true
+// @mutate supabase/migrations/20261002050635_q443_job_payment_captured.sql |               AND g.status = 'redeemed' | AND true
+// @mutate supabase/migrations/20261002050635_q443_job_payment_captured.sql | FROM PUBLIC, anon; | FROM PUBLIC;
 /*
  * Q233 (+ Q368, owner 2026-09-24): every admin view either FILTERS seed
  * (is_seed) rows out of its numbers or KEEPS them in its list and marks each
@@ -25,6 +31,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { isCapturedPayment } from "@/lib/capturedPayment";
+import { newestFunction } from "@/test/helpers/parityReaders";
 
 const ROOT = join(__dirname, "..", "..", "..");
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -141,7 +148,27 @@ describe("Q233: Payments Collected counts only charged payments", () => {
     expect(isCapturedPayment({ payment_status: "refunded", stripe_payment_intent_id: "pi_1" })).toBe(false);
   });
 
-  it("every admin money read of a held status also requires the PaymentIntent", () => {
+  it("Q443: a job a gift card paid in full counts when the database says it was captured", () => {
+    // redeem_gift_card leaves such a job in escrow with no job PI; the computed
+    // field payment_captured answers from gift_cards, which admins cannot read.
+    expect(isCapturedPayment({ payment_status: "escrow", stripe_payment_intent_id: null, payment_captured: true })).toBe(true);
+    expect(isCapturedPayment({ payment_status: "escrow", stripe_payment_intent_id: null, payment_captured: false })).toBe(false);
+    expect(isCapturedPayment({ payment_status: "refunded", stripe_payment_intent_id: null, payment_captured: true })).toBe(false);
+  });
+
+  it("Q443: payment_captured counts a held job with a PI, or (for an admin only) a redeemed paid gift card", () => {
+    const def = newestFunction("payment_captured");
+    const body = def.body.replace(/\s+/g, " ");
+    expect(body, def.file).toMatch(/payment_status IN \('escrow', 'payout_pending', 'released'\)/);
+    expect(body, def.file).toMatch(/stripe_payment_intent_id IS NOT NULL OR \( public\.has_role\(auth\.uid\(\), 'admin'\) AND EXISTS/);
+    expect(body, def.file).toMatch(/g\.job_id = j\.id AND g\.status = 'redeemed' AND g\.payment_status = 'paid'/);
+    const file = readFileSync(join(ROOT, "supabase/migrations", def.file.split("/").pop()!), "utf8");
+    expect(file, def.file).toMatch(/REVOKE ALL ON FUNCTION public\.payment_captured\(public\.jobs\) FROM PUBLIC, anon;/);
+    // The admin Analytics page judges rows client-side, so its load must select the field.
+    expect(code(`${A}AdminAnalytics.tsx`)).toContain(".select(`${JOB_READABLE_COLUMNS}, payment_captured`).eq(\"is_seed\", false).range(");
+  });
+
+  it("every admin money read of a held status also requires payment_captured (PI or gift card, Q443)", () => {
     const files = [
       "src/pages/admin/Admin.tsx",
       `${A}AdminAnalytics.tsx`,
@@ -154,7 +181,7 @@ describe("Q233: Payments Collected counts only charged payments", () => {
       const HELD = '.in("payment_status", [...CAPTURED_PAYMENT_STATUSES])';
       for (let i = src.indexOf(HELD); i !== -1; i = src.indexOf(HELD, i + 1)) {
         n++;
-        expect(src.slice(i + HELD.length).trimStart(), f).toMatch(/^\.not\("stripe_payment_intent_id", "is", null\)/);
+        expect(src.slice(i + HELD.length).trimStart(), f).toMatch(/^\.filter\("payment_captured", "eq", true\)/);
       }
     }
     expect(n).toBe(7);

@@ -441,6 +441,21 @@ export interface UseActivityFiltersArgs {
   pendingApplicantCounts?: Record<string, number>;
 }
 
+/** The text search on a posted job. `location` is null once the poster deletes
+ *  their account (20260901033011); this runs inside a filter callback, where an
+ *  unguarded null throws and empties the WHOLE list, so a job with no address
+ *  simply never matches on location. */
+function postedJobMatchesSearch(j: Job, q: string): boolean {
+  return j.title.toLowerCase().includes(q) || j.description.toLowerCase().includes(q) || (j.location?.toLowerCase().includes(q) ?? false);
+}
+
+/** The text search on an application: same null-location guard, same reason.
+ *  An application whose job row did not load is never hidden by a search. */
+function appliedAppMatchesSearch(a: AppliedApp, q: string): boolean {
+  if (!a.job) return true;
+  return a.job.title.toLowerCase().includes(q) || a.job.description.toLowerCase().includes(q) || (a.job.location?.toLowerCase().includes(q) ?? false);
+}
+
 export function useActivityFilters({
   postedJobs: allPostedJobs,
   appliedApps,
@@ -485,13 +500,8 @@ export function useActivityFilters({
       if (!statusMatch) return false;
       // Search filter
       if (searchLower) {
-        // `location` is null once the poster deletes their account and the job
-        // is anonymised (20260901033011). This runs inside a filter callback,
-        // so an unguarded null here throws and takes out the WHOLE list, not
-        // one row — the same shape as the unparseable date that once emptied
-        // /posts. A job with no address simply never matches a text search,
-        // which is the truthful answer rather than a swallowed one.
-        return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || (j.location?.toLowerCase().includes(searchLower) ?? false);
+        // Null-safe on `location`; see postedJobMatchesSearch.
+        return postedJobMatchesSearch(j, searchLower);
       }
       return true;
     })
@@ -531,11 +541,9 @@ export function useActivityFilters({
       else if (statusFilter === "completed") statusMatch = a.status === "accepted" && a.job?.status === "completed";
       else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";
       if (!statusMatch) return false;
-      if (query && a.job) {
-        // Same null-location guard as the search predicate above, same reason:
-        // this is a filter callback, so a throw here empties the applications
-        // list instead of dropping one card.
-        return a.job.title.toLowerCase().includes(query) || a.job.description.toLowerCase().includes(query) || (a.job.location?.toLowerCase().includes(query) ?? false);
+      if (query) {
+        // Null-safe on `location`; see appliedAppMatchesSearch.
+        return appliedAppMatchesSearch(a, query);
       }
       return true;
     })
@@ -610,5 +618,33 @@ export function useActivityFilters({
     return counts;
   }, [postedJobs, pendingApplicantCounts, now]);
 
-  return { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts };
+  /* SEARCH MATCHES PER BUCKET. The bucket counts above are pre-search, so on a
+     search miss they say where the user's jobs are, not where their MATCHES
+     are. These are the same buckets counted over search hits only, so the
+     search-miss empty state can say "no matches under Waiting — 2 in Done
+     match" and offer a jump that lands on real matches (with the query kept)
+     instead of the generic "no jobs match your search". Empty with no query. */
+  const postedSearchCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (!searchLower) return counts;
+    postedJobs.forEach((j) => {
+      if (!postedJobMatchesSearch(j, searchLower)) return;
+      const b = postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0, now);
+      counts[b] = (counts[b] ?? 0) + 1;
+    });
+    return counts;
+  }, [postedJobs, searchLower, pendingApplicantCounts, now]);
+
+  const appliedSearchCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (!searchLower) return counts;
+    appliedApps.forEach((a) => {
+      if (!appliedAppMatchesSearch(a, searchLower)) return;
+      const b = appliedActivityBucket(a);
+      counts[b] = (counts[b] ?? 0) + 1;
+    });
+    return counts;
+  }, [appliedApps, searchLower]);
+
+  return { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts, postedSearchCounts, appliedSearchCounts };
 }

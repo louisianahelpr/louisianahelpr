@@ -34,6 +34,10 @@ export interface ActivityEmptyStateProps {
    */
   statusCounts?: Record<string, number>;
   statusLabels?: { key: string; label: string }[];
+  /** Per-bucket counts of SEARCH MATCHES (empty without a query). On a search
+   *  miss these, not `statusCounts`, say where to look: a jump to a bucket
+   *  that holds matches lands on them with the query still applied. */
+  searchMatchCounts?: Record<string, number>;
   onRetry: () => void;
   onNavigate: (to: string) => void;
   /** Switches the active status filter — lets the "your items are over
@@ -52,6 +56,7 @@ export function ActivityEmptyState({
   hasSearch,
   statusCounts,
   statusLabels,
+  searchMatchCounts,
   onRetry,
   onNavigate,
   onSelectStatusFilter,
@@ -117,12 +122,33 @@ export function ActivityEmptyState({
       : elsewhere.length === 1
         ? elsewhere[0]
         : `${elsewhere.slice(0, -1).join(", ")} and ${elsewhere[elsewhere.length - 1]}`;
+  /* WHERE THE MATCHES ARE. A search only narrows the bucket on screen, so
+     "No jobs match your search" was false whenever the job sat in another
+     bucket: the user read that it did not exist (OPEN.md, "My Posts search
+     only searches the active status tab"). Name the buckets that hold
+     matches, and offer the one to jump to; same Needs-you-first order. */
+  const searchElsewhere = (statusLabels ?? [])
+    .filter((f) => f.key !== statusFilter && f.key !== "all" && (searchMatchCounts?.[f.key] ?? 0) > 0);
+  const searchJumpTo = [...searchElsewhere].sort((a, b) =>
+    a.key === "needs_you" ? -1
+      : b.key === "needs_you" ? 1
+        : (searchMatchCounts?.[b.key] ?? 0) - (searchMatchCounts?.[a.key] ?? 0),
+  )[0];
+  const searchElsewhereText = searchElsewhere.map((f) => `${searchMatchCounts?.[f.key]} in ${f.label}`);
+  const searchElsewhereLine =
+    searchElsewhereText.length <= 1
+      ? searchElsewhereText[0]
+      : `${searchElsewhereText.slice(0, -1).join(", ")} and ${searchElsewhereText[searchElsewhereText.length - 1]}`;
   const body = isTrulyEmpty
     ? (isPosted
         ? "While you wait for the right moment to post, you can earn by helping — browse open jobs near you and apply."
         : "While you scout for the right job, post one of your own — your neighbors might be the perfect match.")
     : hasSearch
-      ? "No jobs match your search — try a different term."
+      ? (searchElsewhereLine
+          ? `No matches under ${activeLabel.toLowerCase()} — ${searchElsewhereLine} ${
+              searchElsewhere.length === 1 && searchMatchCounts?.[searchElsewhere[0].key] === 1 ? "matches" : "match"
+            } your search.`
+          : "No jobs match your search — try a different term.")
       : statusFilter === "all"
         ? "No jobs match the current view."
         : filteredElsewhere
@@ -174,7 +200,13 @@ export function ActivityEmptyState({
              never reaches the two jobs it promised (measured 2026-09-07 on
              /posts?q=zzz-nomatch). The one action that ends a search miss
              is clearing the search. */
-          hasSearch && onClearSearch ? (
+          /* With matches in another bucket the jump is safe again: it reads
+             the SEARCH counts, so it lands on the matches it names. */
+          hasSearch && searchJumpTo && onSelectStatusFilter ? (
+            <BarkPillButton onClick={() => onSelectStatusFilter(searchJumpTo.key)}>
+              Show {searchJumpTo.label} ({searchMatchCounts?.[searchJumpTo.key] ?? 0})
+            </BarkPillButton>
+          ) : hasSearch && onClearSearch ? (
             <BarkPillButton onClick={onClearSearch}>Clear search</BarkPillButton>
           ) : jumpTo && onSelectStatusFilter ? (
             <BarkPillButton onClick={() => onSelectStatusFilter(jumpTo.key)}>

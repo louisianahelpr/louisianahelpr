@@ -1,3 +1,5 @@
+// Shown able to fail: with the chip never pressed, "shows selected once taken" reds.
+// @mutate src/components/postjob/BudgetSection.tsx | aria-pressed={taken} | aria-pressed={false}
 import { describe, it, expect } from "vitest";
 import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";

@@ -67,11 +67,6 @@ sure someone hears it and closes it.
   **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL — DONE 2026-09-23 by Claude in the owner's Chrome (Settings > Payouts > Manual payouts, saved, re-read after reload; no test-mode banner, so the live account); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; Louisiana IS registered and collecting (checked in the Stripe dashboard 2026-09-23: Tax > Locations, 1 registration, collecting); filing is NOT set up there ('Set up filing') — OWNER: decide whether Stripe files the returns); right-panel overlap: owner asked Claude to audit it (Q151).
   set Stripe payouts to manual; decide Louisiana sales tax; send a screenshot
   or window width for the right-panel overlap.
-- [ ] **Admin DocumentsTab can't open a portfolio STORAGE PATH.**
-  complete-signup stores portfolio uploads as `user-documents` paths; the tab
-  now shows them as "Link withheld (not https)" (before: a broken relative
-  link). Sign them at display time like id_document_url. 0 such rows on prod
-  2026-09-23.
 
 ## QUEUE (cont.) — gaps measured 2026-09-23 (owner: "anything at all")
 

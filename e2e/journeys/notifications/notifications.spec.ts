@@ -20,6 +20,7 @@
  */
 import { test, expect, getSession, rest, newUserContext, sessionsAvailable, assertHealthy, SUPABASE_URL, ANON, E2E_TITLE_MARKER, announceUncovered, skipUncovered } from "../fixtures";
 import { uncoveredProducers } from "./producers";
+import { knownStripeMode, skipLivePay } from "../../prod-audit/fundedOpenJob";
 import { fitJobTitle } from "../../../scripts/lib/jobTextBounds.mjs";
 
 /**
@@ -185,6 +186,8 @@ test.describe("notifications & email", () => {
       `${SUPABASE_URL}/rest/v1/jobs?helper_id=eq.${helperId}&customer_id=eq.${posterId}&payment_status=in.(escrow,payout_pending,released)&status=neq.completed&status=neq.cancelled&select=id&limit=1`,
       { headers: posterHeaders },
     ).then((x) => x.json())) as Array<{ id: string }>;
+    // No open funded thread can exist while Stripe is live (owner, 2026-09-27: nightly never pays live).
+    if (!shared.length && knownStripeMode() !== "test") skipLivePay("a message notification needs a funded thread that is still open");
     if (!shared.length) skipUncovered("No funded thread", "no funded poster↔helper job whose thread is still open to messages (they close 24h after completion); the funded lifecycle spec owns that setup and its Stripe leg skips on a live key.");
     const jobId = shared[0].id;
     const send = await request.post(`${SUPABASE_URL}/rest/v1/messages`, {

@@ -1076,7 +1076,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 - [~] AdminHelperTiers crashes on any unknown tier string; /admin?view=support shows a load error — AdminHelperTiers still crashes on an unrecognized tier string (report only); /admin?view=support load failure unverified. (archive L3513) **2026-10-02 (quick-wins):** the crash is fixed on main — `tierLook()` in AdminHelperTiers.tsx falls back to a neutral Award look and reports each unknown tier once. Guard: AdminHelperTiers.test.tsx asserts the lowercase "elite" case renders and is reported. `/admin?view=support` was not checked (needs the browser), so `[~]`.
 - [ ] No pre-expiry warning shown once a job is accepted (AppliedJobCard only passes expiresAt while pending) — Accepted jobs still give no pre-expiry warning before the ghosting clock fires. (archive L3522)
 - [ ] Complete Profile: input values clipped by the check icon at every phone width (ZIP, Last name) — Complete Profile ZIP/Last-name fields still clip against the validation check icon at 320-430px; Edit Profile was fixed but this page was not. (archive L3525)
-- [x] **DONE 2026-10-02 (fixed on main in b6d24b625, 2026-09-12):** both PhotoUpload labels now paint focus with `focus-within:outline` (outline is not a box-shadow, so the inline boxShadow no longer defeats it). GUARD: src/test/focusableHasVisibleFocus.test.ts `defeatedFocusPaint` (any tag pairing a focus ring with an inline boxShadow, or a focus outline with an inline outline, fails repo-wide); re-proven red 2026-10-02 by reverting the two labels to ring-2 (2 hits, 1 test failed), green restored. Was: PostJob PhotoUpload focus ring never paints — inline boxShadow style overrides Tailwind focus-within:ring-2 — PhotoUpload's keyboard focus ring is still overridden by an inline box-shadow style; not fixed. (archive L3532)
 
 ### Profile badges — "Verified" rung duplicates "Stripe verified"
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -1096,7 +1095,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### ### Notification count — ruled out
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] Bell abbreviates at '99+' while panel chip prints the true total (minor disagreement) — Bell badge still abbreviates to 99+ while the panel's own chip shows the true unread count. (archive L3829)
+- [~] **FIXED 2026-10-02, protection pending (screenshot at 375):** the bell badge and the panel's Unread segment now share one formatter, formatUnreadBadge (src/lib/format.ts): digits up to 99, then "99+". SegmentedControl gained an optional countText (display form; the pill still shows on count). Layers read: reader/display only (NotificationTrigger, AnchoredPanelSegmented, SegmentedControl, bellUnreadCount). The count is the server unread total, so >99 is reachable; the bell's "capped at 50" comment was stale and is corrected. GUARD: src/components/notificationPanel/unreadBadgeAgreement.test.tsx (bell text == segment text at 7/99/100/150; vacuity 2/2 mutations killed). Owed: browser-lane screenshot of the bell and panel with >99 unread. Was: Bell abbreviates at '99+' while panel chip prints the true total. (archive L3829)
 
 ### FOR THE OWNER — the dead avatar URL is CLEARED (2026-09-12); the duplicate FILE is still there.
 Reconciled 2026-09-23; detail in the archive at the line shown.

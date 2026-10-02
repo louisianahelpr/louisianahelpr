@@ -733,7 +733,10 @@ const DashboardGuest = () => {
       })() : (
         // No fade-in (Q169): the skeleton above hands straight to the cards.
         // A 500ms fade from opacity 0 left a blank frame between the two.
-        <div className={`${FEED_GRID_CLASS} ${feedBottomClass}`}>
+        // Same reserve as the skeleton: one card is shorter than a screenful,
+        // so without it the Footer jumped up from below the fold (CLS 0.2399
+        // at 375 on prod, 2026-10-01, one live job).
+        <div className={`${FEED_GRID_CLASS} ${feedBottomClass} ${GUEST_FEED_RESERVE_CLASS}`}>
           {/* No re-sort here: useDashboardFilters already sorts
               urgent-first (then boosted etc.), so a second
               urgent-only sort was a redundant pass that could only

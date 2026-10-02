@@ -87,8 +87,8 @@ const KNOWN: Record<string, string> = {
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Apply Now\" whole on the /browse job dialog at 320 (p3-poster-dialog-320); the footer row is 254px at 320, a 182px text box against the label's 79px",
   "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:Button:{guestCtaLabel}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Sign Up to Apply\" sw==cw 146/146 on guest /browse?job=<id> at 320, 375 and 1440",
-  'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:button:{(job.credential_tier ?? 0) === 1 ? "Get Verified to Apply" ':
-    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): no credential_tier>0 open job on prod, so this button's markup was injected alone into the real footer row (254px at 320, 309 at 375, 726 at 1440): \"Get Verified to Apply\" 149, \"Licensed Pros Only\" 138, \"Licensed & Insured Only\" 174, sw==cw at all three",
+  'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:button:{(job.credential_tier ?? 0) === 2 ? "Licensed Pros Only" : "':
+    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): no credential_tier>0 open job on prod, so this button's markup was injected alone into the real footer row (254px at 320, 309 at 375, 726 at 1440): \"Licensed Pros Only\" 138, \"Licensed & Insured Only\" 174, sw==cw at 320, 375 and 1440",
   "src/components/mobileNav/NavQuickMenu.tsx:button:{label}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): long-press Posts quick filters (Needs You/Waiting/Scheduled/Done/Cancelled) and Messages recent chats sw==cw at 320 and 375 as poster-e2e",
   "src/components/mobileNav/NavQuickMenu.tsx:button:{sub}":

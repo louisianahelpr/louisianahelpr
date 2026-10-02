@@ -368,7 +368,11 @@ export function checkRow(
     const { present, value } = read(c.column);
     if (!present || value === null || value === undefined) continue;
     if (c.kind === "enum") {
-      if (typeof value !== "string" || !c.values.includes(value)) {
+      const enumValue =
+        typeof value === "number" && c.values.every((v) => /^-?\d+(?:\.\d+)?$/.test(v))
+          ? String(value)
+          : value;
+      if (typeof enumValue !== "string" || !c.values.includes(enumValue)) {
         out.push({
           where,
           message: `${table}.${c.column} = ${JSON.stringify(value)} — ${name} admits only ${JSON.stringify(c.values)}`,

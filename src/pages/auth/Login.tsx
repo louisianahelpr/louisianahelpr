@@ -199,8 +199,7 @@ const Login = () => {
   // was showing copy while ops heard nothing (lh-silent-failure review, #1806).
   useEffect(() => {
     if (!oauthError || isExpectedSocialRefusal(oauthError.code)) return;
-    // No marker (provider null) means no attempt of ours is known: anyone can
-    // craft that URL, so it must not raise error-level alerts at will (Q445).
+    // No marker (provider null): anyone can craft that URL, so no error-level alert (Q445).
     report(new Error(`web social sign-in refused: ${oauthError.code}`), {
       severity: oauthError.provider ? "error" : "warning",
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
@@ -244,7 +243,6 @@ const Login = () => {
   // type; an empty one only after a submit attempt (SignupStep1's split).
   const emailError = (email.length > 0 && !emailValid) || (attempted && !email.trim());
   const passwordError = attempted && password.length === 0;
-
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

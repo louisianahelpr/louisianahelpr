@@ -462,6 +462,53 @@ describe("create-payment edge function", () => {
       ).toBe(false);
     });
 
+    // Q734: a recurring series charges each later visit to the card saved on
+    // the series' PaymentIntent. For a gift-funded post that intent is the
+    // gift-card SHORTFALL checkout, which never asked Stripe to save the card,
+    // so every later visit of a gift-funded series declined.
+    describe("gift-card shortfall checkout saves the card when asked (Q734)", () => {
+      const seedGiftShortfall = () => {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, budget: 100, category: "cleaning", title: "Clean my house", payment_status: "unpaid" }],
+        };
+        scenario.rpc.redeem_gift_card = { outcome: "partial", difference_cents: 4000 };
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+        stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_diff", url: "https://checkout.stripe.test/cs_diff" });
+      };
+
+      // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), |
+      it("sets setup_future_usage off_session on the shortfall intent when saveCardForFuture is true", async () => {
+        seedGiftShortfall();
+        const fn = await load();
+        const res = await fn.fetch(fn.request({
+          headers: AUTH,
+          body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1", saveCardForFuture: true },
+        }));
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_diff");
+        const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+        expect(opts.idempotencyKey).toMatch(/^gift-card-diff-job-1/);
+        expect(params.line_items[0].price_data.unit_amount).toBe(4000);
+        expect(params.customer).toBe("cus_existing");
+        expect(params.payment_intent_data.setup_future_usage).toBe("off_session");
+        expect(params.payment_intent_data.metadata.gift_card_id).toBe("gift-1");
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), | setup_future_usage: "off_session" as const,
+      it("does not save the card when the poster did not ask", async () => {
+        seedGiftShortfall();
+        const fn = await load();
+        const res = await fn.fetch(fn.request({
+          headers: AUTH,
+          body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" },
+        }));
+        expect(res.status).toBe(200);
+        const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+        expect(params.payment_intent_data).not.toHaveProperty("setup_future_usage");
+      });
+    });
+
     it("appends the $2 onboarding line item for a poster who has not paid it", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {

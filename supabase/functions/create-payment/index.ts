@@ -469,6 +469,12 @@ serve(async (req) => {
           payment_method_options: threeDSecureOptions(differenceCents),
           payment_intent_data: {
             metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
+            // Q734: honour "save my card" here too. A recurring series charges
+            // each later visit to the card on the series' PaymentIntent
+            // (charge-recurring-visits seriesCard), which for a gift-funded
+            // post is THIS shortfall intent. Without setup_future_usage the
+            // card is never attached to the customer and every visit declines.
+            ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}),
           },
           success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
           // Carry the credit back with them. A bare `/post-job` cancel_url

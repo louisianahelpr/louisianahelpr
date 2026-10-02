@@ -144,3 +144,7 @@ describe("useActivityActions money handlers — same-frame double tap", () => {
 // taps in one frame both read the React state as null and both invoke
 // create-payment { action: "release" }.
 // @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | if (completeInFlight.current.has(jobId)) return; | if (false) return;
+// The same guard on accepting an offer (L1238): without it a double tap sends
+// two confirms, and the client rolls back the first after the server refuses
+// the second.
+// @mutate src/components/job-card/activityActions/useOfferHandlers.ts | respondingInFlight.current.has(app.id)) return; | false) return;

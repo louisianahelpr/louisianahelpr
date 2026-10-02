@@ -1325,7 +1325,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Still open for the owner
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM vacuityGate.test.ts races discardedQueryFilters.test.ts over a fixture in src/ — Not reached — test-flakiness claim not re-verified (vitest excluded from this pass). (archive L7498)
 
 ### OPEN — three visual findings from the 2026-09-23 verification pass
 Reconciled 2026-09-23; detail in the archive at the line shown.

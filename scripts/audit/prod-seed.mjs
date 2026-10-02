@@ -236,9 +236,9 @@ async function profileByEmail(email) {
 }
 
 async function ensureOwnedAccount(key, spec) {
-  // Resolve (and refuse on a missing CI password) BEFORE creating anything.
-  const pw = seedPasswordFor(key);
   let user = await findAuthUser(spec.email);
+  // Resolve (and refuse on a missing CI password) BEFORE creating anything.
+  const pw = seedPasswordFor(key, process.env, { creating: !user });
   if (user) {
     // Pre-existing account: refuse BEFORE the profile patch below, which would
     // otherwise set is_seed itself and make the later check pass.
@@ -284,7 +284,7 @@ async function ensureOwnedAccount(key, spec) {
   // password (PLAYWRIGHT_INCOMPLETE_* / PLAYWRIGHT_ADMIN_* secrets). The
   // password is re-applied on every --apply so a teardown/apply cycle cannot
   // silently turn that CI leg into a skip. Local only: SEED_PASSWORD_<KEY>;
-  // seedPasswordFor() above already refused if a CI-password account lacks it.
+  // seedPasswordFor() above refused to create a CI-password account without it.
   if (pw) {
     const r = await fetch(`${BASE}/auth/v1/admin/users/${user.id}`, { method: "PUT", headers: SRH, body: JSON.stringify({ password: pw }) });
     if (!r.ok) throw new Error(`set password for ${spec.email} → ${r.status} ${await r.text()}`);

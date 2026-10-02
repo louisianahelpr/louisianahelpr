@@ -960,6 +960,7 @@ export function shapeProblems(sb, open) {
   const live = committedLive(sb);
   if (live === null) p.push(`${SCOREBOARD}: live markers missing`);
   else if (live !== NEVER_MEASURED && !/^\*\*Live rows measured at \d{4}-\d\d-\d\dT\d\d:\d\dZ\.\*\*/.test(live)) p.push(`${SCOREBOARD}: live section has no "measured at" stamp`);
+  p.push(...openLiveStampProblems(sb, open));
   const rows = sb.split("\n").filter((l) => /^\| (?!group \||---)/.test(l));
   if (rows.length < 5) p.push(`${SCOREBOARD}: only ${rows.length} rows — the table did not render`);
   for (const l of rows) {
@@ -972,6 +973,27 @@ export function shapeProblems(sb, open) {
     if (status === "PASS" && (c[7] === "not measured")) p.push(`row "${c[1]}": PASS but never measured`);
   }
   return p;
+}
+
+/**
+ * OPEN.md's live header lines (Workflows on main, Remote branches) are written
+ * by the same `--write` that stamps SCOREBOARD.md's live section, and carried
+ * forward together. A line whose `_(stamp)_` is older than a sibling line or
+ * than SCOREBOARD's "Live rows measured at" was skipped by a refresh and is
+ * frozen (2026-10-02: lines stuck at 2026-09-23T06:08Z beside newer ones).
+ */
+export function openLiveStampProblems(sb, open) {
+  const block = committedLive(between(open ?? "", EO_START, EO_END) ?? "");
+  if (!block) return [];
+  const stamps = [];
+  for (const l of block.split("\n")) {
+    const m = /^- \*\*([^*]+):\*\*.*_\((\d{4}-\d\d-\d\dT\d\d:\d\dZ)\)_\s*$/.exec(l);
+    if (m) stamps.push({ name: m[1], at: m[2] });
+  }
+  const sbAt = /\*\*Live rows measured at (\d{4}-\d\d-\d\dT\d\d:\d\dZ)\.\*\*/.exec(sb ?? "")?.[1];
+  const newest = [sbAt, ...stamps.map((s) => s.at)].filter(Boolean).sort().at(-1);
+  return stamps.filter((s) => s.at < newest)
+    .map((s) => `${OPEN}: live line "${s.name}" is stamped ${s.at}, older than its siblings (${newest}) — it was not refreshed; run \`node scripts/scoreboard.mjs --write\``);
 }
 
 /** Hours since the live section was measured, or null when there is none. */

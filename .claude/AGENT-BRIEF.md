@@ -89,6 +89,7 @@ says more.
   recurring named in its text (else `[~]`), then run
   `node scripts/queue-count.mjs --write`. Anything you notice but don't fix
   becomes a new queue item — nothing lives outside `docs/OPEN.md`.
+- Every new OPEN.md item carries HIGH/MEDIUM/LOW (src/test/openItemsHaveTier.test.ts).
 - A new queue item takes the number `node scripts/queue-count.mjs` prints as
   "next free", read right before you write it (and again after a rebase):
   parallel lanes guessed the same number three times on 2026-09-23.

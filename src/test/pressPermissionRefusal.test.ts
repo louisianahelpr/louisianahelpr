@@ -21,6 +21,7 @@
  * breaks this guard instead of silently widening the allow.
  *
  * @mutate scripts/audit/press-every-control.mjs | if (permission !== "denied") return false; | if (permission === "never") return false;
+ * @mutate scripts/audit/press-every-control.mjs | if (/^not now$/i.test(String(chain[chain.length - 1] ?? "").trim())) return false; | if (false) return false;
  * @mutate scripts/audit/press-every-control.mjs | return chain.some((label) => PUSH_PROMPT_LABEL_RX.test(String(label ?? "").trim())); | return true;
  */
 import { describe, it, expect } from "vitest";
@@ -55,17 +56,23 @@ describe("press-every-control: a truthful permission refusal is not a failed pre
     for (const copy of appCopy) expect(PERMISSION_OFF_TOAST_RX.test(copy)).toBe(true);
   });
 
-  it("excuses both prompt buttons when the browser really has notifications denied", () => {
+  it("excuses Turn On and the row when the browser really has notifications denied", () => {
     for (const copy of appCopy) {
-      for (const chain of [NOT_NOW_CHAIN, TURN_ON_CHAIN, ROW_CHAIN]) {
+      for (const chain of [TURN_ON_CHAIN, ROW_CHAIN]) {
         expect(isTruthfulPermissionRefusal({ toast: copy, chain, permission: "denied" })).toBe(true);
       }
     }
   });
 
+  it("FAILS the toast after Not Now even when denied: dismissing our own rationale never toasts (2026-10-02)", () => {
+    for (const copy of appCopy) {
+      expect(isTruthfulPermissionRefusal({ toast: copy, chain: NOT_NOW_CHAIN, permission: "denied" })).toBe(false);
+    }
+  });
+
   it("still FAILS the same toast when the permission is not denied — that toast would be a lie", () => {
     for (const permission of ["granted", "default", "prompt", "unsupported", "unknown", undefined]) {
-      expect(isTruthfulPermissionRefusal({ toast: appCopy[1], chain: NOT_NOW_CHAIN, permission })).toBe(false);
+      expect(isTruthfulPermissionRefusal({ toast: appCopy[1], chain: TURN_ON_CHAIN, permission })).toBe(false);
     }
   });
 
@@ -77,7 +84,7 @@ describe("press-every-control: a truthful permission refusal is not a failed pre
       "Notifications are off. Turn them on in your browser settings. Then reload.",
       "",
     ]) {
-      expect(isTruthfulPermissionRefusal({ toast: other, chain: NOT_NOW_CHAIN, permission: "denied" })).toBe(false);
+      expect(isTruthfulPermissionRefusal({ toast: other, chain: TURN_ON_CHAIN, permission: "denied" })).toBe(false);
     }
   });
 

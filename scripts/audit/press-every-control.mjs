@@ -281,6 +281,10 @@ export const PUSH_PROMPT_LABEL_RX = /^(?:turn on push notifications|not now|turn
 export function isTruthfulPermissionRefusal({ toast, chain = [], permission } = {}) {
   if (!PERMISSION_OFF_TOAST_RX.test(String(toast ?? "").trim())) return false;
   if (permission !== "denied") return false;
+  // "Not Now" in our own rationale never reaches the browser, so the app no
+  // longer toasts for it at all (OPEN.md pushPermissionNudge item, 2026-10-02);
+  // a permission-off toast there is a regression, not the truth.
+  if (/^not now$/i.test(String(chain[chain.length - 1] ?? "").trim())) return false;
   return chain.some((label) => PUSH_PROMPT_LABEL_RX.test(String(label ?? "").trim()));
 }
 

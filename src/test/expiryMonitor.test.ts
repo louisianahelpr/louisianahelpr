@@ -143,6 +143,28 @@ describe("(b) an unreadable item is reported, never skipped", () => {
     expect(r.expiresAt).toBeNull();
     expect(r.detail).toMatch(/not trusted by the public roots/);
   });
+
+  // Code-scanning alert 140 (js/disabling-certificate-validation): the handshake
+  // itself must verify. With verification on, an untrusted certificate arrives
+  // as a socket error, and it is still reported as not trusted, by its code.
+  it("never turns certificate verification off, and an untrusted handshake error still reads as not trusted", async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const failing = (o: Record<string, unknown>) => {
+      seen.push(o);
+      const handlers: Record<string, (e: unknown) => void> = {};
+      const s = {
+        on: (ev: string, h: (e: unknown) => void) => { handlers[ev] = h; return s; },
+        destroy: () => {},
+      };
+      setTimeout(() => handlers.error?.(Object.assign(new Error("self-signed certificate in certificate chain"), { code: "SELF_SIGNED_CERT_IN_CHAIN" })), 0);
+      return s;
+    };
+    const r = await readTls("www.louisianahelpr.com", { connect: failing as never });
+    expect(seen).toHaveLength(1);
+    expect(seen[0].rejectUnauthorized).not.toBe(false);
+    expect(r.expiresAt).toBeNull();
+    expect(r.detail).toMatch(/not trusted by the public roots \(SELF_SIGNED_CERT_IN_CHAIN\)/);
+  });
 });
 
 describe("Sign in with Apple: the API masks the secret, so its date is recorded", () => {

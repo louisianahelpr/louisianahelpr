@@ -502,7 +502,7 @@ serve(async (req) => {
             helper_id: helperId,
             type: "cancellation_fee",
             platform_cut: platformCut,
-            fee_transfer_id: feeRow.id,
+            fee_transfer_id: String(feeRow.id),
           },
         };
         // Link to the source charge so the transfer draws from these funds.
@@ -984,7 +984,7 @@ serve(async (req) => {
     const { data: owedFees, error: owedFeesErr } = await supabaseAdmin
       .from("cancellation_fee_transfers")
       .select("id, job_id, helper_id, fee_amount")
-      .in("status", ["pending", "failed"])
+      .in("status", ["failed", "pending"])
       .not("helper_id", "is", null)
       .limit(200);
     if (owedFeesErr) {

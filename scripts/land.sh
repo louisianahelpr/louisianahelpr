@@ -9,7 +9,8 @@
 # Q44 (owner, 2026-09-27; strict turned off by the owner 2026-09-30): main is protected
 # with required checks and enforce_admins (not strict), so a
 # direct push to main is refused. Nothing reaches main that has not passed
-# Vitest, Test, Vacuity and the two Playwright checks.
+# Vitest, Test and the two Playwright checks; vacuity runs on every push to
+# main (not required on PRs), since owner 2026-10-01 (PR #2050's took 112 min).
 # Why: main Vitest went red on 12 of 16 finished runs on 2026-09-30 and 37 on
 # 2026-09-27, every time from a direct --no-verify push that skipped a check.
 #

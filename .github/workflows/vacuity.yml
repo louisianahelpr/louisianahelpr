@@ -22,10 +22,15 @@ name: Vacuity
 #   - a preflight asks whether the harness is real (browsers installed, mock
 #     clauses actually recorded).
 #
-# PER-PUSH SCOPE is deliberate: the mutation set is limited to guards whose
-# guard file or guarded file changed vs origin/main, which keeps this job at a
-# couple of seconds on a normal commit. The FULL set runs WEEKLY below
-# (Sundays 07:17 UTC — owner cost decision 2026-09-22; see the cron).
+# RUNS ON EVERY PUSH TO MAIN, NOT ON PRs (owner, 2026-10-01). It used to run
+# on every pull_request as a required check; PR #2050's run took 112 min (310
+# registrations, 22 of them e2e at ~98 s each), so it blocked landing. Now each
+# merge to main runs it, scoped to the guards and guarded files that push
+# changed (github.event.before..sha, see VACUITY_PUSH_BEFORE below), and runs
+# queue rather than drop (concurrency below). The FULL set runs on the
+# schedule (Sundays 07:17 UTC, owner cost decision 2026-09-22; see the cron).
+# A red push run is filed as nightly-red by main-red-watch.yml; a red
+# scheduled run files its own. Guard: src/test/landingPath.test.ts.
 #
 # Linux runner (memory `github-actions-macos-billing`): macos-15 minutes are a
 # 10x multiplier and this is pure Node.
@@ -44,8 +49,6 @@ on:
       - "docs/**"
       - "fastlane/metadata/**"
       - "LICENSE"
-  pull_request:
-    branches: [main]
   schedule:
     # 07:17 UTC on SUNDAYS — the full mutation set, which is too slow for a push.
     # Was 14:17, where its worst case (305 min) ran over 16:17 loading-states
@@ -84,15 +87,17 @@ on:
 
 # The SCHEDULED run joins the shared prod-load lock, because that is the run
 # that signs into prod and drives the real test accounts through every
-# registered Playwright mutation. Push and PR runs keep their own per-ref group:
-# they mutate only what a commit changed, which is almost never an e2e guard,
-# and GitHub keeps just one PENDING run per group — putting every push in
-# prod-load would let pushes cancel each other and queue behind heavy suites.
+# registered Playwright mutation. Every other run gets a group of its OWN
+# COMMIT: GitHub keeps just one PENDING run per group and cancels the older
+# pending one, so a shared per-ref group would let the third of three quick
+# merges drop the second, and that push's guards would never be proven. Each
+# push run mutates only what that push changed, which is almost never an e2e
+# guard, so they do not need to wait on each other.
 #
-# cancel-in-progress is false in both directions now (it used to cancel PR
-# runs): a cancelled run holding prod-load would release the lock mid-suite.
+# cancel-in-progress is false: a cancelled run holding prod-load would release
+# the lock mid-suite, and a cancelled push run would leave that push unproven.
 concurrency:
-  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('vacuity-{0}', github.ref) }}
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('vacuity-{0}-{1}', github.event_name, github.sha) }}
   cancel-in-progress: false
 
 jobs:
@@ -199,7 +204,7 @@ jobs:
             echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
             exit 1
           else
-            # A bot PR (dependabot) gets no secrets. Not a false green: an e2e
+            # A push run without the secret. Not a false green: an e2e
             # registration in its changed set comes back INCONCLUSIVE, which
             # the gate itself fails on.
             echo "::warning::SUPABASE_ACCESS_TOKEN missing on a $EVENT run: e2e registrations that need the service-role key will be inconclusive."
@@ -209,6 +214,10 @@ jobs:
         env:
           # Through env, never interpolated into the script (injection-safe).
           ONLY: ${{ inputs.only }}
+          # The commit main was at before this push: scope is everything the
+          # push brought, not just its last commit (scripts/vacuity/lib.mjs
+          # effectiveBase). Empty on schedule/dispatch.
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
         # Per push: ratchet + static scan + harness preflight + mutations for
         # what changed. Weekly (schedule): every registered mutation.
         run: |

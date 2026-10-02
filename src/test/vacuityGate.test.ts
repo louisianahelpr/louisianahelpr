@@ -21,6 +21,7 @@ import { beforeAll, describe, it, expect } from "vitest";
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { execFileSync } from "node:child_process";
 
 // Loaded by URL at runtime, not by a static specifier: scripts/ is outside
 // tsconfig.app.json's `include`, and a composite project refuses to compile an
@@ -260,3 +261,41 @@ describe("the diff base is not the commit it is comparing", () => {
 // the state in which an unproven registration reached main and left the
 // grandfather list unscored.
 // @mutate scripts/vacuity/lib.mjs | return "HEAD~1"; | return base;
+
+// A PUSH IS NOT ONE COMMIT (owner, 2026-10-01: vacuity runs on every push to
+// main, scoped to that push). land.sh rebase-merges, so one push can bring
+// several commits; vacuity.yml passes github.event.before as
+// VACUITY_PUSH_BEFORE and the base must be that commit, not HEAD~1, or every
+// commit but the last goes unproven.
+// @mutate scripts/vacuity/lib.mjs | return before; | return "HEAD~1";
+describe("a push run is scoped to everything the push brought", () => {
+  let effectiveBase: (base: string, env: Record<string, string>) => string;
+  let before = "";
+  beforeAll(async () => {
+    ({ effectiveBase } = await import(/* @vite-ignore */ url("lib.mjs")));
+    // A commit object that is not HEAD and exists even in a depth-1 CI clone:
+    // HEAD's tree, no parent. Unreferenced, so git gc drops it.
+    const id = { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+    before = execFileSync("git", ["commit-tree", "HEAD^{tree}", "-m", "vacuity push-before fixture"], {
+      encoding: "utf8",
+      env: { ...process.env, ...id },
+    }).trim();
+  });
+
+  it("uses the commit main was at before the push", () => {
+    expect(effectiveBase("HEAD", { VACUITY_PUSH_BEFORE: before })).toBe(before);
+  });
+
+  it.each([
+    ["unset", ""],
+    ["a new branch (all zeros)", "0".repeat(40)],
+    ["not a sha", "main; rm -rf /"],
+    ["a sha this clone lacks", "deadbeef".repeat(5)],
+  ])("falls back to HEAD~1 when it is %s", (_why, v) => {
+    expect(effectiveBase("HEAD", { VACUITY_PUSH_BEFORE: v })).toBe("HEAD~1");
+  });
+
+  it("leaves a base that is not HEAD alone (a PR or local run)", () => {
+    expect(effectiveBase(before, { VACUITY_PUSH_BEFORE: "deadbeef".repeat(5) })).toBe(before);
+  });
+});

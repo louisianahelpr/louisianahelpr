@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-01T23:16Z",
+  "measured_at": "2026-10-02T05:21Z",
   "issues": {
     "readable": true,
     "open": [
@@ -25,34 +25,18 @@
         "title": "nightly-red: a11y-webkit-prod"
       },
       {
-        "number": 1909,
+        "number": 2054,
+        "title": "nightly-red: vacuity"
+      },
+      {
+        "number": 2071,
         "title": "nightly-red: staleness-watch"
-      },
-      {
-        "number": 1959,
-        "title": "nightly-red: nightly-red-age"
-      },
-      {
-        "number": 2017,
-        "title": "nightly-red: schedule-heartbeat"
-      },
-      {
-        "number": 2036,
-        "title": "nightly-red: main: Sensitive review record"
       }
     ]
   },
   "ledger": {
     "readable": true,
     "open": [
-      {
-        "fingerprint": "c4738e3268024d889bf08608faa0e58c",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http timeout: auto-tip-charge returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
-        "issue": null
-      },
       {
         "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
         "source_kind": "nightly_red",
@@ -70,12 +54,12 @@
         "issue": 1582
       },
       {
-        "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
+        "fingerprint": "37cccbe58bb354c6d7a1a80e77bd1711",
+        "source_kind": "workflow",
+        "source": "ops-alert-ledger",
         "status": "open",
-        "title": "nightly-red: staleness-watch",
-        "issue": 1909
+        "title": "sentry alerts are not synced into the ops alert ledger",
+        "issue": null
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -91,15 +75,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": 1983
-      },
-      {
-        "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: nightly-red-age",
-        "issue": 1959
+        "issue": 2054
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -118,14 +94,6 @@
         "issue": 1719
       },
       {
-        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: schedule-heartbeat",
-        "issue": 2017
-      },
-      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -142,68 +110,12 @@
         "issue": null
       },
       {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
+        "fingerprint": "2a49e28947cbc5e9cff68520dbcf1dcf",
+        "source_kind": "error_logs",
+        "source": "cron-http",
         "status": "open",
-        "title": "nightly-red: main: sensitive review record",
+        "title": "cron http timeout: backfill-job-geocode returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
         "issue": null
-      },
-      {
-        "fingerprint": "18539240a894224e952b88b2b21bb927",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: core-loop-canary",
-        "issue": 1957
-      },
-      {
-        "fingerprint": "90ea19b3296815d6ab5bcadeb53dcccc",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "urgent: charge.dispute.funds_withdrawn not registered in stripe webhook endpoint — inquiry-escalation chargebacks receive no payout block",
-        "issue": 1958
-      },
-      {
-        "fingerprint": "581b00d7a403de36f8fdccb7324fa968",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "urgent: charge.dispute.funds_withdrawn not subscribed on live webhook — inquiry escalations silently unhandled",
-        "issue": 1970
-      },
-      {
-        "fingerprint": "0cc83c6bc20bc0e007e1ce4a5aee88e1",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "auth email hook: bad signature",
-        "issue": null
-      },
-      {
-        "fingerprint": "a3eafa777cb329b518136427da5c251b",
-        "source_kind": "user-report",
-        "source": "user-report",
-        "status": "open",
-        "title": "a user report (read it on /admin?view=health)",
-        "issue": null
-      },
-      {
-        "fingerprint": "02dfc97e2155da8a4f271b5ea6d7bdb5",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: morning-page",
-        "issue": 2022
-      },
-      {
-        "fingerprint": "8a5eda1d93db04a8bc5310caf5150938",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-backup",
-        "issue": 2028
       }
     ]
   },
@@ -226,18 +138,21 @@
     "issue #1938": "Q792",
     "issue #1941": "Q792",
     "issue #1957": "Q877",
-    "issue #1959": "Q878",
     "issue #1969": "Q879",
     "issue #1983": "Q788",
     "issue #1987": "Q792",
     "issue #2017": "Q897",
     "issue #2022": "Q898",
     "issue #2036": "Q906",
+    "issue #2054": "Q788",
+    "issue #2071": "Q914",
     "ledger 02dfc97e2155": "Q907",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 1294af1998b4": "Q902",
     "ledger 16e6e91f6701": "Q785",
     "ledger 18539240a894": "Q877",
+    "ledger 2a49e28947cb": "Q916",
+    "ledger 37cccbe58bb3": "Q915",
     "ledger 3a3460b71be7": "Q879",
     "ledger 43d77e26f272": "Q784",
     "ledger 4aa239aefeb6": "Q897",
@@ -249,7 +164,6 @@
     "ledger 8a5eda1d93db": "Q908",
     "ledger 90ea19b32968": "Q899",
     "ledger a3eafa777cb3": "Q901",
-    "ledger ab6fdbe8c882": "Q878",
     "ledger b75d265e6201": "Q794",
     "ledger c4738e326802": "Q880",
     "ledger db0fb15c4ec3": "Q787",

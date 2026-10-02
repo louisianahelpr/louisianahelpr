@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 561,
+    "calls": 562,
     "files": 140,
-    "rendering": 540,
+    "rendering": 541,
     "suppressedByPolicy": 21,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 448,
+      "toast.error": 449,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
       "toast.warning": 20
     },
     "copyPiecesByForm": {
-      "literal": 309,
+      "literal": 310,
       "template": 73,
       "dynamic": 219,
       "jsx": 0
@@ -5678,7 +5678,17 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 122,
+      "line": 96,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick a start time, or mark the schedule as flexible."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/EditJobDialog.tsx",
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

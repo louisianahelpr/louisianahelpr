@@ -652,7 +652,10 @@ async function apply() {
   const pairJobs = await select(`jobs?customer_id=eq.${posterId}&helper_id=eq.${helperId}&select=id,status,payment_status,has_active_dispute&order=created_at.desc`);
   const threadJob = pairJobs.find((j) => ["completed", "in_progress", "accepted", "disputed"].includes(j.status)) ?? pairJobs[0];
   const releasedJob = pairJobs.find((j) => j.payment_status === "released");
-  if (!threadJob) throw new Error("No poster↔helper job exists on prod to attach the thread to (run e2e/prod-lifecycle.spec.ts first).");
+  // No pair job → skip the pair fixtures (thread, reactions, pins) rather than fail
+  // the whole seed. Owner, 2026-10-01: Stripe is live, so a funded pair job cannot
+  // be made, and the seeder must not invent one; the rest of the seed still runs.
+  if (!threadJob) console.log("SKIPPED pair fixtures: no poster↔helper job on prod (thread, reactions, pins, reviews, dispute)");
 
   // Applications: 45 on the heavy job, and the helper on the poster's open job.
   await upsert("applications", [
@@ -670,7 +673,7 @@ async function apply() {
 
   // The long thread (34) on the real pair job, reactions, pins.
   const now = Date.now();
-  const thread = THREAD.map(([who, content], i) => ({
+  const thread = !threadJob ? [] : THREAD.map(([who, content], i) => ({
     id: sid(`msg:thread-${i}`),
     job_id: threadJob.id,
     sender_id: who === "p" ? posterId : helperId,
@@ -695,14 +698,14 @@ async function apply() {
   await upsert("messages", thread.slice(0, 20));
   await upsert("messages", thread.slice(20));
   await upsert("messages", heavyThread);
-  await upsert(
+  if (threadJob) await upsert(
     "message_reactions",
     [[1, posterId, "👍"], [14, helperId, "❤️"], [19, posterId, "❓"], [21, posterId, "❤️"], [21, helperId, "😂"], [28, helperId, "‼️"], [32, posterId, "👍"]].map(([i, uid, emoji]) => ({
       message_id: sid(`msg:thread-${i}`), job_id: threadJob.id, user_id: uid, emoji,
     })),
     "message_id,user_id", // live PK: one reaction per user per message
   );
-  await upsert("thread_pins", [
+  if (threadJob) await upsert("thread_pins", [
     { user_id: posterId, job_id: threadJob.id, other_user_id: helperId },
     { user_id: helperId, job_id: threadJob.id, other_user_id: posterId },
   ], "user_id,job_id,other_user_id");

@@ -1169,11 +1169,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Launch checklist (owner decisions that flip at launch)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] HIGH Switch Stripe to live (stripe-sandbox-off.sh) — Switch Stripe to live (stripe-sandbox-off.sh) (archive L5630)
-- [ ] HIGH At the same moment: confirm the repo variable E2E_STRIPE_MODE reads `live` (`gh variable get E2E_STRIPE_MODE`). stripe-sandbox-off.sh sets it before swapping the key and refuses to continue if it cannot; while it says `test`, CI sweeps settle hired+funded test jobs forward with a real `release` (Q421, lh-money-escrow review L2).
-- [ ] MEDIUM At the same moment: confirm the LIVE webhook endpoint on /functions/v1/stripe-webhook is still enabled and resend any live events it failed while the sandbox key was in place (Q163: since Q156 those are answered 400, so Stripe may have disabled it).
 - [ ] HIGH At the same moment: retarget the Stripe webhook-endpoint check (scripts/check-stripe-webhook*, now fail-closed on 0 endpoints; Q52 area 3) and money-reconciliation's Stripe reads to the LIVE key/account, and confirm both run green against live. The sandbox green does not carry over.
-- [ ] MEDIUM After the live-key switch: delete the 12 Supabase secrets STRIPE_PRICE_{BASIC,PLUS,PRO,ELITE}_{MONTHLY,ANNUAL,ONETIME} (proTiers.ts honours them only with an sk_test_ key; Q241)
 - [ ] MEDIUM Set EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH to false in scripts/e2e/anon-surface-contract.mjs, so an empty guest browse fails again (owner 2026-10-01: prod stays empty of test jobs until launch)
 - [ ] LOW Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) — Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) (archive L5631)
 - [ ] MEDIUM OWNER (App Store Connect > App Privacy, before the next submission): mark Product Interaction and Crash Data as "Linked to You" (CS-004, 2026-09-24). The app's PrivacyInfo.xcprivacy now says linked, because PostHog identify() sends the user id and Sentry setUser() sends id + email; Apple compares the label to the manifest.

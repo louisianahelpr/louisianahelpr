@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-02T08:58:21.133Z",
-  "guards": 1326,
-  "registered": 1325,
+  "generated": "2026-10-02T09:39:43.955Z",
+  "guards": 1327,
+  "registered": 1326,
   "unregistered": [
     "src/test/storageExt.test.ts"
   ],

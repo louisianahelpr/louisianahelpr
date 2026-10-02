@@ -1863,8 +1863,10 @@ serve(async (req) => {
       // be given back the job stays 'cancelling', which the claim above
       // re-admits, so a retry re-runs this (the refund is skipped once the
       // charge shows it, and the restore dedupes on restored_from_job_id).
-      // Flipping anyway would make the loss permanent. Nothing sweeps
-      // 'cancelling' (docs/OPEN.md Q456), so the alert asks for a hand. The caller is the
+      // Flipping anyway would make the loss permanent. Nothing retries
+      // 'cancelling' (docs/OPEN.md Q456): the alert asks for a hand, and
+      // money-reconciliation re-reports the job as cancelling_stranded on every
+      // run until someone finishes it. The caller is the
       // recipient themself (poster == gift recipient), so the answer below is
       // their notice; no separate notification is sent.
       const giftBack = await restoreGiftForCancelledJob(supabaseAdmin, jobId);
@@ -1877,7 +1879,8 @@ serve(async (req) => {
           message:
             `cancel_escrow on job ${jobId} could not give the recipient's gift card back, so the job was left 'cancelling' ` +
             "instead of cancelled. Any shortfall refund above has been issued. MANUAL ACTION: nothing retries this " +
-            "automatically unless the poster taps cancel again. While 'cancelling' the job cannot be hired or applied to " +
+            "automatically unless cancel_escrow is called again for it; money-reconciliation re-reports it as cancelling_stranded " +
+            "every run until it is finished. While 'cancelling' the job cannot be hired or applied to " +
             "(hire and apply both require a funded payment_status, and 'cancelling' is not funded); re-run cancel_escrow for it (a repeat call does not refund " +
             "twice and the restore is idempotent) or restore the gift by hand and finish the cancel.",
           fields: { job_id: jobId, reason: giftBack.reason.slice(0, 200) },
@@ -1953,7 +1956,7 @@ serve(async (req) => {
           kind: "money_at_risk",
           severity: "critical",
           title: "Escrow cancellation refunded but the job did not flip to cancelled",
-          message: `cancel_escrow issued the refund for job ${jobId} but the jobs update did not land. The job may still look payable — reconcile by hand.`,
+          message: `cancel_escrow finished the refund step for job ${jobId} but the jobs update did not land. Any gift card on the job has already been handled before this flip (restored, or none existed), so do not restore it again. The job may still look payable — reconcile by hand.`,
           fields: { job_id: jobId, payment_intent: job.stripe_payment_intent_id ?? "—", reason: (cancelUpdateErr?.message ?? "matched 0 rows").slice(0, 200) },
         });
         return new Response(JSON.stringify({

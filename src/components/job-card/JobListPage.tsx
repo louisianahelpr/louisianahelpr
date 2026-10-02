@@ -348,7 +348,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   });
 
   // Status-filter definitions + memoized list/count derivations.
-  const { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts } =
+  const { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts, postedSearchCounts, appliedSearchCounts } =
     useActivityFilters({
       postedJobs,
       appliedApps,
@@ -448,7 +448,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const isWebDesktop = useIsWebDesktop();
   const skeletonShownRef = useRef(false);
 
-
   // The entrance animation is for arriving on a page that is already there.
   // After a skeleton it replayed as a fade-to-empty + 8px rise between the
   // skeleton and the cards — one more visible jump (VN-32).
@@ -458,9 +457,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // for why the two loading frames must match the loaded layout (VN-32).
     return <ActivityPageSkeleton tab={tab === "posted" ? "posted" : "applied"} />;
   }
-
-
-
 
   // The header renders ALWAYS — including on an empty list. It used to be
   // replaced by null, which took the page title down with the filter tabs and
@@ -590,6 +586,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               statusFilter={statusFilter}
               hasSearch={!!searchQuery.trim()}
               statusCounts={activeCounts}
+              searchMatchCounts={tab === "posted" ? postedSearchCounts : appliedSearchCounts}
               statusLabels={activeStatusFilters}
               onRetry={refresh}
               onNavigate={navigate}

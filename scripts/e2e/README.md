@@ -34,8 +34,8 @@ tour.
 |---|---|---|---|
 | Perry Poster (main E2E poster, 66 jobs) | `helpr-e2e-poster-0902@mailinator.com` | `71c56dfb-b326-4010-b960-b18dd3966e7f` | `b1180344-fc7a-43a3-8a89-8b1bd7ddfe00` |
 | Hallie Helper (main E2E helper) | `helpr-e2e-helper-0902@mailinator.com` | `437de07d-1bd7-46c8-a451-6b46aa3bcad5` | `214b6436-bb04-47ea-bb68-203280621caa` |
-| Eli Testhelper | `eli.test.helper@louisianahelpr.com` | `f6cc3ebb-9478-473c-8eb8-62b406f0734f` | `80389ad9-4d95-4cc8-836b-6af911711f3f` |
-| Audit Weblane (2 jobs) | `helpr-audit-web-0824@mailinator.com` | `96c9899e-87a2-49e2-bbdd-268717d52aee` | `62e886c6-8f1e-4706-9445-1f40ead73e11` |
+| Eli Testhelper | `eli.test.helper@louisianahelpr.com` | `f55112c7-612e-44a0-b6aa-443cdfbc33d6` | `f86b6a29-66ca-4317-a928-6768fc31abfd` |
+| Audit Weblane | `helpr-audit-web-0824@mailinator.com` | `96c9899e-87a2-49e2-bbdd-268717d52aee` | `62e886c6-8f1e-4706-9445-1f40ead73e11` |
 
 - **Poster (seeded)**: `helpr-audit-web-0824@mailinator.com` ("Audit Weblane").
   Prefer this, or the Perry/Hallie pair below, over the owner's account. The

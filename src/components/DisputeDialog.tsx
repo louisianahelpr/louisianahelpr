@@ -1,4 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { storageExtFor } from "@/lib/storageExt";
 import { useRef, useState } from "react";
 import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import {
@@ -133,14 +134,15 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
       const evidenceUrls: string[] = [];
       let failedUploads = 0;
       for (const file of evidenceFiles) {
-        // Sanitise the extension: the stored URL's path segment must match the
-        // server's anchored evidence check ([^/?#]+…), so a filename like
-        // "photo.jp#g" — ext "jp#g" — must not put a `#` in the object path, or
-        // the upload succeeds and the dispute RPC then refuses the URL with a
-        // misleading "not your upload" error. Keep only [a-z0-9], cap length,
-        // fall back to "jpg".
-        const rawExt = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
-        const ext = rawExt || "jpg";
+        // Extension comes from the file's MIME type, never its name — both
+        // because a client-chosen name must never set a storage key's
+        // extension (docs/OPEN.md LIVE DEFECT #5), and because the MIME map's
+        // values are always plain [a-z0-9], which also keeps the stored URL's
+        // path segment inside the server's anchored evidence check
+        // ([^/?#]+…): a filename like "photo.jp#g" could otherwise put a `#`
+        // in the object path, and the upload would succeed while the dispute
+        // RPC then refused the URL with a misleading "not your upload" error.
+        const ext = storageExtFor(file, "jpg");
         const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
         if (uploadError) {

@@ -143,6 +143,7 @@ function HelperTierBadge(props: HelperTierBadgeProps) {
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        aria-label={`Verification tier: ${meta.label}`}
         sideOffset={6}
         className="w-72 rounded-2xl shadow-lg"
         style={{

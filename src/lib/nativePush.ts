@@ -469,24 +469,38 @@ export async function requestPushPermission(): Promise<boolean> {
  * Returns false on platforms that don't support notifications at all
  * (e.g. SSR or a browser without the Notification API).
  */
-export function useRequestPushPermission() {
+/**
+ * What a push request ended in. "dismissed" means the person tapped Not Now in
+ * our own rationale dialog: no OS/browser prompt was shown, so whatever the
+ * permission already was is not news and must not be reported as a refusal.
+ * "refused" means the OS/browser was asked (or cannot be) and did not grant.
+ */
+export type PushRequestOutcome = "granted" | "refused" | "dismissed";
+
+/** Like useRequestPushPermission, but says WHY a request was not granted. */
+export function useRequestPushPermissionOutcome() {
   const { request } = usePermissionRationale();
-  return async (): Promise<boolean> => {
-    if (isNativePlatform) {
-      let granted = false;
-      await request("notifications", async () => {
-        granted = await requestPushPermission();
-      });
-      return granted;
-    }
-    if (!isPushSupported()) return false;
+  return async (): Promise<PushRequestOutcome> => {
+    if (!isNativePlatform && !isPushSupported()) return "refused";
+    let asked = false;
     let granted = false;
     await request("notifications", async () => {
-      await registerServiceWorker();
-      granted = await requestWebPushPermission();
+      asked = true;
+      if (isNativePlatform) {
+        granted = await requestPushPermission();
+      } else {
+        await registerServiceWorker();
+        granted = await requestWebPushPermission();
+      }
     });
-    return granted;
+    if (granted) return "granted";
+    return asked ? "refused" : "dismissed";
   };
+}
+
+export function useRequestPushPermission() {
+  const requestOutcome = useRequestPushPermissionOutcome();
+  return async (): Promise<boolean> => (await requestOutcome()) === "granted";
 }
 
 /**

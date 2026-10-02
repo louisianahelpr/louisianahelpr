@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { describeDeleteError, findActiveWork, purgeAccount, SERIES_BLOCKS_DELETION_MESSAGE } from "../_shared/accountPurge.ts";
+import { publicErrorMessage } from "../_shared/publicError.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -131,8 +132,10 @@ serve(async (req) => {
     // `catch` binds `unknown`: a thrown string, a Supabase error object or a
     // rejected non-Error all reach here, and `err.message` on `null`/`undefined`
     // throws INSIDE the handler — turning a diagnosable 500 into an empty one.
-    const message = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: message }), {
+    // The detail goes to the log only: a thrown Supabase error carries table and
+    // column names (EF-5).
+    console.error("[delete-own-account] error:", err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: publicErrorMessage(err, "We couldn't delete your account right now. Please try again.") }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -15,7 +15,7 @@
  * 15921ea17 (2026-09-27) landed that way and main went red on "Sensitive review
  * record", which land.sh never ran.
  *
- * @mutate .claude/AGENT-BRIEF.md | then `bash scripts/land.sh` | then `git push --no-verify origin HEAD:main`
+ * @mutate .claude/AGENT-BRIEF.md | lands it with `bash scripts/land.sh` | lands it with `git push --no-verify origin HEAD:main`
  *
  * Q44: with strict protection + enforce_admins a direct push is refused, so
  * land.sh lands the same verified HEAD through a PR with REBASE auto-merge (a
@@ -25,6 +25,7 @@
  * @mutate scripts/land.sh |   git push --no-verify --force origin "HEAD:refs/heads/$BR" |   git push --no-verify --force origin "HEAD:main"
  * @mutate scripts/land.sh |     if [ "$STATE" = MERGED ]; then |     if [ "$STATE" = OPEN ]; then
  * @mutate .claude/AGENT-BRIEF.md | It is the ONLY way | It is one way
+ * @mutate .claude/AGENT-BRIEF.md | **Agents do not land.** | **Agents may land.**
  *
  * Runs the repo-only twins of db-deploy's two commonest reds before a push
  * that touches migrations (ledger 00fd2bd0; the Q807 migration went red on
@@ -96,10 +97,14 @@ describe("scripts/land.sh keeps generated files current on main", () => {
     expect(code).toMatch(/^set -euo pipefail$/m);
   });
 
-  it("the agent brief's Landing section sends agents through land.sh", () => {
+  // Agents push and report; the lead lands (2026-10-02: 15 agent branches were
+  // stranded by agents that ran land.sh and finished before the PR merged).
+  it("the agent brief's Landing section has agents push and report, and the lead land through land.sh", () => {
     const brief = readFileSync(resolve(ROOT, ".claude/AGENT-BRIEF.md"), "utf8");
     const landing = brief.slice(brief.indexOf("## Landing"));
     const section = landing.slice(0, landing.indexOf("\n## ", 5) > 0 ? landing.indexOf("\n## ", 5) : undefined);
-    expect(section).toMatch(/then `bash scripts\/land\.sh`/);
+    expect(section).toMatch(/\*\*Agents do not land\.\*\*/);
+    expect(section).toMatch(/git push -u origin HEAD/);
+    expect(section).toMatch(/The lead lands it with `bash scripts\/land\.sh`/);
   });
 });

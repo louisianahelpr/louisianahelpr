@@ -6,6 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { clawbackForTransfer } from "./_chargebackClawback.ts";
 
@@ -18,6 +19,27 @@ export async function handleTransferReversed(
   // reconciliation matches Stripe's view.
   const transfer = event.data.object as Stripe.Transfer;
   logStep("Transfer REVERSED", { id: transfer.id, amount: transfer.amount });
+
+  // A single-Helpr cancellation fee is not a job payout (LOW-2): mark its own
+  // ledger row reversed and page. There is no job to freeze (its escrow was
+  // already refunded) and no payout_transfers row to move.
+  if (isSingleHelprFeeTransfer(transfer)) {
+    const rowId = await settleCancellationFeeTransfer(transfer, "reversed", { supabase, logStep });
+    if (rowId) {
+      await postSlackOpsAlert({
+        kind: "payout_reversed",
+        severity: "critical",
+        title: "Helpr cancellation-fee transfer reversed",
+        message: `Stripe transfer ${transfer.id} (a Helpr's cancellation fee) was reversed. The fee ledger row is marked reversed; the Helpr no longer holds this fee.`,
+        fields: {
+          "Transfer ID": transfer.id,
+          "Amount reversed": `$${((transfer.amount_reversed ?? transfer.amount) / 100).toFixed(2)}`,
+          "Job": String((transfer.metadata ?? {}).job_id ?? "—"),
+        },
+      });
+    }
+    return;
+  }
 
   const { data: reversedLedger, error: ledgerUpdateErr } = await supabase
     .from("payout_transfers")

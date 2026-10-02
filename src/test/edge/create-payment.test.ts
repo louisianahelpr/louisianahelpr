@@ -297,6 +297,45 @@ describe("create-payment edge function", () => {
         });
       }
 
+      // Prod 2026-10-02, job cbe2496c: expiring cs_dead fires
+      // checkout.session.expired and stripe-webhook nulls the hold before our
+      // stamp lands, so the compare-and-set on cs_dead matched 0 rows and the
+      // retapped Pay returned 500.
+      it("takes a hold the expire webhook already released instead of failing", async () => {
+        seedRemintable("unpaid", "cs_dead");
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+          id: "cs_dead",
+          status: "open",
+          payment_status: "unpaid",
+          payment_intent: null,
+        });
+        let stampCalls = 0;
+        Object.defineProperty(scenario.writeSelectRows, "jobs:update", {
+          configurable: true,
+          enumerable: true,
+          get: () => (stampCalls++ === 0 ? [] : undefined),
+        });
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_fresh");
+
+        const stamps = scenario.writes.filter(
+          (w) => w.table === "jobs" && (w.payload as Record<string, unknown>)?.stripe_session_id === "cs_fresh",
+        );
+        expect(stamps).toHaveLength(2);
+        // The retry targets only a released hold and keeps the funding guards.
+        expect(stamps[1].filters).toContainEqual(
+          expect.objectContaining({ op: "is", column: "stripe_session_id", value: null }),
+        );
+        expect(stamps[1].filters).not.toContainEqual(
+          expect.objectContaining({ column: "stripe_session_id", value: "cs_dead" }),
+        );
+        expect(JSON.stringify(stamps[1].filters)).toContain("payment_status.in.(unpaid,abandoned,failed)");
+      });
+
       // @mutate supabase/functions/create-payment/index.ts | if (!isTestObjectUnderLiveKey(priorErr)) throw priorErr; | throw priorErr;
       it("treats a prior session minted in Stripe TEST mode as absent and mints a fresh one (not a 500)", async () => {
         seedRemintable("abandoned", "cs_test_old");
@@ -460,6 +499,53 @@ describe("create-payment edge function", () => {
             li.price_data.product_data.name === "One-time account setup",
         ),
       ).toBe(false);
+    });
+
+    // Q734: a recurring series charges each later visit to the card saved on
+    // the series' PaymentIntent. For a gift-funded post that intent is the
+    // gift-card SHORTFALL checkout, which never asked Stripe to save the card,
+    // so every later visit of a gift-funded series declined.
+    describe("gift-card shortfall checkout saves the card when asked (Q734)", () => {
+      const seedGiftShortfall = () => {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, budget: 100, category: "cleaning", title: "Clean my house", payment_status: "unpaid" }],
+        };
+        scenario.rpc.redeem_gift_card = { outcome: "partial", difference_cents: 4000 };
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+        stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_diff", url: "https://checkout.stripe.test/cs_diff" });
+      };
+
+      // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), |
+      it("sets setup_future_usage off_session on the shortfall intent when saveCardForFuture is true", async () => {
+        seedGiftShortfall();
+        const fn = await load();
+        const res = await fn.fetch(fn.request({
+          headers: AUTH,
+          body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1", saveCardForFuture: true },
+        }));
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_diff");
+        const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+        expect(opts.idempotencyKey).toMatch(/^gift-card-diff-job-1/);
+        expect(params.line_items[0].price_data.unit_amount).toBe(4000);
+        expect(params.customer).toBe("cus_existing");
+        expect(params.payment_intent_data.setup_future_usage).toBe("off_session");
+        expect(params.payment_intent_data.metadata.gift_card_id).toBe("gift-1");
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), | setup_future_usage: "off_session" as const,
+      it("does not save the card when the poster did not ask", async () => {
+        seedGiftShortfall();
+        const fn = await load();
+        const res = await fn.fetch(fn.request({
+          headers: AUTH,
+          body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" },
+        }));
+        expect(res.status).toBe(200);
+        const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+        expect(params.payment_intent_data).not.toHaveProperty("setup_future_usage");
+      });
     });
 
     it("appends the $2 onboarding line item for a poster who has not paid it", async () => {
@@ -1311,7 +1397,7 @@ describe("create-payment edge function", () => {
       );
     });
 
-    // @mutate supabase/functions/create-payment/index.ts | if (!isTestObjectUnderLiveKey(piErr)) throw piErr; | throw piErr;
+    // @mutate supabase/functions/create-payment/index.ts | return await refuseTestModeCancel(cancelPaymentIntentId); | throw piErr;
     it("a job paid in Stripe TEST mode: claim put back, clear 409, no refund, never a 500 that strands it 'cancelling'", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
@@ -1364,6 +1450,86 @@ describe("create-payment edge function", () => {
       );
       expect(res.status).toBe(409);
       const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect((jobUpdates[jobUpdates.length - 1].payload as Record<string, unknown>).payment_status).toBe("escrow");
+    });
+
+    // Q891 item 3: the session-retrieve catch swallowed every error and went on
+    // with no PI, so a transient Stripe error skipped the refund and still
+    // cancelled the job, leaving the poster's money captured on a dead job.
+    // @mutate supabase/functions/create-payment/index.ts | throw sessionErr; | void sessionErr;
+    it("a transient error reading the checkout session never cancels without the refund: claim put back, nothing refunded or cancelled", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, status: "open", payment_status: "escrow",
+          stripe_payment_intent_id: null, stripe_session_id: "cs_live_1", budget: 100, customer_fee_amount: 10,
+        }],
+      };
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(new Error("Stripe is down"));
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }),
+      );
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect((jobUpdates[0]?.payload as Record<string, unknown>).payment_status).toBe("cancelling");
+      expect(jobUpdates.some((w) => (w.payload as Record<string, unknown>).status === "cancelled")).toBe(false);
+      const putBack = jobUpdates[jobUpdates.length - 1];
+      expect((putBack.payload as Record<string, unknown>).payment_status).toBe("escrow");
+      expect(putBack.filters).toContainEqual(
+        expect.objectContaining({ column: "payment_status", value: "cancelling" }),
+      );
+    });
+
+    // lh-money-escrow review: a re-entered 'cancelling' job may already be
+    // refunded by an earlier run, so a transient read error must leave it
+    // 'cancelling', never write 'escrow' (which reads as funded).
+    // @mutate supabase/functions/create-payment/index.ts | if (job.payment_status === "escrow") await putCancelClaimBack(`session | await putCancelClaimBack(`session
+    it("a re-entered 'cancelling' job hitting a transient session error stays 'cancelling', never put back to 'escrow'", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, status: "open", payment_status: "cancelling",
+          stripe_payment_intent_id: null, stripe_session_id: "cs_live_1", budget: 100, customer_fee_amount: 10,
+        }],
+      };
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(new Error("Stripe is down"));
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }),
+      );
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobUpdates.some((w) => (w.payload as Record<string, unknown>).payment_status === "escrow")).toBe(false);
+      expect(jobUpdates.some((w) => (w.payload as Record<string, unknown>).status === "cancelled")).toBe(false);
+    });
+
+    // @mutate supabase/functions/create-payment/index.ts | if (isTestObjectUnderLiveKey(error)) { | if (false) {
+    it("a checkout session from Stripe TEST mode gets the same clear 409 as a test-mode PI, claim put back", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, status: "open", payment_status: "escrow",
+          stripe_payment_intent_id: null, stripe_session_id: "cs_test_1", budget: 100, customer_fee_amount: 10,
+        }],
+      };
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(
+        testModeUnderLiveKey("checkout.session", "cs_test_1"),
+      );
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/test mode/i);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+      expect(jobUpdates.some((w) => (w.payload as Record<string, unknown>).status === "cancelled")).toBe(false);
       expect((jobUpdates[jobUpdates.length - 1].payload as Record<string, unknown>).payment_status).toBe("escrow");
     });
 

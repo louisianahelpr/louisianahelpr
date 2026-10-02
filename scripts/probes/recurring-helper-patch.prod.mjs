@@ -24,7 +24,7 @@ import { rest, session, URL_, ANON } from "./lib/prodEnv.mjs";
 
 const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f"; // poster-e2e
 const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5"; // helper-e2e
-const OTHER = "f6cc3ebb-9478-473c-8eb8-62b406f0734f"; // helper (seed)
+const OTHER = "f55112c7-612e-44a0-b6aa-443cdfbc33d6"; // helper (seed)
 
 async function asUser(token, path, { method = "GET", body } = {}) {
   // RETURNING * is refused for `authenticated` (offered_to_helper_id is withheld).

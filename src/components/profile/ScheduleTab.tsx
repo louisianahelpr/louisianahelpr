@@ -772,8 +772,8 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     </button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="w-[min(92vw,180px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
-                    align="end"
+                    aria-label="Filter upcoming jobs"
+                    className="w-[min(92vw,180px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5" align="end"
                   >
                     {UPCOMING_FILTERS.map((opt) => {
                       const active = opt.value === upcomingFilter;

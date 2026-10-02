@@ -174,11 +174,14 @@ serve(async (req) => {
     const prefColumn = mapping.prefCol
     const category = mapping.category
 
+    // Q855: the notification log never blocks the send, but a failed write is
+    // reported, not dropped.
     const logSkip = async (status: string, reason: string) => {
-      await supabase.rpc('log_notification', {
+      const { error: skipLogError } = await supabase.rpc('log_notification', {
         _user_id: user_id, _category: category, _channel: 'email',
         _status: status, _subject: title, _job_id: job_id ?? null, _error: reason, _message_id: null,
       })
+      if (skipLogError) console.error(`log_notification (${status}) failed:`, skipLogError.message)
     }
 
     // Q137: a seed subject (a seed job, or a seed account named as the actor in
@@ -468,19 +471,21 @@ serve(async (req) => {
       ...(isCommercial ? { headers: await unsubscribeHeaders(profile.email) } : {}),
     }
 
-    await supabase.from('email_send_log').insert({
+    const { error: pendingLogError } = await supabase.from('email_send_log').insert({
       message_id: messageId,
       template_name: `notification_${category}`,
       recipient_email: profile.email,
       status: 'pending',
     })
+    if (pendingLogError) console.error('email_send_log pending insert failed:', pendingLogError.message)
 
     const recordLog = async (status: string, error?: string) => {
-      await supabase.rpc('log_notification', {
+      const { error: recordLogError } = await supabase.rpc('log_notification', {
         _user_id: user_id, _category: category, _channel: 'email',
         _status: status, _subject: title, _job_id: job_id ?? null,
         _error: error ?? null, _message_id: messageId,
       })
+      if (recordLogError) console.error(`log_notification (${status}) failed:`, recordLogError.message)
     }
 
     // How the mail actually left (or didn't). The old code returned a blanket
@@ -523,17 +528,19 @@ serve(async (req) => {
           // in what the recipient can do about the mail.
           ...(isCommercial ? { headers: await unsubscribeHeaders(profile.email) } : {}),
         })
-        await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
+        const { error: sentLogError } = await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
+        if (sentLogError) console.error('email_send_log sent update failed:', sentLogError.message)
         await recordLog('sent', 'fallback_direct')
         delivery = 'direct'
         console.log(`Notification email sent directly to ${profile.email}: ${title}`)
       } catch (sendErr) {
         const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
         console.error('Notification email failed:', sendErrMsg)
-        await supabase.from('email_send_log').update({
+        const { error: failedLogError } = await supabase.from('email_send_log').update({
           status: 'failed',
           error_message: sendErrMsg,
         }).eq('message_id', messageId)
+        if (failedLogError) console.error('email_send_log failed update failed:', failedLogError.message)
         await recordLog('failed', sendErrMsg)
         deliveryError = sendErrMsg
       }

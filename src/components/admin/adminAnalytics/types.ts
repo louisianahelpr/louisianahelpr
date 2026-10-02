@@ -14,7 +14,9 @@ export const DRILL_PROFILE_COLUMNS = "id, user_id, full_name, email, location, s
 export type DrillProfile = Pick<ProfileRow, "id" | "user_id" | "full_name" | "email" | "location" | "subscription_tier" | "email_verified" | "created_at">;
 // The row as an admin client can read it: jobs.offered_to_helper_id is not
 // selectable by `authenticated` (20260915045110), admins included.
-export type Job = ReadableJobRow;
+// payment_captured is the jobs computed field (Q443): the allJobs load selects it
+// so isCapturedPayment can count a job a gift card paid in full.
+export type Job = ReadableJobRow & { payment_captured?: boolean | null };
 export type Tip = Database["public"]["Tables"]["tips"]["Row"];
 
 export type DrillDown = "users" | "jobs" | "revenue" | "fees" | "subscriptions" | "categories" | "payouts" | null;

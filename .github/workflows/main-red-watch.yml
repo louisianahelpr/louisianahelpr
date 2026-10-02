@@ -19,12 +19,19 @@ name: Main red watch
 # `cancelled` is ignored: superseded pushes are cancelled by concurrency groups
 # on every busy evening. `timed_out` counts as red.
 #
+# MAIN BATCHES (2026-10-02): E2E real backend and UI sweep no longer run on
+# push; main-batch.yml dispatches them for main HEAD with `batch: true`, and
+# their run-name carries "(main batch <sha>)". Such a dispatched run is
+# reported exactly like the push run it replaced. Other dispatches (a person's
+# manual run) still are not: their workflows' own notify job reports them.
+#
 # Not watched: "Nightly reds nobody read" — it IS the alarm, and fails by design
 # while any red is open; watching it would loop.
 
 on:
   workflow_run:
     workflows:
+      - Branch prune
       - Bundle Size Check
       - Supabase DB Deploy
       - Deploy iOS (TestFlight / App Store)
@@ -33,6 +40,7 @@ on:
       - Supabase Edge Functions Deploy
       - Migration Timestamp Guard
       - Mobile viewport spot-check
+      - Main batch dispatch
       - Prod deploy
       - Prod freshness
       - Race Runner
@@ -64,7 +72,9 @@ jobs:
     name: Report main result
     if: >-
       github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.event == 'push' &&
+      (github.event.workflow_run.event == 'push' ||
+       (github.event.workflow_run.event == 'workflow_dispatch' &&
+        contains(github.event.workflow_run.display_title, '(main batch '))) &&
       contains(fromJSON('["success","failure","timed_out"]'), github.event.workflow_run.conclusion)
     runs-on: ubuntu-latest
     timeout-minutes: 5

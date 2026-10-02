@@ -29,7 +29,7 @@
  * @mutate src/components/series/JobSeriesCardControls.tsx | job.recurring_helper_id === userId && job.helper_id === userId && | job.recurring_helper_id === userId &&
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |       SELECT v_job.recurring_helper_id WHERE v_job.recurring_helper_id = v_job.helper_id |       SELECT v_job.recurring_helper_id
  * @mutate supabase/functions/charge-recurring-visits/index.ts | .not("customer_id", "is", null) | .not("id", "is", null)
- * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status", | recurring_helper_id, helper_id, status, payment_status, dispute_status",
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id", | recurring_helper_id, helper_id, status, payment_status, dispute_status, stripe_payment_intent_id",
  * @mutate supabase/functions/charge-recurring-visits/index.ts | Can't make it? Cancel this visit from My Jobs. | Can't make it? Release the date from My Jobs.
  * @mutate src/components/series/JobSeriesCardControls.tsx | <EndSeriesControl jobId={job.id} | <span data-x={job.id}
  * @mutate src/pages/posts/PostedJobSeriesControls.tsx | canEnd={!!job.recurring_helper_id && job.status !== "cancelled"} | canEnd={false}

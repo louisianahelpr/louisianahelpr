@@ -134,6 +134,7 @@ export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProp
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        aria-label="5-star streak"
         className="w-64 text-ds-13 leading-relaxed font-sans"
       >
         <p className="font-semibold text-foreground mb-1 flex items-center gap-1.5">

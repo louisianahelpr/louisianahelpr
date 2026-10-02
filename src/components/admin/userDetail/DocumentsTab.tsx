@@ -1,11 +1,58 @@
-import { FileText } from "lucide-react";
+import { useState } from "react";
+import { FileText, Loader2 } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import type { Profile } from "../adminUserHelpers";
-import { openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
+import { isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
+import { openSignedDocument } from "@/lib/openSignedDocument";
+import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
+import { toast } from "sonner";
 
 interface DocumentsTabProps {
   viewProfile: Profile;
+}
+
+/**
+ * complete-signup stores a portfolio upload as a bare `user-documents` storage
+ * path (same private bucket as credential documents), not a public URL — see
+ * src/lib/portfolioStorage.ts's `portfolioObjectName` doc comment. Before this
+ * fix those rows fell through to "Link withheld (not https)" forever, because
+ * safeDocumentUrl only ever passes an https: URL or a raster data: URL and
+ * nothing here signed the storage path the way AdminCredentialQueue's
+ * SignedOpenLink/DocPreview already do for id/license/insurance documents in
+ * the same bucket. 0 such rows measured on prod 2026-09-23 (docs/OPEN.md),
+ * so this fixes dormant risk, not a currently-visible defect.
+ */
+function SignedPortfolioTile({ path, fileName }: { path: string; fileName: string }) {
+  const [busy, setBusy] = useState(false);
+  const open = async () => {
+    setBusy(true);
+    await openSignedDocument({
+      open: (url, target) => window.open(url, target),
+      sign: async () => {
+        if (!isStorageObjectPath(path)) return null;
+        const { data, error } = await supabase.storage
+          .from("user-documents")
+          .createSignedUrl(path, 300);
+        if (error) report(error, { tags: { source: "DocumentsTab.SignedPortfolioTile" } });
+        return error || !data ? null : data.signedUrl;
+      },
+      toastError: (msg) => toast.error(msg),
+    });
+    setBusy(false);
+  };
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={busy}
+      className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 ctl-tint disabled:opacity-50"
+    >
+      {busy ? <Loader2 className="w-6 h-6 text-muted-foreground mb-1 animate-spin" /> : <FileText className="w-6 h-6 text-muted-foreground mb-1" />}
+      <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
+    </button>
+  );
 }
 
 export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
@@ -70,8 +117,13 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
               const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
               const fileName = url.split("/").pop() || "Document";
               // portfolio_urls is the member's own column (no shape CHECK):
-              // anything but https / a raster data: image is shown, not linked.
+              // anything but https / a raster data: image is shown, not linked
+              // — UNLESS it is a bare user-documents storage path (a legacy
+              // complete-signup upload), which is signed at display time.
               if (!safeDocumentUrl(url)) {
+                if (isStorageObjectPath(url)) {
+                  return <SignedPortfolioTile key={i} path={url} fileName={fileName} />;
+                }
                 return (
                   <div key={i} className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2">
                     <FileText className="w-6 h-6 text-muted-foreground mb-1" />

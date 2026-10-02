@@ -1,5 +1,5 @@
-// @mutate docs/OPEN.md | - [ ] **Q7 WebKit only | - [~] **Q7 WebKit only
-// @mutate docs/OPEN.md | SELECT coalesce(feature_flags->>'seed_purge_live','false') FROM public.platform_settings | SELECT coalesce(public.check_push_token_health()->>'tokens','false') FROM public.platform_settings
+// @mutate docs/OPEN.md | - [ ] **Q7 MEDIUM WebKit only | - [~] **Q7 MEDIUM WebKit only
+// @mutate docs/OPEN.md | select count(*) > 0 from tips where payment_status = 'paid' | select public.check_push_token_health() is not null from tips where payment_status = 'paid'
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }
 /*
@@ -24,7 +24,7 @@ import { partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
 const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 
-/** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-10-02 (AdminHelperTiers line went [ ] to [~]; its last step is a browser check). */
+/** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-10-02 after the LOW branch rebased: 21 (four new "FIXED 2026-10-02, protection pending" lines whose last step is a 375 screenshot, which no marker kind can express); 19 after Q73 and Q387 were ticked done (combined landing #2087); 15 after rebasing onto origin/main 2026-10-02; 18 after three stranded notes landed (Q858 waits on Q785; Complete Profile and My Posts wait on a 375 screenshot); 17 after pd-b gave one a marker. */
 const MARKERLESS_PARTLY_DONE = 17;
 
 describe("[~] items say when they are done", () => {

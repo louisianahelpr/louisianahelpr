@@ -36,6 +36,16 @@
  * a number instead of repeating the investigation.
  */
 
+/**
+ * Every "still loading" marker the app renders. The shared `<Skeleton>`
+ * (src/components/ui/skeleton.tsx) shimmers with `animate-[shimmer_…]`, NOT
+ * `animate-pulse`; a settle that only looked for `animate-pulse` never waited
+ * for it, so /profile?tab=earnings was pressed while EarningsPageSkeleton was
+ * still up (run 36986080914: "More Insights" not found after reload).
+ * Guarded by src/test/pressSettleSeesSkeleton.test.tsx.
+ */
+export const LOADING_SEL = '[aria-busy="true"], [class*="animate-pulse"], [class*="animate-[shimmer"]';
+
 /** The app's "I am retrying, do not call me broken yet" marker (ProtectedRoute.tsx). */
 export const SELF_HEAL_SEL = '[data-auth-retrying="true"]';
 

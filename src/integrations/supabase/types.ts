@@ -210,6 +210,76 @@ export type Database = {
           },
         ]
       }
+      cancellation_fee_transfers: {
+        Row: {
+          commission_percent: number
+          created_at: string
+          failure_reason: string | null
+          fee_amount: number
+          helper_amount: number
+          helper_id: string | null
+          id: string
+          job_id: string
+          paid_at: string | null
+          platform_cut: number
+          status: string
+          stripe_transfer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          commission_percent: number
+          created_at?: string
+          failure_reason?: string | null
+          fee_amount: number
+          helper_amount: number
+          helper_id?: string | null
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          platform_cut: number
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          commission_percent?: number
+          created_at?: string
+          failure_reason?: string | null
+          fee_amount?: number
+          helper_amount?: number
+          helper_id?: string | null
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          platform_cut?: number
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellation_fee_transfers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_fee_transfers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_fee_transfers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chargeback_clawbacks: {
         Row: {
           created_at: string
@@ -6993,6 +7063,10 @@ export type Database = {
       }
       ops_alert_verify: { Args: never; Returns: Json }
       ops_route_key: { Args: { p_route: string }; Returns: string }
+      payment_captured: {
+        Args: { j: Database["public"]["Tables"]["jobs"]["Row"] }
+        Returns: boolean
+      }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json

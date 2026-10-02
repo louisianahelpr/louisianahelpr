@@ -66,7 +66,7 @@ import {
 } from "./pressProdSafety.mjs";
 import * as pressSafety from "./pressProdSafety.mjs";
 import { isStripeWriteRequest, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafety.mjs";
-import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
+import { LOADING_SEL, SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
   claimRow, classifyConsoleError, classifyFailedResponse, clickFailureReason, queuedRowAction, releaseRow, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
@@ -281,6 +281,10 @@ export const PUSH_PROMPT_LABEL_RX = /^(?:turn on push notifications|not now|turn
 export function isTruthfulPermissionRefusal({ toast, chain = [], permission } = {}) {
   if (!PERMISSION_OFF_TOAST_RX.test(String(toast ?? "").trim())) return false;
   if (permission !== "denied") return false;
+  // "Not Now" in our own rationale never reaches the browser, so the app no
+  // longer toasts for it at all (OPEN.md pushPermissionNudge item, 2026-10-02);
+  // a permission-off toast there is a regression, not the truth.
+  if (/^not now$/i.test(String(chain[chain.length - 1] ?? "").trim())) return false;
   return chain.some((label) => PUSH_PROMPT_LABEL_RX.test(String(label ?? "").trim()));
 }
 
@@ -426,6 +430,31 @@ export function missingControlDisposition({ scope, onSameScreen, consumed, trans
  * is exactly this control's, and no control with that record text is on the
  * reloaded screen. Any other missing control on a page still fails.
  */
+/**
+ * A CONTROL THAT STOPPED BEING A CONTROL BEFORE IT WAS REACHED.
+ *
+ * Run 36965978547 leg 1 (2026-10-02, /home customer) failed exactly one press:
+ * `Notifications › New application Someone applied to "[SL-SEED] Cancelled
+ * with reason"` — "no observable change". Read off prod and the app, not
+ * guessed: that notification (08857a79…) has `job_id` AND `link` NULL, so
+ * `notificationDestination()` is null and `NotificationPanel.isActionable` is
+ * `!n.read` alone. Unread at enumeration it rendered `role="button"`; the
+ * shared customer account is walked by six legs at once, and by the time this
+ * leg reached the row it had been read (the after-shot shows the "All" filter
+ * with every row untinted; prod shows read=true). A read row with nowhere to
+ * go drops its role, tab stop and onClick by design — the press clicked a plain
+ * <div>, which correctly does nothing.
+ *
+ * Same disposition as "disabled by the time it was reached": decided at press
+ * time from the element itself, and narrow — it fires only when the addressed
+ * element no longer matches the control selector at all. A control that still
+ * IS a control and does nothing is still a FAIL.
+ */
+export const NO_LONGER_CONTROL_SKIP = "no longer a control by the time it was reached (lost its control role since enumeration)";
+export function pressTimeDisposition({ isControl }) {
+  if (!isControl) return NO_LONGER_CONTROL_SKIP;
+  return null;
+}
 export const ROW_CONSUMED_SKIP = "its record left the list after this run's own mutating press on that same record";
 export function rowGoneAfterOwnWrite({ rowText, mutatedRows, now }) {
   if (!rowText || !mutatedRows?.has(rowText)) return false;
@@ -553,6 +582,7 @@ export const DOCUMENTED_SKIPS = new Set([
   BOUNCED_SKIP,
   TRANSIENT_STATUS_SKIP,
   ROW_CONSUMED_SKIP,
+  NO_LONGER_CONTROL_SKIP,
   FORM_MIRROR_SKIP,
   FOREIGN_FIXTURE_SKIP,
   CHROME_SKIP,
@@ -687,7 +717,7 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
 /**
  * AN OVERLAY THAT IS STILL FILLING IS NOT AN OVERLAY YET.
  *
- * `settle()` waits on `aria-busy` and `animate-pulse`, and the notification
+ * `settle()` waits on LOADING_SEL (aria-busy, animate-pulse, skeleton shimmer), and the notification
  * panel's first-load state carried neither — it renders `role="status"` with a
  * spinner and "Loading notifications…". So on run 35692554813 the panel was
  * enumerated before its rows landed, with two opposite outcomes on the same
@@ -1161,12 +1191,11 @@ async function main() {
 
       // A screen that says it is retrying is NOT settled — see pressLoadHealth.mjs.
       const settle = async () => {
-        await page.waitForFunction((healSel) => {
-          const busy = document.querySelectorAll('[aria-busy="true"]').length;
-          const pulses = [...document.querySelectorAll('[class*="animate-pulse"]')].filter((e) => !e.closest("[aria-hidden='true']")).length;
+        await page.waitForFunction(([loadingSel, healSel]) => {
+          const loading = [...document.querySelectorAll(loadingSel)].filter((e) => e.getAttribute("aria-busy") === "true" || !e.closest("[aria-hidden='true']")).length;
           const retrying = document.querySelectorAll(healSel).length;
-          return busy === 0 && pulses === 0 && retrying === 0;
-        }, SELF_HEAL_SEL, { timeout: 8000 }).catch(() => {});
+          return loading === 0 && retrying === 0;
+        }, [LOADING_SEL, SELF_HEAL_SEL], { timeout: 8000 }).catch(() => {});
         await page.waitForTimeout(SETTLE_MS);
       };
       // The URL the screen rests at after a clean load; any drift from it (a
@@ -1571,6 +1600,12 @@ async function main() {
           if (await target.isDisabled().catch(() => false)) {
             skip("disabled by the time it was reached (enabled when enumerated)");
             continue;
+          }
+          // Still a control at all? See NO_LONGER_CONTROL_SKIP.
+          {
+            const isControl = await target.evaluate((el, sel) => el.matches(sel), CONTROL_SEL).catch(() => true);
+            const why = pressTimeDisposition({ isControl });
+            if (why) { skip(why); continue; }
           }
 
           const before = await snapshot();

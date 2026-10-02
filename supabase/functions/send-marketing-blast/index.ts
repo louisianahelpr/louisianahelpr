@@ -8,7 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // function used to carry its own copy of each, including the only use of
 // hello@ in the product.
 import { FROM_DEFAULT, POSTAL_ADDRESS, sendWithResend } from "../_shared/resend.ts";
-import { isTestRecipient, TEST_RECIPIENT_REASON } from "../_shared/testRecipient.ts";
+import { isTestRecipientIn, seedAddressesAmong, TEST_RECIPIENT_REASON } from "../_shared/testRecipient.ts";
 import { buildUnsubscribeUrl, unsubscribeHeaders } from "../_shared/unsubscribe.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { htmlEscape } from "../_shared/safe-strings.ts";
@@ -479,11 +479,15 @@ serve(async (req) => {
     // campaign that is already partly delivered.
     const LOG_CHUNK = 100;
     const pendingLogs: SendLogRow[] = [];
+    // Q855: rows whose audit insert failed, reported in the response so the
+    // admin sees it (it used to reach only the function console).
+    let logFailed = 0;
     const flushLogs = async (force = false) => {
       while (pendingLogs.length >= LOG_CHUNK || (force && pendingLogs.length > 0)) {
         const chunk = pendingLogs.splice(0, LOG_CHUNK);
         const { error: logError } = await supabase.from("email_send_log").insert(chunk);
         if (logError) {
+          logFailed += chunk.length;
           console.error(
             `[send-marketing-blast] email_send_log insert failed for ${chunk.length} row(s):`,
             logError.message,
@@ -491,6 +495,12 @@ serve(async (req) => {
         }
       }
     };
+
+    // Q840/Q855: which recipients are is_seed accounts, read in batches of
+    // SEED_LOOKUP_CHUNK rather than once per recipient (a 5000-recipient
+    // campaign made 5000 profile reads). Fixture addresses are caught by the
+    // address check inside isTestRecipientIn.
+    const seedAddresses = await seedAddressesAmong(supabase, recipients.map((r) => r.email));
 
     for (let i = 0; i < recipients.length; i += 10) {
       const batch = recipients.slice(i, i + 10);
@@ -503,7 +513,7 @@ serve(async (req) => {
         // Resend message id assigned below does not satisfy.
         let messageId: string = crypto.randomUUID();
         // Q840: a test or seed recipient is logged 'suppressed', never mailed.
-        if (await isTestRecipient(supabase, r.email)) {
+        if (isTestRecipientIn(seedAddresses, r.email)) {
           suppressed++;
           pendingLogs.push({
             message_id: messageId,
@@ -579,11 +589,11 @@ serve(async (req) => {
         segment: body.segment,
         parish: body.parish,
         recipients: recipients.length,
-        sent, failed, suppressed,
+        sent, failed, suppressed, log_failed: logFailed,
       },
     });
 
-    return new Response(JSON.stringify({ sent, failed, suppressed, total: recipients.length, errors }), {
+    return new Response(JSON.stringify({ sent, failed, suppressed, log_failed: logFailed, total: recipients.length, errors }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

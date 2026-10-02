@@ -18,10 +18,10 @@
  * groupCrewNoLead.pglite.mjs --tree (every crew-leave case on the tree's
  * helper_cancel_booking).
  *
- * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |     -- Owner decision Q407 (11): a strike only within 24 hours of the start.\n    IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |     IF true THEN
- * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
- * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |   IF v_job.is_group_job IS TRUE\n     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |   IF false THEN
- * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |     v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled', |     v_released := public.series_visit_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
+ * @mutate supabase/migrations/20261002055930_series_cancel_locks_parent_first.sql |     -- Owner decision Q407 (11): a strike only within 24 hours of the start.\n    IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |     IF true THEN
+ * @mutate supabase/migrations/20261002055930_series_cancel_locks_parent_first.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
+ * @mutate supabase/migrations/20261002055930_series_cancel_locks_parent_first.sql |   IF v_job.is_group_job IS TRUE\n     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261002055930_series_cancel_locks_parent_first.sql |     v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled', |     v_released := public.series_visit_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

@@ -1,7 +1,8 @@
 export const FINDINGS: string;
 export const SNAPSHOT: string;
 export const FEEDS_HEADING: string;
-export interface FeedSource { keys: string[]; title: string; origin: string; markers: string[] }
+export interface FeedSource { keys: string[]; title: string; origin: string; markers: string[]; tier?: "HIGH" | "MEDIUM" | "LOW" }
+export function tierOf(severity: unknown): "HIGH" | "MEDIUM" | "LOW";
 export function queueItems(md: string): { id: string; state: string; start: number; end: number; text: string }[];
 export function tagsOf(text: string): string[];
 export function mirrored(md: string): Map<string, string[]>;

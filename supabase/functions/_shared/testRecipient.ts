@@ -89,6 +89,57 @@ export async function isTestRecipient(
   return true
 }
 
+/** The `.in()` chain `seedAddressesAmong` reads through. */
+interface ProfilesInChain {
+  select(cols: string): {
+    in(col: string, vals: string[]): {
+      eq(col: string, val: unknown): PromiseLike<{ data: unknown; error: { message: string } | null }>
+    }
+  }
+}
+
+/** Addresses per `.in()` read: keeps the PostgREST URL well under its limit. */
+export const SEED_LOOKUP_CHUNK = 100
+
+/**
+ * Batch form of the is_seed half (Q855): ONE read per SEED_LOOKUP_CHUNK
+ * addresses instead of one per recipient, for senders that mail a list (the
+ * marketing blast reads up to 5000). Returns the lowercased addresses that
+ * belong to an is_seed profile. Same failure policy as `isTestRecipient`: a
+ * failed chunk is logged and its addresses fall back to the address check.
+ */
+export async function seedAddressesAmong(
+  supabase: ProfilesReader | null | undefined,
+  emails: readonly string[],
+): Promise<Set<string>> {
+  const seeds = new Set<string>()
+  if (!supabase) return seeds
+  const wanted = [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))]
+  for (let i = 0; i < wanted.length; i += SEED_LOOKUP_CHUNK) {
+    const chunk = wanted.slice(i, i + SEED_LOOKUP_CHUNK)
+    const { data, error } = await (supabase.from('profiles') as ProfilesInChain)
+      .select('email')
+      .in('email', chunk)
+      .eq('is_seed', true)
+    if (error) {
+      console.error(`[testRecipient] is_seed batch lookup failed for ${chunk.length} address(es); using the address check only:`, error.message)
+      continue
+    }
+    for (const row of Array.isArray(data) ? data : []) {
+      const email = (row as { email?: unknown })?.email
+      if (typeof email === 'string') seeds.add(email.trim().toLowerCase())
+    }
+  }
+  return seeds
+}
+
+/** Sync predicate over a `seedAddressesAmong` result: same answer as `isTestRecipient`. */
+export function isTestRecipientIn(seeds: ReadonlySet<string>, to: unknown): boolean {
+  if (isTestAddress(to)) return true
+  const list = (Array.isArray(to) ? to : [to]).filter((t): t is string => typeof t === 'string')
+  return list.length > 0 && list.every((t) => seeds.has(t.trim().toLowerCase()))
+}
+
 /**
  * Thrown by `sendWithResend` when a fixture address reaches it anyway. Callers
  * are expected to ask `isTestRecipient` first and never get here; this is the

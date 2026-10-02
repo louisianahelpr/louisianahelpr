@@ -10,8 +10,10 @@
  *
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   IF now() >= v_req.expires_at\n     OR v_job.status::text <> 'accepted' |   IF v_job.status::text <> 'accepted'
- * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at) |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at + interval '30 days')
+ * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at) |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at + interval '30 days')
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   ON public.job_schedule_change_requests (job_id) WHERE status = 'pending'; |   ON public.job_schedule_change_requests (job_id, id) WHERE status = 'pending';
+ * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     RAISE EXCEPTION 'schedule_change_clash'; |     NULL;
+ * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |        AND (o.helper_id = v_job.helper_id\n |        AND (false\n
  * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -63,6 +65,17 @@ describe("a booked one-time job's date/time changes only by an accepted request 
 
   it("one pending request per job", () => {
     expect(allSql).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS job_schedule_change_one_pending\s+ON public\.job_schedule_change_requests \(job_id\) WHERE status = 'pending';/);
+  });
+
+  it("Q736: a proposed start overlapping another booking the Helpr holds is refused", () => {
+    const at = request.indexOf("RAISE EXCEPTION 'schedule_change_clash'");
+    expect(at).toBeGreaterThan(0);
+    // The check runs before the request row is written.
+    expect(at).toBeLessThan(request.indexOf("INSERT INTO public.job_schedule_change_requests"));
+    const check = request.slice(request.lastIndexOf("IF p_start_time IS NOT NULL AND EXISTS", at), at);
+    expect(check).toMatch(/o\.helper_id = v_job\.helper_id/);
+    expect(check).toMatch(/g\.helper_id = v_job\.helper_id/);
+    expect(check).toMatch(/OVERLAPS/);
   });
 
   it("the direct client write stays refused, and only the accept RPC's flag lets a Helpr's row change", () => {

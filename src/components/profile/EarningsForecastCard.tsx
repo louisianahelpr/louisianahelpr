@@ -249,6 +249,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
               </PopoverTrigger>
               <PopoverContent
                 align="start"
+                aria-label="How this projection is calculated"
                 className="w-72 text-ds-13 leading-relaxed font-sans not-italic"
               >
                 <p className="font-semibold text-foreground mb-1">

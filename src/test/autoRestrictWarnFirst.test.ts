@@ -23,15 +23,22 @@
  * profile_found gate. PGlite case 10 is red on 20260927230819 (Q834=skip)
  * and green after.
  *
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | (as Q745 does for the suspensions).\n      IF NOT profile_found THEN | (as Q745 does for the suspensions).\n      IF false THEN
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | log the miss, as Q820 does.\n      IF NOT profile_found THEN | log the miss, as Q820 does.\n      IF false THEN
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;\n        RETURN NEW; | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql |     profile_found := FOUND; |     profile_found := true;
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql |         GET DIAGNOSTICS warned_rows = ROW_COUNT; |         warned_rows := 1;
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql |       AND created_at >= NOW() - INTERVAL '7 days'; |       ;
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql |     WHERE user_id = NEW.user_id\n      AND violation_type NOT IN ( |     WHERE user_id = NEW.user_id\n      AND violation_type IN (
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;\n      GET DIAGNOSTICS suspended_rows = ROW_COUNT; | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;
- * @mutate supabase/migrations/20260927231939_auto_restrict_repeat_offender_no_profile.sql | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC;
+ * Q744: two violations committed at the same moment both counted 1 and both
+ * sent "Final warning" (no suspension). The body takes a per-user advisory
+ * lock before the COUNT; scripts/probes/auto-restrict-race.embedded-pg.mjs
+ * races two real connections: green on 20261002055040, red on 20260927231939
+ * (final_warning, two Final warnings).
+ *
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql | (as Q745 does for the suspensions).\n      IF NOT profile_found THEN | (as Q745 does for the suspensions).\n      IF false THEN
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql | log the miss, as Q820 does.\n      IF NOT profile_found THEN | log the miss, as Q820 does.\n      IF false THEN
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;\n        RETURN NEW; | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql |     profile_found := FOUND; |     profile_found := true;
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql |         GET DIAGNOSTICS warned_rows = ROW_COUNT; |         warned_rows := 1;
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql |       AND created_at >= NOW() - INTERVAL '7 days'; |       ;
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql |     WHERE user_id = NEW.user_id\n      AND violation_type NOT IN ( |     WHERE user_id = NEW.user_id\n      AND violation_type IN (
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;\n      GET DIAGNOSTICS suspended_rows = ROW_COUNT; | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC;
+ * @mutate supabase/migrations/20261002055040_auto_restrict_lock_per_user.sql |     PERFORM pg_advisory_xact_lock(hashtextextended('auto_restrict_repeat_violators:' \|\| NEW.user_id::text, 0)); |     NULL;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -132,6 +139,15 @@ describe("auto_restrict_repeat_violators is warn-first (Q183)", () => {
     expect(gate!.index!).toBeLessThan(notice);
     expect(gate![1]).toMatch(/log_cron_defect/);
     expect(gate![1]).toMatch(/RETURN\s+NEW\s*;/i);
+  });
+
+  it("locks per user before counting, so a concurrent pair still suspends (Q744)", () => {
+    const { body } = newestBody();
+    const lock = /PERFORM\s+pg_advisory_xact_lock\(\s*hashtextextended\(\s*'auto_restrict_repeat_violators:'\s*\|\|\s*NEW\.user_id::text\s*,\s*0\s*\)\s*\)\s*;/i.exec(body);
+    expect(lock).not.toBeNull();
+    const count = /SELECT\s+COUNT\(\*\)\s+INTO\s+violation_count/i.exec(body);
+    expect(count).not.toBeNull();
+    expect(lock!.index).toBeLessThan(count!.index);
   });
 
   it("stays closed to clients", () => {

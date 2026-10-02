@@ -13,6 +13,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
+import { mayStartLookup, NOMINATIM_ATTEMPT_MS, NOMINATIM_DELAY_MS } from "./budget.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +29,7 @@ const MAX_JOBS_PER_RUN = 30;
 // the shuffle has enough of the queue to draw from without turning this
 // into an unbounded select.
 const CANDIDATE_POOL_SIZE = 200;
-const NOMINATIM_DELAY_MS = 1100;
+// Lookup timeout, fair-use delay and the run's time budget: ./budget.ts.
 
 interface GeocodeResult {
   latitude: number;
@@ -54,6 +56,8 @@ async function geocodeAddress(address: string | null | undefined): Promise<Geoco
         // automatic Referer here).
         "User-Agent": "LouisianaHelpr/1.0 (backfill-job-geocode cron)",
       },
+      // A stalled lookup counts as unresolved; the job stays queued.
+      signal: AbortSignal.timeout(NOMINATIM_ATTEMPT_MS),
     });
     if (!res.ok) return null;
     const rows = (await res.json()) as Array<{ lat: string; lon: string }>;
@@ -81,10 +85,11 @@ serve(async (req) => {
     return new Response("Unauthorized", { status: 401, headers: corsHeaders });
   }
 
+  const startedAt = Date.now();
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
     const { data: candidates, error: fetchError } = await supabase
       .from("jobs")
@@ -114,8 +119,13 @@ serve(async (req) => {
     const defects = defectTracker();
     let geocoded = 0;
     let stillFailed = 0;
+    let attempted = 0;
 
     for (let i = 0; i < batch.length; i++) {
+      // Out of time: stop before pg_net gives up on this request. The jobs
+      // not reached stay queued for the next run.
+      if (!mayStartLookup(startedAt, Date.now())) break;
+      attempted++;
       const job = batch[i];
       const coords = await geocodeAddress(job.location);
       if (coords) {
@@ -148,9 +158,10 @@ serve(async (req) => {
     return cronResult(
       "backfill-job-geocode",
       {
-        message: `Geocoded ${geocoded} of ${batch.length} open jobs missing coords (${stillFailed} unresolved this run, ${pool.length} total still queued)`,
+        message: `Geocoded ${geocoded} of ${attempted} open jobs missing coords (${stillFailed} unresolved this run, ${batch.length - attempted} deferred by the time budget, ${pool.length} total still queued)`,
         candidateCount: pool.length,
-        attemptedCount: batch.length,
+        attemptedCount: attempted,
+        deferredCount: batch.length - attempted,
         geocoded,
         stillFailed,
       },

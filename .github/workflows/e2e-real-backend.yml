@@ -1,4 +1,8 @@
 name: E2E real backend
+# A main-batch dispatch is titled "(main batch <sha>)": main-red-watch.yml
+# reports it like the push run it replaced, and the shared-account lock scripts
+# skip it (it never touches the accounts).
+run-name: ${{ inputs.batch && format('{0} (main batch {1})', github.workflow, github.sha) || github.workflow }}
 
 permissions:
   contents: read
@@ -30,9 +34,11 @@ permissions:
 #  1. anon-surface — needs NOTHING and is STRICTLY READ-ONLY. Asks the real
 #     PostgREST what a signed-out visitor gets: guest surfaces respond and
 #     browse is non-empty, no money/PII relation returns rows, signed-out pages
-#     load. Runs on every push.
+#     load. Runs on every MAIN BATCH: main-batch.yml dispatches it with
+#     `batch: true` on push and every 20 min, at most once per ~15 min, so main
+#     HEAD is covered within ~20 min (2026-10-02, GitHub Free job cap).
 #  2. authenticated — needs a real account. Runs on a schedule and on demand,
-#     NOT on every push: a check that is red for reasons unrelated to the diff
+#     NOT on a main batch: a check that is red for reasons unrelated to the diff
 #     (a shared account's daily caps, a Supabase blip) trains people to ignore red.
 #  3. two-role — needs two seeded sessions plus a job in a specific lifecycle
 #     state that must be minted per run. Manual only.
@@ -63,17 +69,21 @@ permissions:
 # and stops there.
 
 on:
-  push:
-    branches: [main]
   # No pull_request trigger (owner, 2026-10-01): ~10 open PRs x ~13 workflows
-  # queued 147 runs behind GitHub's ~20-job cap. Runs on push to main instead.
-  # Guarded by src/test/prRunBudget.test.ts.
+  # queued 147 runs behind GitHub's ~20-job cap. No push trigger either
+  # (owner, 2026-10-02, stay on GitHub Free): main-batch.yml dispatches it
+  # with `batch: true` on push and every 20 min, the prod-deploy.yml pattern
+  # (scripts/ci/main-batch.mjs). Guarded by src/test/prRunBudget.test.ts.
   schedule:
     # Mon, Wed, Fri, Sat 11:17 UTC. Sunday moved to Saturday: Sunday's morning is
     # prod-audit (01:17) then vacuity (07:17, worst case to 12:22). Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
     - cron: "17 11 * * 1,3,5,6"
   workflow_dispatch:
     inputs:
+      batch:
+        description: "Main batch (set by main-batch.yml): anon-surface only, as a push run used to be"
+        type: boolean
+        default: false
       run_two_role:
         description: "Run the two-role lifecycle spec (needs seeded sessions + job id)"
         type: boolean
@@ -84,9 +94,10 @@ on:
         default: false
 
 concurrency:
-  # A push-triggered run shares one group per ref, so pushes queue behind each
-  # other. A schedule or manual dispatch gets its OWN group (salted with the
-  # run id) and therefore never shares a queue with anything.
+  # A main-batch run (inputs.batch) shares one group, so batches queue behind
+  # each other (it took over the push run's group, 2026-10-02). A schedule or
+  # manual dispatch gets its OWN group (salted with the run id) and therefore
+  # never shares a queue with anything.
   #
   # Why: with `cancel-in-progress: false` GitHub still keeps only ONE *pending*
   # run per group — a newer queued run cancels the older pending one. So a
@@ -97,8 +108,8 @@ concurrency:
   #
   # PROD LOAD (2026-09-14): a SCHEDULED run joins the shared prod-load group so
   # it never overlaps another prod-hitting cron (src/test/prodWorkflowSpacing.test.ts).
-  # Push, PR and dispatch keep the groups above.
-  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('e2e-real-backend-{0}{1}', github.ref, github.event_name != 'push' && format('-{0}', github.run_id) || '') }}
+  # Batch and dispatch keep the groups above.
+  group: ${{ github.event_name == 'schedule' && 'prod-load' || (inputs.batch && format('e2e-real-backend-{0}-batch', github.ref)) || format('e2e-real-backend-{0}-{1}', github.ref, github.run_id) }}
   # NOT `true`, unlike every other workflow in this repo. Cancelling this one
   # mid-flight can orphan a FUNDED production job: the money loop's teardown
   # runs as an `if: always()` step, and a workflow-level cancellation kills the
@@ -208,7 +219,7 @@ jobs:
       - name: Route changes keep no old page alive (PD-009) + shell-spacing probe (Q411)
         # 40 guest route changes on this commit's build, then CDP detached-DOM
         # and node/listener budgets after forced GC. Needs no credentials, so it
-        # lives in the leg that runs on every PR and push (the authenticated
+        # lives in the leg that runs on every main batch (the authenticated
         # leg is schedule/dispatch only). Chromium only (it needs CDP); ~30 s.
         # `always()` so a red contract step above cannot hide a leak, and
         # probes/shell-spacing-probe (Q411) rides the same step: setContent
@@ -232,10 +243,10 @@ jobs:
   authenticated:
     name: Authenticated journeys (real account)
     needs: preflight
-    # Deliberately NOT on push. See the header.
+    # Deliberately NOT on a main batch (it replaced the push run). See the header.
     if: >-
       needs.preflight.outputs.have_user_creds == 'true' &&
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.batch))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -323,7 +334,7 @@ jobs:
     needs: preflight
     if: >-
       (needs.preflight.outputs.have_lifecycle == 'true' || needs.preflight.outputs.have_two_role == 'true') &&
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.batch))
     runs-on: ubuntu-latest
     # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
     timeout-minutes: 350
@@ -348,6 +359,7 @@ jobs:
     if: >-
       needs.preflight.outputs.have_two_role == 'true' &&
       github.event_name == 'workflow_dispatch' &&
+      !inputs.batch &&
       inputs.run_two_role
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -424,14 +436,14 @@ jobs:
     # failure mode this workflow's header warns about: "a check that is red for
     # reasons unrelated to the diff trains people to ignore red."
     #
-    # Dropping the workflow's `push:` trigger would have done this too, and would
-    # also have taken `anon-surface` off every push — the free, read-only,
-    # credential-less leg that is deliberately allowed to fail the build and is
-    # the one that would have caught the guest-browse 401. That leg is the reason
-    # the trigger stays; this gate is how the money loop comes off it.
+    # The `push:` trigger was later replaced by main-batch.yml dispatching with
+    # `batch: true` (2026-10-02); `!inputs.batch` keeps the money loop off that
+    # batch exactly as it was off the push run. `anon-surface` — the free,
+    # read-only, credential-less leg that would have caught the guest-browse
+    # 401 — still runs on every batch.
     if: >-
       needs.preflight.outputs.have_lifecycle == 'true' &&
-      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.gift_card_only))
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.batch && !inputs.gift_card_only))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     concurrency:
@@ -580,7 +592,7 @@ jobs:
       always() &&
       needs.wait-accounts.result == 'success' &&
       needs.preflight.outputs.have_lifecycle == 'true' &&
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.batch))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
@@ -767,8 +779,9 @@ jobs:
     #
     # So the gate is the one e2e-journeys.yml and prod-audit.yml already make,
     # in the form this workflow needs: report only when the leg being reported
-    # on actually executed. `anon-surface` is unaffected — it runs on every push
-    # and is deliberately allowed to FAIL THE BUILD, which is its signal; the
+    # on actually executed. `anon-surface` is unaffected — it runs on every main
+    # batch and is deliberately allowed to FAIL THE RUN, which main-red-watch.yml
+    # reports (a batch run skips the money loop, so this job skips too); the
     # nightly-red issue exists for the scheduled runs nobody is watching.
     if: >-
       !cancelled() && github.event_name != 'pull_request'

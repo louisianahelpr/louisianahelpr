@@ -63,8 +63,8 @@
     "e2e/journeys/scenarios.ts",
     "e2e/journeys/notifications/producers.ts",
     "e2e/journeys/adminWritePaths.ts",
-    "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/stripe-webhook-config-check/shape.ts",
+    "supabase/functions/backfill-job-geocode/budget.ts",
     "supabase/functions/_shared/forEachBounded.ts",
     "supabase/functions/_shared/boundedFetch.ts",
     "supabase/functions/_shared/functionFetch.ts",
@@ -93,7 +93,6 @@
     "supabase/functions/_shared/productTiers.ts",
     "supabase/functions/_shared/helperEarnings.ts",
     "supabase/functions/_shared/money.ts",
-    "supabase/functions/_shared/seatTierGrant.ts",
     "supabase/functions/_shared/cancellationFee.ts",
     "supabase/functions/_shared/crewShares.ts",
     "supabase/functions/_shared/confirmDeadline.ts",
@@ -125,6 +124,7 @@
     "supabase/functions/_shared/jwt.ts",
     "supabase/functions/_shared/banStatus.ts",
     "supabase/functions/ai-job-builder/sanitize.ts",
+    "supabase/functions/backfill-job-geocode/budget.ts",
     // The design-system scales live here, and `src/lib/utils.test.ts` reads
     // them to prove every `ds-*` token was taught to tailwind-merge. Deriving
     // the inventory from the config is the whole point — a hand-typed mirror

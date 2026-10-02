@@ -1,6 +1,11 @@
 // @mutate scripts/audit/pressProdSafety.mjs | set up payouts\|stripe\| |
 // @mutate scripts/audit/press-every-control.mjs |         if (isStripeWriteRequest(req.url(), req.postData()) && (await stripeMode()).mode !== "test") { |         if (false) {
 // @mutate scripts/audit/pressProdSafety.mjs |   "stripe-connect", |   "stripe-connectX",
+// @mutate scripts/audit/pressProdSafety.mjs |reset & start fresh\| |
+// @mutate src/components/PayoutSetupForm.tsx |                 aria-label={`Remove payout method ending in ${m.last4}`}\n | \n
+// @mutate scripts/audit/pressProdSafety.mjs |         method: "GET", headers: { Authorization: `Bearer ${secret}` }, |         method: "POST", headers: { Authorization: `Bearer ${secret}` },
+// @mutate scripts/audit/pressProdSafety.mjs |     if (!secret) return (cached = { mode: "unknown", |     if (!secret) return (cached = { mode: "test",
+// @mutate scripts/audit/pressProdSafety.mjs |       cached = { mode: m === "live" \|\| m === "test" ? m : "unknown", |       cached = { mode: "test",
 /*
  * CLASS GUARD: the prod presser never makes the app write to Stripe while
  * Stripe is LIVE (owner, 2026-10-01: "Skip it on live").
@@ -24,7 +29,7 @@
  *      recorded SKIP_STRIPE_WRITE_BLOCKED. The function list is derived from
  *      supabase/functions source, two-way.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
@@ -44,6 +49,14 @@ const STRIPE_WRITE_LABELS: Array<[label: string, source: string]> = [
   ["Complete Stripe Verification", "src/components/PayoutSetupForm.tsx"], // update_onboarding → accountLinks.create
   ["Manage Payouts on Stripe", "src/components/PayoutSetupForm.tsx"], // dashboard → accounts.update + login link
   ["Set Up Payouts", "src/lib/awardGate.ts"], // AwardGateDialog → onboard
+  // Q896: these two had no label the gate knew. The trash icon had NO
+  // accessible name (the harness saw "<button>", which no RX matches) and
+  // "Reset & Start Fresh" matched DESTRUCTIVE_RX but not PAYMENT_RX, so on
+  // /profile (SELF_ROUTE_RX) it was pressed. Only the network backstop stopped
+  // delete_payout_method and reset (stripe.accounts.del) on live.
+  ["Remove payout method", "src/components/PayoutSetupForm.tsx"], // delete_payout_method → deleteExternalAccount
+  ["Having Issues? Reset & Start Fresh", "src/components/PayoutSetupForm.tsx"], // opens the reset confirm
+  ["Reset & Start Fresh", "src/components/PayoutSetupForm.tsx"], // confirm → stripe-connect reset → accounts.del
 ];
 
 describe("press never writes to Stripe while Stripe is live", () => {
@@ -57,6 +70,14 @@ describe("press never writes to Stripe while Stripe is live", () => {
       expect(why, label).toBe(safety.SKIP_STRIPE);
       expect((harness.DOCUMENTED_SKIPS as Set<string>).has(why as string)).toBe(true);
     }
+  });
+
+  it("the icon-only remove-payout-method button carries the name the gate matches (Q896)", () => {
+    const src = blankComments(readFileSync(join(ROOT, "src/components/PayoutSetupForm.tsx"), "utf8"));
+    // The aria-label must sit on the same <Button> that renders the Trash2 icon.
+    const btn = /<Button\b(?:(?!<\/Button>)[\s\S])*?<Trash2\b/.exec(src)?.[0] ?? "";
+    expect(btn, "the Trash2 button exists").not.toBe("");
+    expect(btn).toMatch(/aria-label=\{`Remove payout method\b/);
   });
 
   it("read-only payout controls stay pressable (the fix does not shrink the inventory)", () => {
@@ -107,5 +128,41 @@ describe("press never writes to Stripe while Stripe is live", () => {
     expect(src).toMatch(/ctx\.route\(\s*"\*\*\/functions\/v1\/\*\*"/);
     expect(src).toContain('if (isStripeWriteRequest(req.url(), req.postData()) && (await stripeMode()).mode !== "test") {');
     expect(src).toContain("skip(SKIP_STRIPE_WRITE_BLOCKED)");
+  });
+
+  // Q895: the mode probe itself used to mint a live Checkout Session — it
+  // created a press job and POSTed create-payment {action:"escrow"} to read
+  // cs_live_/cs_test_ off the URL. It must learn the mode without any write.
+  describe("the Stripe mode probe never writes (Q895)", () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const poster = { accessToken: "tok", userId: "00000000-0000-0000-0000-000000000001" };
+    const stubFetch = (body: unknown) => {
+      const calls: Array<{ url: string; method: string }> = [];
+      vi.stubGlobal("fetch", async (url: string, init?: { method?: string }) => {
+        calls.push({ url: String(url), method: (init?.method ?? "GET").toUpperCase() });
+        return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+      });
+      return calls;
+    };
+    const probe = safety.makeStripeProbe as (p: unknown, r: string, env?: Record<string, string>) => () => Promise<{ mode: string }>;
+
+    it("with no CRON_SECRET it makes no request and reports unknown (treated as live)", async () => {
+      const calls = stubFetch([{ id: "job-1", url: "https://checkout.stripe.com/c/pay/cs_live_abc" }]);
+      const r = await probe(poster, "run", {})();
+      expect(calls).toEqual([]);
+      expect(r.mode).toBe("unknown");
+    });
+
+    it("with CRON_SECRET it only GETs health-check and reads checks.stripe_mode", async () => {
+      for (const m of ["live", "test"]) {
+        const calls = stubFetch({ checks: { stripe_mode: m } });
+        const r = await probe(poster, "run", { CRON_SECRET: "s" })();
+        expect(calls.map((c) => c.method)).toEqual(["GET"]);
+        expect(calls[0].url).toMatch(/\/functions\/v1\/health-check$/);
+        expect(r.mode).toBe(m);
+      }
+      stubFetch({ checks: { stripe_mode: "missing" } });
+      expect((await probe(poster, "run", { CRON_SECRET: "s" })()).mode).toBe("unknown");
+    });
   });
 });

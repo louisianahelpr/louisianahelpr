@@ -1,6 +1,7 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { formatUnreadBadge } from "@/lib/format";
 
 /**
  * anchoredPanel — the ONE treatment every panel that hangs off a header
@@ -557,6 +558,7 @@ export function AnchoredPanelSegmented<T extends string>({
         value: o.key,
         label: o.label,
         count: o.count,
+        countText: o.count === undefined ? undefined : formatUnreadBadge(o.count),
         countTone: "attention" as const,
       }))}
       value={value}

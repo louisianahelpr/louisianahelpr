@@ -822,7 +822,10 @@ serve(async (req) => {
       };
       // postSlackOpsAlert renders only the first 10 fields, so findings are
       // aggregated per check rather than per row.
-      for (const f of findings.slice(0, 7)) {
+      // Q842: drift found on a partial scan — say the scan was partial too
+      // (before the findings, so the 10-field limit never drops it).
+      if (caps.length) fields.partial_scans = caps.join(" | ");
+      for (const f of findings.slice(0, caps.length ? 6 : 7)) {
         fields[f.check] = `${f.count}${f.truncated ? "+" : ""} — ${f.severity}`;
       }
       await postSlackOpsAlert({
@@ -834,13 +837,19 @@ serve(async (req) => {
           : "Entitlement state disagreed with Stripe. Small, explicable drift is corrected automatically; see `repaired` for what changed and `findings` for what did not.",
         fields,
       });
-    } else if (notes.some((n) => n !== dryRunNote)) {
+    } else if (notes.some((n) => n !== dryRunNote) || caps.length > 0) {
+      // Q842: a capped or unreadable scan (`caps`) is as untrustworthy as a
+      // note; before this, a truncated Stripe scan with no drift posted nothing.
+      const degradedFields: Record<string, string | number> = { scope: summary.scope };
+      const realNotes = notes.filter((n) => n !== dryRunNote);
+      if (realNotes.length) degradedFields.notes = realNotes.join(" | ");
+      if (caps.length) degradedFields.partial_scans = caps.join(" | ");
       await postSlackOpsAlert({
         kind: "money_at_risk",
         severity: "warning",
         title: "Subscription reconciliation ran degraded",
         message: "No drift found, but part of the check could not run — a clean result here is not trustworthy.",
-        fields: { notes: notes.filter((n) => n !== dryRunNote).join(" | "), scope: summary.scope },
+        fields: degradedFields,
       });
     } else {
       console.log(

@@ -76,6 +76,15 @@ const JOB_STATUSES = [
   "pending_approval",
 ] as const;
 
+/** Reached only after a hire is funded (scripts/audit/prod-seed.mjs: "The real flow reaches these only after funding"). */
+const FUNDED_STATUSES: ReadonlySet<(typeof JOB_STATUSES)[number]> = new Set([
+  "accepted",
+  "in_progress",
+  "completed",
+  "revision_requested",
+  "disputed",
+]);
+
 const FIXTURE_ID = /10000000-0000-4000-8000-/;
 
 /**
@@ -268,13 +277,15 @@ test.describe("UI audit evidence sweep (prod)", () => {
       const i = ++index;
       test(`${String(i).padStart(3, "0")} job-detail-${status} (customer/${v.tag})`, async ({ browser }) => {
         const id = jobByStatus.get(status);
-        // `accepted` exists only once a hire is escrowed, and the fixtures job
-        // mints it by paying; in live mode it takes skipLivePay instead (owner,
-        // 2026-09-27), so the sweep has nothing to render. Any other reason the
-        // fixture is missing turns the fixtures job red on its own (#1794, run
-        // 36782803845: 4 "no is_seed job in status accepted" skips).
-        if (!id && status === "accepted") {
-          skipLivePay("job-detail-accepted: job-status-fixtures holds no accepted job; minting one pays a live checkout");
+        // These statuses exist only once a hire is escrowed, and the fixtures
+        // job mints them by paying; in live mode it takes skipLivePay instead
+        // (owner, 2026-09-27; prod-seed leaves them unseeded, owner 2026-10-02),
+        // so the sweep has nothing to render. Any other reason the fixture is
+        // missing turns the fixtures job red on its own (#1794, run
+        // 36782803845: 4 "no is_seed job in status accepted" skips; run
+        // 36965980362: 8 more for the four statuses after accepted).
+        if (!id && FUNDED_STATUSES.has(status)) {
+          skipLivePay(`job-detail-${status}: no ${status} seed job; reaching that status pays a live checkout`);
         }
         test.skip(
           !id,

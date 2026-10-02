@@ -178,7 +178,7 @@ const CONCLUSIVE = new Set(["success", ...FAILED]);
 /** Newest completed runs of one workflow on main, newest first. */
 function mainRuns(workflowId, event = "") {
   const j = ghJson(["api", `repos/{owner}/{repo}/actions/workflows/${workflowId}/runs?branch=main&status=completed&per_page=40${event ? `&event=${event}` : ""}`], 30000);
-  return (j.workflow_runs ?? []).map((r) => ({ id: r.id, conclusion: r.conclusion, event: r.event, createdAt: r.created_at, updatedAt: r.updated_at, url: r.html_url }));
+  return (j.workflow_runs ?? []).map((r) => ({ id: r.id, conclusion: r.conclusion, event: r.event, title: r.display_title, createdAt: r.created_at, updatedAt: r.updated_at, url: r.html_url }));
 }
 
 /**
@@ -350,8 +350,11 @@ export const SUITES = [
   { workflow: "vitest.yml", signal: "Vitest (tests; files in note)", parse: parseVitest, group: "tests" },
   { workflow: "prod-audit.yml", signal: "prod-audit specs", parse: parsePlaywright, group: "suites on prod" },
   { workflow: "e2e-journeys.yml", signal: "e2e-journeys specs", parse: parsePlaywright, group: "suites on prod" },
-  // Its push run is the unauthenticated tier with no spec summary; the specs run on schedule/dispatch.
-  { workflow: "e2e-real-backend.yml", signal: "e2e-real-backend specs", parse: parsePlaywright, group: "suites on prod", events: ["schedule", "workflow_dispatch"] },
+  // Its main-batch run (a workflow_dispatch titled "(main batch <sha>)" by
+  // main-batch.yml, which replaced the push run on 2026-10-02) is the
+  // unauthenticated tier with no spec summary; the specs run on schedule and
+  // on a manual dispatch. skipMainBatch keeps the batch from deciding the row.
+  { workflow: "e2e-real-backend.yml", signal: "e2e-real-backend specs", parse: parsePlaywright, group: "suites on prod", events: ["schedule", "workflow_dispatch"], skipMainBatch: true },
   { workflow: "nightly-webkit.yml", signal: "nightly-webkit specs", parse: parsePlaywright, group: "suites on prod" },
   { workflow: "ui-sweep.yml", signal: "ui-sweep specs", parse: parsePlaywright, group: "suites on prod" },
   { workflow: "loading-states-refresh.yml", signal: "loading-states-refresh surfaces", parse: parseLoadingStates, group: "suites on prod" },
@@ -359,8 +362,15 @@ export const SUITES = [
   { workflow: "vacuity.yml", signal: "vacuity full sweep (mutations killed)", parse: parseVacuity, group: "guards", events: ["schedule"] },
 ];
 
+/** The runs a suite row reads: its events, minus main batches when it asks, conclusive only. Pure, for the test. */
+export function suitePool(s, runs) {
+  return (s.events ? runs.filter((r) => s.events.includes(r.event)) : runs)
+    .filter((r) => !(s.skipMainBatch && String(r.title ?? "").includes("(main batch ")))
+    .filter((r) => CONCLUSIVE.has(r.conclusion));
+}
+
 function suiteRow(s, runs, now) {
-  const pool = (s.events ? runs.filter((r) => s.events.includes(r.event)) : runs).filter((r) => CONCLUSIVE.has(r.conclusion));
+  const pool = suitePool(s, runs);
   if (!pool.length) return unknown(s.group, s.signal, `no conclusive ${s.events ? s.events.join("/") + " " : ""}run of ${s.workflow} on main in the last 40`, { source: s.workflow });
   // The newest conclusive run decides the status. Its counts come from the
   // newest of the last few runs whose log carries a summary (a push-mode run

@@ -1,4 +1,7 @@
 name: UI sweep
+# A main-batch dispatch is titled "(main batch <sha>)": main-red-watch.yml
+# reports it like the push run it replaced.
+run-name: ${{ inputs.batch && format('{0} (main batch {1})', github.workflow, github.sha) || github.workflow }}
 
 permissions:
   contents: read
@@ -39,7 +42,7 @@ permissions:
 # unrun since it was written, and how the seeded and error sweeps sat unrun
 # until 2026-08-29. Weekly is cheap and it is automatic.
 #
-# Only the empty-state sweep runs on every push/PR, at ONE variant
+# Only the empty-state sweep runs on every main batch, at ONE variant
 # (phone-light), and that is a deliberate cost decision, not an oversight:
 #
 #   - The seeded sweep's describe is `mode: "serial"` (its aggregate gate test
@@ -78,15 +81,18 @@ permissions:
 # seeded sweep would roughly triple that for coverage of the SAME routes in
 # their populated state, which is why it is dispatch-only.
 #
-# The paths-filter step below reports green in seconds when nothing
-# UI-relevant changed, so backend-only and docs-only commits cost ~nothing.
+# MAIN BATCH (2026-10-02, owner: stay on GitHub Free, trim per-push jobs).
+# No push trigger: main-batch.yml runs on push and every 20 min and dispatches
+# this with `batch: true` (scripts/ci/main-batch.mjs), at most once per ~15 min
+# and only when a UI path (UI_PATHS there, moved from the old in-job
+# paths-filter step) changed since the last batch's commit. Backend-only and
+# docs-only commits start no run at all, instead of a green ~1-minute one.
 
 on:
   # No pull_request trigger (owner, 2026-10-01): ~10 open PRs x ~13 workflows
-  # queued 147 runs behind GitHub's ~20-job cap. Runs on push to main instead.
+  # queued 147 runs behind GitHub's ~20-job cap. No push trigger either
+  # (owner, 2026-10-02): main-batch.yml dispatches it with `batch: true`.
   # Guarded by src/test/prRunBudget.test.ts.
-  push:
-    branches: [main]
   schedule:
     # Weekly error-state sweep (queries 500/hang across the route catalog).
     # A separate cron so `github.event.schedule` disambiguates which one
@@ -98,6 +104,10 @@ on:
     - cron: "0 5 * * 5" # Friday 05:00 UTC — resolves to 'overlay' below
   workflow_dispatch:
     inputs:
+      batch:
+        description: "Main batch (set by main-batch.yml): the per-change empty-state check"
+        type: boolean
+        default: false
       sweeps:
         description: "Which sweeps to run"
         required: false
@@ -138,7 +148,11 @@ concurrency:
   # and superseding loses no coverage. It is FALSE for schedule and
   # workflow_dispatch, where there is no "newer attempt at the same thing" —
   # cancelling those just throws the run away.
-  group: ui-sweep-${{ github.event_name }}-${{ github.ref }}
+  #
+  # 2026-10-02: main batches (inputs.batch) took over the push lane, with
+  # cancel-in-progress FALSE: a batch is already at most one per ~15 min, and
+  # cancelling it would leave HEAD unswept until the next UI change.
+  group: ui-sweep-${{ inputs.batch && 'batch' || github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
 
 jobs:
@@ -161,33 +175,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
-      # Deliberately an IN-JOB filter rather than a top-level `paths:` trigger.
-      # This job is meant to be a required status check, and GitHub counts a
-      # required check that never ran as unsatisfied — a `paths:` filter would
-      # leave backend-only PRs stuck on "Expected" forever. Same pattern as
-      # .github/workflows/e2e-happy-path.yml; see the note there.
-      - name: Detect UI-relevant changes
-        id: filter
-        # Skipped on workflow_dispatch AND schedule: neither has a base ref to
-        # diff against, and both are by definition asking for the sweep to
-        # run regardless of what changed. The `if:` on every later step falls
-        # back to the event name for both cases.
-        if: github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
-        uses: dorny/paths-filter@v4
-        with:
-          filters: |
-            ui:
-              - "src/**"
-              - "public/**"
-              - "index.html"
-              - "vite.config.ts"
-              - "tailwind.config.ts"
-              - "package.json"
-              - "package-lock.json"
-              - "playwright.config.ts"
-              - "e2e/happy-path/**"
-              - ".github/workflows/ui-sweep.yml"
 
       # Workflow inputs are read through `env:` and never interpolated into the
       # shell, and `specs` is emitted from a fixed case arm rather than echoed
@@ -227,14 +214,12 @@ jobs:
           printf 'variants<<EOF\n%s\nEOF\n' "$VARIANTS" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
-        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
-        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         # See test.yml — `install` not `ci`, so a drifting lockfile heals
         # instead of failing the run.
         run: npm install --no-audit --no-fund --legacy-peer-deps
@@ -248,11 +233,9 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
 
       - name: Install Playwright Chromium browser
-        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Run sweep
-        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         env:
           # PLAYWRIGHT_WEB_SERVER=1 turns on the `npm run build && vite preview`
           # auto-start in playwright.config.ts. reuseExistingServer is false
@@ -305,13 +288,13 @@ jobs:
   # workflow and closes it on the next green run, which is what makes the
   # "Nightly reds nobody read" gate able to see it at all.
   #
-  # SCHEDULE AND MANUAL RUNS ONLY. A push/PR failure is already visible on the
-  # commit and the PR; filing an issue for it would make the label noisy and
-  # teach people to ignore it.
+  # SCHEDULE AND MANUAL RUNS ONLY. A main-batch failure is reported by
+  # main-red-watch.yml (as the push failure it replaced was); filing one here
+  # too would make the label noisy and teach people to ignore it.
   notify:
     name: Report nightly result
     needs: [sweep]
-    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.batch != true)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

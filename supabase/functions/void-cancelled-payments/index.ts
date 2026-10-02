@@ -255,112 +255,255 @@ serve(async (req) => {
     // the escrow was held. Best-effort: a failed transfer notifies admins but
     // never throws — the customer's refund/capture has already succeeded and
     // must not be rolled back over a payout hiccup.
+    //
+    // LEDGER (LOW-2): every fee this path owes is a cancellation_fee_transfers
+    // row, never a payout_transfers row (a row there is a job payout: the
+    // webhook would flip the job to released and the refund guard below would
+    // refuse the job). Claim before transfer: a 'pending' row is inserted
+    // FIRST (UNIQUE (job_id, helper_id) is the claim), the transfer's
+    // idempotency key and metadata.fee_transfer_id come from that row, and the
+    // row is then marked 'paid' with the transfer id, 'failed' with a reason,
+    // or 'waived' when the commission leaves nothing to send. A 'pending' or
+    // 'failed' row is retried by Part E after the job settles.
+    type FeeRow = {
+      id: string;
+      status: string;
+      stripe_transfer_id: string | null;
+      created_at: string | null;
+      fee_amount: number | string;
+      commission_percent: number | string;
+      platform_cut: number | string;
+      helper_amount: number | string;
+    };
+    const FEE_ROW_COLUMNS = "id, status, stripe_transfer_id, created_at, fee_amount, commission_percent, platform_cut, helper_amount";
+    /** A claim younger than this belongs to a run still in flight. */
+    const FEE_CLAIM_INFLIGHT_MS = 2 * 60 * 1000;
+
+    const markFeeRow = async (
+      jobId: string,
+      row: { id: string; status: string },
+      patch: Record<string, unknown>,
+      stage: string,
+    ): Promise<boolean> => {
+      // Compare-and-swap on the status this run read: a row the webhook (or a
+      // concurrent run) moved since then is not overwritten — in particular a
+      // webhook-set 'failed' or 'reversed' is never walked back to 'paid'.
+      const { data, error } = await supabaseAdmin
+        .from("cancellation_fee_transfers")
+        .update(patch)
+        .eq("id", row.id)
+        .eq("status", row.status)
+        .select("id");
+      let why: string | null = error ? error.message : null;
+      if (!error && (!data || data.length === 0)) {
+        // Zero rows: someone else moved it. transfer.created usually lands
+        // before this write, and has already recorded exactly what we meant
+        // to — that is success, not an alert. Anything else is out of step.
+        const { data: now, error: rereadErr } = await supabaseAdmin
+          .from("cancellation_fee_transfers")
+          .select("status, stripe_transfer_id")
+          .eq("id", row.id)
+          .maybeSingle();
+        if (rereadErr) {
+          why = `zero rows matched; re-read failed: ${rereadErr.message}`;
+        } else if (
+          now &&
+          now.status === patch.status &&
+          (patch.stripe_transfer_id === undefined || now.stripe_transfer_id === patch.stripe_transfer_id)
+        ) {
+          return true;
+        } else {
+          why = `zero rows matched (row now ${now ? `${now.status}/${now.stripe_transfer_id ?? "no transfer"}` : "missing"})`;
+        }
+      }
+      if (why === null) return true;
+      console.error(
+        `CRITICAL: [void-cancelled-payments] cancellation fee row ${row.id} (job ${jobId}) ${stage} but the ledger write did not land: ${why}`,
+      );
+      defects.record(`cancellation fee ledger ${row.id} ${stage}: ${why}`);
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: "Cancellation-fee ledger out of step with Stripe",
+        message: `A Helpr's cancellation fee for job ${jobId} ${stage}, but cancellation_fee_transfers was not updated. The Stripe transfer-group check still stops a second payment; reconcile the row by hand.`,
+        fields: { job_id: jobId, fee_transfer_id: row.id, stage, db_error: why.slice(0, 200) },
+      });
+      return false;
+    };
+
     const payHelperCancellationFee = async (
       job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null },
       cancellationFee: number,
       pi: Stripe.PaymentIntent,
     ) => {
       if (!(cancellationFee > 0) || !job.helper_id) return;
-      // Resolve commission from the helper's live subscription tier. The
-      // FALLBACK is what matters here: every path that resolves a helper
-      // commission (create-payment, release-payout,
-      // process-scheduled-payouts, execute-dispute-split) falls back to
-      // `job.helper_fee_percent` — the rate frozen onto the job when escrow was
-      // funded — and then to the FREE-tier rate. Prefer the frozen per-job rate
-      // so a cancellation settles at the same percentage the job was funded at.
-      //
-      // The middle step used to be a `platform_settings.helper_fee_percent`
-      // read, so a transient profile-read failure priced a free helper's
-      // commission at the settings rate (10% in prod) instead of their real
-      // 12%, quietly under-charging the platform on the one path nobody
-      // watches. That read is gone — it fed nothing else — and the chain now
-      // matches every other path exactly. Derived from
-      // DEFAULT_TIER_FEE_PERCENT, never a literal, so the ladder stays the
-      // single source of truth even if the global setting is later retuned.
-      const frozenPercent =
-        job.helper_fee_percent === null || job.helper_fee_percent === undefined
-          ? null
-          : Number(job.helper_fee_percent);
-      const commissionPercent = await getHelperFeePercent(
-        supabaseAdmin,
-        job.helper_id,
-        (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
-          DEFAULT_TIER_FEE_PERCENT,
-      );
-      const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
-      // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
-      const helperPayout = roundPayoutDownCents(Math.round((cancellationFee - platformCut) * 100)) / 100;
+      const helperId = job.helper_id;
 
-      const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
-        .from("profiles")
-        .select("stripe_account_id")
-        .eq("user_id", job.helper_id)
-        .single();
-
-      // A dropped read here would silently skip paying the helper their
-      // cancellation fee (poster's fee is already captured), stranding the
-      // money on the platform balance with no signal. Alert instead of skipping.
-      if (helperProfileErr) {
-        console.error(`[void-cancelled-payments] helper profile read failed for ${job.helper_id} (job ${job.id}):`, helperProfileErr);
-            defects.record(`helper profile read ${job.id}: ${helperProfileErr.message}`);
-        await postSlackOpsAlert({
-          kind: "payout_failed",
-          severity: "warning",
-          title: "Cancellation-fee payout could not read helper account",
-          message: "A helper's cancellation fee could not be paid because their payout account read failed. The poster's fee is already captured — reconcile manually.",
-          fields: { job_id: job.id, helper_id: job.helper_id, amount: helperPayout, db_error: helperProfileErr.message },
-        });
+      // ── 1. What does the ledger already say? Fails CLOSED. ──
+      const { data: existingRow, error: rowReadErr } = await supabaseAdmin
+        .from("cancellation_fee_transfers")
+        .select(FEE_ROW_COLUMNS)
+        .eq("job_id", job.id)
+        .eq("helper_id", helperId)
+        .maybeSingle();
+      if (rowReadErr) {
+        console.error(`[void-cancelled-payments] cancellation fee ledger read failed for job ${job.id}; not transferring:`, rowReadErr.message);
+        defects.record(`cancellation fee ledger read ${job.id}: ${rowReadErr.message} — fee not sent`);
+        return;
+      }
+      let row = existingRow as FeeRow | null;
+      if (row && ["paid", "reversed", "waived"].includes(row.status)) return;
+      if (
+        row && row.status === "pending" && !row.stripe_transfer_id && row.created_at &&
+        Date.now() - new Date(row.created_at).getTime() < FEE_CLAIM_INFLIGHT_MS
+      ) {
+        console.log(`[void-cancelled-payments] cancellation fee for job ${job.id} is claimed by a run in flight (${row.id}); leaving it.`);
         return;
       }
 
-      if (!helperProfile?.stripe_account_id || !(helperPayout > 0)) return;
+      // ── 2. Price it. A resumed row keeps the price it was claimed at. ──
+      let commissionPercent: number;
+      let platformCut: number;
+      let helperPayout: number;
+      if (row) {
+        commissionPercent = Number(row.commission_percent);
+        platformCut = Number(row.platform_cut);
+        helperPayout = Number(row.helper_amount);
+      } else {
+        // Resolve commission from the helper's live subscription tier. The
+        // FALLBACK is what matters here: every path that resolves a helper
+        // commission (create-payment, release-payout,
+        // process-scheduled-payouts, execute-dispute-split) falls back to
+        // `job.helper_fee_percent` — the rate frozen onto the job when escrow
+        // was funded — and then to the FREE-tier rate. Prefer the frozen
+        // per-job rate so a cancellation settles at the same percentage the
+        // job was funded at. Derived from DEFAULT_TIER_FEE_PERCENT, never a
+        // literal, so the ladder stays the single source of truth.
+        const frozenPercent =
+          job.helper_fee_percent === null || job.helper_fee_percent === undefined
+            ? null
+            : Number(job.helper_fee_percent);
+        commissionPercent = await getHelperFeePercent(
+          supabaseAdmin,
+          helperId,
+          (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
+            DEFAULT_TIER_FEE_PERCENT,
+        );
+        platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
+        // Whole dollars, rounded DOWN; the platform keeps the cents (Q236).
+        helperPayout = roundPayoutDownCents(Math.round((cancellationFee - platformCut) * 100)) / 100;
+      }
 
-      // ── Ledger guard: has this job's cancellation fee ALREADY been paid? ──
-      // The idempotency key below is permanent and unsalted, which reads like a
-      // guarantee and is not one: Stripe only replays a key for ~24h. Past that
-      // window — and this loop re-selects a job forever whenever the status flip
-      // at the end of the branch matches zero rows — the same key mints a SECOND
-      // real transfer of the helper's fee.
-      //
-      // So ask Stripe what actually exists rather than trusting the key. The
-      // transfer_group added below makes this lookup possible; it is the same
-      // `job_${id}` grouping release-payout and process-scheduled-payouts
-      // already use, so Dashboard reconciliation gains from it too.
-      //
-      // CAVEAT, deliberately accepted: fee transfers sent BEFORE this change
-      // carry no transfer_group and cannot be found this way. The exposure is
-      // narrow (only a job whose status flip failed AND whose fee went out more
-      // than 24h ago), it shrinks to nothing as those jobs are reconciled, and
-      // the alternative — scanning every transfer to the destination account —
-      // costs a paginated Stripe scan on every cancellation forever.
+      // ── 3. Claim. A 23505 means another run holds it; it pays, we don't. ──
+      if (!row) {
+        const waived = !(helperPayout > 0);
+        const { data: claimed, error: claimErr } = await supabaseAdmin
+          .from("cancellation_fee_transfers")
+          .insert({
+            job_id: job.id,
+            helper_id: helperId,
+            fee_amount: cancellationFee,
+            commission_percent: commissionPercent,
+            platform_cut: platformCut,
+            helper_amount: waived ? 0 : helperPayout,
+            status: waived ? "waived" : "pending",
+          })
+          .select(FEE_ROW_COLUMNS)
+          .single();
+        if (claimErr || !claimed) {
+          if (claimErr?.code === "23505") {
+            console.log(`[void-cancelled-payments] cancellation fee for job ${job.id} was claimed by another run; leaving it.`);
+            return;
+          }
+          // No claim, no transfer: without a row the transfer would be money
+          // nothing records. Reconciliation's charged-fee check pages on it.
+          console.error(`[void-cancelled-payments] cancellation fee claim failed for job ${job.id}; not transferring:`, claimErr?.message ?? "no row returned");
+          defects.record(`cancellation fee claim ${job.id}: ${claimErr?.message ?? "no row returned"} — fee not sent`);
+          return;
+        }
+        row = claimed as FeeRow;
+        // Nothing left after commission: recorded as waived, nothing to send.
+        if (waived) return;
+      }
+      const feeRow: FeeRow = row;
+      const wasFailed = feeRow.status === "failed";
+
+      // ── 4. Has Stripe already sent it? ──
+      // The idempotency key below only replays for ~24h, so ask Stripe what
+      // actually exists rather than trusting the key: the job's transfer group
+      // (`job_${id}`, the grouping release-payout and process-scheduled-payouts
+      // use) is listed, and a live cancellation_fee transfer to this Helpr
+      // repairs the ledger instead of paying again.
       const feeGroup = `job_${job.id}`;
       try {
         const priorFeeTransfers = await stripe.transfers.list({ transfer_group: feeGroup, limit: 100 });
         const alreadyPaidFee = priorFeeTransfers.data.find(
-          (t) => t.metadata?.type === "cancellation_fee" && !t.reversed,
+          (t) =>
+            t.metadata?.type === "cancellation_fee" && !t.reversed && !t.metadata?.share_id &&
+            (!t.metadata?.helper_id || t.metadata.helper_id === helperId),
         );
         if (alreadyPaidFee) {
           console.log(
-            `[void-cancelled-payments] cancellation fee for job ${job.id} already transferred (${alreadyPaidFee.id}); not sending a second one.`,
+            `[void-cancelled-payments] cancellation fee for job ${job.id} already transferred (${alreadyPaidFee.id}); repairing the ledger, not sending a second one.`,
           );
+          await markFeeRow(job.id, feeRow, {
+            status: "paid",
+            stripe_transfer_id: alreadyPaidFee.id,
+            paid_at: new Date().toISOString(),
+            failure_reason: null,
+          }, `was already paid in Stripe (${alreadyPaidFee.id})`);
           return;
         }
       } catch (listErr) {
         // Fail CLOSED. Without knowing whether the fee already went out, sending
-        // it is a coin flip on a second real transfer. Skipping costs a delay;
-        // the job stays in escrow and the next hourly run retries.
+        // it is a coin flip on a second real transfer. The row stays open and
+        // Part E retries once the job settles.
         console.error(`[void-cancelled-payments] could not list prior fee transfers for job ${job.id}:`, listErr);
         defects.record(`fee-transfer dedupe list ${job.id}: ${(listErr as Error).message}`);
         return;
       }
 
+      // ── 5. Where does it go? ──
+      const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
+        .from("profiles")
+        .select("stripe_account_id")
+        .eq("user_id", helperId)
+        .single();
+      if (helperProfileErr || !helperProfile?.stripe_account_id) {
+        // A dropped read or a Helpr with no payout account yet used to skip the
+        // fee with no record at all. Now the row says why, and Part E retries.
+        const why = helperProfileErr
+          ? `profile read failed: ${helperProfileErr.message}`
+          : "no payout account";
+        console.error(`[void-cancelled-payments] cancellation fee for job ${job.id} (Helpr ${helperId}) not sent: ${why}`);
+        await markFeeRow(job.id, feeRow, { status: "failed", failure_reason: why.slice(0, 500) }, `could not be sent (${why.slice(0, 80)})`);
+        // Already failed and paged once: Part E keeps retrying quietly.
+        if (wasFailed) return;
+        defects.record(`cancellation fee ${job.id}: ${why}`);
+        await postSlackOpsAlert({
+          kind: "payout_failed",
+          severity: "warning",
+          title: "Cancellation-fee payout not sent",
+          message: "A Helpr's cancellation fee could not be sent. The poster's fee is already captured; the hourly run retries it from cancellation_fee_transfers.",
+          fields: { job_id: job.id, helper_id: helperId, fee_transfer_id: feeRow.id, amount: helperPayout, reason: why.slice(0, 200) },
+        });
+        return;
+      }
+
+      // ── 6. Transfer, keyed to the row; then mark it. ──
       try {
-        const transferParams: any = {
+        const transferParams: Record<string, unknown> = {
           amount: roundPayoutDownCents(Math.round(helperPayout * 100)),
           currency: "usd",
           destination: helperProfile.stripe_account_id,
           transfer_group: feeGroup,
-          metadata: { job_id: job.id, helper_id: job.helper_id, type: "cancellation_fee", platform_cut: platformCut },
+          metadata: {
+            job_id: job.id,
+            helper_id: helperId,
+            type: "cancellation_fee",
+            platform_cut: platformCut,
+            fee_transfer_id: String(feeRow.id),
+          },
         };
         // Link to the source charge so the transfer draws from these funds.
         if (pi.latest_charge) {
@@ -368,15 +511,19 @@ serve(async (req) => {
             ? pi.latest_charge
             : pi.latest_charge.id;
         }
-        // Idempotency key prevents double-payment if the cron overlaps or
-        // retries before payment_status is flipped to "refunded".
-        await stripe.transfers.create(transferParams, {
-          idempotencyKey: `cancel-fee-${job.id}`,
+        const transfer = await stripe.transfers.create(transferParams as unknown as Stripe.TransferCreateParams, {
+          idempotencyKey: `cancel-fee-${feeRow.id}`,
         });
-        console.log(`Cancellation fee $${cancellationFee}: platform kept $${platformCut}, transferred $${helperPayout} to helper ${job.helper_id} for job ${job.id}`);
+        console.log(`Cancellation fee $${cancellationFee}: platform kept $${platformCut}, transferred $${helperPayout} to helper ${helperId} for job ${job.id} (${transfer.id})`);
+        await markFeeRow(job.id, feeRow, {
+          status: "paid",
+          stripe_transfer_id: transfer.id,
+          paid_at: new Date().toISOString(),
+          failure_reason: null,
+        }, `was paid (${transfer.id})`);
 
         await insertNotifications(supabaseAdmin, {
-          user_id: job.helper_id,
+          user_id: helperId,
           job_id: job.id,
           title: "Cancellation fee received",
           message: `You received a $${formatPayoutDollars(helperPayout)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
@@ -384,24 +531,24 @@ serve(async (req) => {
           link: "/profile?tab=earnings",
         });
       } catch (transferErr: any) {
-        console.error(`Failed to transfer cancellation fee to helper ${job.helper_id}:`, transferErr);
-        // A defect, not just a bell item: the job still settles below and
-        // nothing retries this transfer, so the Helpr is unpaid until a person
-        // acts. `admin_alert` is what the admin push->Slack mirror pages on
-        // (docs/OPEN.md Q2 review, 2026-09-23); it used to be 'warning'.
-        defects.record(`cancellation fee transfer ${job.id}: ${transferErr?.message ?? transferErr}`);
-        // Notify admins about the failed transfer
+        console.error(`Failed to transfer cancellation fee to helper ${helperId}:`, transferErr);
+        const reason = String(transferErr?.message ?? transferErr).slice(0, 500);
+        await markFeeRow(job.id, feeRow, { status: "failed", failure_reason: reason }, `transfer failed (${reason.slice(0, 80)})`);
+        // Already failed and paged once: Part E keeps retrying quietly.
+        if (wasFailed) return;
+        // A defect, not just a bell item: the Helpr is unpaid until Part E's
+        // retry succeeds or a person acts. `admin_alert` is what the admin
+        // push->Slack mirror pages on (docs/OPEN.md Q2 review, 2026-09-23).
+        defects.record(`cancellation fee transfer ${job.id}: ${reason}`);
         const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "void-cancelled-payments.feeTransferFailed");
-        {
-          for (const adminId of adminIds) {
-            await insertNotifications(supabaseAdmin, {
-              user_id: adminId,
-              title: "Cancellation fee transfer failed",
-              message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to Helpr for job ${job.id}. Error: ${transferErr.message}`,
-              type: "admin_alert",
-              link: `/admin?view=jobs&job=${job.id}`,
-            });
-          }
+        for (const adminId of adminIds) {
+          await insertNotifications(supabaseAdmin, {
+            user_id: adminId,
+            title: "Cancellation fee transfer failed",
+            message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to Helpr for job ${job.id}. Error: ${reason}`,
+            type: "admin_alert",
+            link: `/admin?view=jobs&job=${job.id}`,
+          });
         }
       }
     };
@@ -823,7 +970,48 @@ serve(async (req) => {
       }
     }
 
-    for (const job of [...(jobs || []), ...crewRetryJobs] as any[]) {
+    // ── Part E: single-Helpr cancellation fees still owed (LOW-2) ─────────
+    // The same shape as Part D for the cancellation_fee_transfers ledger: a
+    // fee whose transfer failed (no payout account yet, a Stripe error, a
+    // dropped read) or whose run died between claim and transfer is still an
+    // open row after Part A settled the job. Each is retried INSIDE the loop,
+    // after the unsettled-dispute check, through payHelperCancellationFee,
+    // which re-reads the row, dedupes against the Stripe transfer group and
+    // keys the transfer to the row, so a retry can never pay twice.
+    let feeTransfersRetried = 0;
+    const feeRetryRows = new Map<string, { helper_id: string; fee_amount: number | string }>();
+    const feeRetryJobs: Array<Record<string, unknown>> = [];
+    const { data: owedFees, error: owedFeesErr } = await supabaseAdmin
+      .from("cancellation_fee_transfers")
+      .select("id, job_id, helper_id, fee_amount")
+      .in("status", ["failed", "pending"])
+      .not("helper_id", "is", null)
+      .limit(200);
+    if (owedFeesErr) {
+      console.error("[void-cancelled-payments] cancellation fee retry read failed:", owedFeesErr.message);
+      defects.record(`cancellation fee retry read: ${owedFeesErr.message}`);
+    } else {
+      for (const row of (owedFees ?? []) as Array<{ job_id: string; helper_id: string; fee_amount: number | string }>) {
+        // UNIQUE (job_id, helper_id) and one Helpr per single-Helpr job: one row a job.
+        feeRetryRows.set(row.job_id, { helper_id: row.helper_id, fee_amount: row.fee_amount });
+      }
+      if (feeRetryRows.size > 0) {
+        const { data: feeJobs, error: feeJobsErr } = await supabaseAdmin
+          .from("jobs")
+          .select("id, title, helper_fee_percent, payment_status, cancellation_fee_status, stripe_payment_intent_id")
+          .in("id", [...feeRetryRows.keys()])
+          // Only a job Part A already settled: one still in escrow is Part A's own.
+          .eq("payment_status", "refunded")
+          .eq("cancellation_fee_status", "charged");
+        if (feeJobsErr) {
+          defects.record(`cancellation fee retry job read: ${feeJobsErr.message}`);
+        } else {
+          for (const fj of feeJobs ?? []) feeRetryJobs.push({ ...fj, fee_transfer_retry: true });
+        }
+      }
+    }
+
+    for (const job of [...(jobs || []), ...crewRetryJobs, ...feeRetryJobs] as any[]) {
       // ── Not a job whose escrow an admin's dispute decision owns ──────────
       // rpc_decide_dispute moves a poster-wins decision to status 'cancelled'
       // with the escrow still held for execute-dispute-split — exactly the
@@ -863,6 +1051,29 @@ serve(async (req) => {
         continue;
       }
 
+      // Part E: a settled job whose single-Helpr fee is still owed.
+      if (job.fee_transfer_retry) {
+        const owed = feeRetryRows.get(job.id);
+        if (!owed) continue;
+        if (!job.stripe_payment_intent_id) {
+          defects.record(`cancellation fee retry ${job.id}: no payment intent to draw the fee from`);
+          continue;
+        }
+        try {
+          const retryPi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
+          await payHelperCancellationFee(
+            { id: job.id, title: job.title, helper_id: owed.helper_id, helper_fee_percent: job.helper_fee_percent },
+            Number(owed.fee_amount),
+            retryPi,
+          );
+          feeTransfersRetried++;
+          results.push({ job_id: job.id, title: job.title, status: "fee_transfer_retried" });
+        } catch (retryErr) {
+          defects.record(`cancellation fee retry ${job.id}: ${(retryErr as Error)?.message ?? retryErr}`);
+        }
+        continue;
+      }
+
       // ── Not a job whose escrow already went to the Helpr ────────────────
       // A live payout_transfers row means the escrow LEFT toward the Helpr (a
       // Quick Release whose flip failed, a payout that raced a withdrawal).
@@ -870,8 +1081,9 @@ serve(async (req) => {
       // it, poster_cancel_job cancels it, and this loop then refunded the
       // poster by the cancellation rules on top of the Helpr's transfer
       // (lh-money-escrow round 3, H1). This function never writes that ledger
-      // itself — the cancellation fee goes out as a Stripe transfer with no
-      // row — so any live row is another path's money. Refuse and page:
+      // itself — the cancellation fee has its own ledger,
+      // cancellation_fee_transfers (or crew_cancellation_fee_shares), never
+      // payout_transfers — so any live row is another path's money. Refuse and page:
       // unwinding it needs a person reconciling Stripe. Fails CLOSED.
       const { data: livePayouts, error: livePayoutErr } = await supabaseAdmin
         .from("payout_transfers")
@@ -1314,6 +1526,7 @@ serve(async (req) => {
         abandoned: abandonedCount,
         gifts_unfrozen: giftsUnfrozen,
         crew_shares_retried: crewSharesRetried,
+        fee_transfers_retried: feeTransfersRetried,
         total: jobs?.length || 0,
         results,
       },

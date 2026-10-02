@@ -225,20 +225,27 @@ export async function createPressJob(poster, runId, suffix = "", source = "press
  * Session for a fixture job and read `cs_test_` / `cs_live_` off its url.
  * "unknown" is treated as live by callers. Memoised: one probe per run.
  */
-export function makeStripeProbe(poster, runId) {
+// Q895: the probe used to create a press job and POST create-payment
+// {action:"escrow"} to read the mode off the Checkout Session URL, so with
+// Stripe LIVE every nightly run minted a real cs_live_ session (and a job) just
+// to learn it must not press payment controls. It now reads health-check's
+// `checks.stripe_mode`, which is derived from the STRIPE_SECRET_KEY prefix and
+// creates no Stripe object. health-check needs CRON_SECRET (or an admin); with
+// neither the mode is "unknown", which every caller treats as live (skip).
+// The poster/runId parameters are kept so the call site does not change.
+export function makeStripeProbe(_poster, _runId, env = process.env) {
   let cached = null;
   return async () => {
     if (cached) return cached;
-    if (!poster) return (cached = { mode: "unknown", detail: "no poster session to mint a Checkout Session with" });
+    const secret = env.CRON_SECRET;
+    if (!secret) return (cached = { mode: "unknown", detail: "no CRON_SECRET to read health-check stripe_mode; treating Stripe as live" });
     try {
-      const job = await createPressJob(poster, runId, " stripe-probe");
-      const r = await fetch(`${supabaseUrl()}/functions/v1/create-payment`, {
-        method: "POST", headers: headers(poster), body: JSON.stringify({ action: "escrow", jobId: job.id }),
+      const r = await fetch(`${supabaseUrl()}/functions/v1/health-check`, {
+        method: "GET", headers: { Authorization: `Bearer ${secret}` },
       });
       const body = await r.json().catch(() => ({}));
-      const url = String(body?.url ?? "");
-      const m = /\/(cs_(test|live)_[A-Za-z0-9]+)/.exec(url);
-      cached = { mode: m ? (m[2] === "live" ? "live" : "test") : "unknown", detail: r.ok ? `checkout session ${m?.[1]?.slice(0, 12) ?? "?"}…` : `create-payment HTTP ${r.status}`, probeJobId: job.id };
+      const m = body?.checks?.stripe_mode;
+      cached = { mode: m === "live" || m === "test" ? m : "unknown", detail: `health-check HTTP ${r.status} stripe_mode=${m ?? "?"}` };
     } catch (e) {
       cached = { mode: "unknown", detail: String(e.message).slice(0, 200) };
     }
@@ -282,7 +289,12 @@ export async function urlOwnership(session, url, owners) {
 // acct_1ULXMw40YhFTkeRO (helper). Bare "payouts" stays OUT on purpose: the
 // "Payouts" tab and "Export Payouts CSV" are reads. The network backstop
 // (isStripeWriteRequest) catches any Stripe-writing label this still misses.
-export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit|set up payouts|stripe|(?:finish|complete|start) verification)\b/i;
+// `reset & start fresh` (Q896): PayoutSetupForm's reset button and its confirm
+// run stripe-connect `reset` (stripe.accounts.del); the label matched only
+// DESTRUCTIVE_RX, and /profile is SELF_ROUTE_RX, so it was pressed and only
+// the network backstop stopped it. The icon-only remove-payout-method button
+// now has aria-label "Remove payout method …", which `payout` matches.
+export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit|set up payouts|stripe|reset & start fresh|(?:finish|complete|start) verification)\b/i;
 /** Labels that would destroy or lock the SHARED test account. Never pressed. */
 export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my )?account|delete profile|request deletion|erase my data)\b/i;
 /**

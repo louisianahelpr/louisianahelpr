@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF v_holder IS NULL OR v_holder IS DISTINCT FROM NEW.helper_id THEN |   IF false THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  -- Authz review LOW | IF false THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  -- Authz review LOW
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |        AND v_d < v_min_fundable THEN |        AND false THEN
- * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   -- start, for a series visit and a one-time job alike.\n  IF true THEN
+ * @mutate supabase/migrations/20261002055930_series_cancel_locks_parent_first.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   -- start, for a series visit and a one-time job alike.\n  IF true THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHERE public.is_late_cancellation(\n           true, |   WHERE (true OR public.is_late_cancellation(\n           true,
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHERE status = 'open'::job_status AND parent_job_id IS NULL AND customer_id | WHERE status = 'open'::job_status AND customer_id
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
@@ -23,13 +23,16 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |    AND c.helper_id IS NOT NULL\n   AND c.status::text <> 'cancelled'\n   AND c.date_needed >= | AND false\n   AND c.status::text <> 'cancelled'\n   AND c.date_needed >=
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |      AND j.recurring_helper_id IS DISTINCT FROM j.helper_id\n     AND NOT EXISTS | AND false\n     AND NOT EXISTS
- * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |     IF COALESCE(cardinality(v_released), 0) = 0 AND v_job.customer_id IS NOT NULL THEN | IF false THEN
+ * @mutate supabase/migrations/20261002055930_series_cancel_locks_parent_first.sql |     IF COALESCE(cardinality(v_released), 0) = 0 AND v_job.customer_id IS NOT NULL THEN | IF false THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |       IF v_holder = v_uid THEN\n        v_already := v_already \|\| v_d; |       IF false THEN\n        v_already := v_already \|\| v_d;
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WITH me AS (SELECT (SELECT auth.uid()) AS p_uid) |   WITH me AS (SELECT p_parent AS p_uid)
  * @mutate supabase/migrations/20260927012805_hired_job_schedule_lock.sql |                         AND (SELECT auth.uid()) IN (j.customer_id, j.helper_id)) THEN |                         AND true) THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '0', true); | NULL;
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C12 | -- C12
+ * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                              AND w.status::text = 'completed' |                              
+ * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                            WHERE w.customer_id = v_uid AND w.helper_id = p_helper_id | WHERE w.helper_id = p_helper_id
+ * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                        WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id AND a.status = 'pending') | WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id)
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -66,6 +69,15 @@ describe("recurring split days (Q407 4-6)", () => {
     expect(allSql).toMatch(/ADD COLUMN IF NOT EXISTS series_split_ok boolean NOT NULL DEFAULT false/);
     expect(allSql).toMatch(/CREATE TABLE IF NOT EXISTS public\.series_visit_holds/);
     expect(allSql).toMatch(/PRIMARY KEY \(parent_job_id, visit_date\)/);
+  });
+
+  it("Q415 (a): dates go only to a pending applicant or a Helpr who completed a job for THIS poster", () => {
+    const { file, body } = newestFunction("offer_series_dates");
+    expect(file).toBe("20261002192425_q415a_offer_series_dates_past_helprs.sql");
+    const flat = body.replace(/\s+/g, " ");
+    expect(flat).toContain("WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id AND a.status = 'pending'");
+    expect(flat).toContain("WHERE w.customer_id = v_uid AND w.helper_id = p_helper_id AND w.status::text = 'completed'");
+    expect(flat).toContain("RAISE EXCEPTION 'not_an_applicant'");
   });
 
   it("every client RPC is SECURITY DEFINER, revoked from anon; the internals are revoked from authenticated", () => {

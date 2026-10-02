@@ -159,3 +159,6 @@
 {"sha":"a7e23ca48fdd39f8bd27daeb479125a5dea225ef","reviewer":"lh-money-escrow","verdict":"Re-record of rebased c26c806b7 (approved, orig 5d594fa6a): git patch-id --stable identical (884947ea)","date":"2026-10-02"}
 {"sha":"bd426590bb4d2bd32dd3087b27fc9d09f266320d","reviewer":"code-review","verdict":"pass — comment-only diff; every changed line is inside one JSX block comment","date":"2026-10-02"}
 {"sha":"bd426590bb4d2bd32dd3087b27fc9d09f266320d","reviewer":"code-review","verdict":"comment-only diff (12 comment lines reworded, 0 code lines); no behaviour change","date":"2026-10-02"}
+{"sha":"3550b122349e28902eff2f87fbabf666f2220814","reviewer":"lh-authz-rls","verdict":"APPROVE","date":"2026-10-02"}
+{"sha":"6387b3be8f356a4a30849eca067aaef999bd418d","reviewer":"lh-silent-failure","verdict":"APPROVE","date":"2026-10-02"}
+{"sha":"fa2ee54242710528c556a92bd51aa7292216dd60","reviewer":"lh-money-escrow","verdict":"APPROVE: behaviour-preserving hoist (owner confirmed 2026-10-02)","date":"2026-10-02"}

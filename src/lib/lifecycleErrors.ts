@@ -215,6 +215,7 @@ export const RPC_ERROR_COPY = {
     schedule_change_in_past: "Pick a date and time that are still ahead.",
     schedule_change_same: "That's the date and time the job already has.",
     schedule_change_invalid: "Pick a date for the new time.",
+    schedule_change_clash: "The Helpr already has another booked job at that time. Pick a different time.",
     account_restricted: "Your account is restricted, so you can't ask for changes right now.",
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to ask for a change.",
@@ -245,7 +246,7 @@ export const RPC_ERROR_COPY = {
   },
   // SeriesDatesPanel — the poster offers the open dates to someone who applied.
   offer_series_dates: {
-    not_an_applicant: "You can offer dates only to someone who applied to this series and is still waiting.",
+    not_an_applicant: "You can offer dates only to someone who applied to this series, or who has finished a job for you before.",
     nothing_to_offer: "Every upcoming date already has a Helpr, so there is nothing to offer.",
     helper_unavailable: "That person's account is restricted right now, so they can't take dates.",
     series_blocked: "You can't offer dates to someone you've blocked or who has blocked you.",

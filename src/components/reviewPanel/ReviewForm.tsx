@@ -1,4 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { storageExtFor } from "@/lib/storageExt";
 import { useState, useRef } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
@@ -148,7 +149,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       const urls: string[] = [];
       let uploadFailed = false;
       for (const file of photoFiles) {
-        const ext = file.name.split(".").pop() || "jpg";
+        const ext = storageExtFor(file, "jpg");
         const path = `${user.id}/reviews/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("job-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
         if (upErr) {

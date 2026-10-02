@@ -23,7 +23,7 @@ import {
   useScreenPanelBand,
 } from "@/components/ui/anchoredPanel";
 import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
-import { useRequestPushPermission } from "@/lib/nativePush";
+import { useRequestPushPermissionOutcome } from "@/lib/nativePush";
 import { readPushPermission, pushDeclineNeedsSettingsHint } from "@/lib/pushPermissionNudge";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
@@ -173,7 +173,7 @@ const NotificationPanel = () => {
   // the "All caught up" empty state, which would wrongly suggest the
   // user has no notifications.
   const [loadError, setLoadError] = useState(false);
-  const requestPush = useRequestPushPermission();
+  const requestPush = useRequestPushPermissionOutcome();
 
   // `loadNotifications` is created fresh every render but is CAPTURED once —
   // by the mount effect's setTimeout and by usePullToRefresh. Reading
@@ -334,11 +334,11 @@ const NotificationPanel = () => {
     // Routes through usePermissionRationale → rationale dialog first,
     // then the actual OS prompt. Keeps web parity with the native side
     // and matches the dashboard PushNotificationPrompt UX.
-    const granted = await requestPush();
-    if (granted) {
+    const outcome = await requestPush();
+    if (outcome === "granted") {
       setPushEnabled(true);
-    } else if (pushDeclineNeedsSettingsHint(await readPushPermission())) {
-      // Not for "Not Now" in the rationale dialog: see pushDeclineNeedsSettingsHint.
+    } else if (outcome === "refused" && pushDeclineNeedsSettingsHint(await readPushPermission())) {
+      // Never after "Not Now" in our rationale dialog ("dismissed"): they just chose it.
       toast.error(
         Capacitor.isNativePlatform()
           ? "Notifications are off. Turn them on in your device settings."

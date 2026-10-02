@@ -6,6 +6,7 @@ import { compressImage } from "@/lib/imageCompression";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { SCOPE_VIDEO_BUCKET, readVideoDuration, scopeVideoDurationProblem, scopeVideoFileProblem } from "@/lib/scopeVideo";
+import { storageExtFor } from "@/lib/storageExt";
 
 /**
  * useJobMediaUpload — owns the post-a-job photo + scope-video state and the
@@ -141,7 +142,11 @@ export function useJobMediaUpload() {
     });
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
-      const ext = file.name.split(".").pop();
+      // Extension from the file's MIME type, never its name
+      // (docs/OPEN.md LIVE DEFECT #5). compressImage always re-encodes to
+      // image/jpeg, so "jpg" is also the expected steady-state value, not
+      // just a fallback.
+      const ext = storageExtFor(file, "jpg");
       const path = `${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       // Supabase storage.upload doesn't expose a fetch-level progress
       // callback, so we report a coarse 0 → 1 transition per file. It's
@@ -187,7 +192,9 @@ export function useJobMediaUpload() {
     // Upload scope video — PGRST204/42703 safe (column may not exist on prod yet)
     if (hasVideo && scopeVideoFile) {
       try {
-        const ext = scopeVideoFile.name.split(".").pop() || "mp4";
+        // Extension from the file's MIME type, never its name (docs/OPEN.md
+        // LIVE DEFECT #5).
+        const ext = storageExtFor(scopeVideoFile, "mp4");
         const path = `${jobId}/scope-video.${ext}`;
         const { error: vidErr } = await supabase.storage
           .from(SCOPE_VIDEO_BUCKET)
@@ -219,7 +226,9 @@ export function useJobMediaUpload() {
    */
   const uploadAndAttachScopeVideo = async (jobId: string) => {
     if (!scopeVideoFile) return;
-    const ext = scopeVideoFile.name.split(".").pop() ?? "mp4";
+    // Extension from the file's MIME type, never its name (docs/OPEN.md
+    // LIVE DEFECT #5).
+    const ext = storageExtFor(scopeVideoFile, "mp4");
     const path = `${jobId}/scope-video.${ext}`;
     const { error: upErr } = await supabase.storage
       .from(SCOPE_VIDEO_BUCKET)

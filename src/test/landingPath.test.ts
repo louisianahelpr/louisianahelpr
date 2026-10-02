@@ -2,7 +2,7 @@
 // @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   git push --no-verify origin HEAD:main
 // @mutate .github/workflows/vacuity.yml |       - "LICENSE"\n  schedule: |       - "LICENSE"\n  pull_request:\n    branches: [main]\n  schedule:
 // @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }} | VACUITY_PUSH_BEFORE: ""
-// @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and both Playwright | requires Vitest, Test, Vacuity and both Playwright
+// @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and | requires Vitest, Test, Vacuity and
 // @mutate .github/workflows/test.yml |   pull_request:\n    branches: [main]\n |   pull_request:\n    branches: [main]\n    paths-ignore:\n      - "docs/**"\n
 /*
  * Nothing reaches main without passing its checks (OPEN.md Q44).
@@ -67,6 +67,12 @@ describe("landing path (Q44)", () => {
   it("land.sh never pushes straight to main", () => {
     expect(code).not.toMatch(/git push[^\n]*HEAD:main/);
     expect(code).toMatch(/gh pr merge "\$BR" --rebase --auto/);
+  });
+
+  it("land.sh closes any open land PR its HEAD supersedes", () => {
+    // 2026-10-02: #2063 and #2070 carried the same commits from two worktrees.
+    expect(code).toMatch(/merge-base --is-ancestor "\$oid" HEAD/);
+    expect(code).toMatch(/gh pr close "\$num" --delete-branch/);
   });
 
   it("land.sh runs every exact-count guard before pushing", () => {

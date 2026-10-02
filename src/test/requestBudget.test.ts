@@ -101,7 +101,7 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
         // per-shard request logs with --dir.
         const judgedAfter = fileJobs.some(([other, c]) =>
           other !== job && step.test(c) && /request-budget\.mjs[^\n]*--dir /.test(c) &&
-          new RegExp(`^ {4}needs: \\[[^\\]\\n]*\\b${job.replace(/[-]/g, "\\-")}\\b(?!-)`, "m").test(c));
+          new RegExp(`^ {4}needs: \\[[^\\]\\n]*\\b${job.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b(?!-)`, "m").test(c));
         out.push({ wf, label, has: step.test(code) || judgedAfter });
       }
     }

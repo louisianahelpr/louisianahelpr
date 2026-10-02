@@ -114,6 +114,17 @@ const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
  */
 const PAYOUT_WINDOW_HOURS = 6;
 const PAYOUT_WINDOW_MS = PAYOUT_WINDOW_HOURS * 60 * 60 * 1000;
+/**
+ * How long a job may sit at payment_status 'cancelling' before it is a
+ * stranded cancel (docs/OPEN.md Q456). cancel_escrow holds that claim only for
+ * its own Stripe round-trips and the gift restore, seconds in practice; it is
+ * left behind only when a later step failed (gift restore, the final flip, a
+ * claim that could not be put back). Nothing retries it and the alert those
+ * paths post fires once, so without this check a stuck cancel is forgotten the
+ * moment the Slack message scrolls away.
+ */
+const CANCELLING_WINDOW_MINUTES = 60;
+const CANCELLING_WINDOW_MS = CANCELLING_WINDOW_MINUTES * 60 * 1000;
 
 /**
  * Stripe-side comparison window (docs/OPEN.md Q50). Every run asks Stripe about
@@ -125,6 +136,10 @@ const PAYOUT_WINDOW_MS = PAYOUT_WINDOW_HOURS * 60 * 60 * 1000;
  */
 const STRIPE_LOOKBACK_DAYS = 30;
 const STRIPE_LOOKBACK_MS = STRIPE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
+// The cancellation-fee Stripe listing (LOW-2) has its own budget and cap;
+// hitting either is a scan cap (a defect), never a quiet sample.
+const FEE_LEDGER_STRIPE_BUDGET_MS = 15_000;
+const MAX_FEE_LEDGER_STRIPE_TRANSFERS = 5_000;
 const MAX_STRIPE_READS = 300;
 const STRIPE_READ_CONCURRENCY = 10;
 /**
@@ -374,6 +389,11 @@ serve(async (req) => {
         "critical",
         `payment_status='payout_pending' more than ${PAYOUT_WINDOW_HOURS}h past payout_scheduled_at — the Helpr was told they would be paid and nothing has moved. This is the END STATE of an unguarded release write (a zero-row flip after the transfer went out) and of a payout that failed with nothing recorded, and until now NOTHING detected it: this reconciler only looked at 'escrow'.`,
       ),
+      cancellingStranded: new Check(
+        "cancelling_stranded",
+        "critical",
+        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand.`,
+      ),
       // ── The DB's settled state vs Stripe's (docs/OPEN.md Q50) ──────────
       // Every check above grades the DB against itself. A job the DB says is
       // settled — payment_status 'cancelled' or 'refunded' — was only ever
@@ -407,6 +427,38 @@ serve(async (req) => {
         "stripe_payment_intent_not_found",
         "warning",
         "jobs.stripe_payment_intent_id names a PaymentIntent the configured Stripe key cannot see (resource_missing). Either the id is wrong or it belongs to the other key mode (test vs live) — so this job's money cannot be reconciled at all.",
+      ),
+      // ── The single-Helpr cancellation-fee ledger (LOW-2) ───────────────
+      // void-cancelled-payments sends a cancelled job's fee to its Helpr as a
+      // Stripe transfer (metadata.type = "cancellation_fee") and records it in
+      // cancellation_fee_transfers — deliberately NOT payout_transfers, so
+      // refundedWithLivePayout and transferFeeMismatch above never see it.
+      // Before this ledger the transfer left no row at all. These four make
+      // the ledger and Stripe agree in BOTH directions.
+      feeLedgerMissingRow: new Check(
+        "cancellation_fee_charged_without_ledger_row",
+        "critical",
+        `A cancelled job's fee is marked charged (cancellation_fee_status='charged', a committed Helpr, settled more than ${SETTLE_WINDOW_HOURS}h ago) but cancellation_fee_transfers has no row for it — the Helpr's share was never claimed, so nothing will send it.`,
+      ),
+      feeLedgerUnpaid: new Check(
+        "cancellation_fee_transfer_not_paid",
+        "warning",
+        `A cancellation_fee_transfers row has been 'pending' or 'failed' for more than ${SETTLE_WINDOW_HOURS}h — the Helpr is still owed their cancellation fee. void-cancelled-payments retries it hourly; read failure_reason.`,
+      ),
+      feeRowNoStripe: new Check(
+        "cancellation_fee_row_without_stripe_transfer",
+        "critical",
+        `A cancellation_fee_transfers row records a Stripe transfer (status paid/reversed, or a transfer id) that Stripe's cancellation_fee transfers from the last ${STRIPE_LOOKBACK_DAYS}d do not contain — the ledger says a Helpr was paid that Stripe never paid.`,
+      ),
+      feeStripeNoRow: new Check(
+        "cancellation_fee_stripe_transfer_without_row",
+        "critical",
+        `A Stripe transfer with metadata.type='cancellation_fee' in the last ${STRIPE_LOOKBACK_DAYS}d has no ledger row recording it (cancellation_fee_transfers, or crew_cancellation_fee_shares for a crew share) — money left the platform that the books do not show.`,
+      ),
+      feeStripeAmount: new Check(
+        "cancellation_fee_transfer_amount_mismatch",
+        "critical",
+        "A cancellation-fee Stripe transfer's amount differs from its cancellation_fee_transfers.helper_amount — the Helpr was paid a different sum than the ledger (and the poster's fee split) says.",
       ),
       // `time_credit_balance_drift` was retired with the table it graded.
       // `public.time_credits` was dropped by migration 20260901035602 (its RLS
@@ -577,6 +629,73 @@ serve(async (req) => {
       }
     }
 
+    // ── The single-Helpr cancellation-fee ledger (LOW-2) ─────────────────────
+    // Read in full (scanAll) and compared against the jobs above here, and
+    // against Stripe's own cancellation_fee transfers further down. A short or
+    // failed read skips every fee-ledger check with a note (a degraded run),
+    // because a partial ledger would MANUFACTURE "no row" criticals. The table
+    // ships in the same commit as this check, so a missing table is a defect,
+    // not "no rows": no 42P01 tolerance.
+    type FeeLedgerRow = {
+      id: string;
+      job_id: string;
+      helper_id: string | null;
+      status: string;
+      stripe_transfer_id: string | null;
+      helper_amount: number | string | null;
+      created_at: string | null;
+      updated_at: string | null;
+    };
+    // Hits are held until the end so a hit on an is_seed job outside the
+    // default scan can be routed like every other seed hit (see Emit).
+    const feeHits: Array<{ check: Check; hit: Record<string, unknown> }> = [];
+    const feeScan = await scanAll<FeeLedgerRow>("cancellation_fee_transfers", (countOpt) =>
+      admin
+        .from("cancellation_fee_transfers")
+        .select("id, job_id, helper_id, status, stripe_transfer_id, helper_amount, created_at, updated_at", countOpt)
+        .order("id", { ascending: true }),
+    );
+    const feeLedgerDefect = feeScan.error
+      ? `cancellation_fee_transfers read failed: ${feeScan.error.message}`
+      : scanDefect("cancellation_fee_transfers", feeScan);
+    const feeRows: FeeLedgerRow[] = feeLedgerDefect ? [] : feeScan.rows;
+    if (feeLedgerDefect) {
+      notes.push(`cancellation-fee ledger checks skipped: ${feeLedgerDefect}`);
+    } else {
+      const feeNowMs = Date.now();
+      const rowByPair = new Set(feeRows.map((r) => `${r.job_id}:${r.helper_id ?? ""}`));
+      for (const job of jobRows) {
+        if (job.status !== "cancelled") continue;
+        if (!job.cancelled_at && job.dispute_status === "resolved") continue;
+        // A crew without a lead is paid through crew_cancellation_fee_shares.
+        if (!job.helper_id) continue;
+        if (job.cancellation_fee_status !== "charged") continue;
+        // void-cancelled-payments sends nothing (and claims no row) for a
+        // zero fee.
+        if (money(job.cancellation_fee) <= 0) continue;
+        if (job.payment_status !== "refunded" && job.payment_status !== "cancelled") continue;
+        // void-cancelled-payments claims the row BEFORE it marks the job
+        // charged, so a settled, charged job with no row is a claim that
+        // failed. The grace only absorbs clock skew between the two writes.
+        const settledAt = latest(job.updated_at, job.cancelled_at);
+        if (settledAt !== null && feeNowMs - settledAt < SETTLE_WINDOW_MS) continue;
+        if (rowByPair.has(`${job.id}:${job.helper_id}`)) continue;
+        feeHits.push({
+          check: checks.feeLedgerMissingRow,
+          hit: { job_id: job.id, helper_id: job.helper_id, cancellation_fee: money(job.cancellation_fee) },
+        });
+      }
+      for (const r of feeRows) {
+        if (r.status !== "pending" && r.status !== "failed") continue;
+        const since = latest(r.updated_at, r.created_at);
+        if (since !== null && feeNowMs - since < SETTLE_WINDOW_MS) continue;
+        feeHits.push({
+          check: checks.feeLedgerUnpaid,
+          hit: { job_id: r.job_id, fee_transfer_id: r.id, status: r.status, stripe_transfer_id: r.stripe_transfer_id, helper_amount: money(r.helper_amount) },
+        });
+      }
+    }
+
     // ── Impossible escrow states ─────────────────────────────────────────────
     const nowMs = Date.now();
     for (const job of jobRows) {
@@ -631,6 +750,21 @@ serve(async (req) => {
         budget: money(job.budget),
         payout_scheduled_at: job.payout_scheduled_at ?? null,
         hours_overdue: Math.round(((nowMs - dueAt) / 3_600_000) * 100) / 100,
+      });
+    }
+
+    // ── Cancels that claimed the job and never finished (Q456) ───────────────
+    // Keyed on updated_at: the claim write is the last touch a stranded cancel
+    // gets, and an unrelated later write only delays the alarm, never hides it.
+    for (const job of jobRows) {
+      if (job.payment_status !== "cancelling") continue;
+      const claimedAt = ts(job.updated_at) ?? 0;
+      if (nowMs - claimedAt <= CANCELLING_WINDOW_MS) continue;
+      checks.cancellingStranded.add({
+        job_id: job.id,
+        status: job.status,
+        budget: money(job.budget),
+        hours_stuck: Math.round(((nowMs - claimedAt) / 3_600_000) * 100) / 100,
       });
     }
 
@@ -1256,6 +1390,197 @@ serve(async (req) => {
       }
     }
 
+    // ── Cancellation-fee transfers, two-way against Stripe (LOW-2) ──────────
+    // Stripe is the other side of the fee ledger: every transfer
+    // void-cancelled-payments sent with metadata.type = "cancellation_fee" must
+    // have its ledger row (single Helpr: cancellation_fee_transfers; crew:
+    // crew_cancellation_fee_shares), and every ledger row that records a
+    // transfer must find it in Stripe. Independent of the settled-job phase
+    // above, which only runs when a settled job carries a PaymentIntent.
+    //
+    // refundedWithLivePayout and transferFeeMismatch deliberately stay on
+    // payout_transfers: a fee transfer is not a job payout, it moves no escrow
+    // and carries no platform-fee split of the job price, so neither check has
+    // anything to say about it. These five checks are its whole coverage.
+    let stripeFeeTransfersListed = 0;
+    if (!feeLedgerDefect) {
+      const feeStripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!feeStripeKey) {
+        notes.push("cancellation-fee Stripe comparison skipped: STRIPE_SECRET_KEY not set");
+      } else {
+        const feeStripe = new Stripe(feeStripeKey, { apiVersion: "2025-08-27.basil" });
+        const sinceSec = Math.floor((Date.now() - STRIPE_LOOKBACK_MS) / 1000);
+        const listed: Stripe.Transfer[] = [];
+        let complete = false;
+        let listError: string | null = null;
+        const listStartedMs = Date.now();
+        let startingAfter: string | undefined;
+        try {
+          for (;;) {
+            if (Date.now() - listStartedMs > FEE_LEDGER_STRIPE_BUDGET_MS) {
+              caps.push(
+                `cancellation-fee Stripe listing stopped at its ${Math.round(FEE_LEDGER_STRIPE_BUDGET_MS / 1000)}s budget after ${listed.length} transfers`,
+              );
+              break;
+            }
+            if (listed.length >= MAX_FEE_LEDGER_STRIPE_TRANSFERS) {
+              caps.push(`cancellation-fee Stripe listing stopped at its ${MAX_FEE_LEDGER_STRIPE_TRANSFERS}-transfer cap`);
+              break;
+            }
+            const page = await feeStripe.transfers.list({
+              created: { gte: sinceSec },
+              limit: 100,
+              ...(startingAfter ? { starting_after: startingAfter } : {}),
+            });
+            const data = page?.data ?? [];
+            listed.push(...data);
+            if (!page?.has_more || data.length === 0) {
+              complete = true;
+              break;
+            }
+            startingAfter = data[data.length - 1].id;
+          }
+        } catch (err) {
+          listError = err instanceof Error ? err.message : String(err);
+          // Unverified, not clean.
+          notes.push(`cancellation-fee Stripe comparison incomplete: transfers.list failed (${listError})`);
+        }
+        const feeTransfers = listed.filter(
+          (t) => ((t.metadata ?? {}) as Record<string, string>).type === "cancellation_fee",
+        );
+        stripeFeeTransfersListed = feeTransfers.length;
+
+        // Stripe -> ledger.
+        const rowByTransfer = new Map(
+          feeRows.filter((r) => r.stripe_transfer_id).map((r) => [r.stripe_transfer_id as string, r]),
+        );
+        const rowById = new Map(feeRows.map((r) => [r.id, r]));
+        const rowByPairFull = new Map(feeRows.map((r) => [`${r.job_id}:${r.helper_id ?? ""}`, r]));
+        const shareIds = [
+          ...new Set(
+            feeTransfers
+              .map((t) => ((t.metadata ?? {}) as Record<string, string>).share_id)
+              .filter((v): v is string => typeof v === "string" && v.length > 0),
+          ),
+        ];
+        const shareById = new Map<string, { id: string; stripe_transfer_id: string | null }>();
+        let shareReadFailed = false;
+        for (let i = 0; i < shareIds.length; i += 200) {
+          const { data: shares, error: sErr } = await admin
+            .from("crew_cancellation_fee_shares")
+            .select("id, stripe_transfer_id")
+            .in("id", shareIds.slice(i, i + 200));
+          if (sErr) {
+            shareReadFailed = true;
+            notes.push(`cancellation-fee crew share lookup failed: ${sErr.message}`);
+            break;
+          }
+          for (const sh of (shares ?? []) as Array<{ id: string; stripe_transfer_id: string | null }>) {
+            shareById.set(sh.id, sh);
+          }
+        }
+        const shareTransferIds = new Set(
+          [...shareById.values()].map((sh) => sh.stripe_transfer_id).filter((v): v is string => !!v),
+        );
+        for (const t of feeTransfers) {
+          const md = (t.metadata ?? {}) as Record<string, string>;
+          const base = {
+            job_id: md.job_id ?? null,
+            helper_id: md.helper_id ?? null,
+            stripe_transfer_id: t.id,
+            amount_cents: t.amount,
+          };
+          if (md.share_id) {
+            if (shareReadFailed) continue;
+            const sh = shareById.get(md.share_id);
+            const matched =
+              shareTransferIds.has(t.id) ||
+              (sh !== undefined && (sh.stripe_transfer_id === null || sh.stripe_transfer_id === t.id));
+            if (!matched) {
+              feeHits.push({ check: checks.feeStripeNoRow, hit: { ...base, share_id: md.share_id } });
+            }
+            continue;
+          }
+          let row = rowByTransfer.get(t.id);
+          if (!row && md.fee_transfer_id) {
+            const byId = rowById.get(md.fee_transfer_id);
+            if (byId && (byId.stripe_transfer_id === null || byId.stripe_transfer_id === t.id)) row = byId;
+          }
+          if (!row && !md.fee_transfer_id && md.job_id && md.helper_id) {
+            // A transfer sent before the ledger existed carries no row id.
+            const byPair = rowByPairFull.get(`${md.job_id}:${md.helper_id}`);
+            if (byPair && (byPair.stripe_transfer_id === null || byPair.stripe_transfer_id === t.id)) row = byPair;
+          }
+          if (!row) {
+            feeHits.push({
+              check: checks.feeStripeNoRow,
+              hit: { ...base, fee_transfer_id: md.fee_transfer_id ?? null },
+            });
+            continue;
+          }
+          const ledgerCents = Math.round(money(row.helper_amount) * 100);
+          if (t.amount !== ledgerCents) {
+            feeHits.push({
+              check: checks.feeStripeAmount,
+              hit: { ...base, job_id: row.job_id, fee_transfer_id: row.id, ledger_cents: ledgerCents },
+            });
+          }
+        }
+
+        // Ledger -> Stripe. Only on a complete listing: a short one would
+        // invent "missing in Stripe" for every row past where it stopped.
+        if (complete) {
+          const listedIds = new Set(listed.map((t) => t.id));
+          const lookbackStartMs = Date.now() - STRIPE_LOOKBACK_MS;
+          for (const r of feeRows) {
+            if (!r.stripe_transfer_id) continue;
+            const createdMs = ts(r.created_at);
+            // A row older than the listing window is outside what was asked.
+            if (createdMs === null || createdMs < lookbackStartMs) continue;
+            if (listedIds.has(r.stripe_transfer_id)) continue;
+            feeHits.push({
+              check: checks.feeRowNoStripe,
+              hit: { job_id: r.job_id, fee_transfer_id: r.id, status: r.status, stripe_transfer_id: r.stripe_transfer_id },
+            });
+          }
+        }
+      }
+    }
+
+    // Route the fee-ledger hits. A ledger row or a Stripe transfer can name a
+    // job the default scan did not load (is_seed, or deleted). A seed job's hit
+    // is dropped on the default run, exactly as no other check sees a seed job
+    // there; a job that no longer exists is still real money, and pages.
+    if (feeHits.length) {
+      const unknownIds = [
+        ...new Set(
+          feeHits
+            .map((h) => (h.hit as { job_id?: unknown }).job_id)
+            .filter((id): id is string => typeof id === "string" && !jobById.has(id)),
+        ),
+      ];
+      const seedOutside = new Set<string>();
+      for (let i = 0; i < unknownIds.length; i += 200) {
+        const { data: seedRows, error: seedErr } = await admin
+          .from("jobs")
+          .select("is_seed, id")
+          .in("id", unknownIds.slice(i, i + 200));
+        if (seedErr) {
+          // Unknown => real: a page on a fixture beats silence on money.
+          notes.push(`cancellation-fee seed lookup failed (${seedErr.message}); hits reported as real`);
+          break;
+        }
+        for (const j of (seedRows ?? []) as Array<{ id: string; is_seed: boolean | null }>) {
+          if (j.is_seed === true) seedOutside.add(j.id);
+        }
+      }
+      for (const { check, hit } of feeHits) {
+        const id = (hit as { job_id?: unknown }).job_id;
+        if (!includeSeed && typeof id === "string" && seedOutside.has(id)) continue;
+        check.add(hit);
+      }
+    }
+
     // ── Emit ─────────────────────────────────────────────────────────────────
     //
     // A NON-2xx STATUS FROM THIS FUNCTION IS BY DESIGN, NOT A CRASH.
@@ -1324,8 +1649,12 @@ serve(async (req) => {
         server_totals: {
           jobs: jobScan.total,
           payout_transfers: transferScan.total,
+          cancellation_fee_transfers: feeScan.total,
         },
-        pages: jobScan.pages + transferScan.pages,
+        cancellation_fee_transfers: feeRows.length,
+        // Stripe transfers tagged type=cancellation_fee in the lookback window.
+        stripe_fee_transfers_listed: stripeFeeTransfersListed,
+        pages: jobScan.pages + transferScan.pages + feeScan.pages,
         // PaymentIntents actually retrieved from Stripe this run (Q50). Next to
         // the settled-job count so "no Stripe findings" can be read against how
         // many were really asked about.

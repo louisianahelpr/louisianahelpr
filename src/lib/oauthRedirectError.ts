@@ -37,7 +37,11 @@
 export type OAuthProvider = "apple" | "google";
 
 export type OAuthRedirectError = {
-  provider: OAuthProvider;
+  /**
+   * null when the redirect came back with no pending marker (Q445a): the URL
+   * says the sign-in was refused but not which provider was used.
+   */
+  provider: OAuthProvider | null;
   /** GoTrue `error_code`, or the OAuth `error` when no code was sent. */
   code: string;
   /** Copy for the Login notice. */
@@ -52,6 +56,21 @@ const ERROR_PARAMS = ["error", "error_code", "error_description"] as const;
 
 function label(provider: OAuthProvider): string {
   return provider === "apple" ? "Apple" : "Google";
+}
+
+/** Sentence fragments for a known provider, or provider-neutral ones (Q445a). */
+function words(provider: OAuthProvider | null) {
+  if (provider) {
+    const p = label(provider);
+    return { says: p, withP: p, signIn: `${p} sign-in`, account: `That ${p} account`, continueWith: `continue with ${p}` };
+  }
+  return {
+    says: "Your sign-in provider",
+    withP: "your sign-in provider",
+    signIn: "That sign-in",
+    account: "That sign-in account",
+    continueWith: "sign in with it again",
+  };
 }
 
 /**
@@ -70,6 +89,8 @@ export const SOCIAL_AUTH_ERROR_CODES = [
   "bad_oauth_callback",
   "flow_state_expired",
   "flow_state_not_found",
+  // Q445b: GoTrue's callback rejects a reused PKCE flow state with this code.
+  "flow_state_already_used",
   "identity_already_exists",
   "multiple_accounts",
 ] as const;
@@ -92,37 +113,41 @@ export function isExpectedSocialRefusal(code: string | null | undefined): boolea
  * backed out at the provider — that is not an error and gets no notice.
  */
 export function socialAuthErrorCopy(
-  provider: OAuthProvider,
+  provider: OAuthProvider | null,
   code: string | null | undefined,
   description?: string | null,
 ): string | null {
-  const p = label(provider);
+  const w = words(provider);
   const desc = (description ?? "").toLowerCase();
   // GoTrue's MultipleAccounts decision is a 500 with no dedicated code; the
   // description is the only thing that names it.
   const c = desc.includes("multiple accounts with the same email") ? "multiple_accounts" : (code ?? "");
   switch (c) {
     case "provider_email_needs_verification":
-      return `${p} says the email on that account isn't verified yet, so we can't match it to a Helpr account. Verify it with ${p}, then try again — or log in with your email and password.`;
+      return `${w.says} says the email on that account isn't verified yet, so we can't match it to a Helpr account. Verify it with ${w.withP}, then try again — or log in with your email and password.`;
     case "user_banned":
       return "This account can't sign in right now. If you think that's a mistake, contact Helpr support from the Help page.";
     case "signup_disabled":
       return "New accounts can't be created right now. If you already have a Helpr account, log in with your email and password.";
     case "provider_disabled":
     case "oauth_provider_not_supported":
-      return `${p} sign-in isn't available right now. Log in with your email and password instead.`;
+      return `${w.signIn} isn't available right now. Log in with your email and password instead.`;
     case "bad_oauth_state":
     case "bad_oauth_callback":
     case "flow_state_expired":
     case "flow_state_not_found":
-      return `${p} sign-in took too long or was interrupted. Give it another try.`;
+    case "flow_state_already_used":
+      return `${w.signIn} took too long or was interrupted. Give it another try.`;
     case "identity_already_exists":
-      return `That ${p} account is already connected to a different Helpr account. Sign out and continue with ${p} to use that one.`;
+      return `${w.account} is already connected to a different Helpr account. Sign out and ${w.continueWith} to use that one.`;
     case "multiple_accounts":
       return "More than one Helpr account uses this email, so we couldn't tell which one is yours. Contact Helpr support from the Help page and we'll sort it out.";
+    // The OAuth `error` with no GoTrue code: the person declined on the
+    // provider's own screen. Same as a native cancel — nothing to say.
+    // Q445c: Apple's web flow can report a cancel as
+    // error=user_cancelled_authorize with no GoTrue code. Also a decline.
     case "access_denied":
-      // The OAuth `error` with no GoTrue code: the person declined on the
-      // provider's own screen. Same as a native cancel — nothing to say.
+    case "user_cancelled_authorize":
       return "";
     default:
       return null;
@@ -193,7 +218,7 @@ export function captureOAuthRedirectError(loc: Location = window.location, hist:
   const hasError = ERROR_PARAMS.some((k) => get(k) !== null);
 
   const pending = readPending();
-  if (!pending) return null;
+  if (!pending) return captureUnmarked(loc, hist, query, hash, get);
   // Not where this attempt returns to: someone else's error (an email link's,
   // /reset-password's). Leave the URL and the marker alone.
   if (loc.pathname !== pending.path) return null;
@@ -211,7 +236,47 @@ export function captureOAuthRedirectError(loc: Location = window.location, hist:
   const description = get("error_description");
   const copy = socialAuthErrorCopy(pending.provider, code, description);
   const message = copy ?? `${label(pending.provider)} sign-in didn't work — give it another try?`;
+  return hold(loc, hist, query, hash, { provider: pending.provider, code, message });
+}
 
+/**
+ * Q445a: no usable marker (sessionStorage blocked, the attempt older than 15
+ * min, or GoTrue sent the error to the Site URL because redirect_to was not
+ * allow-listed). Capture only what is unmistakably a GoTrue social refusal:
+ * GoTrue's `sb` fragment marker AND an error_code from SOCIAL_AUTH_ERROR_CODES
+ * (or the two-accounts description). An expired email link's otp_expired, which
+ * /reset-password reads, is not in the list and is left alone.
+ */
+const UNMARKED_RETURN_PATHS = ["/home", "/"];
+
+function captureUnmarked(
+  loc: Location,
+  hist: History,
+  query: URLSearchParams,
+  hash: URLSearchParams,
+  get: (k: string) => string | null,
+): OAuthRedirectError | null {
+  if (!hash.has("sb")) return null;
+  // Only where a social round trip lands: socialAuth's default return path, or
+  // the Site URL root GoTrue falls back to. An email/PKCE link's flow_state_*
+  // error on /reset-password stays that page's to read (lh-authz-rls review).
+  if (!UNMARKED_RETURN_PATHS.includes(loc.pathname)) return null;
+  const description = get("error_description");
+  const multiple = (description ?? "").toLowerCase().includes("multiple accounts with the same email");
+  const code = multiple ? "multiple_accounts" : get("error_code");
+  if (!code || !(SOCIAL_AUTH_ERROR_CODES as readonly string[]).includes(code)) return null;
+  const message = socialAuthErrorCopy(null, code, description);
+  if (message === null) return null;
+  return hold(loc, hist, query, hash, { provider: null, code, message });
+}
+
+function hold(
+  loc: Location,
+  hist: History,
+  query: URLSearchParams,
+  hash: URLSearchParams,
+  err: OAuthRedirectError,
+): OAuthRedirectError | null {
   // Strip the error params (and GoTrue's `sb` marker) so ProtectedRoute's
   // ?redirect= and anything else reading the URL sees a clean path.
   for (const k of [...ERROR_PARAMS, "sb"]) {
@@ -227,12 +292,12 @@ export function captureOAuthRedirectError(loc: Location = window.location, hist:
     // the notice below still renders, which is the part that matters.
   }
 
-  if (message === "") return null; // declined at the provider — no notice
+  if (err.message === "") return null; // declined at the provider — no notice
   // Held in memory only. The /home -> /login bounce is a client-side route
   // change in the same page load, so nothing needs to survive a reload, and
   // an auth error from the URL is not persisted to storage (CodeQL
   // js/clear-text-storage-of-sensitive-data on the first version of this).
-  captured = { provider: pending.provider, code, message };
+  captured = err;
   capturedAt = Date.now();
   return captured;
 }

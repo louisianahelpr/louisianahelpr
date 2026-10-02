@@ -26,8 +26,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | } else if (!nowEnabled && account.requirements | } else if (account.requirements
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | if (current?.stripe_account_id !== account.id) { | if (true) {
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | throw new Error(`Cached payout flags for | return; throw new Error(`Cached payout flags for
- * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | if (isUnusableConnectAccountError(err)) { | if (true) {
- * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | if (isUnusableConnectAccountError(err)) { | if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | if (isUnusableConnectAccountError(err)) {\n      // The account is gone | if (true) {\n      // The account is gone
+ * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | if (isUnusableConnectAccountError(err)) {\n      // The account is gone | if (false) {\n      // The account is gone
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | const { data: helperProfile, error: helperProfileError } = await supabase | await stripe.accounts.retrieve(accountId); const { data: helperProfile, error: helperProfileError } = await supabase
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | logStep("Skipped account.updated: no profile links this account", { accountId });\n    return; | logStep("Skipped account.updated: no profile links this account", { accountId });
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | current.stripe_identity_verified === identityVerified && | false &&
@@ -269,7 +269,7 @@ describe("Q869/Q870 — account.updated caches Stripe's CURRENT account, notices
     expect(noticeTitles()).toEqual([]);
   });
 
-  it("an account Stripe no longer has is acknowledged with no write", async () => {
+  it("an account Stripe no longer has is acknowledged; its cached gate is CLOSED (Q875), scoped to it, no notice", async () => {
     stripeMock.accounts.retrieve.mockRejectedValue(
       Object.assign(new Error(`No such account: '${ACCT}'`), { statusCode: 404, code: "account_invalid" }),
     );
@@ -277,7 +277,17 @@ describe("Q869/Q870 — account.updated caches Stripe's CURRENT account, notices
     const res = await deliver(ENABLED);
 
     expect(res.status).toBe(200);
-    expect(cacheWrites()).toEqual([]);
+    const writes = cacheWrites();
+    expect(writes).toHaveLength(1);
+    expect(writes[0].payload).toEqual({
+      stripe_identity_verified: false,
+      stripe_charges_enabled: false,
+      stripe_payouts_enabled: false,
+    });
+    expect(writes[0].filters).toEqual(
+      expect.arrayContaining([{ op: "eq", column: "stripe_account_id", value: ACCT }]),
+    );
+    expect(writes[0].selectCols).toBe("id");
     expect(noticeTitles()).toEqual([]);
   });
 

@@ -30,6 +30,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { resetStripeMock } from "./mocks/stripe";
 import { jobLocalDateISO } from "../helpers/jobLocalDate";
 
 const CRON_SECRET = "cron-secret";
@@ -38,6 +39,9 @@ async function loadConfigured(): Promise<EdgeHarness> {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "service-key",
+    // Prod has it. Without it the cancellation-fee ledger's Stripe side
+    // (LOW-2) cannot run, which is a degraded run, not a clean one.
+    STRIPE_SECRET_KEY: "sk_test_x",
     CRON_SECRET,
   });
   return loadEdgeFunction("money-reconciliation");
@@ -105,6 +109,7 @@ describe("money-reconciliation edge function", () => {
     resetEnv();
     resetSupabaseMock();
     resetSharedMocks();
+    resetStripeMock();
   });
 
   it("rejects a request without the cron bearer", async () => {

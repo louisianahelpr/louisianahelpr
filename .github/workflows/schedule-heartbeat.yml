@@ -86,6 +86,7 @@ jobs:
           WATCHED="
           a11y-webkit-prod.yml:4
           app-store-reviews.yml:2
+          branch-prune.yml:1
           broken-links.yml:14
           core-loop-canary.yml:1
           db-backup.yml:2
@@ -98,6 +99,7 @@ jobs:
           expiry-monitor.yml:2
           lighthouse.yml:14
           loading-states-refresh.yml:2
+          main-batch.yml:1
           morning-page.yml:2
           nightly-red-age.yml:2
           nightly-webkit.yml:5

@@ -246,7 +246,7 @@ export const RPC_ERROR_COPY = {
   },
   // SeriesDatesPanel — the poster offers the open dates to someone who applied.
   offer_series_dates: {
-    not_an_applicant: "You can offer dates only to someone who applied to this series and is still waiting.",
+    not_an_applicant: "You can offer dates only to someone who applied to this series, or who has finished a job for you before.",
     nothing_to_offer: "Every upcoming date already has a Helpr, so there is nothing to offer.",
     helper_unavailable: "That person's account is restricted right now, so they can't take dates.",
     series_blocked: "You can't offer dates to someone you've blocked or who has blocked you.",

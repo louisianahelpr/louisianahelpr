@@ -18,17 +18,18 @@ export const CI_PASSWORD_ACCOUNTS = Object.freeze({
 });
 
 /**
- * The password to (re)apply for a seed account, or null when CI never signs it
- * in by password. Throws for a CI-password account whose SEED_PASSWORD_<KEY> is
- * unset: creating or keeping it without one silently breaks every CI leg that
- * signs in as it.
+ * The password to (re)apply for a seed account, or null when it is not set.
+ * Throws when about to CREATE a CI-password account with SEED_PASSWORD_<KEY>
+ * unset: the new account would have a password CI does not have. An existing
+ * account is left as it is (CI's own --apply in prod-audit runs without these
+ * variables, and must not fail on an account that already works).
  */
-export function seedPasswordFor(key, env = process.env) {
+export function seedPasswordFor(key, env = process.env, { creating = false } = {}) {
   const name = `SEED_PASSWORD_${key.toUpperCase()}`;
   const pw = env[name];
   if (pw) return pw;
   const secret = CI_PASSWORD_ACCOUNTS[key];
-  if (secret) {
+  if (secret && creating) {
     throw new Error(
       `REFUSED: ${name} is unset. CI signs the "${key}" seed account in with the ${secret} secret; ` +
         `set ${name} to that secret's value, or this --apply leaves the account with a password CI does not have.`,

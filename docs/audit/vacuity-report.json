@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-02T15:20:42.779Z",
-  "guards": 1331,
-  "registered": 1331,
+  "generated": "2026-10-02T15:42:30.863Z",
+  "guards": 1332,
+  "registered": 1332,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -43,6 +43,13 @@
       "file": "src/test/prodSeedGroupJobFixture.test.ts",
       "why": [
         "rows (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/seedApplicationsConflictKey.test.ts",
+      "why": [
+        "calls (literal declared in this file) is both input and oracle",
+        "calls (literal declared in this file) is both input and oracle"
       ]
     }
   ],

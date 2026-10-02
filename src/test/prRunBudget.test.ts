@@ -1,3 +1,4 @@
+// @mutate .github/workflows/secret-scan.yml | branches-ignore: ["land/**"] | branches-ignore: ["bot/**"]
 /**
  * GitHub runs ~20 jobs at once for this account. On 2026-10-01 the queue held
  * 147 runs, 111 of them for 10 open land PRs firing ~13 workflows each. These

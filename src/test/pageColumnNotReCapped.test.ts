@@ -1,3 +1,4 @@
+// @mutate src/pages/posts/BulkDismissBar.tsx | className="mx-auto max-w-xl flex | className="max-w-xl flex
 /**
  * A page's content column fills the column AppPage gives it (owner,
  * 2026-10-01, Applicants: "this content still needs to be wider to fill the

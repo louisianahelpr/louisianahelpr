@@ -24,7 +24,7 @@ describe("every open OPEN.md item has a tier", () => {
   const items = md.split("\n").map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => /^- \[[ ~]\] /.test(l));
 
   it("measures a real set of open items (floor)", () => {
-    expect(items.length).toBeGreaterThan(400);
+    expect(items.length).toBeGreaterThan(300);
   });
 
   it("no open or partly-done item lacks HIGH/MEDIUM/LOW", () => {

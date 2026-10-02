@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-02T05:21Z",
+  "measured_at": "2026-10-02T19:04Z",
   "issues": {
     "readable": true,
     "open": [
@@ -21,15 +21,7 @@
         "title": "nightly-red: prod-audit"
       },
       {
-        "number": 1794,
-        "title": "nightly-red: a11y-webkit-prod"
-      },
-      {
-        "number": 2054,
-        "title": "nightly-red: vacuity"
-      },
-      {
-        "number": 2071,
+        "number": 2121,
         "title": "nightly-red: staleness-watch"
       }
     ]
@@ -54,12 +46,12 @@
         "issue": 1582
       },
       {
-        "fingerprint": "37cccbe58bb354c6d7a1a80e77bd1711",
-        "source_kind": "workflow",
-        "source": "ops-alert-ledger",
+        "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
         "status": "open",
-        "title": "sentry alerts are not synced into the ops alert ledger",
-        "issue": null
+        "title": "nightly-red: staleness-watch",
+        "issue": 2121
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -75,15 +67,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": 2054
-      },
-      {
-        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-real-backend",
-        "issue": null
+        "issue": 2118
       },
       {
         "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
@@ -94,19 +78,27 @@
         "issue": 1719
       },
       {
-        "fingerprint": "6205197429d4e577570e7970d3a22f83",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: a11y-webkit-prod",
-        "issue": 1794
-      },
-      {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
         "source_kind": "workflow",
         "source": "quota-monitor",
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
+        "issue": null
+      },
+      {
+        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: sensitive review record",
+        "issue": 2112
+      },
+      {
+        "fingerprint": "0cc83c6bc20bc0e007e1ce4a5aee88e1",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "auth email hook: bad signature",
         "issue": null
       },
       {
@@ -135,40 +127,20 @@
     "issue #1794": "Q593",
     "issue #1909": "Q787",
     "issue #1921": "Q788",
-    "issue #1938": "Q792",
-    "issue #1941": "Q792",
-    "issue #1957": "Q877",
-    "issue #1969": "Q879",
     "issue #1983": "Q788",
-    "issue #1987": "Q792",
-    "issue #2017": "Q897",
-    "issue #2022": "Q898",
     "issue #2036": "Q906",
     "issue #2054": "Q788",
-    "issue #2071": "Q917",
-    "ledger 02dfc97e2155": "Q907",
+    "issue #2121": "Q787",
     "ledger 0cc83c6bc20b": "Q887",
-    "ledger 1294af1998b4": "Q902",
     "ledger 16e6e91f6701": "Q785",
-    "ledger 18539240a894": "Q877",
     "ledger 2a49e28947cb": "Q916",
-    "ledger 37cccbe58bb3": "Q918",
-    "ledger 3a3460b71be7": "Q879",
     "ledger 43d77e26f272": "Q784",
-    "ledger 4aa239aefeb6": "Q897",
-    "ledger 581b00d7a403": "Q900",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
     "ledger 7e141f206640": "Q783",
     "ledger 88ecf6e765df": "Q788",
-    "ledger 8a5eda1d93db": "Q908",
-    "ledger 90ea19b32968": "Q899",
-    "ledger a3eafa777cb3": "Q901",
     "ledger b75d265e6201": "Q794",
-    "ledger c4738e326802": "Q880",
     "ledger db0fb15c4ec3": "Q787",
-    "ledger e41c806b9175": "Q906",
-    "ledger e49f68d9cbd6": "Q793",
-    "ledger f22e3275d50d": "Q792"
+    "ledger e41c806b9175": "Q906"
   }
 }

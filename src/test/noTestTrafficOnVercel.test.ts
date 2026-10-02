@@ -57,6 +57,8 @@ export const WORKFLOW_EXEMPT: Record<string, string> = {
 export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/uptime-check.mjs": "The uptime probe itself (uptime.yml, exempt above).",
   "scripts/generate-sitemap.mjs": "Writes the domain into sitemap.xml <loc> entries as text; never fetches it.",
+  "scripts/check-identity-linking.mjs":
+    "Checks the Supabase auth redirect allow-list covers the OAuth return URL (Q445); never fetches it.",
   "scripts/asc/fix-review-issues.mjs":
     "Sets the App Store Connect Support URL metadata value Apple reviewers open; never fetches it.",
   "e2e/happy-path/zz-runtime-probe.spec.ts":

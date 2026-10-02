@@ -118,7 +118,7 @@ const MUST_PAGE = [
   /Subscription reconciliation (found|ran degraded)/,
   /Banned identity attempted to re-verify/,
   /Instant-payout fee NOT collected/,
-  /Cancellation-fee payout could not read helper account/,
+  /Cancellation-fee payout not sent/,
 ];
 
 /** The newest definition of notify_slack_on_error_log — the one prod runs. */

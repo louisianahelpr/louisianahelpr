@@ -10,6 +10,7 @@
  * screen. Small caps (max-w-xs/sm/md/lg on a button or lever row) are not
  * page columns and are left alone.
  */
+// @mutate src/pages/jobs/JobDetail.tsx | container mx-auto max-w-md | container mx-auto max-w-2xl
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

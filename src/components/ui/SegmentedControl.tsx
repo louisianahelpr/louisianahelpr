@@ -74,6 +74,9 @@ export interface SegmentedOption<T extends string | number> {
    *     count in the notification panel.
    */
   countTone?: "neutral" | "attention";
+  /** Display form of `count` when it is abbreviated (e.g. "99+"); the pill
+   *  still shows and hides on `count`. */
+  countText?: string;
   /** Spoken form of the count, e.g. "22 users". The digits are then
    *  `aria-hidden`, so the number is announced once and named. */
   countLabel?: string;
@@ -273,7 +276,7 @@ export function SegmentedControl<T extends string | number>({
                       : "segmented-count",
                 )}
               >
-                <span aria-hidden={option.countLabel ? true : undefined}>{option.count}</span>
+                <span aria-hidden={option.countLabel ? true : undefined}>{option.countText ?? option.count}</span>
                 {option.countLabel && <span className="sr-only">{option.countLabel}</span>}
               </span>
             )}

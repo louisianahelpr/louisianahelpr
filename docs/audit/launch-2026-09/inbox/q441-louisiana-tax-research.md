@@ -116,6 +116,8 @@ How to use these codes:
 
 ## Open questions for an LDR ruling or a tax professional
 
+These are tracked in [docs/OPEN.md](../../../OPEN.md) as Q374 (the CPA's answers before launch) and Q441 (the Stripe Tax half). That is the one open-work list, and this section is the research behind it.
+
 1. **Residential cleaning.** Is cleaning a home's interior (immovable property) outside 47:301.3(5)? And where is the line when a job includes carpet or upholstery cleaning, which (5) names?
 2. **Assembly.** Is assembling a customer's own furniture or equipment "repairs and maintenance of tangible personal property" under 47:301.3(7)? Or is it untaxed labor?
 3. **Platform service fee.** When the underlying job is taxable, is the platform's separately stated fee part of the taxable sales price? Why it is unclear: the facilitator-fee language appears only for accommodations and admissions (47:301.3(1),(2)).

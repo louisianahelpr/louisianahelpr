@@ -171,6 +171,8 @@ then delete the entries.
 
 ## Still open
 
+Tracked as Q54 in docs/OPEN.md, with F1 moved to Q782; both are now ticked in docs/archive/OPEN-done-2026-09.md. The list below is what was open on 2026-09-26.
+
 1. Upload MIME allow-lists vs bucket `allowed_mime_types`, as one class guard (the same shape as uploadCapsWithinBucketLimit).
 2. Saved-search radius vs `saved_searches_radius_miles_positive`.
 3. F1 above.

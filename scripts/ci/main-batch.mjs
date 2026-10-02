@@ -30,7 +30,7 @@ export const BATCH_MARK = "(main batch ";
 /** At most one batch per target per this long (cron is every 20 min). */
 export const DEBOUNCE_MS = 15 * 60 * 1000;
 
-/** GitHub's compare API lists at most 300 files; at or past it the list may be truncated. */
+/** GitHub's compare API lists at most 300 files (GitHub REST docs, checked 2026-10-02); at or past it the list may be truncated. */
 export const COMPARE_FILE_CAP = 300;
 
 /** What makes an empty-state sweep worth re-running. Moved verbatim from ui-sweep.yml's old paths-filter step. */

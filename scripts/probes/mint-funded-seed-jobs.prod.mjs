@@ -155,7 +155,7 @@ function tokenFor(account) {
 }
 const ACCOUNT_IDS = {
   poster: "96c9899e-87a2-49e2-bbdd-268717d52aee",
-  helper: "f6cc3ebb-9478-473c-8eb8-62b406f0734f",
+  helper: "f55112c7-612e-44a0-b6aa-443cdfbc33d6",
   "poster-e2e": POSTER,
   "helper-e2e": SEED_HELPER,
 };

@@ -115,7 +115,7 @@ function feeTransfer(over: { id?: string; amount?: number; metadata?: Record<str
   };
 }
 
-function seed(opts: { jobs?: unknown[]; rows?: unknown[]; transfers?: unknown[] } = {}) {
+function seed(opts: { jobs?: Record<string, unknown>[]; rows?: Record<string, unknown>[]; transfers?: unknown[] } = {}) {
   scenario.reads.jobs = { rows: opts.jobs ?? [chargedJob()] };
   scenario.reads.payout_transfers = { rows: [] };
   scenario.reads.disputes = { rows: [] };

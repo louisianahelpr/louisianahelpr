@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-02T05:17:28.540Z",
-  "guards": 1296,
-  "registered": 1295,
+  "generated": "2026-10-02T06:39:08.327Z",
+  "guards": 1297,
+  "registered": 1296,
   "unregistered": [
     "src/test/prRunsCancelSuperseded.test.ts"
   ],
@@ -31,6 +31,7 @@
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
     "src/test/prRunsCancelSuperseded.test.ts",
+    "src/test/pruneLandedBranches.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],

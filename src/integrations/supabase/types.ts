@@ -7063,6 +7063,10 @@ export type Database = {
       }
       ops_alert_verify: { Args: never; Returns: Json }
       ops_route_key: { Args: { p_route: string }; Returns: string }
+      payment_captured: {
+        Args: { j: Database["public"]["Tables"]["jobs"]["Row"] }
+        Returns: boolean
+      }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json

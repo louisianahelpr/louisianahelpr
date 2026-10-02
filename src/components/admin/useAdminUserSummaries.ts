@@ -136,7 +136,7 @@ export function useAdminUserSummaries() {
       .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
       // Q233: a held status without a PaymentIntent is a row nobody charged.
       .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
-      .not("stripe_payment_intent_id", "is", null);
+      .filter("payment_captured", "eq", true);
     if (error) { console.error("[useAdminUserSummaries] loadPaySummary:", error); return; }
     if (!data) return;
     const totals: Record<string, number> = {};

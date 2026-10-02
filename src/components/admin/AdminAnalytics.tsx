@@ -100,7 +100,7 @@ const AdminAnalytics = () => {
       let page = 0;
       const PAGE_SIZE = 999;
       while (true) {
-        const { data, error } = await supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        const { data, error } = await supabase.from("jobs").select(`${JOB_READABLE_COLUMNS}, payment_captured`).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
         if (error) {
           report(error, { tags: { source: "AdminAnalytics.loadJobs" } });
           break;
@@ -259,8 +259,8 @@ const AdminAnalytics = () => {
       // Named columns, not `*`: offered_to_helper_id is not selectable
       // (20260915045110) and `*` would 42501 the whole read.
       let query = supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false });
-      if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null);
-      if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null);
+      if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true);
+      if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true);
       const { data, error } = await query;
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
       setDrillJobs(readableJobRows<Job>(data));

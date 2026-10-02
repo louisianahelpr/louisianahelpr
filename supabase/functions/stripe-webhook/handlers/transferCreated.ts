@@ -1,5 +1,6 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 
 export async function handleTransferCreated(
   event: Stripe.Event,
@@ -8,6 +9,14 @@ export async function handleTransferCreated(
   const transfer = event.data.object as Stripe.Transfer;
   const destAccount = transfer.destination as string;
   logStep("Transfer created", { id: transfer.id, amount: transfer.amount, destination: destAccount });
+
+  // A single-Helpr cancellation fee settles its own ledger
+  // (cancellation_fee_transfers, LOW-2) and nothing else: it is not a job
+  // payout, so it never touches payout_transfers and never flips the job.
+  if (isSingleHelprFeeTransfer(transfer)) {
+    await settleCancellationFeeTransfer(transfer, "paid", { supabase, logStep });
+    return;
+  }
 
   // 1. Update the payout_transfers ledger row (release-payout wrote it
   //    with status='pending'; this is the Stripe-side confirmation).
@@ -56,9 +65,10 @@ export async function handleTransferCreated(
   // 2. Find the helper and associated job.
   // Only flip payment_status to "released" for transfers that have a
   // payout_transfers ledger row. Cancellation-fee transfers issued by
-  // void-cancelled-payments carry job_id in their metadata but never
-  // write a ledger row — using metadata here would incorrectly overwrite
-  // a job's "refunded" status with "released".
+  // void-cancelled-payments carry job_id in their metadata; a single-Helpr fee
+  // returned above (its ledger is cancellation_fee_transfers) and a crew share
+  // has no payout_transfers row, so neither reaches the flip — using metadata
+  // here would incorrectly overwrite a job's "refunded" status with "released".
   const transferJobId = ledgerRow?.job_id;
   const { data: paidHelper } = await supabase
     .from("profiles")

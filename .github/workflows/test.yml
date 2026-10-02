@@ -169,10 +169,13 @@ jobs:
         #   - push to main: a warning. staleness-watch.yml's run for the same
         #     push regenerates main and lands it as bot/refresh/inventories.
         # Any other failure (crash, registry gap) is exit 1 and stays red.
+        # The PR head and base tip are read from the checked-out merge commit's
+        # own parents (HEAD^2, HEAD^1), not from the event payload: this job is
+        # plain pull_request (read-only token, PR-scoped cache) and already runs
+        # the PR's code, and reading the parents keeps CodeQL's untrusted-
+        # checkout query from flagging every later step (#2057, 12 alerts).
         env:
           EVENT: ${{ github.event_name }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BASE_TIP: ${{ github.event.pull_request.base.sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set +e
@@ -185,6 +188,9 @@ jobs:
             echo "::warning::Committed inventories drifted on main (an aggregate count merged from two branches). staleness-watch.yml regenerates and lands bot/refresh/inventories for this push."
             exit 0
           fi
+          git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+          HEAD_SHA=$(git rev-parse "$GITHUB_SHA^2")
+          BASE_TIP=$(git rev-parse "$GITHUB_SHA^1")
           MB=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE_TIP...$HEAD_SHA" --jq .merge_base_commit.sha)
           git fetch --no-tags --depth=1 origin "$HEAD_SHA" "$MB"
           node scripts/check-generated-current.mjs --attribute --head "$HEAD_SHA" --base "$MB"

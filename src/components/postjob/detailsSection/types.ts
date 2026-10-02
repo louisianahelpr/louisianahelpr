@@ -16,7 +16,7 @@ export interface DetailsSectionProps {
   /** Persist a drag-reordered photo list. Indices map to imageFiles. */
   onReorderImages?: (nextOrder: number[]) => void;
   detailsComplete: boolean;
-  /** 0 = open, 1 = ID-verified, 2 = licensed, 3 = licensed + insured.
+  /** 0 = open, 2 = licensed, 3 = licensed + insured.
    *  Only shown for CREDENTIAL_TIER_CATEGORIES; all others stay at 0. */
   credentialTier: number;
   setCredentialTier: (tier: number) => void;

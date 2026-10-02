@@ -137,10 +137,13 @@ const ROWS: Row[] = [
     server: () => range(dbRange("reviews", "rating")),
   },
   {
+    // Equal, not subset (Q906, 2026-10-01): identity is no longer a tier, so
+    // the CHECK admits exactly the picker's 0 / 2 / 3. A value only the
+    // CHECK admits is a job whose lock label the app has no words for.
     id: "credential tier picker (CREDENTIAL_TIERS vs jobs_credential_tier_check)",
-    relation: "subset",
-    client: () => CREDENTIAL_TIERS.map((t) => t.value),
-    server: () => range(dbRange("jobs", "credential_tier")),
+    relation: "equal",
+    client: () => CREDENTIAL_TIERS.map((t) => String(t.value)),
+    server: () => dbEnum("jobs", "credential_tier"),
   },
   {
     id: "push token platform (nativePush persistPushToken vs push_tokens_platform_check)",

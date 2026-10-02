@@ -221,7 +221,7 @@ function readJwt(read, env, root) {
 export function readTls(host, { timeoutMs = 15000, connect = tls.connect } = {}) {
   return new Promise((resolve) => {
     const done = (r) => { try { sock.destroy(); } catch { /* already closed */ } resolve(r); };
-    const sock = connect({ host, port: 443, servername: host, ca: tls.rootCertificates, rejectUnauthorized: false, timeout: timeoutMs }, () => {
+    const sock = connect({ host, port: 443, servername: host, ca: tls.rootCertificates, timeout: timeoutMs }, () => {
       const cert = sock.getPeerCertificate();
       const issuer = cert?.issuer ? [cert.issuer.O, cert.issuer.CN].filter(Boolean).join(" / ") : "unknown issuer";
       if (!sock.authorized) {

@@ -245,11 +245,11 @@ export function ApplicantsPanel({
               rule but reproducing its output one element lower is not keeping
               the rule. The job is already identified by the card the reader
               tapped to get here. */}
-          {/* Capped at iPad-comfortable width — `.page-measure` (AppPage's
-              own column) carries no max-width of its own (see index.css),
-              so a reading/comfort measure like this one caps itself locally
-              rather than stacking a second column width. */}
-          <div className="max-w-2xl mx-auto w-full">
+          {/* Fills AppPage's column (owner, 2026-10-01: "this content still
+              needs to be wider to fill the space"). It was capped at
+              max-w-2xl, a 672px strip at desktop width.
+              Guarded by src/test/pageColumnNotReCapped.test.ts. */}
+          <div className="w-full">
             {applicationsLoading ? (
               /* Loading: 2 skeleton cards matching the real card height */
               <ApplicantsLoadingState />

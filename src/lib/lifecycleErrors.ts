@@ -215,6 +215,7 @@ export const RPC_ERROR_COPY = {
     schedule_change_in_past: "Pick a date and time that are still ahead.",
     schedule_change_same: "That's the date and time the job already has.",
     schedule_change_invalid: "Pick a date for the new time.",
+    schedule_change_clash: "The Helpr already has another booked job at that time. Pick a different time.",
     account_restricted: "Your account is restricted, so you can't ask for changes right now.",
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to ask for a change.",

@@ -7,7 +7,8 @@
  *
  * World: seriesWorld.mjs (the real jobs trigger chain from the newest
  * migrations, the helper column whitelist included). Chain under test:
- * 20260927012804, 20260927012805, 20260927012806, 20260927012807, 3x.
+ * 20260927012804, 20260927012805, 20260927012806, 20260927012807,
+ * 20261002060514 (Q736 clash check), 3x.
  *
  * OLD STATE (20260927012804 only): the poster moves a booked one-time job's
  * date with a plain PATCH (rows=1) and there is no request flow. "OLD STATE RED".
@@ -23,6 +24,7 @@ const CHAIN = [
   "20260927012805_hired_job_schedule_lock.sql",
   "20260927012806_recurring_split_days.sql",
   "20260927012807_job_schedule_change_requests.sql",
+  "20261002060514_schedule_change_refuses_helpr_clash.sql",
 ].map(readMigration);
 const { P, A, X } = USERS;
 const { check, failures, fail } = checker();
@@ -127,6 +129,53 @@ r = await as(db, "authenticated", A, `update public.jobs set date_needed = date_
 check("the Helpr's own PATCH of the date is still refused", !r.ok, r.err);
 
 await db.close();
+
+// ── Q736: a proposed start that overlaps another booking the Helpr holds ──
+// OLD STATE: the chain without 20261002060514 accepts the clashing request.
+{
+  const K = J(30), L = J(31), M = J(32), C = J(33);
+  const seed = `
+    insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, helper_confirmed_at, estimated_hours)
+    values ('${K}', 'Move me', '${P}', '${A}', 'accepted', current_date + 5, '09:00', now(), 2),
+           ('${L}', 'Already booked', '${X}', '${A}', 'accepted', current_date + 9, '13:00', now(), 3),
+           ('${M}', 'Done one', '${X}', '${A}', 'accepted', current_date + 11, '13:00', now(), 3),
+           ('${C}', 'Crew job', '${X}', '${X}', 'accepted', current_date + 12, '08:00', now(), 4);
+    update public.jobs set helper_completed_at = now() where id = '${M}';
+    update public.jobs set is_group_job = true where id = '${C}';
+    insert into public.group_job_helpers (job_id, helper_id, status) values ('${C}', '${A}', 'accepted');`;
+  const ask = (dbx, who, days, time) => as(dbx, "authenticated", who, `select public.request_job_schedule_change('${K}', current_date + ${days}, ${time === null ? "null" : `'${time}'`}) as v`);
+
+  const old = new PGlite();
+  await old.exec(baseSchema("20260927012804"));
+  for (const m of CHAIN.slice(0, -1)) await old.exec(m);
+  await old.exec(seed);
+  const o = await ask(old, P, 9, "14:00");
+  console.log(`-- Q736 OLD STATE ${o.ok ? "RED" : "NOT RED"}: a request onto the Helpr's 13:00-16:00 booking -> ${o.ok ? "accepted as a request" : o.err}`);
+  if (!o.ok) fail();
+  await old.close();
+
+  const cdb = new PGlite();
+  await cdb.exec(baseSchema("20260927012804"));
+  for (let i = 0; i < 3; i++) for (const m of CHAIN) await cdb.exec(m);
+  await cdb.exec(seed);
+  let q = await ask(cdb, P, 9, "14:00");
+  check("Q736: the poster cannot ask for a time inside the Helpr's other booking", refused(q, /schedule_change_clash/), q.err);
+  q = await ask(cdb, A, 9, "12:00");
+  check("Q736: nor the Helpr, when the new job's 2 hours run into it", refused(q, /schedule_change_clash/), q.err);
+  q = await ask(cdb, P, 12, "10:00");
+  check("Q736: a crew seat the Helpr holds counts as booked", refused(q, /schedule_change_clash/), q.err);
+  q = await ask(cdb, P, 9, "16:00");
+  check("Q736: a start right when the other booking ends is allowed", q.ok, q.err);
+  q = await ask(cdb, P, 9, "11:00");
+  check("Q736: a start whose 2 hours end right when it begins is allowed", q.ok, q.err);
+  q = await ask(cdb, P, 11, "14:00");
+  check("Q736: a booking the Helpr has finished does not clash", q.ok, q.err);
+  q = await ask(cdb, P, 9, null);
+  check("Q736: an any-time-that-day request does not clash", q.ok, q.err);
+  q = await ask(cdb, P, 10, "14:00");
+  check("Q736: another day is allowed", q.ok, q.err);
+  await cdb.close();
+}
 
 // ── The Q423 poster lock (20260925231810) and the accept carve-out ────────
 // (20260927012809). The poster lock's locked_when_booked judged the POSTER'S

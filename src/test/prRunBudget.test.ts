@@ -31,6 +31,9 @@ describe("PR run budget", () => {
   }
 
   const BATCHED = ["e2e-real-backend.yml", "ui-sweep.yml"];
+  it("BATCHED names more than one workflow (both heavy, non-required checks)", () => {
+    expect(BATCHED.length).toBeGreaterThan(1);
+  });
   for (const f of BATCHED) {
     it(`${f} runs neither per PR nor per push, only as a main batch`, () => {
       const src = read(f);

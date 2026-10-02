@@ -1700,6 +1700,45 @@ serve(async (req) => {
       // must handle the narrow race window between checkout completion
       // and the webhook setting stripe_payment_intent_id, so none of
       // them should skip the refund just because the column is blank.
+      // Hand the 'cancelling' claim back when this call stops before any money
+      // moved. The claim admits 'escrow' OR an earlier stranded 'cancelling'
+      // (job 36eebad4 is one); putting 'cancelling' back would leave it stuck,
+      // so a re-entered claim goes back to 'escrow' (lh-money-escrow review).
+      const putCancelClaimBack = async (why: string) => {
+        const restoreTo = job.payment_status === "cancelling" ? "escrow" : job.payment_status;
+        const { data: putBack, error: putBackErr } = await supabaseAdmin
+          .from("jobs")
+          .update({ payment_status: restoreTo })
+          .eq("id", jobId)
+          .eq("status", job.status)
+          .eq("payment_status", "cancelling")
+          .select("id");
+        if (putBackErr || !putBack || putBack.length === 0) {
+          console.error(
+            `CRITICAL: [create-payment] cancel_escrow on job ${jobId}: ${why}, and the claim could not be put back (payment_status stays 'cancelling'; no money moved): ${putBackErr?.message ?? "zero rows"}`,
+          );
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Job stuck in 'cancelling' — claim could not be put back",
+            message: `cancel_escrow claimed job ${jobId}, stopped before any refund (${why}), and could not restore payment_status. No money moved. Set payment_status back to '${restoreTo}' by hand.`,
+            fields: { job_id: jobId, restore_to: String(restoreTo), db_error: (putBackErr?.message ?? "zero rows").slice(0, 200) },
+          });
+        }
+      };
+      // A sandbox payment or session seen through the live key: nothing real to
+      // refund, and nothing this call can do about it. Put the claim back (no
+      // money moved) and answer a clear 409 instead of a 500 that strands the
+      // job in 'cancelling' (function_logs 2026-09-30T15:55Z).
+      const refuseTestModeCancel = async (stripeId: string | null) => {
+        await putCancelClaimBack(`Stripe object ${stripeId} is a test-mode object under the live key`);
+        console.error(`[create-payment] cancel_escrow REFUSED on job ${jobId}: ${stripeId} is a Stripe test-mode object and prod runs the live key`);
+        return new Response(JSON.stringify({
+          error: "This job was paid in Stripe test mode, so it can't be refunded here. No money was moved.",
+          testModePayment: true,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      };
+
       let cancelPaymentIntentId = job.stripe_payment_intent_id;
       if (!cancelPaymentIntentId && job.stripe_session_id) {
         try {
@@ -1718,10 +1757,24 @@ serve(async (req) => {
               .eq("id", job.id);
           }
         } catch (sessionErr) {
-          console.warn(
-            `[create-payment] cancel_escrow: could not retrieve session for PI (job ${jobId}):`,
+          // Never cancel without the refund. This catch used to log and carry
+          // on with no PI, so a transient Stripe error here skipped the refund
+          // below and still flipped the job to cancelled: the poster's money
+          // stayed captured on a dead job (docs/OPEN.md Q891 item 3). Now the
+          // claim goes back (no money moved) and the error rethrows, so a retry
+          // re-reads the session; a sandbox session under the live key lands on
+          // the outer catch's 409 floor.
+          console.error(
+            `[create-payment] cancel_escrow: could not retrieve session for PI (job ${jobId}); claim put back, nothing refunded or cancelled:`,
             sessionErr,
           );
+          // Escrow-only: a re-entered 'cancelling' job may already have been
+          // refunded by an earlier run (the gift-restore exit below leaves it
+          // 'cancelling' after the refund), so writing 'escrow' back would make
+          // gone money read as funded. It stays 'cancelling' (re-claimable,
+          // and money-reconciliation's cancelling_stranded re-reports it).
+          if (job.payment_status === "escrow") await putCancelClaimBack(`session ${job.stripe_session_id} could not be read`);
+          throw sessionErr;
         }
       }
 
@@ -1732,39 +1785,14 @@ serve(async (req) => {
             expand: ["latest_charge.balance_transaction"],
           });
         } catch (piErr) {
-          if (!isTestObjectUnderLiveKey(piErr)) throw piErr;
-          // A sandbox payment seen through the live key: nothing real to
-          // refund, and nothing this call can do about it. Put the claim back
-          // (no money moved) and answer a clear 409 instead of a 500 that
-          // strands the job in 'cancelling' (function_logs 2026-09-30T15:55Z).
-          // The claim admits 'escrow' OR an earlier stranded 'cancelling' (job
-          // 36eebad4 is one); putting 'cancelling' back would leave it stuck,
-          // so a re-entered claim goes back to 'escrow' (lh-money-escrow review).
-          const restoreTo = job.payment_status === "cancelling" ? "escrow" : job.payment_status;
-          const { data: putBack, error: putBackErr } = await supabaseAdmin
-            .from("jobs")
-            .update({ payment_status: restoreTo })
-            .eq("id", jobId)
-            .eq("status", job.status)
-            .eq("payment_status", "cancelling")
-            .select("id");
-          if (putBackErr || !putBack || putBack.length === 0) {
-            console.error(
-              `CRITICAL: [create-payment] cancel_escrow on job ${jobId}: test-mode payment ${cancelPaymentIntentId} under the live key, and the claim could not be put back (payment_status stays 'cancelling'; no money moved): ${putBackErr?.message ?? "zero rows"}`,
-            );
-            await postSlackOpsAlert({
-              kind: "money_at_risk",
-              severity: "critical",
-              title: "Job stuck in 'cancelling' — test-mode payment, claim could not be put back",
-              message: `cancel_escrow claimed job ${jobId}, found its payment ${cancelPaymentIntentId} is a Stripe test-mode object under the live key, and could not restore payment_status. No money moved. Set payment_status back to '${restoreTo}' by hand.`,
-              fields: { job_id: jobId, restore_to: String(restoreTo), db_error: (putBackErr?.message ?? "zero rows").slice(0, 200) },
-            });
+          if (!isTestObjectUnderLiveKey(piErr)) {
+            // Same escrow-only rule as the session read above.
+            if (job.payment_status === "escrow") {
+              await putCancelClaimBack(`payment ${cancelPaymentIntentId} could not be read`);
+            }
+            throw piErr;
           }
-          console.error(`[create-payment] cancel_escrow REFUSED on job ${jobId}: payment ${cancelPaymentIntentId} is a Stripe test-mode object and prod runs the live key`);
-          return new Response(JSON.stringify({
-            error: "This job was paid in Stripe test mode, so it can't be refunded here. No money was moved.",
-            testModePayment: true,
-          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+          return await refuseTestModeCancel(cancelPaymentIntentId);
         }
         if (pi.status === "succeeded") {
           // Service fee is non-refundable: Stripe already took its cut on the

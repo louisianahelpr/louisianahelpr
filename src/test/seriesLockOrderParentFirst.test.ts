@@ -40,7 +40,7 @@ function newestBody(fn: string): { f: string; body: string } | null {
 
 // First lock of the series parent and first lock of a visit row, by position.
 const PARENT_LOCK: Record<string, RegExp> = {
-  helper_cancel_booking: /PERFORM\s+1\s+FROM\s+public\.jobs\s+pj\s+WHERE\s+pj\.id\s*=\s*\(\s*SELECT\s+c\.parent_job_id[\s\S]*?\)\s*FOR\s+UPDATE/i,
+  helper_cancel_booking: /PERFORM\s+1\s+FROM\s+public\.jobs\s+pj\s+WHERE\s+pj\.id\s*=\s*\(\s*SELECT\s+c\.parent_job_id[^;]*?\)\s*FOR\s+UPDATE/i,
   claim_series_dates: /FROM\s+public\.jobs\s+j\s+WHERE\s+j\.id\s*=\s*p_job_id\s+FOR\s+UPDATE/i,
 };
 const VISIT_LOCK: Record<string, RegExp> = {

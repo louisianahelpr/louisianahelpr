@@ -1,10 +1,8 @@
 {
-  "generated": "2026-10-02T09:29:37.496Z",
-  "guards": 1327,
-  "registered": 1326,
-  "unregistered": [
-    "src/test/storageExt.test.ts"
-  ],
+  "generated": "2026-10-02T09:55:16.926Z",
+  "guards": 1328,
+  "registered": 1328,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",

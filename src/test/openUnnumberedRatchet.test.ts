@@ -4,7 +4,7 @@
  *
  * A `- [ ] ` line with no **Q<n>** was counted by NOTHING: not the queue-count
  * line, not the scoreboard block, not the session-start hook. On 2026-10-02
- * origin/main held 265 of them (672ffe2e7: 261) beside "178 open" — more
+ * origin/main 672ffe2e7 held 261 of them beside "178 open" — more
  * untracked open work than tracked. queue-count.mjs and the scoreboard now
  * name them; this pins the number EXACTLY so it can only fall, and falls in
  * the same commit that numbers or ticks one.
@@ -14,7 +14,7 @@
  * the next free) or below it (you numbered some: lower the constant to the
  * printed count in the same commit). land.sh runs this after every rebase.
  */
-// @mutate scripts/queue-count.mjs |   return md.split("\n").filter((l) => /^- \[[ ~]\] /.test(l) && !/^- \[[ ~]\] \*\*Q\d+\b/.test(l)); |   return [];
+// @mutate scripts/queue-count.mjs | OPEN_LINE.test(l) && !NUMBERED_LINE.test(l) | OPEN_LINE.test(l) && false
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";
 // @ts-expect-error — plain .mjs module, no declaration file

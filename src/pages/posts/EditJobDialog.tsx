@@ -60,6 +60,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [location, setLocation] = useState("");
   const [dateNeeded, setDateNeeded] = useState("");
   const [startTime, setStartTime] = useState("");
+  const [isFlexible, setIsFlexible] = useState(false);
   const [, setBudget] = useState("");
   const [specialReq, setSpecialReq] = useState("");
   const [requirePhotoProof, setRequirePhotoProof] = useState(true);
@@ -76,6 +77,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       setLocation(job.location || "");
       setDateNeeded(job.date_needed || "");
       setStartTime(job.start_time || "");
+      setIsFlexible(job.is_flexible_schedule ?? false);
       setBudget(job.budget?.toString() || "");
       setSpecialReq(job.special_requirements || "");
       // `?? true` mirrors the column's own NOT NULL DEFAULT, so a row read by a
@@ -87,6 +89,13 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const save = async () => {
     if (!job) return;
+    // Same rule as the post wizard and the jobs_start_time_required CHECK: a
+    // job names a start time or is flexible. Said here instead of letting the
+    // server refuse the row with a constraint error.
+    if (!isFlexible && !startTime) {
+      toast.error("Pick a start time, or mark the schedule as flexible.");
+      return;
+    }
     setSaving(true);
     const scheduleChanged =
       dateNeeded !== (job.date_needed || "") || startTime !== (job.start_time || "");
@@ -95,6 +104,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       // The Select below offers only `categories` values (the job_category enum).
       category: category as Database["public"]["Enums"]["job_category"],
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
+      // Editable after posting (2026-10-02). It was never written here, so a
+      // poster who forgot the box at post time had to delete and repost.
+      is_flexible_schedule: isFlexible,
       special_requirements: specialReq.trim() || null,
       require_photo_proof: requirePhotoProof,
       // Moving the schedule MUST move the listing expiry with it. It didn't:
@@ -139,6 +151,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     location !== (job.location || "") ||
     dateNeeded !== (job.date_needed || "") ||
     startTime !== (job.start_time || "") ||
+    isFlexible !== (job.is_flexible_schedule ?? false) ||
     specialReq !== (job.special_requirements || "")
   );
 
@@ -243,6 +256,25 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <div className="space-y-1.5">
               <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Start time</Label>
               <TimePickerWheel value={startTime} onChange={setStartTime} disabled={hasHelper} />
+            </div>
+            {/* Same control shape as the photo-proof row below, same copy as
+                the post wizard's Flexible Schedule box (LogisticsSection). */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <Label htmlFor="edit-flexible-schedule" className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  Flexible schedule
+                </Label>
+                <p className="text-ds-11 mt-1 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  Any time that day works. Leave Start Time blank, or set one the Helpr can shift either way.
+                </p>
+              </div>
+              <Switch
+                id="edit-flexible-schedule"
+                checked={isFlexible}
+                onCheckedChange={setIsFlexible}
+                disabled={hasHelper}
+                aria-label="Flexible schedule"
+              />
             </div>
           </section>
 

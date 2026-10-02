@@ -111,12 +111,24 @@ serve(async (req) => {
     // are recorded in the last hour, further clears are refused ("failed",
     // nothing changes) and ops is paged. A failed count also refuses: this
     // check guards a destructive write, so it fails closed.
+    // Only server-written rows count: error_logs takes inserts from anon and
+    // authenticated clients (client error reporting), and a client keeps its
+    // own tags.source/kind, so without this filter a signed-out visitor could
+    // post five forged rows an hour and hold the breaker shut for everyone.
+    // stamp_error_log_origin (BEFORE INSERT trigger) sets tags.origin to
+    // 'server' only for non-client roles and overwrites it to 'client' for
+    // anon/authenticated, so a client cannot claim it.
+    // Not atomic: the count and the clear are separate statements, so
+    // concurrent requests can overshoot the cap by however many run at once,
+    // and a clear whose record insert fails (below) is not counted. Both are
+    // accepted: this detects a wrong key, it is not an exact quota.
     const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { count: recentClears, error: countErr } = await supabaseAdmin
       .from("error_logs")
       .select("id", { count: "exact", head: true })
       .eq("tags->>source", "stripe-connect")
       .eq("tags->>kind", STALE_CLEAR_KIND)
+      .eq("tags->>origin", "server")
       .gte("created_at", sinceIso);
     if (countErr || recentClears === null || recentClears === undefined) {
       console.error(

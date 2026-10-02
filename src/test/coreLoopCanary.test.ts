@@ -208,4 +208,11 @@ describe("core-loop canary: a ghost run never stands it down", () => {
   it("a run in progress past the 10 h a real run can last does not (36796252514, 14 h)", () => {
     expect(holdsAccounts(run("workflow_dispatch", 14 * 3_600_000), now)).toBe(false);
   });
+  // 2026-10-02: e2e-real-backend's push leg became a dispatched main batch
+  // (scripts/ci/main-batch.mjs). Its account jobs are gated off inputs.batch.
+  it("a main-batch dispatch never does; a manual dispatch still does", () => {
+    const batch = { ...run("workflow_dispatch", 60_000), display_title: "E2E real backend (main batch 0123abcd)" };
+    expect(holdsAccounts(batch, now)).toBe(false);
+    expect(holdsAccounts({ ...batch, display_title: "E2E real backend" }, now)).toBe(true);
+  });
 });

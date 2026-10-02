@@ -1,3 +1,4 @@
+// @mutate scripts/release-gate.mjs | .filter((r) => !String(r.displayTitle ?? "").includes("(main batch ")) | .filter(Boolean)
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -123,6 +124,13 @@ describe("release gate verdicts", () => {
     const e2e = v.find((x) => x.id === "e2e-real-backend");
     expect(e2e?.state).toBe("hollow");
     expect(e2e?.jobs).toEqual(["Authenticated journeys (real account)=skipped"]);
+  });
+
+  it("a newer main batch (anon tier by design) does not supersede a full run of the sha", () => {
+    const batchRun = { ...run("E2E real backend", "success", "completed", 77, "2026-09-12T09:00:00Z"), displayTitle: `E2E real backend (main batch ${SHA})` };
+    const jobs = (id: number) => (id === 77 ? [{ name: "Authenticated journeys (real account)", conclusion: "skipped" }] : allGreenJobs());
+    const v = evaluate(SHA, [batchRun, ...green], jobs) as { id: string; state: string }[];
+    expect(v.find((x) => x.id === "e2e-real-backend")?.state).toBe("green");
   });
 
   it("RUNNING while a run is in flight and nothing completed", () => {

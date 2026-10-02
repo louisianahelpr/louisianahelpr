@@ -1,0 +1,77 @@
+name: Main batch dispatch
+
+# Owner, 2026-10-02: stay on GitHub Free (20 concurrent jobs) and trim CI so
+# the required checks stop queueing (44 runs queued, ~15 workflows per push to
+# main, measured that day).
+#
+# The heavy NON-required checks of main (e2e-real-backend's anon surface and
+# ui-sweep's empty-state sweep) no longer run on every push. This dispatcher
+# runs on push and every 20 minutes -- the prod-deploy.yml pattern -- and
+# dispatches each target with `batch: true` only when main HEAD has moved past
+# the target's last batch AND that batch is at least 15 minutes old (ui-sweep
+# also needs a UI path to have changed). So main HEAD is checked within ~20
+# minutes of any push, at most one batch per target per ~15-20 minutes.
+#
+# The decision lives in scripts/ci/main-batch.mjs (unit-tested by
+# src/test/mainBatch.test.ts). A batch run is titled "(main batch <sha>)":
+# main-red-watch.yml reports its failures like the push runs it replaced, and
+# the shared-accounts lock ignores it (anon-surface touches no account).
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+# One dispatcher at a time: two concurrent decisions could both see "no batch
+# for HEAD yet" and dispatch twice.
+concurrency:
+  group: main-batch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Dispatch main batches
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # Fails closed: any gh API error throws and turns this job red.
+      - name: Decide and dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/ci/main-batch.mjs
+
+  # A dead dispatcher would silently stop the checks above. Push failures are
+  # reported by main-red-watch.yml; scheduled ones open a nightly-red issue,
+  # and a manual dispatch can close it (nightlyIssueSyncReachable.test.ts).
+  notify:
+    name: Report main batch dispatch
+    needs: [dispatch]
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: main-batch
+          status: ${{ needs.dispatch.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

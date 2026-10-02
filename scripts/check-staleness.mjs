@@ -178,7 +178,7 @@ export function checkScoreboardLive(text, now, liveAgeHours) {
  * ways by a scheduled browser run is current while that run keeps passing.
  */
 export const WORKFLOW_BOUND = [
-  // ui-sweep.yml runs on every push too, in a DIFFERENT mode (empty-state);
+  // ui-sweep.yml also runs as a main batch (main-batch.yml), in a DIFFERENT mode (empty-state);
   // any green run is a proxy, not the thing. Only the Friday 05:00 UTC cron
   // resolves to the overlay sweep, so only a scheduled Friday success counts.
   { file: "e2e/happy-path/overlay-sweep.baseline.json", workflow: "ui-sweep.yml", branch: "main", event: "schedule", weekdayUtc: 5, maxDays: 8 },

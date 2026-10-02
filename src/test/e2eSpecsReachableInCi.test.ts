@@ -664,7 +664,20 @@ describe("CI crosses the mock boundary", () => {
     // `pull_request` is dormant in a repo that commits directly to main — the
     // exact way migration-guard, migration-lint and db-smoke sat inert here.
     const triggers = src.slice(src.indexOf("\non:"), src.indexOf("\njobs:"));
-    expect(triggers, "e2e-real-backend.yml must fire on push to main").toMatch(/push:\s*\n\s*branches:\s*\[main\]/);
+    //
+    // 2026-10-02 (owner: stay on GitHub Free): it no longer fires on push
+    // itself. main-batch.yml fires on push to main (and every 20 min) and
+    // dispatches it with batch=true for main HEAD (scripts/ci/main-batch.mjs),
+    // and the anon leg runs on that batch. So the trigger chain is pinned
+    // end to end: dispatcher on push -> this file in its targets -> this file
+    // dispatchable with the batch input.
+    const batchSrc = readFileSync(join(WORKFLOWS, "main-batch.yml"), "utf8");
+    const batchTriggers = batchSrc.slice(batchSrc.indexOf("\non:"), batchSrc.indexOf("\njobs:"));
+    expect(batchTriggers, "main-batch.yml must fire on push to main").toMatch(/push:\s*\n\s*branches:\s*\[main\]/);
+    expect(readFileSync(join(REPO, "scripts/ci/main-batch.mjs"), "utf8"), "main-batch.mjs no longer dispatches e2e-real-backend.yml").toMatch(
+      /\{ file: "e2e-real-backend\.yml"/,
+    );
+    expect(triggers, "e2e-real-backend.yml must accept the main batch dispatch").toMatch(/workflow_dispatch:\s*\n\s*inputs:\s*\n(?:.*\n)*?\s*batch:\s*\n/);
 
     // And the anon leg specifically must not be conditioned on a secret.
     //

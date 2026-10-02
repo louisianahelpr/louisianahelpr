@@ -81,6 +81,7 @@ CREATE TRIGGER cancellation_fee_transfers_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 ALTER TABLE public.cancellation_fee_transfers ENABLE ROW LEVEL SECURITY;
+SELECT public.attach_unconfirmed_email_gate();
 
 REVOKE ALL ON TABLE public.cancellation_fee_transfers FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.cancellation_fee_transfers TO service_role;

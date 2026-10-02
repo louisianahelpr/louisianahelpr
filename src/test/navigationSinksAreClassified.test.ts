@@ -117,6 +117,7 @@ const CLASSIFIED: Record<string, string> = {
   "components/admin/AdminCredentialQueue.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",
   "components/admin/AdminCredentialQueue.tsx::url": "SignedOpenLink's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
   "components/admin/AdminSupport.tsx::url": "ViewScreenshotButton's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
+  "components/admin/userDetail/DocumentsTab.tsx::url": "SignedPortfolioTile's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
   "lib/openSignedDocument.ts::url": STORAGE_SIGNED + " (Q295: deps.sign() is SignedOpenLink's createSignedUrl behind isStorageObjectPath; null closes the tab)",
   "components/profile/CredentialsTab.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",
   "components/profile/CredentialsTab.tsx::signed.signedUrl": STORAGE_SIGNED,

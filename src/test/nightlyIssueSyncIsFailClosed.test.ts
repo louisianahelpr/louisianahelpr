@@ -59,8 +59,9 @@ describe("nightly-issue-sync reports are fail-closed", () => {
         /* Only a verdict read off `needs.<job>.result` carries this hazard: a
            job result has four values and two of them (skipped, cancelled) mean
            "did not run". `uptime.yml` keys off `steps.probe.outputs.status`,
-           which is a two-valued signal its own step just produced — not a leg
-           that can quietly vanish — so it is correctly not in scope here. */
+           which is a signal its own step just produced (up|empty|down, and
+           anything else, including unset, is a failure) — not a leg that can
+           quietly vanish — so it is correctly not in scope here. */
         if (!trimmed.includes("needs.")) continue;
 
         /* The tell is `contains(needs.…)` deciding the verdict, or any

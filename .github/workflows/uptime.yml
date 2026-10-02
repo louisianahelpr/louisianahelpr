@@ -24,6 +24,17 @@ name: Uptime
 # one pending run per group, so a 10-minute monitor sitting in prod-load would
 # silently cancel whatever heavy suite is queued behind an overrunning one.
 #
+# THREE VERDICTS (owner, 2026-10-02, "Split the alert until launch"):
+#   up     -> closes the prod-down issue
+#   down   -> the site or the database is not answering: prod-down issue,
+#             critical ledger item, Slack, red run
+#   empty  -> both answer, but open_jobs_browse has ZERO rows (no funded job
+#             before launch). NOT an outage, and NOT up either: it records its
+#             own WARNING ledger item on every such run, which stays open until
+#             a run finds rows. The launch checklist in docs/OPEN.md flips
+#             EMPTY_IS_WARNING_BEFORE_LAUNCH in scripts/uptime-check.mjs so empty
+#             is down again.
+#
 # TWO CONSECUTIVE FAILURES, not one — the script probes up to three rounds 30s
 # apart and reports down only when two consecutive rounds fail, so one dropped
 # connection never pages anyone. On success it stops after round 1 (2 requests).
@@ -105,11 +116,13 @@ jobs:
           workflow-name: uptime
           label: prod-down
           label-description: "Production is not answering; auto-opened and auto-closed by the uptime check"
-          # FAIL-CLOSED: only an explicit `up` closes the issue. The old form
-          # asked `== 'down'` and defaulted to success, so a probe that CRASHED
-          # (unset output) reported the site healthy. A monitor must never go
-          # quiet at the moment it breaks — an unknown verdict is a failure.
-          status: ${{ steps.probe.outputs.status == 'up' && 'success' || 'failure' }}
+          # FAIL-CLOSED: only an explicit `up` or `empty` closes the issue (the
+          # site and the database both answered; `empty` keeps its own warning
+          # item below). The old form asked `== 'down'` and defaulted to
+          # success, so a probe that CRASHED (unset output) reported the site
+          # healthy. A monitor must never go quiet at the moment it breaks — an
+          # unknown verdict is a failure.
+          status: ${{ (steps.probe.outputs.status == 'up' || steps.probe.outputs.status == 'empty') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           body-extra: ${{ steps.report.outputs.body }}
@@ -141,6 +154,22 @@ jobs:
           ${RUN_URL}"
           curl -sS --fail-with-body -X POST -H 'content-type: application/json' \
             --data "$(jq -nc --arg t "$TEXT" '{text:$t}')" "$SLACK_WEBHOOK_URL"
+
+      # The empty marketplace is a WARNING, never folded into "up": recorded on
+      # every empty run, so the item's last_seen always postdates the run's
+      # start and the ledger's sync cannot close it until a run finds rows.
+      - name: Record the empty marketplace (warning)
+        if: steps.probe.outputs.status == 'empty'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUMMARY: ${{ steps.probe.outputs.summary }}
+        run: |
+          echo "::warning::${SUMMARY}"
+          node scripts/ops-alert-ledger.mjs record --source "uptime" --source-kind workflow \
+            --title "Guest marketplace is empty: no funded jobs (pre-launch)" --severity warning \
+            --verify-ref "uptime.yml" --sample "${SUMMARY}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
 
       - name: Fail the run while prod is down
         if: steps.probe.outputs.status == 'down'

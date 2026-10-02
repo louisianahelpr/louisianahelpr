@@ -167,6 +167,7 @@ const SWALLOW_OK: Allow[] = [
   { file: ".github/workflows/supabase-usage.yml", match: "Summary :: cat ", reason: "copies a report into the step summary; the usage verdict is decided by the measuring steps above" },
   { file: ".github/workflows/test.yml", match: "git fetch --no-tags --depth=1 origin \"$BASE\"", reason: "a failed fetch is followed by `git cat-file -e` on the base; if it is still missing the step checks the WHOLE tree (--all) instead of the diff — failing toward more checking" },
   { file: ".github/workflows/uptime.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
+  { file: ".github/workflows/uptime.yml", match: "Record the empty marketplace (warning) :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/actions/nightly-issue-sync/action.yml", match: "gh label create", reason: "creates a label that already exists on every run after the first; the issue open/close that follows fails loudly on its own" },
   { file: ".github/actions/nightly-issue-sync/action.yml", match: "OPENED_AT=$(gh issue view", reason: "only feeds the optional >24h 'stale' escalation label; nightly-red-age.yml independently reads createdAt and fails on age, so a missed label is not a missed red" },
   { file: ".github/actions/nightly-issue-sync/action.yml", match: "OPENED_S=$(date -u -d", reason: "portable date parse (GNU then BSD) for the same optional stale label as OPENED_AT; age is gated independently by nightly-red-age.yml" },

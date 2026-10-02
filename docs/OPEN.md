@@ -1139,6 +1139,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] HIGH At the same moment: retarget the Stripe webhook-endpoint check (scripts/check-stripe-webhook*, now fail-closed on 0 endpoints; Q52 area 3) and money-reconciliation's Stripe reads to the LIVE key/account, and confirm both run green against live. The sandbox green does not carry over.
 - [ ] MEDIUM Set EMPTY_MARKETPLACE_ALLOWED_BEFORE_LAUNCH to false in scripts/e2e/anon-surface-contract.mjs, so an empty guest browse fails again (owner 2026-10-01: prod stays empty of test jobs until launch)
+- [ ] **Q1131 MEDIUM** Set EMPTY_IS_WARNING_BEFORE_LAUNCH to false in scripts/uptime-check.mjs (or set UPTIME_EMPTY_IS_DOWN=1 on uptime.yml), so an empty guest marketplace pages as a critical DOWN again instead of the pre-launch warning (owner 2026-10-02, "Split the alert until launch"). GUARD: src/test/uptimeEmptyIsNotDown.test.ts.
 - [ ] LOW Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) — Hide seed/demo jobs publicly (seed_jobs_hidden_publicly()) (archive L5631)
 - [ ] MEDIUM OWNER (App Store Connect > App Privacy, before the next submission): mark Product Interaction and Crash Data as "Linked to You" (CS-004, 2026-09-24). The app's PrivacyInfo.xcprivacy now says linked, because PostHog identify() sends the user id and Sentry setUser() sends id + email; Apple compares the label to the manifest.
 

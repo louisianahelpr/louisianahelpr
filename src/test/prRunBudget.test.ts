@@ -4,6 +4,7 @@
  * 147 runs, 111 of them for 10 open land PRs firing ~13 workflows each. These
  * heavy, non-required workflows therefore run on push to main, not per PR.
  */
+// @mutate .github/workflows/secret-scan.yml | branches-ignore: ["land/**"] | branches-ignore: []
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";

@@ -436,6 +436,36 @@ describe("subscription-reconciliation ?include_seed=1", () => {
     expect(paging()).toHaveLength(1);
   });
 
+  // @mutate supabase/functions/subscription-reconciliation/index.ts | notes.some((n) => n !== dryRunNote) \|\| caps.length > 0 | notes.some((n) => n !== dryRunNote)
+  // @mutate supabase/functions/subscription-reconciliation/index.ts | if (caps.length) degradedFields.partial_scans = caps.join(" \| "); | void 0;
+  // @mutate supabase/functions/subscription-reconciliation/index.ts | if (caps.length) fields.partial_scans = caps.join(" \| "); | void 0;
+  it("Q842: a partial (capped or unreadable) scan with no drift still posts 'ran degraded', naming the scan", async () => {
+    // Before Q842 the degraded post read only `notes`, so a truncated Stripe
+    // scan with no drift reported nothing at all.
+    scenario.reads.profiles = { rows: [] };
+    const fn = await load();
+    (stripeMock as unknown as { prices: { list: unknown } }).prices.list = vi.fn(async () => {
+      throw new Error("stripe list down");
+    });
+    const res = await fn.fetch(cron(fn, URL_SEED));
+    const degraded = paging().filter((a) => a.title === "Subscription reconciliation ran degraded");
+    expect(degraded, "a partial scan reported clean").toHaveLength(1);
+    expect(String(degraded[0].fields?.partial_scans)).toContain("active Price list could not be read");
+    expect(res.status).toBe(500);
+  });
+
+  it("Q842: drift found on a partial scan says the scan was partial too", async () => {
+    scenario.reads.profiles = { rows: [neverLapsing("u-real", false)] };
+    const fn = await load();
+    (stripeMock as unknown as { prices: { list: unknown } }).prices.list = vi.fn(async () => {
+      throw new Error("stripe list down");
+    });
+    await fn.fetch(cron(fn, URL_SEED));
+    const found = paging().filter((a) => String(a.title).startsWith("Subscription reconciliation found"));
+    expect(found).toHaveLength(1);
+    expect(String(found[0].fields?.partial_scans)).toContain("active Price list could not be read");
+  });
+
   it("a clean DRY run posts nothing — the dry-run note is a mode, not a degradation", async () => {
     // Without this, fixing the seed routing would turn a seed-only dry run
     // into a "ran degraded" page (its findings no longer set `worst`).

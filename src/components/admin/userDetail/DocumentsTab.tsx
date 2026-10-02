@@ -47,7 +47,7 @@ function SignedPortfolioTile({ path, fileName }: { path: string; fileName: strin
       type="button"
       onClick={open}
       disabled={busy}
-      className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors disabled:opacity-50"
+      className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 ctl-tint disabled:opacity-50"
     >
       {busy ? <Loader2 className="w-6 h-6 text-muted-foreground mb-1 animate-spin" /> : <FileText className="w-6 h-6 text-muted-foreground mb-1" />}
       <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>

@@ -193,7 +193,6 @@
     "scripts/check-trigger-timing.mjs :: ion.sql> [...] * Exits 1 on a violation",
     "scripts/check-types-fresh.mjs :: d-of-line anchor: 51 of 151 functions",
     "scripts/ci/guest-listing-horizon.mjs :: * Transcribed from step 2 of the cron",
-    "scripts/e2e/README.md :: f3f` | | Audit Weblane (2 jobs",
     "scripts/e2e/README.md :: oster (main E2E poster, 66 jobs",
     "scripts/e2e/prod-audit-sweeper.mjs :: is one test really left 50+ rows",
     "scripts/lib/storageOrphans.mjs :: `storage orphan sweep: 0 files",

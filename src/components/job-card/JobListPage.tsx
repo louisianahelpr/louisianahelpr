@@ -348,7 +348,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   });
 
   // Status-filter definitions + memoized list/count derivations.
-  const { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts } =
+  const { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts, postedSearchCounts, appliedSearchCounts } =
     useActivityFilters({
       postedJobs,
       appliedApps,
@@ -416,6 +416,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
+  const activeSearchCounts = tab === "posted" ? postedSearchCounts : appliedSearchCounts;
 
   /* NO AUTO-TAB-SWITCH. The tab you are on is the tab you chose.
 
@@ -590,6 +591,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               statusFilter={statusFilter}
               hasSearch={!!searchQuery.trim()}
               statusCounts={activeCounts}
+              searchMatchCounts={activeSearchCounts}
               statusLabels={activeStatusFilters}
               onRetry={refresh}
               onNavigate={navigate}

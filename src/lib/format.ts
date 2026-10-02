@@ -33,6 +33,16 @@
  * number the poster typed, not money owed to anyone) and `formatPriceExact`
  * for breakdowns that must visibly add up.
  */
+/**
+ * The display form of an unread count wherever it is shown as a badge or a
+ * count pill: the digits up to 99, then "99+". One function so the bell and
+ * the notification panel's Unread segment cannot abbreviate differently (the
+ * bell said "99+" while the segment printed the true total).
+ */
+export function formatUnreadBadge(n: number): string {
+  return n > 99 ? "99+" : String(n);
+}
+
 export function formatPriceFloor(amount: number): string {
   if (!Number.isFinite(amount)) return "0";
   // Round to a whole cent BEFORE flooring, exactly as the transfer does

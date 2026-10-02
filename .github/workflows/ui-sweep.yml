@@ -82,8 +82,9 @@ permissions:
 # UI-relevant changed, so backend-only and docs-only commits cost ~nothing.
 
 on:
-  pull_request:
-    branches: [main]
+  # No pull_request trigger (owner, 2026-10-01): ~10 open PRs x ~13 workflows
+  # queued 147 runs behind GitHub's ~20-job cap. Runs on push to main instead.
+  # Guarded by src/test/prRunBudget.test.ts.
   push:
     branches: [main]
   schedule:

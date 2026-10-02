@@ -1,4 +1,5 @@
 // @mutate scripts/scoreboard.mjs | if (ageDays(last.updatedAt ?? last.createdAt, now) > MAX_RUN_AGE_DAYS) return "STALE"; | if (false) return "STALE";
+// @mutate scripts/scoreboard.mjs | p.push(...openLiveStampProblems(sb, open)); | void 0;
 /*
  * THE SCOREBOARD NEVER SHOWS GREEN FOR SOMETHING IT DID NOT MEASURE (Q59).
  *
@@ -52,6 +53,18 @@ describe("the committed scoreboard is well-formed", () => {
     expect(sb.shapeProblems(planted("| CI | x | **GREEN** | — | — | — | — | 2026-09-23T00:00Z | — | — |"), open).join()).toMatch(/not one of/);
     expect(sb.shapeProblems(planted("| CI | x | **PASS** | — | — | — | — | — | — | — |"), open).join()).toMatch(/no measured-at/);
     expect(sb.shapeProblems(board, open.replace(sb.EO_START, ""))).not.toEqual([]);
+  });
+
+  it("OPEN.md's live header lines carry the scoreboard's live stamp (none frozen behind its siblings)", () => {
+    const stamps = [...open.matchAll(/^- \*\*(Workflows on main|Remote branches):\*\*.*_\((\d{4}-\d\d-\d\dT\d\d:\d\dZ)\)_$/gm)];
+    expect(stamps.length).toBe(2);
+    expect(sb.openLiveStampProblems(board, open)).toEqual([]);
+    // RED: one line frozen at an old stamp while its sibling and SCOREBOARD moved on
+    const frozen = open.replace(/(- \*\*Remote branches:\*\*.*_\()\d{4}-\d\d-\d\dT\d\d:\d\dZ(\)_)/, "$12026-09-23T06:08Z$2");
+    expect(sb.shapeProblems(board, frozen).join()).toMatch(/"Remote branches" is stamped 2026-09-23T06:08Z, older than its siblings/);
+    // RED: both OPEN lines frozen behind a newer SCOREBOARD live stamp
+    const bothOld = open.replace(/_\(\d{4}-\d\d-\d\dT\d\d:\d\dZ\)_/g, "_(2026-09-23T06:08Z)_");
+    expect(sb.openLiveStampProblems(board, bothOld)).toHaveLength(2);
   });
 });
 

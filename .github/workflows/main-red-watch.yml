@@ -47,6 +47,10 @@ on:
       - Vacuity
       - Vitest
     types: [completed]
+    # Only main. Without this, every PR run of every watched workflow started a
+    # run here that did nothing (the job's `if` skipped it): ~1,700 empty runs
+    # on 2026-10-01, all waiting in the same queue as the required checks.
+    branches: [main]
 
 permissions:
   issues: write

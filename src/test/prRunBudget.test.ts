@@ -19,6 +19,10 @@ describe("PR run budget", () => {
     });
   }
 
+  it("main-red-watch only starts for main runs, not for every PR run it would skip", () => {
+    expect(onBlock(read("main-red-watch.yml"))).toMatch(/^\s{2}workflow_run:\n(?:\s{4}.*\n|\s*#.*\n)*\s{4}branches: \[main\]$/m);
+  });
+
   it("secret-scan does not scan a land/** push twice", () => {
     expect(onBlock(read("secret-scan.yml"))).toMatch(/^\s{2}push:\s*\n\s+branches-ignore: \["land\/\*\*"\]/m);
   });

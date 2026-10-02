@@ -24,8 +24,8 @@ import { partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
 const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 
-/** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-09-27. */
-const MARKERLESS_PARTLY_DONE = 16;
+/** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-10-02 (AdminHelperTiers line went [ ] to [~]; its last step is a browser check). */
+const MARKERLESS_PARTLY_DONE = 17;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

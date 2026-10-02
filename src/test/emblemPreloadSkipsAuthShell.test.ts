@@ -23,6 +23,7 @@ import { join, relative } from "node:path";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const walk = (d: string): string[] =>
   readdirSync(d).flatMap((f) => {
@@ -43,7 +44,7 @@ function routesFor(pages: string[]): string[] {
   const app = read("src/App.tsx");
   const out: string[] = [];
   for (const page of pages) {
-    const imp = new RegExp(`const (\\w+) = \\w+\\(\\(\\) => import\\("\\./${page.replace(/\//g, "\\/")}"\\)\\)`).exec(app);
+    const imp = new RegExp(`const (\\w+) = \\w+\\(\\(\\) => import\\("\\./${escapeRegExp(page)}"\\)\\)`).exec(app);
     expect(imp, `App.tsx imports ${page}`).not.toBeNull();
     const name = imp![1];
     const re = new RegExp(`<Route path="([^"]+)" element=\\{[^\\n]*<${name} \\/>`, "g");

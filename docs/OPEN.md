@@ -790,69 +790,69 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### CLOSED 2026-09-22 — the Messages disclosure chevron is SHIPPED BUT UNSEEN (2026-09-22, e28d5f55f)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Chevron code shipped but before/after screenshots, fit-proof, and full typecheck/vitest never done — Code (e28d5f55f) is on main; required before/after screenshots, fit-proof, and full repo-wide typecheck/vitest were never completed. (archive L64)
+- [ ] **Q926** LOW Chevron code shipped but before/after screenshots, fit-proof, and full typecheck/vitest never done — Code (e28d5f55f) is on main; required before/after screenshots, fit-proof, and full repo-wide typecheck/vitest were never completed. (archive L64)
 
 ### OPEN — a rebuild of `dist/` under a live preview leaves the happy-path app PERMANENTLY BLANK (2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Rebuilding dist/ under a live preview blanks the app (2/18 repro rate) — Root cause identified (shared dist/checkout with a live preview); no fix shipped yet — needs isolated HAPPY_PATH_PORT + no shared checkout with a building lane. (archive L121)
+- [ ] **Q927** LOW Rebuilding dist/ under a live preview blanks the app (2/18 repro rate) — Root cause identified (shared dist/checkout with a live preview); no fix shipped yet — needs isolated HAPPY_PATH_PORT + no shared checkout with a building lane. (archive L121)
 
 ### OPEN — the loading-state baseline needs a full re-measure, and 37 of its entries are not debt (2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Full-catalog loading-state re-measure not run; harness double-counts ancestor/body/nav clusters — ProfileRouteSkeleton fix shipped (3225ea26b); full re-measure of baseline.json and the harness double-counting defect are still open. (archive L171)
+- [ ] **Q928** MEDIUM Full-catalog loading-state re-measure not run; harness double-counts ancestor/body/nav clusters — ProfileRouteSkeleton fix shipped (3225ea26b); full re-measure of baseline.json and the harness double-counting defect are still open. (archive L171)
 
 ### OPEN — the three red nightlies, diagnosed 2026-09-22 (re-runs pending)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### OPEN — press is fixed enough to see REAL defects now; 199 remain (2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM 199 press failures remain: 2 unexplained session deaths, unclickable bottom-nav on job pages, proof-photo 400s, 'job not available' error; shard 2 unlooked-at — 199 press failures remain: 2 unattributed session deaths, bottom-nav unclickable on job detail pages (highest-value lead), proof-photo 400s, and an unreviewed shard 2 (90 failures). (archive L412)
+- [ ] **Q929** MEDIUM 199 press failures remain: 2 unexplained session deaths, unclickable bottom-nav on job pages, proof-photo 400s, 'job not available' error; shard 2 unlooked-at — 199 press failures remain: 2 unattributed session deaths, bottom-nav unclickable on job detail pages (highest-value lead), proof-photo 400s, and an unreviewed shard 2 (90 failures). (archive L412)
 
 ### OPEN — three more things on the critical path, measured 2026-09-22
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Critical-path bundle: ~39 sub-2kB shell chunks (25kB) not consolidated; forms-*.js (21.7kB, actually zod) not lazy-loaded — Two bundle-size opportunities identified but not implemented: consolidating ~39 small shell chunks, and lazy-loading zod schemas (21.7kB) out of the critical path. (archive L519)
-- [ ] MEDIUM A live realtime row entering/exiting the open notification panel not yet eyeballed post-framer-defer change — Static open/close of the notification panel was screenshotted; the live realtime-row enter/exit animation after the framer-defer change has not been eyeballed. (archive L545)
+- [ ] **Q930** LOW Critical-path bundle: ~39 sub-2kB shell chunks (25kB) not consolidated; forms-*.js (21.7kB, actually zod) not lazy-loaded — Two bundle-size opportunities identified but not implemented: consolidating ~39 small shell chunks, and lazy-loading zod schemas (21.7kB) out of the critical path. (archive L519)
+- [ ] **Q931** MEDIUM A live realtime row entering/exiting the open notification panel not yet eyeballed post-framer-defer change — Static open/close of the notification panel was screenshotted; the live realtime-row enter/exit animation after the framer-defer change has not been eyeballed. (archive L545)
 
 ### OPEN (detector shipped; ONE live row still needs a human) — an auto-resolved dispute leaves a job no cron will ever pay (2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### CLOSED 2026-09-22 — functions-deploy called eight discarded edge-function deploys a success
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Upstream Supabase intermittently drops 5-12% of function-deploy uploads; retry masks but does not cure it — Deploy-verification/retry fixed (2400aca14/3470ad103); upstream Supabase still drops ~5-12% of function uploads intermittently — masked by retry, not cured (BR-025). (archive L714)
+- [ ] **Q932** LOW Upstream Supabase intermittently drops 5-12% of function-deploy uploads; retry masks but does not cure it — Deploy-verification/retry fixed (2400aca14/3470ad103); upstream Supabase still drops ~5-12% of function uploads intermittently — masked by retry, not cured (BR-025). (archive L714)
 
 ### OPEN — no REAL (non-seed) user has ever been paid out (2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] HIGH No non-seed job has ever reached payout_pending/released; first real payout is untested by construction — Confirmed live: zero non-seed jobs have ever reached payout_pending/released; the automatic payout path has never executed against real money — owner decision on how to rehearse it before launch. (archive L844)
+- [ ] **Q933** HIGH No non-seed job has ever reached payout_pending/released; first real payout is untested by construction — Confirmed live: zero non-seed jobs have ever reached payout_pending/released; the automatic payout path has never executed against real money — owner decision on how to rehearse it before launch. (archive L844)
 
 ### CLOSED — the money loop was red for 15 days and a push closed the report each time (fixed 2026-09-22, a17f27d92; loop green 17:23 and 17:25 UTC)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Money loop's own completion (release-payout assertions) still needed one clean re-dispatch to observe — Notify-gate bug fixed (a17f27d92); this section's own still-open ask (observe a full clean loop completion) appears satisfied by run 35756239864 described elsewhere (line ~824), but not explicitly cross-referenced here. (archive L929)
+- [ ] **Q934** MEDIUM Money loop's own completion (release-payout assertions) still needed one clean re-dispatch to observe — Notify-gate bug fixed (a17f27d92); this section's own still-open ask (observe a full clean loop completion) appears satisfied by run 35756239864 described elsewhere (line ~824), but not explicitly cross-referenced here. (archive L929)
 
 ### OPEN — CI should run against a separate database from real users, not before launch (owner, 2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM CI still hits prod DB directly; owner deprioritized a separate Supabase branch until after launch — Owner-deferred, not a launch blocker. No persistent Supabase branch stood up yet; CI still hits prod directly, mitigated only by schedule spacing + the prod-load lock. (archive L1005)
+- [ ] **Q935** MEDIUM CI still hits prod DB directly; owner deprioritized a separate Supabase branch until after launch — Owner-deferred, not a launch blocker. No persistent Supabase branch stood up yet; CI still hits prod directly, mitigated only by schedule spacing + the prod-load lock. (archive L1005)
 
 ### CLOSED — PROD WAS DOWN 2026-09-22 07:57-14:40 UTC; recovered by restart, nothing alarmed (that half fixed in uptime 079d03194)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM uptime.yml's 10-min cron is throttled by GitHub to hours-apart runs; needs an off-GitHub heartbeat — The zero-rows-is-down half of uptime detection is fixed (079d03194); GitHub still silently throttles the 10-min cron to hours apart, and no off-GitHub heartbeat or self-watchdog exists yet. (archive L1138)
+- [ ] **Q936** MEDIUM uptime.yml's 10-min cron is throttled by GitHub to hours-apart runs; needs an off-GitHub heartbeat — The zero-rows-is-down half of uptime detection is fixed (079d03194); GitHub still silently throttles the 10-min cron to hours apart, and no off-GitHub heartbeat or self-watchdog exists yet. (archive L1138)
 
 ### DONE 2026-09-22 — #1595's six, attributed: one product rule change, one Stripe outage, three that were prod being slow
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Deep link opened while a lazy chunk is in flight can be eaten by stale-chunk recovery reload — reproduction needed before a fix is written — Product-level race (deep link vs. stale-chunk recovery reload) confirmed once in WebKit but not reproduced in 3 local rounds; fix intentionally not attempted without a repro. (archive L1272)
+- [ ] **Q937** MEDIUM Deep link opened while a lazy chunk is in flight can be eaten by stale-chunk recovery reload — reproduction needed before a fix is written — Product-level race (deep link vs. stale-chunk recovery reload) confirmed once in WebKit but not reproduced in 3 local rounds; fix intentionally not attempted without a repro. (archive L1272)
 
 ### OPEN — #1595's ORIGINAL four failures are fixed; three NEW ones now block it (2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM e2e-journeys: original 4 failures fixed; 6 new cross-engine failures found (inbox listing, sign-back-in, time-travel chip, WebKit Checkout, notification redirect) — Original 4 e2e-journeys failures fixed; of 6 newly surfaced failures, later tracking (line 1958) says 2 real defects remain open (browse fixture / time-travel-class items). (see also line 1948) (archive L1284)
+- [ ] **Q938** MEDIUM e2e-journeys: original 4 failures fixed; 6 new cross-engine failures found (inbox listing, sign-back-in, time-travel chip, WebKit Checkout, notification redirect) — Original 4 e2e-journeys failures fixed; of 6 newly surfaced failures, later tracking (line 1958) says 2 real defects remain open (browse fixture / time-travel-class items). (see also line 1948) (archive L1284)
 
 ### OPEN — /posts' new row height is not yet measured in a browser (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW /posts placeholder row-height fix not yet confirmed with a real browser measurement — Code fix landed for /posts placeholder height but the predicted 150px/151px numbers have not been confirmed with an actual browser run. (archive L1546)
+- [ ] **Q939** LOW /posts placeholder row-height fix not yet confirmed with a real browser measurement — Code fix landed for /posts placeholder height but the predicted 150px/151px numbers have not been confirmed with an actual browser run. (archive L1546)
 
 ### PARTLY DONE — 44 signed URLs in prod are stored with an `exp`, and they all die in Sept 2027 (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### OPEN — `docs/audit/loading-states/measurements.json` is stale for /jobs (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW measurements.json/baseline.json not regenerated after the /jobs loading fix, so the check is green on outdated evidence — /jobs loading fix shipped but the committed measurements.json/baseline.json evidence is stale; needs the same full re-measure tracked at line 162. (see also line 162) (archive L1674)
+- [ ] **Q940** LOW measurements.json/baseline.json not regenerated after the /jobs loading fix, so the check is green on outdated evidence — /jobs loading fix shipped but the committed measurements.json/baseline.json evidence is stale; needs the same full re-measure tracked at line 162. (see also line 162) (archive L1674)
 
 ### HEADS-UP — three duplicate reads on every Activity page load (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -865,112 +865,112 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### HEADS-UP — seven of `interruptions.spec.ts`'s twelve tests run nowhere (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM 7 of 12 interruption tests still skip on a permanent fixture gap (no funded un-applied job); prod-audit.yml still runs no seeder — Skip-message honesty fixed and guarded; the actual fix — a funded un-applied job fixture via real Stripe checkout — is not built, and prod-audit.yml still runs no seeder, so all 7 tests remain permanently skipped. (see also line 1875 / same as 01-browse funded-fixture decision) (archive L1856)
+- [ ] **Q941** MEDIUM 7 of 12 interruption tests still skip on a permanent fixture gap (no funded un-applied job); prod-audit.yml still runs no seeder — Skip-message honesty fixed and guarded; the actual fix — a funded un-applied job fixture via real Stripe checkout — is not built, and prod-audit.yml still runs no seeder, so all 7 tests remain permanently skipped. (see also line 1875 / same as 01-browse funded-fixture decision) (archive L1856)
 
 ### HEADS-UP — the explore now reaches four screens it never reached (2026-09-20)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Explore now covers 4 previously-blocked screens; watch for stale GAPS entries in messy-input coverage test — Advisory, unresolved: four previously-blocked screens are now explored for real; nobody has confirmed whether the stale GAPS entries in messy-input.spec.ts were removed. (archive L1910)
+- [ ] **Q942** LOW Explore now covers 4 previously-blocked screens; watch for stale GAPS entries in messy-input coverage test — Advisory, unresolved: four previously-blocked screens are now explored for real; nobody has confirmed whether the stale GAPS entries in messy-input.spec.ts were removed. (archive L1910)
 
 ### CLOSED — `messages-thread.spec.ts` (c) flaked on a STUCK state, not a slow one (fixed 2026-09-22, 78d1b475b)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW A second, different messages-thread flake (openFirstThread stuck-inbox timeout) surfaced and is not fixed — The history-pop back-gesture flake is fixed (78d1b475b); a separate openFirstThread stuck-inbox timeout (seen once in 20 runs) is unreproduced and unfixed. (archive L1922)
+- [ ] **Q943** LOW A second, different messages-thread flake (openFirstThread stuck-inbox timeout) surfaced and is not fixed — The history-pop back-gesture flake is fixed (78d1b475b); a separate openFirstThread stuck-inbox timeout (seen once in 20 runs) is unreproduced and unfixed. (archive L1922)
 
 ### OPEN — the four long-red nightlies, diagnosed 2026-09-20 (issues #1582 #1595 #1597 #1618)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### STILL RED, and why — prod-audit is not green
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM prod-audit blocked by prod API outage + auth 504 bursts (transient), stale coverage-test residue number, and 3 unexamined spec failures — prod-audit still not green as of 2026-09-22: transient prod outage/504 bursts aside, three specific spec failures (disputedJob-helper explore, interruptions.spec.ts:256, reaction-chip-clearance) are unexamined, and the coverage-test residue count is stale. (archive L2042)
+- [ ] **Q944** MEDIUM prod-audit blocked by prod API outage + auth 504 bursts (transient), stale coverage-test residue number, and 3 unexamined spec failures — prod-audit still not green as of 2026-09-22: transient prod outage/504 bursts aside, three specific spec failures (disputedJob-helper explore, interruptions.spec.ts:256, reaction-chip-clearance) are unexamined, and the coverage-test residue count is stale. (archive L2042)
 
 ### Still open under #1618 — the coverage test's non-admin residue
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM ~22 non-admin files (message composer, activity dialogs, dispute/report/block dialogs, SavedSearches, AiJobBuilder, etc.) still have no sweep/explore/gap entry — ~22 non-admin files (ChatView, RichMessageInput, EditJobDialog, ApplicantsPanel, DisputeDialog, ReportDialog, SavedSearches, AiJobBuilder, etc.) still lack sweep/explore coverage or a stated gap in the coverage test. (archive L2081)
+- [ ] **Q945** MEDIUM ~22 non-admin files (message composer, activity dialogs, dispute/report/block dialogs, SavedSearches, AiJobBuilder, etc.) still have no sweep/explore/gap entry — ~22 non-admin files (ChatView, RichMessageInput, EditJobDialog, ApplicantsPanel, DisputeDialog, ReportDialog, SavedSearches, AiJobBuilder, etc.) still lack sweep/explore coverage or a stated gap in the coverage test. (archive L2081)
 
 ### Still open from #1595 / #1582
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM 01-browse has no durable funded fixture (owner decision needed: real Stripe checkout per run vs. durable is_seed row); /jobs:id + /user:id stall still undiagnosed; press-every-control self-heal dispatch verification owed; e2e-journeys clean-dispatch verification owed; push 'Not Now' toast fix still needed at the signal level — Multiple open items: 01-browse funded-fixture is an owner decision (0173ae6be only added a diagnostic, real fixture not built); /jobs:id+/user:id request-fan-out stall undiagnosed; press self-heal fix (aa81799a2) and a clean e2e-journeys dispatch both still owed for verification; push 'Not Now' declined-vs-denied signal bug remains a real product defect (not code-fixed). (archive L2133)
+- [ ] **Q946** MEDIUM 01-browse has no durable funded fixture (owner decision needed: real Stripe checkout per run vs. durable is_seed row); /jobs:id + /user:id stall still undiagnosed; press-every-control self-heal dispatch verification owed; e2e-journeys clean-dispatch verification owed; push 'Not Now' toast fix still needed at the signal level — Multiple open items: 01-browse funded-fixture is an owner decision (0173ae6be only added a diagnostic, real fixture not built); /jobs:id+/user:id request-fan-out stall undiagnosed; press self-heal fix (aa81799a2) and a clean e2e-journeys dispatch both still owed for verification; push 'Not Now' declined-vs-denied signal bug remains a real product defect (not code-fixed). (archive L2133)
 
 ### Low-alpha AA batch — landed 8aff7b8cc, three things left open (2026-09-20)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW TrustRow's separator never renders (dead code, single-chip call site) — Still open: TrustRow separator dead because JobPosterCard only passes one signal. (archive L2236)
-- [ ] MEDIUM Three live AA failures found outside the lane's list (job dialog pitch, /messages banner, /posts badge) — Open, not reached: three specific AA contrast failures reported 2026-09-20, no fix commit found. (archive L2248)
-- [ ] LOW Four changed contrast sites never photographed in their own state — Open, not reached: 4 contrast fixes still unverified by screenshot. (archive L2254)
+- [ ] **Q947** LOW TrustRow's separator never renders (dead code, single-chip call site) — Still open: TrustRow separator dead because JobPosterCard only passes one signal. (archive L2236)
+- [ ] **Q948** MEDIUM Three live AA failures found outside the lane's list (job dialog pitch, /messages banner, /posts badge) — Open, not reached: three specific AA contrast failures reported 2026-09-20, no fix commit found. (archive L2248)
+- [ ] **Q949** LOW Four changed contrast sites never photographed in their own state — Open, not reached: 4 contrast fixes still unverified by screenshot. (archive L2254)
 
 ### DONE 2026-09-20 — Profile tab gutter + every Profile loading state
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Profile LANDING sits at a different gutter than its own tabs — Open, owner decision needed: Profile landing gutter [40,40]/[36,36] vs tabs [24,24]/[20,20]. (archive L2304)
-- [ ] LOW /jobs applied-card pitch unverified against a populated list — Open, not reached: applied-card skeleton pitch still unverified against real data. (archive L2310)
+- [ ] **Q950** LOW Profile LANDING sits at a different gutter than its own tabs — Open, owner decision needed: Profile landing gutter [40,40]/[36,36] vs tabs [24,24]/[20,20]. (archive L2304)
+- [ ] **Q951** LOW /jobs applied-card pitch unverified against a populated list — Open, not reached: applied-card skeleton pitch still unverified against real data. (archive L2310)
 
 ### VN-33(b) bad-pin exception — follow-ups from its reviews
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Design notes for the owner re: near-miss job staying 'accepted' — Open (owner): design notes on near-miss/accepted-state behavior await an owner read, not code. (archive L2617)
+- [ ] **Q952** LOW Design notes for the owner re: near-miss job staying 'accepted' — Open (owner): design notes on near-miss/accepted-state behavior await an owner read, not code. (archive L2617)
 
 ### Owner decisions 2026-09-15 morning (pop-up) — building as branches
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### HANDOFF — visual-notes session paused on usage (2026-09-14 late)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Owner decisions VN-33 follow-up: nudge/escalate poster confirm, bad-pin fallback, new build later — Open: poster-confirm nudge/escalate and bad-pin Confirm fallback not found implemented. (archive L2638)
-- [ ] LOW VN-37 page gutter design decision; VN-52 group jobs fix+turn-on — Mixed: VN-37 gutter fixed; VN-52 group jobs still off (flag false), blockers (b)/(d) unresolved. (see also line 3070 (VN-37 section)) (archive L2643)
+- [ ] **Q953** LOW Owner decisions VN-33 follow-up: nudge/escalate poster confirm, bad-pin fallback, new build later — Open: poster-confirm nudge/escalate and bad-pin Confirm fallback not found implemented. (archive L2638)
+- [ ] **Q954** LOW VN-37 page gutter design decision; VN-52 group jobs fix+turn-on — Mixed: VN-37 gutter fixed; VN-52 group jobs still off (flag false), blockers (b)/(d) unresolved. (see also line 3070 (VN-37 section)) (archive L2643)
 
 ### Role words out of user-facing copy — branch role-neutral-copy-v2
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Needs lead's eyes at 375 for copy-length regressions in tight spots — Open, not reached: 375 visual check of lengthened role-neutral copy not confirmed done. (archive L2649)
-- [ ] LOW Judgement calls to confirm or reverse (badge captions, tier badge, arrivalStateLabel wording) — Open (owner): wording judgement calls from the copy pass await owner confirmation. (archive L2652)
+- [ ] **Q955** LOW Needs lead's eyes at 375 for copy-length regressions in tight spots — Open, not reached: 375 visual check of lengthened role-neutral copy not confirmed done. (archive L2649)
+- [ ] **Q956** LOW Judgement calls to confirm or reverse (badge captions, tier badge, arrivalStateLabel wording) — Open (owner): wording judgement calls from the copy pass await owner confirmation. (archive L2652)
 
 ### Discarded PostgREST builder calls — branch discarded-query-filters
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### HANDOFF 2026-09-15 — map notes + nightly reds (session closed)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Decide (3): the 9 auth-timeout presses; Browse header (unfinished session note) — Open, not reached: 3 pending decisions from 2026-09-15 auth-timeout presses list. (archive L2882)
+- [ ] **Q957** MEDIUM Decide (3): the 9 auth-timeout presses; Browse header (unfinished session note) — Open, not reached: 3 pending decisions from 2026-09-15 auth-timeout presses list. (archive L2882)
 
 ### holes-2026-09-15 (authz-rls) — storage buckets
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### press-every-control — re-run 2026-09-15, 237 failed presses in 4 shards
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Handful of 'control not found on freshly loaded page' (transient or real) — Open, not reached: unclassified transient/real control-not-found presses. (archive L2987)
+- [ ] **Q958** LOW Handful of 'control not found on freshly loaded page' (transient or real) — Open, not reached: unclassified transient/real control-not-found presses. (archive L2987)
 
 ### Nightly reds — worked 2026-09-15, what is left
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW REPORT: Activity screen is expensive to composite (15 backdrop-filter layers) — Open (owner report): Activity's 15-layer backdrop-filter cost still awaits an owner call. (archive L3007)
-- [ ] LOW REPORT: ErrorBoundary/SectionBoundary render error copy during in-flight recovery reload — Open: ErrorBoundary/SectionBoundary still show error copy during a recovery reload. (archive L3008)
-- [ ] MEDIUM REPORT: 02-marketplace chain stalls on Stripe Pay button w/ Google autocomplete open — Open: local-only Stripe Pay/Google-autocomplete interaction, unresolved (third-party). (archive L3009)
-- [ ] MEDIUM REPORT: stale-deploy cold-load can race its own start page — Open, low-priority: rare local-only navigation race on stale-deploy cold load. (archive L3010)
+- [ ] **Q959** LOW REPORT: Activity screen is expensive to composite (15 backdrop-filter layers) — Open (owner report): Activity's 15-layer backdrop-filter cost still awaits an owner call. (archive L3007)
+- [ ] **Q960** LOW REPORT: ErrorBoundary/SectionBoundary render error copy during in-flight recovery reload — Open: ErrorBoundary/SectionBoundary still show error copy during a recovery reload. (archive L3008)
+- [ ] **Q961** MEDIUM REPORT: 02-marketplace chain stalls on Stripe Pay button w/ Google autocomplete open — Open: local-only Stripe Pay/Google-autocomplete interaction, unresolved (third-party). (archive L3009)
+- [ ] **Q962** MEDIUM REPORT: stale-deploy cold-load can race its own start page — Open, low-priority: rare local-only navigation race on stale-deploy cold load. (archive L3010)
 
 ### Owner visual notes 2026-09-14 (53 entries)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Work through docs/audit/visual-notes-2026-09-14.md tracker (medium/large VN items) — Open: large batch of 2026-09-14 visual notes, several items still unconfirmed/not started. (archive L3013)
-- [ ] MEDIUM Dispute follow-ups still open after table-door fix (5 sub-findings) — Open, not reached: 5 dispute-field editability follow-ups from the table-door fix. (archive L3020)
-- [ ] MEDIUM Visual-notes side-findings (Worked-together count, disputed-card ask, App.tsx comment drift, manifest dupe, favicon, VN-45 referral credits, VN-54) — Mostly open (VN-54 closed inline); other side-findings not independently reconfirmed. (archive L3022)
-- [ ] HIGH Done is final — TABLE door: poster can still edit dispute_reason/status/disputed_at directly — Narrowed (lead, live 2026-09-23): trg_dispute_markers_server_owned locks disputed_at and zz_jobs_completion_server_owned locks completion; dispute_reason is in neither trigger body, so that direct-write door is still open. (archive L3024)
-- [ ] LOW Visual-notes follow-ups found while fixing (JobConfirmation copy, dispute-copy contradiction, unused code, RecognitionRow chips, VN-2 blank poster name) — Open, not reached: several small reported-not-changed copy/dead-code items from 2026-09-14. (archive L3030)
+- [ ] **Q963** LOW Work through docs/audit/visual-notes-2026-09-14.md tracker (medium/large VN items) — Open: large batch of 2026-09-14 visual notes, several items still unconfirmed/not started. (archive L3013)
+- [ ] **Q964** MEDIUM Dispute follow-ups still open after table-door fix (5 sub-findings) — Open, not reached: 5 dispute-field editability follow-ups from the table-door fix. (archive L3020)
+- [ ] **Q965** MEDIUM Visual-notes side-findings (Worked-together count, disputed-card ask, App.tsx comment drift, manifest dupe, favicon, VN-45 referral credits, VN-54) — Mostly open (VN-54 closed inline); other side-findings not independently reconfirmed. (archive L3022)
+- [ ] **Q966** HIGH Done is final — TABLE door: poster can still edit dispute_reason/status/disputed_at directly — Narrowed (lead, live 2026-09-23): trg_dispute_markers_server_owned locks disputed_at and zz_jobs_completion_server_owned locks completion; dispute_reason is in neither trigger body, so that direct-write door is still open. (archive L3024)
+- [ ] **Q967** LOW Visual-notes follow-ups found while fixing (JobConfirmation copy, dispute-copy contradiction, unused code, RecognitionRow chips, VN-2 blank poster name) — Open, not reached: several small reported-not-changed copy/dead-code items from 2026-09-14. (archive L3030)
 
 ### Browse header count disagrees with the rendered list — REPORT, not fixed (2026-09-14)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Decide: subtract client-only predicates server-side (own posts/blocked) for the browse header count — Open: browse header count vs rendered-list mismatch still needs a server-side fix decision. (archive L3109)
+- [ ] **Q968** LOW Decide: subtract client-only predicates server-side (own posts/blocked) for the browse header count — Open: browse header count vs rendered-list mismatch still needs a server-side fix decision. (archive L3109)
 
 ### Failed list loads rendered "nothing here" + storage audit (2026-09-14)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Alerting: few, critical-only, reaching the owner (2026-09-14)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM OWNER: enable Slack #ops-alerts notifications for all new messages, confirm correct account — Open (owner): cannot confirm #ops-alerts Slack notification settings from the repo. (archive L3134)
-- [ ] MEDIUM Known and accepted (lh-silent-failure F5): contact-support await chain can add ~20s under Supabase/Slack brownout — Open but accepted-as-is: contact-support latency under brownout is a deliberate tradeoff, no fix planned. (archive L3142)
+- [ ] **Q969** MEDIUM OWNER: enable Slack #ops-alerts notifications for all new messages, confirm correct account — Open (owner): cannot confirm #ops-alerts Slack notification settings from the repo. (archive L3134)
+- [ ] **Q970** MEDIUM Known and accepted (lh-silent-failure F5): contact-support await chain can add ~20s under Supabase/Slack brownout — Open but accepted-as-is: contact-support latency under brownout is a deliberate tradeoff, no fix planned. (archive L3142)
 
 ### Money: concurrent release / Quick Release / Quick Refund (2026-09-13)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] OPEN LOW-3 (pre-existing): payout_transfers_one_live_per_job_helper NULL-distinct on helper_id disagrees with claimPayout read — Redacted-helper (NULL helper_id) rows still escape claim arbitration; zero such rows on prod but the code disagreement is unfixed. (archive L3191)
-- [ ] OPEN LOW-4 (pre-existing): jobs.dispute_evidence_urls legacy mirror still party-writable, unvalidated server-side — Legacy jobs.dispute_evidence_urls column still directly party-writable with only a client render guard; server-side validation not added. (see also line 3171) (archive L3192)
-- [ ] OPEN LOW-7 (pre-existing): process-scheduled-payouts step 4b leaves an orphaned claim row on payout>escrow exit — A payout-exceeds-escrow exit still leaves a permanent pending claim row with a null transfer id. (archive L3193)
-- [ ] MEDIUM OPEN (test tooling): prod-lifecycle-sweeper / pressProdSafety leave a HIRED funded leftover job — Test harness still leaves a hired/funded seed job in place when cancel_escrow 409s; leftovers accumulate until manually released. (archive L3194)
-- [ ] HIGH OPEN: 2026-09-14 lifecycle-writes CAS fixes have no prod race proof yet — Eight fixed lifecycle-writes CAS guards (auto-release-payment, auto-resolve-disputes, escrow stamp, revisions, cancel_escrow, chargeback) still have zero prod concurrency proof. (archive L3201)
-- [ ] MEDIUM QUEUED: replay chargeback dispute-hold fix (N4) on Stripe test-mode seed jobs, prod slot — Chargeback dispute-hold conditional writes still unproven on live Stripe test-mode seed jobs; replay not run. (archive L3206)
+- [ ] **Q971** OPEN LOW-3 (pre-existing): payout_transfers_one_live_per_job_helper NULL-distinct on helper_id disagrees with claimPayout read — Redacted-helper (NULL helper_id) rows still escape claim arbitration; zero such rows on prod but the code disagreement is unfixed. (archive L3191)
+- [ ] **Q972** OPEN LOW-4 (pre-existing): jobs.dispute_evidence_urls legacy mirror still party-writable, unvalidated server-side — Legacy jobs.dispute_evidence_urls column still directly party-writable with only a client render guard; server-side validation not added. (see also line 3171) (archive L3192)
+- [ ] **Q973** OPEN LOW-7 (pre-existing): process-scheduled-payouts step 4b leaves an orphaned claim row on payout>escrow exit — A payout-exceeds-escrow exit still leaves a permanent pending claim row with a null transfer id. (archive L3193)
+- [ ] **Q974** MEDIUM OPEN (test tooling): prod-lifecycle-sweeper / pressProdSafety leave a HIRED funded leftover job — Test harness still leaves a hired/funded seed job in place when cancel_escrow 409s; leftovers accumulate until manually released. (archive L3194)
+- [ ] **Q975** HIGH OPEN: 2026-09-14 lifecycle-writes CAS fixes have no prod race proof yet — Eight fixed lifecycle-writes CAS guards (auto-release-payment, auto-resolve-disputes, escrow stamp, revisions, cancel_escrow, chargeback) still have zero prod concurrency proof. (archive L3201)
+- [ ] **Q976** MEDIUM QUEUED: replay chargeback dispute-hold fix (N4) on Stripe test-mode seed jobs, prod slot — Chargeback dispute-hold conditional writes still unproven on live Stripe test-mode seed jobs; replay not run. (archive L3206)
 
 ### Disk: git history carries 322M of dead media — REWRITE QUEUED (2026-09-13)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Rewrite git history to drop 322M of dead media blobs — History rewrite still not done; pack size is 377.83 MiB (grew, not shrank) — no force-push/rewrite has happened. (archive L3215)
+- [ ] **Q977** LOW Rewrite git history to drop 322M of dead media blobs — History rewrite still not done; pack size is 377.83 MiB (grew, not shrank) — no force-push/rewrite has happened. (archive L3215)
 
 ### 18 `wip/` branches on origin — triaged 2026-09-13, none deleted
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -983,157 +983,157 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Job card (BOTH sides) — IN PROGRESS, lane `step-components`
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM One shared job-card shell for poster/helper; poster-name two treatments, DisputedSection old card, misplaced before-photo panel, inconsistent action row — Job-card shell unification still in progress; poster-name double-treatment, old DisputedSection photo card, and inconsistent action-row layout not yet fixed. (archive L3399)
+- [ ] **Q978** MEDIUM One shared job-card shell for poster/helper; poster-name two treatments, DisputedSection old card, misplaced before-photo panel, inconsistent action row — Job-card shell unification still in progress; poster-name double-treatment, old DisputedSection photo card, and inconsistent action-row layout not yet fixed. (archive L3399)
 
 ### Performance — audit done, NO fixes applied yet
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Prefetch check-pro-subscription / stripe-connect status; raise React Query gcTime past 5min; dedupe raw supabase.rpc calls — Performance fixes (prefetch, gcTime, query dedupe) for the 395-893ms Stripe-hop delays still not applied, per the heading itself. (archive L3421)
+- [ ] **Q979** LOW Prefetch check-pro-subscription / stripe-connect status; raise React Query gcTime past 5min; dedupe raw supabase.rpc calls — Performance fixes (prefetch, gcTime, query dedupe) for the 395-893ms Stripe-hop delays still not applied, per the heading itself. (archive L3421)
 
 ### Messages screen
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Selected thread should be the full page (not side-by-side, cut off); replace Cancel text button with an X icon in search — Messages list+thread still side-by-side rather than full-page-with-back per owner ask; search Cancel-text button not yet replaced with an X icon. (archive L3439)
+- [ ] **Q980** LOW Selected thread should be the full page (not side-by-side, cut off); replace Cancel text button with an X icon in search — Messages list+thread still side-by-side rather than full-page-with-back per owner ask; search Cancel-text button not yet replaced with an X icon. (archive L3439)
 
 ### Profile
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Avatar has a square/rectangle showing behind the circular avatar — Square/rectangle artifact behind the 88px profile avatar not yet root-caused or fixed. (archive L3446)
+- [ ] **Q981** LOW Avatar has a square/rectangle showing behind the circular avatar — Square/rectangle artifact behind the 88px profile avatar not yet root-caused or fixed. (archive L3446)
 
 ### Race conditions — proven on prod 2026-09-13 (terminal 3, seed accounts, all fixture rows deleted)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Bugs found but not fixed
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM chunkReload follow-ups: retrying state not shown/reported, pending timer not cancelled on navigate, mocked stale-deploy spec needs prod rewrite, recoverFromChunkError bail/hang risk, markChunkLoadSucceeded cleanup-only reset — 5 chunkReload silent-failure follow-ups (retrying UI state, timer cancellation, mocked spec rewrite, bail/hang risk, cleanup-only reset) remain unaddressed. (archive L3507)
-- [~] MEDIUM AdminHelperTiers crashes on any unknown tier string; /admin?view=support shows a load error — AdminHelperTiers still crashes on an unrecognized tier string (report only); /admin?view=support load failure unverified. (archive L3513) **2026-10-02 (quick-wins):** the crash is fixed on main — `tierLook()` in AdminHelperTiers.tsx falls back to a neutral Award look and reports each unknown tier once. Guard: AdminHelperTiers.test.tsx asserts the lowercase "elite" case renders and is reported. `/admin?view=support` was not checked (needs the browser), so `[~]`.
-- [~] LOW **FIXED 2026-09-12 (cc592fe46), protection pending (its guard's /complete-profile leg cannot sign in):** Complete Profile: input values clipped by the check icon at every phone width (ZIP, Last name) — Complete Profile ZIP/Last-name fields still clip against the validation check icon at 320-430px; Edit Profile was fixed but this page was not. (archive L3525) Code (read 2026-10-02, src/pages/auth/CompleteProfile.tsx): every check-bearing field is pr-8 (32px vs the icon's 28px coverage) with text-ellipsis, ZIP a fixed 7rem column; cc592fe46 measured ZIP content 29 -> 64px at 320/375/430 in Chromium and WebKit. Layers read: reader/display only. GUARD: e2e/journeys/trailing-icon-fields.spec.ts. Its /signup leg passes, but the /complete-profile leg (spec line 118) FAILED in e2e-journeys run 36923486825 (2026-10-01, Chromium and WebKit): the incomplete-e2e sign-in returned invalid_credentials twice, so the page was never measured. Owed: re-sync the incomplete-e2e account's password to the PLAYWRIGHT_INCOMPLETE_PASSWORD secret (credential step, not rotated here), then a green run of that leg.
+- [ ] **Q982** MEDIUM chunkReload follow-ups: retrying state not shown/reported, pending timer not cancelled on navigate, mocked stale-deploy spec needs prod rewrite, recoverFromChunkError bail/hang risk, markChunkLoadSucceeded cleanup-only reset — 5 chunkReload silent-failure follow-ups (retrying UI state, timer cancellation, mocked spec rewrite, bail/hang risk, cleanup-only reset) remain unaddressed. (archive L3507)
+- [~] **Q983** MEDIUM AdminHelperTiers crashes on any unknown tier string; /admin?view=support shows a load error — AdminHelperTiers still crashes on an unrecognized tier string (report only); /admin?view=support load failure unverified. (archive L3513) **2026-10-02 (quick-wins):** the crash is fixed on main — `tierLook()` in AdminHelperTiers.tsx falls back to a neutral Award look and reports each unknown tier once. Guard: AdminHelperTiers.test.tsx asserts the lowercase "elite" case renders and is reported. `/admin?view=support` was not checked (needs the browser), so `[~]`.
+- [~] **Q984 LOW FIXED 2026-09-12 (cc592fe46), protection pending (its guard's /complete-profile leg cannot sign in):** Complete Profile: input values clipped by the check icon at every phone width (ZIP, Last name) — Complete Profile ZIP/Last-name fields still clip against the validation check icon at 320-430px; Edit Profile was fixed but this page was not. (archive L3525) Code (read 2026-10-02, src/pages/auth/CompleteProfile.tsx): every check-bearing field is pr-8 (32px vs the icon's 28px coverage) with text-ellipsis, ZIP a fixed 7rem column; cc592fe46 measured ZIP content 29 -> 64px at 320/375/430 in Chromium and WebKit. Layers read: reader/display only. GUARD: e2e/journeys/trailing-icon-fields.spec.ts. Its /signup leg passes, but the /complete-profile leg (spec line 118) FAILED in e2e-journeys run 36923486825 (2026-10-01, Chromium and WebKit): the incomplete-e2e sign-in returned invalid_credentials twice, so the page was never measured. Owed: re-sync the incomplete-e2e account's password to the PLAYWRIGHT_INCOMPLETE_PASSWORD secret (credential step, not rotated here), then a green run of that leg.
 
 ### Profile badges — "Verified" rung duplicates "Stripe verified"
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Drop the redundant 'Verified' ladder rung under As-a-Helpr (duplicates the Stripe-verified badge above) — Redundant 'Verified' ladder rung under As-a-Helpr still duplicates the Verified-group Stripe badge. (see also line 3636) (archive L3634)
+- [ ] **Q985** MEDIUM Drop the redundant 'Verified' ladder rung under As-a-Helpr (duplicates the Stripe-verified badge above) — Redundant 'Verified' ladder rung under As-a-Helpr still duplicates the Verified-group Stripe badge. (see also line 3636) (archive L3634)
 
 ### DECIDED — At-a-glance stat tiles: exactly FOUR
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Cut profile stat tiles from 7 to 4 (Rating, Jobs posted, Jobs completed, Cancelled) per owner decision — Profile stat tiles still render 7, not the owner-decided 4 (drop on-time%, rebooked%, needed-revisions%). (archive L3640)
+- [ ] **Q986** LOW Cut profile stat tiles from 7 to 4 (Rating, Jobs posted, Jobs completed, Cancelled) per owner decision — Profile stat tiles still render 7, not the owner-decided 4 (drop on-time%, rebooked%, needed-revisions%). (archive L3640)
 
 ### CONSISTENCY — identity verification has FOUR renderings
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Unify 4 different identity-verification renderings (Stripe verified pill, ladder-rung Verified, header ID-verified-by-Stripe, uppercase checkmark on JobPosterCard) into one component — Identity verification is still rendered 4 different ways across Profile groups, header, and JobPosterCard; not consolidated. (archive L3645)
+- [ ] **Q987** MEDIUM Unify 4 different identity-verification renderings (Stripe verified pill, ladder-rung Verified, header ID-verified-by-Stripe, uppercase checkmark on JobPosterCard) into one component — Identity verification is still rendered 4 different ways across Profile groups, header, and JobPosterCard; not consolidated. (archive L3645)
 
 ### Shells leave a gap on the left and right — fix GLOBALLY
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW AppShell inner card stops short of the frame on both sides globally (seen on /profile?tab=availability) — AppShell pages still show a narrow-sheet-floating-on-a-wider-surface gap; global shell fix not applied. (archive L3662)
+- [ ] **Q988** LOW AppShell inner card stops short of the frame on both sides globally (seen on /profile?tab=availability) — AppShell pages still show a narrow-sheet-floating-on-a-wider-surface gap; global shell fix not applied. (archive L3662)
 
 ### ### Notification count — ruled out
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### FOR THE OWNER — the dead avatar URL is CLEARED (2026-09-12); the duplicate FILE is still there.
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW OWNER: delete stale user-documents/76b07824.../avatar.png (byte-identical duplicate of the owner's ID document) — OWNER: in the Supabase dashboard, Storage > user-documents > 76b07824-9b41-4741-a4c4-4f8de362f682/, delete avatar.png. Re-measured 2026-09-25: still present (storage.objects, 810,107 bytes). Owner action still pending: the duplicate ID-document file at user-documents/76b07824.../avatar.png is still in storage as of this check (owner-only, needs dashboard delete). (archive L4940)
+- [ ] **Q989** LOW OWNER: delete stale user-documents/76b07824.../avatar.png (byte-identical duplicate of the owner's ID document) — OWNER: in the Supabase dashboard, Storage > user-documents > 76b07824-9b41-4741-a4c4-4f8de362f682/, delete avatar.png. Re-measured 2026-09-25: still present (storage.objects, 810,107 bytes). Owner action still pending: the duplicate ID-document file at user-documents/76b07824.../avatar.png is still in storage as of this check (owner-only, needs dashboard delete). (archive L4940)
 
 ### Audit gaps — owner, 2026-09-12
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW The post-job double-tap is not covered end to end (generic stepper skips before final submit) — Still open: no purpose-built driver found for the post-job double-tap; not reached in remaining budget for a deeper grep. (archive L5018)
-- [ ] MEDIUM Admin queues (AdminExceptionQueue, AdminPayoutBatches, TwoFactorCard, W9CollectionDialog, NpsPrompt) have no seedable state, stay stated GAPS — Still open (by design): these admin queues remain unseedable and stated as GAPS in messyInputForms.ts. (archive L5022)
-- [ ] LOW Visual sweep could report '147 passed' with no server actually running — Code fixed (91693fbd8); the item's own remaining bar (a live sweep run with screenshots reviewed) is unverifiable without a browser — open, not reached. (archive L5036)
-- [ ] MEDIUM No test moved the clock for auto-expire-jobs step 2, expiring-jobs-push, sweep_* server cutoffs — Partially addressed (client-side time-travel spec exists) but server cutoff sweeps (auto-expire-jobs step2, expiring-jobs-push, sweep_*) still have no clock-moving test. (archive L5045)
-- [ ] MEDIUM expiring-jobs-push runs once daily (14:14 UTC) and can never warn a short-lead listing — Still open: expiring-jobs-push remains a once-daily cron; short-lead listings posted after the run still go unwarned. (archive L5076)
-- [ ] MEDIUM Lead: a phone clock >1h fast may sign the user out (needs device repro) — Still open — needs a real-device repro before being treated as an app defect; not established either way. (archive L5079)
-- [~] LOW **FIXED 2026-10-02 (9d3d518c5), protection pending (screenshot at 375):** useActivityFilters now counts search matches per bucket (postedSearchCounts / appliedSearchCounts, same null-safe predicates as the list filter); on a search miss ActivityEmptyState says "No matches under <bucket> — N in <Label> match(es) your search" and offers "Show <Label> (N)", which switches bucket with the query kept and lands on the matches (no treadmill: it reads the search counts, not the pre-search ones). No match anywhere keeps the generic line and Clear search. Layers read: reader/display only (activityFilters, ActivityEmptyState, JobListPage); no server or DB layer involved. GUARD: src/components/job-card/searchMissNamesOtherBuckets.test.tsx (real hook + real empty state; vacuity 4/4 mutations killed). Owed: browser-lane screenshot of /posts?q=<title of a job in another bucket> at 375. Was: My Posts search only searches the active status tab and tells the user the job doesn't exist. (archive L5086)
-- [ ] MEDIUM A hired, funded job never says the money is held, on either side's card (product call) — Still open: Scheduled cards do not appear to state that payment is held; product decision not evidenced as made. (archive L5102)
-- [ ] LOW A rate-limited message shows only "Not Sent — Tap to Retry" with no reason and a retry that can't succeed — Still open: no distinct rate-limit copy/status found; rate-limited sends still fall into the generic 'failed' bucket. (archive L5130)
-- [ ] MEDIUM Lead: "Work started — couldn't tell the poster" createNotification 5xx, likely repeated-run pressure — Still open/unconfirmed lead — not established as a real defect or dismissed. (archive L5135)
-- [ ] LOW Lead: boot watchdog "Helpr couldn't load." seen once on /profile, possibly mid-deploy — Still open/unconfirmed lead, single occurrence; assertHealthy will catch a repeat if real. (archive L5140)
-- [ ] LOW Edit Profile keeps the old avatar (initials) after "Use Photo" until the page is left — Likely improved (Profile.tsx now updates avatar_url in local state immediately after upload) but not conclusively confirmed against the exact header component named in the report — left open pending a visual check. (archive L5146)
-- [ ] MEDIUM Skeleton screens (Account Security sessions, Warnings & Strikes, Earnings) pass detectStuckOrBlank without aria-busy/animate-pulse — Not reached — no evidence the named skeletons (sessions, Warnings & Strikes, Earnings) gained aria-busy/animate-pulse markers. (archive L5149)
-- [ ] MEDIUM Journey residue accumulates on the shared test accounts; needs the scoped purge prod-lifecycle already asks for — Still open: no evidence a scoped purge for journey-residue jobs/conversations/notifications was implemented. (archive L5153)
+- [ ] **Q990** LOW The post-job double-tap is not covered end to end (generic stepper skips before final submit) — Still open: no purpose-built driver found for the post-job double-tap; not reached in remaining budget for a deeper grep. (archive L5018)
+- [ ] **Q991** MEDIUM Admin queues (AdminExceptionQueue, AdminPayoutBatches, TwoFactorCard, W9CollectionDialog, NpsPrompt) have no seedable state, stay stated GAPS — Still open (by design): these admin queues remain unseedable and stated as GAPS in messyInputForms.ts. (archive L5022)
+- [ ] **Q992** LOW Visual sweep could report '147 passed' with no server actually running — Code fixed (91693fbd8); the item's own remaining bar (a live sweep run with screenshots reviewed) is unverifiable without a browser — open, not reached. (archive L5036)
+- [ ] **Q993** MEDIUM No test moved the clock for auto-expire-jobs step 2, expiring-jobs-push, sweep_* server cutoffs — Partially addressed (client-side time-travel spec exists) but server cutoff sweeps (auto-expire-jobs step2, expiring-jobs-push, sweep_*) still have no clock-moving test. (archive L5045)
+- [ ] **Q994** MEDIUM expiring-jobs-push runs once daily (14:14 UTC) and can never warn a short-lead listing — Still open: expiring-jobs-push remains a once-daily cron; short-lead listings posted after the run still go unwarned. (archive L5076)
+- [ ] **Q995** MEDIUM Lead: a phone clock >1h fast may sign the user out (needs device repro) — Still open — needs a real-device repro before being treated as an app defect; not established either way. (archive L5079)
+- [~] **Q996 LOW FIXED 2026-10-02 (9d3d518c5), protection pending (screenshot at 375):** useActivityFilters now counts search matches per bucket (postedSearchCounts / appliedSearchCounts, same null-safe predicates as the list filter); on a search miss ActivityEmptyState says "No matches under <bucket> — N in <Label> match(es) your search" and offers "Show <Label> (N)", which switches bucket with the query kept and lands on the matches (no treadmill: it reads the search counts, not the pre-search ones). No match anywhere keeps the generic line and Clear search. Layers read: reader/display only (activityFilters, ActivityEmptyState, JobListPage); no server or DB layer involved. GUARD: src/components/job-card/searchMissNamesOtherBuckets.test.tsx (real hook + real empty state; vacuity 4/4 mutations killed). Owed: browser-lane screenshot of /posts?q=<title of a job in another bucket> at 375. Was: My Posts search only searches the active status tab and tells the user the job doesn't exist. (archive L5086)
+- [ ] **Q997** MEDIUM A hired, funded job never says the money is held, on either side's card (product call) — Still open: Scheduled cards do not appear to state that payment is held; product decision not evidenced as made. (archive L5102)
+- [ ] **Q998** LOW A rate-limited message shows only "Not Sent — Tap to Retry" with no reason and a retry that can't succeed — Still open: no distinct rate-limit copy/status found; rate-limited sends still fall into the generic 'failed' bucket. (archive L5130)
+- [ ] **Q999** MEDIUM Lead: "Work started — couldn't tell the poster" createNotification 5xx, likely repeated-run pressure — Still open/unconfirmed lead — not established as a real defect or dismissed. (archive L5135)
+- [ ] **Q1000** LOW Lead: boot watchdog "Helpr couldn't load." seen once on /profile, possibly mid-deploy — Still open/unconfirmed lead, single occurrence; assertHealthy will catch a repeat if real. (archive L5140)
+- [ ] **Q1001** LOW Edit Profile keeps the old avatar (initials) after "Use Photo" until the page is left — Likely improved (Profile.tsx now updates avatar_url in local state immediately after upload) but not conclusively confirmed against the exact header component named in the report — left open pending a visual check. (archive L5146)
+- [ ] **Q1002** MEDIUM Skeleton screens (Account Security sessions, Warnings & Strikes, Earnings) pass detectStuckOrBlank without aria-busy/animate-pulse — Not reached — no evidence the named skeletons (sessions, Warnings & Strikes, Earnings) gained aria-busy/animate-pulse markers. (archive L5149)
+- [ ] **Q1003** MEDIUM Journey residue accumulates on the shared test accounts; needs the scoped purge prod-lifecycle already asks for — Still open: no evidence a scoped purge for journey-residue jobs/conversations/notifications was implemented. (archive L5153)
 
 ### `overlay-sweep` is a report generator wearing a guard's name (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW e2e/happy-path/state-matrix/state-sweep.spec.ts (187 tests) is unopened, doubly exempted via noInventoryFloor — Still open: state-sweep.spec.ts remains on the noInventoryFloor exemption list; no evidence it was opened/reviewed. (archive L5177)
-- [ ] MEDIUM error-state-sweep still unproven (272 tests, ~30 min); target unchanged (supabaseResult.ts if(error)) — Still open/not reached: no evidence of a mutation-proof run against the stated target since the item was filed. (archive L5178)
+- [ ] **Q1004** LOW e2e/happy-path/state-matrix/state-sweep.spec.ts (187 tests) is unopened, doubly exempted via noInventoryFloor — Still open: state-sweep.spec.ts remains on the noInventoryFloor exemption list; no evidence it was opened/reviewed. (archive L5177)
+- [ ] **Q1005** MEDIUM error-state-sweep still unproven (272 tests, ~30 min); target unchanged (supabaseResult.ts if(error)) — Still open/not reached: no evidence of a mutation-proof run against the stated target since the item was filed. (archive L5178)
 
 ### `replaceState-churn` was hollow twice over (2026-09-21, FIXED)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM 19 of 20 error_logs RouteErrorBoundary entries on /browse, /jobs, /posts still unexplained; /browse never churned — Partially investigated: a plausible mechanism (realtime churn + rapid UI churn) is now driven for /posts and /jobs, but /browse is still never churned and the field trigger remains unreproduced. (archive L5184)
+- [ ] **Q1006** MEDIUM 19 of 20 error_logs RouteErrorBoundary entries on /browse, /jobs, /posts still unexplained; /browse never churned — Partially investigated: a plausible mechanism (realtime churn + rapid UI churn) is now driven for /posts and /jobs, but /browse is still never churned and the field trigger remains unreproduced. (archive L5184)
 
 ### Dashboard three-surface CULL parity is still unguarded (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Data-layer culls (expired/past-dated/ownerless/own-post/funded/credential-tier/direct-offer/seed) have no registry or guard — Still open: no shared registry/guard exists for the data-layer culls; still three independently-expressed rule sets (SQL views, useDashboardData filter, useDashboardJobsCount). (archive L5198)
+- [ ] **Q1007** MEDIUM Data-layer culls (expired/past-dated/ownerless/own-post/funded/credential-tier/direct-offer/seed) have no registry or guard — Still open: no shared registry/guard exists for the data-layer culls; still three independently-expressed rule sets (SQL views, useDashboardData filter, useDashboardJobsCount). (archive L5198)
 
 ### Biometric gates — CLOSED 2026-09-21 (was 10 of 12 unobserved)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Still blind: no check proves iOS actually presents a biometric sheet; the whole class is jsdom; adminDisputesFiltering pins the gate to true — Still open, as the section itself states: no check proves iOS presents a real biometric sheet; jsdom-only coverage remains. (archive L5231)
+- [ ] **Q1008** MEDIUM Still blind: no check proves iOS actually presents a biometric sheet; the whole class is jsdom; adminDisputesFiltering pins the gate to true — Still open, as the section itself states: no check proves iOS presents a real biometric sheet; jsdom-only coverage remains. (archive L5231)
 
 ### `useApplyFlow`'s PGRST202 fallback bypasses the rate-limit ladder (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] HIGH apply_to_job PGRST202 direct-INSERT fallback trapdoor bypasses minute/hour caps, funding gate, and the advisory lock — deliberately not closed with a test — Still open by design: the PGRST202 fallback trapdoor is unchanged, awaiting an owner decision (delete vs. harden triggers). (archive L5236)
+- [ ] **Q1009** HIGH apply_to_job PGRST202 direct-INSERT fallback trapdoor bypasses minute/hour caps, funding gate, and the advisory lock — deliberately not closed with a test — Still open by design: the PGRST202 fallback trapdoor is unchanged, awaiting an owner decision (delete vs. harden triggers). (archive L5236)
 
 ### press-every-control dispatched 2026-09-21 — #1582's symptom is GONE, three new things
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Real candidate: the Notifications panel renders an error boundary for the customer role on /home and one /jobs/:id — Still open: nightly-red issue #1582 (press-every-control) remains open; no targeted fix for the customer-role Notifications-panel error boundary found. (archive L5345)
-- [ ] MEDIUM Minor: bottom-nav "Posts" control timed out at 8000ms resolving a long nth-of-type chain; two notification rows non-deterministic — Not reached / still open: minor nth-of-type timeout and date-relative nondeterminism not specifically confirmed fixed. (archive L5349)
+- [ ] **Q1010** MEDIUM Real candidate: the Notifications panel renders an error boundary for the customer role on /home and one /jobs/:id — Still open: nightly-red issue #1582 (press-every-control) remains open; no targeted fix for the customer-role Notifications-panel error boundary found. (archive L5345)
+- [ ] **Q1011** MEDIUM Minor: bottom-nav "Posts" control timed out at 8000ms resolving a long nth-of-type chain; two notification rows non-deterministic — Not reached / still open: minor nth-of-type timeout and date-relative nondeterminism not specifically confirmed fixed. (archive L5349)
 
 ### `scrollWidth <= clientWidth` cannot see overflow in THIS codebase (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Guidance: any new fit check must implement BOTH the scrollWidth<=clientWidth clause AND the per-element 'no element wider than viewport' clause — Standing guidance, not enforced by a lint/guard yet — treat as open practice reminder for future fit checks. (archive L5375)
+- [ ] **Q1012** MEDIUM Guidance: any new fit check must implement BOTH the scrollWidth<=clientWidth clause AND the per-element 'no element wider than viewport' clause — Standing guidance, not enforced by a lint/guard yet — treat as open practice reminder for future fit checks. (archive L5375)
 
 ### Two AA contrast failures from the overlay sweep
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Find what actually paints the two composite contrast failures (#83837c, #b95e35) — Find what actually paints the two composite contrast failures (#83837c, #b95e35) (archive L5518). Caveat (merged from archive L5520): do NOT change --muted-foreground/--stormy-sky on the strength of this finding alone.
+- [ ] **Q1013** MEDIUM Find what actually paints the two composite contrast failures (#83837c, #b95e35) — Find what actually paints the two composite contrast failures (#83837c, #b95e35) (archive L5518). Caveat (merged from archive L5520): do NOT change --muted-foreground/--stormy-sky on the strength of this finding alone.
 
 ### Route catalog overstates coverage (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW 7 route names render ONE screen (/profile) but sweep counts them as 7 distinct routes — 7 route names render ONE screen (/profile) but sweep counts them as 7 distinct routes (archive L5525)
-- [ ] LOW Sweeps structurally cannot exercise the Big 7 completeness gate (buildFakeProfile sets is_legacy_use — Sweeps structurally cannot exercise the Big 7 completeness gate (buildFakeProfile sets is_legacy_user true) (archive L5528)
+- [ ] **Q1014** LOW 7 route names render ONE screen (/profile) but sweep counts them as 7 distinct routes — 7 route names render ONE screen (/profile) but sweep counts them as 7 distinct routes (archive L5525)
+- [ ] **Q1015** LOW Sweeps structurally cannot exercise the Big 7 completeness gate (buildFakeProfile sets is_legacy_use — Sweeps structurally cannot exercise the Big 7 completeness gate (buildFakeProfile sets is_legacy_user true) (archive L5528)
 
 ### Map/list parity — owner report 2026-09-21
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Map/list filter parity fix not yet verified in a browser (no screenshot at 375) — Map/list filter parity fix not yet verified in a browser (no screenshot at 375) (archive L5537)
+- [ ] **Q1016** LOW Map/list filter parity fix not yet verified in a browser (no screenshot at 375) — Map/list filter parity fix not yet verified in a browser (no screenshot at 375) (archive L5537)
 
 ### App Store screenshots (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW iPad shot '0 jobs' header above 7 cards — unreproduced, recheck at capture time — iPad shot '0 jobs' header above 7 cards — unreproduced, recheck at capture time (see also 5558) (archive L5557)
-- [ ] MEDIUM ipad-13 browse shot is flaky — race between waitForTimeout(2500) and MapKit JS — ipad-13 browse shot is flaky — race between waitForTimeout(2500) and MapKit JS (archive L5566)
-- [ ] MEDIUM Guard proposal: walk MockRule pathnames to catch endpoints no src/ file calls — Guard proposal: walk MockRule pathnames to catch endpoints no src/ file calls (archive L5568)
+- [ ] **Q1017** LOW iPad shot '0 jobs' header above 7 cards — unreproduced, recheck at capture time — iPad shot '0 jobs' header above 7 cards — unreproduced, recheck at capture time (see also 5558) (archive L5557)
+- [ ] **Q1018** MEDIUM ipad-13 browse shot is flaky — race between waitForTimeout(2500) and MapKit JS — ipad-13 browse shot is flaky — race between waitForTimeout(2500) and MapKit JS (archive L5566)
+- [ ] **Q1019** MEDIUM Guard proposal: walk MockRule pathnames to catch endpoints no src/ file calls — Guard proposal: walk MockRule pathnames to catch endpoints no src/ file calls (archive L5568)
 
 ### Guard burn-down — second front (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM 49 comment-stripping guards delete real code; migrate to blankNonCode, each of the 49 has unknown co — 49 comment-stripping guards delete real code; migrate to blankNonCode, each of the 49 has unknown coverage (archive L5572)
-- [ ] LOW Edge mock records chained filters but never matches on them (src/test/edge/mocks/supabase.ts) — Edge mock records chained filters but never matches on them (src/test/edge/mocks/supabase.ts) (archive L5573)
-- [ ] MEDIUM No guard asserts a Stripe outflow (cash-out-credits) has a durable ledger row — No guard asserts a Stripe outflow (cash-out-credits) has a durable ledger row (archive L5574)
-- [ ] LOW verification-webhook has 3 vendor branches; only Checkr is tested (stripe_identity, certificial unte — verification-webhook has 3 vendor branches; only Checkr is tested (stripe_identity, certificial untested) (archive L5575)
+- [ ] **Q1020** MEDIUM 49 comment-stripping guards delete real code; migrate to blankNonCode, each of the 49 has unknown co — 49 comment-stripping guards delete real code; migrate to blankNonCode, each of the 49 has unknown coverage (archive L5572)
+- [ ] **Q1021** LOW Edge mock records chained filters but never matches on them (src/test/edge/mocks/supabase.ts) — Edge mock records chained filters but never matches on them (src/test/edge/mocks/supabase.ts) (archive L5573)
+- [ ] **Q1022** MEDIUM No guard asserts a Stripe outflow (cash-out-credits) has a durable ledger row — No guard asserts a Stripe outflow (cash-out-credits) has a durable ledger row (archive L5574)
+- [ ] **Q1023** LOW verification-webhook has 3 vendor branches; only Checkr is tested (stripe_identity, certificial unte — verification-webhook has 3 vendor branches; only Checkr is tested (stripe_identity, certificial untested) (archive L5575)
 
 ### Found while closing the audit gaps (2026-09-12)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Sweep never rendered /complete-profile (seed profile always complete); new complete-profile-incomple — Sweep never rendered /complete-profile (seed profile always complete); new complete-profile-incomplete screen uncommitted (archive L5579)
-- [ ] MEDIUM Pre-push check blocks on pre-existing sweep failures; closes when full sweep is green — Pre-push check blocks on pre-existing sweep failures; closes when full sweep is green (archive L5583)
+- [ ] **Q1024** LOW Sweep never rendered /complete-profile (seed profile always complete); new complete-profile-incomple — Sweep never rendered /complete-profile (seed profile always complete); new complete-profile-incomplete screen uncommitted (archive L5579)
+- [ ] **Q1025** MEDIUM Pre-push check blocks on pre-existing sweep failures; closes when full sweep is green — Pre-push check blocks on pre-existing sweep failures; closes when full sweep is green (archive L5583)
 
 ### Queued — start only after several running audit agents finish
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Pre-release gate: run every audit against the exact TestFlight/App Store build; block release on red — Pre-release gate: run every audit against the exact TestFlight/App Store build; block release on red (archive L5593)
-- [ ] MEDIUM Production watching: alert on real users hitting error screens/failed requests (Sentry + error_logs) — Production watching: alert on real users hitting error screens/failed requests (Sentry + error_logs) (archive L5594)
-- [ ] MEDIUM In-app 'Report a problem' with state: captures screen, route, recent errors automatically — In-app 'Report a problem' with state: captures screen, route, recent errors automatically (archive L5595)
+- [ ] **Q1026** LOW Pre-release gate: run every audit against the exact TestFlight/App Store build; block release on red — Pre-release gate: run every audit against the exact TestFlight/App Store build; block release on red (archive L5593)
+- [ ] **Q1027** MEDIUM Production watching: alert on real users hitting error screens/failed requests (Sentry + error_logs) — Production watching: alert on real users hitting error screens/failed requests (Sentry + error_logs) (archive L5594)
+- [ ] **Q1028** MEDIUM In-app 'Report a problem' with state: captures screen, route, recent errors automatically — In-app 'Report a problem' with state: captures screen, route, recent errors automatically (archive L5595)
 
 ### Findings from paused audit lanes (2026-09-12), to triage on resume
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Keyboard lane: DOB wheel focus ring, focus drops to body, #require-photo-proof switch naming — WIP a — Keyboard lane: DOB wheel focus ring, focus drops to body, #require-photo-proof switch naming — WIP a23bcb847 (archive L5600)
-- [ ] LOW Write-contract lane: instant_book_claim dead RPC; 4 open-payload profiles updates unchecked against — Write-contract lane: instant_book_claim dead RPC; 4 open-payload profiles updates unchecked against 11 non-updatable columns (see also 5580) (archive L5602)
-- [ ] MEDIUM press-every-control: checkout presses fail in mock mode; dock Home not clickable on /profile; payout — press-every-control: checkout presses fail in mock mode; dock Home not clickable on /profile; payout-check banner does nothing — triage afte (archive L5603)
+- [ ] **Q1029** LOW Keyboard lane: DOB wheel focus ring, focus drops to body, #require-photo-proof switch naming — WIP a — Keyboard lane: DOB wheel focus ring, focus drops to body, #require-photo-proof switch naming — WIP a23bcb847 (archive L5600)
+- [ ] **Q1030** LOW Write-contract lane: instant_book_claim dead RPC; 4 open-payload profiles updates unchecked against — Write-contract lane: instant_book_claim dead RPC; 4 open-payload profiles updates unchecked against 11 non-updatable columns (see also 5580) (archive L5602)
+- [ ] **Q1031** MEDIUM press-every-control: checkout presses fail in mock mode; dock Home not clickable on /profile; payout — press-every-control: checkout presses fail in mock mode; dock Home not clickable on /profile; payout-check banner does nothing — triage afte (archive L5603)
 
 ### Move every audit off mocks and onto prod (owner, 2026-09-12)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Visual sweep against prod as the test accounts; decide empty/error-state sweep replacement honestly — Visual sweep against prod as the test accounts; decide empty/error-state sweep replacement honestly (archive L5609)
-- [ ] LOW press-every-control MODE=prod: destructive presses only on test-owned records — press-every-control MODE=prod: destructive presses only on test-owned records (see also 5616) (archive L5610)
-- [ ] LOW Paused lanes (keyboard/large text, messy input, interruptions, slow phone, scorecard, explorer) resu — Paused lanes (keyboard/large text, messy input, interruptions, slow phone, scorecard, explorer) resume on prod, migrated not extended (archive L5611)
-- [ ] MEDIUM Migrate existing mocked happy-path specs in CI to prod-backed or retire, one at a time — Migrate existing mocked happy-path specs in CI to prod-backed or retire, one at a time (archive L5612)
+- [ ] **Q1032** MEDIUM Visual sweep against prod as the test accounts; decide empty/error-state sweep replacement honestly — Visual sweep against prod as the test accounts; decide empty/error-state sweep replacement honestly (archive L5609)
+- [ ] **Q1033** LOW press-every-control MODE=prod: destructive presses only on test-owned records — press-every-control MODE=prod: destructive presses only on test-owned records (see also 5616) (archive L5610)
+- [ ] **Q1034** LOW Paused lanes (keyboard/large text, messy input, interruptions, slow phone, scorecard, explorer) resu — Paused lanes (keyboard/large text, messy input, interruptions, slow phone, scorecard, explorer) resume on prod, migrated not extended (archive L5611)
+- [ ] **Q1035** MEDIUM Migrate existing mocked happy-path specs in CI to prod-backed or retire, one at a time — Migrate existing mocked happy-path specs in CI to prod-backed or retire, one at a time (archive L5612)
 
 ### REDO on prod — work that was only verified on mocks
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Button geometry + sibling heights (de9d3cd88, admin tiles, fraud select): re-verify on prod screens — Button geometry + sibling heights (de9d3cd88, admin tiles, fraud select): re-verify on prod screens (archive L5619)
-- [ ] LOW Keyboard file pickers, aria-label roles, dark contrast (dbed7befd): re-verify on prod screens — Keyboard file pickers, aria-label roles, dark contrast (dbed7befd): re-verify on prod screens (archive L5620)
-- [ ] LOW Stale-deploy spec (2263feec8): routes loaded with the prod backend — Stale-deploy spec (2263feec8): routes loaded with the prod backend (archive L5622)
-- [ ] LOW New-tab destination check (f5e0e104f): sweep side re-run on prod — New-tab destination check (f5e0e104f): sweep side re-run on prod (archive L5623)
-- [ ] LOW Messy-input, deep-link interruptions, keyboard journeys: migrate to prod before extending — Messy-input, deep-link interruptions, keyboard journeys: migrate to prod before extending (archive L5624)
-- [ ] LOW Mock seed (59a92d362) and mock-only harness pieces: retire once prod equivalents pass — Mock seed (59a92d362) and mock-only harness pieces: retire once prod equivalents pass (archive L5626)
+- [ ] **Q1036** LOW Button geometry + sibling heights (de9d3cd88, admin tiles, fraud select): re-verify on prod screens — Button geometry + sibling heights (de9d3cd88, admin tiles, fraud select): re-verify on prod screens (archive L5619)
+- [ ] **Q1037** LOW Keyboard file pickers, aria-label roles, dark contrast (dbed7befd): re-verify on prod screens — Keyboard file pickers, aria-label roles, dark contrast (dbed7befd): re-verify on prod screens (archive L5620)
+- [ ] **Q1038** LOW Stale-deploy spec (2263feec8): routes loaded with the prod backend — Stale-deploy spec (2263feec8): routes loaded with the prod backend (archive L5622)
+- [ ] **Q1039** LOW New-tab destination check (f5e0e104f): sweep side re-run on prod — New-tab destination check (f5e0e104f): sweep side re-run on prod (archive L5623)
+- [ ] **Q1040** LOW Messy-input, deep-link interruptions, keyboard journeys: migrate to prod before extending — Messy-input, deep-link interruptions, keyboard journeys: migrate to prod before extending (archive L5624)
+- [ ] **Q1041** LOW Mock seed (59a92d362) and mock-only harness pieces: retire once prod equivalents pass — Mock seed (59a92d362) and mock-only harness pieces: retire once prod equivalents pass (archive L5626)
 
 ### Launch checklist (owner decisions that flip at launch)
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -1145,78 +1145,78 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Routine consolidation (2026-09-12)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW OWNER: delete the 8 disabled cloud routines at claude.ai/code/routines (API cannot delete) — OWNER: delete the 8 disabled cloud routines at claude.ai/code/routines (API cannot delete) (archive L5657)
+- [ ] **Q1046** LOW OWNER: delete the 8 disabled cloud routines at claude.ai/code/routines (API cannot delete) — OWNER: delete the 8 disabled cloud routines at claude.ai/code/routines (API cannot delete) (archive L5657)
 
 ### Unshipped branches (owner review)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Find which session deleted ~150 local branches on 2026-09-12 without logging tip shas — Find which session deleted ~150 local branches on 2026-09-12 without logging tip shas (archive L5664)
+- [ ] **Q1047** LOW Find which session deleted ~150 local branches on 2026-09-12 without logging tip shas — Find which session deleted ~150 local branches on 2026-09-12 without logging tip shas (archive L5664)
 
 ### Agent queue (2026-09-13, max 3 at once)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Full customer/helper -> poster/Helpr internal rename, NO aliases (after gift card rename lands) — Full customer/helper -> poster/Helpr internal rename, NO aliases (after gift card rename lands) (archive L5692)
-- [ ] MEDIUM Race fixes: settle_dispute_record, DisputeDialog, JobTracking helper_completed_at — partial WIP on w — Race fixes: settle_dispute_record, DisputeDialog, JobTracking helper_completed_at — partial WIP on wip/race2-terminal c983eb2a9 (archive L5699)
+- [ ] **Q1048** LOW Full customer/helper -> poster/Helpr internal rename, NO aliases (after gift card rename lands) — Full customer/helper -> poster/Helpr internal rename, NO aliases (after gift card rename lands) (archive L5692)
+- [ ] **Q1049** MEDIUM Race fixes: settle_dispute_record, DisputeDialog, JobTracking helper_completed_at — partial WIP on w — Race fixes: settle_dispute_record, DisputeDialog, JobTracking helper_completed_at — partial WIP on wip/race2-terminal c983eb2a9 (archive L5699)
 
 ### PROD DB OVERLOAD (2026-09-14) — cause found
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM RISK: GitHub keeps one pending run per concurrency group; a run outlasting its 2h slot cancels the n — RISK: GitHub keeps one pending run per concurrency group; a run outlasting its 2h slot cancels the next prod-errors run silently (archive L5717)
-- [ ] MEDIUM Not moved into prod-load: race-runner, ui-sweep; press-every-control/e2e-abuse-notifications lost th — Not moved into prod-load: race-runner, ui-sweep; press-every-control/e2e-abuse-notifications lost their shared-accounts lock (archive L5718)
+- [ ] **Q1050** MEDIUM RISK: GitHub keeps one pending run per concurrency group; a run outlasting its 2h slot cancels the n — RISK: GitHub keeps one pending run per concurrency group; a run outlasting its 2h slot cancels the next prod-errors run silently (archive L5717)
+- [ ] **Q1051** MEDIUM Not moved into prod-load: race-runner, ui-sweep; press-every-control/e2e-abuse-notifications lost th — Not moved into prod-load: race-runner, ui-sweep; press-every-control/e2e-abuse-notifications lost their shared-accounts lock (archive L5718)
 
 ### MAIN IS RED (found 2026-09-13) — do these first
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Gaps found 2026-09-13 night
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Make every harness that can add a strike delete its user_violations/user_strikes rows and restore ba — Make every harness that can add a strike delete its user_violations/user_strikes rows and restore ban_status in cleanup (archive L5730)
-- [ ] MEDIUM press-every-control: 84 'control not found' are Notifications panel rows + /account-pending nav — ad — press-every-control: 84 'control not found' are Notifications panel rows + /account-pending nav — address by stable id not label+ordinal (archive L5740)
-- [ ] LOW press-every-control: 11 'no observable change' presses are selected-segment/self-route/native-valida — press-every-control: 11 'no observable change' presses are selected-segment/self-route/native-validation — classify as documented skips (archive L5741)
-- [ ] MEDIUM Verify on prod when healthy: Notifications panel silent-failure vs true empty state for a poster wit — Verify on prod when healthy: Notifications panel silent-failure vs true empty state for a poster with Unread=313 during 09-13 outage (archive L5742)
-- [ ] MEDIUM Re-run press-every-control once prod is steady; authed coverage unproven until #1582 gets a healthy — Re-run press-every-control once prod is steady; authed coverage unproven until #1582 gets a healthy run (archive L5743)
-- [ ] MEDIUM OWNER: STRIPE_TEST_SECRET_KEY secret; reconnect Supabase/Slack/Canva connectors — OWNER: STRIPE_TEST_SECRET_KEY secret; reconnect Supabase/Slack/Canva connectors (see also 5692) (archive L5749)
-- [ ] MEDIUM Alerts to one Slack channel: prod down, deploy failed, nightly-red, Stripe webhook failures, DB near — Alerts to one Slack channel: prod down, deploy failed, nightly-red, Stripe webhook failures, DB near free-tier limits — PARTLY DONE (archive L5755)
-- [ ] LOW Hallie avatar re-upload path: prove on prod (owner asked) — Hallie avatar re-upload path: prove on prod (owner asked) (archive L5764)
-- [ ] LOW Group job screenshots: BUILT, apply+screenshot pending (prod has 0 group jobs, only local render pro — Group job screenshots: BUILT, apply+screenshot pending (prod has 0 group jobs, only local render proven) (archive L5773)
-- [ ] MEDIUM QUEUED: land + prove completion-race (2608b2585) with before/after probe numbers, re-enable race-run — QUEUED: land + prove completion-race (2608b2585) with before/after probe numbers, re-enable race-runner.yml (archive L5774)
-- [ ] LOW STILL OPEN: screenshot the poster's group card on /posts at 375 light+dark, record with review:re — STILL OPEN: screenshot the poster's group card on /posts at 375 light+dark, record with review:record (see also 5764) (archive L5778)
-- [ ] MEDIUM QUEUED: race proofs for fa107a92f fixes (auto-release vs dispute, auto-resolve vs escalate/withdraw, — QUEUED: race proofs for fa107a92f fixes (auto-release vs dispute, auto-resolve vs escalate/withdraw, gift-card vs card payment, revision dou (archive L5780)
-- [ ] MEDIUM RESIDUAL: a paid journey leg still lands one page load on prod (Stripe success_url = prod getAppUrl( — RESIDUAL: a paid journey leg still lands one page load on prod (Stripe success_url = prod getAppUrl()); needs WebKit-proven route fix (archive L5789)
-- [ ] LOW OWNER: set Deployment Retention to shortest in Vercel dashboard (34 GB of deployment storage is depl — OWNER: set Deployment Retention to shortest in Vercel dashboard (34 GB of deployment storage is deploy history) (archive L5791)
-- [ ] LOW RESIDUAL: installed iOS/Android builds bundle the old client phone-number regex until a new native b — RESIDUAL: installed iOS/Android builds bundle the old client phone-number regex until a new native build ships (archive L5796)
-- [ ] LOW Native build needed to pick up all client-side scanner changes (phone regex, neutral-toast, location — Native build needed to pick up all client-side scanner changes (phone regex, neutral-toast, location-share) — owner decides when to cut it (archive L5799)
-- [ ] MEDIUM OWNER: allow Stripe connector write tool + reconnect Stripe, add transfer.failed to live webhook, cl — OWNER: allow Stripe connector write tool + reconnect Stripe, add transfer.failed to live webhook, close #1462/#1521 (archive L5810)
+- [ ] **Q1052** LOW Make every harness that can add a strike delete its user_violations/user_strikes rows and restore ba — Make every harness that can add a strike delete its user_violations/user_strikes rows and restore ban_status in cleanup (archive L5730)
+- [ ] **Q1053** MEDIUM press-every-control: 84 'control not found' are Notifications panel rows + /account-pending nav — ad — press-every-control: 84 'control not found' are Notifications panel rows + /account-pending nav — address by stable id not label+ordinal (archive L5740)
+- [ ] **Q1054** LOW press-every-control: 11 'no observable change' presses are selected-segment/self-route/native-valida — press-every-control: 11 'no observable change' presses are selected-segment/self-route/native-validation — classify as documented skips (archive L5741)
+- [ ] **Q1055** MEDIUM Verify on prod when healthy: Notifications panel silent-failure vs true empty state for a poster wit — Verify on prod when healthy: Notifications panel silent-failure vs true empty state for a poster with Unread=313 during 09-13 outage (archive L5742)
+- [ ] **Q1056** MEDIUM Re-run press-every-control once prod is steady; authed coverage unproven until #1582 gets a healthy — Re-run press-every-control once prod is steady; authed coverage unproven until #1582 gets a healthy run (archive L5743)
+- [ ] **Q1057** MEDIUM OWNER: STRIPE_TEST_SECRET_KEY secret; reconnect Supabase/Slack/Canva connectors — OWNER: STRIPE_TEST_SECRET_KEY secret; reconnect Supabase/Slack/Canva connectors (see also 5692) (archive L5749)
+- [ ] **Q1058** MEDIUM Alerts to one Slack channel: prod down, deploy failed, nightly-red, Stripe webhook failures, DB near — Alerts to one Slack channel: prod down, deploy failed, nightly-red, Stripe webhook failures, DB near free-tier limits — PARTLY DONE (archive L5755)
+- [ ] **Q1059** LOW Hallie avatar re-upload path: prove on prod (owner asked) — Hallie avatar re-upload path: prove on prod (owner asked) (archive L5764)
+- [ ] **Q1060** LOW Group job screenshots: BUILT, apply+screenshot pending (prod has 0 group jobs, only local render pro — Group job screenshots: BUILT, apply+screenshot pending (prod has 0 group jobs, only local render proven) (archive L5773)
+- [ ] **Q1061** MEDIUM QUEUED: land + prove completion-race (2608b2585) with before/after probe numbers, re-enable race-run — QUEUED: land + prove completion-race (2608b2585) with before/after probe numbers, re-enable race-runner.yml (archive L5774)
+- [ ] **Q1062** LOW STILL OPEN: screenshot the poster's group card on /posts at 375 light+dark, record with review:re — STILL OPEN: screenshot the poster's group card on /posts at 375 light+dark, record with review:record (see also 5764) (archive L5778)
+- [ ] **Q1063** MEDIUM QUEUED: race proofs for fa107a92f fixes (auto-release vs dispute, auto-resolve vs escalate/withdraw, — QUEUED: race proofs for fa107a92f fixes (auto-release vs dispute, auto-resolve vs escalate/withdraw, gift-card vs card payment, revision dou (archive L5780)
+- [ ] **Q1064** MEDIUM RESIDUAL: a paid journey leg still lands one page load on prod (Stripe success_url = prod getAppUrl( — RESIDUAL: a paid journey leg still lands one page load on prod (Stripe success_url = prod getAppUrl()); needs WebKit-proven route fix (archive L5789)
+- [ ] **Q1065** LOW OWNER: set Deployment Retention to shortest in Vercel dashboard (34 GB of deployment storage is depl — OWNER: set Deployment Retention to shortest in Vercel dashboard (34 GB of deployment storage is deploy history) (archive L5791)
+- [ ] **Q1066** LOW RESIDUAL: installed iOS/Android builds bundle the old client phone-number regex until a new native b — RESIDUAL: installed iOS/Android builds bundle the old client phone-number regex until a new native build ships (archive L5796)
+- [ ] **Q1067** LOW Native build needed to pick up all client-side scanner changes (phone regex, neutral-toast, location — Native build needed to pick up all client-side scanner changes (phone regex, neutral-toast, location-share) — owner decides when to cut it (archive L5799)
+- [ ] **Q1068** MEDIUM OWNER: allow Stripe connector write tool + reconnect Stripe, add transfer.failed to live webhook, cl — OWNER: allow Stripe connector write tool + reconnect Stripe, add transfer.failed to live webhook, close #1462/#1521 (archive L5810)
 
 ### ASK THE OWNER AFTER THE PUSH
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Empty /jobs desktop header shows bare magnifier, no title/tabs — owner to pick a/b/c — Owner decision still pending: empty My Jobs/Posts desktop header shows bare magnifier with no title or tabs. (see also line 6604 / line 7413) (archive L6387)
+- [ ] **Q1069** LOW Empty /jobs desktop header shows bare magnifier, no title/tabs — owner to pick a/b/c — Owner decision still pending: empty My Jobs/Posts desktop header shows bare magnifier with no title or tabs. (see also line 6604 / line 7413) (archive L6387)
 
 ### OPEN, reported not built (owner decisions)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM After admin marks stalled job reviewed, next step undefined (no link into refund/status dialog) — Still open: reviewing a stalled job leaves the admin to navigate manually to refund/status-override dialogs. (archive L6436)
-- [ ] LOW No rail badge count on the Stuck Jobs admin queue — Still open: Stuck Jobs queue has no live rail badge count. (archive L6440)
+- [ ] **Q1070** MEDIUM After admin marks stalled job reviewed, next step undefined (no link into refund/status dialog) — Still open: reviewing a stalled job leaves the admin to navigate manually to refund/status-override dialogs. (archive L6436)
+- [ ] **Q1071** LOW No rail badge count on the Stuck Jobs admin queue — Still open: Stuck Jobs queue has no live rail badge count. (archive L6440)
 
 ### REVERTED — a deploy-lag heuristic that masked a real defect
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM write-contract.snapshot.json needs appliedMigrations metadata so pending vs missing RPC is exact — Still open: write-contract snapshot lacks migration metadata, so deploy-lag can't be distinguished from a real missing RPC. (see also line 6579) (archive L6501)
+- [ ] **Q1072** MEDIUM write-contract.snapshot.json needs appliedMigrations metadata so pending vs missing RPC is exact — Still open: write-contract snapshot lacks migration metadata, so deploy-lag can't be distinguished from a real missing RPC. (see also line 6579) (archive L6501)
 
 ### STILL OPEN from the checking work
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Unfloored guards (classA_noInventoryFloor) not closed down — Still open: 25 guards (was 20) still pass on an empty inventory per current vacuity-report.json. (archive L6582)
-- [ ] LOW 38 mount-wiring gaps reported, not gated — Still open: mount-wiring gaps (incl. PostedJobCard/AppliedJobCard) remain reported, not gated. (archive L6583)
-- [ ] MEDIUM Class (e) literal-vs-semantic mutation quality is not statically decidable — Open by design: a weak mutation can still 'kill' a guard; not mechanically detectable. (archive L6586)
+- [ ] **Q1073** MEDIUM Unfloored guards (classA_noInventoryFloor) not closed down — Still open: 25 guards (was 20) still pass on an empty inventory per current vacuity-report.json. (archive L6582)
+- [ ] **Q1074** LOW 38 mount-wiring gaps reported, not gated — Still open: mount-wiring gaps (incl. PostedJobCard/AppliedJobCard) remain reported, not gated. (archive L6583)
+- [ ] **Q1075** MEDIUM Class (e) literal-vs-semantic mutation quality is not statically decidable — Open by design: a weak mutation can still 'kill' a guard; not mechanically detectable. (archive L6586)
 
 ### NEW — LOW (from the same pass)
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### NEW — PATTERN: seed fixtures create states the app cannot reach
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Decision needed: stamp fixtures realistically or add a CHECK constraint forbidding the fixture-only state — Owner decision still needed: seed producers bypass accept_job/respond_to_direct_offer, creating states real jobs never reach. (archive L6660)
+- [ ] **Q1076** LOW Decision needed: stamp fixtures realistically or add a CHECK constraint forbidding the fixture-only state — Owner decision still needed: seed producers bypass accept_job/respond_to_direct_offer, creating states real jobs never reach. (archive L6660)
 
 ### NEW — user-facing: Not Now on push prompt tells user notifications are off
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW pushPermissionNudge.ts treats dismissed dialog as browser-denied, misinforming any user who ever blocked notifications — Still open per doc: 'Not Now' on the push prompt incorrectly claims notifications are off. (archive L6722)
+- [ ] **Q1077** LOW pushPermissionNudge.ts treats dismissed dialog as browser-denied, misinforming any user who ever blocked notifications — Still open per doc: 'Not Now' on the push prompt incorrectly claims notifications are off. (archive L6722)
 
 ### NEW — prod profile load really is over budget
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM 6237.9ms profile load vs 6000ms budget; auto-heal fires only after error card paints — Open: profile-load auto-heal still runs after the error card paints; decision on budget vs pre-empt not recorded. (archive L6729)
+- [ ] **Q1078** MEDIUM 6237.9ms profile load vs 6000ms budget; auto-heal fires only after error card paints — Open: profile-load auto-heal still runs after the error card paints; decision on budget vs pre-empt not recorded. (archive L6729)
 
 ### BREAKAGE (d) — reviews. OWNER DECISIONS NEEDED
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -1226,116 +1226,116 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### STILL REQUIRED before GROUP_JOBS_ENABLED can flip
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM 5 prerequisites (reviews decision, per-member payout release, crew UI, drop reject_new_group_jobs, prod xmin race proof) all still outstanding — Confirmed open: GROUP_JOBS_ENABLED is still false; none of the 5 prerequisites built. (archive L6810)
+- [ ] **Q1079** MEDIUM 5 prerequisites (reviews decision, per-member payout release, crew UI, drop reject_new_group_jobs, prod xmin race proof) all still outstanding — Confirmed open: GROUP_JOBS_ENABLED is still false; none of the 5 prerequisites built. (archive L6810)
 
 ### NEW — the 320 truncation gate has a hole
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW activity-card-density.spec.ts inventory misses Directions/SOS/Share/capture-chip controls (no data-job-action-chip hook) — Not independently reverified; reported still open — self-drawing row controls lack the density-gate hook. (archive L6871)
+- [ ] **Q1080** LOW activity-card-density.spec.ts inventory misses Directions/SOS/Share/capture-chip controls (no data-job-action-chip hook) — Not independently reverified; reported still open — self-drawing row controls lack the density-gate hook. (archive L6871)
 
 ### TIGHTEST ROW IN THE APP — needs the lead's eyes at 320
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Helper Disputed-with-photo-owed row: 'Withdraw' measures ~50px in a ~56px primary slot, inside by 4px — Not reached — needs a browser-lane look; margin was measured at only 4px. (archive L6877)
+- [ ] **Q1081** MEDIUM Helper Disputed-with-photo-owed row: 'Withdraw' measures ~50px in a ~56px primary slot, inside by 4px — Not reached — needs a browser-lane look; margin was measured at only 4px. (archive L6877)
 
 ### NEEDS AN OWNER LOOK / DECISION
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Chip order hides Message in overflow on both dispute rows at 320 — Open: overflow ordering still buries the Message chip on dispute rows at 320; not reordered pending owner call. (archive L6969)
-- [ ] LOW 'Try My Location Again' is the widest primary label, forces zero visible chips at 320 on-site — Open: widest-label collapse at 320 remains; a copy change ('Retry Location') was proposed but not made. (archive L6969)
-- [ ] LOW The overflow 'More' popover is entirely unverified visually — Not reached — More popover placement/width/grid never visually verified. (archive L6969)
+- [ ] **Q1082** MEDIUM Chip order hides Message in overflow on both dispute rows at 320 — Open: overflow ordering still buries the Message chip on dispute rows at 320; not reordered pending owner call. (archive L6969)
+- [ ] **Q1083** LOW 'Try My Location Again' is the widest primary label, forces zero visible chips at 320 on-site — Open: widest-label collapse at 320 remains; a copy change ('Retry Location') was proposed but not made. (archive L6969)
+- [ ] **Q1084** LOW The overflow 'More' popover is entirely unverified visually — Not reached — More popover placement/width/grid never visually verified. (archive L6969)
 
 ### NEW — 37 seed rows pass the address check and still go nowhere
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Fake '100 Audit Way...99999' addresses satisfy hasStreetAddress() but resolve nowhere for Directions — Open: 37 seed rows have unresolvable fake addresses; fix deferred to E2E lane. (archive L7005)
+- [ ] **Q1085** LOW Fake '100 Audit Way...99999' addresses satisfy hasStreetAddress() but resolve nowhere for Directions — Open: 37 seed rows have unresolvable fake addresses; fix deferred to E2E lane. (archive L7005)
 
 ### NEW — three real prod jobs are actually fixtures
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### NEW — the address runtime check cannot be credential-free
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM seedFixtureAddressRealism-style check needs the service-role leg of e2e-real-backend.yml — Not independently reverified; reported as needing placement on the credentialed CI leg. (archive L7018)
+- [ ] **Q1086** MEDIUM seedFixtureAddressRealism-style check needs the service-role leg of e2e-real-backend.yml — Not independently reverified; reported as needing placement on the credentialed CI leg. (archive L7018)
 
 ### NEW — HIGH (fairness): profile stat tiles use THREE different denominators
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Jobs completed / Jobs posted / Cancelled use inconsistent, non-reconciling denominators; 32/35 cancellations are helper-side but counted against the person — Open, owner decision needed: profile stat tiles' three denominators still don't reconcile. (archive L7042)
+- [ ] **Q1087** LOW Jobs completed / Jobs posted / Cancelled use inconsistent, non-reconciling denominators; 32/35 cancellations are helper-side but counted against the person — Open, owner decision needed: profile stat tiles' three denominators still don't reconcile. (archive L7042)
 
 ### NEW — [SWEEP] prefixes are stranded prod data
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### NEW — quick-tags are concatenated into the review body (write-path)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Durable fix needs a tags text[] column; two byte-identical write-path implementations to converge — Open: quick-tags still concatenated into feedback text; schema fix not built. (archive L7060)
+- [ ] **Q1088** LOW Durable fix needs a tags text[] column; two byte-identical write-path implementations to converge — Open: quick-tags still concatenated into feedback text; schema fix not built. (archive L7060)
 
 ### NEW — same origin-trust family, reported not fixed
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW JobTracking 'X mi from job' refusal distance and BrowseTasksFeed discarding `approximate` are same family, left alone by design — Open by design/deferred: origin-trust-family distance displays (refusal distance, BrowseTasksFeed approximate flag) left unaddressed. (see also line 7320) (archive L7119)
+- [ ] **Q1089** LOW JobTracking 'X mi from job' refusal distance and BrowseTasksFeed discarding `approximate` are same family, left alone by design — Open by design/deferred: origin-trust-family distance displays (refusal distance, BrowseTasksFeed approximate flag) left unaddressed. (see also line 7320) (archive L7119)
 
 ### FOLLOW-UP — is_flexible_schedule is IMMUTABLE after posting
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### FOR THE VISUAL PASS: the unread dot is now the ONLY unread signal, and it is 8px
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW 8px unread dot needs an eyeball check at 375 and 1440 now it's the sole unread signal — Not reached — needs visual review; the 8px unread dot was called 'subtle' but not changed. (archive L7270)
+- [ ] **Q1090** LOW 8px unread dot needs an eyeball check at 375 and 1440 now it's the sole unread signal — Not reached — needs visual review; the 8px unread dot was called 'subtle' but not changed. (archive L7270)
 
 ### STILL OPEN from this correction
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW A feed-level 'you're far from these jobs' line was never built (only per-job detail shows real distance) — Open: no feed-level distance banner built; still per-card/per-job only. (archive L7325)
+- [ ] **Q1091** LOW A feed-level 'you're far from these jobs' line was never built (only per-job detail shows real distance) — Open: no feed-level distance banner built; still per-card/per-job only. (archive L7325)
 
 ### Handed back / still open
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Stale @mutate find-strings failing vacuity in job-card WIP (3 guards) — Not independently reverified; reported as still-stale @mutate strings in 3 guards. (archive L7380)
+- [ ] **Q1092** MEDIUM Stale @mutate find-strings failing vacuity in job-card WIP (3 guards) — Not independently reverified; reported as still-stale @mutate strings in 3 guards. (archive L7380)
 
 ### STILL OPEN after the 2026-09-19 late session
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW Desktop Browse search drops focus to <body> on close (/posts is correct) — Not confirmed fixed — desktop Browse search focus-loss on close not mentioned again as resolved. (archive L7421)
-- [ ] LOW TabFallback uses one 230px placeholder for all 23 Profile tabs; needs per-tab reserved heights — Not reached / still open: TabFallback's single 230px placeholder still misfits tabs like home_history (3359px) and gift_card (1230px). (archive L7423)
-- [ ] LOW Two different components both named JobCardSkeleton render two unrelated skeletons in sequence on /home — Not reached / still open per doc. (archive L7426)
-- [ ] LOW ApplicationCardSkeleton vs JobCardShell mismatch (-52px); /user/:id IdentityHeroSkeleton reserves 326px, 141px arrives — Not reached / still open per doc. (archive L7429)
-- [ ] LOW At 320 the wrapped address is centered while the date beneath it is left-aligned — Not reached / still open per doc — minor address/date alignment mismatch at 320. (see also line 7395) (archive L7431)
-- [ ] LOW Dialog-corner WIP was RED and not committed; backed up as a local patch file — Confirmed still open: dialog-corner WIP patch sits unapplied at ~/lh-dialog-corner-WIP-2026-09-19.patch. (archive L7432)
+- [ ] **Q1093** LOW Desktop Browse search drops focus to <body> on close (/posts is correct) — Not confirmed fixed — desktop Browse search focus-loss on close not mentioned again as resolved. (archive L7421)
+- [ ] **Q1094** LOW TabFallback uses one 230px placeholder for all 23 Profile tabs; needs per-tab reserved heights — Not reached / still open: TabFallback's single 230px placeholder still misfits tabs like home_history (3359px) and gift_card (1230px). (archive L7423)
+- [ ] **Q1095** LOW Two different components both named JobCardSkeleton render two unrelated skeletons in sequence on /home — Not reached / still open per doc. (archive L7426)
+- [ ] **Q1096** LOW ApplicationCardSkeleton vs JobCardShell mismatch (-52px); /user/:id IdentityHeroSkeleton reserves 326px, 141px arrives — Not reached / still open per doc. (archive L7429)
+- [ ] **Q1097** LOW At 320 the wrapped address is centered while the date beneath it is left-aligned — Not reached / still open per doc — minor address/date alignment mismatch at 320. (see also line 7395) (archive L7431)
+- [ ] **Q1098** LOW Dialog-corner WIP was RED and not committed; backed up as a local patch file — Confirmed still open: dialog-corner WIP patch sits unapplied at ~/lh-dialog-corner-WIP-2026-09-19.patch. (archive L7432)
 
 ### 2026-09-20 lead visual verification of the overnight lanes
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM activityTabLabelsFitAPhone guard is green even when the tab row isn't visible (measures width, not visibility) — Not reached / likely still open: guard gap (measures width of a possibly-hidden element) not confirmed fixed. (archive L7449)
-- [ ] LOW Messages empty inbox hides its tabs and search trigger (same shape as the Activity bug) — Open: Messages empty inbox still hides tabs/search; owner positions conflict, no fix built. (see also line 7479) (archive L7457)
+- [ ] **Q1099** MEDIUM activityTabLabelsFitAPhone guard is green even when the tab row isn't visible (measures width, not visibility) — Not reached / likely still open: guard gap (measures width of a possibly-hidden element) not confirmed fixed. (archive L7449)
+- [ ] **Q1100** LOW Messages empty inbox hides its tabs and search trigger (same shape as the Activity bug) — Open: Messages empty inbox still hides tabs/search; owner positions conflict, no fix built. (see also line 7479) (archive L7457)
 
 ### Still open for the owner
 Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### OPEN — three visual findings from the 2026-09-23 verification pass
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW WebKit only: bottom nav is not frosted (feed text shows sharp under icons) — Not reached — needs device/simulator check; may be a headless-WebKit rendering artifact, not confirmed as a real app bug. (archive L7587)
+- [ ] **Q1101** LOW WebKit only: bottom nav is not frosted (feed text shows sharp under icons) — Not reached — needs device/simulator check; may be a headless-WebKit rendering artifact, not confirmed as a real app bug. (archive L7587)
 
 ## CARRIED — the 2026-09-02 ledger (docs/audit/OPEN_ITEMS.md, retired 2026-09-23)
 
 Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02.md.
-- [ ] MEDIUM **LIVE DEFECT #25**: Senior mode .truncate amputates visible characters (193 occurrences). Still open by design: per-component fix explicitly not done; global attempt was reverted.
-- [ ] MEDIUM **LATENT #1**: Group jobs broken in 5 places (message, accept/complete, Activity, reviews, dispute split). 3 of 5 sub-defects fixed pre-compile; (b)/(d) still open, control still gated off (GROUP_JOBS_ENABLED=false). (also: docs/OPEN.md VN-52 'Group jobs — inventory + turn-on plan', Phase 1 landed 2026-09-19, flag still false)
-- [ ] HIGH **LATENT #6**: charge-recurring-visits Stripe idempotency keys expire inside the funding window. Unchanged; mitigated by a unique index per the doc but the 24h key-expiry residual risk is still present and self-documented. (also: none found)
-- [ ] LOW **LATENT #7**: No FK protects the ten no-FK tables (orphans possible outside app code). Still open and WORSE: orphan analytics_events rows grew from 63 to 830 since the doc was compiled; no FK added. (also: docs/OPEN.md:4294 notes 'no-FK tables are handled in code by choice')
-- [ ] MEDIUM **LATENT #8**: Three edge functions have no verify_jwt=false block in config.toml. Still open; config.toml's own comment (2026-09-10) confirms daily-match-digest/saved-helper-availability-push/str-ical-sync still lack the stanza, by acknowledged omission not a fix. (also: none found)
-- [ ] MEDIUM **LATENT #10**: OfflineBanner is lazy() — can fail to load on cold offline boot. Unchanged; still lazy-loaded with a null Suspense fallback, deliberate per the row's own note. (also: none found)
-- [ ] LOW **LATENT #11**: Twelve bare <Navigate> redirects drop search/hash. Not fully re-verified; original doc itself already characterizes this as sanctioned/low-risk (no query currently reaches these routes) — treat as open pending a fresh check, not reached. (also: none found)
-- [ ] LOW **LATENT #12**: Ten retired marketing routes 404 with no redirect stub. Unchanged: routes still intentionally 404 with no redirect; RW-002 reference not locatable in OPEN.md now. (also: filed as RW-002 by the launch fleet per the row's own text; RW-002 string not found via grep in current docs/OPEN.md)
-- [ ] LOW **UNVERIFIED #1**: Entire native iOS surface never verified (WKWebView-specific bug class). Not reached — requires TestFlight/simulator pass, outside this read-only reconcile's tooling. (also: none found)
-- [ ] LOW **UNVERIFIED #2**: Universal-link association on a device (AASA CDN cache). Not reached — device-only settlement, unchanged. (also: none found)
-- [ ] MEDIUM **UNVERIFIED #3**: Cold-start push tap (real APNs to a force-quit app). Not reached — device-only settlement, unchanged. (also: none found)
-- [ ] LOW **UNVERIFIED #4**: helpr:// custom-scheme branch has zero test coverage. Partially settled: unit test now exists (fixed that half); the SFSafariViewController device drive remains not reached. (also: none found)
-- [ ] LOW **UNVERIFIED #5**: A group job end to end (post -> accept x3 -> work -> complete -> payout). Still blocked upstream; not reached, consistent with LATENT #1's continued open (b)/(d). (also: docs/OPEN.md VN-52)
-- [ ] MEDIUM **UNVERIFIED #6**: A recurring series end to end (create -> visit charges -> cancel). Not reached — needs a Stripe test-mode fixture, unchanged. (also: none found)
-- [ ] HIGH **UNVERIFIED #7**: A dispute end to end on live accounts (file -> evidence -> escalate -> admin resolve). Not reached — needs a browser session, unchanged. (also: docs/OPEN.md has extensive dispute-money guard work (money-escrow reviews) but no end-to-end UI drive recorded)
-- [ ] MEDIUM **UNVERIFIED #8**: cancelStripeSubscription on a real subscription (delete-own-account). Not reached — owner/credential settlement, unchanged. (also: none found)
-- [ ] MEDIUM **UNVERIFIED #9**: No Stripe call was ever made in either mode by any lane (customer dedup, portal scoping, accounts.del balance refusal). Not reached — still rests on recorded findings and Stripe docs, not a live call. (also: none found)
-- [ ] LOW **UNVERIFIED #12**: Three write paths never driven: /availability weekly-hours SAVE, available-now toggle, /str-settings. Not reached — needs a browser session, unchanged. (also: none found)
-- [ ] LOW **UNVERIFIED #13**: The /complete-profile avatar UPLOAD path never exercised with a fresh account. Not reached — needs a browser session, unchanged. (also: none found)
-- [ ] LOW **UNVERIFIED #14**: Whether GoTrue's own rate limit backs the client-side login lockout. Not reached — owner/dashboard-only settlement, unchanged, verdict note: owner. (also: none found)
-- [ ] LOW **OWNER-ONLY #2**: CAN-SPAM postal address empty in email footer. Code unchanged; still an empty literal awaiting owner value.
-- [ ] MEDIUM **OWNER-ONLY #5**: Archive stale Stripe products/prices + orphan seat secrets. Owner-only dashboard/API action; unverifiable from repo, stays open.
-- [ ] HIGH **OWNER-ONLY #6**: Resolve the App Store ID (dead listing). App Store listing still 404 / resultCount 0 as of this check; unchanged.
-- [ ] MEDIUM **OWNER-ONLY #10**: Early Access delay past match alert (up to 20 min). Still an open product decision; no code change found.
-- [ ] LOW **OWNER-ONLY #12**: Decide the Android question (dead FCM branch, no client). Still no android/ directory or assetlinks.json; decision not made.
-- [ ] LOW **HYGIENE #3**: axe workflow (a11y-axe.yml) not a required branch-protection check. Branch protection still lists only 3 required checks; axe/a11y still not required.
-- [ ] LOW **HYGIENE #6**: Inline translucent nav pill/curtain fills survive prefers-reduced-transparency. Not reached in enough depth to confirm change; treated as unresolved.
-- [ ] LOW **HYGIENE #10**: .text-display-eyebrow is display:none while call sites and docs still emit/mandate it. Still display:none with active call sites; doc references reduced from 7 to 1 but not resolved.
-- [ ] MEDIUM **Amendment #O-003**: zz-runtime-probe AASA assertions failing (HTTPS+paths, apex no-redirect). Still open: `curl -sI https://louisianahelpr.com/.well-known/apple-app-site-association` = HTTP 307 (2026-09-23). Bus O-003 open. Owner Vercel-dashboard step (memory: apex-universal-links).
+- [ ] **Q1102 MEDIUM LIVE DEFECT #25**: Senior mode .truncate amputates visible characters (193 occurrences). Still open by design: per-component fix explicitly not done; global attempt was reverted.
+- [ ] **Q1103 MEDIUM LATENT #1**: Group jobs broken in 5 places (message, accept/complete, Activity, reviews, dispute split). 3 of 5 sub-defects fixed pre-compile; (b)/(d) still open, control still gated off (GROUP_JOBS_ENABLED=false). (also: docs/OPEN.md VN-52 'Group jobs — inventory + turn-on plan', Phase 1 landed 2026-09-19, flag still false)
+- [ ] **Q1104 HIGH LATENT #6**: charge-recurring-visits Stripe idempotency keys expire inside the funding window. Unchanged; mitigated by a unique index per the doc but the 24h key-expiry residual risk is still present and self-documented. (also: none found)
+- [ ] **Q1105 LOW LATENT #7**: No FK protects the ten no-FK tables (orphans possible outside app code). Still open and WORSE: orphan analytics_events rows grew from 63 to 830 since the doc was compiled; no FK added. (also: docs/OPEN.md:4294 notes 'no-FK tables are handled in code by choice')
+- [ ] **Q1106 MEDIUM LATENT #8**: Three edge functions have no verify_jwt=false block in config.toml. Still open; config.toml's own comment (2026-09-10) confirms daily-match-digest/saved-helper-availability-push/str-ical-sync still lack the stanza, by acknowledged omission not a fix. (also: none found)
+- [ ] **Q1107 MEDIUM LATENT #10**: OfflineBanner is lazy() — can fail to load on cold offline boot. Unchanged; still lazy-loaded with a null Suspense fallback, deliberate per the row's own note. (also: none found)
+- [ ] **Q1108 LOW LATENT #11**: Twelve bare <Navigate> redirects drop search/hash. Not fully re-verified; original doc itself already characterizes this as sanctioned/low-risk (no query currently reaches these routes) — treat as open pending a fresh check, not reached. (also: none found)
+- [ ] **Q1109 LOW LATENT #12**: Ten retired marketing routes 404 with no redirect stub. Unchanged: routes still intentionally 404 with no redirect; RW-002 reference not locatable in OPEN.md now. (also: filed as RW-002 by the launch fleet per the row's own text; RW-002 string not found via grep in current docs/OPEN.md)
+- [ ] **Q1110 LOW UNVERIFIED #1**: Entire native iOS surface never verified (WKWebView-specific bug class). Not reached — requires TestFlight/simulator pass, outside this read-only reconcile's tooling. (also: none found)
+- [ ] **Q1111 LOW UNVERIFIED #2**: Universal-link association on a device (AASA CDN cache). Not reached — device-only settlement, unchanged. (also: none found)
+- [ ] **Q1112 MEDIUM UNVERIFIED #3**: Cold-start push tap (real APNs to a force-quit app). Not reached — device-only settlement, unchanged. (also: none found)
+- [ ] **Q1113 LOW UNVERIFIED #4**: helpr:// custom-scheme branch has zero test coverage. Partially settled: unit test now exists (fixed that half); the SFSafariViewController device drive remains not reached. (also: none found)
+- [ ] **Q1114 LOW UNVERIFIED #5**: A group job end to end (post -> accept x3 -> work -> complete -> payout). Still blocked upstream; not reached, consistent with LATENT #1's continued open (b)/(d). (also: docs/OPEN.md VN-52)
+- [ ] **Q1115 MEDIUM UNVERIFIED #6**: A recurring series end to end (create -> visit charges -> cancel). Not reached — needs a Stripe test-mode fixture, unchanged. (also: none found)
+- [ ] **Q1116 HIGH UNVERIFIED #7**: A dispute end to end on live accounts (file -> evidence -> escalate -> admin resolve). Not reached — needs a browser session, unchanged. (also: docs/OPEN.md has extensive dispute-money guard work (money-escrow reviews) but no end-to-end UI drive recorded)
+- [ ] **Q1117 MEDIUM UNVERIFIED #8**: cancelStripeSubscription on a real subscription (delete-own-account). Not reached — owner/credential settlement, unchanged. (also: none found)
+- [ ] **Q1118 MEDIUM UNVERIFIED #9**: No Stripe call was ever made in either mode by any lane (customer dedup, portal scoping, accounts.del balance refusal). Not reached — still rests on recorded findings and Stripe docs, not a live call. (also: none found)
+- [ ] **Q1119 LOW UNVERIFIED #12**: Three write paths never driven: /availability weekly-hours SAVE, available-now toggle, /str-settings. Not reached — needs a browser session, unchanged. (also: none found)
+- [ ] **Q1120 LOW UNVERIFIED #13**: The /complete-profile avatar UPLOAD path never exercised with a fresh account. Not reached — needs a browser session, unchanged. (also: none found)
+- [ ] **Q1121 LOW UNVERIFIED #14**: Whether GoTrue's own rate limit backs the client-side login lockout. Not reached — owner/dashboard-only settlement, unchanged, verdict note: owner. (also: none found)
+- [ ] **Q1122 LOW OWNER-ONLY #2**: CAN-SPAM postal address empty in email footer. Code unchanged; still an empty literal awaiting owner value.
+- [ ] **Q1123 MEDIUM OWNER-ONLY #5**: Archive stale Stripe products/prices + orphan seat secrets. Owner-only dashboard/API action; unverifiable from repo, stays open.
+- [ ] **Q1124 HIGH OWNER-ONLY #6**: Resolve the App Store ID (dead listing). App Store listing still 404 / resultCount 0 as of this check; unchanged.
+- [ ] **Q1125 MEDIUM OWNER-ONLY #10**: Early Access delay past match alert (up to 20 min). Still an open product decision; no code change found.
+- [ ] **Q1126 LOW OWNER-ONLY #12**: Decide the Android question (dead FCM branch, no client). Still no android/ directory or assetlinks.json; decision not made.
+- [ ] **Q1127 LOW HYGIENE #3**: axe workflow (a11y-axe.yml) not a required branch-protection check. Branch protection still lists only 3 required checks; axe/a11y still not required.
+- [ ] **Q1128 LOW HYGIENE #6**: Inline translucent nav pill/curtain fills survive prefers-reduced-transparency. Not reached in enough depth to confirm change; treated as unresolved.
+- [ ] **Q1129 LOW HYGIENE #10**: .text-display-eyebrow is display:none while call sites and docs still emit/mandate it. Still display:none with active call sites; doc references reduced from 7 to 1 but not resolved.
+- [ ] **Q1130 MEDIUM Amendment #O-003**: zz-runtime-probe AASA assertions failing (HTTPS+paths, apex no-redirect). Still open: `curl -sI https://louisianahelpr.com/.well-known/apple-app-site-association` = HTTP 307 (2026-09-23). Bus O-003 open. Owner Vercel-dashboard step (memory: apex-universal-links).
 
 ## QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above
 

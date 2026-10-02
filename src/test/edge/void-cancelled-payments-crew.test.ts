@@ -194,11 +194,16 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     seedCancelledCrew([]);
     const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
     Object.assign(jobs.selectOverrides[0].result.rows[0], { helper_id: "old-lead", helper_confirmed_at: "2024-06-24T12:00:00Z", budget: 300 });
+    // The single path claims a cancellation_fee_transfers row first (LOW-2).
+    scenario.writeSelectRows["cancellation_fee_transfers:insert"] = [{
+      id: "fee-legacy", status: "pending", stripe_transfer_id: null, created_at: new Date().toISOString(),
+      fee_amount: 150, commission_percent: 12, platform_cut: 18, helper_amount: 132,
+    }];
     const h = await load();
     await h.fetch(cronReq());
     // 50% of $300 to the lead, one transfer with the single path's key.
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
-    expect(stripeMock.transfers.create.mock.calls[0][1]).toEqual({ idempotencyKey: "cancel-fee-job-crew" });
+    expect(stripeMock.transfers.create.mock.calls[0][1]).toEqual({ idempotencyKey: "cancel-fee-fee-legacy" });
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts | .in("status", ["pending", "failed"]) | .in("status", ["pending"])

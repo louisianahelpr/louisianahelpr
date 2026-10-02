@@ -236,7 +236,7 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     await h.fetch(cronReq());
     expect(feeTransferCalls()).toHaveLength(1);
     expect(
-      slackAlerts.filter((a) => a.kind === "money_at_risk" && /ledger out of step/i.test(String(a.title))),
+      (slackAlerts as Array<{ kind: string; title: string }>).filter((a) => a.kind === "money_at_risk" && /ledger out of step/i.test(String(a.title))),
     ).toHaveLength(1);
   });
 
@@ -247,7 +247,7 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     const h = await load();
     await h.fetch(cronReq());
     expect(feeTransferCalls()).toHaveLength(1);
-    expect(slackAlerts.filter((a) => /ledger out of step/i.test(String(a.title)))).toHaveLength(0);
+    expect((slackAlerts as Array<{ title: string }>).filter((a) => /ledger out of step/i.test(String(a.title)))).toHaveLength(0);
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts | for (const fj of feeJobs ?? []) feeRetryJobs.push({ ...fj, fee_transfer_retry: true }); | void feeJobs;

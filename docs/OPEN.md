@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 202** (161 to do, 41 fixed with protection pending; 498 done). Plus 207 unnumbered open lines not yet given a Q number. Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 7 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 202** (161 to do, 41 fixed with protection pending; 498 done). Plus 206 unnumbered open lines not yet given a Q number. Feeds mirrored in: 15 from the alert ledger, 10 from nightly-red issues, 7 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 8 stale, 0 unknown, 49 green of 65 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-02T04:20Z)_
 - **Remote branches:** 8 carry patches not on main, 0 fully merged, of 9 (Q79). _(2026-10-02T04:20Z)_
@@ -868,7 +868,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### CLOSED — two writers owned `helper_availability` and disagreed (fixed 2026-09-22, 2619ee9e6; seeder now owns all 7 days, guard on the disagreement)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [x] MEDIUM prod-seed.mjs vs the journey's save_weekly_availability disagree on row ownership; will re-break on next seed run — DONE 2026-10-02 (re-read scripts/audit/prod-seed.mjs:178-192, 738-751): the seeder now owns all 7 weekdays and deletes non-seed weekly rows before upserting, so the two writers agree. GUARD: src/test/seedWeeklyAvailabilityAgreement.test.ts. Was: Data repaired and 03-account journey green again (2619ee9e6), but the underlying dual-writer disagreement (seeder vs. journey save) is a still-open design decision that will re-break on the next prod-seed run; no drift guard yet. (archive L1850)
 
 ### HEADS-UP — seven of `interruptions.spec.ts`'s twelve tests run nowhere (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.

@@ -81,11 +81,14 @@ sure someone hears it and closes it.
     (CLAUDE.md puts browse visibility there) or switch to security_invoker.
   - 10 SECURITY DEFINER functions executable by anon (early_access_cutoff,
     get_open_jobs_for_map, get_parish_for_zip, get_public_open_jobs, and 6 more).
-    Review each for data exposure.
-  - 103 executable by authenticated. Spot-check the ones that are not RPCs the
-    client calls.
-  - 6 tables have RLS enabled with no policies (deny-all; fine if server-only).
-    Confirm each.
+    Review each for data exposure. (Still 10 by get_advisors 2026-10-02T04:17Z.)
+  - 119 executable by authenticated (get_advisors 2026-10-02T04:17Z; was 103 on
+    2026-09-23). Spot-check the ones that are not RPCs the client calls.
+  - 22 tables have RLS enabled with no policies (get_advisors 2026-10-02T04:17Z;
+    was 6 on 2026-09-23). Deny-all is fine if server-only; confirm each.
+  - Performance advisor (get_advisors 2026-10-02T04:17Z, tracker #1859; no other
+    OPEN entry): 45 multiple permissive policies, 54 unused indexes,
+    net._http_response bloat, Auth capped at 10 connections.
   - [DONE by Q149: leaked-password (HIBP) protection is ON.]
 - [ ] **Q19 Wider product/UX gap pass.** STATUS 2026-09-26 (cloud/open-audits): NOT RUN this session (time went to measurable items); still open, no change. Run lh-suggester (core-loop friction,
   missing product, growth) and an lh-audit pass on the screens touched tonight,

@@ -122,8 +122,8 @@ describe("a search miss names the buckets that hold matches", () => {
   it("My Posts: counts only the jobs that match the search", () => {
     const open = job("j1", "Mow the lawn", "open");
     const done = job("j2", "Paint the fence", "completed");
-    const openBucket = postedActivityBucket(open, 0, Date.now());
-    const doneBucket = postedActivityBucket(done, 0, Date.now());
+    const openBucket = postedActivityBucket(open, 0, new Date());
+    const doneBucket = postedActivityBucket(done, 0, new Date());
     expect(openBucket).not.toBe(doneBucket);
     const r = renderHook(() =>
       useActivityFilters({ postedJobs: [open, done], appliedApps: [], statusFilter: openBucket, searchQuery: "paint", userId: HELPER }),

@@ -333,10 +333,20 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         // an assertion rather than a tautology about the tab we happen to land
         // on — the app was asked for the job and had nothing to show.
         //
-        // Wait for the list to have PAINTED first. Without this the absence
-        // would also pass against a still-loading screen; this shared account
-        // has a hundred-odd posts, so some card always renders.
-        await expect(page.getByRole("heading", { level: 2 }).first(), "My Posts never painted a card").toBeVisible({ timeout: 45_000 });
+        // Wait for the list to have SETTLED first. Without this the absence
+        // would also pass against a still-loading screen (ActivityPageSkeleton
+        // carries no heading and no empty-state title). Settled is EITHER a
+        // card (each card's title is an h2) OR ActivityEmptyState's own
+        // title. It used to wait for a card only, on the belief that "this
+        // shared account has a hundred-odd posts" — but every job the poster
+        // owns can be unfunded (prod 2026-10-01: 40 jobs, all payment_status
+        // unpaid/abandoned), `jobIsUnfundedDraft` drops every one of them, and
+        // the correct screen is "Nothing posted yet" with no h2 at all
+        // (nightly-red #1719, run 36923486825). A failed fetch is a separate
+        // branch of ActivityEmptyState with neither title, so it still fails.
+        const card = page.getByRole("heading", { level: 2 }).first();
+        const emptyTitle = page.getByText(/^(Nothing posted yet|No jobs in this view)$/).first();
+        await expect(card.or(emptyTitle), "My Posts never settled on a card or its empty state").toBeVisible({ timeout: 45_000 });
         await expect(
           page.getByText(job.title),
           "an unfunded job is still listed as a post — no Helpr can see it, so it is a card for a job that cannot move",

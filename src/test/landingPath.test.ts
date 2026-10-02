@@ -69,6 +69,12 @@ describe("landing path (Q44)", () => {
     expect(code).toMatch(/gh pr merge "\$BR" --rebase --auto/);
   });
 
+  it("land.sh closes any open land PR its HEAD supersedes", () => {
+    // 2026-10-02: #2063 and #2070 carried the same commits from two worktrees.
+    expect(code).toMatch(/merge-base --is-ancestor "\$oid" HEAD/);
+    expect(code).toMatch(/gh pr close "\$num" --delete-branch/);
+  });
+
   it("land.sh runs every exact-count guard before pushing", () => {
     const pushAt = code.indexOf("git push");
     for (const g of COUNT_GUARDS) {

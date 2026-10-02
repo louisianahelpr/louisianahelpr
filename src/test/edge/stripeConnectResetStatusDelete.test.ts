@@ -20,7 +20,7 @@
  * @mutate supabase/functions/stripe-connect/index.ts | ? resetClear.eq("stripe_account_id", oldAccountId) | ? resetClear
  * @mutate supabase/functions/stripe-connect/index.ts | if (!resetUpdateErr && oldAccountId && (resetRows?.length ?? 0) === 0) { | if (false) {
  * @mutate supabase/functions/stripe-connect/index.ts | : resetClear.is("stripe_account_id", null)\n      ).select("id"); | : resetClear.is("stripe_account_id", null)\n      );
- * @mutate supabase/functions/stripe-connect/index.ts | .eq("user_id", user.id)\n        .eq("stripe_account_id", profile.stripe_account_id);\n      if (cacheErr) { | .eq("user_id", user.id);\n      if (cacheErr) {
+ * @mutate supabase/functions/stripe-connect/index.ts | .eq("user_id", user.id)\n        .eq("stripe_account_id", profile.stripe_account_id)\n        .eq("stripe_identity_verified" | .eq("user_id", user.id)\n        .eq("stripe_identity_verified"
  * @mutate supabase/functions/stripe-connect/index.ts | const methodMissing = de?.statusCode === 404 \|\| de?.code === "resource_missing"; | const methodMissing = false;
  * @mutate supabase/functions/stripe-connect/index.ts | await stripe.accounts.retrieve(profile.stripe_account_id);\n        } catch {\n | } catch {\n
  */
@@ -75,6 +75,8 @@ describe("Q861/Q862/Q864 — stripe-connect reset, status write-back, idempotent
     });
     scenario.authUser = USER;
     scenario.reads.profiles = { rows: [{ stripe_account_id: ACCT }] };
+    // Q863: the stale-clear breaker counts this hour's clears first; none yet.
+    scenario.reads.error_logs = { rows: [], count: 0 };
     stripeMock.accounts.del.mockResolvedValue({ id: ACCT, deleted: true });
     stripeMock.accountLinks.create.mockResolvedValue({ url: "https://connect.stripe.test/onboard" });
   });

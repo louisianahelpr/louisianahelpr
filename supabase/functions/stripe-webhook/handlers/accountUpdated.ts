@@ -4,6 +4,8 @@ import { stripeIdentityVerified } from "../../_shared/stripeIdentity.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { isUnusableConnectAccountError } from "../../_shared/stripeAccountUsable.ts";
 
+const NEEDS_ATTENTION_TITLE = "Payout account needs attention";
+
 export async function handleAccountUpdated(
   event: Stripe.Event,
   { stripe, supabase, logStep }: WebhookContext,
@@ -48,9 +50,34 @@ export async function handleAccountUpdated(
     if (isUnusableConnectAccountError(err)) {
       // The account is gone (deleted by a reset, or a test-mode purge). There
       // is no current state to cache and a retry would get the same answer,
-      // so acknowledge. Clearing a link to a dead account is stripe-connect's
-      // job (Q859), scoped to its caller; the webhook writes nothing here.
-      logStep("Skipped account.updated: account no longer retrievable", { accountId });
+      // so acknowledge. Clearing the LINK to a dead account stays
+      // stripe-connect's job (Q859), scoped to its caller.
+      //
+      // Q875 (decided 2026-10-02): but the cached GATE closes here. A dead
+      // account can take no payouts, so a profile still linked to it must not
+      // keep showing the verified badge or pass the hiring gate on flags
+      // cached while it was alive. Only the three flags move, only towards
+      // false (the safe direction), scoped to this user AND this account id
+      // so a concurrent re-onboard onto a new account is never touched. Zero
+      // rows is legitimate (the link already moved on); an error throws so
+      // Stripe redelivers.
+      const { data: closedRows, error: closeErr } = await supabase
+        .from("profiles")
+        .update({
+          stripe_identity_verified: false,
+          stripe_charges_enabled: false,
+          stripe_payouts_enabled: false,
+        })
+        .eq("user_id", helperProfile.user_id)
+        .eq("stripe_account_id", accountId)
+        .select("id");
+      if (closeErr) {
+        throw new Error(`Could not close the cached payout gate for dead account ${accountId}: ${closeErr.message}`);
+      }
+      logStep("Skipped account.updated: account no longer retrievable; cached gate closed", {
+        accountId,
+        rows: closedRows?.length ?? 0,
+      });
       return;
     }
     // Anything else (network, rate limit, auth): throw so the webhook answers
@@ -183,16 +210,70 @@ export async function handleAccountUpdated(
   }
 
   if (becameEnabled) {
+    // Q872 — the residual same-snapshot race. Two deliveries can read the
+    // same cached snapshot; the one holding the NEWER (restricted) retrieve
+    // sees nothing to write and skips, and the one holding the OLDER
+    // (enabled) retrieve then wins its CAS. So a write that moved the cache
+    // INTO enabled asks Stripe once more before it is believed. If Stripe now
+    // disagrees, the cache is put back to what Stripe says, by a CAS on the
+    // exact values this delivery just wrote (a newer writer in between wins),
+    // and no "verified" notice goes out.
+    let recheck: { identity: boolean; charges: boolean; payouts: boolean } | null = null;
+    try {
+      const again = await stripe.accounts.retrieve(account.id);
+      recheck = {
+        identity: stripeIdentityVerified(again),
+        charges: again.charges_enabled === true,
+        payouts: again.payouts_enabled === true,
+      };
+    } catch (err) {
+      if (isUnusableConnectAccountError(err)) {
+        recheck = { identity: false, charges: false, payouts: false };
+      } else {
+        // Could not ask. The write above came from a retrieve made moments
+        // ago, so keep it rather than guess; the next account.updated or
+        // Payment-tab `status` re-syncs.
+        logStep("⚠️ could not re-confirm an enabled payout account; keeping the cached write", {
+          userId: helperProfile.user_id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    if (recheck && !(recheck.charges && recheck.payouts)) {
+      const { data: revertRows, error: revertErr } = await supabase
+        .from("profiles")
+        .update({
+          stripe_identity_verified: recheck.identity,
+          stripe_charges_enabled: recheck.charges,
+          stripe_payouts_enabled: recheck.payouts,
+        })
+        .eq("user_id", helperProfile.user_id)
+        .eq("stripe_account_id", account.id)
+        .eq("stripe_identity_verified", identityVerified)
+        .eq("stripe_charges_enabled", chargesEnabled)
+        .eq("stripe_payouts_enabled", payoutsEnabled)
+        .select("id");
+      if (revertErr) {
+        // Throw: the enabled cache is wrong. Stripe redelivers, and the retry
+        // reads the enabled snapshot, retrieves restricted, and writes it.
+        throw new Error(`Could not revert a stale enabled cache for ${helperProfile.user_id}: ${revertErr.message}`);
+      }
+      // Zero rows is legitimate: a newer writer changed the row after ours.
+      logStep("Reverted an enabled cache Stripe no longer agrees with; no verified notice", {
+        userId: helperProfile.user_id,
+        rows: revertRows?.length ?? 0,
+      });
+      return;
+    }
+
     // There used to be an "auto-approve" branch here (email verified +
     // approval_status 'pending' → 'approved' + a "Welcome in." notice). The
     // approval step is retired (Q193/Q205b) and a confirmed email already
     // left nobody 'pending', so only this notice was ever reachable.
     //
-    // Q870: only the write that moved the cache INTO enabled sends it. Known
-    // consequence: stripe-connect `status` also caches these flags (without
-    // a notice) when the helper opens Payment settings; if it gets there
-    // first, no webhook sees the transition. The helper is then looking at
-    // the enabled state on that very tab.
+    // Q870: only the write that moved the cache INTO enabled sends it.
+    // stripe-connect `status` runs the same transition CAS and sends the same
+    // notice when it gets there first (Q873), so exactly one writer sends it.
     await insertNotifications(supabase, {
       user_id: helperProfile.user_id,
       title: "Payout account verified",
@@ -204,9 +285,30 @@ export async function handleAccountUpdated(
     });
     logStep("Helper payout account verified", { userId: helperProfile.user_id, email_verified: helperProfile.email_verified });
   } else if (!nowEnabled && account.requirements?.currently_due && account.requirements.currently_due.length > 0) {
+    // Q874 — Stripe sends account.updated in bursts while an account is
+    // restricted (every requirement, capability and person change), and this
+    // used to insert a fresh "needs attention" notice for each one. Send it
+    // only when the helper has no UNREAD copy of it: one standing notice per
+    // episode, and a new one once they have read it and the account still
+    // needs them. A failed check throws so Stripe redelivers, rather than
+    // guessing either way.
+    const { data: unread, error: unreadErr } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_id", helperProfile.user_id)
+      .eq("title", NEEDS_ATTENTION_TITLE)
+      .eq("read", false)
+      .limit(1);
+    if (unreadErr) {
+      throw new Error(`Could not check for an unread payout notice for ${helperProfile.user_id}: ${unreadErr.message}`);
+    }
+    if ((unread?.length ?? 0) > 0) {
+      logStep("Skipped needs-attention notice: an unread one is already showing", { userId: helperProfile.user_id });
+      return;
+    }
     await insertNotifications(supabase, {
       user_id: helperProfile.user_id,
-      title: "Payout account needs attention",
+      title: NEEDS_ATTENTION_TITLE,
       message: "Your payout account requires additional information. Please update your details to continue receiving payments.",
       type: "warning",
       // "Please update your details" has to land ON the details.

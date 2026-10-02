@@ -5,6 +5,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { stripeIdentityVerified } from "../_shared/stripeIdentity.ts";
 import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
+import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+
+/** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
+const STALE_CLEAR_HOURLY_CAP = 5;
+const STALE_CLEAR_KIND = "stale-clear";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -94,6 +100,49 @@ serve(async (req) => {
       }
     }
 
+    // Q863 — a circuit breaker on mass clears. If STRIPE_SECRET_KEY were ever
+    // another platform's key, every accounts.retrieve would answer "No such
+    // account" and each helper's next Payment-settings visit would confirm
+    // and clear their own link: the confirm above cannot tell "this account
+    // is gone" from "this key cannot see any of our accounts". A real clear
+    // is rare (a deleted or sandbox account), so more than a handful in an
+    // hour means the KEY is wrong, not the accounts. Every clear is recorded
+    // in error_logs (tags.kind = 'stale-clear'); once STALE_CLEAR_HOURLY_CAP
+    // are recorded in the last hour, further clears are refused ("failed",
+    // nothing changes) and ops is paged. A failed count also refuses: this
+    // check guards a destructive write, so it fails closed.
+    const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentClears, error: countErr } = await supabaseAdmin
+      .from("error_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("tags->>source", "stripe-connect")
+      .eq("tags->>kind", STALE_CLEAR_KIND)
+      .gte("created_at", sinceIso);
+    if (countErr || recentClears === null || recentClears === undefined) {
+      console.error(
+        `[stripe-connect] stale-account clear refused for ${userId} (${accountId}): could not count recent clears:`,
+        countErr?.message ?? "count was null",
+      );
+      return "failed";
+    }
+    if (recentClears >= STALE_CLEAR_HOURLY_CAP) {
+      console.error(
+        `[stripe-connect] stale-account clear refused for ${userId} (${accountId}): ${recentClears} clears in the last hour (cap ${STALE_CLEAR_HOURLY_CAP})`,
+      );
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: "stripe-connect stopped clearing payout accounts",
+        message:
+          `${recentClears} payout-account links were cleared as unusable in the last hour (cap ${STALE_CLEAR_HOURLY_CAP}). ` +
+          "That many usually means STRIPE_SECRET_KEY cannot see our Connect accounts (wrong platform or mode), " +
+          "not that the accounts are gone. Further clears are refused until the hour rolls over. Check the key.",
+        fields: { user_id: userId, account_id: accountId, clears_last_hour: recentClears },
+        oncePerDayKey: "stripe-connect-stale-clear-cap",
+      });
+      return "failed";
+    }
+
     const { data: clearedRows, error: clearErr } = await supabaseAdmin
       .from("profiles")
       .update({
@@ -113,6 +162,21 @@ serve(async (req) => {
       return "failed";
     }
     console.error(`[stripe-connect] Cleared unusable stripe_account_id ${accountId} for user ${userId}`);
+    // The breaker above counts these rows. Severity 'info': one clear is
+    // correct behaviour, but it removes a helper's payout link, so it goes on
+    // the record (the error_logs Slack and ledger triggers see it at info
+    // cadence). A failed insert is logged, not thrown: the clear already
+    // happened and is correct for this account.
+    const { error: logErr } = await supabaseAdmin.from("error_logs").insert({
+      user_id: userId,
+      severity: "info",
+      message: `stripe-connect cleared unusable payout account ${accountId}`,
+      tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND },
+      context: { account_id: accountId },
+    });
+    if (logErr) {
+      console.error(`[stripe-connect] could not record the stale-clear for ${userId}:`, logErr.message);
+    }
     return "cleared";
   };
 
@@ -175,7 +239,7 @@ serve(async (req) => {
         // the SAME Stripe account instead of creating an orphan. Without
         // this, every crashed retry left a dangling Express account on
         // Stripe that no Helpr user pointed to.
-        const account = await stripe.accounts.create({
+        const createParams = {
           type: "express",
           country: "US",
           email: user.email,
@@ -209,7 +273,39 @@ serve(async (req) => {
             payouts: { schedule: { interval: "daily" } },
           },
           metadata: { user_id: user.id },
-        }, { idempotencyKey: `stripe-connect-create-${user.id}` });
+        } as const;
+        // Q867 — Stripe replays the ORIGINAL response for a reused idempotency
+        // key for 24h, even after that account was deleted or cleared. A reset
+        // or a Q859 stale-account clear inside that window would get the dead
+        // account back and re-link it, forever. So confirm the account the
+        // create returned is usable; if it is not, it was a replay of a dead
+        // account and the next attempt's key names that dead id, which a
+        // replay can never return again. Bounded: three dead replays in a row
+        // is not something retrying will fix.
+        let idempotencyKey = `stripe-connect-create-${user.id}`;
+        let account: { id: string } | null = null;
+        for (let attempt = 0; attempt < 3 && !account; attempt++) {
+          const created = await stripe.accounts.create(createParams, { idempotencyKey });
+          let usable = true;
+          try {
+            const check = await stripe.accounts.retrieve(created.id) as { deleted?: boolean };
+            if (check?.deleted === true) usable = false;
+          } catch (checkErr) {
+            if (!isUnusableConnectAccountError(checkErr)) throw checkErr;
+            usable = false;
+          }
+          if (usable) {
+            account = created;
+          } else {
+            console.error(
+              `[stripe-connect] create for ${user.id} returned unusable account ${created.id} (idempotent replay of a dead account); re-keying`,
+            );
+            idempotencyKey = `stripe-connect-create-${user.id}-after-${created.id}`;
+          }
+        }
+        if (!account) {
+          throw new Error("Could not create your payout account — please try again later");
+        }
         accountId = account.id;
 
         // Compare-and-set (Q868): link the new id only while the profile still
@@ -418,7 +514,7 @@ serve(async (req) => {
     if (action === "status") {
       const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
-        .select("stripe_account_id")
+        .select("stripe_account_id, stripe_identity_verified, stripe_charges_enabled, stripe_payouts_enabled")
         .eq("user_id", user.id)
         .single();
 
@@ -461,20 +557,47 @@ serve(async (req) => {
       // account. With the id in the WHERE clause that write matches zero rows,
       // which is the correct outcome, so zero rows is legitimate here and not
       // treated as a failure.
-      const { error: cacheErr } = await supabaseAdmin
+      //
+      // Q873 — this is a compare-and-set on the flags just read, the same
+      // transition CAS the account.updated webhook runs (Q870). Prod's live
+      // webhook endpoint receives no Connect events (Q876, measured
+      // 2026-10-02), so `status` is usually the ONLY writer that sees a helper
+      // become payable; before this it moved the cache silently and the
+      // helper never got the "Payout account verified" notice. Now the one
+      // write that moves the cache INTO enabled sends it. Zero rows is still
+      // legitimate (a concurrent writer — the webhook or a second `status` —
+      // got there first and owns the notice, or the account was replaced).
+      const nowCharges = account.charges_enabled === true;
+      const nowPayouts = account.payouts_enabled === true;
+      const wasEnabled = profile.stripe_charges_enabled === true && profile.stripe_payouts_enabled === true;
+      const { data: cacheRows, error: cacheErr } = await supabaseAdmin
         .from("profiles")
         .update({
-          stripe_charges_enabled: account.charges_enabled === true,
-          stripe_payouts_enabled: account.payouts_enabled === true,
+          stripe_charges_enabled: nowCharges,
+          stripe_payouts_enabled: nowPayouts,
           stripe_identity_verified: stripeIdentityVerified(account),
           ...(stripeIdentityVerified(account)
             ? { stripe_identity_verified_at: new Date().toISOString() }
             : {}),
         })
         .eq("user_id", user.id)
-        .eq("stripe_account_id", profile.stripe_account_id);
+        .eq("stripe_account_id", profile.stripe_account_id)
+        .eq("stripe_identity_verified", profile.stripe_identity_verified === true)
+        .eq("stripe_charges_enabled", profile.stripe_charges_enabled === true)
+        .eq("stripe_payouts_enabled", profile.stripe_payouts_enabled === true)
+        .select("id");
       if (cacheErr) {
         console.error(`[stripe-connect] status cache write-back failed for ${user.id}:`, cacheErr);
+      } else if ((cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled) {
+        // insertNotifications logs its own failure and returns false; the
+        // status answer does not depend on the notice.
+        await insertNotifications(supabaseAdmin, {
+          user_id: user.id,
+          title: "Payout account verified",
+          message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
+          type: "success",
+          link: "/profile?tab=payment",
+        });
       }
 
       return new Response(JSON.stringify({

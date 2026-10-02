@@ -83,6 +83,8 @@ describe("Q859 — stripe-connect clears a payout account only when the ACCOUNT 
     });
     scenario.authUser = USER;
     scenario.reads.profiles = { rows: [{ stripe_account_id: ACCT }] };
+    // Q863: the clear breaker counts this hour's clears first; none yet.
+    scenario.reads.error_logs = { rows: [], count: 0 };
   });
   afterEach(() => resetEnv());
 

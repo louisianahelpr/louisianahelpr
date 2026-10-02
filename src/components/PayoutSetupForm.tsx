@@ -426,6 +426,7 @@ export function PayoutSetupForm({ onSettled }: {
                 size="sm"
                 onClick={() => handleDeleteMethod(m.id)}
                 disabled={deleting === m.id}
+                aria-label={`Remove payout method ending in ${m.last4}`}
                 className="text-muted-foreground hover:text-destructive"
               >
                 {deleting === m.id ? (

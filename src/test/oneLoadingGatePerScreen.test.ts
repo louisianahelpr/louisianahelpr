@@ -47,7 +47,7 @@ export function queryLoadingIdents(src: string): string[] {
 export function separatelyGated(src: string): string[] {
   const ids = queryLoadingIdents(src);
   if (ids.length < 2) return [];
-  return ids.filter((id) => new RegExp(`\\{\\s*${id.replace(/[$.]/g, "\\$&")}\\s*\\?\\s*\\(`).test(src));
+  return ids.filter((id) => new RegExp(`\\{\\s*${id.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")}\\s*\\?\\s*\\(`).test(src));
 }
 
 describe("one loading gate per screen", () => {

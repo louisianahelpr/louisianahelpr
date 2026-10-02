@@ -661,18 +661,20 @@ async function apply() {
   if (!threadJob) console.log("SKIPPED pair fixtures: no poster↔helper job on prod (thread, reactions, pins, reviews, dispute)");
 
   // Applications: 45 on the heavy job, and the helper on the poster's open job.
+  // Keyed on (job_id, helper_id), the table's unique key, not on a seed id: a journey
+  // that applies the shared helper to a seed job leaves a row with its own id, and an
+  // id-keyed upsert then 409s on the pair (prod-audit run 37021988200, 2026-10-02).
   await upsert("applications", [
     ...Array.from({ length: APPLICANT_COUNT }, (_, i) => ({
-      id: sid(`app:heavy-${i}`),
       job_id: sid("job:heavy-big"),
       helper_id: ids[`applicant${String(i + 1).padStart(2, "0")}`],
       status: "pending",
       message: i % 3 === 0 ? LONG("SEED I have done eleven post-storm tear-outs since Ida and can start tomorrow at 6am. ", 1000) : i % 3 === 1 ? "🙏🏽🙏🏽🙏🏽" : "SEED Available. 有空。متاح.",
     })),
-    { id: sid("app:helper-on-poster-open"), job_id: sid("job:poster-open"), helper_id: helperId, status: "pending", message: "SEED I can do this Saturday." },
-    { id: sid("app:helper-on-pets"), job_id: sid("job:pets"), helper_id: helperId, status: "pending", message: "SEED Two labs of my own." },
-    { id: sid("app:applicant-on-helper-job"), job_id: sid("job:helper-posts"), helper_id: ids.applicant01, status: "pending", message: "SEED Licensed handyman." },
-  ]);
+    { job_id: sid("job:poster-open"), helper_id: helperId, status: "pending", message: "SEED I can do this Saturday." },
+    { job_id: sid("job:pets"), helper_id: helperId, status: "pending", message: "SEED Two labs of my own." },
+    { job_id: sid("job:helper-posts"), helper_id: ids.applicant01, status: "pending", message: "SEED Licensed handyman." },
+  ], "job_id,helper_id");
 
   // The long thread (34) on the real pair job, reactions, pins.
   const now = Date.now();

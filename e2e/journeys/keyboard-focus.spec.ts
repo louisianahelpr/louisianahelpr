@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
-import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable } from "./fixtures";
+import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable, rest, SUPABASE_URL, E2E_TITLE_MARKER } from "./fixtures";
+import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 
 /**
@@ -149,10 +150,57 @@ test(authedTitle, async ({ browser, request, journey }) => {
   const page = journey.track("helper", await ctx.newPage());
 
   await test.step("b. opening a thread keeps focus inside the thread", async () => {
+    // The leg seeds its OWN thread. It used to open whatever thread the helper
+    // inbox already held, and went red every night once the 2026-10-01 seed
+    // wipe left that inbox empty (nightly-red #1719, run 36923486825: "the
+    // helper inbox has no threads to open"; prod read the same day: 0 messages
+    // to or from the helper before the run). A direct offer is the smallest
+    // thread the live policy admits: can_send_message_to_in_job lets the
+    // poster reach offered_to_helper_id while the offer is pending. Unfunded
+    // on purpose, never visited on /posts or /jobs (UNFUNDED-DRAFT-OK), and
+    // cancelled in teardown with no strike, as notifications.spec.ts does.
+    const poster = await getSession(request, "poster");
+    const posterHeaders = rest(poster);
+    const title = fitJobTitle(`${E2E_TITLE_MARKER} KF ${Date.now().toString(36).slice(-6)}`);
+    const created = await request.post(`${SUPABASE_URL}/rest/v1/jobs?select=id`, {
+      headers: { ...posterHeaders, Prefer: "return=representation" },
+      data: {
+        customer_id: poster.user.id,
+        is_seed: true,
+        title,
+        description: "Keyboard-focus thread probe: two shelves, studs marked, anchors on site.",
+        category: "handyman",
+        location: "4412 Highland Rd, Baton Rouge, LA 70808",
+        parish: null,
+        date_needed: new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10),
+        budget: 25,
+        status: "open",
+        payment_status: "unpaid",
+        pricing_mode: "set_price",
+        offered_to_helper_id: helper.user.id,
+        direct_offer_status: "pending",
+        direct_offer_expires_at: new Date(Date.now() + 4 * 3_600_000).toISOString(),
+      },
+    });
+    expect(created.ok(), `thread-probe job insert failed: ${created.status()} ${await created.text()}`).toBe(true);
+    const jobId = ((await created.json()) as Array<{ id: string }>)[0].id;
+    journey.cleanup("cancel the thread-probe job", () =>
+      request.post(`${SUPABASE_URL}/rest/v1/rpc/poster_cancel_job`, { headers: posterHeaders, data: { p_job_id: jobId, p_reason: "E2E keyboard-focus probe teardown" } }),
+    );
+    const sent = await request.post(`${SUPABASE_URL}/rest/v1/messages?select=id`, {
+      headers: { ...posterHeaders, Prefer: "return=representation" },
+      data: { job_id: jobId, sender_id: poster.user.id, receiver_id: helper.user.id, content: `${E2E_TITLE_MARKER} keyboard-focus thread probe` },
+    });
+    expect(sent.ok(), `thread-probe message insert failed: ${sent.status()} ${await sent.text()}`).toBe(true);
+    const msgId = ((await sent.json()) as Array<{ id: string }>)[0].id;
+    journey.cleanup("delete the thread-probe message", () =>
+      request.delete(`${SUPABASE_URL}/rest/v1/messages?id=eq.${msgId}`, { headers: posterHeaders }),
+    );
+
     await page.goto("/messages");
-    const rows = page.locator("button.flex-1.min-w-0.text-left");
-    await expect(rows.first(), "the helper inbox has no threads to open").toBeVisible({ timeout: 60_000 });
-    await rows.first().focus();
+    const row = page.locator("button.flex-1.min-w-0.text-left").filter({ hasText: title }).first();
+    await expect(row, "the seeded thread never reached the helper inbox").toBeVisible({ timeout: 60_000 });
+    await row.focus();
     // Opening a thread clears its message notifications (useMessagesData's
     // mark-read PATCH) when the counterparty has written. On the slow row that
     // write is held, and step c's goto left before it was sent (run

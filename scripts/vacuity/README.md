@@ -63,8 +63,14 @@ bytes to `node_modules/.vacuity-rescue-*`.
 
 ## Scope and runtime
 
-- `npm run vacuity` — per push. Ratchet + scan + preflight + mutations for
-  guards whose guard file or guarded file changed vs `origin/main`.
+- `npm run vacuity` — vacuity runs on every push to main (not required on PRs;
+  owner 2026-10-01, after PR #2050's run took 112 min). Ratchet + scan +
+  preflight + mutations for guards whose guard file or guarded file changed in
+  that push: `VACUITY_PUSH_BEFORE` (vacuity.yml passes `github.event.before`)
+  makes the base the commit main was at before the push, since a rebase merge
+  brings several commits; locally the base is `origin/main`. Push runs queue
+  (per-sha concurrency group, never cancelled); a red one is filed as
+  nightly-red by main-red-watch.yml.
   **~1.4s with nothing in scope; ~7s with 7 mutations in scope.**
 - `npm run vacuity:all` — weekly (vacuity.yml, Sundays 07:17 UTC; owner cost decision 2026-09-22). Every registered mutation, ~0.9s each for a unit guard; the e2e ones take minutes, which is why a full sweep runs for hours.
 - `npm run vacuity:report` — no gate; writes `docs/audit/vacuity-report.json`.

@@ -70,8 +70,9 @@ says more.
 
 ## Landing
 - Commit in your worktree, then `bash scripts/land.sh`. It is the ONLY way
-  onto main (Q44): main requires Vitest, Test, Vacuity and both Playwright
-  checks, strict, with enforce_admins, so a direct push is refused. land.sh
+  onto main (Q44): main requires Vitest, Test and both Playwright
+  checks, with enforce_admins, so a direct push is refused (strict is off);
+  vacuity runs on every push to main (not required on PRs). land.sh
   fetches, rebases onto origin/main, runs `npm run inventories:refresh`,
   commits what that regenerated, proves `check:generated` and the exact-count
   guards green, pushes `land/<branch>-<worktree hash>`, opens a PR with rebase

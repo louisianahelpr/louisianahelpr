@@ -222,12 +222,27 @@ export function loadBaseline() {
  * is what "changed" means for a push. Local runs are unaffected: a working tree
  * ahead of origin/main still diffs against origin/main, which is the wider and
  * correct answer there.
+ *
+ * A PUSH IS NOT ONE COMMIT (2026-10-01). Vacuity left PRs and now runs after
+ * every merge to main, and land.sh merges with REBASE: a five-commit PR is one
+ * push whose HEAD~1 is only its last commit, so the first four commits' guards
+ * went unproven. vacuity.yml passes the push's `github.event.before` as
+ * VACUITY_PUSH_BEFORE; when HEAD is the base and that commit exists, "changed"
+ * means everything the push brought. A new branch's all-zero `before`, or one
+ * not in the clone, falls back to HEAD~1.
  */
-function effectiveBase(base) {
+export function effectiveBase(base, env = process.env) {
   try {
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPO, encoding: "utf8" }).trim();
     const at = execFileSync("git", ["rev-parse", base], { cwd: REPO, encoding: "utf8" }).trim();
     if (head !== at) return base;
+    const before = String(env.VACUITY_PUSH_BEFORE ?? "").trim();
+    if (/^[0-9a-f]{7,40}$/.test(before) && !/^0+$/.test(before) && before !== head) {
+      try {
+        execFileSync("git", ["cat-file", "-e", `${before}^{commit}`], { cwd: REPO, stdio: "ignore" });
+        return before;
+      } catch { /* not in this clone: fall through */ }
+    }
     // HEAD is the base: a push. "Changed" means changed by this commit.
     return "HEAD~1";
   } catch {

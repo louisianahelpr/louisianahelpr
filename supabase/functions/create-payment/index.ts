@@ -384,7 +384,7 @@ serve(async (req) => {
        * not find our session and fails the request before a URL is returned.
        */
       const stampSession = async (newSessionId: string, extra: Record<string, unknown>) => {
-        let q = supabaseAdmin
+        const guarded = () => supabaseAdmin
           .from("jobs")
           .update({ stripe_session_id: newSessionId, payment_status: "unpaid", ...extra })
           .eq("id", jobId)
@@ -393,12 +393,25 @@ serve(async (req) => {
           // dispute sets status 'completed') is never stamped: zero rows, so
           // the session URL is never returned (Q235 follow-up).
           .not("status", "in", `(${[...FUNDING_CLOSED_JOB_STATUSES].join(",")})`);
-        q = previousSessionId
-          ? q.eq("stripe_session_id", previousSessionId)
-          : q.is("stripe_session_id", null);
+        const q = previousSessionId
+          ? guarded().eq("stripe_session_id", previousSessionId)
+          : guarded().is("stripe_session_id", null);
         const { data: updated, error: updateErr } = await q.select("id");
         if (updateErr) return { ok: false as const, reason: updateErr.message };
         if (updated && updated.length > 0) return { ok: true as const };
+        // Expiring the previous session above fires checkout.session.expired,
+        // and stripe-webhook releases the hold by nulling stripe_session_id.
+        // When that lands first the compare-and-set on previousSessionId
+        // matches nothing and a retapped Pay returned 500. A released hold is
+        // still ours to take: retry once on null, with every other guard kept,
+        // so a concurrent tap that already stamped its own session still wins.
+        if (previousSessionId) {
+          const { data: retried, error: retryErr } = await guarded()
+            .is("stripe_session_id", null)
+            .select("id");
+          if (retryErr) return { ok: false as const, reason: retryErr.message };
+          if (retried && retried.length > 0) return { ok: true as const };
+        }
         const { data: recheck } = await supabaseAdmin
           .from("jobs").select("stripe_session_id").eq("id", jobId).maybeSingle();
         if (recheck?.stripe_session_id === newSessionId) return { ok: true as const };

@@ -66,7 +66,7 @@ import {
 } from "./pressProdSafety.mjs";
 import * as pressSafety from "./pressProdSafety.mjs";
 import { isStripeWriteRequest, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafety.mjs";
-import { SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
+import { LOADING_SEL, SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
   claimRow, classifyConsoleError, classifyFailedResponse, clickFailureReason, queuedRowAction, releaseRow, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
@@ -717,7 +717,7 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel }) => {
 /**
  * AN OVERLAY THAT IS STILL FILLING IS NOT AN OVERLAY YET.
  *
- * `settle()` waits on `aria-busy` and `animate-pulse`, and the notification
+ * `settle()` waits on LOADING_SEL (aria-busy, animate-pulse, skeleton shimmer), and the notification
  * panel's first-load state carried neither — it renders `role="status"` with a
  * spinner and "Loading notifications…". So on run 35692554813 the panel was
  * enumerated before its rows landed, with two opposite outcomes on the same
@@ -1191,12 +1191,11 @@ async function main() {
 
       // A screen that says it is retrying is NOT settled — see pressLoadHealth.mjs.
       const settle = async () => {
-        await page.waitForFunction((healSel) => {
-          const busy = document.querySelectorAll('[aria-busy="true"]').length;
-          const pulses = [...document.querySelectorAll('[class*="animate-pulse"]')].filter((e) => !e.closest("[aria-hidden='true']")).length;
+        await page.waitForFunction(([loadingSel, healSel]) => {
+          const loading = [...document.querySelectorAll(loadingSel)].filter((e) => e.getAttribute("aria-busy") === "true" || !e.closest("[aria-hidden='true']")).length;
           const retrying = document.querySelectorAll(healSel).length;
-          return busy === 0 && pulses === 0 && retrying === 0;
-        }, SELF_HEAL_SEL, { timeout: 8000 }).catch(() => {});
+          return loading === 0 && retrying === 0;
+        }, [LOADING_SEL, SELF_HEAL_SEL], { timeout: 8000 }).catch(() => {});
         await page.waitForTimeout(SETTLE_MS);
       };
       // The URL the screen rests at after a clean load; any drift from it (a

@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 700 items — 498 done, 41 partly done (fixed, protection pending), 161 open; plus 207 unnumbered open lines still to number.**
+**Queue: 700 items — 498 done, 41 partly done (fixed, protection pending), 161 open; plus 206 unnumbered open lines still to number.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -868,7 +868,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### CLOSED — two writers owned `helper_availability` and disagreed (fixed 2026-09-22, 2619ee9e6; seeder now owns all 7 days, guard on the disagreement)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM prod-seed.mjs vs the journey's save_weekly_availability disagree on row ownership; will re-break on next seed run — Data repaired and 03-account journey green again (2619ee9e6), but the underlying dual-writer disagreement (seeder vs. journey save) is a still-open design decision that will re-break on the next prod-seed run; no drift guard yet. (archive L1850)
+- [x] MEDIUM prod-seed.mjs vs the journey's save_weekly_availability disagree on row ownership; will re-break on next seed run — DONE 2026-10-02 (re-read scripts/audit/prod-seed.mjs:178-192, 738-751): the seeder now owns all 7 weekdays and deletes non-seed weekly rows before upserting, so the two writers agree. GUARD: src/test/seedWeeklyAvailabilityAgreement.test.ts. Was: Data repaired and 03-account journey green again (2619ee9e6), but the underlying dual-writer disagreement (seeder vs. journey save) is a still-open design decision that will re-break on the next prod-seed run; no drift guard yet. (archive L1850)
 
 ### HEADS-UP — seven of `interruptions.spec.ts`'s twelve tests run nowhere (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.

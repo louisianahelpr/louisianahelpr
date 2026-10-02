@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-02T03:01:11.699Z",
-  "guards": 1295,
-  "registered": 1293,
+  "generated": "2026-10-02T04:14:33.109Z",
+  "guards": 1296,
+  "registered": 1294,
   "unregistered": [
     "src/test/pageColumnNotReCapped.test.ts",
     "src/test/prRunBudget.test.ts"

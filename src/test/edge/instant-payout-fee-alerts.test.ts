@@ -7,7 +7,7 @@
  * overwrote the fee_uncollected marker.
  */
 //
-// @mutate supabase/functions/instant-payout/index.ts |       if (feeCents > 0 && feeTransferSucceeded) { |       if (false) {
+// @mutate supabase/functions/instant-payout/index.ts | const feeTakenNoPayout = feeCents > 0 && feeTransferSucceeded; | const feeTakenNoPayout = false;
 // @mutate supabase/functions/instant-payout/index.ts |       let fullError = feeMarker ? `${feeMarker} \| ${msg}` : msg; |       let fullError = msg;
 // @mutate supabase/functions/instant-payout/index.ts |             message: "The platform Stripe account could not be read |             kind: "x", message: "The platform Stripe account could not be read
 import { describe, it, expect, beforeEach } from "vitest";

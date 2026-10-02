@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 // @ts-expect-error — plain .mjs script shared with CI and (potentially) ESLint, no types.
 import * as guard from "../../scripts/check-discarded-query-filters.mjs";
 
@@ -74,6 +75,25 @@ describe("discarded-builder guard — red on origin/main (d492446), green on the
   it("the whole repo is clean — src/, supabase/functions/, scripts/", () => {
     const hits: Hit[] = guard.scan();
     expect(hits.map((h) => `${h.file}:${h.line} ${h.text}`)).toEqual([]);
+  });
+});
+
+// The walk runs over a live tree: vacuityGate.test.ts creates and deletes real
+// files under src/** while this suite walks it (6f5a696d6). A broken symlink is
+// a file that readdir lists and stat cannot find, the same state as a file
+// deleted mid-walk, made deterministic.
+// @mutate scripts/check-discarded-query-filters.mjs | st = statSync(full);\n      } catch (e) {\n        if (e.code === "ENOENT") continue; | st = statSync(full);\n      } catch (e) {
+describe("discarded-builder guard — a file that vanishes mid-walk", () => {
+  it("skips it instead of crashing the scan", () => {
+    const repo = mkdtempSync(join(tmpdir(), "dqf-walk-"));
+    try {
+      writeFileSync(join(repo, "kept.ts"), "export const x = 1;\n");
+      symlinkSync(join(repo, "already-deleted.ts"), join(repo, "gone.ts"));
+      const files: string[] = guard.listFiles(["."], repo);
+      expect(files.map((f) => f.slice(repo.length + 1))).toEqual(["kept.ts"]);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
   });
 });
 

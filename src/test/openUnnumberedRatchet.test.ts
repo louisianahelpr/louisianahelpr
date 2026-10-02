@@ -25,7 +25,7 @@ import { queueCounts, unnumberedLines } from "../../scripts/queue-count.mjs";
 const ROOT = join(__dirname, "..", "..");
 
 /** Unnumbered open lines in docs/OPEN.md + archives, measured 2026-10-02 after the 34-line triage archive plus 4 Stripe-live lines, 2 verified fixes, the EF5 leak fix and the boost_auto_extended migration. */
-const UNNUMBERED_OPEN_LINES = 209;
+const UNNUMBERED_OPEN_LINES = 208;
 
 describe("open lines carry a Q number", () => {
   const md = queueText(ROOT) as string;

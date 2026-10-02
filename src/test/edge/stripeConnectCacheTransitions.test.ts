@@ -19,14 +19,12 @@
  *
  * @mutate supabase/functions/stripe-connect/index.ts | if (recentClears >= STALE_CLEAR_HOURLY_CAP) { | if (false) {
  * @mutate supabase/functions/stripe-connect/index.ts | if (countErr \|\| recentClears === null \|\| recentClears === undefined) { | if (countErr) {
- * @mutate supabase/functions/stripe-connect/index.ts | if (countErr \|\| recentClears === null | if (recentClears === null
  * @mutate supabase/functions/stripe-connect/index.ts | .eq("tags->>kind", STALE_CLEAR_KIND)\n      .gte("created_at", sinceIso); | .eq("tags->>kind", STALE_CLEAR_KIND);
  * @mutate supabase/functions/stripe-connect/index.ts | tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND }, | tags: { source: "stripe-connect" },
  * @mutate supabase/functions/stripe-connect/index.ts | oncePerDayKey: "stripe-connect-stale-clear-cap",\n      });\n      return "failed"; | oncePerDayKey: "stripe-connect-stale-clear-cap",\n      });
  * @mutate supabase/functions/stripe-connect/index.ts | if (check?.deleted === true) usable = false; |
  * @mutate supabase/functions/stripe-connect/index.ts | if (!isUnusableConnectAccountError(checkErr)) throw checkErr;\n            usable = false; |
  * @mutate supabase/functions/stripe-connect/index.ts | idempotencyKey = `stripe-connect-create-${user.id}-after-${created.id}`; |
- * @mutate supabase/functions/stripe-connect/index.ts | if (!account) {\n          throw new Error("Could not create your payout account | if (false) {\n          throw new Error("Could not create your payout account
  * @mutate supabase/functions/stripe-connect/index.ts | .eq("stripe_charges_enabled", profile.stripe_charges_enabled === true)\n | \n
  * @mutate supabase/functions/stripe-connect/index.ts | .eq("stripe_payouts_enabled", profile.stripe_payouts_enabled === true)\n        .select("id"); | .select("id");
  * @mutate supabase/functions/stripe-connect/index.ts | } else if ((cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled) { | } else if (nowCharges && nowPayouts && !wasEnabled) {

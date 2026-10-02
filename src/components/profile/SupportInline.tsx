@@ -1,4 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { storageExtFor } from "@/lib/storageExt";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,11 +164,10 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     if (!userId) return null;
     setUploadingScreenshot(true);
     try {
-      // Only a plain alphanumeric extension reaches the path: AdminSupport
-      // refuses a path with whitespace in it, so "shot.PNG copy" must not
-      // produce one.
-      const rawExt = (file.name.split(".").pop() || "").toLowerCase();
-      const ext = /^[a-z0-9]{1,8}$/.test(rawExt) ? rawExt : "png";
+      // The extension comes from the file's MIME type, never its name:
+      // `file.name.split(".").pop()` is client-chosen text an attacker could
+      // use to inject an arbitrary extension (docs/OPEN.md LIVE DEFECT #5).
+      const ext = storageExtFor(file, "png");
       const path = supportScreenshotPath(userId, ext);
       const { error } = await supabase.storage
         .from("user-documents")

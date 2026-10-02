@@ -1,4 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { storageExtFor } from "@/lib/storageExt";
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,7 +165,10 @@ export const AppliedJobsTab = ({
     if (!isAllowedUploadType(file, APPLICATION_ATTACHMENT_TYPES)) { toast.error(unsupportedUploadCopy(file, "a photo (JPG, PNG, WebP, HEIC) or a PDF")); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("That file's too large — keep it under 5 MB."); return; }
     setUploadingAttachment(appId);
-    const ext = file.name.split('.').pop();
+    // Extension from the file's MIME type, never its name
+    // (docs/OPEN.md LIVE DEFECT #5). This site accepts images or a PDF
+    // (APPLICATION_ATTACHMENT_TYPES); "jpg" covers the image case.
+    const ext = storageExtFor(file, "jpg");
     const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
     if (uploadErr) { hapticError(); toast.error("Couldn't upload that file — try again?"); setUploadingAttachment(null); return; }

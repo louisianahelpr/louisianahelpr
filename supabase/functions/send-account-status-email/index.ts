@@ -253,12 +253,15 @@ serve(async (req) => {
       })
     }
 
-    await supabaseAdmin.from('email_send_log').insert({
+    // Q855: an audit-row write never blocks the email, but it is never
+    // silent either; a dropped error here left the send unfindable.
+    const { error: pendingLogError } = await supabaseAdmin.from('email_send_log').insert({
       message_id: messageId,
       template_name: `account_${status}`,
       recipient_email: profile.email,
       status: 'pending',
     })
+    if (pendingLogError) console.error('email_send_log pending insert failed:', pendingLogError.message)
 
     try {
       await sendWithResend(resendApiKey, {
@@ -269,19 +272,21 @@ serve(async (req) => {
         text,
       })
 
-      await supabaseAdmin.from('email_send_log').update({
+      const { error: sentLogError } = await supabaseAdmin.from('email_send_log').update({
         status: 'sent',
       }).eq('message_id', messageId)
+      if (sentLogError) console.error('email_send_log sent update failed:', sentLogError.message)
 
       console.log(`Account ${status} email sent to ${profile.email}`)
     } catch (sendErr) {
       const errMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
       console.error('Email send failed:', errMsg)
 
-      await supabaseAdmin.from('email_send_log').update({
+      const { error: failedLogError } = await supabaseAdmin.from('email_send_log').update({
         status: 'failed',
         error_message: errMsg,
       }).eq('message_id', messageId)
+      if (failedLogError) console.error('email_send_log failed update failed:', failedLogError.message)
 
       return new Response(JSON.stringify({ error: 'Failed to send email' }), {
         status: 500,

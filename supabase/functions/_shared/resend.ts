@@ -410,10 +410,11 @@ export async function queueEmail(
 
   if (enqueueError) {
     console.error(`[queueEmail] enqueue_email failed (${email.templateName}):`, enqueueError.message);
-    await supabase
+    const { error: failLogError } = await supabase
       .from("email_send_log")
       .update({ status: "failed", error_message: `enqueue_email: ${enqueueError.message}`.slice(0, 1000) })
       .eq("message_id", messageId);
+    if (failLogError) console.error(`[queueEmail] email_send_log failed-status update failed (${email.templateName}):`, failLogError.message);
     return { ok: false, messageId, error: enqueueError.message };
   }
 

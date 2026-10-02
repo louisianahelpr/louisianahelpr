@@ -189,13 +189,14 @@ serve(async (req) => {
             queued_at: payload.queued_at,
             ttl_minutes: ttlMinutes[queue],
           })
-          await supabase.from('email_send_log').insert({
+          const { error: ttlLogError } = await supabase.from('email_send_log').insert({
             message_id: payload.message_id,
             template_name: payload.label || queue,
             recipient_email: payload.to,
             status: 'dlq',
             error_message: `TTL exceeded (${ttlMinutes[queue]} minutes)`,
           })
+          if (ttlLogError) defects.record(`ttl dlq log ${msg.msg_id}: ${ttlLogError.message}`)
           const { error: ttlDlqError } = await supabase.rpc('move_to_dlq', {
             source_queue: queue,
             dlq_name: dlq,
@@ -215,13 +216,14 @@ serve(async (req) => {
 
       // Move to DLQ if max retries exceeded
       if (msg.read_ct > MAX_RETRIES) {
-        await supabase.from('email_send_log').insert({
+        const { error: retryLogError } = await supabase.from('email_send_log').insert({
           message_id: payload.message_id,
           template_name: payload.label || queue,
           recipient_email: payload.to,
           status: 'dlq',
           error_message: `Max retries (${MAX_RETRIES}) exceeded`,
         })
+        if (retryLogError) defects.record(`max-retry dlq log ${msg.msg_id}: ${retryLogError.message}`)
         const { error: retryDlqError } = await supabase.rpc('move_to_dlq', {
           source_queue: queue,
           dlq_name: dlq,

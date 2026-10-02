@@ -69,17 +69,20 @@ says more.
   an unrecorded one (Q9).
 
 ## Landing
-- Commit in your worktree, then `bash scripts/land.sh`. It is the ONLY way
-  onto main (Q44): main requires Vitest, Test and both Playwright
-  checks, with enforce_admins, so a direct push is refused (strict is off);
-  vacuity runs on every push to main (not required on PRs). land.sh
-  fetches, rebases onto origin/main, runs `npm run inventories:refresh`,
+- **Agents do not land.** Commit in your worktree, `git push -u origin HEAD`
+  to your own branch, and end your report with the branch name and the head
+  sha. The lead lands it with `bash scripts/land.sh`. It is the ONLY way
+  onto main (Q44). An agent that ran land.sh and finished before its PR merged
+  left the work stranded: 15 branches on 2026-10-02 (see the
+  stranded-branch check). A pushed branch that never reaches main goes red
+  there, so a report without a branch and sha is an unfinished report.
+- What land.sh does, so you can predict it: main requires Vitest, Test and
+  both Playwright checks, with enforce_admins, so a direct push is refused
+  (strict is off); vacuity runs on every push to main (not required on PRs).
+  land.sh fetches, rebases onto origin/main, runs `npm run inventories:refresh`,
   commits what that regenerated, proves `check:generated` and the exact-count
   guards green, pushes `land/<branch>-<worktree hash>`, opens a PR with rebase
-  auto-merge, and WAITS (~20 min of checks). When main moves first it rebases
-  and pushes again by itself; a failed required check stops it red with the
-  check's name. Your work is not landed until it prints "merged into main".
-  `--no-wait` returns early; then it is not landed until
+  auto-merge, and waits. Work is not landed until
   `gh pr view <branch> --json state` says MERGED.
 - End commits with the Co-Authored-By line from CLAUDE.md.
 - If a rebase stops on a conflict, resolve it (for generated files: take

@@ -3688,15 +3688,23 @@ async function transferToHelper(
       transfer_group: `job_${jobId}`,
     };
 
-    // Link the transfer to the source charge if we have one
+    // Link the transfer to the source charge if we have one. A failed
+    // retrieve REFUSES the transfer: without `source_transaction` Stripe funds
+    // the payout from the platform's own available balance instead of this
+    // job's charge. It was a warning that let the transfer go ahead
+    // (money review, Q891 follow-up). This runs before `beforeTransfer`, so
+    // the claim is still unstamped and no money has moved: the caller hands
+    // its settlement claim back (no `moneyMoved`).
     if (paymentIntentId) {
+      let pi;
       try {
-        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-        if (pi.latest_charge) {
-          transferParams.source_transaction = pi.latest_charge;
-        }
-      } catch (e) {
-        console.warn("Could not retrieve charge for transfer linking:", e);
+        pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+      } catch (piErr) {
+        console.error(`[create-payment] transferToHelper — could not retrieve ${paymentIntentId} to link the transfer to its charge for job ${jobId}:`, piErr);
+        throw new PublicError("Couldn't confirm the source charge with Stripe, so the payout was not sent. No money was moved — try again.");
+      }
+      if (pi.latest_charge) {
+        transferParams.source_transaction = pi.latest_charge;
       }
     }
 

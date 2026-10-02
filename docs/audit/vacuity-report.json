@@ -1,10 +1,8 @@
 {
-  "generated": "2026-10-02T06:09:09.598Z",
+  "generated": "2026-10-02T06:14:12.449Z",
   "guards": 1302,
-  "registered": 1301,
-  "unregistered": [
-    "src/test/prRunsCancelSuperseded.test.ts"
-  ],
+  "registered": 1302,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",
@@ -30,7 +28,6 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
-    "src/test/prRunsCancelSuperseded.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],

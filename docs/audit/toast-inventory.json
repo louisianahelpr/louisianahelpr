@@ -642,7 +642,7 @@
     },
     {
       "file": "src/components/NotificationPanel.tsx",
-      "line": 343,
+      "line": 342,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -662,7 +662,7 @@
     },
     {
       "file": "src/components/NotificationPanel.tsx",
-      "line": 452,
+      "line": 451,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4362,7 +4362,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 271,
+      "line": 269,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4372,11 +4372,21 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 286,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "friendlyAuthError(error.message)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 305,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Too many attempts — try again in ${minutesLeft} min."
       },
       "renders": true
     },
@@ -4385,16 +4395,6 @@
       "line": 307,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Too many attempts — try again in ${minutesLeft} min."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 309,
-      "kind": "toast.error",
-      "title": {
         "form": "dynamic",
         "text": "friendlyAuthError(error.message)"
       },
@@ -4402,7 +4402,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 322,
+      "line": 320,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4412,7 +4412,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 350,
+      "line": 348,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4422,7 +4422,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 384,
+      "line": 382,
       "kind": "toast.error",
       "title": {
         "form": "literal",

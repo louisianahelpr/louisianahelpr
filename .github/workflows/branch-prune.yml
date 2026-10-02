@@ -1,0 +1,56 @@
+name: Branch prune
+
+# delete_branch_on_merge only fires on a MERGED PR. Branches from PRs closed
+# unmerged (superseded by a batch PR) and stray pushes piled up on origin.
+# This runs the same cleanup for branches whose every patch is already on main
+# (`git cherry` shows no `+`) and that no open PR uses. Anything with work not
+# on main is UNLANDED: kept, and listed in the job summary for a human.
+# Script + decision function: scripts/prune-stale-branches.mjs
+# Guard: src/test/pruneStaleBranches.test.ts
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: branch-prune
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Prune branches already on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/prune-stale-branches.mjs --apply
+
+  # A red scheduled run files/updates one nightly-red issue (closed on the next
+  # green). Push runs are already reported by main-red-watch.
+  notify:
+    name: Report nightly result
+    needs: [prune]
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: branch-prune
+          status: ${{ needs.prune.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

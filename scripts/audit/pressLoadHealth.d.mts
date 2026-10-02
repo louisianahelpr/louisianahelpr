@@ -1,6 +1,7 @@
 // Types for the press harness's boot-health classifier, so guards in src/test
 // can import it under `tsc -b --noEmit` (the .mjs itself is plain Node ESM,
 // run by scripts/audit/press-every-control.mjs).
+export declare const LOADING_SEL: string;
 export declare const SELF_HEAL_SEL: string;
 export declare const SELF_HEAL_MS: number;
 

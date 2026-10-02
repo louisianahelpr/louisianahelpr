@@ -198,6 +198,16 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     expect(read("pages/home/DashboardGuest.tsx")).toMatch(/const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS;/);
   });
 
+  it("/browse's loaded feed keeps the skeleton's reserve, so a short list never pulls the footer up", () => {
+    // 2026-10-01: one live job at 375 drew 439px of feed; the Footer jumped
+    // from below the fold to y=499 (CLS 0.2399, page-settle /browse).
+    // Every feed grid (loading AND loaded) wears the reserve.
+    const dg = read("pages/home/DashboardGuest.tsx");
+    const grids = dg.match(/className=\{`\$\{FEED_GRID_CLASS\}[^`]*`\}/g) ?? [];
+    expect(grids.length).toBeGreaterThanOrEqual(2);
+    for (const g of grids) expect(g).toContain("${GUEST_FEED_RESERVE_CLASS}");
+  });
+
   it("/browse's chunk skeleton restates the public shell's geometry VERBATIM (nav spacer, nav box, body gutter)", () => {
     // Q176 changed the spacer the same day this skeleton was written, and the
     // title moved 12px under the bones. These strings are compared, not

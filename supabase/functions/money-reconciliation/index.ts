@@ -666,7 +666,7 @@ serve(async (req) => {
       const rowByPair = new Set(feeRows.map((r) => `${r.job_id}:${r.helper_id ?? ""}`));
       for (const job of jobRows) {
         if (job.status !== "cancelled") continue;
-        if (job.dispute_status === "resolved" && !job.cancelled_at) continue;
+        if (!job.cancelled_at && job.dispute_status === "resolved") continue;
         // A crew without a lead is paid through crew_cancellation_fee_shares.
         if (!job.helper_id) continue;
         if (job.cancellation_fee_status !== "charged") continue;

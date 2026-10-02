@@ -114,6 +114,17 @@ const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
  */
 const PAYOUT_WINDOW_HOURS = 6;
 const PAYOUT_WINDOW_MS = PAYOUT_WINDOW_HOURS * 60 * 60 * 1000;
+/**
+ * How long a job may sit at payment_status 'cancelling' before it is a
+ * stranded cancel (docs/OPEN.md Q456). cancel_escrow holds that claim only for
+ * its own Stripe round-trips and the gift restore, seconds in practice; it is
+ * left behind only when a later step failed (gift restore, the final flip, a
+ * claim that could not be put back). Nothing retries it and the alert those
+ * paths post fires once, so without this check a stuck cancel is forgotten the
+ * moment the Slack message scrolls away.
+ */
+const CANCELLING_WINDOW_MINUTES = 60;
+const CANCELLING_WINDOW_MS = CANCELLING_WINDOW_MINUTES * 60 * 1000;
 
 /**
  * Stripe-side comparison window (docs/OPEN.md Q50). Every run asks Stripe about
@@ -374,6 +385,11 @@ serve(async (req) => {
         "critical",
         `payment_status='payout_pending' more than ${PAYOUT_WINDOW_HOURS}h past payout_scheduled_at — the Helpr was told they would be paid and nothing has moved. This is the END STATE of an unguarded release write (a zero-row flip after the transfer went out) and of a payout that failed with nothing recorded, and until now NOTHING detected it: this reconciler only looked at 'escrow'.`,
       ),
+      cancellingStranded: new Check(
+        "cancelling_stranded",
+        "critical",
+        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand.`,
+      ),
       // ── The DB's settled state vs Stripe's (docs/OPEN.md Q50) ──────────
       // Every check above grades the DB against itself. A job the DB says is
       // settled — payment_status 'cancelled' or 'refunded' — was only ever
@@ -631,6 +647,21 @@ serve(async (req) => {
         budget: money(job.budget),
         payout_scheduled_at: job.payout_scheduled_at ?? null,
         hours_overdue: Math.round(((nowMs - dueAt) / 3_600_000) * 100) / 100,
+      });
+    }
+
+    // ── Cancels that claimed the job and never finished (Q456) ───────────────
+    // Keyed on updated_at: the claim write is the last touch a stranded cancel
+    // gets, and an unrelated later write only delays the alarm, never hides it.
+    for (const job of jobRows) {
+      if (job.payment_status !== "cancelling") continue;
+      const claimedAt = ts(job.updated_at) ?? 0;
+      if (nowMs - claimedAt <= CANCELLING_WINDOW_MS) continue;
+      checks.cancellingStranded.add({
+        job_id: job.id,
+        status: job.status,
+        budget: money(job.budget),
+        hours_stuck: Math.round(((nowMs - claimedAt) / 3_600_000) * 100) / 100,
       });
     }
 

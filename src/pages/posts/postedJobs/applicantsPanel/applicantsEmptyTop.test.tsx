@@ -20,14 +20,17 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import { ApplicantsEmptyState } from "./ApplicantsStates";
+import { todayYmd } from "@/lib/jobDate";
 import { type Job } from "../../../../components/job-card/activityConstants";
 
 const DAY = 86_400_000;
 const iso = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString();
+// Days counted from the app's own "today" (America/Chicago), never the
+// runner's: CI is UTC, so from 7pm CDT a UTC-calendar "tomorrow" is two days
+// out and the imminent case silently became fresh.
 const ymd = (offsetDays: number) => {
-  const d = new Date(Date.now() + offsetDays * DAY);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  const [y, m, d] = todayYmd().split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + offsetDays)).toISOString().slice(0, 10);
 };
 
 // Title fragments are how each phase is told apart in the render, so a case

@@ -15,8 +15,32 @@ if command -v node >/dev/null 2>&1 && [ -f "$LH_DIR0/scripts/scoreboard.mjs" ]; 
       LH_LINKED0="$(dirname "$LH_COMMON0")"
     fi
   fi
-  LH_SUPABASE_WORKDIR="${LH_SUPABASE_WORKDIR:-$LH_LINKED0}" \
-    node "$LH_DIR0/scripts/scoreboard.mjs" --open-block 2>/dev/null || true
+  # The queue is read from ORIGIN/MAIN after a fetch, never from this checkout:
+  # on 2026-10-02 the shared checkout sat on a stale branch and printed
+  # "111 open" while origin/main had 182 + 48 partly done. The scripts that
+  # count it are also taken from origin/main (a stale checkout's scoreboard.mjs
+  # counts the old way), extracted once per main sha into the git dir.
+  # Guard: src/test/openBlockReadsRef.test.ts.
+  LH_SHA0=""
+  perl -e 'alarm shift; exec @ARGV' 10 git -C "$LH_DIR0" fetch -q origin main 2>/dev/null || true
+  LH_SHA0="$(git -C "$LH_DIR0" rev-parse --verify -q 'origin/main^{commit}' 2>/dev/null || true)"
+  LH_RAN0=""
+  if [ -n "$LH_SHA0" ] && [ -n "${LH_COMMON0:=$(git -C "$LH_DIR0" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)}" ]; then
+    LH_CACHE0="$LH_COMMON0/lh-open-block/$LH_SHA0"
+    if [ ! -f "$LH_CACHE0/scripts/scoreboard.mjs" ]; then
+      rm -rf "$LH_COMMON0/lh-open-block" 2>/dev/null || true
+      mkdir -p "$LH_CACHE0" && git -C "$LH_DIR0" archive "$LH_SHA0" scripts 2>/dev/null | tar -x -C "$LH_CACHE0" 2>/dev/null || true
+    fi
+    if [ -f "$LH_CACHE0/scripts/scoreboard.mjs" ] && grep -q -- '--ref' "$LH_CACHE0/scripts/scoreboard.mjs"; then
+      LH_SUPABASE_WORKDIR="${LH_SUPABASE_WORKDIR:-$LH_LINKED0}" \
+        node "$LH_CACHE0/scripts/scoreboard.mjs" --open-block --ref "$LH_SHA0" --repo "$LH_DIR0" 2>/dev/null && LH_RAN0=1
+    fi
+  fi
+  if [ -z "$LH_RAN0" ]; then
+    echo "(open block: origin/main unreadable or predates --ref; counts below are THIS checkout's and may be stale)"
+    LH_SUPABASE_WORKDIR="${LH_SUPABASE_WORKDIR:-$LH_LINKED0}" \
+      node "$LH_DIR0/scripts/scoreboard.mjs" --open-block 2>/dev/null || true
+  fi
   echo
 fi
 

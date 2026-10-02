@@ -10,7 +10,7 @@
 // @mutate scripts/lib/openQueue.mjs |     if (!DONE.test(l)) { kept.push(l); continue; } |     if (!DONE.test(l)) { continue; }
 // @mutate scripts/archive-done.mjs |     process.exitCode = 1; |     process.exitCode = 0;
 // @mutate scripts/queue-count.mjs |   const all = queueText("."); |   const all = md;
-// @mutate scripts/scoreboard.mjs | queueCounts(queueText(REPO, read)) | queueCounts(read(OPEN))
+// @mutate scripts/scoreboard.mjs | queueCounts(queueText(REPO, read, list)) | queueCounts(read(OPEN))
 // @mutate scripts/check-generated-current.mjs |     cmd: ["node", "scripts/archive-done.mjs", "--write"], |     cmd: ["node", "-e", ""],
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { spawnSync } from "node:child_process";

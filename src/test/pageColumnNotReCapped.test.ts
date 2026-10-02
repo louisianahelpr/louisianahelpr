@@ -17,6 +17,7 @@ const PAGES = path.resolve(__dirname, "../pages");
 const RECAP = /className="[^"]*\bmax-w-(?:xl|[2-7]xl)\b[^"]*\bmx-auto\b[^"]*"|className="[^"]*\bmx-auto\b[^"]*\bmax-w-(?:xl|[2-7]xl)\b[^"]*"/;
 
 // Not page columns: a fixed, floating bar sized to its own content.
+// @two-way src/test/pageColumnNotReCapped.test.ts:filter((e) => !hits.includes(e))
 const EXEMPT = new Set(["posts/BulkDismissBar.tsx:34"]);
 
 function walk(dir: string): string[] {

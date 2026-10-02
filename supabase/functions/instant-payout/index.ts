@@ -12,6 +12,7 @@ import { formatPayoutCents } from "../_shared/money.ts";
 import { profileHasPerk, tiersGrantingPerkSentence } from "../_shared/tierPerks.ts";
 import { tierDisplayName } from "../_shared/tierNames.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { publicErrorMessage, PublicError } from "../_shared/publicError.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -77,7 +78,7 @@ serve(async (req) => {
     // otherwise a blip throws "set up your payout account" and misleads a
     // helper who already onboarded into re-doing Connect onboarding.
     if (profileErr) {
-      throw new Error("Could not load your payout account right now. Please try again in a moment.");
+      throw new PublicError("Could not load your payout account right now. Please try again in a moment.");
     }
     if (!profile?.stripe_account_id) {
       return new Response(JSON.stringify({ error: "No payout account connected. Set up your payout account first." }), {
@@ -487,12 +488,18 @@ serve(async (req) => {
           },
         });
       }
+      // The fee left the helper's balance and no payout followed: a retry would
+      // take a second fee, so say what happened instead of "try again".
+      if (feeCents > 0 && feeTransferSucceeded) {
+        throw new PublicError(
+          "Your instant payout didn't go through, but the instant payout fee was already taken. Our team has been alerted to refund it. Please don't retry.",
+        );
+      }
       throw payoutErr;
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[instant-payout] error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    console.error("[instant-payout] error:", err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: publicErrorMessage(err, "We couldn't complete the instant payout. Please try again later.") }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

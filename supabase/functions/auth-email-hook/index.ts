@@ -13,6 +13,7 @@ import { FROM_DEFAULT, SENDER_DOMAIN } from '../_shared/resend.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { kickEmailQueue } from '../_shared/kick-email-queue.ts'
 import { serve } from "../_shared/buildStamp.ts";
+import { publicErrorMessage } from "../_shared/publicError.ts";
 
 // ED-002: every failure branch here blocks a signup confirmation, password
 // reset or magic link. One user sees an error; a SYSTEMIC failure (secret
@@ -315,7 +316,7 @@ serve(async (req) => {
     console.error('Webhook handler error:', error)
     await alertAuthEmail('handler error', 'warning', error instanceof Error ? error.message : String(error))
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: publicErrorMessage(error, 'Email hook failed') }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

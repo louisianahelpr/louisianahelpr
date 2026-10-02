@@ -340,7 +340,7 @@ describe("offer privacy (c): JOB_READABLE_COLUMN_LIST is the jobs columns minus 
    * hiding behind the first.
    */
   // @two-way src/test/offeredHelperPrivacy.test.ts:).toEqual(KNOWN_UNMIGRATED_COLUMNS.slice().sort())
-  const KNOWN_UNMIGRATED_COLUMNS = ["boost_auto_extended"];
+  const KNOWN_UNMIGRATED_COLUMNS: string[] = [];
 
   // The series-state columns are read by fetchJobSeriesState on their own
   // (deploy order: see JOB_SERIES_STATE_COLUMNS), so they count as covered.

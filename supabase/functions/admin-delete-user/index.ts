@@ -3,6 +3,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { describeDeleteError, findActiveWork, purgeAccount } from "../_shared/accountPurge.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { publicErrorMessage } from "../_shared/publicError.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -220,7 +221,7 @@ serve(async (req) => {
   } catch (err) {
     console.error("[admin-delete-user] error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Internal server error" }),
+      JSON.stringify({ error: publicErrorMessage(err, "Couldn't delete that account. Please try again.") }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

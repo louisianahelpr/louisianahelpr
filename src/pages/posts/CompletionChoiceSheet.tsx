@@ -16,6 +16,7 @@
  * path that already exists on the jobs row.
  */
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { storageExtFor } from "@/lib/storageExt";
 import { useState } from "react";
 import { CheckCircle2, ChevronLeft, RotateCcw, X, Upload, AlertTriangle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,7 +114,9 @@ export function CompletionChoiceSheet({
       const photoPaths: string[] = [];
       let uploadFailed = false;
       for (const file of photos.slice(0, 3)) {
-        const ext = file.name.split(".").pop();
+        // Extension from the file's MIME type, never its name (docs/OPEN.md
+        // LIVE DEFECT #5).
+        const ext = storageExtFor(file, "jpg");
         // `<jobId>/revisions/…`, NOT `revisions/<jobId>/…`. The proof-photos
         // policies key on storage.foldername(name)[1], so the FIRST segment
         // must be either the caller's uid or a job they are party to. With

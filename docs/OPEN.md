@@ -1397,7 +1397,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ## CARRIED — the 2026-09-02 ledger (docs/audit/OPEN_ITEMS.md, retired 2026-09-23)
 
 Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02.md.
-- [ ] HIGH **LIVE DEFECT #5**: Storage keys built from client-supplied file extension (complete-signup + Profile.tsx). Partially fixed: edge-fn 4 fields fixed; Profile.tsx id-upload still keys off client filename ext.
 - [ ] HIGH **LIVE DEFECT #6**: 173 orphaned rows in prod, some carrying PII (notification_logs, login_history). OPEN, larger: live 2026-09-23 notification_logs has 1,935 rows whose user_id has no auth.users row, 1,888 still carrying recipient_email; ALL 1,888 emails match mailinator/seed/test/example (lead query) — test-account churn, not real users. login_history 482 orphans with ip_address; analytics_events 830. purge coverage for deleted TEST accounts is the gap.
 - [ ] MEDIUM **LIVE DEFECT #25**: Senior mode .truncate amputates visible characters (193 occurrences). Still open by design: per-component fix explicitly not done; global attempt was reverted.
 - [ ] MEDIUM **LATENT #1**: Group jobs broken in 5 places (message, accept/complete, Activity, reviews, dispute split). 3 of 5 sub-defects fixed pre-compile; (b)/(d) still open, control still gated off (GROUP_JOBS_ENABLED=false). (also: docs/OPEN.md VN-52 'Group jobs — inventory + turn-on plan', Phase 1 landed 2026-09-19, flag still false)

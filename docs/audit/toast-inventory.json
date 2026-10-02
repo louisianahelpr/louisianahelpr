@@ -842,7 +842,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 181,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -862,7 +862,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 190,
+      "line": 189,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -872,7 +872,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 201,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

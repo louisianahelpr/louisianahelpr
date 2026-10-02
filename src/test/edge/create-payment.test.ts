@@ -2412,6 +2412,32 @@ describe("create-payment edge function", () => {
           expect(jobUpdate()).toBeUndefined();
         });
 
+        it("REFUSES the transfer when the PaymentIntent cannot be retrieved for charge linking, and hands the claim back (Q891 follow-up)", async () => {
+          // Without `source_transaction` Stripe funds the payout from the
+          // platform's own balance, not this job's charge. A failed retrieve
+          // used to log a warning and send the transfer anyway.
+          // @mutate supabase/functions/create-payment/index.ts | throw new PublicError("Couldn't confirm the source charge with Stripe, so the payout was not sent. No money was moved — try again."); | pi = { latest_charge: null };
+          seedReleasable();
+          // Only transferToHelper's retrieve fails: it is the one that runs
+          // after the prior-transfer check (`transfers.list`).
+          stripeMock.paymentIntents.retrieve.mockImplementation(async () => {
+            if (stripeMock.transfers.list.mock.calls.length > 0) throw new Error("stripe 503");
+            return { id: "pi_d", status: "succeeded", latest_charge: "ch_d" };
+          });
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(500);
+          expect(String((await json(res)).error)).toMatch(/source charge/i);
+          expect(stripeMock.transfers.list).toHaveBeenCalled();
+          expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+          expect(jobUpdate()).toBeUndefined();
+          // No money moved, so the claim is released and was never stamped.
+          expect(scenario.rpcCalls!.some((c) => c.name === "stamp_dispute_settlement_claim")).toBe(false);
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(true);
+        });
+
         it("retries a failed claim release once before giving up (round 3, M2)", async () => {
           seedReleasable();
           scenario.rpcErrors = { release_dispute_settlement_claim: { message: "connection reset", code: "08006" } };

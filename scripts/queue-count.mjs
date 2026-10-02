@@ -20,8 +20,10 @@ export const START = "<!-- generated: queue-count (node scripts/queue-count.mjs 
 export const END = "<!-- /generated: queue-count -->";
 
 /** Not-done top-level checkbox lines that carry no **Q<n>** number. */
+const OPEN_LINE = /^- \[[ ~]\] /;
+const NUMBERED_LINE = /^- \[[ ~]\] \*\*Q\d+\b/;
 export function unnumberedLines(md) {
-  return md.split("\n").filter((l) => /^- \[[ ~]\] /.test(l) && !/^- \[[ ~]\] \*\*Q\d+\b/.test(l));
+  return md.split("\n").filter((l) => OPEN_LINE.test(l) && !NUMBERED_LINE.test(l));
 }
 
 export function queueCounts(md) {

@@ -9,7 +9,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
-import { decideBranch, isStranded, uncoveredCommits } from "../../scripts/prune-stale-branches.mjs";
+import {
+  AUTO_LAND_STUCK_HOURS,
+  autoLandTitle,
+  decideBranch,
+  isStranded,
+  stuckAutoLandPrs,
+  uncoveredCommits,
+} from "../../scripts/prune-stale-branches.mjs";
 
 /**
  * Stale remote branches kept piling up: delete_branch_on_merge only fires on a
@@ -92,5 +99,41 @@ describe("prune-stale-branches stranded work", () => {
 
   it("land/* branches are not exempt: a land branch with no PR is stranded too", () => {
     expect(isStranded({ name: "land/HEAD-6c1e1c10", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(true);
+  });
+});
+
+/**
+ * AUTO-LAND (2026-10-02): reporting stranded branches left them sitting for
+ * days. --apply now opens an auto-land PR (rebase auto-merge) per stranded
+ * branch, and one still open after AUTO_LAND_STUCK_HOURS turns the job red.
+ */
+describe("prune-stale-branches auto-land", () => {
+  const now = Date.parse("2026-10-02T20:00:00Z");
+  const pr = (title: string, createdAt: string) => ({ number: 1, headRefName: "agent/x", title, createdAt });
+
+  it("an auto-land PR open past the limit is stuck; a fresh one or a human PR is not", () => {
+    const stuck = stuckAutoLandPrs(
+      [
+        pr(autoLandTitle("agent/x"), "2026-10-02T10:00:00Z"),
+        pr(autoLandTitle("agent/y"), "2026-10-02T19:00:00Z"),
+        pr("fix(x): human PR", "2026-09-01T00:00:00Z"),
+      ],
+      now,
+    );
+    expect(stuck.map((p) => p.createdAt)).toEqual(["2026-10-02T10:00:00Z"]);
+    expect(AUTO_LAND_STUCK_HOURS).toBe(6);
+  });
+
+  it("--apply opens a PR and turns on rebase auto-merge for every stranded branch", () => {
+    const src = fs.readFileSync(path.resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8");
+    const loop = src.slice(src.indexOf("for (const b of stranded)"), src.indexOf("autoOpened.push"));
+    expect(loop).toContain('"pr", "create"');
+    expect(loop).toContain('"--rebase", "--auto"');
+  });
+
+  it("the workflow opens those PRs with REFRESH_PR_TOKEN, so required checks run", () => {
+    const wf = fs.readFileSync(path.resolve(__dirname, "../../.github/workflows/branch-prune.yml"), "utf8");
+    expect(wf).toMatch(/GH_TOKEN: \$\{\{ secrets\.REFRESH_PR_TOKEN/);
+    expect(wf).toContain("pull-requests: write");
   });
 });

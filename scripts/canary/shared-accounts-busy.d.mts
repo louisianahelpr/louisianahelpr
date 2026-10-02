@@ -4,6 +4,6 @@ export function sharedAccountWorkflows(dir?: string): string[];
 export const STALE_RUN_MS: number;
 /** Does this in-progress run hold the shared accounts? */
 export function holdsAccounts(
-  run: { event: string; run_started_at?: string | null; created_at?: string | null },
+  run: { event: string; display_title?: string | null; run_started_at?: string | null; created_at?: string | null },
   now?: number,
 ): boolean;

@@ -48,6 +48,18 @@ const DRIVES_ACCOUNTS = new Set(["schedule", "workflow_dispatch"]);
 const WAITING = new Set(["queued", "pending", "waiting", "requested"]);
 
 /**
+ * Can this run (an /actions/runs entry) reach a locked job? Only scheduled and
+ * dispatched runs can: every locked job is gated off push/PR. A MAIN BATCH
+ * dispatch (scripts/ci/main-batch.mjs, titled "(main batch <sha>)") is the old
+ * push leg of e2e-real-backend: its locked jobs are gated off `inputs.batch`,
+ * so it never signs in and must not queue anyone (2026-10-02). The marker is
+ * inlined, not imported: this script runs from a sparse checkout.
+ */
+export function drivesAccounts(run) {
+  return DRIVES_ACCOUNTS.has(run.event) && !String(run.display_title ?? "").includes("(main batch ");
+}
+
+/**
  * Every job holding the lock, per workflow path: `{ ".github/workflows/x.yml": [{ key, name }] }`.
  * A dependency-free line parser (the waiter runs before `npm ci`); the guard test
  * checks it against a real YAML parse.
@@ -197,9 +209,8 @@ async function snapshot(repo, token, inventory) {
   const byId = new Map();
   for (const status of IN_FLIGHT) {
     const { workflow_runs: rs = [] } = await gh(`/repos/${repo}/actions/runs?status=${status}&per_page=100`, token);
-    // Only scheduled and dispatched runs reach a locked job: every locked job is
-    // gated off push/PR (the push legs of e2e-real-backend never sign in).
-    for (const r of rs) if (inventory[r.path?.split("@")[0]] && DRIVES_ACCOUNTS.has(r.event)) byId.set(r.id, r);
+    // Only runs that can reach a locked job (drivesAccounts above).
+    for (const r of rs) if (inventory[r.path?.split("@")[0]] && drivesAccounts(r)) byId.set(r.id, r);
   }
   const runs = [];
   for (const r of byId.values()) {

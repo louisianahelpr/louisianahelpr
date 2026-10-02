@@ -1368,7 +1368,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### FOLLOW-UP — is_flexible_schedule is IMMUTABLE after posting
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] EditJobDialog.tsx omits is_flexible_schedule from updateData, so a poster who forgets the box must delete and repost — Confirmed still open: EditJobDialog.tsx never writes is_flexible_schedule, so it remains immutable after posting. (archive L7211)
+- [~] **FIXED 2026-10-02, protection pending (375 screenshot):** EditJobDialog now has a Flexible schedule switch (same row shape as photo proof, disabled once a Helpr is hired) and writes is_flexible_schedule in updateData; save refuses "no start time and not flexible" with a toast before the jobs_start_time_required CHECK would. Layers read (prod, read-only 2026-10-02): authenticated has column UPDATE on jobs.is_flexible_schedule; RLS "Customers can update their own jobs" is auth.uid() = customer_id with no column restriction; no jobs trigger function mentions flexible; CHECK jobs_start_time_required = flexible OR start_time OR (seed AND not recurring). Only the client blocked it. GUARD: src/pages/posts/EditJobDialog.flexibleSchedule.test.tsx (2 @mutate; class test: post-wizard insert keys = updateData keys + an exact NOT_EDITABLE list, floor 35 wizard keys; red on the old dialog naming is_flexible_schedule). Owed: browser lane screenshot of the dialog at 375 and 1440. Was: EditJobDialog.tsx omits is_flexible_schedule from updateData, so a poster who forgets the box must delete and repost. (archive L7211)
 
 ### FOR THE VISUAL PASS: the unread dot is now the ONLY unread signal, and it is 8px
 Reconciled 2026-09-23; detail in the archive at the line shown.

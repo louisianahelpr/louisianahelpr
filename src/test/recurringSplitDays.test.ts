@@ -30,6 +30,9 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '0', true); | NULL;
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C12 | -- C12
+ * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                              AND w.status::text = 'completed' |                              
+ * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                            WHERE w.customer_id = v_uid AND w.helper_id = p_helper_id | WHERE w.helper_id = p_helper_id
+ * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                        WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id AND a.status = 'pending') | WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id)
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -66,6 +69,15 @@ describe("recurring split days (Q407 4-6)", () => {
     expect(allSql).toMatch(/ADD COLUMN IF NOT EXISTS series_split_ok boolean NOT NULL DEFAULT false/);
     expect(allSql).toMatch(/CREATE TABLE IF NOT EXISTS public\.series_visit_holds/);
     expect(allSql).toMatch(/PRIMARY KEY \(parent_job_id, visit_date\)/);
+  });
+
+  it("Q415 (a): dates go only to a pending applicant or a Helpr who completed a job for THIS poster", () => {
+    const { file, body } = newestFunction("offer_series_dates");
+    expect(file).toBe("20261002192425_q415a_offer_series_dates_past_helprs.sql");
+    const flat = body.replace(/\s+/g, " ");
+    expect(flat).toContain("WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id AND a.status = 'pending'");
+    expect(flat).toContain("WHERE w.customer_id = v_uid AND w.helper_id = p_helper_id AND w.status::text = 'completed'");
+    expect(flat).toContain("RAISE EXCEPTION 'not_an_applicant'");
   });
 
   it("every client RPC is SECURITY DEFINER, revoked from anon; the internals are revoked from authenticated", () => {

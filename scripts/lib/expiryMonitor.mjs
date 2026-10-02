@@ -218,10 +218,12 @@ function readJwt(read, env, root) {
  * proxy's certificate is reported UNREADABLE rather than mistaken for the
  * site's.
  */
+const TLS_TRUST_CODES = new Set(["SELF_SIGNED_CERT_IN_CHAIN", "DEPTH_ZERO_SELF_SIGNED_CERT", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "UNABLE_TO_GET_ISSUER_CERT_LOCALLY", "CERT_UNTRUSTED", "ERR_TLS_CERT_ALTNAME_INVALID"]);
+
 export function readTls(host, { timeoutMs = 15000, connect = tls.connect } = {}) {
   return new Promise((resolve) => {
     const done = (r) => { try { sock.destroy(); } catch { /* already closed */ } resolve(r); };
-    const sock = connect({ host, port: 443, servername: host, ca: tls.rootCertificates, rejectUnauthorized: false, timeout: timeoutMs }, () => {
+    const sock = connect({ host, port: 443, servername: host, ca: tls.rootCertificates, timeout: timeoutMs }, () => {
       const cert = sock.getPeerCertificate();
       const issuer = cert?.issuer ? [cert.issuer.O, cert.issuer.CN].filter(Boolean).join(" / ") : "unknown issuer";
       if (!sock.authorized) {
@@ -231,7 +233,12 @@ export function readTls(host, { timeoutMs = 15000, connect = tls.connect } = {})
       done({ expiresAt: new Date(cert.valid_to).toISOString(), detail: `issuer ${issuer}; subject ${cert.subject?.CN ?? "?"}` });
     });
     sock.on("timeout", () => done({ expiresAt: null, detail: `unreadable here: TLS handshake timed out after ${timeoutMs} ms` }));
-    sock.on("error", (e) => done({ expiresAt: null, detail: `unreadable here: ${errMsg(e)}` }));
+    // Verification stays ON (code-scanning alert 140): a certificate the public
+    // roots do not trust fails the handshake here instead of being read, and its
+    // error code is kept so a proxy reads differently from a dead host.
+    sock.on("error", (e) => done({ expiresAt: null, detail: TLS_TRUST_CODES.has(e?.code)
+      ? `unreadable here: served certificate not trusted by the public roots (${e.code}) — an intercepting proxy, or a broken chain`
+      : `unreadable here: ${errMsg(e)}` }));
   });
 }
 

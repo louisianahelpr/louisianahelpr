@@ -53,7 +53,10 @@ export function trailerReview(message) {
 export function rejectedTrailerReviewers(message) {
   return [...String(message).matchAll(/^Sensitive-Review:\s*([\w-]+)\s*:/gim)]
     .map((m) => m[1].toLowerCase())
-    .filter((r) => r !== "not-needed" && !REVIEWERS.includes(r));
+    .filter((r) => r !== "not-needed" && !REVIEWERS.includes(r))
+    // fa2ee5424 (2026-10-02): "Sensitive-Review: behaviour-preserving refactor; ..." names no
+    // reviewer at all, so it recorded nothing and the red run gave no reason.
+    .concat([...String(message).matchAll(/^Sensitive-Review:(?!\s*[\w-]+\s*:\s*\S)/gim)].map(() => "(no reviewer named)"));
 }
 
 /** sha -> review from docs/reviews/sensitive-reviews.jsonl (bad lines are reported, not dropped). */

@@ -200,11 +200,14 @@ export function htmlToPlainText(html: string): string {
     .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&#39;/g, "'")
     .replace(/&quot;/g, '"')
+    // `&amp;` LAST: decoded first, `&amp;lt;` (an escaped literal "&lt;")
+    // became "&lt;" and then "<" — two decodes of one entity (CodeQL
+    // js/double-escaping, alert 79).
+    .replace(/&amp;/g, "&")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

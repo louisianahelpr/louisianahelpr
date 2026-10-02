@@ -12,6 +12,7 @@
  * (scripts/scoreboard.mjs), and the guard that every done item names its guard
  * (src/test/queueItemsNameTheirGuard.test.ts). Guard: src/test/openQueueArchive.test.ts.
  */
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -29,9 +30,25 @@ export function archiveFiles(root) {
   return names.filter((n) => ARCHIVE_RE.test(n)).sort().map((n) => `${ARCHIVE_DIR}/${n}`);
 }
 
-/** OPEN.md followed by every archive: the text every queue tool must read. */
-export function queueText(root, read = (p) => readFileSync(join(root, p), "utf8")) {
-  return [read(OPEN), ...archiveFiles(root).map((p) => read(p))].join("\n");
+/** OPEN.md followed by every archive: the text every queue tool must read.
+ * `list` names the archives; gitRefReader() supplies both for a git ref. */
+export function queueText(root, read = (p) => readFileSync(join(root, p), "utf8"), list = () => archiveFiles(root)) {
+  return [read(OPEN), ...list().map((p) => read(p) ?? "")].join("\n");
+}
+
+/**
+ * Read the queue as it is on a git ref (origin/main), not in this working tree.
+ * A checkout on a stale branch printed "111 open" at session start while
+ * origin/main had 182 (2026-10-02): every status line that claims to be "the
+ * queue" reads the ref. Returns { sha, read(path) -> text|null, list() -> archive paths }.
+ */
+export function gitRefReader(repo, ref = "origin/main") {
+  const git = (...a) => execFileSync("git", ["-C", repo, ...a], { encoding: "utf8", maxBuffer: 64 << 20, stdio: ["ignore", "pipe", "ignore"] });
+  const sha = git("rev-parse", "--verify", "-q", `${ref}^{commit}`).trim();
+  const read = (p) => { try { return git("show", `${sha}:${p}`); } catch { return null; } };
+  const list = () => git("ls-tree", "--name-only", sha, `${ARCHIVE_DIR}/`).split("\n").map((l) => l.trim())
+    .filter((l) => ARCHIVE_RE.test(l.slice(ARCHIVE_DIR.length + 1))).sort();
+  return { sha, read, list };
 }
 
 const HEADING = /^#{1,6} /;

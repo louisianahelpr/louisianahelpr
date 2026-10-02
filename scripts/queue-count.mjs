@@ -6,14 +6,23 @@
  * keep current track of numbers." src/test/queueItemsNameTheirGuard.test.ts
  * fails when the stored line and the items disagree.
  *
+ * It also counts UNNUMBERED open lines (`- [ ] ` with no **Q<n>**): on
+ * 2026-10-02 origin/main held 265 of them that no count showed. They are named
+ * in the line and ratcheted by src/test/openUnnumberedRatchet.test.ts.
+ *
  *   node scripts/queue-count.mjs          # print the line
  *   node scripts/queue-count.mjs --write  # rewrite it in docs/OPEN.md
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { queueText } from "./lib/openQueue.mjs";
+import { gitRefReader, queueText } from "./lib/openQueue.mjs";
 
 export const START = "<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->";
 export const END = "<!-- /generated: queue-count -->";
+
+/** Not-done top-level checkbox lines that carry no **Q<n>** number. */
+export function unnumberedLines(md) {
+  return md.split("\n").filter((l) => /^- \[[ ~]\] /.test(l) && !/^- \[[ ~]\] \*\*Q\d+\b/.test(l));
+}
 
 export function queueCounts(md) {
   const ids = new Map();
@@ -24,6 +33,7 @@ export function queueCounts(md) {
     done: states.filter((s) => s === "x").length,
     partial: states.filter((s) => s === "~").length,
     open: states.filter((s) => s === " ").length,
+    unnumbered: unnumberedLines(md).length,
   };
 }
 
@@ -43,8 +53,25 @@ export function nextFreeId(md) {
   return `Q${max + 1}`;
 }
 
+/**
+ * The next number free on BOTH this tree and origin/main. A branch that numbers
+ * from its own base collides with whatever main filed since (Q904/Q905,
+ * Q909-Q914, 2026-09-30..10-01); scripts/open-renumber.mjs repairs any that
+ * still slip through, at land time. Falls back to this tree when the ref is
+ * unreadable.
+ */
+export function nextFreeAcross(root, ref = "origin/main") {
+  let best = Number(nextFreeId(queueText(root)).slice(1));
+  try {
+    const g = gitRefReader(root, ref);
+    best = Math.max(best, Number(nextFreeId(queueText(root, (p) => g.read(p) ?? "", g.list)).slice(1)));
+  } catch { /* no ref: this tree's number */ }
+  return `Q${best}`;
+}
+
 export function countLine(c) {
-  return `**Queue: ${c.total} items — ${c.done} done, ${c.partial} partly done (fixed, protection pending), ${c.open} open.**`;
+  const un = c.unnumbered ?? 0;
+  return `**Queue: ${c.total} items — ${c.done} done, ${c.partial} partly done (fixed, protection pending), ${c.open} open${un ? `; plus ${un} unnumbered open line${un === 1 ? "" : "s"} still to number` : ""}.**`;
 }
 
 export function storedLine(md) {
@@ -65,6 +92,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   console.log(line);
   const dupes = duplicateIds(all);
-  if (dupes.length) { console.error(`DUPLICATE queue numbers: ${dupes.join(", ")} — renumber the later one`); process.exitCode = 1; }
-  console.log(`next free: ${nextFreeId(all)}`);
+  if (dupes.length) { console.error(`DUPLICATE queue numbers: ${dupes.join(", ")} — run node scripts/open-renumber.mjs`); process.exitCode = 1; }
+  console.log(`next free: ${nextFreeAcross(".")} (the higher of this tree and origin/main; git fetch first)`);
 }

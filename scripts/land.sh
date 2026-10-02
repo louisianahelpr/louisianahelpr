@@ -134,6 +134,21 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
       --body "$(printf 'Landed by scripts/land.sh (Q44).\n\n%s\n' "$(git log --format='- %h %s' origin/main..HEAD)")"
   fi
   gh pr merge "$BR" --rebase --auto
+  # Duplicate work (2026-10-02): the same commits re-landed from another
+  # worktree opened a second PR (#2063 and #2070) and both ran the full check
+  # set. Any other open land/** PR whose head is already inside this HEAD is
+  # superseded: close it and delete its branch so its checks stop queueing.
+  # Guard: src/test/landingPath.test.ts.
+  gh pr list --state open --json number,headRefName,headRefOid \
+    --jq '.[] | select(.headRefName | startswith("land/")) | "\(.number) \(.headRefName) \(.headRefOid)"' |
+  while read -r num ref oid; do
+    [ "$ref" = "$BR" ] && continue
+    git cat-file -e "$oid" 2>/dev/null || git fetch -q origin "$ref" 2>/dev/null || continue
+    if git merge-base --is-ancestor "$oid" HEAD 2>/dev/null; then
+      gh pr close "$num" --delete-branch --comment "Superseded by $BR (its commits are already in that head)." &&
+        echo "land: closed superseded PR #$num ($ref)."
+    fi
+  done
   echo "land: $(git rev-parse --short HEAD) is on $BR with auto-merge on."
   if [ "$WAIT" = 0 ]; then
     echo "land: --no-wait; not landed until gh pr view $BR --json state says MERGED."

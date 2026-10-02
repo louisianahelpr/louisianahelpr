@@ -42,7 +42,6 @@ const LEGACY_UNBOUNDED = new Set([
   "auto-release-payment",
   "auto-resolve-disputes",
   "auto-tip-charge",
-  "backfill-job-geocode",
   "charge-recurring-visits",
   "cleanup-abandoned-accounts",
   "cleanup-notifications",

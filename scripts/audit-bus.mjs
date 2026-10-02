@@ -171,6 +171,10 @@ if (cmd === "file") {
     `**${n.open} open findings** · ${n.openBlockers} open launch blockers · ${n.fixed} fixed · ${n.wontfix} wontfix · ${n.obsolete} obsolete · `
       + `${n.retracted} retracted · ${n.duplicate} duplicate · ${n.filed} filed all time`,
     "",
+    // One open list (2026-10-02): this page is a record of findings, not a
+    // second to-do list. Each open finding is worked from its OPEN.md item.
+    "Open work is tracked ONLY in [docs/OPEN.md](../../OPEN.md): each open finding below is the OPEN.md item tagged `feed: bus <ID>` (`grep -n 'feed: bus <ID>' docs/OPEN.md`; guard src/test/openFeedsMirrored.test.ts).",
+    "",
   ];
   for (const sev of SEVERITIES) {
     const bucket = live.filter((f) => f.severity === sev);

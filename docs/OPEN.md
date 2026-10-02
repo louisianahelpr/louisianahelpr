@@ -1296,7 +1296,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### FOLLOW-UP — is_flexible_schedule is IMMUTABLE after posting
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] LOW EditJobDialog.tsx omits is_flexible_schedule from updateData, so a poster who forgets the box must delete and repost — Confirmed still open: EditJobDialog.tsx never writes is_flexible_schedule, so it remains immutable after posting. (archive L7211)
 
 ### FOR THE VISUAL PASS: the unread dot is now the ONLY unread signal, and it is 8px
 Reconciled 2026-09-23; detail in the archive at the line shown.

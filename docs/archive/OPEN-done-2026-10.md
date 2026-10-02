@@ -350,3 +350,5 @@ Owner 2026-10-01: "if it's stale delete it". Reason and evidence first, then the
   Was: [ ] MEDIUM OPEN: RichMessageInput send has a same-frame double-send risk (sync onSend + stale text closure) — RichMessageInput double-send guard (different shape from the fixed apply/release races) still not applied. (archive L3463)
 - REMOVED (merged, 2026-10-02): a caveat, not a task; folded into the "Find what actually paints the two composite contrast failures" line.
   Was: [ ] LOW Do NOT change --muted-foreground/--stormy-sky on strength of this finding — Do NOT change --muted-foreground/--stormy-sky on strength of this finding (archive L5520)
+- REMOVED (done, measured 2026-10-02): src/pages/posts/EditJobDialog.tsx:109 writes is_flexible_schedule: isFlexible; guard src/pages/posts/EditJobDialog.flexibleSchedule.test.tsx 4/4 green, 1 fails under its @mutate.
+  Was: [ ] LOW EditJobDialog.tsx omits is_flexible_schedule from updateData, so a poster who forgets the box must delete and repost — Confirmed still open: EditJobDialog.tsx never writes is_flexible_schedule, so it remains immutable after posting. (archive L7211)

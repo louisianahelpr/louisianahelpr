@@ -197,6 +197,14 @@ describe("checkUnrecordedTransfers destination pagination — LOW-1", () => {
   });
 });
 
+// Proof the pagination guard can fail (OPEN "Transfer-group checks ... cap
+// destination list at 100", 2026-10-02): a page cap that returns what it has
+// instead of refusing clears a check it never finished.
+// @mutate supabase/functions/_shared/payoutClaim.ts | return null; // more pages than the cap | return acc; // more pages than the cap
+// ...and a destination list that drops the metadata.job_id match is blind to
+// a pre-branch untagged transfer (create-payment Quick Release before
+// 20260915034822), so the check fails OPEN.
+// @mutate supabase/functions/_shared/payoutClaim.ts | if (t.metadata?.job_id === args.jobId) byId.set(t.id, t); | if (false) byId.set(t.id, t);
 // Proof this guard can fail: match the orphaned Stripe transfer against this
 // run's GROSS recompute instead of the net the claim recorded, and the canonical
 // orphan stops being adoptable — MEDIUM-1, which paged on every first payout.

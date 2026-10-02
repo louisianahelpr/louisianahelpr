@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 562,
+    "calls": 563,
     "files": 141,
-    "rendering": 541,
+    "rendering": 542,
     "suppressedByPolicy": 21,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 449,
+      "toast.error": 450,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
       "toast.warning": 20
     },
     "copyPiecesByForm": {
-      "literal": 309,
+      "literal": 310,
       "template": 73,
       "dynamic": 220,
       "jsx": 0
@@ -4372,7 +4372,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 271,
+      "line": 269,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4382,11 +4382,21 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 286,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "friendlyAuthError(error.message)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 305,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Too many attempts — try again in ${minutesLeft} min."
       },
       "renders": true
     },
@@ -4395,16 +4405,6 @@
       "line": 307,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Too many attempts — try again in ${minutesLeft} min."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 309,
-      "kind": "toast.error",
-      "title": {
         "form": "dynamic",
         "text": "friendlyAuthError(error.message)"
       },
@@ -4412,7 +4412,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 322,
+      "line": 320,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4422,7 +4422,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 350,
+      "line": 348,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4432,7 +4432,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 384,
+      "line": 382,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5688,7 +5688,17 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 122,
+      "line": 96,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Pick a start time, or mark the schedule as flexible."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/posts/EditJobDialog.tsx",
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

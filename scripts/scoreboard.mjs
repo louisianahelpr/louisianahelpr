@@ -44,7 +44,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { queueCounts } from "./queue-count.mjs";
-import { queueText } from "./lib/openQueue.mjs";
+import { gitRefReader, queueText } from "./lib/openQueue.mjs";
 import { countFindings, foldFindings, parseFindingsLog } from "./lib/auditFindings.mjs";
 import { feedCounts } from "./lib/openFeeds.mjs";
 import { INVENTORY as EXPIRY_INVENTORY, inventoryCounts, runAll as runExpiry, scoreboardRows as expiryScoreboardRows } from "./lib/expiryMonitor.mjs";
@@ -92,12 +92,12 @@ function table(rows) {
 
 const AT_HEAD = "HEAD (diffed every push)";
 
-export function localRows(read = (p) => readFileSync(join(REPO, p), "utf8")) {
+export function localRows(read = (p) => readFileSync(join(REPO, p), "utf8"), list = undefined) {
   const rows = [];
 
-  const q = queueCounts(queueText(REPO, read)); // OPEN.md + done archives (Q16)
+  const q = queueCounts(queueText(REPO, read, list)); // OPEN.md + done archives (Q16)
   rows.push({ group: "open work", signal: "OPEN.md queue (done / partly / open)", status: q.open + q.partial ? "WARN" : "PASS",
-    pass: q.done, fail: q.open, skipped: `${q.partial} partly`, total: q.total, at: AT_HEAD, source: "[docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs",
+    pass: q.done, fail: q.open, skipped: `${q.partial} partly`, total: q.total, unnumbered: q.unnumbered, at: AT_HEAD, source: "[docs/OPEN.md](OPEN.md) · scripts/queue-count.mjs",
     note: `${q.done} done, ${q.partial} partly done (fixed, protection pending), ${q.open} open` });
 
   try {
@@ -921,11 +921,15 @@ export function renderOpenBlock(local, liveBlock, openText = "") {
   // nightly-red issues and the audit bus are FEEDS mirrored into this queue by
   // scripts/open-sync-trackers.mjs; they appear only as where items came from.
   const partly = Number.parseInt(q.skipped, 10) || 0;
+  // Unnumbered `- [ ]` lines are open work too; they were counted nowhere
+  // (265 on 2026-10-02). Ratchet: src/test/openUnnumberedRatchet.test.ts.
+  const un = q.unnumbered ?? 0;
+  const unText = un ? ` Plus ${un} unnumbered open line${un === 1 ? "" : "s"} not yet given a Q number.` : "";
   return `${EO_START}
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: ${q.fail + partly}** (${q.fail} to do, ${partly} fixed with protection pending; ${q.pass} done). Feeds mirrored in: ${f.ledger} from the alert ledger, ${f.issue} from nightly-red issues, ${f.bus} from the audit bus (\`node scripts/open-sync-trackers.mjs\`).
+- **Open: ${q.fail + partly}** (${q.fail} to do, ${partly} fixed with protection pending; ${q.pass} done).${unText} Feeds mirrored in: ${f.ledger} from the alert ledger, ${f.issue} from nightly-red issues, ${f.bus} from the audit bus (\`node scripts/open-sync-trackers.mjs\`).
 ${LIVE_START}
 ${(liveBlock ?? "- **Live (workflows, branches): never measured** — run `node scripts/scoreboard.mjs --write`.").split("\n").filter((l) => !/^- \*\*(Ops alert ledger|nightly-red issues):/.test(l)).join("\n")}
 ${LIVE_END}
@@ -1006,37 +1010,60 @@ export function liveAgeHours(sb, now = new Date()) {
 
 function readRepo(p) { return existsSync(join(REPO, p)) ? readFileSync(join(REPO, p), "utf8") : null; }
 
+/**
+ * Session start: fast, never fails. The queue is exact at what `read` reads
+ * (origin/main from the hook); the feeds are counted from their mirrored
+ * OPEN.md items, and a source not yet mirrored is named. Workflows and
+ * branches come from the committed block with their stamp.
+ */
+async function printOpenBlock(local, read) {
+  const openText = read(OPEN) ?? "";
+  const old = (committedLive(between(openText, EO_START, EO_END) ?? "") ?? "").split("\n");
+  const live = [
+    old.find((l) => l.startsWith("- **Workflows on main:**")) ?? "- **Workflows on main:** not measured yet.",
+    old.find((l) => l.startsWith("- **Remote branches:**")) ?? "- **Remote branches:** not measured yet.",
+  ].join("\n");
+  console.log(renderOpenBlock(local, live, openText).split("\n").filter((l) => !l.startsWith("<!--")).join("\n"));
+  try {
+    const { SNAPSHOT, FINDINGS: BUS, busSources, mirrorProblems } = await import("./lib/openFeeds.mjs");
+    const snap = JSON.parse(read(SNAPSHOT) ?? "{}");
+    const keys = [
+      ...(snap.issues?.open ?? []).map((i) => `issue #${i.number}`),
+      ...(snap.ledger?.open ?? []).map((r) => `ledger ${r.fingerprint.slice(0, 12)}`),
+      ...busSources(read(BUS) ?? "").flatMap((g) => g.keys),
+    ];
+    const { missing, doubled } = mirrorProblems(keys, openText);
+    if (missing.length) console.log(`- ${missing.length} feed source(s) not yet in OPEN.md: ${missing.slice(0, 5).join(", ")} — run \`node scripts/open-sync-trackers.mjs\`.`);
+    if (doubled.length) console.log(`- ${doubled.length} feed source(s) on more than one item: ${doubled.slice(0, 5).join("; ")}.`);
+  } catch { /* src/test/openFeedsMirrored.test.ts still catches it */ }
+}
+
 async function main() {
   const argv = process.argv.slice(2);
-  const local = localRows();
 
   if (argv.includes("--open-block")) {
-    // Session start: fast, capped, never fails. Local rows are exact; the two
-    // cheap live trackers are re-measured with short timeouts; the slow ones
-    // (every workflow, branches) come from the committed block with their stamp.
-    // Session start: fast, never fails. The queue is exact at this tree; the
-    // feeds are counted from their mirrored OPEN.md items, and a source not yet
-    // mirrored is named. Workflows and branches come from the committed block.
-    const openText = readRepo(OPEN) ?? "";
-    const old = (committedLive(between(openText, EO_START, EO_END) ?? "") ?? "").split("\n");
-    const live = [
-      old.find((l) => l.startsWith("- **Workflows on main:**")) ?? "- **Workflows on main:** not measured yet.",
-      old.find((l) => l.startsWith("- **Remote branches:**")) ?? "- **Remote branches:** not measured yet.",
-    ].join("\n");
-    console.log(renderOpenBlock(local, live, openText).split("\n").filter((l) => !l.startsWith("<!--")).join("\n"));
-    try {
-      const { SNAPSHOT, FINDINGS: BUS, busSources, mirrorProblems } = await import("./lib/openFeeds.mjs");
-      const snap = JSON.parse(readRepo(SNAPSHOT) ?? "{}");
-      const keys = [
-        ...(snap.issues?.open ?? []).map((i) => `issue #${i.number}`),
-        ...(snap.ledger?.open ?? []).map((r) => `ledger ${r.fingerprint.slice(0, 12)}`),
-        ...busSources(readRepo(BUS) ?? "").flatMap((g) => g.keys),
-      ];
-      const { missing } = mirrorProblems(keys, openText);
-      if (missing.length) console.log(`- ${missing.length} feed source(s) not yet in OPEN.md: ${missing.slice(0, 5).join(", ")} — run \`node scripts/open-sync-trackers.mjs\`.`);
-    } catch { /* src/test/openFeedsMirrored.test.ts still catches it */ }
+    // --ref <ref> [--repo <dir>]: read the queue, feeds snapshot and bus from
+    // that git ref, not this working tree. The session-start hook passes
+    // origin/main: a checkout on a stale branch printed "111 open" while main
+    // had 182 (2026-10-02). Guard: src/test/openBlockReadsRef.test.ts.
+    const opt = (n) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : undefined; };
+    let readOpen = readRepo, local, readFrom = "this working tree";
+    if (opt("ref")) {
+      try {
+        const g = gitRefReader(resolve(opt("repo") ?? REPO), opt("ref"));
+        readOpen = g.read;
+        local = localRows((p) => g.read(p) ?? "", g.list);
+        readFrom = `${opt("ref")} ${g.sha.slice(0, 9)}`;
+      } catch (e) {
+        readFrom = `this working tree (${opt("ref")} unreadable: ${String(e.message).split("\n")[0]})`;
+      }
+    }
+    local ??= localRows();
+    console.log(`(read from ${readFrom})`);
+    await printOpenBlock(local, readOpen);
     return;
   }
+  const local = localRows();
 
   const sbPath = join(REPO, SCOREBOARD), openPath = join(REPO, OPEN);
   const sbText = readRepo(SCOREBOARD), openText = readRepo(OPEN);

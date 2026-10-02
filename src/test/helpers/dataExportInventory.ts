@@ -99,6 +99,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   instant_payouts: { by: ["helper_id"] },
   payout_transfers: { by: ["helper_id"] },
   crew_cancellation_fee_shares: { by: ["helper_id"] },
+  cancellation_fee_transfers: { by: ["helper_id"] },
   payment_refunds: { by: ["customer_id"] },
   chargeback_clawbacks: { by: ["helper_id"] },
   tips: { by: ["tipper_id", "helper_id"] },

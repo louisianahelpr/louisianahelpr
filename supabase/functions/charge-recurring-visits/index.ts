@@ -138,26 +138,50 @@ function addDays(ymd: string, n: number): string {
 }
 
 /**
- * Stripe customer records scanned per poster, and how many card lookups run at
- * once.
+ * The card this series may be charged on, read off the series' own checkout
+ * (Q734). See the "Charge, then create" block in the run loop.
  *
- * One email can own many customer records (Stripe does not treat the address as
- * a key and this app resolves by email at every entry point), and only one of
- * them holds the card — so the scan below has to be able to reach the far end
- * of the list. But the lookups are network calls inside a loop that already
- * runs up to MAX_CHARGES_PER_RUN times, and a hundred SEQUENTIAL round-trips is
- * how a run walks into the platform's wall-clock limit. A killed invocation
- * answers nothing at all: no status, no `defects`, nothing for the sweep to
- * page on — the one failure shape this file exists to eliminate.
- *
- * So they go out in parallel batches instead: ten at a time, stopping at the
- * first batch containing a card. Worst case is 10 round-trips of latency
- * instead of 100, the batch size keeps it well clear of Stripe's rate limit,
- * and the winner is still the first record IN LIST ORDER, so the choice stays
- * deterministic.
+ * - `card`: the checkout saved a card for off-session use. Stripe recorded the
+ *   customer and the payment method on the PaymentIntent itself, so these are
+ *   the card the poster authorised for THIS series, not a card found by email.
+ * - `none`: there is no card the series may use (no checkout PaymentIntent, as
+ *   when a gift card paid the whole first visit; or a checkout that did not ask
+ *   to keep the card, as the gift-card difference checkout does; or Stripe
+ *   says the PaymentIntent does not exist). The poster is told; nothing is
+ *   charged.
+ * - `unknown`: Stripe did not answer. Never treated as "no card" (that would
+ *   email the poster about a problem that is ours) and never as a card.
  */
-const MAX_CUSTOMER_RECORDS = 100;
-const CUSTOMER_LOOKUP_BATCH = 10;
+type SeriesCard =
+  | { kind: "card"; customerId: string; paymentMethodId: string }
+  | { kind: "none"; reason: string }
+  | { kind: "unknown"; message: string };
+
+async function seriesCard(stripe: Stripe, paymentIntentId: string | null): Promise<SeriesCard> {
+  if (!paymentIntentId) return { kind: "none", reason: "no checkout payment on the series" };
+  let pi: Stripe.PaymentIntent;
+  try {
+    pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+  } catch (e) {
+    // Only Stripe's "no such PaymentIntent" is an answer about the poster's
+    // card. Any other invalid request (a key-mode mismatch, a bad parameter)
+    // is our error and must not email the poster a card problem.
+    const err = e as { type?: unknown; code?: unknown } | null | undefined;
+    if (err?.type === "StripeInvalidRequestError" && err?.code === "resource_missing") {
+      return { kind: "none", reason: `checkout payment ${paymentIntentId} not found` };
+    }
+    return { kind: "unknown", message: e instanceof Error ? e.message : String(e) };
+  }
+  if (pi.setup_future_usage !== "off_session") {
+    return { kind: "none", reason: `checkout payment ${paymentIntentId} did not save the card` };
+  }
+  const customerId = typeof pi.customer === "string" ? pi.customer : pi.customer?.id;
+  const paymentMethodId = typeof pi.payment_method === "string" ? pi.payment_method : pi.payment_method?.id;
+  if (!customerId || !paymentMethodId) {
+    return { kind: "none", reason: `checkout payment ${paymentIntentId} has no saved customer card` };
+  }
+  return { kind: "card", customerId, paymentMethodId };
+}
 
 /** Attempts per visit charge. See `attemptVisitCharge`. */
 const CHARGE_ATTEMPTS = 2;
@@ -400,7 +424,7 @@ serve(async (req) => {
     const q = supabase
       .from("jobs")
       .select(
-        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status",
+        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id",
         countOpt,
       )
       // Offset paging over an unordered result is sampling, not paging.
@@ -1080,61 +1104,43 @@ serve(async (req) => {
 
         // ── Charge, then create ────────────────────────────────────────────
         //
-        // ONE EMAIL, MANY STRIPE CUSTOMERS. Stripe does not treat the email as
-        // a key: every checkout that did not explicitly reuse an existing
-        // customer mints a new record, and this app resolves the customer by
-        // email at every entry point rather than storing a
-        // `stripe_customer_id`. So a poster who has checked out more than once
-        // routinely holds several customer records on one address, and only
-        // one of them carries the saved card.
+        // THE SERIES' OWN CARD, NOTHING ELSE (Q734, money audit 2026-09-25
+        // MEDIUM-8). This used to scan every Stripe customer record on the
+        // poster's EMAIL and charge the first card it found. One email owns
+        // many customer records, so that card could be one the poster saved
+        // for something else entirely, never authorised for this series; and a
+        // series whose first visit a gift card funded (no saved card at all)
+        // was charged on whatever card the scan turned up.
         //
-        // `customers.list({ limit: 1 })` picked ONE of those records with no
-        // selection at all (the list is newest-first, so it favoured the most
-        // recent — very often the empty one). When that record had no card the
-        // run reported `no_saved_card`, told the poster their payment had a
-        // problem, and did not create the visit — for a poster whose card was
-        // saved and fine, on another record, all along. The same bug in
-        // `pro-customer-portal` meant a paying member could not reach the
-        // billing portal to cancel.
-        //
-        // So: scan the records and pick the one that actually HOLDS a card.
-        // With a single customer record — the common case — this is byte-for-
-        // byte the old behaviour: the same card on the same customer, or the
-        // same `no_saved_card` decline. It only differs where the old code was
-        // wrong.
+        // The authority to charge off-session comes from ONE checkout: the
+        // series' own, which create-payment opens with `setup_future_usage:
+        // "off_session"` for every series (useJobSubmit forces the flag when
+        // isRecurring). Its PaymentIntent is on the parent row
+        // (`stripe_payment_intent_id`, server-owned: the webhook writes it),
+        // and Stripe records on it the exact customer and card it saved. So
+        // the charge uses that customer and that card, and nothing else. A
+        // series whose checkout saved no card (a gift-card checkout never sets
+        // setup_future_usage) gets the poster told, and no charge: they can pay
+        // the visit on-session from the app (Q210(b)), which books it below.
         // Q210(b): a paid row already holds the money; no card is looked up.
-        const customers = paidRow ? { data: [] as Array<{ id: string }> } : await stripe.customers.list({
-          email: posterProfile.email as string,
-          limit: MAX_CUSTOMER_RECORDS,
-        });
         let customerId: string | undefined;
         let paymentMethodId: string | undefined;
-        // Batched, not one-at-a-time — see MAX_CUSTOMER_RECORDS. The winner is
-        // still the first record in list order, so this is only faster, never
-        // a different card.
-        for (let i = 0; i < customers.data.length && !customerId; i += CUSTOMER_LOOKUP_BATCH) {
-          const batch = customers.data.slice(i, i + CUSTOMER_LOOKUP_BATCH);
-          const cards: Array<string | undefined> = await Promise.all(
-            batch.map(async (candidate: { id: string }) => {
-              const methods = await stripe.paymentMethods.list({
-                customer: candidate.id,
-                type: "card",
-                limit: 1,
-              });
-              return methods.data[0]?.id as string | undefined;
-            }),
-          );
-          const hit = cards.findIndex((id: string | undefined) => !!id);
-          if (hit >= 0) {
-            customerId = batch[hit].id;
-            paymentMethodId = cards[hit];
+        if (!paidRow) {
+          const card = await seriesCard(stripe, parent.stripe_payment_intent_id as string | null);
+          if (card.kind === "unknown") {
+            // Stripe did not answer. Not the poster's problem and not a
+            // decline: tomorrow's run asks again while the window is open.
+            fail(`series ${parent.id} ${visitDate}: could not read the series' saved card (${card.message})`);
+            continue;
           }
-        }
-
-        if (!paidRow && (!customerId || !paymentMethodId)) {
-          (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "no_saved_card")).forEach(fail);
-          results.declined++;
-          continue;
+          if (card.kind === "none") {
+            console.warn(`[charge-recurring-visits] series ${parent.id} has no saved card: ${card.reason}`);
+            (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "no_saved_card")).forEach(fail);
+            results.declined++;
+            continue;
+          }
+          customerId = card.customerId;
+          paymentMethodId = card.paymentMethodId;
         }
 
         // ── Re-read right before the charge (money audit LOW-10) ──────────

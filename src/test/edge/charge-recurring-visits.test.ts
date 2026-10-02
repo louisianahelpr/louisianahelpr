@@ -38,8 +38,9 @@
  *
  * Plus the arbitrary-Stripe-customer bug two sibling lanes found elsewhere:
  * `customers.list({ limit: 1 })` picked one of a poster's several customer
- * records with no selection at all, so a poster whose card was saved on another
- * record got "we couldn't charge you" and no visit.
+ * records with no selection at all. Q734 removed the email lookup altogether:
+ * the card is the one the series' own checkout saved, read off its
+ * PaymentIntent, or none (and the poster is told).
  *
  * Runs the REAL function source through the edge harness — no reimplementation.
  *
@@ -141,6 +142,27 @@ const HOLD_ID = "hold-1";
 /** `recurring-visit:<series>:<date>:<claim>` — the key whose reach is 24h, not 3 days. */
 const CHARGE_KEY = `recurring-visit:${PARENT_ID}:${VISIT_DATE}:${HOLD_ID}`;
 
+/**
+ * The series' own checkout PaymentIntent (Q734): the one place the run may take
+ * the card from. `jobs.stripe_payment_intent_id` on the parent.
+ */
+const SERIES_PI = "pi_series_checkout";
+/** What Stripe says about SERIES_PI: a checkout that saved the card off-session. */
+function seriesCheckoutIntent(overrides: Record<string, unknown> = {}) {
+  return {
+    id: SERIES_PI,
+    status: "succeeded",
+    setup_future_usage: "off_session",
+    customer: "cus_1",
+    payment_method: "pm_1",
+    ...overrides,
+  };
+}
+/** `paymentIntents.retrieve` for SERIES_PI. */
+const seriesPiRetrieve = vi.fn();
+/** `paymentIntents.retrieve` for every other intent (the refund paths). */
+const otherPiRetrieve = vi.fn();
+
 /** A series parent that has exactly one due visit inside the window. */
 function seriesParent(overrides: Record<string, unknown> = {}) {
   return {
@@ -175,6 +197,7 @@ function seriesParent(overrides: Record<string, unknown> = {}) {
     // when it IS this person (Q356).
     helper_id: HELPER_ID,
     status: "accepted",
+    stripe_payment_intent_id: SERIES_PI,
     ...overrides,
   };
 }
@@ -245,8 +268,12 @@ function seedHappyPath() {
   // Poster and standing helper are not blocked (Q347).
   scenario.rpc.are_users_blocked = false;
 
-  stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }] });
-  stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_1" }] });
+  seriesPiRetrieve.mockReset();
+  otherPiRetrieve.mockReset();
+  seriesPiRetrieve.mockResolvedValue(seriesCheckoutIntent());
+  stripeMock.paymentIntents.retrieve.mockImplementation((id: string, ...rest: unknown[]) =>
+    id === SERIES_PI ? seriesPiRetrieve(id, ...rest) : otherPiRetrieve(id, ...rest),
+  );
   stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_day1", status: "succeeded" });
   stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
 }
@@ -472,7 +499,7 @@ describe("charge-recurring-visits edge function", () => {
     };
 
     // Q415 (e): withheld is the fee Stripe actually kept on this charge.
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+    otherPiRetrieve.mockResolvedValue({
       id: "pi_day1", amount: 10000, amount_received: 10000,
       latest_charge: { balance_transaction: { fee: 320 } },
     });
@@ -506,7 +533,7 @@ describe("charge-recurring-visits edge function", () => {
       code: "23514",
     };
     scenario.writeErrors.notifications = { message: "permission denied", code: "42501" };
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+    otherPiRetrieve.mockResolvedValue({
       id: "pi_day1", amount: 10000, amount_received: 10000,
       latest_charge: { balance_transaction: { fee: 320 } },
     });
@@ -526,7 +553,7 @@ describe("charge-recurring-visits edge function", () => {
       message: `series_date_unheld: ${PARENT_ID} on ${VISIT_DATE} is not held by this Helpr`,
       code: "23514",
     };
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+    otherPiRetrieve.mockResolvedValue({
       id: "pi_day1", amount: 30, amount_received: 30,
       latest_charge: { balance_transaction: { fee: 30 } },
     });
@@ -547,7 +574,7 @@ describe("charge-recurring-visits edge function", () => {
       message: `series_date_unheld: ${PARENT_ID} on ${VISIT_DATE} is not held by this Helpr`,
       code: "23514",
     };
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+    otherPiRetrieve.mockResolvedValue({
       id: "pi_day1", amount: 10000, amount_received: 10000,
       latest_charge: { balance_transaction: { fee: 320 } },
     });
@@ -911,63 +938,106 @@ describe("charge-recurring-visits edge function", () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Finding 5 — one email, many Stripe customers
+  // Finding 5 / Q734 — the series' own card, never a card found by email
   // ═══════════════════════════════════════════════════════════════════════
 
-  it("charges the customer record that actually holds the saved card, not an arbitrary one", async () => {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (pi.setup_future_usage !== "off_session") { |   if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (!paymentIntentId) return { kind: "none", reason: "no checkout payment on the series" }; |   if (!paymentIntentId) return { kind: "card", customerId: "cus_1", paymentMethodId: "pm_1" };
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           customerId = card.customerId; |           customerId = "cus_1";
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           paymentMethodId = card.paymentMethodId; |           paymentMethodId = "pm_1";
+  it("charges the card the series' own checkout saved, never a card found on the poster's email (Q734)", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
-    // Stripe returns newest-first, and a poster who has checked out more than
-    // once holds several records on one email. Only the last has the card.
-    stripeMock.customers.list.mockResolvedValue({
-      data: [{ id: "cus_empty_new" }, { id: "cus_empty_old" }, { id: "cus_has_card" }],
-    });
-    stripeMock.paymentMethods.list.mockImplementation(
-      async ({ customer }: { customer: string }) =>
-        customer === "cus_has_card" ? { data: [{ id: "pm_real" }] } : { data: [] },
-    );
+    // One email, several customer records, a card on each: the old scan took
+    // the first record with any card. The series' checkout saved pm_series on
+    // cus_series, and that is the only card this poster authorised for it.
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_other" }, { id: "cus_series" }] });
+    stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_other" }] });
+    seriesPiRetrieve.mockResolvedValue(seriesCheckoutIntent({ customer: "cus_series", payment_method: "pm_series" }));
 
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
 
-    // The old `limit: 1` took `cus_empty_new` and declined a poster whose card
-    // was on file all along — the same bug that stopped a paying member
-    // cancelling in `pro-customer-portal`.
     expect(b.funded).toBe(1);
-    expect(b.declined).toBe(0);
+    expect(seriesPiRetrieve).toHaveBeenCalledWith(SERIES_PI);
     const charge = stripeMock.paymentIntents.create.mock.calls[0][0];
-    expect(charge.customer).toBe("cus_has_card");
-    expect(charge.payment_method).toBe("pm_real");
-    // Every record has to be reachable for the scan to mean anything.
-    expect(stripeMock.customers.list).toHaveBeenCalledWith(
-      expect.objectContaining({ limit: 100 }),
-    );
+    expect(charge.customer).toBe("cus_series");
+    expect(charge.payment_method).toBe("pm_series");
+    expect(stripeMock.customers.list).not.toHaveBeenCalled();
+    expect(stripeMock.paymentMethods.list).not.toHaveBeenCalled();
   });
 
-  it("still declines — and tells BOTH parties — when no customer record holds a card", async () => {
-    const fn = await loadConfigured();
-    seedHappyPath();
-    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }, { id: "cus_2" }] });
-    stripeMock.paymentMethods.list.mockResolvedValue({ data: [] });
+  it("a series with no saved card (gift-card checkout) is never charged: both parties are told (Q734)", async () => {
+    for (const variant of ["no checkout payment", "checkout did not save the card", "intent not found"] as const) {
+      resetStripeMock();
+      resetSupabaseMock();
+      resetSharedMocks();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      // A card IS on file under the poster's email; it was never authorised
+      // for this series, so it must not be charged.
+      stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_1" }] });
+      stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_1" }] });
+      if (variant === "no checkout payment") {
+        wireJobsReads({ series: { rows: [seriesParent({ stripe_payment_intent_id: null })] } });
+      } else if (variant === "checkout did not save the card") {
+        // The gift-card difference checkout: paid, but no setup_future_usage.
+        seriesPiRetrieve.mockResolvedValue(seriesCheckoutIntent({ setup_future_usage: null }));
+      } else {
+        seriesPiRetrieve.mockRejectedValue(
+          Object.assign(new Error("No such payment_intent"), { type: "StripeInvalidRequestError", code: "resource_missing" }),
+        );
+      }
 
-    const res = await runOn(fn, "2026-09-01");
-    const b = await body(res);
+      const res = await runOn(fn, "2026-09-01");
+      const b = await body(res);
 
-    expect(b.declined).toBe(1);
-    expect(b.funded).toBe(0);
-    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(b.declined, variant).toBe(1);
+      expect(b.funded, variant).toBe(0);
+      expect(stripeMock.paymentIntents.create, variant).not.toHaveBeenCalled();
+      const notified = scenario.writes
+        .filter((w) => w.table === "notifications" && w.op === "insert")
+        .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]))
+        .map((p) => (p as { user_id: string }).user_id);
+      expect(notified, variant).toContain(POSTER_ID);
+      expect(notified, variant).toContain(HELPER_ID);
+      // No card is an OUTCOME, not a defect: it must never page.
+      expect(res.status, variant).toBe(200);
+      expect(b.ok, variant).toBe(true);
+    }
+  });
 
-    // The helper is the one who has to physically GO somewhere.
-    const notified = scenario.writes
-      .filter((w) => w.table === "notifications" && w.op === "insert")
-      .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]))
-      .map((p) => (p as { user_id: string }).user_id);
-    expect(notified).toContain(POSTER_ID);
-    expect(notified).toContain(HELPER_ID);
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (card.kind === "unknown") { |         if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (err?.type === "StripeInvalidRequestError" && err?.code === "resource_missing") { | if (true) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | if (err?.type === "StripeInvalidRequestError" && err?.code === "resource_missing") { | if (err?.type === "StripeInvalidRequestError") {
+  it("Stripe not answering about the series' card is a defect, never a charge and never a 'no card' email (Q734)", async () => {
+    // The second case: Stripe rejected OUR request for a reason other than
+    // "no such PaymentIntent" (e.g. a test-mode PI read with the live key).
+    // That is our error, not the poster's card.
+    const failures = [
+      new Error("socket hang up"),
+      Object.assign(new Error("No such payment_intent; a similar object exists in test mode"), {
+        type: "StripeInvalidRequestError",
+        code: "resource_missing_other_mode",
+      }),
+    ];
+    for (const failure of failures) {
+      resetStripeMock();
+      resetSupabaseMock();
+      resetSharedMocks();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      seriesPiRetrieve.mockRejectedValue(failure);
 
-    // A declined card is an OUTCOME, not a defect: it must never page.
-    expect(res.status).toBe(200);
-    expect(b.ok).toBe(true);
+      const res = await runOn(fn, "2026-09-01");
+      const b = await body(res);
+
+      expect(stripeMock.paymentIntents.create, failure.message).not.toHaveBeenCalled();
+      expect(b.declined, failure.message).toBe(0);
+      expect(res.status, failure.message).toBe(500);
+      expect(reasons(b), failure.message).toContain("could not read the series' saved card");
+      expect(scenario.writes.filter((w) => w.table === "notifications"), failure.message).toHaveLength(0);
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -1061,7 +1131,7 @@ describe("charge-recurring-visits edge function", () => {
   it("records a defect when the poster/helper decline notice itself fails to write", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
-    stripeMock.paymentMethods.list.mockResolvedValue({ data: [] });
+    seriesPiRetrieve.mockResolvedValue(seriesCheckoutIntent({ setup_future_usage: null }));
     scenario.writeErrors.notifications = { message: "permission denied", code: "42501" };
 
     const res = await runOn(fn, "2026-09-01");
@@ -1282,7 +1352,7 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.errors).toBe(0);
     expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
     // Skipped before any work for the series, not caught by the pre-charge re-read.
-    expect(stripeMock.customers.list).not.toHaveBeenCalled();
+    expect(seriesPiRetrieve).not.toHaveBeenCalled();
     expect(insertedVisits()).toHaveLength(0);
   });
 
@@ -1297,7 +1367,7 @@ describe("charge-recurring-visits edge function", () => {
     // Q415 (e): the fee read fails, so the card-rate estimate on the intent in
     // hand is withheld (2.9% + 30c of $100 = $3.20), never a full refund.
     stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_day1", status: "succeeded", amount: 10000 });
-    stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("network"));
+    otherPiRetrieve.mockRejectedValue(new Error("network"));
 
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
@@ -1568,7 +1638,7 @@ describe("charge-recurring-visits edge function", () => {
     seedHappyPath();
     wireJobsReads({ series: { rows: [] } });
     wireVisitPayments({ sweep: { rows: [orphan] } });
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(taggedIntent);
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_hand", status: "succeeded", amount: 9680 }] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1585,7 +1655,7 @@ describe("charge-recurring-visits edge function", () => {
     wireJobsReads({ series: { rows: [] } });
     wireVisitPayments({ sweep: { rows: [orphan] } });
     scenario.writeSelectRows.notifications = [{ id: "n1" }];
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(taggedIntent);
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1608,7 +1678,7 @@ describe("charge-recurring-visits edge function", () => {
     wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
     wireVisitPayments({ sweep: { rows: [orphan] } });
     scenario.writeSelectRows.notifications = [{ id: "n1" }];
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1627,7 +1697,7 @@ describe("charge-recurring-visits edge function", () => {
     wireHolds([]);
     wireVisitPayments({ sweep: { rows: [orphan] } });
     scenario.writeSelectRows.notifications = [{ id: "n1" }];
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1644,7 +1714,7 @@ describe("charge-recurring-visits edge function", () => {
     wireHolds([{ id: "hold-other", visit_date: "2026-09-01", helper_id: "helper-2" }]);
     wireVisitPayments({ sweep: { rows: [{ ...orphan, helper_id: HELPER_ID }] } });
     scenario.writeSelectRows.notifications = [{ id: "n1" }];
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1661,7 +1731,7 @@ describe("charge-recurring-visits edge function", () => {
     wireHolds([{ id: "hold-same", visit_date: "2026-09-01", helper_id: HELPER_ID }]);
     wireVisitPayments({ sweep: { rows: [{ ...orphan, helper_id: HELPER_ID }] } });
     scenario.writeSelectRows.notifications = [{ id: "n1" }];
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1678,7 +1748,7 @@ describe("charge-recurring-visits edge function", () => {
     wireJobsReads({ series: { rows: [] } });
     wireHolds({ error: { message: "boom", code: "XX000" } });
     wireVisitPayments({ sweep: { rows: [orphan] } });
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(untaggedIntent);
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1693,7 +1763,7 @@ describe("charge-recurring-visits edge function", () => {
     seedHappyPath();
     wireJobsReads({ series: { rows: [] } });
     wireVisitPayments({ sweep: { rows: [orphan] } });
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(taggedIntent);
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
     stripeMock.refunds.list.mockResolvedValue({ data: [] });
     stripeMock.refunds.create.mockRejectedValue(new Error("card_declined"));
 
@@ -1714,7 +1784,7 @@ describe("charge-recurring-visits edge function", () => {
     seedHappyPath();
     wireJobsReads({ series: { rows: [] } });
     wireVisitPayments({ sweep: { rows: [orphan] } });
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({ ...taggedIntent, metadata: {} });
+    otherPiRetrieve.mockResolvedValue({ ...taggedIntent, metadata: {} });
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_hand", status: "succeeded", amount: 9680 }] });
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1730,7 +1800,7 @@ describe("charge-recurring-visits edge function", () => {
     seedHappyPath();
     wireJobsReads({ series: { rows: [] } });
     wireVisitPayments({ sweep: { rows: [orphan] } });
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(taggedIntent);
+    otherPiRetrieve.mockResolvedValue(taggedIntent);
     stripeMock.refunds.list.mockRejectedValue(new Error("stripe down"));
 
     const b = await body(await runOn(fn, "2026-09-01"));
@@ -1763,7 +1833,7 @@ describe("charge-recurring-visits edge function", () => {
     seedHappyPath();
     wireJobsReads({ series: { rows: [] } });
     wireVisitPayments({ sweep: { rows: [orphan] } });
-    stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("network"));
+    otherPiRetrieve.mockRejectedValue(new Error("network"));
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
@@ -1827,7 +1897,7 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     paidOnSession();
-    stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("network"));
+    otherPiRetrieve.mockRejectedValue(new Error("network"));
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
@@ -1852,7 +1922,7 @@ describe("charge-recurring-visits edge function", () => {
         }],
       },
     });
-    stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("network"));
+    otherPiRetrieve.mockRejectedValue(new Error("network"));
 
     const b = await body(await runOn(fn, "2026-09-01"));
 
@@ -1865,7 +1935,7 @@ describe("charge-recurring-visits edge function", () => {
     const fn = await loadConfigured();
     seedHappyPath();
     paidOnSession();
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+    otherPiRetrieve.mockResolvedValue({
       id: "pi_onsession", amount: 31500, amount_received: 31500,
       latest_charge: { balance_transaction: { fee: 944 } },
     });

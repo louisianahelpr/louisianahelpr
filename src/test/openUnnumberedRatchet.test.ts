@@ -24,8 +24,8 @@ import { queueCounts, unnumberedLines } from "../../scripts/queue-count.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 
-/** Unnumbered open lines in docs/OPEN.md + archives, measured on origin/main 672ffe2e7 (2026-10-02). */
-const UNNUMBERED_OPEN_LINES = 255;
+/** Unnumbered open lines in docs/OPEN.md + archives, measured 2026-10-02 after the 34-line triage archive. */
+const UNNUMBERED_OPEN_LINES = 221;
 
 describe("open lines carry a Q number", () => {
   const md = queueText(ROOT) as string;

@@ -1307,7 +1307,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### NEW — user-facing: Not Now on push prompt tells user notifications are off
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] pushPermissionNudge.ts treats dismissed dialog as browser-denied, misinforming any user who ever blocked notifications — Still open per doc: 'Not Now' on the push prompt incorrectly claims notifications are off. (archive L6722)
+- [x] **DONE 2026-10-02:** 'Not Now' in our own push rationale no longer toasts "Notifications are off" when the browser/OS was already denied. Root cause was the signal, not the predicate: useRequestPushPermission returned a bare boolean, so NotificationPanel.enablePush could not tell a dismissal from a refusal. New useRequestPushPermissionOutcome (src/lib/nativePush.ts) returns granted | refused | dismissed (dismissed = the rationale callback never ran); the panel toasts only on refused. press-every-control no longer excuses that toast after Not Now (it now fails the press). Layers read: client hook, rationale hook, panel caller, press harness; no server layer. GUARD: src/lib/nativePush.requestOutcome.test.ts (2 @mutate) + src/test/pressPermissionRefusal.test.ts (new @mutate on the Not Now line). Was: pushPermissionNudge.ts treats dismissed dialog as browser-denied, misinforming any user who ever blocked notifications — 'Not Now' on the push prompt incorrectly claims notifications are off. (archive L6722)
 
 ### NEW — prod profile load really is over budget
 Reconciled 2026-09-23; detail in the archive at the line shown.

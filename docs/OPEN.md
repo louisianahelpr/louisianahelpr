@@ -1105,8 +1105,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Two AA contrast failures from the overlay sweep
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] MEDIUM Find what actually paints the two composite contrast failures (#83837c, #b95e35) — Find what actually paints the two composite contrast failures (#83837c, #b95e35) (archive L5518)
-- [ ] LOW Do NOT change --muted-foreground/--stormy-sky on strength of this finding — Do NOT change --muted-foreground/--stormy-sky on strength of this finding (archive L5520)
+- [ ] MEDIUM Find what actually paints the two composite contrast failures (#83837c, #b95e35) — Find what actually paints the two composite contrast failures (#83837c, #b95e35) (archive L5518). Caveat (merged from archive L5520): do NOT change --muted-foreground/--stormy-sky on the strength of this finding alone.
 
 ### Route catalog overstates coverage (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.

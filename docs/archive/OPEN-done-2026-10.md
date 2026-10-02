@@ -348,3 +348,5 @@ Owner 2026-10-01: "if it's stale delete it". Reason and evidence first, then the
   Was: - [ ] MEDIUM OWNER: delete 3 stale Sentry alert rules — Open (owner): cannot confirm the 3 Sentry alert rules were deleted. (archive L3135)
 - REMOVED (done, measured 2026-10-02): guard is src/components/RichMessageInput.tsx sendingRef latch (L294-326); src/components/RichMessageInput.doubleSend.test.tsx 4/4 green, and 2 fail with the guard line commented out.
   Was: [ ] MEDIUM OPEN: RichMessageInput send has a same-frame double-send risk (sync onSend + stale text closure) — RichMessageInput double-send guard (different shape from the fixed apply/release races) still not applied. (archive L3463)
+- REMOVED (merged, 2026-10-02): a caveat, not a task; folded into the "Find what actually paints the two composite contrast failures" line.
+  Was: [ ] LOW Do NOT change --muted-foreground/--stormy-sky on strength of this finding — Do NOT change --muted-foreground/--stormy-sky on strength of this finding (archive L5520)

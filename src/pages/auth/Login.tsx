@@ -199,9 +199,11 @@ const Login = () => {
   // was showing copy while ops heard nothing (lh-silent-failure review, #1806).
   useEffect(() => {
     if (!oauthError || isExpectedSocialRefusal(oauthError.code)) return;
+    // No marker (provider null) means no attempt of ours is known: anyone can
+    // craft that URL, so it must not raise error-level alerts at will (Q445).
     report(new Error(`web social sign-in refused: ${oauthError.code}`), {
-      severity: "error",
-      tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider, code: oauthError.code },
+      severity: oauthError.provider ? "error" : "warning",
+      tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
   const notice =

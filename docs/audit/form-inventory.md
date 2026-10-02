@@ -176,7 +176,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/EarningsExport.tsx` | select×2, date/calendar×2 |  |  | Date Range · Month |
+| `src/components/EarningsExport.tsx` | select×2, date/calendar×2 |  |  | Date Range · Month · Choose a start date · Choose an end date |
 | `src/components/HelperAvailability.tsx` | checkbox/switch/radio×2 |  |  |  |
 | `src/components/NotificationPreferences.tsx` | input×2, checkbox/switch/radio×1, date/calendar×2 | time |  | Saving · Quiet hours start time · Quiet hours end time · Send test notification |
 | `src/components/notificationPreferences/constants.tsx` | input×1, date/calendar×1 | time |  |  |

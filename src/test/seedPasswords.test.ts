@@ -44,8 +44,11 @@ describe("prod-seed CI-password accounts", () => {
 
   it("CI_PASSWORD_ACCOUNTS is exactly the owned accounts a workflow signs in by password", () => {
     const owned = new Set(ownedKeys());
+    const secrets = workflowPasswordSecrets();
+    // 5 PLAYWRIGHT_*_PASSWORD secrets across the workflows (measured 2026-10-01).
+    expect(secrets.size).toBeGreaterThanOrEqual(5);
     const fromWorkflows: Record<string, string> = {};
-    for (const secret of workflowPasswordSecrets()) {
+    for (const secret of secrets) {
       const key = secret.replace(/^PLAYWRIGHT_/, "").replace(/_PASSWORD$/, "").toLowerCase();
       if (owned.has(key)) fromWorkflows[key] = secret;
     }
@@ -53,6 +56,7 @@ describe("prod-seed CI-password accounts", () => {
   });
 
   it("refuses to create a CI-password account whose SEED_PASSWORD_<KEY> is unset", () => {
+    expect(Object.keys(CI_PASSWORD_ACCOUNTS).length).toBeGreaterThan(0);
     for (const key of Object.keys(CI_PASSWORD_ACCOUNTS)) {
       expect(() => seedPasswordFor(key, {}, { creating: true })).toThrow(/REFUSED: SEED_PASSWORD_/);
       // An existing account is kept as is: prod-audit's CI --apply has no SEED_PASSWORD_*.

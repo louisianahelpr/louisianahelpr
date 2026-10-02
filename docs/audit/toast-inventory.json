@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 561,
-    "files": 140,
-    "rendering": 540,
+    "calls": 562,
+    "files": 141,
+    "rendering": 541,
     "suppressedByPolicy": 21,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 448,
+      "toast.error": 449,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 309,
       "template": 73,
-      "dynamic": 219,
+      "dynamic": 220,
       "jsx": 0
     }
   },
@@ -2733,6 +2733,16 @@
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage(err, \"Couldn't save that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/userDetail/DocumentsTab.tsx",
+      "line": 41,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
       },
       "renders": true
     },

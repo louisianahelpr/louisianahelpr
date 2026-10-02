@@ -149,8 +149,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
     // problem; the uploads were simply failing and saying so to no one.
     let failedUploads = 0;
     for (const file of files) {
-      const ext = storageExtFor(file, "jpg");
-      const path = `${jobId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${jobId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2)}.${storageExtFor(file, "jpg")}`;
       const { error } = await supabase.storage.from("proof-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
       if (error) {
         failedUploads += 1;

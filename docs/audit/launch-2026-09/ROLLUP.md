@@ -6,8 +6,6 @@ _Generated from findings.jsonl as of its newest entry (2026-10-02T04:43:33.013Z)
 
 Open work is tracked ONLY in [docs/OPEN.md](../../OPEN.md): each open finding below is the OPEN.md item tagged `feed: bus <ID>` (`grep -n 'feed: bus <ID>' docs/OPEN.md`; guard src/test/openFeedsMirrored.test.ts).
 
-Open work is tracked ONLY in [docs/OPEN.md](../../OPEN.md): each open finding below is the OPEN.md item tagged `feed: bus <ID>` (`grep -n 'feed: bus <ID>' docs/OPEN.md`; guard src/test/openFeedsMirrored.test.ts).
-
 ## HIGH (112)
 
 | ID | Blocker | Status | Surface | Claim | Agent | Evidence |

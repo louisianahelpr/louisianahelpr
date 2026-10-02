@@ -967,7 +967,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Money: concurrent release / Quick Release / Quick Refund (2026-09-13)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] OPEN LOW-2 (pre-existing): void-cancelled-payments fee transfer writes no payout_transfers row — Fee transfer in void-cancelled-payments still lacks a payout_transfers ledger row — reconciliation blind spot documented, not fixed. (archive L3190)
 - [ ] OPEN LOW-3 (pre-existing): payout_transfers_one_live_per_job_helper NULL-distinct on helper_id disagrees with claimPayout read — Redacted-helper (NULL helper_id) rows still escape claim arbitration; zero such rows on prod but the code disagreement is unfixed. (archive L3191)
 - [ ] OPEN LOW-4 (pre-existing): jobs.dispute_evidence_urls legacy mirror still party-writable, unvalidated server-side — Legacy jobs.dispute_evidence_urls column still directly party-writable with only a client render guard; server-side validation not added. (see also line 3171) (archive L3192)
 - [ ] OPEN LOW-7 (pre-existing): process-scheduled-payouts step 4b leaves an orphaned claim row on payout>escrow exit — A payout-exceeds-escrow exit still leaves a permanent pending claim row with a null transfer id. (archive L3193)

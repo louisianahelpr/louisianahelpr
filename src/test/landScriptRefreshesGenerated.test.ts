@@ -15,7 +15,7 @@
  * 15921ea17 (2026-09-27) landed that way and main went red on "Sensitive review
  * record", which land.sh never ran.
  *
- * @mutate .claude/AGENT-BRIEF.md | then `bash scripts/land.sh` | then `git push --no-verify origin HEAD:main`
+ * @mutate .claude/AGENT-BRIEF.md | lands it with `bash scripts/land.sh` | lands it with `git push --no-verify origin HEAD:main`
  *
  * Q44: with strict protection + enforce_admins a direct push is refused, so
  * land.sh lands the same verified HEAD through a PR with REBASE auto-merge (a

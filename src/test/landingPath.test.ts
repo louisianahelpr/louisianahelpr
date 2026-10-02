@@ -2,7 +2,7 @@
 // @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   git push --no-verify origin HEAD:main
 // @mutate .github/workflows/vacuity.yml |       - "LICENSE"\n  schedule: |       - "LICENSE"\n  pull_request:\n    branches: [main]\n  schedule:
 // @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }} | VACUITY_PUSH_BEFORE: ""
-// @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and both Playwright | requires Vitest, Test, Vacuity and both Playwright
+// @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and | requires Vitest, Test, Vacuity and
 // @mutate .github/workflows/test.yml |   pull_request:\n    branches: [main]\n |   pull_request:\n    branches: [main]\n    paths-ignore:\n      - "docs/**"\n
 /*
  * Nothing reaches main without passing its checks (OPEN.md Q44).

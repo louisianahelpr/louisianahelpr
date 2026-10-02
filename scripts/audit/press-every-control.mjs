@@ -430,6 +430,31 @@ export function missingControlDisposition({ scope, onSameScreen, consumed, trans
  * is exactly this control's, and no control with that record text is on the
  * reloaded screen. Any other missing control on a page still fails.
  */
+/**
+ * A CONTROL THAT STOPPED BEING A CONTROL BEFORE IT WAS REACHED.
+ *
+ * Run 36965978547 leg 1 (2026-10-02, /home customer) failed exactly one press:
+ * `Notifications › New application Someone applied to "[SL-SEED] Cancelled
+ * with reason"` — "no observable change". Read off prod and the app, not
+ * guessed: that notification (08857a79…) has `job_id` AND `link` NULL, so
+ * `notificationDestination()` is null and `NotificationPanel.isActionable` is
+ * `!n.read` alone. Unread at enumeration it rendered `role="button"`; the
+ * shared customer account is walked by six legs at once, and by the time this
+ * leg reached the row it had been read (the after-shot shows the "All" filter
+ * with every row untinted; prod shows read=true). A read row with nowhere to
+ * go drops its role, tab stop and onClick by design — the press clicked a plain
+ * <div>, which correctly does nothing.
+ *
+ * Same disposition as "disabled by the time it was reached": decided at press
+ * time from the element itself, and narrow — it fires only when the addressed
+ * element no longer matches the control selector at all. A control that still
+ * IS a control and does nothing is still a FAIL.
+ */
+export const NO_LONGER_CONTROL_SKIP = "no longer a control by the time it was reached (lost its control role since enumeration)";
+export function pressTimeDisposition({ isControl }) {
+  if (!isControl) return NO_LONGER_CONTROL_SKIP;
+  return null;
+}
 export const ROW_CONSUMED_SKIP = "its record left the list after this run's own mutating press on that same record";
 export function rowGoneAfterOwnWrite({ rowText, mutatedRows, now }) {
   if (!rowText || !mutatedRows?.has(rowText)) return false;
@@ -557,6 +582,7 @@ export const DOCUMENTED_SKIPS = new Set([
   BOUNCED_SKIP,
   TRANSIENT_STATUS_SKIP,
   ROW_CONSUMED_SKIP,
+  NO_LONGER_CONTROL_SKIP,
   FORM_MIRROR_SKIP,
   FOREIGN_FIXTURE_SKIP,
   CHROME_SKIP,
@@ -1575,6 +1601,12 @@ async function main() {
           if (await target.isDisabled().catch(() => false)) {
             skip("disabled by the time it was reached (enabled when enumerated)");
             continue;
+          }
+          // Still a control at all? See NO_LONGER_CONTROL_SKIP.
+          {
+            const isControl = await target.evaluate((el, sel) => el.matches(sel), CONTROL_SEL).catch(() => true);
+            const why = pressTimeDisposition({ isControl });
+            if (why) { skip(why); continue; }
           }
 
           const before = await snapshot();

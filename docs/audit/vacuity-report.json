@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-01T23:57:53.207Z",
-  "guards": 1284,
-  "registered": 1284,
+  "generated": "2026-10-02T00:29:39.504Z",
+  "guards": 1285,
+  "registered": 1285,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -433,6 +433,15 @@
       ],
       "parents": [
         "src/pages/posts/PostedJobsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx",
+      "tests": [
+        "src/pages/posts/postedJobs/applicantsPanel/applicantsEmptyTop.test.tsx"
+      ],
+      "parents": [
+        "src/pages/posts/postedJobs/ApplicantsPanel.tsx"
       ]
     },
     {

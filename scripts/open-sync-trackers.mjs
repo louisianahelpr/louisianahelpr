@@ -37,8 +37,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { queueText } from "./lib/openQueue.mjs";
-import { nextFreeId } from "./queue-count.mjs";
+import { nextFreeAcross } from "./queue-count.mjs";
 import { FINDINGS, SNAPSHOT, LEDGER_SQL, applyFeeds, busSources, busStatus, groupSources, mirrored, feedCounts } from "./lib/openFeeds.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -82,7 +81,9 @@ function apply(snap, { dryRun }) {
   // A ledger-only group whose issue feed was unreadable may still be joined
   // later; never file it alone while its partner is unknown.
   const usable = snap.issues.readable ? groups : groups.filter((g) => !g.keys.some((k) => k.startsWith("ledger ")) || !ledger.find((r) => g.keys.includes(`ledger ${r.fingerprint.slice(0, 12)}`) && r.source_kind === "nightly_red"));
-  const res = applyFeeds(md, usable, { status, nextFree: Number(nextFreeId(queueText(ROOT)).slice(1)), today: new Date().toISOString().slice(0, 10) });
+  // Next free on this tree AND origin/main: the nightly refresh PR numbered
+  // from its base and collided with lanes that landed meanwhile (Q909/Q914).
+  const res = applyFeeds(md, usable, { status, nextFree: Number(nextFreeAcross(ROOT).slice(1)), today: new Date().toISOString().slice(0, 10) });
   const by = mirrored(res.md);
   const keys = Object.fromEntries([...by].map(([k, ids]) => [k, ids[0]]).sort());
   const out = { ...snap, mirrored: keys };
@@ -91,12 +92,13 @@ function apply(snap, { dryRun }) {
   for (const c of res.created) console.log(`  created ${c.id}  ${c.keys.join(" + ")}`);
   for (const a of res.attached) console.log(`  attached to ${a.id}  ${a.keys.join(" + ")}`);
   for (const f of res.flipped) console.log(`  source closed -> [~] ${f}`);
+  for (const a of res.ambiguous) console.error(`  AMBIGUOUS ${a.keys.join(" + ")}: first line of ${a.ids.join(", ")} — add \`feed: ${a.keys[0]}\` to the ONE item that owns it`);
   console.log(`OPEN.md items from feeds: ${counts.ledger} ledger, ${counts.issue} nightly-red, ${counts.bus} audit bus (${res.created.length} created, ${res.attached.length} attached, ${res.flipped.length} flipped)`);
   if (!dryRun) {
     writeFileSync(join(ROOT, OPEN), res.md);
     writeFileSync(join(ROOT, SNAPSHOT), JSON.stringify(out, null, 2) + "\n");
   }
-  return snap.issues.readable && snap.ledger.readable;
+  return snap.issues.readable && snap.ledger.readable && !res.ambiguous.length;
 }
 
 async function main() {
@@ -117,7 +119,7 @@ async function main() {
     process.exit(snap.issues.readable && snap.ledger.readable ? 0 : 1);
   }
   const ok = apply(snap, { dryRun: argv.includes("--dry-run") });
-  if (!ok) { console.error(`::error::a feed could not be read: ${[snap.issues.error, snap.ledger.error].filter(Boolean).join("; ")}`); process.exit(1); }
+  if (!ok) { console.error(`::error::a feed could not be read, or a source is ambiguous (see AMBIGUOUS above): ${[snap.issues.error, snap.ledger.error].filter(Boolean).join("; ")}`); process.exit(1); }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

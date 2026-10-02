@@ -127,6 +127,8 @@ describe("uptime.yml: empty gets its own warning, down stays critical", () => {
     expect(empty).toHaveLength(1);
     expect(empty[0].run).toMatch(/ops-alert-ledger\.mjs record/);
     expect(empty[0].run).toMatch(/--severity warning/);
+    expect(empty[0].run).toMatch(/--strict\b/);
+    expect(empty[0].run).not.toMatch(/\|\|\s*true/);
     expect(empty[0].run).toMatch(/no funded jobs \(pre-launch\)/);
   });
 
@@ -140,5 +142,50 @@ describe("uptime.yml: empty gets its own warning, down stays critical", () => {
     expect(sync?.with?.status).toBe(
       "${{ (steps.probe.outputs.status == 'up' || steps.probe.outputs.status == 'empty') && 'success' || 'failure' }}",
     );
+  });
+});
+
+describe("ops-alert-ledger.mjs: strict record mode", () => {
+  // @mutate scripts/ops-alert-ledger.mjs | if (!recorded && flag("strict")) process.exitCode = 1; | if (false) process.exitCode = 1;
+  it("is non-zero on a rejected write only when strict mode is requested", async () => {
+    const failureServer = createServer((_req, res) => {
+      res.writeHead(503);
+      res.end("unavailable");
+    });
+    await new Promise<void>((resolve) => failureServer.listen(0, "127.0.0.1", resolve));
+    const addr = failureServer.address();
+    if (!addr || typeof addr === "string") throw new Error("no ledger test port");
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      SUPABASE_URL: `http://127.0.0.1:${addr.port}`,
+      SUPABASE_SERVICE_ROLE_KEY: "test-service-role",
+    };
+    delete env.SUPABASE_ACCESS_TOKEN;
+    delete env.SUPABASE_PROJECT_REF;
+
+    try {
+      const recordExitCode = (strict: boolean) => new Promise<number>((resolve) => {
+        execFile(
+          process.execPath,
+          [
+            join(ROOT, "scripts", "ops-alert-ledger.mjs"),
+            "record",
+            "--source",
+            "uptime",
+            "--title",
+            "Guest marketplace is empty",
+            ...(strict ? ["--strict"] : []),
+          ],
+          { env },
+          (err) => resolve(err ? Number(err.code) : 0),
+        );
+      });
+      expect(await recordExitCode(true)).toBe(1);
+      expect(await recordExitCode(false)).toBe(0);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        failureServer.close((err) => (err ? reject(err) : resolve())),
+      );
+    }
   });
 });

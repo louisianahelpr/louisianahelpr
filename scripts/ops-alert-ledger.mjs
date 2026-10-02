@@ -10,8 +10,9 @@
  *
  *   node scripts/ops-alert-ledger.mjs record --source-kind workflow --source <name> \
  *        --title <text> --severity critical|error|warning|info [--sample <text>] \
- *        [--verify-ref <workflow file>] [--run-url <url>]
- *       What a workflow Slack step runs next to its curl. Never exits non-zero.
+ *        [--verify-ref <workflow file>] [--run-url <url>] [--strict]
+ *       What a workflow Slack step runs next to its curl. Best-effort by default;
+ *       --strict exits non-zero when the ledger does not accept the write.
  *       --source-kind nightly_red for a self-recording workflow records nothing.
  *
  *   node scripts/ops-alert-ledger.mjs sync
@@ -156,7 +157,7 @@ async function record() {
     console.log(`ops-alert-ledger record: ${own}.yml records its own item on every red; generic nightly_red item "${title}" not recorded`);
     return;
   }
-  await recordOpsAlert({
+  const recorded = await recordOpsAlert({
     sourceKind,
     source: opt("source", process.env.GITHUB_WORKFLOW ?? "unknown"),
     title,
@@ -166,6 +167,7 @@ async function record() {
     verifyKind: opt("verify-kind", undefined),
     verifyRef: opt("verify-ref", undefined),
   });
+  if (!recorded && flag("strict")) process.exitCode = 1;
 }
 
 async function sync() {

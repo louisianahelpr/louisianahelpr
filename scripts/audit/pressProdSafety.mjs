@@ -289,7 +289,12 @@ export async function urlOwnership(session, url, owners) {
 // acct_1ULXMw40YhFTkeRO (helper). Bare "payouts" stays OUT on purpose: the
 // "Payouts" tab and "Export Payouts CSV" are reads. The network backstop
 // (isStripeWriteRequest) catches any Stripe-writing label this still misses.
-export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit|set up payouts|stripe|(?:finish|complete|start) verification)\b/i;
+// `reset & start fresh` (Q896): PayoutSetupForm's reset button and its confirm
+// run stripe-connect `reset` (stripe.accounts.del); the label matched only
+// DESTRUCTIVE_RX, and /profile is SELF_ROUTE_RX, so it was pressed and only
+// the network backstop stopped it. The icon-only remove-payout-method button
+// now has aria-label "Remove payout method …", which `payout` matches.
+export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit|set up payouts|stripe|reset & start fresh|(?:finish|complete|start) verification)\b/i;
 /** Labels that would destroy or lock the SHARED test account. Never pressed. */
 export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my )?account|delete profile|request deletion|erase my data)\b/i;
 /**

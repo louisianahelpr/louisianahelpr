@@ -77,6 +77,7 @@ export function busSources(text) {
     .filter((f) => !CLOSED_STATUSES.has(f.status) && f.id !== "V-001")
     .map((f) => ({
       keys: [`bus ${f.id}`],
+      tier: tierOf(f.severity),
       title: `${f.severity}${f.launch_blocker ? " LAUNCH BLOCKER" : ""} audit finding ${f.id} (${f.surface}): ${oneLine(f.claim, 160)}`,
       origin: `audit-bus finding ${f.id} (\`node scripts/audit-bus.mjs show ${f.id}\`)`,
       markers: [`done-when: bus ${f.id} closed`],
@@ -93,6 +94,9 @@ export const LEDGER_SQL = `SELECT fingerprint, source_kind, source, status, samp
   FROM public.ops_alert_ledger WHERE status <> 'closed' ORDER BY first_seen`;
 
 export const ledgerMarker = (fp) => `done-when: sql \`SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '${fp}'\` => closed`;
+
+/** Bus severity -> OPEN.md tier (src/test/openItemsHaveTier.test.ts). POLISH is LOW; unknown is MEDIUM. */
+export const tierOf = (sev) => ({ HIGH: "HIGH", MEDIUM: "MEDIUM", LOW: "LOW", POLISH: "LOW" })[String(sev ?? "").toUpperCase()] ?? "MEDIUM";
 
 const oneLine = (s, n) => {
   const t = String(s ?? "").replace(/\s+/g, " ").replace(/\*\*/g, "").trim();
@@ -186,7 +190,9 @@ export function applyFeeds(md, groups, { status, nextFree, today }) {
       continue;
     }
     const id = `Q${next++}`;
-    newItems.push(`- [ ] **${id} ${oneLine(g.title, 170).replace(/\.$/, "")}.** Mirrored ${today} from ${g.origin} by \`scripts/open-sync-trackers.mjs\`: find the root cause, fix it, re-run the source's own detector. ${g.keys.map((k) => `feed: ${k}`).join(" · ")}. ${g.markers.join(", ")}`);
+    const tier = g.tier ?? "MEDIUM";
+    const title = oneLine(g.title, 170).replace(/\.$/, "");
+    newItems.push(`- [ ] **${id} ${title.startsWith(`${tier} `) ? "" : `${tier} `}${title}.** Mirrored ${today} from ${g.origin} by \`scripts/open-sync-trackers.mjs\`: find the root cause, fix it, re-run the source's own detector. ${g.keys.map((k) => `feed: ${k}`).join(" · ")}. ${g.markers.join(", ")}`);
     created.push({ id, keys: g.keys });
   }
 

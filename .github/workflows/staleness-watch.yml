@@ -15,10 +15,18 @@ name: Staleness watch
 #    passing run, and checks the audit ledger's lag.
 # A red scheduled run opens a `nightly-red: staleness-watch` issue (session
 # start reads it; "Nightly reds nobody read" escalates it) and closes on green.
-#  - land (schedule + dispatch only, Q57): re-runs every CI generator on LATEST
-#    main (`npm run inventories:refresh`) and lands whatever moved through
-#    .github/actions/refresh-pr — one bot branch, one PR, auto-merge on green.
-#    Never on push: the pusher owns their own regeneration.
+#  - land (schedule + dispatch, Q57; and on a push that DRIFTED): re-runs every
+#    CI generator on LATEST main (`npm run inventories:refresh`) and lands
+#    whatever moved through .github/actions/refresh-pr — one bot branch, one
+#    PR, auto-merge on green.
+#    On push it runs ONLY when check:generated exits 3 (drift: every problem is
+#    a stale committed output). That is no pusher's fault: aggregate counts
+#    (vacuity guards, burn-down, queue score) merge cleanly to the wrong number
+#    when two non-strict PRs each change them (2026-10-01, #2051: committed
+#    1285, regenerated 1286), and before this main stayed stale until the
+#    nightly while every open PR went red on it. A push that is current, or
+#    fails for any other reason (exit 1: a crash, a registry gap), opens no
+#    refresh PR and stays red for its pusher. The nightly stays strict.
 
 on:
   push:
@@ -41,6 +49,8 @@ jobs:
     name: Committed inventories are current
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      drift: ${{ steps.gen.outputs.drift }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -51,7 +61,22 @@ jobs:
       # TypeScript compiler, so they need node_modules.
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - name: Regenerate every CI-runnable inventory and diff
-        run: npm run check:generated
+        id: gen
+        # Exit 3 = drift only. On push it passes and hands `drift=true` to the
+        # land job, which lands the regeneration now; nightly it stays red.
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set +e
+          npm run -s check:generated
+          rc=$?
+          set -e
+          if [ "$rc" -eq 3 ] && [ "$EVENT" = "push" ]; then
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Committed inventories drifted on main; the land job regenerates them as bot/refresh/inventories."
+            exit 0
+          fi
+          exit "$rc"
       - name: Every stated count is generated, dated, or baselined (two-way)
         if: always()
         run: npm run check:counts
@@ -98,7 +123,7 @@ jobs:
   land:
     name: Land regenerated inventories (Q57 refresh PR)
     needs: [generated-current]
-    if: github.event_name != 'push' && needs.generated-current.result != 'cancelled'
+    if: needs.generated-current.result != 'cancelled' && (github.event_name != 'push' || needs.generated-current.outputs.drift == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The ONLY write grant in this workflow (Q57): push the bot branch, open or

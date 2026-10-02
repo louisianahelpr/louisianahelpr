@@ -9,7 +9,7 @@
  * shape had already happened once with 'payout_pending' (the reconciler only
  * looked at 'escrow'; see payout_pending_stranded).
  *
- * The class, from source: every `payment_status: "<x>"` an edge function
+ * The class, from source: every payment_status value an edge function
  * writes (inventory below, never hand-listed) must be classified here as
  * RESTING (a state a row may legitimately sit in indefinitely) or IN_FLIGHT (a
  * claim a path takes intending to leave within its own run or a scheduled

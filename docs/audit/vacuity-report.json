@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-02T08:15:45.893Z",
+  "generated": "2026-10-02T08:39:36.015Z",
   "guards": 1324,
   "registered": 1324,
   "unregistered": [],
@@ -28,7 +28,6 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
-    "src/test/pruneLandedBranches.test.ts",
     "src/test/storageBucketLimits.test.ts",
     "src/test/unknownZipIsNeverSilent.test.ts"
   ],

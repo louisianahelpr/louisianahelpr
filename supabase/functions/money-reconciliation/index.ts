@@ -1563,7 +1563,7 @@ serve(async (req) => {
       for (let i = 0; i < unknownIds.length; i += 200) {
         const { data: seedRows, error: seedErr } = await admin
           .from("jobs")
-          .select("id, is_seed")
+          .select("is_seed, id")
           .in("id", unknownIds.slice(i, i + 200));
         if (seedErr) {
           // Unknown => real: a page on a fixture beats silence on money.

@@ -1,3 +1,7 @@
+// @mutate scripts/prune-stale-branches.mjs | .filter((c) => !covered.has(c.subject)); | ;
+// @mutate scripts/prune-stale-branches.mjs | if (!(ageHours >= STRANDED_AFTER_HOURS)) return false; | 
+// @mutate scripts/prune-stale-branches.mjs | if (hasOpenPr) return false; | 
+// @mutate scripts/prune-stale-branches.mjs | return uncovered.length > 0; | return false;
 // @mutate scripts/prune-stale-branches.mjs | .filter((line) => line.startsWith("+")).length; | .filter((line) => line.startsWith("-")).length;
 // @mutate scripts/prune-stale-branches.mjs | export const PROTECTED_PREFIXES = ["land/"]; | export const PROTECTED_PREFIXES = [];
 // @mutate scripts/prune-stale-branches.mjs | if (!(ageHours >= MIN_AGE_HOURS)) { | if (false) {
@@ -5,7 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
-import { decideBranch } from "../../scripts/prune-stale-branches.mjs";
+import { decideBranch, isStranded, uncoveredCommits } from "../../scripts/prune-stale-branches.mjs";
 
 /**
  * Stale remote branches kept piling up: delete_branch_on_merge only fires on a
@@ -57,5 +61,36 @@ describe("prune-stale-branches decideBranch", () => {
     const src = fs.readFileSync(path.resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8");
     const del = src.slice(src.indexOf('"--delete"') - 200, src.indexOf('"--delete"'));
     expect(del).toContain("--force-with-lease=refs/heads/");
+  });
+});
+
+/**
+ * STRANDED (2026-10-02): the run-to-zero tier agents pushed their work to
+ * agent/* branches and never landed it, and 15 such branches sat on origin
+ * with no PR while the queue count did not move. A branch holding a commit
+ * whose subject is on neither main nor any open PR head, older than an hour,
+ * with no open PR, now makes the prune script exit 1 (nightly-red issue).
+ */
+describe("prune-stale-branches stranded work", () => {
+  const cherry = "- aaa1111 already on main by patch\n+ bbb2222 fix(x): landed under a rewrite\n+ ccc3333 fix(y): only here\n";
+  const covered = new Set(["fix(x): landed under a rewrite"]);
+
+  it("a + commit whose subject is on main or an open PR is covered", () => {
+    expect(uncoveredCommits(cherry, covered)).toEqual([{ sha: "ccc3333", subject: "fix(y): only here" }]);
+  });
+
+  it("a branch with uncovered work, no PR, over an hour old is stranded", () => {
+    expect(isStranded({ name: "agent/medium", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(true);
+  });
+
+  it("an open PR, a fresh push, or fully covered work is not stranded", () => {
+    expect(isStranded({ name: "agent/medium", hasOpenPr: true, ageHours: 5, uncovered: [{}] })).toBe(false);
+    expect(isStranded({ name: "agent/medium", hasOpenPr: false, ageHours: 0.5, uncovered: [{}] })).toBe(false);
+    expect(isStranded({ name: "agent/medium", hasOpenPr: false, ageHours: 5, uncovered: [] })).toBe(false);
+    expect(isStranded({ name: "main", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(false);
+  });
+
+  it("land/* branches are not exempt: a land branch with no PR is stranded too", () => {
+    expect(isStranded({ name: "land/HEAD-6c1e1c10", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(true);
   });
 });

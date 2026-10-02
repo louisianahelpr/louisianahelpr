@@ -23,6 +23,16 @@
  *   node scripts/prune-stale-branches.mjs            # dry run, prints the table
  *   node scripts/prune-stale-branches.mjs --apply    # deletes DELETE rows only
  *
+ * STRANDED (2026-10-02): agents push branches but never land them; landing
+ * waited on the lead running land.sh per branch, and 40+ commits (money fixes
+ * among them) sat on origin with no PR while this job stayed green. A branch is
+ * STRANDED when it is over STRANDED_AFTER_HOURS old, has no open PR, and holds
+ * a commit whose patch (`git cherry`) AND subject are on neither main nor any
+ * open PR head (subjects catch work a conflict-resolving rebase rewrote). Any
+ * STRANDED branch makes this exit 1, so the workflow files a nightly-red issue.
+ * land/* branches count too: a land PR closed unmerged strands its head.
+ * Resolve one by landing it (bash scripts/land.sh) or deleting the branch.
+ *
  * Fails closed: if the open-PR list or any cherry cannot be read, it exits
  * non-zero before deleting anything. Each delete is leased on the tip it
  * measured (--force-with-lease), so a branch pushed to since is left alone.
@@ -34,6 +44,7 @@ import { fileURLToPath } from "node:url";
 export const PROTECTED = new Set(["main", "HEAD"]);
 export const PROTECTED_PREFIXES = ["land/"];
 export const MIN_AGE_HOURS = 24;
+export const STRANDED_AFTER_HOURS = 1;
 
 export function isProtected(name) {
   return PROTECTED.has(name) || PROTECTED_PREFIXES.some((p) => name.startsWith(p));
@@ -60,6 +71,36 @@ export function decideBranch({ name, hasOpenPr, cherryOutput, ageHours }) {
   const unlanded = countUnlanded(cherryOutput);
   if (unlanded === 0) return { name, action: "DELETE", reason: "all commits on main" };
   return { name, action: "UNLANDED", reason: `${unlanded} commit(s) not on main` };
+}
+
+/**
+ * `git cherry -v` lines ("+ <sha> <subject>") whose work is on neither main
+ * nor an open PR: patch not on main (the "+") and subject not in `covered`.
+ * @param {string} cherryVerbose
+ * @param {Set<string>} covered subjects on main or on an open PR head
+ * @returns {{ sha: string, subject: string }[]}
+ */
+export function uncoveredCommits(cherryVerbose, covered) {
+  return String(cherryVerbose)
+    .split("\n")
+    .filter((line) => line.startsWith("+ "))
+    .map((line) => {
+      const rest = line.slice(2);
+      const sp = rest.indexOf(" ");
+      return sp < 0 ? { sha: rest, subject: "" } : { sha: rest.slice(0, sp), subject: rest.slice(sp + 1) };
+    })
+    .filter((c) => !covered.has(c.subject));
+}
+
+/**
+ * Pure: is this branch stranded work (pushed, unlanded, no PR, not new)?
+ * @param {{ name: string, hasOpenPr: boolean, ageHours: number, uncovered: unknown[] }} b
+ */
+export function isStranded({ name, hasOpenPr, ageHours, uncovered }) {
+  if (PROTECTED.has(name)) return false;
+  if (hasOpenPr) return false;
+  if (!(ageHours >= STRANDED_AFTER_HOURS)) return false;
+  return uncovered.length > 0;
 }
 
 function git(args) {
@@ -120,6 +161,29 @@ function main() {
       (apply ? "" : "  (dry run; pass --apply to delete the DELETE rows)"),
   );
 
+  // Subjects already on main (recent history) or on any open PR's head.
+  const covered = new Set(git(["log", "--format=%s", "-n", "5000", "origin/main"]).split("\n"));
+  for (const head of openHeads) {
+    if (!tipOf.has(head)) continue;
+    for (const s of git(["log", "--format=%s", `origin/main..origin/${head}`]).split("\n")) covered.add(s);
+  }
+  const stranded = [];
+  for (const { name, ageHours } of branches) {
+    const hasOpenPr = openHeads.has(name);
+    if (PROTECTED.has(name) || hasOpenPr || !(ageHours >= STRANDED_AFTER_HOURS)) continue;
+    const uncovered = uncoveredCommits(git(["cherry", "-v", "origin/main", `origin/${name}`]), covered);
+    if (isStranded({ name, hasOpenPr, ageHours, uncovered })) stranded.push({ name, ageHours, uncovered });
+  }
+  if (stranded.length) {
+    console.log(`\nSTRANDED: ${stranded.length} branch(es) hold work on neither main nor an open PR (land it or delete it):`);
+    for (const b of stranded) {
+      console.log(`  ${b.name} (${Math.round(b.ageHours)}h old, ${b.uncovered.length} commit(s))`);
+      for (const c of b.uncovered) console.log(`    ${c.sha.slice(0, 9)} ${c.subject}`);
+    }
+  } else {
+    console.log("\nSTRANDED: none.");
+  }
+
   let failed = 0;
   if (apply) {
     for (const r of rows.filter((x) => x.action === "DELETE")) {
@@ -142,9 +206,13 @@ function main() {
       md += "### UNLANDED (kept; a human decides)\n\n| branch | commits not on main |\n|---|---|\n";
       for (const r of unl) md += `| \`${r.name}\` | ${r.reason} |\n`;
     }
+    if (stranded.length) {
+      md += `\n### STRANDED (red): work on neither main nor an open PR\n\nLand each with \`bash scripts/land.sh\` or delete the branch.\n\n| branch | age | commits |\n|---|---|---|\n`;
+      for (const b of stranded) md += `| \`${b.name}\` | ${Math.round(b.ageHours)}h | ${b.uncovered.map((c) => c.subject).join("<br>")} |\n`;
+    }
     appendFileSync(summary, md);
   }
-  if (failed) process.exit(1);
+  if (failed || stranded.length) process.exit(1);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

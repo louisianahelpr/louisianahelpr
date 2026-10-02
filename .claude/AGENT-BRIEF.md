@@ -125,6 +125,13 @@ leaves its shell running (2026-09-23: five identical "until 14:42" loops piled
 up). Before your report, `ps` for your own wait loops and kill any still running.
 
 ## Your report
+FIRST LINE, always: `BRANCH: <origin branch> @ <sha> — PR #<n> MERGED|OPEN` or
+`BRANCH: <origin branch> @ <sha> — NOT LANDED (lead must land)`. Work pushed to
+a branch with no PR is STRANDED (2026-10-02: 15 branches, the whole
+run-to-zero tier's output, sat on origin with no PR while the queue never
+moved). The lead lands every NOT LANDED branch before starting the next agent;
+branch-prune.yml (`scripts/prune-stale-branches.mjs`) turns red on any branch
+over an hour old with commits on neither main nor an open PR.
 State what you MEASURED (numbers, run ids, before/after), what you could not
 verify and why, and the red→green proof for each guard. "I don't know" beats a
 confident guess.

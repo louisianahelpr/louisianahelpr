@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | - [ ] **Q7 WebKit only | - [~] **Q7 WebKit only
+// @mutate docs/OPEN.md | - [ ] **Q7 MEDIUM WebKit only | - [~] **Q7 MEDIUM WebKit only
 // @mutate docs/OPEN.md | SELECT coalesce(feature_flags->>'seed_purge_live','false') FROM public.platform_settings | SELECT coalesce(public.check_push_token_health()->>'tokens','false') FROM public.platform_settings
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }

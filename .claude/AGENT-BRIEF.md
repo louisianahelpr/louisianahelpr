@@ -92,6 +92,26 @@ says more.
 - A new queue item takes the number `node scripts/queue-count.mjs` prints as
   "next free", read right before you write it (and again after a rebase):
   parallel lanes guessed the same number three times on 2026-09-23.
+  It reads origin/main (fetch first) and every archive, so a number another
+  lane already landed is never "free". If two branches still pick the same
+  number, land.sh renumbers yours (`node scripts/open-renumber.mjs --base
+  origin/main`); `queueItemsNameTheirGuard.test.ts` fails on a duplicate Q.
+- The session-start queue block and `queue-count.mjs` read origin/main, not
+  your checkout: a stale local tree once showed items already done.
+- An item mirrored from a feed (nightly-red issue, ops ledger, audit bus) is
+  tied to it ONLY by its `feed: issue #N | ledger <id> | bus <ID>` tag. One
+  source gets one item; `node scripts/open-sync-trackers.mjs` exits 1 on an
+  ambiguous match.
+  Never file a second item for a source that already has one.
+- Every open line has a Q number. Unnumbered `- [ ]` lines are an exact ratchet
+  (`UNNUMBERED_OPEN_LINES`, `openUnnumberedRatchet.test.ts`). Number one or
+  tick it, then lower the constant by exactly that much in the same commit.
+- No second list anywhere. Handoff memories, inbox notes, lane reports,
+  morning pages, ROLLUP and SCOREBOARD may DESCRIBE work but cite it by Q
+  number (or bus id), never list it as open on their own. A doc section headed
+  "Still open", "Follow-ups", "Next steps", "Open questions" or "Backlog" must
+  cite its Q (`openWorkSectionsCiteQueue.test.ts`). To clear an UNTRACKED
+  entry there, file the Q item, cite it in the section, and delete the entry.
 
 ## Waiting (no orphan shells)
 Never run `scripts/vacuity/index.mjs` in the SHARED main checkout at all (lead included), only inside your own worktree: `--only` does NOT limit what it mutates (it still runs every registration touching changed files; a Q194 `--only` run mutated 61 in ~25 min). A run MUTATES source files for many minutes, and if it is killed mid-run the mutation stays (2026-09-23: `/terms` became a redirect and `/settings` pointed at /jobs in the main tree). After killing any process, confirm with `ps` that it is gone and `git status` that nothing it touched is left modified.

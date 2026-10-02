@@ -1207,7 +1207,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] MEDIUM QUEUED: land + prove completion-race (2608b2585) with before/after probe numbers, re-enable race-run — QUEUED: land + prove completion-race (2608b2585) with before/after probe numbers, re-enable race-runner.yml (archive L5774)
 - [ ] LOW STILL OPEN: screenshot the poster's group card on /posts at 375 light+dark, record with review:re — STILL OPEN: screenshot the poster's group card on /posts at 375 light+dark, record with review:record (see also 5764) (archive L5778)
 - [ ] MEDIUM QUEUED: race proofs for fa107a92f fixes (auto-release vs dispute, auto-resolve vs escalate/withdraw, — QUEUED: race proofs for fa107a92f fixes (auto-release vs dispute, auto-resolve vs escalate/withdraw, gift-card vs card payment, revision dou (archive L5780)
-- [ ] LOW MIGRATION DRIFT: jobs.boost_auto_extended exists in prod but no migration creates it (pinned in KNOW — Open (lead, live 2026-09-23): jobs.boost_auto_extended exists in prod but no migration creates it; still listed in KNOWN_UNMIGRATED_COLUMNS (offeredHelperPrivacy.test.ts:308). (archive L5784)
 - [ ] MEDIUM RESIDUAL: a paid journey leg still lands one page load on prod (Stripe success_url = prod getAppUrl( — RESIDUAL: a paid journey leg still lands one page load on prod (Stripe success_url = prod getAppUrl()); needs WebKit-proven route fix (archive L5789)
 - [ ] LOW OWNER: set Deployment Retention to shortest in Vercel dashboard (34 GB of deployment storage is depl — OWNER: set Deployment Retention to shortest in Vercel dashboard (34 GB of deployment storage is deploy history) (archive L5791)
 - [ ] LOW RESIDUAL: installed iOS/Android builds bundle the old client phone-number regex until a new native b — RESIDUAL: installed iOS/Android builds bundle the old client phone-number regex until a new native build ships (archive L5796)
@@ -1232,7 +1231,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] MEDIUM Unfloored guards (classA_noInventoryFloor) not closed down — Still open: 25 guards (was 20) still pass on an empty inventory per current vacuity-report.json. (archive L6582)
 - [ ] LOW 38 mount-wiring gaps reported, not gated — Still open: mount-wiring gaps (incl. PostedJobCard/AppliedJobCard) remain reported, not gated. (archive L6583)
 - [ ] MEDIUM Class (e) literal-vs-semantic mutation quality is not statically decidable — Open by design: a weak mutation can still 'kill' a guard; not mechanically detectable. (archive L6586)
-- [ ] MEDIUM 7 edge functions still leak error detail (EF5 ratchet) — Still open: 7 edge functions still leak error detail into responses (ratcheted, unfixed). (archive L6590)
 
 ### NEW — LOW (from the same pass)
 Reconciled 2026-09-23; detail in the archive at the line shown.

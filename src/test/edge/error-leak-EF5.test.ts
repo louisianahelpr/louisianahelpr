@@ -191,25 +191,15 @@ export function rawErrorResponseSites(files = edgeFunctionFiles()): LeakSite[] {
  *   (create-payment was here; fixed 2026-09-22 once clients began showing the body.)
  *   (admin-update-email was here; its leak was the "free a denied holder's
  *    address" path, deleted with the denied state 2026-09-23, Q205c.)
- *   admin-delete-user     — admin-authenticated, so the blast radius is small,
- *                           but it is still GoTrue/PostgREST detail on the wire.
- *   auth-email-hook       — called by GoTrue, not a browser; same class.
- *   delete-own-account    — `String(err)` straight into the body, to the account
- *                           owner, on the one path where a thrown Supabase error
- *                           carries table and column names.
- *   instant-payout        — money path; the Stripe error text reaches the helper.
+ *   (admin-delete-user, auth-email-hook, delete-own-account and instant-payout
+ *    were here; all four route through publicErrorMessage since 2026-10-02.)
  *   (stripe-payouts was here with the same shape; fixed 2026-09-30, Q859 (4).)
  *
  * This list may only SHRINK, and it goes red in both directions: a NEW leaking
  * handler fails, and a fixed one whose entry is still here fails too.
  */
 // @two-way src/test/edge/error-leak-EF5.test.ts:no longer leaks — remove it from KNOWN_LEAK_FILES
-const KNOWN_LEAK_FILES: string[] = [
-  "supabase/functions/admin-delete-user/index.ts",
-  "supabase/functions/auth-email-hook/index.ts",
-  "supabase/functions/delete-own-account/index.ts",
-  "supabase/functions/instant-payout/index.ts",
-];
+const KNOWN_LEAK_FILES: string[] = [];
 
 /** Pure, so the "able to fail" proof below can run it against a synthetic world. */
 export function leakRatchetDrift(sites: LeakSite[], known: string[]): string[] {

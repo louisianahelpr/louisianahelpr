@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-01T23:57:53.207Z",
-  "guards": 1284,
-  "registered": 1284,
+  "generated": "2026-10-02T00:31:18.782Z",
+  "guards": 1286,
+  "registered": 1286,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -285,15 +285,6 @@
       ]
     },
     {
-      "module": "src/components/postjob/AiJobBuilder.tsx",
-      "tests": [
-        "src/components/postjob/AiJobBuilder.test.tsx"
-      ],
-      "parents": [
-        "src/pages/post-job/EntryChoice.tsx"
-      ]
-    },
-    {
       "module": "src/components/profile/EarningsForecastCard.tsx",
       "tests": [
         "src/components/profile/EarningsForecastCard.test.tsx"
@@ -406,6 +397,15 @@
       "module": "src/pages/post-job/CheckoutStepView.tsx",
       "tests": [
         "src/pages/post-job/orderSummaryGlance.test.tsx"
+      ],
+      "parents": [
+        "src/pages/post-job/PostJob.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/post-job/EntryChoice.tsx",
+      "tests": [
+        "src/pages/post-job/giftCardBanner.test.tsx"
       ],
       "parents": [
         "src/pages/post-job/PostJob.tsx"

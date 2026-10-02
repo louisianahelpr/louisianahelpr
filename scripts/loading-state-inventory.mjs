@@ -42,7 +42,7 @@ export const FLOORS = {
   skeletonComponent: 20,
   suspenseFallback: 30,
   pulse: 25,
-  spinner: 89, // 90 until 2026-09-24: AdminBroadcasts (deleted, owner MQ19) held one
+  spinner: 88, // 89 until 2026-10-01: IDVPromptDialog (deleted with the IDV gate, Q909); 90 until 2026-09-24: AdminBroadcasts (deleted, owner MQ19)
   loadingBranch: 100,
   files: 90,
 };

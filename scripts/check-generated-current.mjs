@@ -231,7 +231,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",
   "scripts/load/load-test.mjs": "Q60: per-run JSON (run-<runId>.json) to --out, default ~/.lh-shots/q60 (outside the repo)",
   "scripts/open-done-when.mjs": "--out report (/tmp/done-when.md in open-done-when.yml, the nightly-red issue body), never a repo file",
-  "scripts/prune-stale-branches.mjs": "Q909: UNLANDED-branch table to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",
+  "scripts/prune-stale-branches.mjs": "Q915: UNLANDED-branch table to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",
   "scripts/prod-deploy.mjs": "action/sha/deployment to $GITHUB_OUTPUT in prod-deploy.yml (a CI step output, never a repo file)",
   "scripts/rollback/drill-web.mjs": "current/restored/timings to $GITHUB_OUTPUT in rollback-drill.yml (a CI step output, never a repo file)",
   "scripts/audit/a11y-engine-diff.mjs": "report to --out path",

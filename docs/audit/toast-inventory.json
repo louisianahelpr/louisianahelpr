@@ -4362,7 +4362,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 269,
+      "line": 271,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4372,21 +4372,11 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 284,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "friendlyAuthError(error.message)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 305,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "Too many attempts — try again in ${minutesLeft} min."
       },
       "renders": true
     },
@@ -4395,6 +4385,16 @@
       "line": 307,
       "kind": "toast.error",
       "title": {
+        "form": "template",
+        "text": "Too many attempts — try again in ${minutesLeft} min."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 309,
+      "kind": "toast.error",
+      "title": {
         "form": "dynamic",
         "text": "friendlyAuthError(error.message)"
       },
@@ -4402,7 +4402,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 320,
+      "line": 322,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4412,7 +4412,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 348,
+      "line": 350,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4422,7 +4422,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 382,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "literal",

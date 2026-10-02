@@ -23,6 +23,8 @@ export interface InFlightRun {
 export function lockedJobs(dir?: string): Inventory;
 /** Does an API job name (matrix suffix included) belong to a locked job? */
 export function matchesLocked(apiName: string, locked: LockedJob[]): boolean;
+/** Can this /actions/runs entry reach a locked job? (scheduled/dispatched, not a main batch) */
+export function drivesAccounts(run: { event: string; display_title?: string | null }): boolean;
 /** May the run `me` join the lock now? */
 export function decide(me: { id: number; created_at: string }, runs: InFlightRun[], inventory: Inventory): { go: boolean; why: string };
 /** ms to wait out a GitHub API rate limit, or null when the response is not one. */

@@ -41,6 +41,9 @@ export const STALE_RUN_MS = 10 * 60 * 60 * 1000;
 /** Does this in_progress run really hold the shared accounts now? */
 export function holdsAccounts(run, now = Date.now()) {
   if (!DRIVES_ACCOUNTS.has(run.event)) return false;
+  // A main batch (scripts/ci/main-batch.mjs) is e2e-real-backend's old push
+  // leg, dispatched: its account jobs are gated off `inputs.batch` (2026-10-02).
+  if (String(run.display_title ?? "").includes("(main batch ")) return false;
   const started = Date.parse(run.run_started_at ?? run.created_at ?? "");
   return !(Number.isFinite(started) && now - started > STALE_RUN_MS);
 }

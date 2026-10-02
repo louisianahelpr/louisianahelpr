@@ -95,7 +95,7 @@ export function resolveSha(ref) {
 function runsForSha(sha) {
   const runs = ghJson([
     "run", "list", "--commit", sha, "--limit", "100",
-    "--json", "databaseId,workflowName,conclusion,status,event,createdAt,url,headSha",
+    "--json", "databaseId,workflowName,displayTitle,conclusion,status,event,createdAt,url,headSha",
   ]);
   // gh's --commit filter is exact on headSha, but make the contract explicit.
   return runs.filter((r) => r.headSha === sha).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
@@ -117,6 +117,9 @@ export function evaluate(sha, runs, jobsFor = jobsForRun) {
   return REQUIRED_CHECKS.map((check) => {
     const mine = runs
       .filter((r) => r.workflowName === check.workflow)
+      // A main batch (scripts/ci/main-batch.mjs, 2026-10-02) is the anon tier by
+      // design; it must not supersede a full run of the same sha as "hollow".
+      .filter((r) => !String(r.displayTitle ?? "").includes("(main batch "))
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     const inFlight = mine.find((r) => r.status !== "completed");
     const done = mine.find((r) => r.status === "completed");

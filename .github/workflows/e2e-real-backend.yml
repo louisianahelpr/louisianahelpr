@@ -65,8 +65,9 @@ permissions:
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  # No pull_request trigger (owner, 2026-10-01): ~10 open PRs x ~13 workflows
+  # queued 147 runs behind GitHub's ~20-job cap. Runs on push to main instead.
+  # Guarded by src/test/prRunBudget.test.ts.
   schedule:
     # Mon, Wed, Fri, Sat 11:17 UTC. Sunday moved to Saturday: Sunday's morning is
     # prod-audit (01:17) then vacuity (07:17, worst case to 12:22). Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.

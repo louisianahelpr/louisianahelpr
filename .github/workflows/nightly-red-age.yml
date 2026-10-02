@@ -56,7 +56,9 @@ name: Nightly reds nobody read
 on:
   push:
     branches: [main]
-  pull_request:
+  # No pull_request trigger (owner, 2026-10-01): ~10 open PRs x ~13 workflows
+  # queued 147 runs behind GitHub's ~20-job cap. Runs on push to main instead.
+  # Guarded by src/test/prRunBudget.test.ts.
   workflow_dispatch:
   schedule:
     # 12:40 UTC — inside the 03:00-13:00 band the prod crons share, but this

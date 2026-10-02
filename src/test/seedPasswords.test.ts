@@ -1,3 +1,4 @@
+// @mutate scripts/audit/seedPasswords.mjs | if (secret && creating) { | if (false) {
 /**
  * prod-seed --apply must never (re)create a seed account that CI signs in by
  * password without setting that password (#1582: helpr-seed-incomplete-0912
@@ -51,9 +52,11 @@ describe("prod-seed CI-password accounts", () => {
     expect({ ...CI_PASSWORD_ACCOUNTS }).toEqual(fromWorkflows);
   });
 
-  it("refuses a CI-password account whose SEED_PASSWORD_<KEY> is unset", () => {
+  it("refuses to create a CI-password account whose SEED_PASSWORD_<KEY> is unset", () => {
     for (const key of Object.keys(CI_PASSWORD_ACCOUNTS)) {
-      expect(() => seedPasswordFor(key, {})).toThrow(/REFUSED: SEED_PASSWORD_/);
+      expect(() => seedPasswordFor(key, {}, { creating: true })).toThrow(/REFUSED: SEED_PASSWORD_/);
+      // An existing account is kept as is: prod-audit's CI --apply has no SEED_PASSWORD_*.
+      expect(seedPasswordFor(key, {})).toBeNull();
       expect(seedPasswordFor(key, { [`SEED_PASSWORD_${key.toUpperCase()}`]: "x".repeat(16) })).toBe("x".repeat(16));
     }
   });
@@ -64,7 +67,7 @@ describe("prod-seed CI-password accounts", () => {
 
   it("prod-seed resolves the password before it creates the auth user", () => {
     const fn = seedSrc.slice(seedSrc.indexOf("async function ensureOwnedAccount("));
-    const resolve = fn.indexOf("seedPasswordFor(key)");
+    const resolve = fn.indexOf("seedPasswordFor(key,");
     const create = fn.indexOf("/auth/v1/admin/users`");
     expect(resolve).toBeGreaterThan(-1);
     expect(create).toBeGreaterThan(resolve);

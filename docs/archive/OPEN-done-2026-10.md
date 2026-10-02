@@ -252,3 +252,77 @@ duplicate-number check).
 ## Archived 2026-10-02 — from "NEW — pre-existing, unrelated to crews: the review gate disagrees with itself"
 
 - [x] LOW can_review_job requires payment_status='released' but INSERT policy also allows payout_pending — Not reached for live re-verification; reported still open in doc — UI may hide a review control the DB would accept. (archive L6805) — DONE 2026-10-02 (risk not present, now guarded): measured live on prod (read-only SQL): the INSERT policy "Users can create reviews for eligible jobs" allows payment_status IN ('released','payout_pending'); the enforce_review_validity trigger checks status + roster but not payment_status; `public.can_review_job(uuid,uuid)` requires 'released' only, but its proacl is postgres + service_role only and no live function or policy references it, and src/ + supabase/functions mention it only in comments. Both UI gates already accept payout_pending: `src/pages/posts/postedJobCard/steps/CompletedStep.tsx:59` and `src/pages/jobs/AppliedJobCard.tsx:174`. So no review control is hidden. REPORT, not changed: can_review_job is dead legacy code that disagrees with the policy (drop or align is a separate decision). Layers read: live policy, trigger, function def + proacl, both UI gates. Nothing guarded the gate/policy agreement, so a new test reads the IN list from the newest migration creating the policy and asserts each gate offers exactly that set. Vacuity on 2026-10-02: 2/2 killed. GUARD: src/test/reviewGateMatchesInsertPolicy.test.ts.
+
+
+## Triaged 2026-10-02 — unnumbered OPEN.md lines removed as done, stale or duplicate
+
+Each line was an open checkbox with no Q number, so scripts/queue-count.mjs never counted it.
+Owner 2026-10-01: "if it's stale delete it". Reason and evidence first, then the original line.
+- REMOVED DUP OF Q8 (OPEN.md L845 at 1c0c781bf): the dead-export question is owned by the Q8 ratchet (src/test/deadcodeRatchet.test.ts + scripts/deadcode-baseline.json, both present on main).
+  Was: LOW Owner decision needed on removing 160 dead exports / 22 dead types — Report stands; owner has not yet decided whether to spend a pass verifying/removing the 160 exports + 22 types. (archive L20)
+- REMOVED DUP (OPEN.md L940 at 1c0c781bf): consolidated status row: gh issue #1618 and #1597 are CLOSED (measured 2026-10-02); the one live row (#1582, still OPEN) is kept as its own numbered item (line 1146 / 1260).
+  Was: MEDIUM Consolidated status table for #1618/#1582/#1597/#1618 — mostly fixed by 2026-09-22, two rows still open — Consolidated: #1618 fixed+verified; #1582 false-red fixed but real stall unmeasured; #1597(a) done, (b) fixed later (f148bb5c6), (c) still open (h-7 renders 29.6px); #1595 has 2 open defects (line 2124). (archive L1957)
+- REMOVED DUP (OPEN.md L962 at 1c0c781bf): section-summary line only; its sub-items are lines 963, 964 and 965, each kept as its own numbered item.
+  Was: LOW Section: OPEN, found in this lane, NOT fixed — Section holds 4 distinct unresolved sub-items from the Profile tab-gutter lane. (archive L2295)
+- REMOVED DONE (OPEN.md L1043 at 1c0c781bf): git ls-remote --heads origin 'wip/*' returns 0 branches (2026-10-02); Q150 [x] and Q747 [x] swept the remote branches.
+  Was: LOW Triage/dispose of 18 unmerged wip/ branches blocking the history rewrite — 12 of the original 18 wip/ branches still exist on origin, unmerged; some (wip/gift-card-rename, wip/helpr-naming-fixes, wip/combobox-terminal, wip/lexilombas-.lh-combobox-ws, wip/unplus-tier-removal-20260829, wip/postjob-doubletap-driver) appear to have been cleaned up since. (archive L3220)
+- REMOVED DUP (OPEN.md L1047 at 1c0c781bf): same item as line 1204 (migrate mocked Playwright specs to prod), kept there.
+  Was: LOW Migrate 36 mocked Playwright spec/helper files to drive prod — Mocked->prod Playwright migration still in progress; BASELINE debt register down from 36 to ~35 files. (archive L3235)
+- REMOVED DUP OF Q8 (OPEN.md L1051 at 1c0c781bf): surplus exports are tracked and ratcheted by Q8 (src/test/deadcodeRatchet.test.ts, scripts/deadcode-baseline.json).
+  Was: LOW 62 unused exports — drop surplus `export` keyword (cosmetic), one real dead file already cut — Bulk of the 62 over-exported symbols still carry their surplus `export` keyword; not cleaned up (cosmetic, low priority). (archive L3308)
+- REMOVED DUP (OPEN.md L1161 at 1c0c781bf): same item as line 1126 (error-state-sweep unproven, 272 tests), kept there.
+  Was: MEDIUM error-state-sweep is still unproven (272 tests) via supabaseResult.ts unwrap() mutation — error-state-sweep is still unproven (272 tests) via supabaseResult.ts unwrap() mutation (archive L5527)
+- REMOVED DUP (OPEN.md L1172 at 1c0c781bf): same item as line 1170 (iPad '0 jobs' header above cards), kept there.
+  Was: LOW iPad header reads '0 jobs' with seven cards rendered below — count/list disagree, spec still greenli — iPad header reads '0 jobs' with seven cards rendered below — count/list disagree, spec still greenlights it (see also 5548) (archive L5567)
+- REMOVED DUP (OPEN.md L1210 at 1c0c781bf): same item as line 1184 (/complete-profile never rendered by the sweep), kept there.
+  Was: LOW /complete-profile sweep screen needs a real incomplete-profile test account, not a mock rule — /complete-profile sweep screen needs a real incomplete-profile test account, not a mock rule (see also 5570) (archive L5621)
+- REMOVED DUP (OPEN.md L1214 at 1c0c781bf): same item as line 1202 (press-every-control MODE=prod, destructive presses only on test-owned records), kept there.
+  Was: LOW press-every-control full run: MODE=prod, destructive presses only on test-owned records — press-every-control full run: MODE=prod, destructive presses only on test-owned records (see also 5601) (archive L5625)
+- REMOVED STALE (OPEN.md L1250 at 1c0c781bf): names one 2026-09-13 run (34746217548); smoke/E2E health is now tracked by the nightly-red issues and the ops alert ledger.
+  Was: LOW E2E happy-path smoke 34746217548 red: dashboard axe contrast 3.75:1 + activity-card-density count mi — E2E happy-path smoke 34746217548 red: dashboard axe contrast 3.75:1 + activity-card-density count mismatch; e2e-real-backend cancelled, nigh (archive L5724)
+- REMOVED STALE (OPEN.md L1261 at 1c0c781bf): worktree cleanup is automatic now (.claude/hooks/git-hygiene.sh, npm run hygiene).
+  Was: LOW ~20 finished .claude/worktrees/agent-* worktrees: remove one at a time after confirming merged/pushe — ~20 finished .claude/worktrees/agent-* worktrees: remove one at a time after confirming merged/pushed (archive L5746)
+- REMOVED DUP (OPEN.md L1263 at 1c0c781bf): same item as line 1039 (git history rewrite of 322 MB dead media), kept there.
+  Was: LOW Git history rewrite (322 MB dead media) — only after every agent/terminal stopped — Git history rewrite (322 MB dead media) — only after every agent/terminal stopped (archive L5750)
+- REMOVED DUP OF Q747 (OPEN.md L1264 at 1c0c781bf): Q150 [x] (63 -> 11 remote branches) and Q747 [x] (remote-branch sweep 2026-09-26) resolved the kept branches.
+  Was: LOW 14 remote branches kept with unshipped work: resolve each (land/fold/record why abandoned) then dele — 14 remote branches kept with unshipped work: resolve each (land/fold/record why abandoned) then delete (archive L5753)
+- REMOVED DONE (OPEN.md L1266 at 1c0c781bf): gh secret list shows SLACK_WEBHOOK_URL (added 2026-09-14).
+  Was: LOW OWNER: create Slack Incoming Webhook, add as SLACK_WEBHOOK_URL secret — OWNER: create Slack Incoming Webhook, add as SLACK_WEBHOOK_URL secret (archive L5758)
+- REMOVED DUP OF Q266 (OPEN.md L1267 at 1c0c781bf): the line itself says scripts/storage-orphan-sweep.mjs covers it; Q266 [x] corrected the storage-orphan lines; the script is on main.
+  Was: LOW [Q266: covered by scripts/storage-orphan-sweep.mjs; only its latest log needs reading] Supabase storage audit: orphaned files in the 10 buckets (after the release proof; light prod reads — Supabase storage audit: orphaned files in the 10 buckets (after the release proof; light prod reads only) (archive L5761)
+- REMOVED DUP (OPEN.md L1269 at 1c0c781bf): same item as line 1202 (signed-in press-every-control full run on prod), kept there.
+  Was: LOW Signed-in press-every-control full run on prod (owner: run just before final re-check) — Signed-in press-every-control full run on prod (owner: run just before final re-check) (see also 5734) (archive L5765)
+- REMOVED DONE (OPEN.md L1270 at 1c0c781bf): the Supabase plan was measured as Pro on 2026-09-23 (memory free-tier-no-paid-upgrades.md, Q14 note).
+  Was: LOW Supabase Pro: owner will decide later (not before launch prep) — Supabase Pro: owner will decide later (not before launch prep) (archive L5766)
+- REMOVED STALE (OPEN.md L1276 at 1c0c781bf): 'after this push' check from 2026-09-13; each nightly's state is now tracked by its own nightly-red issue (gh issue list -l nightly-red).
+  Was: MEDIUM VERIFY after this push: first nightly of each switched workflow (journeys, journeys-webkit, prod-aud — VERIFY after this push: first nightly of each switched workflow (journeys, journeys-webkit, prod-audit, a11y-webkit-prod, e2e-real-backend, (archive L5788)
+- REMOVED DONE (OPEN.md L1278 at 1c0c781bf): scripts/check-vercel-usage.mjs is on main and VERCEL_TOKEN exists (gh secret list, 2026-09-15); Q720 [x] later removed the Vercel step by owner decision.
+  Was: LOW BUILT on branch vercel-usage-alert; VERCEL_TOKEN added; lead must land + dispatch to verify — BUILT on branch vercel-usage-alert; VERCEL_TOKEN added; lead must land + dispatch to verify (archive L5790)
+- REMOVED STALE (OPEN.md L1282 at 1c0c781bf): one-off re-check of the work landed 2026-09-13; superseded by the per-item verification every Q item now carries.
+  Was: MEDIUM LAST: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest — LAST: independent re-check by a different model (sonnet) of ALL work landed 2026-09-13 — full vitest, CI green per push, re-run each fix's o (archive L5809)
+- REMOVED DONE (OPEN.md L1322 at 1c0c781bf): decided by the owner: Q395 [x] and Q407 [x] (one review per crew member etc., 2026-09-25).
+  Was: LOW Crew jobs: review model undefined (one review per crew vs per member, tier weighting, blind-window timing) — Open, owner decision needed: crew review semantics (N reviews vs 1, tier weighting, blind-window close) undecided; blocks group jobs launch. (see also line 6801) (archive L6789) OWNER 2026-09-27 (pop-up): ONE REVIEW PER MEMBER. Tier weighting and blind-window timing still open. OWNER 2026-09-27 (pop-up, all three decided): all member reviews COUNT THE SAME (no tier weighting); blind window SAME AS SOLO jobs. Build to match.
+- REMOVED DONE (OPEN.md L1352 at 1c0c781bf): prod has 0 jobs whose id starts 4c44aa1b, c4d3df74 or 24dd5b6b (measured during this triage): the three rows are gone.
+  Was: LOW 3 cancelled, town-only, pre-flag jobs (4c44aa1b, c4d3df74, 24dd5b6b) are miscounted as real user data — Not independently reverified live; reported open, worth flipping/deleting before launch. (archive L7013)
+- REMOVED DONE (OPEN.md L1364 at 1c0c781bf): prod reviews table has 0 rows (measured during this triage), so no prefixed review remains.
+  Was: LOW 14 of 17 prod reviews carry leftover [SWEEP]/[E2E DO NOT ACCEPT]/SEED prefixes with no live writer remaining — Not independently reverified; reported as needing a one-off cleanup or the seed-flag flip. (archive L7055)
+- REMOVED DUP (OPEN.md L1406 at 1c0c781bf): same item as line 964 (Profile landing gutter vs its tabs), kept there.
+  Was: LOW Profile LANDING sits at a different gutter (x=145) than its own tabs (x=72) — Open: Profile landing gutter still differs from its tabs; deliberately not changed pending being named. (archive L7485)
+- REMOVED DUP (OPEN.md L1407 at 1c0c781bf): same item as line 965 (/jobs applied-card pitch unverified), kept there.
+  Was: LOW /jobs applied-card pitch unverified — both test accounts had zero live applications — Not reached — needs a live journey with a real applied-card to verify. (archive L7497)
+- REMOVED DONE (OPEN.md L1418 at 1c0c781bf): prod notification_logs and login_history rows whose user_id has no auth.users row: 0 and 0 (measured during this triage).
+  Was: HIGH **LIVE DEFECT #6**: 173 orphaned rows in prod, some carrying PII (notification_logs, login_history). OPEN, larger: live 2026-09-23 notification_logs has 1,935 rows whose user_id has no auth.users row, 1,888 still carrying recipient_email; ALL 1,888 emails match mailinator/seed/test/example (lead query) — test-account churn, not real users. login_history 482 orphans with ip_address; analytics_events 830. purge coverage for deleted TEST accounts is the gap.
+- REMOVED DUP OF Q734 (OPEN.md L1421 at 1c0c781bf): Q734 (open) is the same defect: charge-recurring-visits resolves the off-session card by email, not by the series' checkout payment method.
+  Was: HIGH **LATENT #5**: charge-recurring-visits charges an arbitrary saved card (resolves customer by email). Unchanged: still resolves the Stripe customer/card by email rather than the checkout-authorised method. (also: none found)
+- REMOVED DUP (OPEN.md L1441 at 1c0c781bf): same item as line 1219 (switch Stripe to live with stripe-sandbox-off.sh, launch day), kept there.
+  Was: HIGH **OWNER-ONLY #3**: Switch Stripe from test to live mode. Deliberately deferred to launch day per standing owner order; still open. (also: docs/OPEN.md launch checklist (stripe-sandbox-off.sh))
+- REMOVED DUP OF Q152 (OPEN.md L1442 at 1c0c781bf): Q152 (open, HIGH LAST STEP) is the TestFlight build.
+  Was: HIGH **OWNER-ONLY #4**: Native iOS rebuild + TestFlight for push/AppDelegate fix. Owner action; not reached for a fresh build in this check.
+- REMOVED DUP (OPEN.md L1445 at 1c0c781bf): same item as line 1225 (hide seed jobs publicly / seed cold start), kept there.
+  Was: HIGH **OWNER-ONLY #8**: Seed-job cold start — board is 100% fixture data. Still 0 real open jobs on the board; flip-the-switch decision remains unmade.
+- REMOVED DUP OF Q266 (OPEN.md L1446 at 1c0c781bf): the line itself says scripts/storage-orphan-sweep.mjs now does this; Q266 [x]; the script is on main.
+  Was: LOW **OWNER-ONLY #9** [Q266: scripts/storage-orphan-sweep.mjs now does this; read its latest log, e.g. docs/audit/storage-orphans-deleted-2026-09-14.log, before acting]: Purge three orphaned avatar storage objects. Not reached — no evidence of the one-off deletion having run.
+- REMOVED DUP OF Q149 (OPEN.md L1448 at 1c0c781bf): Q149 [x] 2026-09-23: leaked-password (HIBP) protection is ON.
+  Was: MEDIUM **OWNER-ONLY #11**: Enable HaveIBeenPwned in Supabase Auth (F-SEC-08). Owner dashboard action; unverifiable from repo, stays open. (also: TODO.md (F-SEC-08))
+- REMOVED DONE (OPEN.md L1453 at 1c0c781bf): prod platform_settings.feature_flags now holds only seed_purge_live and seed_jobs_hidden_publicly (measured during this triage); the 4 unread keys are gone.
+  Was: LOW **HYGIENE #11**: platform_settings.feature_flags carries 4 unread keys. All 4 keys still present in the live row and still unread by any code path. (also: src/components/admin/adminHealth/useConfigChecks.ts (warns))

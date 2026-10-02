@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
 const src = readFileSync(resolve(__dirname, "../../scripts/audit/prod-seed.mjs"), "utf8");
 
 function applicationsUpserts(): string[] {
-  const calls: string[] = [];
+  const found: string[] = [];
   let at = src.indexOf('upsert("applications"');
   while (at !== -1) {
     // Walk to the call's closing paren, balancing brackets.
@@ -34,10 +34,10 @@ function applicationsUpserts(): string[] {
         if (depth === 0) break;
       }
     }
-    calls.push(src.slice(at, end + 1));
+    found.push(src.slice(at, end + 1));
     at = src.indexOf('upsert("applications"', end);
   }
-  return calls;
+  return found;
 }
 
 describe("prod-seed applications upsert", () => {

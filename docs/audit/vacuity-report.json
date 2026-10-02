@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-02T15:42:30.863Z",
+  "generated": "2026-10-02T18:18:22.514Z",
   "guards": 1332,
   "registered": 1332,
   "unregistered": [],
@@ -43,13 +43,6 @@
       "file": "src/test/prodSeedGroupJobFixture.test.ts",
       "why": [
         "rows (literal declared in this file) is both input and oracle"
-      ]
-    },
-    {
-      "file": "src/test/seedApplicationsConflictKey.test.ts",
-      "why": [
-        "calls (literal declared in this file) is both input and oracle",
-        "calls (literal declared in this file) is both input and oracle"
       ]
     }
   ],

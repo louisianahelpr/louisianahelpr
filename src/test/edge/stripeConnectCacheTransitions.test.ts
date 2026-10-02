@@ -19,7 +19,8 @@
  *
  * @mutate supabase/functions/stripe-connect/index.ts | if (recentClears >= STALE_CLEAR_HOURLY_CAP) { | if (false) {
  * @mutate supabase/functions/stripe-connect/index.ts | if (countErr \|\| recentClears === null \|\| recentClears === undefined) { | if (countErr) {
- * @mutate supabase/functions/stripe-connect/index.ts | .eq("tags->>kind", STALE_CLEAR_KIND)\n      .gte("created_at", sinceIso); | .eq("tags->>kind", STALE_CLEAR_KIND);
+ * @mutate supabase/functions/stripe-connect/index.ts | .eq("tags->>origin", "server")\n      .gte("created_at", sinceIso); | .eq("tags->>origin", "server");
+ * @mutate supabase/functions/stripe-connect/index.ts | .eq("tags->>kind", STALE_CLEAR_KIND)\n      .eq("tags->>origin", "server") | .eq("tags->>kind", STALE_CLEAR_KIND)
  * @mutate supabase/functions/stripe-connect/index.ts | tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND }, | tags: { source: "stripe-connect" },
  * @mutate supabase/functions/stripe-connect/index.ts | oncePerDayKey: "stripe-connect-stale-clear-cap",\n      });\n      return "failed"; | oncePerDayKey: "stripe-connect-stale-clear-cap",\n      });
  * @mutate supabase/functions/stripe-connect/index.ts | if (check?.deleted === true) usable = false; |
@@ -126,6 +127,9 @@ describe("Q863 — stripe-connect stops clearing payout links after 5 in an hour
       expect.arrayContaining([
         { op: "eq", column: "tags->>source", value: "stripe-connect" },
         { op: "eq", column: "tags->>kind", value: "stale-clear" },
+        // Client rows keep their own source/kind; only the trigger-stamped
+        // server origin cannot be forged (lh-money-escrow review, 2026-10-02).
+        { op: "eq", column: "tags->>origin", value: "server" },
         expect.objectContaining({ op: "gte", column: "created_at" }),
       ]),
     );

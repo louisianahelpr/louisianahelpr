@@ -1,5 +1,7 @@
 // @mutate scripts/land.sh |     src/test/deadcodeRatchet.test.ts \ |     \
 // @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   git push --no-verify origin HEAD:main
+// @mutate scripts/land.sh |     if [ "$MSS" = BEHIND ] \|\| [ "$MSS" = DIRTY ]; then |     if [ "$MSS" = BEHIND ]; then
+// @mutate scripts/land.sh |   if git log --format=%s origin/main..HEAD \| grep -qxF "$REFRESH_SUBJECT"; then |   if false; then
 // @mutate .github/workflows/vacuity.yml |       - "LICENSE"\n  schedule: |       - "LICENSE"\n  pull_request:\n    branches: [main]\n  schedule:
 // @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }} | VACUITY_PUSH_BEFORE: ""
 // @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and | requires Vitest, Test, Vacuity and
@@ -66,6 +68,18 @@ describe("landing path (Q44)", () => {
   it("land.sh never pushes straight to main", () => {
     expect(code).not.toMatch(/git push[^\n]*HEAD:main/);
     expect(code).toMatch(/gh pr merge "\$BR" --rebase --auto/);
+  });
+
+  it("land.sh rebases again when its PR conflicts, dropping its own refresh commits first", () => {
+    // 2026-10-03: #2210 and #2211 went DIRTY the moment #2212 merged (all three
+    // regenerate the same docs). With strict off, main moving shows as DIRTY,
+    // not BEHIND, so the wait loop sat on them; each needed a hand
+    // `git rebase --skip` of its refresh commit and a re-run.
+    expect(code).toMatch(/if \[ "\$MSS" = BEHIND \] \|\| \[ "\$MSS" = DIRTY \]; then/);
+    expect(code).toMatch(/if git log --format=%s origin\/main\.\.HEAD \| grep -qxF "\$REFRESH_SUBJECT"; then/);
+    expect(code).toMatch(/GIT_SEQUENCE_EDITOR="sed -E -i\.land-bak -e '\/\^\(pick\|p\) \[0-9a-f\]\+ \(# \)\?\$REFRESH_SUBJECT/);
+    expect(code).toContain('REFRESH_SUBJECT="chore: refresh generated inventories"');
+    expect(code).toContain('-m "chore: refresh generated inventories');
   });
 
   it("land.sh closes any open land PR its HEAD supersedes", () => {

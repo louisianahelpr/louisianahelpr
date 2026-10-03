@@ -18,8 +18,9 @@
 # it is this worktree's own branch), open a PR if none is open, turn on
 # auto-merge with REBASE (not squash: a squash rewrites the messages and drops
 # per-commit Sensitive-Review trailers), then wait. Strict is off, but the
-# script still keeps the branch current: when main moves first (BEHIND) it
-# loops: fetch, rebase, refresh, re-run the guards, force-push. A failed check
+# script still keeps the branch current: when main moves first (BEHIND, or
+# DIRTY because another landing regenerated the same files) it loops: fetch,
+# rebase, refresh, re-run the guards, force-push. A failed check
 # stops the script red with the check names. The work is landed only when the
 # PR shows MERGED.
 #
@@ -66,7 +67,26 @@ attempt=0
 while :; do
   attempt=$((attempt + 1))
   git fetch -q origin main
-  git rebase -q origin/main
+
+  # This script's own earlier refresh commits are dropped before the rebase:
+  # the refresh below regenerates them from the rebased tree anyway, and they
+  # are what conflicts when another landing regenerated the same files first
+  # (2026-10-03: #2210 and #2211 went DIRTY the moment #2212 merged, and each
+  # took a hand `git rebase --skip` and a re-run). Guard: landingPath.test.ts.
+  REFRESH_SUBJECT="chore: refresh generated inventories"
+  if git log --format=%s origin/main..HEAD | grep -qxF "$REFRESH_SUBJECT"; then
+    if ! git log --format=%s origin/main..HEAD | grep -qvxF "$REFRESH_SUBJECT"; then
+      echo "land: nothing to land but earlier refresh commits; reset to origin/main." >&2
+      exit 1
+    fi
+    REBASE=(env GIT_SEQUENCE_EDITOR="sed -E -i.land-bak -e '/^(pick|p) [0-9a-f]+ (# )?$REFRESH_SUBJECT\$/d'" git -c rebase.instructionFormat=%s rebase -q -i origin/main)
+  else
+    REBASE=(git rebase -q origin/main)
+  fi
+  if ! "${REBASE[@]}"; then
+    echo "land: the rebase onto origin/main stopped on a conflict in this branch's own work; resolve it (git status), then re-run bash scripts/land.sh." >&2
+    exit 1
+  fi
 
   # Queue numbers are taken from each lane's own base, so two lanes file the
   # same Q (Q743, Q904/Q905, Q909-Q914 collided 2026-09-30..10-01). After the
@@ -195,8 +215,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
       echo "land: fix, commit, and re-run bash scripts/land.sh." >&2
       exit 1
     fi
-    if [ "$(echo "$INFO" | jq -r .mergeStateStatus)" = BEHIND ]; then
-      echo "land: main moved; rebasing $BR again."
+    # Strict is off, so main moving shows as DIRTY (a conflict, usually the
+    # generated files another landing refreshed), almost never BEHIND; both
+    # go back to the rebase instead of waiting out the 90 minutes.
+    MSS=$(echo "$INFO" | jq -r .mergeStateStatus)
+    if [ "$MSS" = BEHIND ] || [ "$MSS" = DIRTY ]; then
+      echo "land: main moved ($MSS); rebasing $BR again."
       break
     fi
     if [ "$waited" -ge 90 ]; then

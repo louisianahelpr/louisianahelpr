@@ -1,28 +1,12 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-02T19:04Z",
+  "measured_at": "2026-10-03T04:29Z",
   "issues": {
     "readable": true,
     "open": [
       {
-        "number": 1582,
-        "title": "nightly-red: press-every-control"
-      },
-      {
-        "number": 1654,
-        "title": "nightly-red: loading-states-refresh"
-      },
-      {
-        "number": 1719,
-        "title": "nightly-red: e2e-journeys"
-      },
-      {
-        "number": 1754,
-        "title": "nightly-red: prod-audit"
-      },
-      {
-        "number": 2121,
-        "title": "nightly-red: staleness-watch"
+        "number": 2166,
+        "title": "nightly-red: main: Sensitive review record"
       }
     ]
   },
@@ -43,7 +27,15 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: press-every-control",
-        "issue": 1582
+        "issue": 2153
+      },
+      {
+        "fingerprint": "37cccbe58bb354c6d7a1a80e77bd1711",
+        "source_kind": "workflow",
+        "source": "ops-alert-ledger",
+        "status": "open",
+        "title": "sentry alerts are not synced into the ops alert ledger",
+        "issue": null
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -59,23 +51,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
-        "issue": 1654
-      },
-      {
-        "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: vacuity",
-        "issue": 2118
-      },
-      {
-        "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-journeys",
-        "issue": 1719
+        "issue": 2149
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -91,7 +67,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: sensitive review record",
-        "issue": 2112
+        "issue": 2166
       },
       {
         "fingerprint": "0cc83c6bc20bc0e007e1ce4a5aee88e1",
@@ -107,6 +83,22 @@
         "source": "cron-http",
         "status": "open",
         "title": "cron http timeout: backfill-job-geocode returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
+        "issue": null
+      },
+      {
+        "fingerprint": "51722889b9d8493b0255c139cc38f227",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/home · error screen shown: we couldn't load jobs.",
+        "issue": null
+      },
+      {
+        "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
+        "source_kind": "workflow",
+        "source": "uptime",
+        "status": "open",
+        "title": "guest marketplace is empty: no funded jobs (pre-launch)",
         "issue": null
       }
     ]
@@ -131,10 +123,14 @@
     "issue #2036": "Q906",
     "issue #2054": "Q788",
     "issue #2121": "Q787",
+    "issue #2166": "Q906",
     "ledger 0cc83c6bc20b": "Q887",
+    "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
     "ledger 2a49e28947cb": "Q916",
+    "ledger 37cccbe58bb3": "Q1132",
     "ledger 43d77e26f272": "Q784",
+    "ledger 51722889b9d8": "Q1133",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
     "ledger 7e141f206640": "Q783",

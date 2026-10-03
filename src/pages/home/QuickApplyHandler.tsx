@@ -261,9 +261,13 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHa
     })();
 
     return () => { cancelled = true; };
-    // `goToOwnPost` and `navigate` are both stable (a useCallback over router
-    // `navigate`, and `navigate` itself), so listing them does not widen when
-    // this effect re-fires — it only keeps exhaustive-deps honest.
+    // `goToOwnPost` and `navigate` are listed to keep exhaustive-deps honest,
+    // NOT because they are stable. App.tsx mounts a plain <BrowserRouter>, so
+    // `useNavigate()` is react-router's `useNavigateUnstable`, whose
+    // useCallback lists `locationPathname` (react-router 7.18.4): `navigate`
+    // changes identity whenever the pathname changes, and `goToOwnPost` with
+    // it. A re-run is a no-op (`handledRef`), and a pathname change mid-fetch
+    // means the user left, so the cleanup's cancel is the right outcome.
   }, [quickApplyId, userId, goToOwnPost, navigate]);
 
   return null;

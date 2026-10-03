@@ -6,9 +6,12 @@
  * `captureJobRef` writes the token to sessionStorage once on page load.
  *
  * This is purely a client-side signal — no DB column, no migration.
- * Use `readJobRef()` to pull the last-seen ref for analytics callbacks
- * (e.g. when the user applies, we can tag the application with its
- * source in the analytics event payload).
+ *
+ * There is NO reader. This module exports only `captureJobRef` (and its type);
+ * a `readJobRef()` was described here for a long time but never existed, and
+ * nothing reads the sessionStorage key back, so the write below is currently
+ * dead. `useJobRef()` consumes captureJobRef's RETURN value instead. Tagging
+ * an application with its source would still need that reader to be written.
  *
  * Token registry — add new surfaces here as the app grows:
  *   "msg"   — opened from a message thread job-context header

@@ -167,8 +167,10 @@ function recencyScore(createdAt: string | null | undefined, now: number): number
 
 /**
  * Log-scaled budget component. log10(budget+1) keeps the gap between $20
- * and $100 meaningful (~0.4 vs ~0.7) while compressing $50 vs $5000 from
- * 100x down to ~2.2x. Negative / zero budgets collapse to 0.
+ * and $100 meaningful (1.32 vs 2.00, a step of ~0.68 — the figure quoted in
+ * the weighting note above) while compressing $50 vs $5000 from 100x down to
+ * ~2.2x. The sum is unnormalized, so these are the raw contributions.
+ * Negative / zero budgets collapse to 0.
  */
 function budgetScore(budget: number | null | undefined): number {
   if (typeof budget !== "number" || !Number.isFinite(budget) || budget <= 0) return 0;

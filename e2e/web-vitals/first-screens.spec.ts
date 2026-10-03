@@ -198,6 +198,7 @@ test("every first screen: FCP/LCP in the GOOD band (or its KNOWN ceiling), CLS <
   await test.info().attach("web-vitals.json", { body: JSON.stringify(results, null, 2), contentType: "application/json" });
 
   const fails: string[] = [];
+  const stale: string[] = [];
   for (const [key, r] of Object.entries(results)) {
     const path = key.split(" ")[1];
     // A load that landed elsewhere measured a different page.
@@ -213,16 +214,17 @@ test("every first screen: FCP/LCP in the GOOD band (or its KNOWN ceiling), CLS <
       } else if (v > known.ceiling) {
         fails.push(`${key} ${metric}: ${v} ms > its KNOWN ceiling ${known.ceiling} (measured ${known.measured} when set): REGRESSION`);
       } else if (v <= bars[metric]) {
-        fails.push(`${key} ${metric}: ${v} ms is inside GOOD (${bars[metric]}): delete its KNOWN entry`);
+        stale.push(`${key} ${metric}: ${v} ms is inside GOOD (${bars[metric]}): delete its KNOWN entry`);
       } else if (v < known.ceiling * CEILING_STALE) {
-        fails.push(`${key} ${metric}: ${v} ms is far under its KNOWN ceiling ${known.ceiling}: lower it to ~${Math.round(v * 1.08)}`);
+        stale.push(`${key} ${metric}: ${v} ms is far under its KNOWN ceiling ${known.ceiling}: lower it to ~${Math.round(v * 1.08)}`);
       }
     }
   }
   for (const k of Object.keys(KNOWN)) {
-    if (!results[k.split(" ").slice(0, 2).join(" ")]) fails.push(`KNOWN ${k}: no such first screen any more: delete it`);
+    if (!results[k.split(" ").slice(0, 2).join(" ")]) stale.push(`KNOWN ${k}: no such first screen any more: delete it`);
   }
   expect(fails, "first screens outside their lab budget").toEqual([]);
+  expect(stale, "KNOWN entries now inside GOOD or far under their ceiling: delete or lower them").toEqual([]);
 });
 
 test("a tap never leads to a jump: walk the dock / rail, per-tap CLS < 0.02, session CLS <= 0.1", async ({ browser, request }) => {

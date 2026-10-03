@@ -95,7 +95,10 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
       for (const s of Object.values(METERED_SCRIPTS)) if (s.invoke.test(code)) labels.add(s.label);
       for (const label of labels) {
         const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const step = new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)*(?: \\$\\{(?:GREP:\\+--ceiling-only|SCENARIO:\\+--ceiling-only --allow-empty)\\})?\\s*$`, "m");
+        // `${GREP:+--ceiling-only --allow-empty}`: a grep dispatch of a job that
+        // runs two projects (prod-audit + web-vitals, Q1158) may run none of
+        // one project's tests, so that label may be empty on such a run.
+        const step = new RegExp(`run: node scripts/e2e/request-budget\\.mjs --label ${esc}(?: --dir \\S+)*(?: \\$\\{(?:GREP:\\+--ceiling-only(?: --allow-empty)?|SCENARIO:\\+--ceiling-only --allow-empty)\\})?\\s*$`, "m");
         // A leg job (press-every-control since 2026-10-01) is judged by the
         // whole-run budget step of a job that `needs:` it and reads the
         // per-shard request logs with --dir.

@@ -16,7 +16,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { EarningsBreakdownCharts } from "@/components/profile/EarningsBreakdownCharts";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
-import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
+import { EarningsPageSkeleton, EarningsPayoutSetupSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { HelperStreakBadge, useHelperStreak } from "@/components/profile/HelperStreakBadge";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
@@ -339,6 +339,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       {!stripeLoading && !stripeError && !stripeData?.connected && (
         <div hidden={!pageReady}>{payoutSection}</div>
       )}
+      {/* DATA-AWARE placeholder for that block (owner, 2026-10-03): no Stripe
+          account on the profile row means the connect card IS coming, so its
+          shape holds the slot until the page is ready. */}
+      {!pageReady && !profile?.stripe_account_id && <EarningsPayoutSetupSkeleton />}
 
       {/* 1099-K banner — appears once YTD payouts cross the federal gross
           threshold (FORM_1099K_GROSS_THRESHOLD_DOLLARS). Quiet, dismissible

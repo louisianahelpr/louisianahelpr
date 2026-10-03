@@ -1,4 +1,5 @@
 import { serve } from "../_shared/buildStamp.ts";
+import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { safeReturnUrl } from "../_shared/appUrl.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -205,6 +206,10 @@ serve(async (req) => {
         status: 401,
       });
     }
+    // Q837: an unconfirmed-email caller is refused here, as Q807 refuses at
+    // the table (that gate cannot see the caller behind a service-role write).
+    const unconfirmedEmail = refuseUnconfirmedEmail(user, corsHeaders);
+    if (unconfirmedEmail) return unconfirmedEmail;
 
     callerId = user.id;
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {

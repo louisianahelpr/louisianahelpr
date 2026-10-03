@@ -143,6 +143,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/publicError.ts";`,
   );
 
+  // Confirmed-email gate (Q837): `_shared/requireConfirmedEmail.ts` has ZERO
+  // imports. Point at the real module so every gated function's tests run the
+  // real 403 rule against the mock's user.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/requireConfirmedEmail\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/requireConfirmedEmail.ts";`,
+  );
+
   // Function-to-function fetch: `_shared/functionFetch.ts` has ZERO imports and
   // calls the global `fetch` at call time, so the real module still hits each
   // test's stubbed fetch while its trace-limit retry stays exercised.

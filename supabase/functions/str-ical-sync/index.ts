@@ -18,6 +18,7 @@
  */
 
 import { serve } from "../_shared/buildStamp.ts";
+import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts';
@@ -127,6 +128,10 @@ serve(async (req) => {
     )
     const { data: { user }, error: authError } = await userClient.auth.getUser()
     if (authError || !user) return errorResponse('Unauthorized', 401, corsHeaders);
+    // Q837: an unconfirmed-email caller is refused here, as Q807 refuses at
+    // the table (that gate cannot see the caller behind a service-role write).
+    const unconfirmedEmail = refuseUnconfirmedEmail(user, corsHeaders);
+    if (unconfirmedEmail) return unconfirmedEmail;
     callerUserId = user.id
   }
 

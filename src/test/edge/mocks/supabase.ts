@@ -107,7 +107,8 @@ export interface TableResult {
  * reads resolve to. `updates`/`inserts` capture writes for assertions.
  */
 export interface SupabaseScenario {
-  authUser?: { id: string; email?: string } | null;
+  /** The verified caller. Confirmed unless `email_confirmed_at` is given (null = unconfirmed, Q837). */
+  authUser?: { id: string; email?: string; email_confirmed_at?: string | null } | null;
   authError?: { message: string } | null;
   /**
    * auth.admin.getUserById(id) lookups, keyed by user id. Absent id → returns
@@ -671,7 +672,11 @@ export function createClient(
     storage: { from: (bucket: string) => storageBucket(bucket) },
     auth: {
       getUser: vi.fn(async () => ({
-        data: { user: scenario.authUser ?? null },
+        // A confirmed user unless the test says otherwise, the common prod case
+        // (as getUserById below): a gated function refuses an unconfirmed one (Q837).
+        data: {
+          user: scenario.authUser ? { email_confirmed_at: "2026-01-01T00:00:00.000Z", ...scenario.authUser } : null,
+        },
         error: scenario.authError,
       })),
       admin: {

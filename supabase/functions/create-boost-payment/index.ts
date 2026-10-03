@@ -1,4 +1,5 @@
 import { serve } from "../_shared/buildStamp.ts";
+import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
@@ -125,6 +126,10 @@ serve(async (req) => {
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) return fail(401, "Your session expired — sign in again to boost.");
+    // Q837: an unconfirmed-email caller is refused here, as Q807 refuses at
+    // the table (that gate cannot see the caller behind a service-role write).
+    const unconfirmedEmail = refuseUnconfirmedEmail(user, corsHeaders);
+    if (unconfirmedEmail) return unconfirmedEmail;
 
     const rawBody = await req.json().catch(() => ({}));
     const { job_id } = rawBody;

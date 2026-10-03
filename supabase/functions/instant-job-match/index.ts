@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { serve } from "../_shared/buildStamp.ts";
@@ -56,6 +57,10 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      // Q837: an unconfirmed-email caller is refused here, as Q807 refuses at
+      // the table (that gate cannot see the caller behind a service-role write).
+      const unconfirmedEmail = refuseUnconfirmedEmail(userData?.user, corsHeaders);
+      if (unconfirmedEmail) return unconfirmedEmail;
     }
 
     const { jobId } = await req.json();

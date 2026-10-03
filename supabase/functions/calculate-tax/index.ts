@@ -1,4 +1,5 @@
 import { serve } from "../_shared/buildStamp.ts";
+import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse, errorResponse } from "../_shared/cors.ts";
@@ -74,6 +75,10 @@ serve(async (req: Request) => {
   if (authError || !authData?.user) {
     return errorResponse("Not authenticated", 401, corsHeaders);
   }
+  // Q837: an unconfirmed-email caller is refused here, as Q807 refuses at
+  // the table (that gate cannot see the caller behind a service-role write).
+  const unconfirmedEmail = refuseUnconfirmedEmail(authData.user, corsHeaders);
+  if (unconfirmedEmail) return unconfirmedEmail;
 
   try {
     const key = Deno.env.get("STRIPE_SECRET_KEY");

@@ -193,9 +193,18 @@ export function sanitizeHeaderValue(input: unknown, max = 200): string {
  * five retries and land in the DLQ instead of being delivered.
  */
 export function htmlToPlainText(html: string): string {
-  return html
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, "")
+  const replaceUntilStable = (input: string, pattern: RegExp, replacement = ""): string => {
+    let current = input;
+    while (true) {
+      const next = current.replace(pattern, replacement);
+      if (next === current) return current;
+      current = next;
+    }
+  };
+  return replaceUntilStable(
+    replaceUntilStable(html, /<!--[\s\S]*?(?:--!?>)/gi),
+    /<(style|script)\b[\s\S]*?<\/\1\s*>/gi,
+  )
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
     .replace(/<[^>]+>/g, "")

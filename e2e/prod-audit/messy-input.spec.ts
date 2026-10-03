@@ -738,7 +738,7 @@ test.describe("explore dialog-gated forms from real records", () => {
       };
       const press = async (scope: Locator, name: string) => {
         const b = scope.locator('button, [role="button"], [role="menuitem"]').filter({ visible: true }).filter({ hasText: name }).first();
-        const byLabel = scope.locator(`[aria-label="${name.replace(/"/g, '\\"')}"]`).filter({ visible: true }).first();
+        const byLabel = scope.locator(`[aria-label="${name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"]`).filter({ visible: true }).first();
         const target = (await b.count()) ? b : byLabel;
         if (!(await target.isEnabled().catch(() => false))) return false;
         return target.click({ timeout: 2_000 }).then(() => true).catch(() => false);

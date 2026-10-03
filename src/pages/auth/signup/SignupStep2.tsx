@@ -50,6 +50,15 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
+function isBlobPreviewUrl(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    return new URL(url).protocol === "blob:";
+  } catch {
+    return false;
+  }
+}
+
 export interface SignupStep2Props {
   avatarPreview: string | null;
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -180,7 +189,7 @@ export function SignupStep2(props: SignupStep2Props) {
                   "0 8px 20px -10px hsl(var(--bark) / 0.35)",
               }}
             >
-              {avatarPreview && avatarPreview.startsWith("blob:") ? (
+              {isBlobPreviewUrl(avatarPreview) ? (
                 <img loading="lazy" decoding="async" src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <UserRound className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />

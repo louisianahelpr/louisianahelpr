@@ -2,6 +2,7 @@
 // @mutate scripts/uptime-check.mjs | const status = !down ? "up" : onlyEmpty && EMPTY_IS_WARNING_BEFORE_LAUNCH ? "empty" : "down"; | const status = !down ? "up" : "down";
 // @mutate scripts/uptime-check.mjs |         return { name, ok: false, empty: true, ms, detail: | return { name, ok: true, ms, detail:
 // @mutate .github/workflows/uptime.yml |         if: steps.probe.outputs.status == 'empty' |         if: steps.probe.outputs.status == 'never'
+// @mutate scripts/uptime-check.mjs | detail: why ? `HTTP ${res.status}: ${why}` : `HTTP ${res.status}` | detail: `HTTP ${res.status}`
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { createServer, type Server } from "node:http";
@@ -107,6 +108,14 @@ describe("uptime-check.mjs: three verdicts", () => {
     site = { status: 200, body: "<html></html>" };
     db = { status: 500, body: '{"message":"boom"}' };
     expect((await verdict()).status).toBe("down");
+  });
+
+  it("a refused read names its cause, not just its status", async () => {
+    site = { status: 200, body: "<html></html>" };
+    db = { status: 401, body: '{"code":"42501","message":"permission denied for table jobs"}' };
+    const v = await verdict();
+    expect(v.status).toBe("down");
+    expect(v.summary).toMatch(/HTTP 401: .*permission denied for table jobs/);
   });
 
   it("a dead site with an empty database is still an outage: down", async () => {

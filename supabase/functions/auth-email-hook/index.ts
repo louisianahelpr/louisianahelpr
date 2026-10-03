@@ -14,6 +14,7 @@ import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { kickEmailQueue } from '../_shared/kick-email-queue.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
+import { carriesStandardWebhookHeaders } from "../_shared/standardWebhookHeaders.ts";
 
 // ED-002: every failure branch here blocks a signup confirmation, password
 // reset or magic link. One user sees an error; a SYSTEMIC failure (secret
@@ -176,13 +177,23 @@ async function handleWebhook(req: Request): Promise<Response> {
     'webhook-signature': req.headers.get('webhook-signature') || '',
   }
 
+  // Auth signs every call. One without the signing headers is a stranger on
+  // the public URL (a scanner's GET raised the only "bad signature" page of
+  // 2026-10-02), not a stale secret: refuse it without paging anyone.
+  if (!carriesStandardWebhookHeaders((name) => req.headers.get(name))) {
+    console.warn('auth-email-hook: unsigned request refused', { method: req.method })
+    return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   let payload: any
   try {
     const wh = new Webhook(secretValue)
     payload = wh.verify(rawBody, headers)
   } catch (error) {
     console.error('Webhook signature verification failed', { error: error instanceof Error ? error.message : String(error) })
-    await alertAuthEmail('bad signature', 'warning', 'A call failed signature verification. One is noise; many mean SEND_EMAIL_HOOK_SECRET no longer matches the Auth hook setting.')
+    await alertAuthEmail('bad signature', 'warning', 'A SIGNED call failed verification (unsigned probes are refused before this). The usual cause is SEND_EMAIL_HOOK_SECRET no longer matching the Auth hook setting; otherwise a replayed or forged call.')
     return new Response(JSON.stringify({ error: 'Invalid signature' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

@@ -43,7 +43,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: read
+  # write: cancelled-prod-load-runs.mjs --redispatch re-dispatches a lost
+  # scheduled check (#2196). Nothing else here writes to Actions.
+  actions: write
   contents: read
   issues: write
 
@@ -154,8 +156,11 @@ jobs:
               # A schedule added less than its budget ago has not had its first
               # chance to fire (scoreboard.yml, 2026-09-23: added 06:07Z, first
               # slot 19:17Z, reported red at 15:28Z). Age of the schedule = the
-              # first commit that added a `cron:` line to this file.
-              ADDED=$(git log --reverse --format=%ct -S "cron:" -- ".github/workflows/$FILE" | head -1)
+              # start of the file's CURRENT unbroken stretch with an active
+              # cron, not the first cron it ever had: eslint.yml's May 2026 copy
+              # (deleted 2 days later) made its 2026-10-03 schedule read 147
+              # days old (#2196). src/test/scheduleHeartbeatGrace.test.ts.
+              ADDED=$(node scripts/ci/schedule-added-at.mjs ".github/workflows/$FILE")
               if [ -n "$ADDED" ] && [ $(( (NOW - ADDED) / 86400 )) -lt "$MAX_DAYS" ]; then
                 echo "| \`$FILE\` | active | _not yet due_ | ⏳ schedule added $(( (NOW - ADDED) / 3600 ))h ago |" >> /tmp/rows.md
                 continue
@@ -215,9 +220,13 @@ jobs:
           # filed and the staleness rule above still sees "a scheduled run".
           # Measured 2026-09-27: 5 such runs in 7 days (e2e-journeys,
           # expiry-monitor, prod-audit, quota-monitor, vacuity), none reported.
-          # Every such run in the last 8 days counts here. Exit 2 (unread
-          # runs) fails this step: not checked is not clean.
-          node scripts/ci/cancelled-prod-load-runs.mjs > /tmp/cancelled.txt
+          # A person cancelling a queued scheduled run loses it the same way
+          # (expiry-monitor 2026-10-02 and 2026-10-03, bulk queue clears).
+          # --redispatch (#2196): each lost check is dispatched ONCE, with the
+          # inputs that reproduce its schedule, and shown as ⏳; only a run
+          # whose re-dispatch was cancelled too, or failed, counts here.
+          # Exit 2 (unread runs) fails this step: not checked is not clean.
+          node scripts/ci/cancelled-prod-load-runs.mjs --redispatch > /tmp/cancelled.txt
           CANCELLED=$(sed -n 's/^cancelled=//p' /tmp/cancelled.txt)
           if [ -z "$CANCELLED" ]; then
             echo "::error::cancelled-prod-load-runs.mjs printed no count"
@@ -242,7 +251,7 @@ jobs:
             echo "**Likely causes, in order:**"
             echo "- GitHub disables \`schedule\` triggers on repos with **60 days of no activity** and does not re-enable them. Re-enable with \`gh workflow enable <file>\`."
             echo "- The workflow was disabled by hand (\`gh workflow list --all\` shows \`disabled_manually\`). This is what happened to \`test.yml\`, which everyone believed was gating commits while it had not run since 2026-04-26."
-            echo "- **cancelled** rows: a scheduled prod-load run was cancelled while pending (GitHub keeps one pending run per concurrency group), so none of its jobs ran and nothing was reported. Re-dispatch it (\`gh workflow run <file>\`) and find what crowded the prod-load group."
+            echo "- **cancelled** rows: a scheduled prod-load run was cancelled before it reported (the row says how: it lost the prod-load group's one pending slot, or a person cancelled it), and its one automatic re-dispatch was cancelled too or failed. Read that re-dispatch, then find what keeps cancelling it. A bulk cancel of the runner queue must skip \`schedule\` runs."
             echo "- The \`schedule:\` block was commented out in the file but left in this workflow's \`WATCHED\` list."
             echo ""
             echo "_Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_"

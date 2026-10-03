@@ -1,5 +1,5 @@
-// @mutate scripts/open-done-when.mjs | if (!nightly) return { ok: true, note: `issue #${n} is CLOSED` }; | if (true) return { ok: true, note: `issue #${n} is CLOSED` };
-// @mutate scripts/open-done-when.mjs | return issueMarkerHolds(issue, handClosedNightly ? nightlyRunsFor(issue.title) : null); | return { ok: String(issue.state) === "closed", note: "" };
+// @mutate scripts/open-done-when.mjs | if (!alert) return { ok: true, note: `issue #${n} is CLOSED` }; | if (true) return { ok: true, note: `issue #${n} is CLOSED` };
+// @mutate scripts/open-done-when.mjs | return issueMarkerHolds(issue, handClosedAlert ? nightlyRunsFor(issue) : null); | return { ok: String(issue.state) === "closed", note: "" };
 /*
  * A done-when `issue #N closed` marker on a NIGHTLY-RED issue holds only when
  * the workflow's own green run closed it, or, if a person closed it, when that
@@ -42,8 +42,17 @@ describe("done-when issue markers: a hand-closed nightly-red issue is not eviden
     expect(issueMarkerHolds(issue({}), [run("2026-10-03T11:20:00Z", "schedule", "failure"), run("2026-10-03T06:00:00Z", "workflow_dispatch")]).ok).toBe(false);
   });
 
-  it("an issue that is not nightly-red: closed is closed, whoever closed it", () => {
+  it("an issue that is not an alert: closed is closed, whoever closed it", () => {
     expect(issueMarkerHolds(issue({ labels: [{ name: "owner-question" }] }), null).ok).toBe(true);
+  });
+
+  it("every alert label follows the rule, not only nightly-red (schedule-stalled #2196)", () => {
+    const stalled = (over: Record<string, unknown>) =>
+      issue({ number: 2196, title: "🔴 3 scheduled workflow(s) have stopped running", labels: [{ name: "schedule-stalled" }], ...over });
+    expect(issueMarkerHolds(stalled({ closed_by: { login: "github-actions[bot]" } }), null).ok).toBe(true);
+    expect(issueMarkerHolds(stalled({}), null).ok).toBe(false);
+    expect(issueMarkerHolds(stalled({}), [run("2026-10-03T16:30:00Z", "workflow_dispatch")]).ok).toBe(true);
+    expect(issueMarkerHolds(stalled({}), [run("2026-10-03T16:30:00Z", "schedule", "failure")]).ok).toBe(false);
   });
 
   it("the checker evaluates every issue marker through that rule, with the issue's closed_by and labels", () => {
@@ -52,6 +61,6 @@ describe("done-when issue markers: a hand-closed nightly-red issue is not eviden
     expect(i, "the issue-marker branch is gone").toBeGreaterThan(0);
     const branch = src.slice(i, i + 700);
     expect(branch).toMatch(/gh", \["api", `repos\/\{owner\}\/\{repo\}\/issues\/\$\{mk\.number\}`\]/);
-    expect(branch).toMatch(/return issueMarkerHolds\(issue, handClosedNightly \? nightlyRunsFor\(issue\.title\) : null\);/);
+    expect(branch).toMatch(/return issueMarkerHolds\(issue, handClosedAlert \? nightlyRunsFor\(issue\) : null\);/);
   });
 });

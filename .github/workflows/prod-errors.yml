@@ -121,7 +121,8 @@ jobs:
           fi
 
   # Ops alert ledger (docs/OPEN.md Q1). Same hourly slot, no new cron: pull the
-  # open nightly-red / prod-down / prod-errors / supabase-usage issues and
+  # open issues under every alert label (nightly-red, schedule-stalled, ...:
+  # scripts/lib/alertIssueLabels.mjs) and
   # Sentry into public.ops_alert_ledger, close only what its own detector has
   # re-run and shown cleared (a bot-closed issue, a green run after the last
   # alert, or ops_alert_verify() re-asking a SQL condition), and print the

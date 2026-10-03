@@ -13,6 +13,9 @@ export function busStatus(text: string): Map<string, "open" | "closed">;
 export const LEDGER_SQL: string;
 export function ledgerMarker(fp: string): string;
 export function groupSources(input: { ledger?: unknown[]; issues?: unknown[] }): FeedSource[];
+export function openAlertIssues(
+  list: (label: string) => { number: number; title: string }[] | null | undefined,
+): { number: number; title: string; label: string }[];
 export function applyFeeds(
   md: string,
   groups: FeedSource[],

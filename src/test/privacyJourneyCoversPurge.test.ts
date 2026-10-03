@@ -113,7 +113,9 @@ describe("privacy journey covers every purge step (Q70)", () => {
     expect(WORKFLOW).toMatch(/workflow-name: privacy-journey/);
     expect(WORKFLOW).toMatch(/needs\.gate\.outputs\.run != 'false'/);
     expect(WORKFLOW).not.toMatch(/--verify-ref "privacy-journey\.yml"/);
-    expect(read("scripts/ops-alert-ledger.mjs")).toMatch(/"nightly-red"/);
+    // The ledger sync reads every alert label's issues (scripts/lib/alertIssueLabels.mjs), nightly-red among them.
+    expect(read("scripts/lib/alertIssueLabels.mjs")).toMatch(/"nightly-red": \{/);
+    expect(read("scripts/ops-alert-ledger.mjs")).toMatch(/for \(const label of ALERT_LABELS\)/);
     expect(read("playwright.config.ts")).toMatch(/name: "privacy",\s*\n\s*testDir: "\.\/e2e\/privacy"/);
   });
 });

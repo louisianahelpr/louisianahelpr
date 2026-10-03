@@ -17,8 +17,9 @@
  *
  *   node scripts/ops-alert-ledger.mjs sync
  *       Hourly, from prod-errors.yml:
- *        1. every OPEN GitHub issue labelled nightly-red / prod-down /
- *           prod-errors / supabase-usage becomes (or bumps) a ledger item,
+ *        1. every OPEN GitHub issue under an alert label (nightly-red,
+ *           schedule-stalled, ...: scripts/lib/alertIssueLabels.mjs, derived
+ *           from the workflows) becomes (or bumps) a ledger item,
  *           EXCEPT a workflow that records its own item on every red
  *           (selfRecordingWorkflows) whose newest red run is covered by those
  *           items (redRunCovered): one red, one item. Uncovered = fail safe,
@@ -51,6 +52,7 @@ import { join } from "node:path";
 import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, dupesThatFail, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, runningWorkflowKey, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 import { CODE_SCANNING_JQ, CODE_SCANNING_SOURCE, CODE_SCANNING_TITLE, codeScanningChanged, summarizeCodeScanning } from "./lib/codeScanningLedger.mjs";
+import { ALERT_ISSUE_LABELS, ALERT_LABELS, alertWorkflowOf } from "./lib/alertIssueLabels.mjs";
 
 const [, , cmd, ...rest] = process.argv;
 const opt = (name, dflt = undefined) => {
@@ -58,8 +60,6 @@ const opt = (name, dflt = undefined) => {
   return i >= 0 && i + 1 < rest.length ? rest[i + 1] : dflt;
 };
 const flag = (name) => rest.includes(`--${name}`);
-
-const TRACKED_LABELS = ["nightly-red", "prod-down", "prod-errors", "supabase-usage"];
 
 function gh(args) {
   return JSON.parse(execFileSync("gh", args, { encoding: "utf8", maxBuffer: 1 << 24 }) || "null");
@@ -216,7 +216,7 @@ async function sync() {
                                WHERE source_kind = 'nightly_red' AND sample_ref ? 'issue'`)) {
     known.set(String(r.issue), new Date(r.last_seen));
   }
-  for (const label of TRACKED_LABELS) {
+  for (const label of ALERT_LABELS) {
     const issues = gh(["issue", "list", "--repo", repo, "--label", label, "--state", "open", "--limit", "100",
       "--json", "number,title,updatedAt,url"]);
     for (const i of issues) {
@@ -232,7 +232,7 @@ async function sync() {
         log.push(`${label}: "${i.title}" recorded as nightly_red (fail-safe): ${own}.yml's newest red is not covered by its own items (${c.why})`);
       }
       await recordOpsAlert({
-        sourceKind: "nightly_red", source: label, title: i.title, severity: label === "prod-down" ? "critical" : "error",
+        sourceKind: "nightly_red", source: label, title: i.title, severity: ALERT_ISSUE_LABELS[label].severity,
         sample: `${i.title} — ${i.url}`, sampleRef: { issue: i.number, url: i.url },
         verifyKind: "workflow", verifyRef: i.title, seenAt: i.updatedAt,
       });
@@ -270,9 +270,14 @@ async function sync() {
       } else if (iss.state === "closed") {
         // Q1139: a person closed it, which proves nothing, and the workflow's
         // next green run now has no issue to close. Its own green nightly run
-        // after the last occurrence is the evidence instead.
-        const key = ledgerWorkflowKey({ source_kind: "nightly_red", title: it.title }, selfRec.aliases);
-        const wf = workflowFiles().find((f) => f.file.replace(/\.ya?ml$/, "") === key)?.file;
+        // after the last occurrence is the evidence instead. The workflow is
+        // the one its label names (schedule-stalled -> schedule-heartbeat.yml),
+        // else the one a nightly-red title names.
+        const byTitle = (title) => {
+          const key = ledgerWorkflowKey({ source_kind: "nightly_red", title }, selfRec.aliases);
+          return workflowFiles().find((f) => f.file.replace(/\.ya?ml$/, "") === key)?.file ?? null;
+        };
+        const wf = alertWorkflowOf(iss, byTitle) ?? byTitle(it.title);
         if (wf) {
           // By event: a workflow that also runs on every push (staleness-watch)
           // pushes its scheduled run out of any short unfiltered list.

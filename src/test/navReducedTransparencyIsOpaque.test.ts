@@ -14,6 +14,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..");
 const CSS = readFileSync(join(ROOT, "src/index.css"), "utf8");
@@ -30,7 +31,7 @@ function reducedTransparencyBlock(): string {
     if (CSS[i] === "{") depth++;
     else if (CSS[i] === "}" && --depth === 0) break;
   }
-  return CSS.slice(start, i + 1).replace(/\/\*[\s\S]*?\*\//g, "");
+  return blankComments(CSS.slice(start, i + 1));
 }
 
 /** Declared values of `prop` inside `css`, in order. */

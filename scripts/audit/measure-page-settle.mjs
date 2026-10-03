@@ -80,6 +80,17 @@ export const SETTLE_INIT = (placeholderSel) => {
     }).observe({ type: "layout-shift", buffered: true });
   } catch { w.__settle.noCls = true; }
 
+  // Displayed, not visibility:hidden, and above opacity 0.01 — the element AND
+  // every ancestor (an element's own computed opacity says nothing about a
+  // faded-out parent).
+  const onScreen = (el) => {
+    for (let a = el; a && a.nodeType === 1; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) <= 0.01) return false;
+    }
+    return true;
+  };
+
   const countItems = () => {
     const root = document.getElementById("root");
     if (!root) return { n: 0, ph: false };
@@ -88,6 +99,10 @@ export const SETTLE_INIT = (placeholderSel) => {
       // A pointer-events-none pulse is a decorative halo (the Post FAB's ring),
       // not something standing in for content.
       if (/\bpointer-events-none\b/.test(el.getAttribute("class") || "")) continue;
+      // Not on screen, not a placeholder: BrowseMap keeps its loader mounted
+      // inside an overlay faded to opacity 0, which read as "never settled" on
+      // every desktop map page (2026-10-03, /home 1440 hit the 15 s cap).
+      if (!onScreen(el)) continue;
       const r = el.getBoundingClientRect();
       // 8px floor: a 6px "live" dot (animate-pulse) is a status light, not a placeholder.
       if (r.width > 8 && r.height > 8) { ph = true; break; }

@@ -1,12 +1,12 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-03T04:29Z",
+  "measured_at": "2026-10-03T06:15Z",
   "issues": {
     "readable": true,
     "open": [
       {
-        "number": 2166,
-        "title": "nightly-red: main: Sensitive review record"
+        "number": 2183,
+        "title": "nightly-red: vacuity"
       }
     ]
   },
@@ -54,6 +54,14 @@
         "issue": 2149
       },
       {
+        "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: vacuity",
+        "issue": null
+      },
+      {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
         "source_kind": "workflow",
         "source": "quota-monitor",
@@ -62,27 +70,11 @@
         "issue": null
       },
       {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
-        "issue": 2166
-      },
-      {
         "fingerprint": "0cc83c6bc20bc0e007e1ce4a5aee88e1",
         "source_kind": "edge_slack",
         "source": "ops-alert:custom",
         "status": "open",
         "title": "auth email hook: bad signature",
-        "issue": null
-      },
-      {
-        "fingerprint": "2a49e28947cbc5e9cff68520dbcf1dcf",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http timeout: backfill-job-geocode returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
         "issue": null
       },
       {
@@ -100,6 +92,14 @@
         "status": "open",
         "title": "guest marketplace is empty: no funded jobs (pre-launch)",
         "issue": null
+      },
+      {
+        "fingerprint": "79112fbf22c85121a80ec6470b33411f",
+        "source_kind": "workflow",
+        "source": "code-scanning",
+        "status": "open",
+        "title": "github code scanning: open alerts on main",
+        "issue": null
       }
     ]
   },
@@ -108,13 +108,11 @@
     "bus ME-009": "Q797",
     "bus ME-019": "Q441",
     "bus ME-043": "Q441",
-    "bus NB-004": "Q903",
     "bus OA-018": "Q801",
     "bus SI-033": "Q802",
     "bus TC-004": "Q226",
     "issue #1582": "Q783",
     "issue #1654": "Q722",
-    "issue #1719": "Q784",
     "issue #1754": "Q785",
     "issue #1794": "Q593",
     "issue #1909": "Q787",
@@ -124,15 +122,16 @@
     "issue #2054": "Q788",
     "issue #2121": "Q787",
     "issue #2166": "Q906",
+    "issue #2183": "Q788",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
     "ledger 2a49e28947cb": "Q916",
     "ledger 37cccbe58bb3": "Q1132",
-    "ledger 43d77e26f272": "Q784",
     "ledger 51722889b9d8": "Q1133",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
+    "ledger 79112fbf22c8": "Q1145",
     "ledger 7e141f206640": "Q783",
     "ledger 88ecf6e765df": "Q788",
     "ledger b75d265e6201": "Q794",

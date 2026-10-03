@@ -14,11 +14,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import {
-  CODE_SCANNING_JQ,
-  codeScanningChanged,
-  summarizeCodeScanning,
-} from "../../scripts/lib/codeScanningLedger.mjs";
+// @ts-expect-error - plain .mjs tool script, no types
+import { CODE_SCANNING_JQ, codeScanningChanged, summarizeCodeScanning } from "../../scripts/lib/codeScanningLedger.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");

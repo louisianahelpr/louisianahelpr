@@ -31,9 +31,10 @@
  * Guard: src/test/openPartlyDoneItemsSayDoneWhen.test.ts.
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { greenNightlyRunAfter, ledgerWorkflowKey, workflowAliases } from "./lib/opsAlertLedger.mjs";
 
 const PARTLY = /^- \[~\] /;
 const ITEM_START = /^(- \[|#)/;
@@ -90,6 +91,45 @@ export function rowText(rows) {
 
 const READ_ONLY_SQL = /^\s*(select|with)\b[^;]*;?\s*$/i;
 
+/**
+ * Whether an `issue #N closed` marker holds (Q1139's rule, 2026-10-03).
+ *
+ * A nightly-red issue is evidence only when its workflow's own green run
+ * closed it (github-actions[bot]). One a PERSON closed proves nothing: on
+ * 2026-10-02 #1582, #1654, #1754 and #2071 were closed by hand while
+ * press-every-control, loading-states-refresh, prod-audit and staleness-watch
+ * were still red, and 15 [~] items read READY on them. Such a marker holds only
+ * when that workflow's newest scheduled or dispatched run on main is green and
+ * started after the issue was opened (greenNightlyRunAfter). Any other issue:
+ * closed is closed. `issue` is the REST issue (state, closed_by, labels,
+ * created_at); `nightlyRuns` the workflow's runs, or null when no workflow
+ * matches the title.
+ */
+export function issueMarkerHolds(issue, nightlyRuns) {
+  const n = issue.number;
+  if (String(issue.state).toLowerCase() !== "closed") return { ok: false, note: `issue #${n} is ${String(issue.state).toUpperCase()}` };
+  const nightly = (issue.labels ?? []).some((l) => (typeof l === "string" ? l : l?.name) === "nightly-red");
+  const by = issue.closed_by?.login ?? "a person";
+  if (!nightly) return { ok: true, note: `issue #${n} is CLOSED` };
+  if (by === "github-actions[bot]") return { ok: true, note: `issue #${n} is CLOSED by its own green run` };
+  if (!nightlyRuns) return { ok: false, note: `issue #${n} was closed by ${by}, not by a run, and no workflow matches "${issue.title}"` };
+  const green = greenNightlyRunAfter(nightlyRuns, issue.created_at);
+  return green
+    ? { ok: true, note: `issue #${n} was closed by ${by}; its workflow then ran green (${green.event}): ${green.url}` }
+    : { ok: false, note: `issue #${n} was closed by ${by}, not by a run, and its workflow has no green nightly run since it opened` };
+}
+
+/** The scheduled and dispatched runs on main of the workflow a nightly-red title names, or null. */
+function nightlyRunsFor(title) {
+  const dir = ".github/workflows";
+  const files = readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).map((f) => ({ file: f, text: readFileSync(join(dir, f), "utf8") }));
+  const key = ledgerWorkflowKey({ source_kind: "nightly_red", title }, workflowAliases(files));
+  const wf = files.find((f) => f.file.replace(/\.ya?ml$/, "") === key)?.file;
+  if (!wf) return null;
+  return ["schedule", "workflow_dispatch"].flatMap((event) => JSON.parse(execFileSync("gh", ["run", "list", "--workflow", wf,
+    "--branch", "main", "--event", event, "--limit", "5", "--json", "conclusion,status,createdAt,url,event"], { encoding: "utf8" })));
+}
+
 async function runMarker(mk, opts) {
   if (mk.kind === "sql") {
     if (opts.noSql) return { ok: null, note: "sql skipped (--no-sql)" };
@@ -113,10 +153,14 @@ async function runMarker(mk, opts) {
     if (!st) return { ok: false, error: `bus ${mk.id} is not in ${FINDINGS}` };
     return { ok: st === "closed", note: `bus ${mk.id} is ${st}` };
   }
-  const args = mk.kind === "issue" ? ["issue", "view", String(mk.number), "--json", "state"] : ["pr", "view", String(mk.number), "--json", "state"];
-  const state = JSON.parse(execFileSync("gh", args, { encoding: "utf8" })).state;
-  const want = mk.kind === "issue" ? "CLOSED" : "MERGED";
-  return { ok: state === want, note: `${mk.kind} #${mk.number} is ${state}` };
+  if (mk.kind === "issue") {
+    const issue = JSON.parse(execFileSync("gh", ["api", `repos/{owner}/{repo}/issues/${mk.number}`], { encoding: "utf8" }));
+    const handClosedNightly = String(issue.state) === "closed" && issue.closed_by?.login !== "github-actions[bot]"
+      && (issue.labels ?? []).some((l) => l?.name === "nightly-red");
+    return issueMarkerHolds(issue, handClosedNightly ? nightlyRunsFor(issue.title) : null);
+  }
+  const state = JSON.parse(execFileSync("gh", ["pr", "view", String(mk.number), "--json", "state"], { encoding: "utf8" })).state;
+  return { ok: state === "MERGED", note: `pr #${mk.number} is ${state}` };
 }
 
 async function main() {

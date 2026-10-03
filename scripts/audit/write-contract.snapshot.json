@@ -499,6 +499,15 @@
     "nargs": 2
    }
   ],
+  "check_browse_view_definer": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "check_db_saturation": [
    {
     "anon": false,
@@ -3682,7 +3691,7 @@
    {
     "anon": false,
     "args": [],
-    "authenticated": true,
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
    }
@@ -5199,6 +5208,120 @@
     "before:delete",
     "before:insert",
     "before:insert|update",
+    "before:insert|update|delete",
+    "before:update"
+   ]
+  },
+  "cancellation_fee_transfers": {
+   "checks": [
+    "CHECK (((commission_percent >= (0)::numeric) AND (commission_percent <= (100)::numeric)))",
+    "CHECK ((fee_amount >= (0)::numeric))",
+    "CHECK ((helper_amount >= (0)::numeric))",
+    "CHECK (((status <> ALL (ARRAY['paid'::text, 'reversed'::text])) OR (stripe_transfer_id IS NOT NULL)))",
+    "CHECK ((platform_cut >= (0)::numeric))",
+    "CHECK (((platform_cut + helper_amount) <= fee_amount))",
+    "CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'failed'::text, 'reversed'::text, 'waived'::text])))",
+    "CHECK (((status <> 'waived'::text) OR ((helper_amount = (0)::numeric) AND (stripe_transfer_id IS NULL))))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "commission_percent": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "numeric(5,2)"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "failure_reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "fee_amount": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "numeric(10,2)"
+    },
+    "helper_amount": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "numeric(10,2)"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "paid_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "platform_cut": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "numeric(10,2)"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "stripe_transfer_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
     "before:insert|update|delete",
     "before:update"
    ]
@@ -8946,12 +9069,12 @@
     "CHECK (((helper_fee_percent IS NULL) OR ((helper_fee_percent >= (0)::numeric) AND (helper_fee_percent <= (100)::numeric))))",
     "CHECK (((sales_tax_rate IS NULL) OR ((sales_tax_rate >= (0)::numeric) AND (sales_tax_rate <= (1)::numeric))))",
     "CHECK (((budget >= (10)::numeric) AND (budget <= (1000)::numeric)))",
-    "CHECK (((credential_tier >= 0) AND (credential_tier <= 3)))",
+    "CHECK ((credential_tier = ANY (ARRAY[0, 2, 3])))",
     "CHECK ((char_length(description) <= 1000))",
     "CHECK ((payment_status = ANY (ARRAY['unpaid'::text, 'escrow'::text, 'payout_pending'::text, 'released'::text, 'refunded'::text, 'cancelled'::text, 'abandoned'::text, 'failed'::text, 'chargeback'::text, 'cancelling'::text])))",
     "CHECK (are_safe_media_urls(photos))",
     "CHECK ((pricing_mode = 'set_price'::text))",
-    "CHECK (((recurrence_days IS NULL) OR (((array_length(recurrence_days, 1) >= 1) AND (array_length(recurrence_days, 1) <= 7)) AND (recurrence_days <@ ARRAY[(0)::smallint, (1)::smallint, (2)::smallint, (3)::smallint, (4)::smallint, (5)::smallint, (6)::smallint]))))",
+    "CHECK (((recurrence_days IS NULL) OR ((array_length(recurrence_days, 1) >= 1) AND (array_length(recurrence_days, 1) <= 7) AND (recurrence_days <@ ARRAY[(0)::smallint, (1)::smallint, (2)::smallint, (3)::smallint, (4)::smallint, (5)::smallint, (6)::smallint]))))",
     "CHECK (((recurrence_weeks IS NULL) OR ((recurrence_weeks >= 1) AND (recurrence_weeks <= 52))))",
     "CHECK ((NOT (COALESCE(is_group_job, false) AND (recurrence_days IS NOT NULL))))",
     "CHECK ((COALESCE(is_flexible_schedule, false) OR (start_time IS NOT NULL) OR (is_seed AND (recurrence_days IS NULL))))",
@@ -13770,6 +13893,7 @@
     "CHECK ((license_status = ANY (ARRAY['none'::text, 'pending'::text, 'verified'::text, 'rejected'::text])))",
     "CHECK ((((parish IS NULL) AND (parish_source IS NULL)) OR ((parish IS NOT NULL) AND (parish_source = ANY (ARRAY['zip'::text, 'city'::text])))))",
     "CHECK (are_safe_media_urls(portfolio_urls))",
+    "CHECK (((stripe_account_id IS NULL) OR (btrim(stripe_account_id) <> ''::text)))",
     "CHECK (((subscription_source IS NULL) OR (subscription_source = ANY (ARRAY['stripe'::text, 'apple'::text]))))"
    ],
    "columnGrants": {

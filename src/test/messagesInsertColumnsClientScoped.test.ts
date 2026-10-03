@@ -12,13 +12,13 @@ import * as contract from "../../scripts/audit/write-contract.mjs";
 /**
  * A SIGNED-IN CLIENT INSERTS ONLY THE COLUMNS IT SENDS (Q340).
  *
- * `authenticated` held TABLE-level INSERT on public.messages, so a direct POST
- * could set is_system (a message the thread renders as a platform notice, and
- * that the edit policy will not let its author take back), created_at (a
- * future stamp keeps the 15-minute edit window open forever), read/read_at,
- * flagged_hidden/flag_reason, edited_at and id. The INSERT policy checks who
- * sends, not which columns. 20261003182009 revoked the table-level INSERT and
- * granted back the ten columns the client sends.
+ * `authenticated` held TABLE-level INSERT on public.messages (live,
+ * 2026-10-03), so a direct POST could set is_system (a message the thread
+ * renders as a platform notice, and that the edit policy will not let its
+ * author take back), created_at (a future stamp keeps the 15-minute edit
+ * window open forever), read/read_at, edited_at and id. The INSERT policy
+ * checks who sends, not which columns. Migration 20261003182009 revoked the
+ * table-level INSERT and granted back the send columns.
  *
  * INVENTORY, from the app: every client insert/upsert into a table declared in
  * scripts/ci/client-insert-columns.sql, read off the AST by the write-contract

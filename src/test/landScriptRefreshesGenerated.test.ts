@@ -53,7 +53,9 @@ const at = (re: RegExp) => {
 describe("scripts/land.sh keeps generated files current on main", () => {
   it("rebases, then refreshes, then commits, then checks, then pushes", () => {
     const order = [
-      at(/^\s*git rebase -q origin\/main$/m),
+      // the rebase runs from REBASE (plain, or dropping this script's own
+      // earlier refresh commits first; landingPath.test.ts pins both)
+      at(/^\s*if ! "\$\{REBASE\[@\]\}"; then$/m),
       at(/^\s*npm run -s inventories:refresh$/m),
       at(/^\s*git commit -q --no-verify -m "chore: refresh generated inventories$/m),
       at(/^\s*npm run -s check:generated$/m),
@@ -70,9 +72,9 @@ describe("scripts/land.sh keeps generated files current on main", () => {
     expect(pr).toMatch(/gh pr merge "\$BR" --rebase --auto/);
     expect(code).not.toMatch(/--squash/);
     expect(code).not.toMatch(/git push[^\n]*HEAD:main/);
-    // Success only on MERGED; BEHIND loops back to the rebase.
+    // Success only on MERGED; BEHIND or DIRTY loops back to the rebase.
     expect(pr).toMatch(/if \[ "\$STATE" = MERGED \]; then\n\s*echo "land: \$BR merged into main\."\n\s*exit 0/);
-    expect(pr).toMatch(/= BEHIND \]; then\n\s*echo "land: main moved; rebasing \$BR again\."\n\s*break/);
+    expect(pr).toMatch(/= BEHIND \] \|\| \[ "\$MSS" = DIRTY \]; then\n\s*echo "land: main moved \(\$MSS\); rebasing \$BR again\."\n\s*break/);
     const brief = readFileSync(resolve(ROOT, ".claude/AGENT-BRIEF.md"), "utf8");
     expect(brief).toMatch(/It is the ONLY way\s+onto main \(Q44\)/);
   });

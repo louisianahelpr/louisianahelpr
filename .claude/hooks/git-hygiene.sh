@@ -17,4 +17,15 @@ command -v node >/dev/null 2>&1 || exit 0
 mkdir -p "$HOME/.lh-hygiene" 2>/dev/null || exit 0
 
 (cd "$dir" && nohup node "$script" --auto >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &) >/dev/null 2>&1
+
+# Stranded work on THIS machine (docs/OPEN.md Q1146): branches, worktree HEADs,
+# uncommitted and untracked worktree files, stash entries whose CONTENT is not
+# on main. Written at most every 3h, in the background; session-start.sh prints
+# the last report, so every session sees it. GitHub's half runs in CI
+# (branch-prune.yml, job `stranded`).
+stranded="$dir/scripts/stranded-work.mjs"
+report="$HOME/.lh-hygiene/stranded.json"
+if [ -f "$stranded" ] && [ -z "$(find "$report" -mmin -180 2>/dev/null)" ]; then
+  (cd "$dir" && nohup nice node "$stranded" --local --report "$report" >>"$HOME/.lh-hygiene/stranded.log" 2>&1 </dev/null &) >/dev/null 2>&1
+fi
 exit 0

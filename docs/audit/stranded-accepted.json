@@ -1,0 +1,77 @@
+{
+  "_about": "Remote work that is NOT on main by content and is deliberately not landed. Read by scripts/stranded-work.mjs --remote --check (nightly: .github/workflows/stranded-work.yml). Exact both ways: an entry whose ref is gone or moved fails the check. Each reason names where the work went or the open item that decides it. Owner rule 2026-10-03: nothing is closed without merging, so new entries should be rare.",
+  "accepted": [
+    {
+      "id": "pr:2144",
+      "sha": "022216d5347dee01f004054acee5f770ea4419da",
+      "reason": "land PR for 365795cad (GITHUB_TOKEN scoped in asc-iap and db-backup): both workflows declare contents: read on main; the one differing test line is main's newer date-only form.",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2155",
+      "sha": "cd55ba16238b9e77d276c9fd068e1645add8722f",
+      "reason": "Copilot's guest-browse probe auth change: main's probe keeps its headers and e2e-journeys is green on main (2026-10-03 04:00Z dispatch).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2159",
+      "sha": "946729be5154d8cf0d2de3b63fd6d2c83aae38be",
+      "reason": "the owner's ESLint code-scanning workflow: on main, made runnable, as 2957f7017 (.github/workflows/eslint.yml).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2161",
+      "sha": "96cfc996a900d02727712b06f42984260869eb25",
+      "reason": "Copilot's uptime-check body detail: on main, scripts/uptime-check.mjs reads and names the response body (the 'Reading the body is the whole fix' block).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2163",
+      "sha": "4a5532cc981cfd7e095a451ae27ec4282043d1da",
+      "reason": "Copilot's code-scanning fix: superseded by #2178 (CodeQL alerts 54 -> 1).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2164",
+      "sha": "bbc2b77eb05b5f9e326644876ac8c4ee40495377",
+      "reason": "Copilot's code-scanning fixes: superseded by #2178 (CodeQL alerts 54 -> 1), which fixed the same alerts on main.",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2165",
+      "sha": "75849e1c6d630558ffc79e6525b7ac35329315cd",
+      "reason": "Copilot's code-scanning fixes: superseded by #2178 (CodeQL alerts 54 -> 1), which fixed the same alerts on main.",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2167",
+      "sha": "29744aa2dbde11598db1c9f89713add052ffd872",
+      "reason": "Copilot's guest-browse probe auth change: main's probe keeps its headers and e2e-journeys is green on main (2026-10-03 04:00Z dispatch).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2168",
+      "sha": "ecbd9a43701c1c54e0478e456acba09c5bc4a362",
+      "reason": "Copilot's guest-browse probe auth change: main's probe keeps its headers and e2e-journeys is green on main (2026-10-03 04:00Z dispatch).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2172",
+      "sha": "d6df914ed37ab485e7959b6fcf1412b9eb048bc9",
+      "reason": "Copilot's restore of open_jobs_browse anon access: on main as migration 20261003020841, and kept by 20261003144349 (Q1156 self-heal).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2182",
+      "sha": "946729be5154d8cf0d2de3b63fd6d2c83aae38be",
+      "reason": "the owner's ESLint code-scanning workflow (louisianahelpr-patch-2): on main, made runnable, as 2957f7017 (.github/workflows/eslint.yml).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "pr:2190",
+      "sha": "1a601ee57d6e23368809f1d1afec308f7b481192",
+      "reason": "prod-seed --verify marks live-Stripe-only money states expected-unseeded (Q915): on main via #2187 (scripts/lib/moneyStateExpectations.mjs, src/test/prodSeedMoneyStatesExpectedUnseeded.test.ts).",
+      "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    }
+  ]
+}

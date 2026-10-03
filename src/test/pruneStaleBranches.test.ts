@@ -6,6 +6,7 @@
 // @mutate scripts/prune-stale-branches.mjs | export const PROTECTED_PREFIXES = ["land/"]; | export const PROTECTED_PREFIXES = [];
 // @mutate scripts/prune-stale-branches.mjs | if (!(ageHours >= MIN_AGE_HOURS)) { | if (false) {
 // @mutate scripts/prune-stale-branches.mjs | `--force-with-lease=refs/heads/${r.name}:${tipOf.get(r.name)}`, | 
+// @mutate scripts/prune-stale-branches.mjs |   if (unlanded === 0 && contentStranded) { |   if (false) {
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
@@ -40,6 +41,17 @@ describe("prune-stale-branches decideBranch", () => {
       cherryOutput: "- 1111111\n- 2222222\n",
     });
     expect(r.action).toBe("DELETE");
+  });
+
+  it("never deletes a branch whose patches are on main but whose content is not (Q1146: cherry skips merges)", () => {
+    const r = decideBranch({
+      name: "agent/merge-resolution",
+      hasOpenPr: false,
+      ageHours: 48,
+      cherryOutput: "- 1111111\n",
+      contentStranded: true,
+    });
+    expect(r.action).toBe("UNLANDED");
   });
 
   it("keeps a branch with any commit not on main as UNLANDED", () => {

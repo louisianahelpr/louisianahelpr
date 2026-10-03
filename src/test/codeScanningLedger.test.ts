@@ -1,6 +1,6 @@
 // @mutate scripts/lib/codeScanningLedger.mjs | const serious = alerts.some( | const serious = false && alerts.some(
 // @mutate scripts/lib/codeScanningLedger.mjs | if (!prev) return true; | if (!prev) return false;
-// @mutate scripts/lib/codeScanningLedger.mjs | return prev.length !== numbers.length || prev.some( | return prev.length !== numbers.length && prev.some(
+// @mutate scripts/lib/codeScanningLedger.mjs | return prev.length !== numbers.length \|\| prev.some( | return prev.length !== numbers.length && prev.some(
 // @mutate scripts/ops-alert-ledger.mjs | sample: item.sample, sampleRef: item.sampleRef, verifyKind: "manual", | sample: item.sample, sampleRef: item.sampleRef, verifyKind: "workflow", verifyRef: "prod-errors.yml",
 // @mutate .github/workflows/prod-errors.yml |   security-events: read | 
 /**

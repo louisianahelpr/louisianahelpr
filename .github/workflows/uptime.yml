@@ -169,7 +169,7 @@ jobs:
           node scripts/ops-alert-ledger.mjs record --source "uptime" --source-kind workflow \
             --title "Guest marketplace is empty: no funded jobs (pre-launch)" --severity warning \
             --verify-ref "uptime.yml" --sample "${SUMMARY}" \
-            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" --strict
 
       - name: Fail the run while prod is down
         if: steps.probe.outputs.status == 'down'

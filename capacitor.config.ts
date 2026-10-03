@@ -152,15 +152,23 @@ const config: CapacitorConfig = {
       // Per-screen overrides live in src/hooks/useStatusBar.ts.
       style: 'LIGHT',
       backgroundColor: '#F1F2F4',
-      // overlaysWebView is **Android-only** in @capacitor/status-bar. On
-      // Android, true (the plugin default) makes the WebView render
-      // edge-to-edge under the status bar; the existing
-      // env(safe-area-inset-top) padding in our headers (PageHeader,
-      // AppShell, DashboardHeader, AuthShell, DashboardGuest, etc.) then
-      // correctly pushes content below the status bar. Has no effect on
-      // iOS — iOS edge-to-edge is the native default and is controlled by
-      // App.entitlements / Info.plist. Per Android docs, this setting
-      // also has no effect on Android 16+ where edge-to-edge is enforced.
+      // overlaysWebView is honoured on BOTH platforms — this comment used to
+      // say "Android-only, no effect on iOS", and that is false against the
+      // plugin's own iOS source (@capacitor/status-bar 8.0.3):
+      // StatusBarPlugin.swift:31 reads the key, StatusBar.swift:36 applies it
+      // on every capacitorViewDidAppear, and setOverlaysWebView (:114-123)
+      // calls resizeWebView(), which at :138-149 shifts the WebView's origin.y
+      // down by the status-bar height when NOT overlaying.
+      //
+      // `true` is the right value on both, and it is also the iOS plugin
+      // default (StatusBarConfig.swift:4) — so today this line is a no-op on
+      // iOS by coincidence, not by platform. DO NOT set it to false believing
+      // iOS will ignore it: iOS would resize the WebView down and every
+      // env(safe-area-inset-top) header (PageHeader, AppShell, DashboardHeader,
+      // AuthShell, DashboardGuest, …) would then double-count the inset.
+      // On Android, true makes the WebView render edge-to-edge under the status
+      // bar and those same headers push content below it. Per Android docs the
+      // setting has no effect on Android 16+, where edge-to-edge is enforced.
       //
       // Lexi originally reported a "double padding" band above iOS headers
       // (Build #20 screenshot). That turned out to be the welcome-card

@@ -16,9 +16,11 @@
  *     from the same admin dashboards without bespoke wiring.
  *
  * If we later decide reasons should be durable, swap the sessionStorage
- * sink for a Supabase insert into `application_withdraw_reasons`
- * (reserved migration timestamp 20260609190000) without changing the
- * call-site signature.
+ * sink for a Supabase insert into `application_withdraw_reasons` without
+ * changing the call-site signature. NO timestamp is reserved for it — this
+ * comment used to claim 20260609190000, which is occupied by
+ * `20260609190000_platform_settings_latest_build.sql`. Mint one with
+ * `npm run migration:new -- <slug>`; never hand-type it.
  */
 import { track } from "@/lib/analytics";
 

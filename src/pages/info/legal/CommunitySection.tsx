@@ -186,12 +186,13 @@ export const CommunityContent = () => (
         // (`REMIND_AFTER_HOURS`, index.ts:73), not a period. Corrected to the
         // one nudge that actually exists.
         //
-        // SEPARATE, UNFIXED, REPORTED: the cron runs once daily (`15 15 * * *`,
-        // 20260829010000) against an eligibility window only 12 hours wide, so
-        // roughly half of submissions age out of it and are never reminded at
-        // all. The function computes this itself (`SCHEDULE_LEAVES_A_HOLE`,
-        // index.ts:82) and prescribes a six-hourly schedule. Copy cannot fix a
-        // schedule — owner's call.
+        // SEPARATE, AND NOW FIXED: the cron USED TO run once daily
+        // (`15 15 * * *`, 20260829010000) against an eligibility window only
+        // 12 hours wide, so roughly half of submissions aged out of it and
+        // were never reminded at all. 20260902035754 moved it to every six
+        // hours at quarter past, and `CRON_PERIOD_HOURS` in the function is 6
+        // to match, so `SCHEDULE_LEAVES_A_HOLE` is false and the sentence
+        // below holds for every submission, not half of them.
         //
         // LINE COMMENTS ON PURPOSE. This block was a /* … */ comment, and the
         // six-hourly cron expression it quoted contains a `*` followed by a

@@ -3,9 +3,9 @@
  * nudge that tells a poster to confirm completion (or request a revision)
  * before escrow auto-releases.
  *
- * THE DEFECT THESE PIN
+ * THE DEFECT THESE PIN — CLOSED. These are now its regression guard.
  *
- * The cron runs ONCE A DAY (`15 15 * * *`) and tests a TWELVE-hour window:
+ * The cron USED TO run once a day (`15 15 * * *`) against a TWELVE-hour window:
  * `helper_completed_at ∈ [now-24h, now-12h]`. A job is only ever graded at
  * ages t₀, t₀+24, t₀+48, … for some t₀ ∈ [0,24), so it lands in the window
  * only when t₀ ∈ [12,24]. Every submission in the other half is looked at
@@ -13,11 +13,14 @@
  * and is never reminded — no error, no log, no row, and a 200 with a
  * plausible `sent` count.
  *
- * Unlike `review-nag-cron`, this window CANNOT be widened: the upper bound is
- * pinned by `AUTO_COMPLETE_HOURS` (24h), when the money actually moves. So the
- * fix is the schedule — every six hours, which lives in a migration — and what
- * this function can do on its own is MEASURE the hole. `missed` is that
- * measurement, and it is asserted below.
+ * Unlike `review-nag-cron`, this window could NOT be widened: the upper bound
+ * is pinned by `AUTO_COMPLETE_HOURS` (24h), when the money actually moves. So
+ * the fix had to be the schedule, and it shipped in migration 20260902035754 —
+ * every six hours at quarter past, with `CRON_PERIOD_HOURS = 6` in the function
+ * to match. What the function does on its own is MEASURE the hole: `missed` is
+ * that measurement, and it is asserted below, which is what proves the close
+ * held. (The six-hourly cron expression is spelled out rather than pasted: it
+ * contains a star-slash, which would close this comment block.)
  *
  * Runs the REAL function source through the edge harness, including the real
  * `_shared/escrowTiming.ts`, so the 24 the window is derived from is the same
@@ -171,7 +174,7 @@ describe("payment-confirm-reminder edge function", () => {
     //
     // The suffix "Reschedule to '15 */6 * * *'" is emitted only while
     // `SCHEDULE_LEAVES_A_HOLE` is true, i.e. while the deployed cron period
-    // cannot cover the 12-hour eligibility window. 20260902035753 moved the
+    // cannot cover the 12-hour eligibility window. 20260902035754 moved the
     // schedule to every six hours and `CRON_PERIOD_HOURS` was set to 6 to
     // match, so the flag is false and the advice is spent. An alarm that keeps
     // recommending a fix that has already shipped is how people learn to stop

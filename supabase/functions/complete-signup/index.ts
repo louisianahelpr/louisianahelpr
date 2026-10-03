@@ -427,7 +427,7 @@ serve(async (req) => {
     // (was incorrectly using job-photos before — bucket got created
     // 2026-05-05 alongside making user-documents private).
     //
-    // The key is DERIVED from the content type by `../_shared/avatarKey.ts`;
+    // The key is DERIVED from the content type by `../_shared/storageKeys.ts`;
     // `avatarExt` is no longer interpolated into it. It used to be, and because
     // this function holds the SERVICE ROLE key there was no storage RLS to
     // catch it: `avatarExt: "png/../../<victim>/avatar.png"` overwrote another
@@ -921,7 +921,7 @@ serve(async (req) => {
         avatarUrl,
         referralRecorded,
         // Empty on the normal path. Non-empty means a previous profile photo is
-        // STILL publicly fetchable — see `../_shared/avatarKey.ts`.
+        // STILL publicly fetchable — see `../_shared/storageKeys.ts`.
         staleAvatarObjects,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

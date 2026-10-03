@@ -21,7 +21,7 @@
 //
 // Auth: cron secret (CRON_SECRET) or service_role key.  Not user-callable.
 // Schedule: `15 */6 * * *` — 00:15, 06:15, 12:15 and 18:15 UTC, per migrations
-//   20260612440000 → 20260829010000 → 20260902035753.
+//   20260612440000 → 20260829010000 → 20260902035754.
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // THE WINDOW WAS NARROWER THAN THE SCHEDULE. THE SCHEDULE IS WHAT CHANGED.
@@ -49,7 +49,7 @@
 // inside a 24-hour deadline that is also a USEFUL reminder.
 //
 // So the fix was the schedule, and it needed a migration this function could
-// not write. That migration is **20260902035753** and it sets **`15 */6 * * *`**
+// not write. That migration is **20260902035754** and it sets **`15 */6 * * *`**
 // (every six hours). With a 6-hour period and a 12-hour window the sample grid
 // is half the window width, so every job is graded inside it — twice, in fact,
 // which `payment_confirm_notif_sent` makes harmless — and one skipped tick
@@ -84,7 +84,7 @@ const REMIND_AFTER_HOURS = 12;
 
 /**
  * The cron period this window is sized against, in hours. MUST match the
- * deployed `cron.job.schedule`, which 20260902035753 sets to every six hours at
+ * deployed `cron.job.schedule`, which 20260902035754 sets to every six hours at
  * quarter past. (Spelled out rather than pasted: the cron expression contains
  * a star-slash, which would close this comment block.)
  *

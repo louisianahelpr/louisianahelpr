@@ -1,8 +1,11 @@
 /**
  * reliabilityLadder — the ONE statement of the shared reliability-strike
  * ladder the backend actually enforces (`apply_job_denial_consequence`,
- * migration 20260829010000, where it shares `apply_consequence_ladder` with the
- * message and cancellation ladders; also applied by `helper_cancel_booking`):
+ * migration 20260829030000_consolidate_consequence_ladders.sql, where it shares
+ * `apply_consequence_ladder` with the message and cancellation ladders; also
+ * applied by `helper_cancel_booking`). This used to cite 20260829010000, which
+ * is `stagger_http_cron_schedules` and contains no ladder code at all — the
+ * correct file is the one already cited 40 lines below:
  *
  *   strike 1  — recorded, courtesy warning only
  *   strike 2  — FINAL WARNING (ban_status 'final_warning', RPC action "warning")

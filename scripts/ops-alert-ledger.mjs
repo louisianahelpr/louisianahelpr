@@ -48,7 +48,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
+import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, dupesThatFail, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, runningWorkflowKey, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 import { CODE_SCANNING_JQ, CODE_SCANNING_SOURCE, CODE_SCANNING_TITLE, codeScanningChanged, summarizeCodeScanning } from "./lib/codeScanningLedger.mjs";
 
@@ -141,7 +141,12 @@ async function list() {
     for (const g of dupes) {
       console.log(`  ${g.workflow}.yml: ${g.items.map((r) => `${String(r.id).slice(0, 8)} ${r.source_kind}/${r.source}`).join(" + ")}`);
     }
-    if (flag("fail-on-dupes")) process.exit(1);
+    const self = runningWorkflowKey(process.env, aliases);
+    const failing = dupesThatFail(dupes, self);
+    if (failing.length < dupes.length) {
+      console.log(`  (${self}.yml is the workflow running this check: its own pair closes only on a green ${self}.yml run, so it is reported, not failed on)`);
+    }
+    if (flag("fail-on-dupes") && failing.length) process.exit(1);
   }
 }
 

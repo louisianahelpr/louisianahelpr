@@ -209,6 +209,28 @@ export function duplicateGroups(rows, aliases) {
 }
 
 /**
+ * The workflow running this process, as a duplicateGroups key (2026-10-03).
+ * prod-errors.yml runs `list --fail-on-dupes`. A group keyed to prod-errors
+ * ITSELF (its own nightly_red item plus a workflow item verified by
+ * prod-errors.yml, e.g. 42166b2c "Sentry alerts are not synced") closes only
+ * on a green prod-errors run, which failing on that group never allows: run
+ * 37123912578 stayed red for nothing else, a red that sustained itself.
+ * GITHUB_WORKFLOW_REF is "<owner>/<repo>/.github/workflows/<file>@<ref>".
+ * Returns null outside GitHub Actions.
+ */
+export function runningWorkflowKey(env, aliases) {
+  const m = /\/\.github\/workflows\/([^/@]+)\.ya?ml@/.exec(String(env.GITHUB_WORKFLOW_REF ?? ""));
+  if (!m) return null;
+  const k = m[1].toLowerCase();
+  return aliases.get(k) ?? k;
+}
+
+/** The duplicate groups `list --fail-on-dupes` fails on inside workflow `self`: every group but its own. */
+export function dupesThatFail(dupes, self) {
+  return dupes.filter((g) => g.workflow !== self);
+}
+
+/**
  * The sampleRef for an item recorded on a path that turns the run RED
  * (process.exit(1) next). `fails_run` + `job` let `ops-alert-ledger.mjs sync`
  * prove every failed job of a run recorded its own item (redRunCovered)

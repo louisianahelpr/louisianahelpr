@@ -223,8 +223,16 @@ export default {
           from: { opacity: "0", transform: "translateY(12px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // FROM 0.01, NEVER 0 (Q1158, 2026-10-03). Chrome's paint timing does
+        // not count content painted at opacity 0, and this fade runs on the
+        // compositor, so the page it reveals was never "painted" as far as
+        // FCP/LCP knew: a cold /home at 375 (Slow 4G + 4x CPU) drew its title
+        // bar and skeleton at 4.4 s but reported FCP at 5.3 s, when the dock (no
+        // fade) arrived. Starting at 1% is the same fade to the eye and is
+        // reported when it starts: FCP 5312 -> 4480 ms (scripts/perf/cwv-lab.mjs).
+        // src/test/pageEntranceNotFromZero.test.ts keeps both page fades off 0.
         "ds-page-in": {
-          from: { opacity: "0", transform: "translateY(8px)" },
+          from: { opacity: "0.01", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         // The Reduce Motion counterpart: opacity only, no translate, and
@@ -232,7 +240,7 @@ export default {
         // (`{ opacity: 0 } -> { opacity: 1 }, duration 0.12`); moving it here
         // is what lets that component drop framer entirely.
         "ds-page-in-fade": {
-          from: { opacity: "0" },
+          from: { opacity: "0.01" },
           to: { opacity: "1" },
         },
         shimmer: {

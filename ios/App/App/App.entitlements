@@ -41,31 +41,33 @@
       `webcredentials` association below AND the matching block in
       public/.well-known/apple-app-site-association.
 
-      WWW ONLY — the apex is deliberately NOT claimed.
+      WWW AND APEX (since 2026-10-03; Q1130).
 
-      `louisianahelpr.com` 307-redirects every path (including
-      /.well-known/apple-app-site-association) to `www`. Apple's CDN does
-      NOT follow redirects when it fetches an AASA file, so an apex claim
-      can never resolve — it is not a working association, it is a claim
-      that silently fails. Verified 2026-08-31:
+      The apex now SERVES the AASA itself: the Vercel domain-level 307 on
+      `louisianahelpr.com` was cleared (owner-approved, 2026-10-03), and
+      vercel.json's host rule still sends every OTHER apex path to www, so
+      people and search engines stay on www. Verified 2026-10-03:
 
-        curl -sI https://louisianahelpr.com/.well-known/apple-app-site-association
-        -> HTTP/2 307, location: https://www.louisianahelpr.com/...
+        curl -s -o /dev/null -w '%{http_code}' https://louisianahelpr.com/.well-known/apple-app-site-association
+        -> 200 application/json
+        curl -sI https://louisianahelpr.com/home
+        -> HTTP/2 307, location: https://www.louisianahelpr.com/home
 
-      Nothing is lost by dropping it: every link the app generates is
-      already www (ShareJobButton, IdentityHeader, SosShareButton,
-      CompletionPrompts, authRedirects), and so are the og:url/twitter:url
-      tags. A hand-typed apex URL opens Safari rather than the app, which
-      is what already happened.
-
-      To claim the apex properly, the apex must SERVE the AASA file rather
-      than redirect — that is a Vercel domain setting, not a vercel.json
-      route. If that changes, re-add both apex entries here.
+      (Until then the apex 307'd every path, Apple's CDN does not follow
+      redirects for AASA, and the apex was deliberately not claimed.)
+      Every link the app generates is still www (authRedirects'
+      getPublicSiteUrl, ShareJobButton, IdentityHeader, SosShareButton,
+      CompletionPrompts); the apex entries make a hand-typed or shared
+      apex URL open the app too. The claim takes effect with the next iOS
+      build. Guard: e2e/happy-path/zz-runtime-probe.spec.ts 3a fails if any
+      claimed domain (these files) redirects its AASA.
     -->
     <key>com.apple.developer.associated-domains</key>
     <array>
         <string>applinks:www.louisianahelpr.com</string>
+        <string>applinks:louisianahelpr.com</string>
         <string>webcredentials:www.louisianahelpr.com</string>
+        <string>webcredentials:louisianahelpr.com</string>
     </array>
 
     <!--

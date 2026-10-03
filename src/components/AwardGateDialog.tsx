@@ -16,31 +16,37 @@ import { hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { track, AhaEvent } from "@/lib/analytics";
-import { awardBlockCopy, type AwardBlockReason } from "@/lib/awardGate";
+import { acceptPendingCopy, awardBlockCopy, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 import { userFacingError } from "@/lib/userFacingError";
 
 /**
- * The blocked state for a helper who cannot yet be awarded a job.
+ * What a Helpr sees when their accept needs Stripe setup first.
  *
- * This screen carries a lot of weight: it is what a helper sees the first time
- * they try to take work and cannot. The one requirement is a payout account
- * (identity verification stopped being one on 2026-10-01, migration
- * 20261001222911), so it says what is missing and its primary button goes
- * straight into Stripe's payout setup, never a disabled control with no
- * explanation, which this codebase has shipped before (see 41ff2120e and audit
- * item R30).
+ * Two modes. PENDING (`pendingMissing` set): they tapped Accept, the server
+ * recorded it (accept_job_offer, 20261003193541), and this thanks them and
+ * lists only the steps still missing, payout setup and/or Stripe ID; the accept
+ * completes by itself when Stripe reports both done, and the poster is told
+ * then (owner, 2026-10-03, docs/OPEN.md Q1180). BLOCKED (`reason` only): a
+ * gate refusal from another path. Either way the primary button goes straight
+ * into Stripe's setup, never a disabled control with no explanation, which
+ * this codebase has shipped before (see 41ff2120e and audit item R30).
  */
 export function AwardGateDialog({
   open,
   onOpenChange,
   reason,
+  pendingMissing = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   reason: AwardBlockReason;
+  /** The accept is recorded and waits on these steps (accept_job_offer's `missing`). */
+  pendingMissing?: readonly AcceptMissing[] | null;
 }) {
   const [loading, setLoading] = useState(false);
-  const copy = awardBlockCopy(reason);
+  const copy = pendingMissing ? acceptPendingCopy(pendingMissing) : awardBlockCopy(reason);
+  const payoutMissing = pendingMissing ? pendingMissing.includes("payout_setup") : reason === "helper_payout_setup_incomplete";
+  const idMissing = pendingMissing ? pendingMissing.includes("stripe_id") : reason === "helper_identity_unverified";
   const handleFix = async () => {
     setLoading(true);
     try {
@@ -75,12 +81,10 @@ export function AwardGateDialog({
           <p>{copy.body}</p>
         </DialogBody>
 
-        {/* The requirement, called out as met or needed. */}
+        {/* Both requirements, each called out as done or still needed. */}
         <div className="space-y-2 py-1">
-          <RequirementRow
-            label="Payout account connected"
-            met={reason !== "helper_payout_setup_incomplete"}
-          />
+          <RequirementRow label="Payout account connected" met={!payoutMissing} />
+          <RequirementRow label="ID verified by Stripe" met={!idMissing} />
         </div>
 
         <DialogFooter>
@@ -88,7 +92,7 @@ export function AwardGateDialog({
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            Not Now
+            {pendingMissing ? "Later" : "Not Now"}
           </DialogSecondaryAction>
           <DialogPrimaryAction
             onClick={handleFix}

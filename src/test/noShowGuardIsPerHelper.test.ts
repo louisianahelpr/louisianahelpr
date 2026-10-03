@@ -5,8 +5,8 @@
  * GUARD 3a, and the reported_by attribution UPDATE, to user_id = v_helper_id
  * (verified 3x in PGlite: second Helpr recorded, repeat refused, both attributed).
  *
- * @mutate supabase/migrations/20260924060512_report_no_show_per_helper.sql | AND user_id = v_helper_id  -- DH-006 per-Helpr guard | -- guard removed
- * @mutate supabase/migrations/20260924060512_report_no_show_per_helper.sql | AND user_id = v_helper_id  -- DH-006 this Helpr's row only | -- scope removed
+ * @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql | AND user_id = v_helper_id  -- DH-006 per-Helpr guard | -- guard removed
+ * @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql | AND user_id = v_helper_id  -- DH-006 this Helpr's row only | -- scope removed
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

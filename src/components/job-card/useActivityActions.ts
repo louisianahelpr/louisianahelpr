@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
-import type { AwardBlockReason } from "@/lib/awardGate";
+import type { AcceptMissing, AwardBlockReason } from "@/lib/awardGate";
 import type {
   Job,
   Application,
@@ -91,6 +91,8 @@ export function useActivityActions({
   // drove asserted a check that never happened. See src/lib/awardGate.ts.
   const [awardBlockReason, setAwardBlockReason] = useState<AwardBlockReason | null>(null);
   const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
+  // Q1180: the steps an accept is waiting on (accept_job_offer said pending_setup), or null.
+  const [acceptPendingMissing, setAcceptPendingMissing] = useState<AcceptMissing[] | null>(null);
   // In-flight guards for offer response and poster confirm actions.
   const [respondingHelperAppId, setRespondingHelperAppId] = useState<string | null>(null);
   const [confirmingArrivalJobId, setConfirmingArrivalJobId] = useState<string | null>(null);
@@ -134,6 +136,7 @@ export function useActivityActions({
     deadlineDialogApp,
     setDeadlineDialogApp,
     setPendingAcceptApp,
+    setAcceptPendingMissing,
     setAwardBlockReason,
     setW9Context,
     setW9DialogOpen,
@@ -199,6 +202,9 @@ export function useActivityActions({
     helperReviewJob, setHelperReviewJob,
     awardBlockReason, setAwardBlockReason,
     pendingAcceptApp, setPendingAcceptApp,
+    acceptPendingMissing, setAcceptPendingMissing,
+    // The award/accept pop-up closes as one: its reason, its app, the missing steps.
+    closeAwardGate: () => { setAwardBlockReason(null); setPendingAcceptApp(null); setAcceptPendingMissing(null); },
     w9DialogOpen, setW9DialogOpen,
     w9Context,
     respondingHelperAppId,

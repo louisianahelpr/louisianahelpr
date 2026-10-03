@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { todayYmd } from "@/lib/jobDate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { awardBlockMessage } from "@/lib/awardGate";
 
 /**
  * Who holds each visit date of a recurring series (20260927012806,
@@ -126,7 +127,9 @@ export interface ClaimResult { claimed: string[]; taken: string[]; refused: stri
 /** Pick visit dates (the first Helpr, an offered Helpr, or a pick-up). */
 export async function claimSeriesDates(jobId: string, dates: string[]): Promise<ClaimResult> {
   const { data, error } = await supabase.rpc("claim_series_dates", { p_job_id: jobId, p_dates: dates });
-  if (error) throw seriesRpcError(error, rpcErrorMessage("claim_series_dates", error));
+  // The accept gate judges each visit the dates confirm, from a trigger, so
+  // its refusal is not one of the RPC's own codes (Q1180 re-review #10).
+  if (error) throw seriesRpcError(error, rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error));
   const r = (data ?? {}) as { claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[] };
   return { claimed: r.claimed ?? [], taken: r.taken ?? [], refused: r.refused ?? [], alreadyYours: r.already_yours ?? [] };
 }

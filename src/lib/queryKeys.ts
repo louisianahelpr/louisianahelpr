@@ -57,6 +57,8 @@ export const queryKeys = {
    */
   activity: {
     all: ["activity"] as const,
+    /** Q1180: the caller's accepts waiting on Stripe setup (job_accept_pending, own rows). Under the activity prefix so its realtime refresh covers it. */
+    acceptPending: (userId: string | undefined | null) => ["activity", "acceptPending", userId] as const,
     posted: (userId: string) => ["activity", "posted", userId] as const,
     postedDetail: (userId: string, inputs: unknown) =>
       ["activity", "postedDetail", userId, inputs] as const,

@@ -1608,6 +1608,46 @@ export type Database = {
         }
         Relationships: []
       }
+      job_accept_pending: {
+        Row: {
+          helper_id: string
+          job_id: string
+          requested_at: string
+        }
+        Insert: {
+          helper_id: string
+          job_id: string
+          requested_at?: string
+        }
+        Update: {
+          helper_id?: string
+          job_id?: string
+          requested_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_accept_pending_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_accept_pending_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_accept_pending_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_arrival_confirm_nudges: {
         Row: {
           created_at: string
@@ -5739,6 +5779,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_job_offer: { Args: { p_job_id: string }; Returns: Json }
       accept_application: {
         Args: {
           p_application_id: string
@@ -6014,6 +6055,7 @@ export type Database = {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean
       }
+      complete_job_accept: { Args: { p_job_id: string }; Returns: boolean }
       contact_leak_reason: { Args: { p_text: string }; Returns: string }
       credential_document_path_ok: {
         Args: { p_kind: string; p_path: string; p_user_id: string }
@@ -6783,6 +6825,11 @@ export type Database = {
         Args: { p_job_id: string; p_reason: string }
         Returns: Json
       }
+      helper_accept_block_reason: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      helper_accept_missing: { Args: { p_user_id: string }; Returns: string[] }
       helper_award_block_reason: {
         Args: { p_user_id: string }
         Returns: string

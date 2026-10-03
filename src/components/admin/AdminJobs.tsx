@@ -24,6 +24,7 @@ import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { userFacingError } from "@/lib/userFacingError";
+import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 
 
 const AdminJobs = () => {
@@ -392,7 +393,8 @@ const AdminJobs = () => {
       // is the engineering explanation ("affected 0 rows, expected 1"), and
       // `instanceof Error` is true of it — so the raw read showed that string
       // to an admin. This picks the userMessage when there is one.
-      toast.error(mutationErrorMessage(err, "Couldn't override status — try again."));
+      // accept_required (Q1180): an offer the Helpr has not accepted cannot be pushed forward, even by an admin.
+      toast.error(lifecycleErrorMessage(err) ?? mutationErrorMessage(err, "Couldn't override status — try again."));
     } finally {
       setOverriding(false);
     }

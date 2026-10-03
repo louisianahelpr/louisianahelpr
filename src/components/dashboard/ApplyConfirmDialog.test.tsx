@@ -264,7 +264,7 @@ describe("ApplyConfirmDialog", () => {
     it("says nothing when the helper can be hired", () => {
       mockAwardBlockReason.mockReturnValue(null);
       render(<ApplyConfirmDialog {...makeProps()} />);
-      expect(screen.queryByText(/can't be hired yet/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/can't accept an offer yet/i)).not.toBeInTheDocument();
     });
 
     it("explains an unfinished payout account without blocking the apply", () => {
@@ -274,8 +274,8 @@ describe("ApplyConfirmDialog", () => {
           <ApplyConfirmDialog {...makeProps()} />
         </MemoryRouter>,
       );
-      expect(screen.getByText(/can't be hired yet/i)).toBeInTheDocument();
-      expect(screen.getByText(/payout account exists/i)).toBeInTheDocument();
+      expect(screen.getByText(/can't accept an offer yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/payout account before you can accept/i)).toBeInTheDocument();
       // The fix is one tap away and points at the tab that actually holds it.
       expect(screen.getByRole("link", { name: /set up payouts/i })).toHaveAttribute(
         "href",
@@ -292,7 +292,7 @@ describe("ApplyConfirmDialog", () => {
       // the accept-step dialog still covers it if it persists.
       mockAwardBlockReason.mockReturnValue("helper_unknown");
       render(<ApplyConfirmDialog {...makeProps()} />);
-      expect(screen.queryByText(/can't be hired yet/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/can't accept an offer yet/i)).not.toBeInTheDocument();
     });
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-// @mutate supabase/migrations/20260924060512_report_no_show_per_helper.sql | p_permanent_requires_review => true,\n    p_suspension_days | p_permanent_requires_review => false,\n    p_suspension_days
+// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql | p_permanent_requires_review => true,\n    p_suspension_days | p_permanent_requires_review => false,\n    p_suspension_days
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";

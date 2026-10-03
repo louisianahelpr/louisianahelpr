@@ -160,6 +160,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // stays out is who on staff wrote or applied them, and records that are the
   // staff's own rather than the person's.
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
+  "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
   "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
   "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },
   "job_match_queue.send_email": { reason: "a boolean (send the parish email or not), not a person: matched by name only" },

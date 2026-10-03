@@ -88,6 +88,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('crew_fee_pays_unconfirmed',     'noarg',    'owner rule constant (Q407): unconfirmed crew members share the late fee'),
   ('crew_completes_when_hired_done','noarg',    'owner rule constant (Q407): an under-filled crew completes when every hired member is done'),
   ('clear_thread_mute',             'action',   'RPC'),
+  ('complete_job_accept',           'action',   'Q1180: completes a pending accept (writes; true = completed)'),
   ('delete_email',                  'action',   'pgmq wrapper'),
   ('deliver_job_match',             'action',   'job_match_queue send (writes; true = sent)'),
   ('deliver_saved_search_alert',    'action',   'saved-search send (writes; true = sent)'),

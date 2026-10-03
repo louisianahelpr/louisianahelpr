@@ -558,16 +558,16 @@ export function ApplicantsPanel({
                                 variant="primary"
                                 size="sm"
                                 className="rounded-ds-md btn-press"
-                                // Not disabled when unverified. The chip beside
-                                // the name already says why they can't be hired
-                                // yet, and a poster who taps anyway gets a toast
-                                // naming the reason (useOfferHandlers reads the
-                                // server's refusal) — which beats a dead
-                                // control that explains nothing.
+                                // Never disabled for the Helpr's Stripe state:
+                                // a single job's Hire is an offer, and payout
+                                // setup + Stripe ID are asked at their Accept
+                                // (20261003193541). A crew hire's roster-gate
+                                // refusal comes back as a toast naming the reason
+                                // (useOfferHandlers), which beats a dead control.
                                 aria-label={
-                                  app.profiles?.is_id_verified === true
+                                  app.profiles?.is_payout_ready === true
                                     ? `Select ${helperName}`
-                                    : `Select ${helperName} — not verified yet, so this may be declined`
+                                    : `Select ${helperName} — payout setup not finished yet`
                                 }
                                 onClick={() => onAcceptApplication(app)}
                               >
@@ -607,13 +607,13 @@ export function ApplicantsPanel({
                           )}
                         </div>
 
-                        {/* Row 1b: verification status — the same two facts the
-                            server gate enforces before this helper can be
-                            awarded the job (migration 20260827191647). Shown
-                            BEFORE the poster taps Hire for two reasons: it is a
-                            safety signal on a decision about letting a stranger
-                            into your home, and it stops the card offering a
-                            Hire the database will refuse.
+                        {/* Row 1b: verification status — the payout fact, one
+                            of the two the accept gate requires before this
+                            Helpr's accept completes (the other is the Stripe ID;
+                            20261003193541). Shown BEFORE the poster taps Hire for
+                            two reasons: it is a safety signal on a decision about
+                            letting a stranger into your home, and it says the
+                            Helpr still has a setup step before they can say yes.
 
                             It gets its OWN full-width line rather than sitting
                             in the name row. In that row it shared a `flex-1

@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 286** (253 to do, 33 fixed with protection pending; 637 done). Feeds mirrored in: 10 from the alert ledger, 6 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 287** (253 to do, 34 fixed with protection pending; 637 done). Feeds mirrored in: 10 from the alert ledger, 6 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 6 red, 8 stale, 0 unknown, 54 green of 68 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-03T13:46Z)_
 - **Remote branches:** 3 carry patches not on main, 3 fully merged, of 7 (Q79). _(2026-10-03T13:46Z)_

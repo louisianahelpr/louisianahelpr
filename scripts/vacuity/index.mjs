@@ -164,6 +164,15 @@ for (const e of errors) fail(`registration — ${e}`);
         `stale baseline entry — remove it (lower the baseline):\n` +
         orphanSurvivors.map((k) => `    ${k}`).join("\n"),
     );
+  // Q1144: a liveSkipGuards entry must still be a registered guard.
+  const registeredGuards = new Set(mutations.map((m) => m.guard));
+  const staleLiveSkip = (baseline.liveSkipGuards ?? []).filter((g) => !registeredGuards.has(g));
+  if (staleLiveSkip.length)
+    fail(
+      `${BASELINE_PATH}.liveSkipGuards names guards that register no @mutate line any more. ` +
+        `stale baseline entry — remove it:\n` +
+        staleLiveSkip.map((g) => `    ${g}`).join("\n"),
+    );
 }
 
 /*
@@ -248,6 +257,31 @@ if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
    * uncommitted changes and another lane may own it — a deliberate refusal to
    * act, not a failure to observe.
    */
+  /*
+   * LIVE STRIPE (Q1144). A guard whose EVERY test skipped with the justified
+   * live-pay reason observed nothing, and nothing CAN be observed before
+   * launch. It is scored on its own line, never as a pass, and the list is
+   * exact both ways: a guard that newly lands here fails until it is named in
+   * liveSkipGuards, and a named guard that ran for real this time fails until
+   * it is removed (launch day: Stripe test pay comes back, or fixtures exist).
+   */
+  const liveListed = new Set(baseline.liveSkipGuards ?? []);
+  const liveStripe = results.filter((r) => r.verdict === "live-stripe");
+  const liveGuards = [...new Set(liveStripe.map((r) => r.guard))];
+  for (const g of liveGuards) console.log(`${c.yellow("! LIVE STRIPE")} ${g}: every test skipped for the justified live-pay reason; nothing observed before launch.`);
+  const unlistedLive = liveGuards.filter((g) => !liveListed.has(g));
+  if (unlistedLive.length)
+    fail(
+      `mutation: ${unlistedLive.length} guard(s) skipped EVERY test for the live-Stripe reason and are not in ` +
+        `${BASELINE_PATH}.liveSkipGuards. Name each there (it is reviewed), or give it a fixture it can run:\n` +
+        unlistedLive.map((g) => `    ${g}`).join("\n"),
+    );
+  const ranListed = [...new Set(results.filter((r) => liveListed.has(r.guard) && (r.verdict === "killed" || r.verdict === "SURVIVED")).map((r) => r.guard))];
+  if (ranListed.length)
+    fail(
+      `${BASELINE_PATH}.liveSkipGuards is stale — these guards RAN this time, so they are no longer live-skipped. Remove them:\n` +
+        ranListed.map((g) => `    ${g}`).join("\n"),
+    );
   const inconclusive = results.filter((r) => /inconc/.test(r.verdict));
   if (inconclusive.length)
     fail(
@@ -286,6 +320,7 @@ if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
       ok(
         `mutation: ${results.filter((r) => r.verdict === "killed").length}/${results.length} killed, ` +
           `${known.length} known-vacuous, ${skipped.length} not run` +
+          (liveStripe.length ? `, ${liveStripe.length} awaiting live pay (${liveGuards.length} guard(s), Q1144)` : "") +
           (skipped.length ? c.yellow(`  — ${skipped.length} SKIPPED target(s) are unproven this run`) : ""),
       );
   }

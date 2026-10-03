@@ -77,7 +77,8 @@ says more.
   stranded-branch check). A pushed branch that never reaches main goes red
   there, so a report without a branch and sha is an unfinished report.
 - What land.sh does, so you can predict it: main requires Vitest, Test and
-  both Playwright checks, with enforce_admins, so a direct push is refused
+  both Playwright checks, plus CodeQL (code scanning default setup: a PR that
+  adds a code-scanning alert cannot merge), with enforce_admins, so a direct push is refused
   (strict is off); vacuity runs on every push to main (not required on PRs).
   land.sh fetches, rebases onto origin/main, runs `npm run inventories:refresh`,
   commits what that regenerated, proves `check:generated` and the exact-count

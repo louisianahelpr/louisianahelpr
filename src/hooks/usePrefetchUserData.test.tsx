@@ -12,6 +12,13 @@ const fetchReferralMock = vi.fn();
 const prefetchActivityCoresMock = vi.fn();
 const prefetchRouteMock = vi.fn();
 const prefetchPayoutSetupMock = vi.fn();
+// The settle gate (Q1158): by default the page has settled, so the warm-up
+// goes straight to its idle callback; the gate's own tests capture it instead.
+const whenPageSettledMock = vi.fn((cb: () => void) => {
+  cb();
+  return () => {};
+});
+const isConstrainedNetworkMock = vi.fn(() => false);
 
 vi.mock("@/hooks/useReferralData", () => ({
   fetchReferralData: (...args: unknown[]) => fetchReferralMock(...args),
@@ -21,6 +28,8 @@ vi.mock("@/hooks/useActivityData", () => ({
 }));
 vi.mock("@/lib/routePrefetch", () => ({
   prefetchRoute: (...args: unknown[]) => prefetchRouteMock(...args),
+  whenPageSettled: (cb: () => void) => whenPageSettledMock(cb),
+  isConstrainedNetwork: () => isConstrainedNetworkMock(),
 }));
 // payoutSetupQueries was NOT mocked until 2026-09-21, so this spec imported the
 // real module and every render fired a live edge-fn/Stripe prefetch against
@@ -39,6 +48,11 @@ beforeEach(() => {
   prefetchActivityCoresMock.mockReset();
   prefetchRouteMock.mockReset();
   prefetchPayoutSetupMock.mockReset();
+  whenPageSettledMock.mockReset().mockImplementation((cb: () => void) => {
+    cb();
+    return () => {};
+  });
+  isConstrainedNetworkMock.mockReset().mockReturnValue(false);
   // Default: requestIdleCallback present and runs synchronously
   originalRIC = window.requestIdleCallback;
   Object.defineProperty(window, "requestIdleCallback", {
@@ -125,6 +139,50 @@ describe("usePrefetchUserData", () => {
     vi.useRealTimers();
   });
 
+  // Q1158: "idle" is the main thread, and the main thread is idle while the
+  // Dashboard waits on its own reads, so the warm-up went out beside them
+  // (cold /home, 375, Slow 4G: every warm-up started ~0.1 s after first draw).
+  it("warms NOTHING until the page has settled, then everything", () => {
+    let settle: (() => void) | undefined;
+    whenPageSettledMock.mockImplementation((cb: () => void) => {
+      settle = cb;
+      return () => {};
+    });
+    const { wrapper } = makeWrapper();
+    renderHook(() => usePrefetchUserData("user-1"), { wrapper });
+
+    expect(whenPageSettledMock).toHaveBeenCalledTimes(1);
+    expect(fetchReferralMock).not.toHaveBeenCalled();
+    expect(prefetchActivityCoresMock).not.toHaveBeenCalled();
+    expect(prefetchRouteMock).not.toHaveBeenCalled();
+    expect(prefetchPayoutSetupMock).not.toHaveBeenCalled();
+
+    settle!();
+    expect(fetchReferralMock).toHaveBeenCalledWith("user-1");
+    expect(prefetchActivityCoresMock).toHaveBeenCalledWith(expect.anything(), "user-1");
+    expect(prefetchRouteMock).toHaveBeenCalledTimes(3);
+    expect(prefetchPayoutSetupMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops waiting on unmount, so a page left early warms nothing", () => {
+    const stop = vi.fn();
+    whenPageSettledMock.mockImplementation(() => stop);
+    const { wrapper } = makeWrapper();
+    const { unmount } = renderHook(() => usePrefetchUserData("user-1"), { wrapper });
+    unmount();
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("warms nothing on Save-Data / a 2G-class link", () => {
+    isConstrainedNetworkMock.mockReturnValue(true);
+    const { wrapper } = makeWrapper();
+    renderHook(() => usePrefetchUserData("user-1"), { wrapper });
+    expect(whenPageSettledMock).not.toHaveBeenCalled();
+    expect(fetchReferralMock).not.toHaveBeenCalled();
+    expect(prefetchRouteMock).not.toHaveBeenCalled();
+    expect(prefetchPayoutSetupMock).not.toHaveBeenCalled();
+  });
+
   it("re-prefetches when userId changes (account swap)", () => {
     const { wrapper } = makeWrapper();
     const { rerender } = renderHook(
@@ -141,4 +199,5 @@ describe("usePrefetchUserData", () => {
 });
 
 // @mutate src/hooks/usePrefetchUserData.ts | setTimeout(cb, 400); | setTimeout(cb, 4000);
+// @mutate src/hooks/usePrefetchUserData.ts | const stopWaiting = whenPageSettled(() => idle(() => { | const stopWaiting = ((f: () => void) => { f(); return () => {}; })(() => idle(() => {
 // @mutate src/hooks/usePrefetchUserData.ts | prefetchPayoutSetup(queryClient, userId); | void 0;

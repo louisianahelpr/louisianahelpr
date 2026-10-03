@@ -96,6 +96,7 @@ jobs:
           e2e-journeys.yml:5
           e2e-real-backend.yml:3
           edge-function-smoke.yml:14
+          eslint.yml:8
           expiry-monitor.yml:2
           lighthouse.yml:14
           loading-states-refresh.yml:2

@@ -78,7 +78,7 @@ const lineOf = (code: string, idx: number) => code.slice(0, idx).split("\n").len
 
 /** Initializer text of `const|let|var <id> =` in the file, to the end of the statement. */
 function initializerOf(code: string, id: string): string | null {
-  const name = id.replace(/\$/g, "\\$");
+  const name = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // `function <id>(…) { … }`: the whole declaration, to its closing brace.
   const fn = new RegExp(`\\bfunction\\s*\\*?\\s+${name}\\s*\\(`).exec(code);
   if (fn) {

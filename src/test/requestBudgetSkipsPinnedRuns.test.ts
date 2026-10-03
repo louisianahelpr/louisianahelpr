@@ -19,7 +19,7 @@
  * failed "no sample for this label". Both pinning inputs are inventoried, and
  * the env var may sit on the step or on its job.
  */
-// @mutate .github/workflows/prod-audit.yml | ${GREP:+--ceiling-only} | 
+// @mutate .github/workflows/prod-audit.yml | --label prod-audit ${GREP:+--ceiling-only --allow-empty} | --label prod-audit
 // @mutate .github/workflows/e2e-journeys.yml | --label journeys ${SCENARIO:+--ceiling-only --allow-empty} | --label journeys
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

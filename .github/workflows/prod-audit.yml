@@ -259,11 +259,14 @@ jobs:
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
         # Not on a vacuity-only dispatch: the suites it budgets did not run.
         # A `grep` dispatch runs a subset: its per-test number is not the
-        # suite's, so only the load ceiling is judged (--ceiling-only).
+        # suite's, so only the load ceiling is judged (--ceiling-only). It may
+        # also match only the web-vitals project's tests (run 37153835455:
+        # `every first screen|a tap never` ran 0 prod-audit tests, and this
+        # step failed on "no sample for this label"), hence --allow-empty.
         if: ${{ !cancelled() && inputs.vacuity_only == '' }}
         env:
           GREP: ${{ inputs.grep }}
-        run: node scripts/e2e/request-budget.mjs --label prod-audit ${GREP:+--ceiling-only}
+        run: node scripts/e2e/request-budget.mjs --label prod-audit ${GREP:+--ceiling-only --allow-empty}
       - name: Backend request budget, Web Vitals lab (Q104)
         # The web-vitals project meters under its own label. A `grep` dispatch
         # judges the ceiling only (as the prod-audit budget above does) and,

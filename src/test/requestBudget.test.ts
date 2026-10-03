@@ -20,7 +20,7 @@
  * @mutate .github/workflows/prod-audit.yml | run: node scripts/e2e/request-budget.mjs --label prod-audit | run: echo skipped
  * @mutate scripts/e2e/request-budget.mjs | else if (measured < b * STALE_FRACTION) | else if (false)
  * @mutate scripts/e2e/request-budget.mjs |     if (ceilingOnly) { |     if (true) {
- * @mutate .github/workflows/prod-audit.yml | --label prod-audit ${GREP:+--ceiling-only} | --label prod-audit --ceiling-only
+ * @mutate .github/workflows/prod-audit.yml | --label prod-audit ${GREP:+--ceiling-only --allow-empty} | --label prod-audit --ceiling-only --allow-empty
  * @mutate e2e/prodTest.ts | meter.attachBrowser(browser); | void browser;
  * @mutate scripts/e2e/request-budget.mjs | if (agg.tests > 0 && agg.total === 0) { | if (false) {
  * @mutate scripts/e2e/request-budget.mjs | (allowEmpty ? notes : failures).push( | notes.push(
@@ -253,7 +253,9 @@ describe("backend request budgets (Q104)", () => {
   it("prod-audit passes --ceiling-only ONLY on a grep dispatch, never on a full run", () => {
     const wf = readFileSync(resolve(__dirname, "../../.github/workflows/prod-audit.yml"), "utf8");
     const line = wf.split("\n").find((l) => l.includes("request-budget.mjs --label prod-audit")) ?? "";
-    expect(line).toMatch(/--label prod-audit \$\{GREP:\+--ceiling-only\}\s*$/);
+    // --allow-empty rides the same grep-only expansion: a dispatch whose grep
+    // names only web-vitals tests runs no prod-audit test (run 37153835455).
+    expect(line).toMatch(/--label prod-audit \$\{GREP:\+--ceiling-only --allow-empty\}\s*$/);
     expect(wf).toMatch(/GREP: \$\{\{ inputs\.grep \}\}\n\s*run: node scripts\/e2e\/request-budget\.mjs/);
   });
 

@@ -79,32 +79,33 @@ type Metric = "fcp" | "lcp";
  * Every desktop first screen is inside GOOD (FCP 0.48-0.75 s, LCP 0.48-1.06 s),
  * so desktop has no entry. No mobile screen is: under Slow 4G + 4x CPU each
  * waits ~3.5-4.4 s for its JavaScript before its first draw (Q1158, Q1170-Q1173
- * name what is left). Ceilings are the measured median x1.08, measured
- * 2026-10-03 on this commit (local build, prod data, calibrated CPU 3.64x;
- * run-to-run spread on unchanged screens was within 4%).
+ * name what is left). Ceilings are the medians of the first CI run, prod-audit
+ * 37153835455 (2026-10-03, ubuntu runner, CPU calibrated to 3x), x1.08: the
+ * same build read 3-7% faster on the reference Mac, and run-to-run spread on
+ * an unchanged screen was within 4% on both.
  */
 // @two-way e2e/web-vitals/first-screens.spec.ts:KNOWN entries now inside GOOD or far under their ceiling: delete or lower them
 const KNOWN: Record<string, { ceiling: number; measured: number }> = {
-  "mobile / fcp": { ceiling: 3980, measured: 3684 },
-  "mobile / lcp": { ceiling: 3980, measured: 3684 },
-  "mobile /browse fcp": { ceiling: 4630, measured: 4280 },
-  "mobile /browse lcp": { ceiling: 4650, measured: 4300 },
-  "mobile /login fcp": { ceiling: 3960, measured: 3664 },
-  "mobile /login lcp": { ceiling: 3960, measured: 3664 },
-  "mobile /signup fcp": { ceiling: 4170, measured: 3860 },
-  "mobile /signup lcp": { ceiling: 4170, measured: 3860 },
-  "mobile /home fcp": { ceiling: 4970, measured: 4600 },
-  "mobile /home lcp": { ceiling: 6610, measured: 6120 },
-  "mobile /messages fcp": { ceiling: 4830, measured: 4464 },
-  "mobile /messages lcp": { ceiling: 4830, measured: 4464 },
-  "mobile /jobs fcp": { ceiling: 4230, measured: 3916 },
-  "mobile /jobs lcp": { ceiling: 5180, measured: 4796 },
-  "mobile /posts fcp": { ceiling: 4220, measured: 3904 },
-  "mobile /posts lcp": { ceiling: 5920, measured: 5476 },
-  "mobile /post-job fcp": { ceiling: 4770, measured: 4412 },
-  "mobile /post-job lcp": { ceiling: 5680, measured: 5252 },
-  "mobile /profile fcp": { ceiling: 5380, measured: 4976 },
-  "mobile /profile lcp": { ceiling: 6210, measured: 5744 },
+  "mobile / fcp": { ceiling: 4110, measured: 3804 },
+  "mobile / lcp": { ceiling: 4110, measured: 3804 },
+  "mobile /browse fcp": { ceiling: 4780, measured: 4424 },
+  "mobile /browse lcp": { ceiling: 4810, measured: 4448 },
+  "mobile /login fcp": { ceiling: 4090, measured: 3780 },
+  "mobile /login lcp": { ceiling: 4090, measured: 3780 },
+  "mobile /signup fcp": { ceiling: 4400, measured: 4072 },
+  "mobile /signup lcp": { ceiling: 4400, measured: 4072 },
+  "mobile /home fcp": { ceiling: 5100, measured: 4720 },
+  "mobile /home lcp": { ceiling: 6630, measured: 6136 },
+  "mobile /messages fcp": { ceiling: 5100, measured: 4716 },
+  "mobile /messages lcp": { ceiling: 5100, measured: 4716 },
+  "mobile /jobs fcp": { ceiling: 4540, measured: 4200 },
+  "mobile /jobs lcp": { ceiling: 5410, measured: 5008 },
+  "mobile /posts fcp": { ceiling: 4470, measured: 4132 },
+  "mobile /posts lcp": { ceiling: 6100, measured: 5640 },
+  "mobile /post-job fcp": { ceiling: 4990, measured: 4620 },
+  "mobile /post-job lcp": { ceiling: 5970, measured: 5520 },
+  "mobile /profile fcp": { ceiling: 5650, measured: 5224 },
+  "mobile /profile lcp": { ceiling: 6510, measured: 6024 },
 };
 /** Under this fraction of its ceiling a KNOWN entry is stale (the screen got faster: lower it). */
 const CEILING_STALE = 0.8;

@@ -80,8 +80,9 @@ describe("scripts/land.sh keeps generated files current on main", () => {
   });
 
   it("runs db-deploy's repo-only twins before pushing a migration change (ledger 00fd2bd0)", () => {
-    const gate = at(/^\s*if git diff --name-only origin\/main\.\.HEAD \| grep -qE '([^']+)'; then$/m);
-    const pattern = new RegExp(/grep -qE '([^']+)'; then/.exec(code.slice(gate))![1]);
+    expect(code).toMatch(/^\s*PUSHED_FILES=\$\(git diff --name-only origin\/main\.\.HEAD\)$/m);
+    const gate = at(/^\s*if grep -qE '([^']+)' <<<"\$PUSHED_FILES"; then$/m);
+    const pattern = new RegExp(/grep -qE '([^']+)' <<<"\$PUSHED_FILES"; then/.exec(code.slice(gate))![1]);
     for (const p of ["supabase/migrations/20260927234313_refuse_unconfirmed_email_writes.sql", "scripts/ci/null-arg-validators.sql", "src/integrations/supabase/types.ts"]) {
       expect(pattern.test(p), `${p} must trigger the twins`).toBe(true);
     }

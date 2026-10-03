@@ -14,7 +14,7 @@ import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { SUB_PRICE, ANALYTICS_PROFILE_COLUMNS, DRILL_PROFILE_COLUMNS, type Profile, type DrillProfile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
 import { TIER_ORDER } from "@/lib/subscriptionTiers";
 import { TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
-import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
+import { computeMetrics, mostPrivilegedRoleByUser } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
@@ -127,9 +127,7 @@ const AdminAnalytics = () => {
         // `job_id` so the Payout Pipeline's Released rung can be attributed to
         // the jobs it settled rather than quoting a budget as a settlement.
         supabase.from("payout_transfers").select("amount_cents, status, job_id"),
-        // Q443: which jobs a gift card paid, so computeMetrics counts them as
-        // collected (they carry no job PI).
-        loadGiftCardPaidJobIds(),
+        loadGiftCardPaidJobIds(), // Q443: jobs a gift card paid (no job PI) still count as collected
       ]);
       if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
       if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
@@ -149,16 +147,7 @@ const AdminAnalytics = () => {
       } else {
         setTransfers((transfersRes.data as { amount_cents: number | string; status: string; job_id?: string | null }[] | null) || []);
       }
-      // Build user_id → most-privileged role map (admin > helper > customer).
-      const roleMap = new Map<string, string>();
-      const priority = (r: string) => r === "admin" ? 1 : r === "helper" ? 2 : 3;
-      for (const r of rolesRes.data ?? []) {
-        const existing = roleMap.get(r.user_id);
-        if (!existing || priority(r.role) < priority(existing)) {
-          roleMap.set(r.user_id, r.role);
-        }
-      }
-      setRoleByUser(roleMap);
+      setRoleByUser(mostPrivilegedRoleByUser(rolesRes.data ?? []));
       setLoading(false);
     };
     load();
@@ -268,15 +257,10 @@ const AdminAnalytics = () => {
       if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
       const { data, error } = await query;
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
-      if (type === "jobs") {
-        setDrillJobs(readableJobRows<Job>(data));
-      } else {
-        // A held status is a claim; the money list keeps only rows with a job
-        // PI or a gift card behind them (Q233, Q443).
-        const giftCardPaid = await loadGiftCardPaidJobIds();
-        if (giftCardPaid.error) report(giftCardPaid.error, { tags: { source: "AdminAnalytics.drillDownGiftCardPaid" } });
-        setDrillJobs(withGiftCardPaid(readableJobRows<Job>(data), giftCardPaid.ids).filter(isCapturedPayment));
-      }
+      // A held status is a claim: a money list keeps rows with a job PI or a gift card behind them (Q233, Q443).
+      const giftCardPaid = type === "jobs" ? null : await loadGiftCardPaidJobIds();
+      if (giftCardPaid?.error) report(giftCardPaid.error, { tags: { source: "AdminAnalytics.drillDownGiftCardPaid" } });
+      setDrillJobs(giftCardPaid ? withGiftCardPaid(readableJobRows<Job>(data), giftCardPaid.ids).filter(isCapturedPayment) : readableJobRows<Job>(data));
     } else if (type === "subscriptions") {
       const { rows, error } = await readAllProfiles<DrillProfile>(DRILL_PROFILE_COLUMNS, (q) => q.not("subscription_tier", "is", null).order("subscription_tier").order("id"));
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownSubscriptions" } });

@@ -172,5 +172,11 @@ export function duplicateItems(md) {
  */
 export function foreignLines(blockText, shapes) {
   return String(blockText ?? "").split("\n")
-    .filter((l) => l.trim() && !/^\s*<!--.*-->\s*$/.test(l) && !shapes.some((re) => re.test(l)));
+    .filter((l) => l.trim() && !isCommentLine(l) && !shapes.some((re) => re.test(l)));
+}
+
+/** One whole `<!-- ... -->` on one line (the markers). String checks, not an HTML regex. */
+function isCommentLine(l) {
+  const t = l.trim();
+  return t.startsWith("<!--") && t.endsWith("-->");
 }

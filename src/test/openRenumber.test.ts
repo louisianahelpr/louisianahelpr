@@ -20,7 +20,8 @@
  */
 // @mutate scripts/open-renumber.mjs |     if (list.every((o) => sameItemHead(o.line, list[0].line))) { |     if (false) {
 // @mutate scripts/open-renumber.mjs |       if (!done.length) { stuck.push(id); continue; } |       if (!done.length) { continue; }
-// @mutate scripts/open-renumber.mjs |     while (o.li + n < lines[o.fi].length && /^[ \t]+\S/.test(lines[o.fi][o.li + n])) n++; |     n = 1;
+// @mutate scripts/open-renumber.mjs |         for (let k = 0; k < n; k++) dropped[o.fi].add(o.li + k); |         dropped[o.fi].add(o.li);
+// @mutate scripts/open-renumber.mjs | for (const o of list.filter((c) => c !== stays)) { | for (const o of list.filter((c) => c !== stays && false)) {
 // @mutate scripts/open-renumber.mjs |     const keep = onBase[0] ?? list[0]; |     const keep = list[0];
 // @mutate scripts/open-renumber.mjs |     if (o === keep) continue; |     if (o !== keep) continue;
 // @mutate scripts/lib/openFeeds.mjs |       else if (hits.length > 1) { ambiguous.push | else if (false) { ambiguous.push

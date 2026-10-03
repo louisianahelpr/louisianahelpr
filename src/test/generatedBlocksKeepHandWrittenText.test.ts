@@ -14,7 +14,7 @@
  * a line their generator could not have written (scripts/lib/openQueue.mjs
  * foreignLines). Red first: the replayed block below is 10 foreign lines.
  */
-// @mutate scripts/lib/openQueue.mjs |     .filter((l) => l.trim() && !/^\s*<!--.*-->\s*$/.test(l) && !shapes.some((re) => re.test(l))); |     .filter(() => false);
+// @mutate scripts/lib/openQueue.mjs |     .filter((l) => l.trim() && !isCommentLine(l) && !shapes.some((re) => re.test(l))); |     .filter(() => false);
 // @mutate scripts/queue-count.mjs |       process.exit(1);\n    } |       process.exitCode = 0;\n    }
 import { describe, it, expect, afterAll } from "vitest";
 import { spawnSync } from "node:child_process";

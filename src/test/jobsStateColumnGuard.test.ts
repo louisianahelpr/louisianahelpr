@@ -2,13 +2,18 @@
 // money column (payout_scheduled_at) makes helper:payout_scheduled_at writable
 // with nothing constraining the value, and the ratchet reds.
 // @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql | 'status',\n    'helper_confirmed_at', | 'status',\n    'payout_scheduled_at',\n    'helper_confirmed_at',
+// Q966: the dispute trigger stops firing on a PATCH of the two text columns.
+// @mutate supabase/migrations/20261003180355_dispute_text_server_owned.sql | dispute_resolved_at, dispute_reason, dispute_helper_response\n    ON public.jobs | dispute_resolved_at\n    ON public.jobs
+// Q966: the complaint's change check is disabled (the INSERT clear still names the column).
+// @mutate supabase/migrations/20261003180355_dispute_text_server_owned.sql | IF NEW.dispute_reason IS DISTINCT FROM OLD.dispute_reason THEN | IF false THEN
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   dynamicJobsWriterReasons,
+  firesOnUpdateOf,
   isReviewedJobsWriter,
-  jobsTriggers,
+  jobsTriggerSpecs,
   newestFunctions,
   parseArgs,
   sqlArrayLiteral,
@@ -71,9 +76,11 @@ function jobsColumns(): string[] {
 const STATE_COLUMN = [
   /^status$/,
   /^payment_status$/,
-  /^dispute_status$/,
-  /^disputed_(at|by)$/,
-  /^dispute_(resolved_at|deadline)$/,
+  // EVERY dispute column, not a hand-picked few (Q966, 2026-10-03). The list
+  // named only the state markers, so dispute_reason and
+  // dispute_helper_response (the words an admin decides the split from) were
+  // never inventoried and stayed writable by the other party with a PATCH.
+  /^disputed?_/,
   /^has_active_dispute$/,
   /^payout_/,
   /(^|_)completed_at$/,
@@ -137,8 +144,19 @@ const TRANSITION_GUARDS: { fn: string; seats: Seat[]; columns: string[]; why: st
   {
     fn: "enforce_dispute_markers_server_owned",
     seats: ["helper", "poster", "offered"],
-    columns: ["status", "dispute_status", "disputed_at", "disputed_by", "dispute_resolved_at", "dispute_deadline"],
-    why: "the dispute state machine is written only by the dispute RPCs / service / admin; the one direct client move is the Helpr's open -> helper_responded",
+    columns: [
+      "status", "dispute_status", "disputed_at", "disputed_by", "dispute_resolved_at", "dispute_deadline",
+      "dispute_reason", "dispute_helper_response",
+    ],
+    why:
+      "the dispute state machine and the complaint are written only by the dispute RPCs / service / admin; the direct client " +
+      "moves are the Helpr's open -> helper_responded and their one answer to a dispute they did not file (20261003180355)",
+  },
+  {
+    fn: "enforce_jobs_dispute_evidence_append_only",
+    seats: ["helper", "poster", "offered"],
+    columns: ["dispute_evidence_urls"],
+    why: "append-only, each added element the caller's own upload for this job (Q398, 20260925154842; no admin exemption)",
   },
   {
     fn: "enforce_job_completion_server_owned",
@@ -185,7 +203,11 @@ export function unguardedStateWrites(
   guards = TRANSITION_GUARDS,
 ): string[] {
   const fns = newestFunctions(files) as Map<string, Fn>;
-  const attached = new Set(jobsTriggers(files).values());
+  const specs = [...jobsTriggerSpecs(files).values()];
+  // A guard covers a column only if a live jobs trigger running it FIRES on an
+  // UPDATE naming that column: a `BEFORE UPDATE OF a, b` trigger never runs
+  // for a PATCH of c alone, whatever its function body says about c.
+  const fires = (fn: string, col: string) => specs.some((s) => s.fn === fn && firesOnUpdateOf(s.events, col));
   const { helperAllowed, posterLocked, offeredLocked } = lockLists();
   const state = jobsColumns().filter((c) => STATE_COLUMN.some((re) => re.test(c)));
   const writable: Record<Seat, string[]> = {
@@ -199,7 +221,7 @@ export function unguardedStateWrites(
       const covered = guards.some((g) => {
         if (!g.seats.includes(seat) || !g.columns.includes(col)) return false;
         const f = fns.get(g.fn);
-        if (!f || !attached.has(g.fn)) return false;
+        if (!f || !fires(g.fn, col)) return false;
         return new RegExp(`\\bNEW\\.${col}\\b|'${col}'`).test(f.body);
       });
       if (!covered) out.push(`${seat}:${col}`);
@@ -273,6 +295,46 @@ describe("jobs money / state-machine columns: every client-writable one has a tr
       { name: "99999999999999_fake_narrow.sql", sql: `CREATE OR REPLACE FUNCTION public.enforce_dispute_markers_server_owned() RETURNS trigger LANGUAGE plpgsql AS $function$${narrowed}$function$;` },
     ];
     expect(unguardedStateWrites(broken)).toEqual(expect.arrayContaining(["helper:disputed_by", "poster:disputed_by"]));
+  });
+
+  it("can fail: the dispute trigger's UPDATE OF list omits a column its function checks (Q966)", () => {
+    // The pre-Q966 trigger shape: the function may name dispute_reason, but a
+    // PATCH of dispute_reason alone never fires a trigger listed OF the six
+    // markers, so the column is open for every seat that can write it.
+    const narrowed = [
+      ...FILES,
+      {
+        name: "99999999999999_fake_of_list.sql",
+        sql:
+          "DROP TRIGGER IF EXISTS trg_dispute_markers_server_owned ON public.jobs;\n" +
+          "CREATE TRIGGER trg_dispute_markers_server_owned BEFORE INSERT OR UPDATE OF status, disputed_at, disputed_by, " +
+          "dispute_status, dispute_deadline, dispute_resolved_at ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.enforce_dispute_markers_server_owned();",
+      },
+    ];
+    expect(unguardedStateWrites(narrowed)).toEqual(
+      expect.arrayContaining(["poster:dispute_reason", "helper:dispute_reason", "poster:dispute_helper_response"]),
+    );
+    expect(firesOnUpdateOf("BEFORE INSERT OR UPDATE OF status, disputed_at", "dispute_reason")).toBe(false);
+    expect(firesOnUpdateOf("BEFORE INSERT OR UPDATE OF status, dispute_reason", "dispute_reason")).toBe(true);
+    expect(firesOnUpdateOf("BEFORE UPDATE OF status OR DELETE", "status")).toBe(true);
+    expect(firesOnUpdateOf("BEFORE INSERT OR UPDATE", "dispute_reason")).toBe(true);
+    expect(firesOnUpdateOf("BEFORE INSERT", "dispute_reason")).toBe(false);
+  });
+
+  it("every dispute-text check runs BEFORE the dispute_status branch that returns early (Q966)", () => {
+    // That branch RETURNs NEW on the Helpr's one allowed status write, so a
+    // check placed after it never sees a PATCH that pairs dispute_status
+    // 'helper_responded' with a rewritten dispute_reason.
+    const body = (newestFunctions(FILES) as Map<string, Fn>).get("enforce_dispute_markers_server_owned")!.body;
+    const branch = body.search(/IF\s+NEW\.dispute_status\s+IS\s+DISTINCT\s+FROM\s+OLD\.dispute_status/i);
+    expect(branch, "the dispute_status branch is gone; re-read the function before trusting this test").toBeGreaterThan(0);
+    for (const col of ["disputed_at", "disputed_by", "dispute_deadline", "dispute_resolved_at", "dispute_reason", "dispute_helper_response"]) {
+      const at = body.search(new RegExp(`IF\\s+NEW\\.${col}\\s+IS\\s+DISTINCT\\s+FROM\\s+OLD\\.${col}`, "i"));
+      expect(at, `${col}: no change check in the function`).toBeGreaterThan(0);
+      expect(at, `${col}: its check runs after the early-returning dispute_status branch`).toBeLessThan(branch);
+      // ...and a client INSERT cannot plant it.
+      expect(body, `${col}: not cleared on INSERT`).toMatch(new RegExp(`NEW\\.${col}\\s*:=\\s*NULL`, "i"));
+    }
   });
 
   it("can fail: the completion guard's trigger dropped (helper_completed_at falls open again)", () => {

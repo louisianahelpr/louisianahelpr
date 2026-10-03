@@ -126,6 +126,27 @@ SELECT id, severity, status, source_kind, source,
  * closed_by) or null. Used by `ops-alert-ledger.mjs sync` for nightly_red
  * items that lost their issue number (docs/OPEN.md Q42).
  */
+/**
+ * Q1139: the run that may close a nightly_red item whose issue a PERSON
+ * closed. A hand-closed issue proves nothing, so sync step 2 never takes it as
+ * evidence; but once the issue is closed the workflow's next green run has no
+ * issue left to close, so the item could never close at all (2026-10-03: four
+ * such items, issues closed by louisianahelpr). The evidence is instead the
+ * workflow's own newest completed SCHEDULED or DISPATCHED run on main, green
+ * and started after the item's last occurrence. A push run does not count: it
+ * may skip the nightly jobs (staleness-watch's "Nothing stale" runs on
+ * schedule and dispatch only). `runs` is `gh run list --json
+ * conclusion,status,createdAt,url,event`. Returns that run, else null.
+ */
+export function greenNightlyRunAfter(runs, lastSeen) {
+  const nightly = (runs ?? [])
+    .filter((r) => r.status === "completed" && (r.event === "schedule" || r.event === "workflow_dispatch"))
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const newest = nightly[0];
+  if (!newest || newest.conclusion !== "success") return null;
+  return Date.parse(newest.createdAt) > Date.parse(lastSeen) ? newest : null;
+}
+
 export function newestNightlyIssueByTitle(repo, title, run) {
   const want = String(title).trim().toLowerCase();
   const found = run(["issue", "list", "--repo", repo, "--label", "nightly-red", "--state", "all", "--limit", "50",

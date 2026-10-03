@@ -45,6 +45,8 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
+      # knip reads this file: knip.json lists the formatter under ignoreDependencies,
+      # like the other packages installed outside package.json (pg, @electric-sql/pglite).
       - name: Install the SARIF formatter (not saved to package.json)
         run: npm install --no-save --no-audit --no-fund --legacy-peer-deps @microsoft/eslint-formatter-sarif@3.1.0
 

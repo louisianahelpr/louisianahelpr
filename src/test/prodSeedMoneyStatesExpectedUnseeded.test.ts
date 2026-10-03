@@ -95,7 +95,7 @@ describe("prod-seed --verify marks missing money states expected-unseeded, not f
     // The two standalone money-ledger checks, each a single call site.
     const standaloneRealFlow = [...seedSrc.matchAll(/await check\("(payout_transfers|tips) \(helper\)"[^;]*"real flow"\)/g)].length;
 
-    // Direct, source-grounded floor: 6 job-status + 9 payment-status + 2
+    // Direct, source-grounded floor as of 2026-10-02: 6 job-status + 9 payment-status + 2
     // standalone (payout_transfers, tips) = 17. If this ever moves, update
     // this number in the SAME commit (CLAUDE.md: every floor stays exact).
     expect(standaloneRealFlow).toBe(2);

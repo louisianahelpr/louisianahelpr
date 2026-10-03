@@ -7,6 +7,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
 
 /**
@@ -21,7 +22,7 @@ const REFUND_CLOSABLE_PAYMENT_STATES = [
 
 export async function handleChargeRefunded(
   event: Stripe.Event,
-  { supabase, logStep }: WebhookContext,
+  { stripe, supabase, logStep }: WebhookContext,
 ): Promise<void> {
   const charge = event.data.object as Stripe.Charge;
   const refundPiId = typeof charge.payment_intent === "string"
@@ -65,7 +66,7 @@ export async function handleChargeRefunded(
   if (refundPiId && isFullRefund && !isOnboardingFeeCorrection) {
     const { data: refundedJob, error: jobLookupErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, title, payment_status")
+      .select("id, customer_id, helper_id, title, payment_status")
       .eq("stripe_payment_intent_id", refundPiId)
       .maybeSingle();
 
@@ -93,6 +94,9 @@ export async function handleChargeRefunded(
       const priorStatus = (refundedJob as { payment_status?: string | null }).payment_status ?? null;
       const closable = (REFUND_CLOSABLE_PAYMENT_STATES as readonly string[]).includes(priorStatus ?? "");
       let updateErr: { message: string } | null = null;
+      // Whether the job ends this webhook 'refunded' (this flip, another
+      // path's own flip, or a redelivery): the Q450 close below needs it.
+      let nowRefunded = priorStatus === "refunded";
       if (closable) {
         const { data: flipped, error: flipErr } = await supabase
           .from("jobs")
@@ -111,6 +115,7 @@ export async function handleChargeRefunded(
           if (againErr) throw new Error(`Re-read of job ${refundedJob.id} after a zero-row refund flip failed: ${againErr.message}`);
           nowStatus = (again as { payment_status?: string | null } | null)?.payment_status ?? null;
         }
+        if (!flipErr && ((flipped?.length ?? 0) > 0 || nowStatus === "refunded")) nowRefunded = true;
         if (!flipErr && (!flipped || flipped.length === 0) && nowStatus !== "refunded") {
           await postSlackOpsAlert({
             kind: "money_at_risk",
@@ -135,6 +140,23 @@ export async function handleChargeRefunded(
         // has already returned the funds — a money↔state divergence that can
         // only be detected by manual reconciliation. Throw so Stripe retries.
         throw new Error(`Failed to mark job ${refundedJob.id} as refunded: ${updateErr.message}`);
+      }
+
+      // Q450: a full refund made OUTSIDE the split (the Stripe Dashboard) on a
+      // job whose dispute is decided but whose split never ran. The split runs
+      // only from escrow/payout_pending, so the decision could never execute
+      // and stayed 'pending' forever. Closed here, before the ledger row and
+      // the notice, so a throw (Stripe redelivers) repeats nothing visible.
+      if (nowRefunded) {
+        await closeDecidedDisputeOnExternalRefund(
+          { stripe, supabase, logStep },
+          charge,
+          {
+            id: String(refundedJob.id),
+            title: (refundedJob as { title?: string | null }).title ?? null,
+            helper_id: (refundedJob as { helper_id?: string | null }).helper_id ?? null,
+          },
+        );
       }
 
       // Write payment_refunds ledger row. Refunds issued from the Stripe Dashboard
@@ -261,4 +283,214 @@ export async function handleChargeRefunded(
       logStep("Partial refund ledger row written", { refundId: latestRefund.id, pi: refundPiId });
     }
   }
+}
+
+/**
+ * Execution states of a decided dispute whose money has not moved: a single
+ * Helpr split not yet run (null / pending / executing / failed), or a crew
+ * decision (20260927012240) that process-scheduled-payouts' per-member fan-out
+ * settles. The crew one is never CLOSED here (settle_dispute_by_external_refund
+ * does not read it), but it is read: the fan-out selects only payout_pending
+ * jobs, so a fully refunded crew job would leave its decided members owed with
+ * no signal (lh-money-escrow review, MEDIUM), and it is handed to a person.
+ */
+const UNEXECUTED_DECISION_FILTER = "execution_status.is.null,execution_status.in.(pending,executing,failed,crew_fanout)";
+
+/**
+ * Q450: a FULL refund made outside execute-dispute-split settles a
+ * decided-but-unexecuted dispute.
+ *
+ * rpc_decide_dispute leaves execution_status 'pending' until the split moves
+ * the money, and the split's first attempt runs only from escrow /
+ * payout_pending; a resume refuses over a refund it did not make. So a full
+ * refund from the Stripe Dashboard (this handler flips the job 'refunded')
+ * left the decision with nothing to split and no terminal state, paging the
+ * unsettled-dispute detectors forever.
+ *
+ * Keyed on WHO refunded: every refund execute-dispute-split creates carries
+ * metadata.dispute_id, and its own 100/0 split also fires charge.refunded, so
+ * a refund with that metadata is the split's to close (closing it here would
+ * race its claim). Only when every live refund on the charge came from
+ * outside the split does settle_dispute_by_external_refund close the record,
+ * and only when nothing else is owed or moved (it answers needs_human for a
+ * partial refund, a gift card, money a split already moved, a dead claim;
+ * 'busy' for a run in flight, which throws so Stripe redelivers once it ends).
+ * A DB or Stripe read failure throws too, before anything is written.
+ */
+async function closeDecidedDisputeOnExternalRefund(
+  { stripe, supabase, logStep }: Pick<WebhookContext, "stripe" | "supabase" | "logStep">,
+  charge: Stripe.Charge,
+  job: { id: string; title: string | null; helper_id: string | null },
+): Promise<string> {
+  // Cheap, and first: most refunded jobs have no decided dispute, and they
+  // must not pay for a Stripe round trip.
+  const { data: waiting, error: waitErr } = await supabase
+    .from("disputes")
+    .select("id, execution_status")
+    .eq("job_id", job.id)
+    .eq("status", "decided")
+    .or(UNEXECUTED_DECISION_FILTER)
+    .limit(5);
+  if (waitErr) {
+    throw new Error(`Decided-dispute read failed for refunded job ${job.id}: ${waitErr.message}`);
+  }
+  const decisions = (waiting ?? []) as Array<{ id: string; execution_status: string | null }>;
+  if (decisions.length === 0) return "no_unsettled_dispute";
+  const crew = decisions.find((d) => d.execution_status === "crew_fanout");
+  const decidedId = (crew ?? decisions[0]).id;
+
+  const noticeAdmins = async (title: string, message: string) => {
+    const { ids } = await loadAdminIds(supabase, "stripe-webhook.chargeRefunded.decidedDispute");
+    for (const adminId of ids) {
+      const { error: noticeErr } = await supabase.from("notifications").insert({
+        user_id: adminId, job_id: job.id, title, message, type: "warning",
+        link: `/admin?view=jobs&job=${job.id}`,
+      });
+      if (noticeErr) logStep("Decided-dispute admin notice failed", { adminId, error: noticeErr.message });
+    }
+  };
+  const handBack = async (reason: string, split: string) => {
+    await noticeAdmins(
+      "Full refund on a decided dispute — settle it by hand",
+      `The payment for "${job.title ?? "a job"}" was refunded in full while its decided split (${split}) had not run, and the dispute could not be closed automatically: ${reason}.`,
+    );
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Full refund on a decided dispute — settle it by hand",
+      message: `Charge ${charge.id} was refunded in full on a job whose decided split (${split}) has not run, and the dispute could not be closed automatically: ${reason}. The split cannot run on a refunded job; reconcile against Stripe and close the dispute by hand.`,
+      fields: { "Charge": charge.id, "Job ID": job.id, "Internal dispute": decidedId, "Decided split": split },
+      oncePerDayKey: `refund-decided-needs-human:${job.id}`,
+    });
+  };
+
+  if (crew) {
+    // A crew decision is settled member by member by process-scheduled-payouts'
+    // fan-out, which reads only payout_pending jobs: on a refunded job it never
+    // runs, and the members the decision paid were told their share was coming.
+    // Never closed automatically (the members' owed shares are a person's
+    // call); handed to one, before any Stripe read.
+    await handBack(
+      "it is a crew decision, settled member by member by the payout fan-out, which never runs on a refunded job; the members it pays are still owed",
+      "a crew decision",
+    );
+    return "needs_human";
+  }
+
+  // Whose refunds made the charge whole. Read from Stripe: a webhook carries
+  // the Charge in its minimal form, and `refunds` is not included on current
+  // API versions (2022-11-15 stopped expanding it).
+  let refunds: Stripe.Refund[];
+  try {
+    const list = await stripe.refunds.list({ charge: charge.id, limit: 100 });
+    refunds = (list?.data ?? []) as Stripe.Refund[];
+  } catch (e) {
+    throw new Error(`Could not list the refunds on charge ${charge.id} (job ${job.id}): ${String(e)}`);
+  }
+  const live = refunds.filter((r) => r.status !== "failed" && r.status !== "canceled");
+  const splitOf = (r: Stripe.Refund) => String((r.metadata as Record<string, string> | null)?.dispute_id ?? "");
+  const bySplit = live.filter((r) => splitOf(r) !== "");
+  const outside = live.filter((r) => splitOf(r) === "");
+
+  if (bySplit.length > 0) {
+    if (outside.length === 0 && bySplit.every((r) => splitOf(r) === decidedId)) {
+      // The split's own refund (a 100/0 split): it records its own settlement.
+      logStep("Full refund is the decided split's own; the split closes its dispute", { jobId: job.id, disputeId: decidedId });
+      return "split_refund";
+    }
+    await handBack(
+      outside.length > 0
+        ? "the charge carries both the split's refund and a refund made outside it"
+        : "the charge carries another dispute's split refund",
+      "—",
+    );
+    return "needs_human";
+  }
+
+  const { data, error } = await supabase.rpc("settle_dispute_by_external_refund", {
+    _job_id: job.id,
+    _stripe_charge_id: charge.id,
+    _refunded_cents: charge.amount_refunded,
+    _charge_cents: charge.amount,
+  });
+  if (error?.code === "PGRST202") {
+    // Not deployed yet: the old behaviour (left pending), said out loud.
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Full refund on a decided dispute — close not deployed yet",
+      message: `Charge ${charge.id} was refunded in full on a job whose decided split has not run. settle_dispute_by_external_refund is not deployed, so close dispute ${decidedId} by hand.`,
+      fields: { "Charge": charge.id, "Job ID": job.id, "Internal dispute": decidedId },
+    });
+    return "not_deployed";
+  }
+  if (error) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Full refund on a decided dispute — dispute NOT closed (DB error)",
+      message: `Charge ${charge.id} was refunded in full, but closing the job's decided-but-unexecuted dispute failed. Stripe will retry this webhook.`,
+      fields: { "Charge": charge.id, "Job ID": job.id, "DB error": error.message.slice(0, 200) },
+      oncePerDayKey: `refund-decided-close-failed:${job.id}`,
+    });
+    throw new Error(`settle_dispute_by_external_refund failed for job ${job.id}: ${error.message}`);
+  }
+  const res = (data ?? null) as
+    | { outcome?: string; dispute_id?: string; reason?: string; payout_split?: { poster?: number; helper?: number } | null }
+    | null;
+  const outcome = res?.outcome;
+  if (outcome === "no_unsettled_dispute") return outcome;
+  if (outcome === "busy") {
+    // A split run or a settlement claim is live this minute. Nothing was
+    // written; the redelivery finds it finished (or dead, which then pages).
+    throw new Error(`Decided dispute on job ${job.id} is being settled right now; retry the full-refund close later`);
+  }
+  const split = res?.payout_split
+    ? `poster ${Math.round((res.payout_split.poster ?? 0) * 100)}% / Helpr ${Math.round((res.payout_split.helper ?? 0) * 100)}%`
+    : "—";
+  if (outcome === "closed") {
+    const helperShare = res?.payout_split?.helper ?? 0;
+    logStep("Full refund closed a decided, unexecuted dispute", { jobId: job.id, disputeId: res?.dispute_id });
+    if (helperShare > 0) {
+      await noticeAdmins(
+        "Full refund on a decided dispute — decided Helpr share unpaid",
+        `The payment for "${job.title ?? "a job"}" was refunded in full, so its decided split (${split}) was closed with nothing paid to the Helpr. The decision gave the Helpr a share the platform no longer holds: decide whether to pay it.`,
+      );
+      if (job.helper_id) {
+        // Its own insert, not the clawback's notifyPayee: that one pages a
+        // failed notice as a card-dispute clawback, which this is not.
+        const { error: helperNoteErr } = await supabase.from("notifications").insert({
+          user_id: job.helper_id,
+          job_id: job.id,
+          title: "Dispute closed: the payment was refunded",
+          message: `The payment for "${job.title ?? "a job"}" was refunded in full to the card holder, so the decided split could not be paid and no payout was made for this job. Contact support about next steps.`,
+          type: "payment",
+          link: `/jobs?job=${job.id}`,
+        });
+        if (helperNoteErr) {
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "warning",
+            title: "Full refund on a decided dispute — Helpr notice NOT sent",
+            message: `Charge ${charge.id} closed the decided dispute on job ${job.id}, but the in-app notice telling the Helpr their decided share was not paid failed to insert. Tell them by hand.`,
+            fields: { "Charge": charge.id, "Job ID": job.id, "User": job.helper_id, "DB error": helperNoteErr.message.slice(0, 200) },
+            oncePerDayKey: `refund-decided-helper-notice:${job.id}`,
+          });
+        }
+      }
+    }
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      // A decided Helpr share the platform no longer holds is money a person
+      // must decide on: critical then (review LOW-7), a warning otherwise.
+      severity: helperShare > 0 ? "critical" : "warning",
+      title: "Full refund on a decided dispute — dispute closed, nothing left to split",
+      message: `Charge ${charge.id} was refunded in full outside the split, so the job's decided split (${split}) had not run and now never will: it is recorded as settled with the refund as the poster's share.${helperShare > 0 ? " The decision gave the Helpr a share that the platform no longer holds; decide by hand whether to pay it." : ""}`,
+      fields: { "Charge": charge.id, "Job ID": job.id, "Internal dispute": res?.dispute_id ?? "—", "Decided split": split },
+    });
+    return "closed";
+  }
+  // 'needs_human', or an answer this code does not know: page, never guess.
+  await handBack(res?.reason ?? `unexpected answer ${JSON.stringify(res)}`, split);
+  return "needs_human";
 }

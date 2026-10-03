@@ -29,7 +29,10 @@ export async function handleChargeDisputeClosed(
   //
   // On "won": notify admins to manually release the helper's blocked
   //   payout. We do NOT auto-release — a human should confirm the job
-  //   was legitimate before paying the helper after a chargeback.
+  //   was legitimate before paying the helper after a chargeback. When the
+  //   one thing holding the job is a decided single-Helpr split that has not
+  //   run, the payment state the decision left is restored so an admin can
+  //   run it (Q449); any other hold keeps the job blocked for a person.
   // On "lost": record the final outcome for finance reconciliation.
   const closedDispute = event.data.object as Stripe.Dispute;
   const outcome = closedDispute.status; // "won" | "lost" | "warning_closed"
@@ -68,11 +71,19 @@ export async function handleChargeDisputeClosed(
   // Set when this dispute had clawed back a paid Helpr payout (Q202) and a WON
   // outcome paid it back.
   let repaid: RepayResult | null = null;
+  // Q449: the payment state a WON dispute restored on a job whose decided
+  // single-Helpr split had not run, so the alerts say so.
+  let wonRestoredTo: "escrow" | "payout_pending" | null = null;
+  // The internal holds a WON dispute left in place, for the closing alert.
+  let wonHoldReasons: string[] = [];
+  // A WON dispute on a job held by anything a person must settle (an open
+  // dispute, a crew decision, a reversed payout, a claim): it stays blocked.
+  let wonNeedsHuman = false;
 
   if (closedPiId) {
     const { data: closedJob, error: closedJobErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, helper_id, title, payment_status, status, payout_scheduled_at, dispute_status, disputed_at")
+      .select("id, customer_id, helper_id, title, payment_status, status, payout_scheduled_at, dispute_status, disputed_at, is_group_job")
       .eq("stripe_payment_intent_id", closedPiId)
       .maybeSingle();
 
@@ -106,21 +117,24 @@ export async function handleChargeDisputeClosed(
       // is never overwritten with a card-dispute outcome.
       const ownsMarkers = isChargebackDisputeStatus(closedJob.dispute_status);
 
-      // A dismissed inquiry is the one outcome that lifts a hold automatically,
-      // so it must first know about the holds that live OFF the job row. Read
-      // before any write: on a read failure nothing has changed, and the throw
-      // lets Stripe retry. A won dispute reads them too, so the admin notice
-      // does not tell anyone to release a payout over a live hold — but a read
-      // failure there only changes the wording (nothing is unblocked on 'won').
+      // A dismissed inquiry lifts the chargeback's block, and so does a WON
+      // dispute when an internal hold still holds the job (Q449, below), so both
+      // must first know about the holds that live OFF the job row. Read before
+      // any write: on a read failure nothing has changed, and the throw lets
+      // Stripe retry. (A won dispute used to only reword its admin notice on a
+      // failed read; it now decides whether to restore the payment state from
+      // this read, so it fails closed the same way.)
       let hold: InternalPayoutHold = {};
       if (outcome === "warning_closed" || outcome === "won") {
         hold = await findInternalPayoutHold(supabase, closedJob.id);
-        if (hold.readError && outcome === "warning_closed") {
+        if (hold.readError) {
           await postSlackOpsAlert({
             kind: "custom",
             severity: "critical",
-            title: "Stripe retrieval request dismissed — HOLD CHECK FAILED, job left blocked",
-            message: `Dispute ${closedDispute.id} closed as "warning_closed", but the check for an unexecuted dispute split or a reversed payout on the job could not be read. Nothing was changed (the job stays payment_status='chargeback'). Stripe will retry this webhook.`,
+            title: outcome === "won"
+              ? "Stripe chargeback WON — HOLD CHECK FAILED, outcome not recorded yet"
+              : "Stripe retrieval request dismissed — HOLD CHECK FAILED, job left blocked",
+            message: `Dispute ${closedDispute.id} closed as "${outcome}", but the check for an unexecuted dispute split or a reversed payout on the job could not be read. Nothing was changed (the job stays payment_status='chargeback'). Stripe will retry this webhook.`,
             fields: {
               "Dispute ID": closedDispute.id,
               "Job ID": String(closedJob.id),
@@ -132,7 +146,7 @@ export async function handleChargeDisputeClosed(
             oncePerDayKey: `dispute-closed-hold-read-failed:${closedJob.id}`,
           });
           throw new Error(
-            `Hold check failed for warning_closed dispute ${closedDispute.id} (job ${closedJob.id}): ${hold.readError}`,
+            `Hold check failed for ${outcome} dispute ${closedDispute.id} (job ${closedJob.id}): ${hold.readError}`,
           );
         }
       }
@@ -141,6 +155,21 @@ export async function handleChargeDisputeClosed(
       // 'auto_resolved') is not a hold: release-payout pays those normally.
       const reasons = hold.readError ? [] : holdReasons(closedJob, hold);
       const held = reasons.length > 0;
+      if (outcome === "won") wonHoldReasons = reasons;
+      // Q449: the ONE hold a won chargeback lifts its block for. A decided
+      // single-Helpr split that has not run, and nothing else: no open dispute
+      // or 'disputed' job (the 72h auto-resolve sweep would settle that one,
+      // and release-payout would then pay the Helpr in full with no person
+      // involved), no crew decision (process-scheduled-payouts' fan-out would
+      // run it), no settlement claim standing in for the decision (the id is
+      // then "unknown"), no reversed payout, no other live internal status.
+      // Each of those keeps the job 'chargeback' for a person to settle.
+      // (lh-money-escrow review of the first draft, HIGH.)
+      const decidedSplitOnly = !hold.readError &&
+        hold.unsettledDisputeId != null && hold.unsettledDisputeId !== "unknown" &&
+        hold.unsettledExecutionStatus !== "crew_fanout" &&
+        closedJob.is_group_job !== true &&
+        holdReasons(closedJob, { openDisputeId: hold.openDisputeId, reversedTransferId: hold.reversedTransferId }).length === 0;
 
       if (ownsMarkers) {
         // Compare-and-set on a card-dispute status: an internal dispute opened
@@ -227,6 +256,88 @@ export async function handleChargeDisputeClosed(
           } else if (!back || back.length === 0) {
             logStep("Clawback repaid; job was not in 'chargeback' (left as is)", { jobId: closedJob.id });
           }
+        } else if (repaid.rows === 0 && decidedSplitOnly && closedJob.payment_status === "chargeback") {
+          // Q449: a WON chargeback on a job whose decided single-Helpr split
+          // has not executed. The split runs only from escrow/payout_pending
+          // (execute-dispute-split) and rpc_decide_dispute refuses a
+          // 'chargeback' job, so leaving the chargeback's block in place after
+          // the bank returned the money stranded the decision for good ("job
+          // still on hold", forever). The block is the chargeback's own, so it
+          // is lifted, back to the payment state the decision left
+          // (preDecisionPaymentStatus), so an admin can Retry settlement.
+          // Every marker of the decision is KEPT: disputed_at stays (stamped if
+          // somehow empty), dispute_status is not this outcome's to write, and
+          // the unexecuted split still refuses every automatic payout
+          // (process-scheduled-payouts reads disputed_at and the disputes row,
+          // release-payout and void-cancelled-payments the disputes row,
+          // claim_dispute_settlement answers split_pending; auto-release-payment
+          // never reads a decided job's status). With no hold, or any other
+          // hold, the job stays 'chargeback' (below): a person confirms the job
+          // before a Helpr is paid after a chargeback.
+          //
+          // Not this branch: a clawed-back released job (repaid.rows > 0) goes
+          // back to 'released' above, and a read failure already threw.
+          // A compare-and-set on everything the decision read: the block, the
+          // job status and the dispute_status. A job that moved since the read
+          // matches zero rows.
+          const restored = preDecisionPaymentStatus(closedJob);
+          const { data: back, error: backErr } = await supabase
+            .from("jobs")
+            .update({
+              payment_status: restored,
+              disputed_at: closedJob.disputed_at ?? new Date().toISOString(),
+            })
+            .eq("id", closedJob.id)
+            .eq("status", closedJob.status)
+            .eq("payment_status", "chargeback")
+            .or(disputeStatusAsReadFilter(closedJob.dispute_status))
+            .select("id");
+          if (backErr) {
+            // The outcome write above is a compare-and-set and the repay found
+            // nothing, so a redelivery re-runs only this. Page, then throw.
+            await postSlackOpsAlert({
+              kind: "dispute_won",
+              severity: "critical",
+              title: "Chargeback WON — job's payment state NOT restored (DB error)",
+              message: `Dispute ${closedDispute.id} was won on a job whose decided split has not run, but restoring payment_status '${restored}' failed, so the split cannot run yet. Stripe will retry this webhook; if retries exhaust, set payment_status='${restored}' by hand and LEAVE disputed_at as it is.`,
+              fields: { "Dispute ID": closedDispute.id, "Job ID": String(closedJob.id), "DB error": backErr.message.slice(0, 200) },
+              link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+            });
+            throw new Error(`Won-dispute payment-state restore failed for job ${closedJob.id}: ${backErr.message}`);
+          }
+          if (back && back.length > 0) {
+            wonRestoredTo = restored;
+            logStep("Chargeback won on a decided job — payment state restored, decision kept", {
+              jobId: closedJob.id,
+              restored,
+              disputeId: closedDispute.id,
+              internalDispute: hold.unsettledDisputeId,
+            });
+          } else {
+            // Read as 'chargeback', matched nothing: payment_status, status or
+            // dispute_status moved underneath. This webhook ACKs and will not
+            // come back, so a human has to look.
+            await postSlackOpsAlert({
+              kind: "dispute_won",
+              severity: "critical",
+              title: "Chargeback WON — payment-state restore matched no row",
+              message: `Dispute ${closedDispute.id} was won on a job read as payment_status='chargeback' whose decided split has not run, but restoring it to '${restored}' matched zero rows: payment_status, status or dispute_status changed underneath. Check the job by hand; a decided split cannot run on a 'chargeback' job.`,
+              fields: {
+                "Dispute ID": closedDispute.id,
+                "Job ID": String(closedJob.id),
+                "Intended payment_status": restored,
+                "Read dispute_status": closedJob.dispute_status ?? "—",
+              },
+              link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+            });
+          }
+        } else if (repaid.rows === 0 && held && closedJob.payment_status === "chargeback") {
+          // Any OTHER hold (an open dispute or a 'disputed' job, a crew
+          // decision, a settlement claim, a reversed payout): the job stays
+          // blocked as 'chargeback', because each of those has an automatic
+          // settler that lifting the block would switch back on. A person
+          // settles it; the admin notice and the closing alert say so.
+          wonNeedsHuman = true;
         }
       } else if (outcome === "lost") {
         // Q342: a decided dispute whose split never ran can never run now (the
@@ -282,11 +393,12 @@ export async function handleChargeDisputeClosed(
       } else if (outcome === "won") {
         // ME-009: tell the held Helpr it was won. "Asked to release" only when
         // nothing else holds the job — that is when admins are asked to.
+        // (A failed hold read threw before any write, so `held` is the answer.)
         if (closedJob.helper_id && await wasToldOnHold(supabase, closedJob.helper_id, String(closedJob.id))) {
           await notifyPayee(
             supabase, closedJob.helper_id, String(closedJob.id),
             "Card dispute decided in our favor",
-            !held && !hold.readError
+            !held
               ? `The card dispute on "${closedJob.title ?? "a job"}" was decided in our favor. Our team has been asked to release your payout for it.`
               : `The card dispute on "${closedJob.title ?? "a job"}" was decided in our favor, but a separate review of this job still holds your payout. Questions? Contact support.`,
             closedDispute.id,
@@ -297,23 +409,32 @@ export async function handleChargeDisputeClosed(
         // Admin uses admin_release_dispute (which sets payment_status =
         // "released") or manually sets dispute_status = "resolved" to
         // let release-payout through its dispute gate.
+        // A held job (Q449) was put back in its pre-chargeback payment state
+        // above, so its own hold can be settled now; the notice says how.
         const { ids: wonAdminIds } = await loadAdminIds(
           supabase,
           "stripe-webhook.chargeDisputeClosed.won",
         );
+        // Q449: a restored decided split is the admin's to run now. The split
+        // pays the Helpr's share BEFORE it refunds the poster, and whether a
+        // charge whose card dispute was won can still be refunded is not yet
+        // verified in Stripe test mode, so the notice says to check first.
+        // Keyed on what actually happened (review LOW-a): a held job that was
+        // not 'chargeback', or whose restore matched no row, is neither.
+        const settleNow = wonRestoredTo
+          ? ` Its payment state is back to ${wonRestoredTo}, so the decided split can run now: Retry settlement on the dispute. If the decision refunds the poster anything, first check in Stripe that this charge can still be refunded (its card dispute was won), because the split pays the Helpr's share before it refunds.`
+          : wonNeedsHuman
+          ? " It stays blocked as 'chargeback', and no admin action can settle a 'chargeback' job: restore its payment state by hand (escrow, or payout_pending if a payout was scheduled), then settle that hold;"
+          : " Settle that first;";
         for (const adminId of wonAdminIds) {
           const { error: noticeErr } = await supabase.from("notifications").insert({
             user_id: adminId,
             job_id: closedJob.id,
             title: held
               ? "Chargeback WON — job still on hold"
-              : hold.readError
-              ? "Chargeback WON — check the job before releasing"
               : "Chargeback WON — release Helpr payout",
             message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". Funds are restored. ${held
-              ? `The job still has its own hold (${reasons.join("; ")}). Settle that first; a full payout is not owed until it is.`
-              : hold.readError
-              ? "Its open-dispute and payout-reversal records could not be read, so check them in the Admin panel before releasing the Helpr's payout."
+              ? `The job still has its own hold (${reasons.join("; ")}).${settleNow}${wonRestoredTo ? "" : " a full payout is not owed until it is."}`
               : "Please release the Helpr's payout from the Admin panel."}`,
             type: "payment",
             link: "/admin",
@@ -487,10 +608,16 @@ export async function handleChargeDisputeClosed(
 
   await postSlackOpsAlert({
     kind: outcome === "won" ? "dispute_won" : outcome === "lost" ? "dispute_lost" : "custom",
-    severity: outcome === "won" ? "info" : outcome === "lost" ? "critical" : "info",
+    // A won dispute on a job its own hold keeps blocked needs a person, and no
+    // admin tool can settle a 'chargeback' job (rpc_decide_dispute refuses it,
+    // Quick Release / Refund answer not_settleable), so it pages like the lost
+    // close's needs_human: critical (Q449 review, LOW-b).
+    severity: outcome === "won" ? (wonNeedsHuman ? "critical" : "info") : outcome === "lost" ? "critical" : "info",
     title:
       outcome === "won"
-        ? "✅ Stripe chargeback WON"
+        ? wonNeedsHuman
+          ? "Stripe chargeback WON on a job with its own hold — settle it by hand"
+          : "✅ Stripe chargeback WON"
         : outcome === "lost"
         ? "❌ Stripe chargeback LOST"
         : "ℹ️ Stripe early-fraud warning closed",
@@ -498,6 +625,12 @@ export async function handleChargeDisputeClosed(
       outcome === "won"
         ? repaid && repaid.rows > 0
           ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. The Helpr's clawed-back payout was ${repaid.failed.length > 0 ? "NOT fully paid back (see the separate alert)" : repaid.neverTaken === repaid.rows ? "never reversed, so nothing was owed back" : "paid back automatically"}.`
+          : wonRestoredTo
+          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored. The job's decided split had not run; its payment state is back to ${wonRestoredTo} so an admin can Retry settlement (check first that the charge can still be refunded). Do not release a full payout over it.`
+          : wonNeedsHuman
+          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored. The job still has its own hold (${wonHoldReasons.join("; ")}), so it stays blocked as 'chargeback', which no admin action can settle: restore its payment state by hand (escrow, or payout_pending if a payout was scheduled), then settle that hold. Do not release a full payout over it.`
+          : wonHoldReasons.length > 0
+          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored. The job still has its own hold (${wonHoldReasons.join("; ")}), which was kept. Do not release a full payout over it.`
           : `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored — release the helper's blocked payout manually via the Admin panel.`
         : outcome === "lost"
         ? `Stripe ruled against us on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds permanently withdrawn. Reconcile the loss.`
@@ -683,4 +816,24 @@ function preChargebackPaymentStatus(job: {
   payout_scheduled_at?: string | null;
 }): "escrow" | "payout_pending" {
   return job.payout_scheduled_at || job.status === "completed" ? "payout_pending" : "escrow";
+}
+
+/**
+ * Q449: the payment_status a job held when its dispute was DECIDED, for a
+ * decided single-Helpr split a won chargeback hands back to its admin.
+ *
+ * rpc_decide_dispute moves the job to completed (or cancelled) and never
+ * touches payment_status or payout_scheduled_at (live definition read in the
+ * lh-money-escrow review, 2026-10-03), so the escrow the decision decides is
+ * exactly what it was: 'payout_pending' only when a payout had already been
+ * scheduled, else 'escrow'. Deliberately NOT preChargebackPaymentStatus: its
+ * "a completed job means payout_pending" rule would write payout_pending with
+ * no schedule on a decided job, which no payer reads but money-reconciliation's
+ * payout_pending_stranded check would page as a Helpr told they would be paid.
+ * execute-dispute-split runs from either state.
+ */
+function preDecisionPaymentStatus(job: {
+  payout_scheduled_at?: string | null;
+}): "escrow" | "payout_pending" {
+  return job.payout_scheduled_at ? "payout_pending" : "escrow";
 }

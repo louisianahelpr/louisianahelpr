@@ -1,12 +1,20 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-03T06:15Z",
+  "measured_at": "2026-10-03T07:27Z",
   "issues": {
     "readable": true,
     "open": [
       {
         "number": 2183,
         "title": "nightly-red: vacuity"
+      },
+      {
+        "number": 2188,
+        "title": "nightly-red: supabase-usage"
+      },
+      {
+        "number": 2189,
+        "title": "nightly-red: prod-errors"
       }
     ]
   },
@@ -59,7 +67,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": null
+        "issue": 2183
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -68,6 +76,14 @@
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
         "issue": null
+      },
+      {
+        "fingerprint": "3eff7210ea5169f67e8d76d59f15817e",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: supabase-usage",
+        "issue": 2188
       },
       {
         "fingerprint": "0cc83c6bc20bc0e007e1ce4a5aee88e1",
@@ -94,11 +110,11 @@
         "issue": null
       },
       {
-        "fingerprint": "79112fbf22c85121a80ec6470b33411f",
+        "fingerprint": "27789cd6fd0cdb23aec0d9c628ffa68c",
         "source_kind": "workflow",
-        "source": "code-scanning",
+        "source": "storage-orphan-sweep",
         "status": "open",
-        "title": "github code scanning: open alerts on main",
+        "title": "storage orphan sweep: cap tripped, nothing deleted",
         "issue": null
       }
     ]
@@ -118,16 +134,17 @@
     "issue #1909": "Q787",
     "issue #1921": "Q788",
     "issue #1983": "Q788",
-    "issue #2036": "Q906",
     "issue #2054": "Q788",
     "issue #2121": "Q787",
-    "issue #2166": "Q906",
     "issue #2183": "Q788",
+    "issue #2188": "Q1147",
+    "issue #2189": "Q1148",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
-    "ledger 2a49e28947cb": "Q916",
+    "ledger 27789cd6fd0c": "Q1149",
     "ledger 37cccbe58bb3": "Q1132",
+    "ledger 3eff7210ea51": "Q1147",
     "ledger 51722889b9d8": "Q1133",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
@@ -135,7 +152,6 @@
     "ledger 7e141f206640": "Q783",
     "ledger 88ecf6e765df": "Q788",
     "ledger b75d265e6201": "Q794",
-    "ledger db0fb15c4ec3": "Q787",
-    "ledger e41c806b9175": "Q906"
+    "ledger db0fb15c4ec3": "Q787"
   }
 }

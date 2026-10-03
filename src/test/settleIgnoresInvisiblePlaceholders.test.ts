@@ -15,9 +15,7 @@
  */
 // @mutate scripts/audit/measure-page-settle.mjs |       if (!onScreen(el)) continue; |       if (false) continue;
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-// @ts-expect-error — plain .mjs script, no declaration file
 import { SETTLE_INIT } from "../../scripts/audit/measure-page-settle.mjs";
-// @ts-expect-error — plain .mjs script, no declaration file
 import { PLACEHOLDER_SEL } from "../../scripts/audit/measure-loading-states.mjs";
 
 type Settle = { ph: number[] };

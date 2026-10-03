@@ -81,7 +81,7 @@ describe("(a) a date inside the warn window fails", () => {
   });
 
   it("the CLI exits 1 and names the item when one expires in 10 days", () => {
-    const soon = inDays(10).slice(0, 10);
+    const soon = new Date(Date.now() + 10 * 86400000).toISOString();
     const r = cli([manual("soon", soon), manual("later", "2099-01-01")]);
     expect(r.code).toBe(1);
     expect(r.out).toMatch(/^DUE\s+fixture soon/m);

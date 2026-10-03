@@ -250,6 +250,7 @@ export const HISTORICAL = {
  */
 export const WRITES_NOT_COMMITTED = {
   "scripts/prune-stale-branches.mjs": "Q915: UNLANDED-branch table to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",
+  "scripts/stranded-work.mjs": "Q1146: --report JSON to ~/.lh-hygiene/stranded.json (outside the repo; written by .claude/hooks/git-hygiene.sh, read by session-start.sh), never a repo file",
   "scripts/storage-backup.mjs": "Q147: downloaded storage files + manifest.json into the db-backup runner's out/storage (encrypted into the CI artifact, never a repo file)",
   "scripts/rollback/rollback.mjs": "timing log to ~/.lh-rollback/timing.jsonl (outside the repo); in a LIVE migration rollback only, the new revert migration it stamps, which the operator commits (docs/RUNBOOK-rollback.md)",
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",

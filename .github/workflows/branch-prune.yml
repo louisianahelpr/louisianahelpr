@@ -11,6 +11,14 @@ name: Branch prune
 # turns this red.
 # Script + decision function: scripts/prune-stale-branches.mjs
 # Guard: src/test/pruneStaleBranches.test.ts
+#
+# The `stranded` job (docs/OPEN.md Q1146; owner 2026-10-03: "nothing should
+# ever be left stranded", "nothing should ever be closed without merging")
+# checks by CONTENT, not patch or subject: every origin branch no open PR
+# carries, every PR closed without merging since 2026-10-03 (refs/pull/N/head,
+# so a deleted branch still counts), and every PR open over 3 days. Anything
+# not on main and not recorded in docs/audit/stranded-accepted.json turns this
+# red. Script: scripts/stranded-work.mjs. Guard: src/test/strandedWork.test.ts.
 
 on:
   schedule:
@@ -40,11 +48,26 @@ jobs:
           GH_TOKEN: ${{ secrets.REFRESH_PR_TOKEN || secrets.GITHUB_TOKEN }}
         run: node scripts/prune-stale-branches.mjs --apply
 
+  stranded:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Nothing stranded on GitHub (branches, closed-unmerged PRs, stale PRs)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/stranded-work.mjs --remote --check --no-fetch
+
   # A red scheduled run files/updates one nightly-red issue (closed on the next
   # green). Push runs are already reported by main-red-watch.
   notify:
     name: Report nightly result
-    needs: [prune]
+    needs: [prune, stranded]
     if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -56,6 +79,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: branch-prune
-          status: ${{ needs.prune.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.prune.result == 'success' && needs.stranded.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -44,6 +44,24 @@ if command -v node >/dev/null 2>&1 && [ -f "$LH_DIR0/scripts/scoreboard.mjs" ]; 
   echo
 fi
 
+# STRANDED WORK on this machine (docs/OPEN.md Q1146; owner 2026-10-03: "nothing
+# should ever be left stranded"): the last background report written by
+# git-hygiene.sh (scripts/stranded-work.mjs --local). Land each item with
+# bash scripts/land.sh, or back it up and delete it once its content is on
+# main. Never fails session start.
+LH_STRANDED="$HOME/.lh-hygiene/stranded.json"
+if [ -f "$LH_STRANDED" ] && command -v node >/dev/null 2>&1; then
+  node -e '
+    const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const idle = (r.local || []).filter((i) => !i.active);
+    if (!idle.length) process.exit(0);
+    console.log(`STRANDED WORK on this machine: ${idle.length} item(s) not on main (report ${r.checkedAt.slice(0, 16)}Z; npm run stranded):`);
+    for (const i of idle.slice(0, 8)) console.log(`  ${i.kind} ${i.id}`);
+    if (idle.length > 8) console.log(`  ... ${idle.length - 8} more`);
+    console.log("");
+  ' "$LH_STRANDED" 2>/dev/null || true
+fi
+
 # SessionStart hook — installs npm dependencies so Claude Code on the web
 # can run the typecheck, linter, and tests during the session.
 #

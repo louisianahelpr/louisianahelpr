@@ -45,6 +45,7 @@
  * measured (--force-with-lease), so a branch pushed to since is left alone.
  */
 import { execFileSync } from "node:child_process";
+import { buildMainIndex, unlandedContent } from "./lib/strandedContent.mjs";
 import { appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -88,13 +89,19 @@ export function countUnlanded(cherryOutput) {
  * @param {{ name: string, hasOpenPr: boolean, cherryOutput: string, ageHours: number }} b
  * @returns {{ name: string, action: "KEEP"|"DELETE"|"UNLANDED", reason: string }}
  */
-export function decideBranch({ name, hasOpenPr, cherryOutput, ageHours }) {
+export function decideBranch({ name, hasOpenPr, cherryOutput, ageHours, contentStranded = false }) {
   if (isProtected(name)) return { name, action: "KEEP", reason: "protected" };
   if (hasOpenPr) return { name, action: "KEEP", reason: "open PR" };
   if (!(ageHours >= MIN_AGE_HOURS)) {
     return { name, action: "KEEP", reason: `tip under ${MIN_AGE_HOURS}h old` };
   }
   const unlanded = countUnlanded(cherryOutput);
+  // `git cherry` skips merge commits and only compares whole patches: a
+  // conflict resolution inside a merge, or a patch later edited on main, reads
+  // as landed. Content decides (scripts/lib/strandedContent.mjs, Q1146).
+  if (unlanded === 0 && contentStranded) {
+    return { name, action: "UNLANDED", reason: "every patch is on main but some of its content is not (a merge resolution or an edit)" };
+  }
   if (unlanded === 0) return { name, action: "DELETE", reason: "all commits on main" };
   return { name, action: "UNLANDED", reason: `${unlanded} commit(s) not on main` };
 }
@@ -171,15 +178,22 @@ function main() {
   const openHeads = new Set(openPrs.map((r) => r.headRefName));
   const branches = listRemoteBranches();
   const tipOf = new Map(branches.map((b) => [b.name, b.sha]));
-  const rows = branches.map(({ name, ageHours }) =>
-    decideBranch({
+  let mainIndex = null;
+  const rows = branches.map(({ name, ageHours }) => {
+    const facts = {
       name,
       ageHours,
       hasOpenPr: openHeads.has(name),
       cherryOutput:
         isProtected(name) || openHeads.has(name) ? "" : git(["cherry", "origin/main", `origin/${name}`]),
-    }),
-  );
+    };
+    const first = decideBranch(facts);
+    if (first.action !== "DELETE") return first;
+    // Only a would-be delete pays for the content check; the index is built once.
+    const run = (argv, o = {}) => execFileSync("git", argv, { encoding: "utf8", maxBuffer: 1 << 30, input: o.input, stdio: [o.input ? "pipe" : "ignore", "pipe", "pipe"] });
+    mainIndex ??= buildMainIndex(run, "origin/main");
+    return decideBranch({ ...facts, contentStranded: unlandedContent(run, `origin/${name}`, "origin/main", mainIndex).stranded });
+  });
 
   const order = { DELETE: 0, UNLANDED: 1, KEEP: 2 };
   rows.sort((a, b) => order[a.action] - order[b.action] || a.name.localeCompare(b.name));

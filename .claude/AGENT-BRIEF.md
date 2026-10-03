@@ -76,6 +76,11 @@ says more.
   left the work stranded: 15 branches on 2026-10-02 (see the
   stranded-branch check). A pushed branch that never reaches main goes red
   there, so a report without a branch and sha is an unfinished report.
+- Nothing is left stranded and nothing is closed without merging (owner,
+  2026-10-03). `npm run stranded` checks by CONTENT every place work can sit
+  (branches, worktree HEADs, uncommitted and untracked files, stash entries,
+  origin branches, PRs closed unmerged). Never close a PR to "supersede" it:
+  land its content, or say in your report exactly where it already is on main.
 - What land.sh does, so you can predict it: main requires Vitest, Test and
   both Playwright checks, plus CodeQL (code scanning default setup: a PR that
   adds a code-scanning alert cannot merge), with enforce_admins, so a direct push is refused

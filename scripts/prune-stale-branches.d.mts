@@ -9,6 +9,7 @@ export function decideBranch(b: {
   hasOpenPr: boolean;
   cherryOutput: string;
   ageHours: number;
+  contentStranded?: boolean;
 }): { name: string; action: "KEEP" | "DELETE" | "UNLANDED"; reason: string };
 export const STRANDED_AFTER_HOURS: number;
 export function uncoveredCommits(cherryVerbose: string, covered: Set<string>): { sha: string; subject: string }[];

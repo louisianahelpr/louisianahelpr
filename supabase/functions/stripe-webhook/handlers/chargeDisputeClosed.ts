@@ -422,7 +422,7 @@ export async function handleChargeDisputeClosed(
         // Keyed on what actually happened (review LOW-a): a held job that was
         // not 'chargeback', or whose restore matched no row, is neither.
         const settleNow = wonRestoredTo
-          ? ` Its payment state is back to ${wonRestoredTo}, so the decided split can run now: Retry settlement on the dispute. If the decision refunds the poster anything, first check in Stripe that this charge can still be refunded (its card dispute was won), because the split pays the Helpr's share before it refunds.`
+          ? ` Its payment state is back to ${wonRestoredTo}, so the decided split can run now: Retry settlement on the dispute. If the decision refunds the person who posted the job anything, first check in Stripe that this charge can still be refunded (its card dispute was won), because the split pays the Helpr's share before it refunds.`
           : wonNeedsHuman
           ? " It stays blocked as 'chargeback', and no admin action can settle a 'chargeback' job: restore its payment state by hand (escrow, or payout_pending if a payout was scheduled), then settle that hold;"
           : " Settle that first;";

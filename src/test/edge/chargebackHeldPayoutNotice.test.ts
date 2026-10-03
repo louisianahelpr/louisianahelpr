@@ -14,7 +14,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | if (holdNotice && (clawback?.reversedTotalCents ?? 0) === 0) { | if (holdNotice) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | message: isInquiry | message: false
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | if (decidedClose !== "closed" && lost.rows === 0 && closedJob.helper_id | if (decidedClose !== "closed" && false && closedJob.helper_id
- * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | admins are asked to.\n        if (closedJob.helper_id | admins are asked to.\n        if (false
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | so `held` is the answer.)\n        if (closedJob.helper_id | so `held` is the answer.)\n        if (false
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | say how it ended.\n          if (closedJob.helper_id | say how it ended.\n          if (false
  * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | return !error && (data?.length ?? 0) > 0; | return true;
  */

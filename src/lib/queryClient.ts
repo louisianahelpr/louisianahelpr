@@ -19,6 +19,7 @@ import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { report } from "./errorLogger";
 import { currentScreen } from "./currentScreen";
 import { PERSIST_MAX_AGE_MS } from "./queryPersister";
+import { shouldRetryQuery } from "./queryRetry";
 
 // A query that has exhausted its retries is about to drive an <ErrorState>;
 // a failed mutation is about to drive an error toast. Neither used to be
@@ -56,14 +57,14 @@ export const queryClient = new QueryClient({
       // Only retry transient/server errors. Client errors (401/403/404/etc.)
       // won't be fixed by retrying — the token's invalid, the row doesn't
       // exist, or RLS blocked it. Retrying just wastes a round-trip.
-      retry: (failureCount, error: unknown) => {
-        const status =
-          (error as { status?: number; statusCode?: number; code?: number | string })?.status ??
-          (error as { statusCode?: number })?.statusCode ??
-          Number((error as { code?: number | string })?.code);
-        if (typeof status === "number" && status >= 400 && status < 500) return false;
-        return failureCount < 1;
-      },
+      //
+      // The check used to live inline here as `status ?? statusCode ??
+      // Number(code)`, which no Supabase read error ever satisfied: postgrest-js
+      // keeps the HTTP status on the response, not the error, so every refused
+      // read was sent twice (Q1164). shouldRetryQuery recovers the status from
+      // each error shape the app throws; src/test/queryRetryPolicy.test.ts pins
+      // it against real postgrest-js responses.
+      retry: (failureCount, error: unknown) => shouldRetryQuery(failureCount, error),
       // HOW LONG THE USER STARES AT A SKELETON BEFORE BEING TOLD ANYTHING.
       //
       // Every page here decides "skeleton vs error card" from the query's

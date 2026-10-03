@@ -11,6 +11,7 @@ import { report } from "@/lib/errorLogger";
 import { getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
+import { shouldRetryQuery } from "@/lib/queryRetry";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 
@@ -493,11 +494,13 @@ export function useDashboardData() {
     placeholderData: keepPreviousData,
     // Fail fast on a timeout — the ErrorState already offers a manual retry,
     // so don't make the user wait through 2 silent auto-retries (~36s). Other
-    // transient errors keep the default retry behavior.
+    // transient errors keep their two retries; a refused read (4xx) gets none,
+    // as everywhere (shouldRetryQuery, Q1164: this was `failureCount < 2` and
+    // sent a refused feed read three times).
     retry: (failureCount, error) =>
       error instanceof Error && error.message === "Loading jobs timed out"
         ? false
-        : failureCount < 2,
+        : shouldRetryQuery(failureCount, error, 2),
     // SWR — same 2-minute fresh window as ctx above. Pages loaded on the last
     // visit stay fresh long enough that the user lands on a populated feed
     // instantly on re-entry; refetchOnWindowFocus (queryClient.ts default)

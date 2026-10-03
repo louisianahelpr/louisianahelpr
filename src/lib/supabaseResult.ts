@@ -14,15 +14,25 @@
  * Works for table queries, RPC calls, and edge-function invocations —
  * anything shaped `{ data, error }`.
  */
-export function unwrap<T>(result: { data: T; error: { message: string } | null }): T {
+export function unwrap<T>(result: { data: T; error: { message: string } | null; status?: number }): T {
   const { data, error } = result;
   if (error) {
     // Re-throw a real Error so downstream `instanceof Error` checks
     // (errorLogger, toast copy) work, while preserving any extra fields
     // the Supabase error carried (code / details / hint).
-    throw error instanceof Error
+    const thrown: Error & { status?: number } = error instanceof Error
       ? error
       : Object.assign(new Error(error.message), error);
+    // ...and the HTTP status, which postgrest-js keeps on the RESPONSE, not on
+    // `error`. Without it the read-retry policy could not tell a refused read
+    // (401/403/406) from a failing server and sent every refused read twice
+    // (Q1164, src/lib/queryRetry.ts). 0 is postgrest-js's "fetch never
+    // answered", which is not a status. A frozen error is thrown as it is:
+    // assigning to it would throw a TypeError in place of the real error.
+    if (thrown.status === undefined && typeof result.status === "number" && result.status > 0 && Object.isExtensible(thrown)) {
+      thrown.status = result.status;
+    }
+    throw thrown;
   }
   return data;
 }

@@ -48,6 +48,29 @@ import {
 export const OUTPUT_DIR = process.env.SWEEP_OUTPUT_DIR || "/tmp/ui-review";
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
+const ROUTE_PARAM_TOKEN = "__LH_ROUTE_PARAM__";
+const ROUTE_WILDCARD_TOKEN = "__LH_ROUTE_WILDCARD__";
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function routePatternToRegExp(pattern: string): RegExp {
+  const tokenized = pattern
+    .trim()
+    .replace(/:[^/]+/g, ROUTE_PARAM_TOKEN)
+    .replace(/\*$/, ROUTE_WILDCARD_TOKEN);
+  return new RegExp(
+    "^" +
+      escapeRegExp(tokenized)
+        .split(ROUTE_PARAM_TOKEN)
+        .join("[^/]+")
+        .split(ROUTE_WILDCARD_TOKEN)
+        .join(".*") +
+      "$",
+  );
+}
+
 export interface ViolationSummary {
   id: string;
   impact: string | null;
@@ -415,7 +438,7 @@ export const ROUTE_PATTERNS = (process.env.SWEEP_ROUTES ?? "")
   .split(",")
   .map((p) => p.trim())
   .filter(Boolean)
-  .map((p) => new RegExp("^" + p.replace(/\*$/, ".*").replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/") + "$"));
+  .map(routePatternToRegExp);
 export function inScope<T extends { url: string }>(screens: T[]): T[] {
   if (!ROUTE_PATTERNS.length) return screens;
   const matched = screens.filter((s) => {

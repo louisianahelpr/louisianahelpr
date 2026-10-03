@@ -132,7 +132,7 @@ interface Tag {
  */
 function classConsts(src: string): Map<string, string> {
   const out = new Map<string, string>();
-  for (const m of src.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*((?:"[^"]*"|'[^']*'|\s*\+\s*)+);/g)) {
+  for (const m of src.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*((?:"[^"]*"|'[^']*')(?:\s*\+\s*(?:"[^"]*"|'[^']*'))*)\s*;/g)) {
     out.set(m[1], m[2]);
   }
   return out;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -204,7 +204,7 @@ describe("check-destructive-ddl — the escape hatch cannot be tripped by accide
   it("has no environment variable or flag that skips it", () => {
     // If one is ever added, this test is the thing that should have to be
     // deleted first — deliberately, in a diff someone reads.
-    const src = spawnSync("cat", [SCRIPT], { encoding: "utf8" }).stdout;
+    const src = readFileSync(SCRIPT, "utf8");
     expect(src).not.toMatch(/process\.env\.[A-Z_]*(SKIP|FORCE|BYPASS|ALLOW|OVERRIDE)/);
     expect(src.match(/--(force|skip|no-verify|bypass)\b/)).toBeNull();
   });

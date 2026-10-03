@@ -69,7 +69,7 @@ describe("resolveApplyErrorCopy", () => {
     );
     const m = migration.match(/RAISE EXCEPTION '(You have reached the daily application limit[^']*)'/);
     expect(m, "the trigger's RAISE was not found — did the message move?").toBeTruthy();
-    const raised = m![1].replace("%", "15");
+    const raised = m![1].replace(/%/g, "15");
     expect(resolveApplyErrorCopy(raised)).toBe(
       "You've hit today's application limit — check back tomorrow.",
     );

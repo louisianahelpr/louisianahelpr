@@ -36,6 +36,7 @@ const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 const WINDOW_MIN = Number(process.env.WINDOW_MINUTES ?? 20); // 15-min cron + slack
 const SPIKE_THRESHOLD = Number(process.env.SPIKE_THRESHOLD ?? 10);
 const INCLUDE_SEED = process.env.INCLUDE_SEED === "1";
+const mdCell = (value) => String(value).replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 
 if (!REF || !TOKEN) {
   console.error("::error::SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN are required");
@@ -121,7 +122,7 @@ const table = (rs) =>
   rs.length === 0
     ? "_none_"
     : ["| n | source | screen | message | release |", "|--:|---|---|---|---|",
-       ...rs.map((r) => `| ${r.n} | \`${r.source}\` | \`${r.screen || "?"}\` | ${r.message.replace(/\|/g, "\\|")}${r.drill ? " **(drill)**" : ""} | ${r.release ? r.release.slice(0, 7) : "—"} |`),
+      ...rs.map((r) => `| ${r.n} | \`${r.source}\` | \`${r.screen || "?"}\` | ${mdCell(r.message)}${r.drill ? " **(drill)**" : ""} | ${r.release ? r.release.slice(0, 7) : "—"} |`),
       ].join("\n");
 
 const now = new Date().toISOString();

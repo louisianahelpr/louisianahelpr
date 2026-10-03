@@ -875,7 +875,7 @@ async function teardown() {
   // Notifications the triggers fanned out to the pair from rows above (message
   // bodies are copied verbatim; application/dispute ones carry the job_id).
   const pairIn = inList([posterId, helperId]);
-  const bodies = THREAD.map(([, c]) => `"${c.replace(/"/g, '\\"')}"`);
+  const bodies = THREAD.map(([, c]) => JSON.stringify(c));
   await del("notifications", `user_id=${pairIn}&type=eq.message&message=in.(${bodies.map(encodeURIComponent).join(",")})`);
   await del("notifications", `user_id=${pairIn}&job_id=${inList(jobIds)}`);
   const disputed = await select(`disputes?reason=like.${encodeURIComponent("SEED audit fixture*")}&select=job_id`);

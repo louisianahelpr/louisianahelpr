@@ -344,7 +344,7 @@ const report = [
   "",
   "| Endpoint | HTTP | First 400 chars |",
   "| --- | --- | --- |",
-  ...probes.map((p) => `| \`${p.path}\` | ${p.status} | \`${p.text.replace(/\|/g, "\\|").replace(/\n/g, " ").slice(0, 400)}\` |`),
+  ...probes.map((p) => `| \`${p.path}\` | ${p.status} | \`${p.text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ").slice(0, 400)}\` |`),
   "",
   "A metric shown as **not exposed** is not zero and not fine — it is unmeasured.",
   "The last row is provisioned CAPACITY, not consumption; it does not move with load.",

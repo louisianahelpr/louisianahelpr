@@ -92,6 +92,7 @@ import {
 import { observe, tagRegion, type StateObservation } from "./observe";
 
 const OUT = process.env.STATE_SWEEP_OUT || "/tmp/lh-state-sweep";
+const mdCell = (value: string) => value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 // Only touch the filesystem when this spec is actually going to run. Both
 // describes below are skipped without one of these env vars, and the normal
 // `npm run test:e2e:happy` run should not create directories for a sweep it is
@@ -653,7 +654,7 @@ manifestDescribe("state matrix", () => {
     md.push("| --- | --- | --- | --- | ---: | --- |");
     for (const c of CELLS) {
       md.push(
-        `| \`${c.id}\` | ${c.surface} | ${c.status ?? c.derived ?? "—"} | ${c.reachable} | ${c.shots.length} | ${c.describe.replace(/\|/g, "\\|")} |`,
+        `| \`${c.id}\` | ${c.surface} | ${c.status ?? c.derived ?? "—"} | ${c.reachable} | ${c.shots.length} | ${mdCell(c.describe)} |`,
       );
     }
     writeFileSync(resolve(OUT, "state-matrix.md"), md.join("\n") + "\n");

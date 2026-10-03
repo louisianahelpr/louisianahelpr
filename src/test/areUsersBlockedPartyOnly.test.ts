@@ -36,11 +36,13 @@ import { walkSource } from "./helpers/walkSource";
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
 
 // Functions whose effective definition calls are_users_blocked (pg_proc on
-// prod matched exactly these, 2026-09-27: 9 incl. the two series RPCs). The RPC-style ones pass auth.uid()
-// as one argument, or pin one to auth.uid() before the call; the two triggers
-// (enforce_block_on_message_insert, enforce_application_job_state) get the real
-// answer through the pg_trigger_depth() arm, because insert_job_status_system_message
-// inserts messages between two people neither of whom is auth.uid().
+// prod matched the first 9, 2026-09-27, incl. the two series RPCs;
+// insert_job_status_system_message joins in 20261003183349). The RPC-style ones
+// pass auth.uid() as one argument, or pin one to auth.uid() before the call; the
+// three triggers (enforce_block_on_message_insert, enforce_application_job_state,
+// insert_job_status_system_message) get the real answer through the
+// pg_trigger_depth() arm, because insert_job_status_system_message inserts
+// messages between two people neither of whom is auth.uid().
 const EXPECTED_CALLERS = [
   "accept_application",
   "accept_group_application",
@@ -51,6 +53,11 @@ const EXPECTED_CALLERS = [
   "enforce_application_job_state",
   "enforce_block_on_message_insert",
   "get_my_saved_helpers",
+  // Q713 (20261003183349): the AFTER UPDATE OF status trigger skips a thread
+  // participant blocked with the poster. Neither is necessarily auth.uid() (the
+  // Helpr may be the one moving the status), and it gets the real answer the
+  // same way enforce_block_on_message_insert does: pg_trigger_depth() > 0.
+  "insert_job_status_system_message",
   "offer_series_dates",
   "respond_to_direct_offer",
 ];

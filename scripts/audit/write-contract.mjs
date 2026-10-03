@@ -495,7 +495,7 @@ export function fetchSnapshot() {
   // Newer CLI versions return a json column as a string rather than an object.
   if (typeof snap === "string") snap = JSON.parse(snap);
   if (!snap?.tables || !snap?.functions) {
-    const keys = JSON.stringify(Object.keys(parsed.rows?.[0] ?? parsed[0] ?? parsed)).slice(0, 200);
+    const keys = Object.keys(parsed.rows?.[0] ?? parsed[0] ?? parsed).join(", ").slice(0, 200);
     throw new Error(`snapshot query returned no tables/functions (row keys: ${keys}, snapshot type: ${typeof snap})`);
   }
   // FLOOR (Q52, 2026-09-23). `{tables:{}, functions:{}}` passed the shape test

@@ -114,7 +114,7 @@ export default class SkipReporter implements Reporter {
         `### Playwright skips: ${judged.length} (${ok} justified, **${bad.length} unjustified = failure**)`,
         "",
         ...(judged.length ? ["| verdict | test | site | reason |", "|---|---|---|---|"] : []),
-        ...judged.map((j) => `| ${j.verdict === "failure" ? "**FAIL**" : "justified"} | ${j.test.replace(/\|/g, "\\|")} | ${j.where} | ${(j.reason || j.why).replace(/\|/g, "\\|").replace(/\n/g, " ")} |`),
+        ...judged.map((j) => `| ${j.verdict === "failure" ? "**FAIL**" : "justified"} | ${j.test.replace(/\\/g, "\\\\").replace(/\|/g, "\\|")} | ${j.where} | ${(j.reason || j.why).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ")} |`),
         "",
       ].join("\n");
       try {

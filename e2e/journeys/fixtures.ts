@@ -515,7 +515,7 @@ export async function payOnStripeCheckout(page: Page) {
     await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => {});
     await page.getByTestId("hosted-payment-submit-button").click();
     const left = await page
-      .waitForURL((url) => !url.host.endsWith("checkout.stripe.com"), { timeout: 40_000 })
+      .waitForURL((url) => url.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 40_000 })
       .then(() => true)
       .catch(() => false);
     if (left) return;

@@ -56,7 +56,7 @@ function attr(attrs, name) {
  */
 export function scriptElements(html) {
   const out = [];
-  const re = /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+  const re = /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script(?:\s[^>]*)?>/gi;
   let m;
   while ((m = re.exec(html))) {
     if (m[0].startsWith("<!--")) continue;
@@ -78,9 +78,51 @@ export function sha256Source(body) {
   return `'sha256-${createHash("sha256").update(body, "utf8").digest("base64")}'`;
 }
 
+/**
+ * Strip HTML comments. Applied repeatedly until stable, so a removal that
+ * unmasks another comment boundary (e.g. `<!--<!---->-->`) does not leave a
+ * comment delimiter behind.
+ */
+function stripHtmlComments(html) {
+  let prev;
+  do {
+    prev = html;
+    html = html.replace(/<!--[\s\S]*?-->/g, "");
+  } while (html !== prev);
+  return html;
+}
+
+/**
+ * Strip HTML comments and <script> elements (including their bodies).
+ * Applied repeatedly until stable, so a removal that unmasks another
+ * comment or script boundary (e.g. `<!--<script>-->...</script>`) is not
+ * left half-stripped — the stated contract (never hides a script) demands
+ * the fixed point, not just one pass.
+ */
+function stripCommentsAndScripts(html) {
+  let prev;
+  do {
+    prev = html;
+
+    // First normalize comments to a fixed point.
+    let next = stripHtmlComments(html);
+
+    // Then strip <script> blocks to a fixed point as well, so removals that
+    // expose a new "<script...>...</script>" are also removed in this pass.
+    let scriptsPrev;
+    do {
+      scriptsPrev = next;
+      next = next.replace(/<script\b[^>]*>[\s\S]*?<\/script(?:\s[^>]*)?>/gi, "");
+    } while (next !== scriptsPrev);
+
+    html = next;
+  } while (html !== prev);
+  return html;
+}
+
 /** Tags carrying an inline event-handler attribute (onload=, onclick=, …). */
 export function inlineHandlers(html) {
-  const stripped = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
+  const stripped = stripCommentsAndScripts(html);
   const found = [];
   for (const tag of stripped.matchAll(/<[a-zA-Z][^>]*>/g)) {
     const h = /\s(on[a-z]+)\s*=/i.exec(tag[0]);
@@ -91,7 +133,7 @@ export function inlineHandlers(html) {
 
 /** href/src/action/formaction attributes that are javascript: URLs. */
 export function javascriptUrls(html) {
-  const stripped = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
+  const stripped = stripCommentsAndScripts(html);
   return [...stripped.matchAll(/\s(?:href|src|action|formaction)\s*=\s*["']?\s*javascript:/gi)].map((m) => m[0].trim());
 }
 
@@ -133,7 +175,7 @@ export function checkHtmlAgainstPolicy(html, policy, label) {
 
 /** The CSP a <meta http-equiv> in `html` declares, or null. */
 export function metaCsp(html) {
-  const tag = /<meta\s+[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/i.exec(html.replace(/<!--[\s\S]*?-->/g, ""));
+  const tag = /<meta\s+[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/i.exec(stripHtmlComments(html));
   if (!tag) return null;
   return attr(tag[0].replace(/^<meta/i, ""), "content");
 }

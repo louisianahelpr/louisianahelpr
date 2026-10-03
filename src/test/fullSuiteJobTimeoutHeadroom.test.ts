@@ -24,7 +24,7 @@ type Job = { steps?: Step[]; "timeout-minutes"?: number };
 function runsFullSuite(run: string): boolean {
   for (const line of run.split("\n").map((l) => l.trim())) {
     if (/^npm (run )?test\s*$/.test(line)) return true;
-    const m = line.match(/^(?:npx )?vitest run((?:\s+--?[\w-]+(?:=\S+)?)*)\s*$/);
+    const m = line.match(/^(?:npx )?vitest run((?:\s+-{1,2}[\w][\w-]*(?:=\S+)?)*)\s*$/);
     if (m) return true;
   }
   return false;

@@ -73,8 +73,7 @@ const nmd5 = (s) => md5(normalizeBody(s));
  */
 export const linkNormalize = (s) =>
   normalizeBody(s)
-    .replace(/'\/[^']*'(\s*\|\|\s*[a-z_][a-z0-9_.]*::text)?/gi, "'<link>'")
-    .replace(/format\('<link>'/g, "format('<link>'");
+    .replace(/'\/[^']*'(\s*\|\|\s*[a-z_][a-z0-9_.]*::text)?/gi, "'<link>'");
 
 export const LIVE_SQL =
   "select p.proname, oidvectortypes(p.proargtypes) as sig, p.prosrc " +

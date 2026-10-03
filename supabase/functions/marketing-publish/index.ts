@@ -59,6 +59,7 @@ import {
   type PublishResult,
 } from "../_shared/marketing/meta.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 const FN = "marketing-publish";
 
@@ -442,7 +443,7 @@ serve(async (req) => {
     // variable reaches production and lands here. `cronError` answers non-2xx
     // and names this function, which is the only reason the watcher would ever
     // hear about it.
-    const message = err instanceof Error ? err.message : String(err);
+    const message = caughtMessage(err);
     console.error(`[${FN}] unhandled:`, err);
     return cronError(FN, message, corsHeaders);
   }

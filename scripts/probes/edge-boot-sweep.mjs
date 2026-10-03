@@ -55,7 +55,7 @@ async function main() {
   const broken = results.filter(([, c]) => isBroken(c));
   const tally = {};
   for (const [, c] of results) tally[c] = (tally[c] ?? 0) + 1;
-  console.log(`edge boot sweep: ${results.length} function(s) probed — ${JSON.stringify(tally)}`);
+  console.log(`edge boot sweep: ${results.length} function(s) probed — ${Object.entries(tally).map(([code, n]) => `${code}: ${n}`).join(", ")}`);
   for (const [s, c] of broken) console.log(`  ✗ ${s}: ${c === 0 ? "no response" : `HTTP ${c}`}`);
   if (broken.length) process.exit(1);
   console.log("✓ every deployed function booted and answered");

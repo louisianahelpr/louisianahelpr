@@ -795,7 +795,7 @@ test.describe("full money loop against production", () => {
          through, and the authority on that is the webhook moving payment_status
          to 'escrow' — polled immediately below. Leaving checkout.stripe.com is
          the correct, session-independent signal that the card was submitted. */
-      await page.waitForURL((url) => !url.host.endsWith("checkout.stripe.com"), {
+      await page.waitForURL((url) => url.hostname.toLowerCase() !== "checkout.stripe.com", {
         timeout: 120_000,
       });
 

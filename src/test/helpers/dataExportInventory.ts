@@ -145,7 +145,102 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   job_schedule_change_requests: { by: ["requested_by", "responder_id"] },
   series_date_offers: { by: ["helper_id"] },
   series_visit_holds: { by: ["helper_id"] },
+  // Q739: no person column; the poster's rows, through the job (posterReadableViaJob).
+  job_pets: { by: [] },
 };
+
+/**
+ * Q739: tables whose SELECT policy lets a job's POSTER read a row because they
+ * own the job, that the export does NOT give the poster. Each says why. Every
+ * other such table must return the rows on the caller's own jobs (see
+ * posterReadableViaJob and dataExportCoversEveryUserTable). Two-way: an entry
+ * that no longer names a poster-readable table fails.
+ */
+// @two-way src/test/dataExportCoversEveryUserTable.test.ts:POSTER_SIDE_EXEMPT entries that no longer name a poster-readable table
+export const POSTER_SIDE_EXEMPT: Record<string, string> = {
+  job_checkins: "a check-in is the Helpr's own location event, exported to them by user_id; never the poster's data",
+  job_tracking: "the Helpr's live location trail, exported to them by helper_id; never the poster's data",
+  job_views:
+    "a view event is the VIEWER's data, exported to them by viewer_id; the poster's screens show only counts, " +
+    "and exporting the rows would hand the poster other people's viewing history",
+  messages:
+    "the poster clause is the realtime-subscription policy (realtime.topic() ~ '^jobs:<id>'), a channel join, " +
+    "not a read of message rows; the poster's messages are exported by sender_id / receiver_id",
+};
+
+/**
+ * Q739: every table whose SELECT (or ALL) policy, after replaying every
+ * CREATE/DROP POLICY in the migrations (comments blanked), admits a job's
+ * poster AS the poster: a jobs subquery on customer_id = auth.uid(), or
+ * is_series_party(<col>). Maps table -> the column that names the job ("?"
+ * when the policy names none, e.g. a realtime topic match). public.jobs itself
+ * is left out: its poster column is its own customer_id.
+ */
+export function posterReadableViaJob(tables = publicTables()): Map<string, string> {
+  const dir = join(REPO, "supabase/migrations");
+  const live = new Map<string, { table: string; text: string }>();
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
+    const sql = blankSqlComments(readFileSync(join(dir, f), "utf8"));
+    const events: { at: number; apply: () => void }[] = [];
+    // Schema-aware: a policy ON realtime.messages / storage.objects is not a public table's.
+    // Names quoted (case kept) or bare (folded to lower case), as Postgres reads them.
+    const NAME = String.raw`(?:"([^"]+)"|(\w+))`;
+    const ON = String.raw`\s+on\s+(?:"?(\w+)"?\.)?"?(\w+)"?`;
+    const key = (table: string, quoted?: string, bare?: string) => `${table.toLowerCase()}:${quoted ?? bare!.toLowerCase()}`;
+    for (const m of sql.matchAll(new RegExp(String.raw`drop\s+policy\s+(?:if\s+exists\s+)?${NAME}${ON}`, "gi"))) {
+      if (m[3] && m[3].toLowerCase() !== "public") continue;
+      events.push({ at: m.index!, apply: () => live.delete(key(m[4], m[1], m[2])) });
+    }
+    for (const m of sql.matchAll(new RegExp(String.raw`create\s+policy\s+${NAME}${ON}([^;]*);`, "gi"))) {
+      if (m[3] && m[3].toLowerCase() !== "public") continue;
+      events.push({ at: m.index!, apply: () => live.set(key(m[4], m[1], m[2]), { table: m[4].toLowerCase(), text: m[5] }) });
+    }
+    // ALTER POLICY ... RENAME TO ..., and ALTER POLICY ... [TO ...] USING (...) [WITH CHECK (...)].
+    for (const m of sql.matchAll(new RegExp(String.raw`alter\s+policy\s+${NAME}${ON}([^;]*);`, "gi"))) {
+      if (m[3] && m[3].toLowerCase() !== "public") continue;
+      const from = key(m[4], m[1], m[2]);
+      const rest = m[5];
+      events.push({
+        at: m.index!,
+        apply: () => {
+          const cur = live.get(from);
+          if (!cur) return;
+          const rename = new RegExp(String.raw`^\s*rename\s+to\s+${NAME}`, "i").exec(rest);
+          if (rename) {
+            live.delete(from);
+            live.set(key(m[4], rename[1], rename[2]), cur);
+          } else if (/\busing\b/i.test(rest)) {
+            live.set(from, { table: cur.table, text: cur.text.replace(/\busing\b[\s\S]*$/i, "") + " " + rest.slice(rest.search(/\busing\b/i)) });
+          }
+        },
+      });
+    }
+    events.sort((a, b) => a.at - b.at).forEach((e) => e.apply());
+  }
+  const out = new Map<string, string>();
+  for (const { table, text } of live.values()) {
+    // Only tables the schema still has (a dropped table's policies went with it).
+    if (table === "jobs" || !tables.has(table)) continue;
+    const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(text)?.[1] ?? "all").toLowerCase();
+    if (cmd !== "select" && cmd !== "all") continue;
+    const series = /\bis_series_party\s*\(\s*(?:\w+\.)?(\w+)\s*\)/i.exec(text);
+    // The spellings of "the caller owns the job": customer_id = auth.uid() (either
+    // side of the =), and auth.uid() IN (SELECT [alias.]customer_id FROM jobs [alias] ...).
+    const eqForm =
+      /\bcustomer_id\s*=\s*\(?\s*(?:select\s+)?auth\.uid\s*\(\s*\)/i.test(text) ||
+      /\bauth\.uid\s*\(\s*\)(?:\s+AS\s+uid)?\s*\)?\s*=\s*(?:\w+\.)?customer_id\b/i.test(text);
+    const inForm = /\bauth\.uid\s*\(\s*\)(?:\s+AS\s+uid)?\s*\)?\s+IN\s*\(\s*SELECT\s+(?:(?:public\.)?\w+\.)?customer_id\s+FROM\s+(?:public\.)?jobs\b/i.test(text);
+    if (!series && !(/\bjobs\b/i.test(text) && (eqForm || inForm))) continue;
+    const col =
+      series?.[1] ??
+      /\b(?:j|jobs)\.id\s*=\s*(?:(?:public\.)?\w+\.)?(\w+)/i.exec(text)?.[1] ??
+      /(?:(?:public\.)?\w+\.)?(\w+)\s*=\s*(?:j|jobs)\.id\b/i.exec(text)?.[1] ??
+      /\bwhere\s+id\s*=\s*(?:(?:public\.)?\w+\.)?(\w+)/i.exec(text)?.[1] ??
+      "?";
+    if (!out.has(table) || out.get(table) === "?") out.set(table, col.toLowerCase());
+  }
+  return out;
+}
 
 /**
  * "table.column" → why the export does not scope by it. `stripped: true` means

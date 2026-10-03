@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-03T17:13Z",
+  "measured_at": "2026-10-03T19:12Z",
   "issues": {
     "readable": true,
     "open": [
@@ -12,11 +12,6 @@
       {
         "number": 2198,
         "title": "nightly-red: staleness-watch",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2200,
-        "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red"
       }
     ]
@@ -55,14 +50,6 @@
         "status": "open",
         "title": "nightly-red: vacuity",
         "issue": 2183
-      },
-      {
-        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: e2e-real-backend",
-        "issue": 2200
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -106,7 +93,6 @@
     "bus OA-018": "Q801",
     "bus SI-033": "Q802",
     "bus TC-004": "Q226",
-    "issue #1582": "Q783",
     "issue #1654": "Q722",
     "issue #1754": "Q785",
     "issue #1794": "Q593",
@@ -116,20 +102,13 @@
     "issue #2054": "Q788",
     "issue #2121": "Q787",
     "issue #2183": "Q788",
-    "issue #2189": "Q1148",
-    "issue #2193": "Q783",
     "issue #2198": "Q787",
-    "issue #2200": "Q1164",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
-    "ledger 1ef4b10bb74a": "Q1148",
-    "ledger 37cccbe58bb3": "Q1132",
-    "ledger 3a3460b71be7": "Q1164",
     "ledger 51722889b9d8": "Q1133",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
-    "ledger 7e141f206640": "Q783",
     "ledger 88ecf6e765df": "Q788",
     "ledger b75d265e6201": "Q794",
     "ledger db0fb15c4ec3": "Q787"

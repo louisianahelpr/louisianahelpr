@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-03T19:12Z",
+  "measured_at": "2026-10-03T22:12Z",
   "issues": {
     "readable": true,
     "open": [
@@ -12,6 +12,11 @@
       {
         "number": 2198,
         "title": "nightly-red: staleness-watch",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2213,
+        "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red"
       }
     ]
@@ -41,7 +46,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
-        "issue": 2149
+        "issue": 2213
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -49,7 +54,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": 2183
+        "issue": null
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -103,6 +108,7 @@
     "issue #2121": "Q787",
     "issue #2183": "Q788",
     "issue #2198": "Q787",
+    "issue #2213": "Q722",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",

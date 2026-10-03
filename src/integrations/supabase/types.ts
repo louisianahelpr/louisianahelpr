@@ -5940,6 +5940,7 @@ export type Database = {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: number
       }
+      check_browse_view_definer: { Args: never; Returns: Json }
       check_db_saturation: {
         Args: { p_log_timeouts?: number; p_log_window_minutes?: number }
         Returns: Json

@@ -103,7 +103,19 @@ function stripCommentsAndScripts(html) {
   let prev;
   do {
     prev = html;
-    html = stripHtmlComments(html).replace(/<script\b[^>]*>[\s\S]*?<\/script(?:\s[^>]*)?>/gi, "");
+
+    // First normalize comments to a fixed point.
+    let next = stripHtmlComments(html);
+
+    // Then strip <script> blocks to a fixed point as well, so removals that
+    // expose a new "<script...>...</script>" are also removed in this pass.
+    let scriptsPrev;
+    do {
+      scriptsPrev = next;
+      next = next.replace(/<script\b[^>]*>[\s\S]*?<\/script(?:\s[^>]*)?>/gi, "");
+    } while (next !== scriptsPrev);
+
+    html = next;
   } while (html !== prev);
   return html;
 }

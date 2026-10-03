@@ -24,7 +24,7 @@
  * Env: SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF (CI). Without them it uses
  * the linked Supabase CLI. Exit 1 on an offender, 2 if it could not look.
  */
-import { execFileSync } from "node:child_process";
+import { supabaseDbQuery } from "./lib/supabaseDbQuery.mjs";
 import { aclIsClientCallable, dynamicJobsWriterReasons, isReviewedJobsWriter, parseArgs } from "./lib/jobsWriteSurface.mjs";
 
 const SQL = `
@@ -52,7 +52,7 @@ async function liveRows() {
     if (!res.ok) throw new Error(`Management API query failed: ${res.status} ${await res.text()}`);
     return res.json();
   }
-  const out = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", SQL], {
+  const out = supabaseDbQuery(["--linked", "-o", "json", SQL], {
     encoding: "utf8",
     maxBuffer: 1 << 26,
     stdio: ["ignore", "pipe", "pipe"],

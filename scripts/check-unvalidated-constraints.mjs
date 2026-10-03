@@ -16,7 +16,7 @@
  * Env: SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF, else `supabase db query --linked`.
  * Exit 1 on an offender, 2 if it could not look.
  */
-import { execFileSync } from "node:child_process";
+import { supabaseDbQuery } from "./lib/supabaseDbQuery.mjs";
 
 const SQL = `
 SELECT (SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace
@@ -52,7 +52,7 @@ async function liveRow(sql = SQL) {
     if (!res.ok) throw new Error(`Management API query failed: ${res.status} ${await res.text()}`);
     return (await res.json())[0];
   }
-  const out = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", sql], {
+  const out = supabaseDbQuery(["--linked", "-o", "json", sql], {
     encoding: "utf8",
     maxBuffer: 1 << 26,
     stdio: ["ignore", "pipe", "pipe"],

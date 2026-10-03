@@ -80,6 +80,7 @@ const stripComments = (s: string) =>
 /** A live source: prod DB / REST / auth, the Management or Stripe API, a prod edge function, GitHub, or a minted prod session. */
 const LIVE_MARKERS: RegExp[] = [
   /\(\s*["'`]supabase["'`]\s*,\s*\[/, // execFileSync("supabase", [...])
+  /\bsupabaseDbQuery\s*\(/, // the CLI's `db query`, through scripts/lib/supabaseDbQuery.mjs (Q1176)
   /\[\s*["'`]supabase["'`]\s*,\s*["'`]gen/, // npx supabase gen types
   /\(\s*["'`]gh["'`]\s*,/, // execFileSync("gh", ...)
   /\(\s*["'`]psql["'`]/,

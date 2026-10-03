@@ -76,6 +76,9 @@ const VARIABLE_WRITES: { file: string; ident: string; values: string[]; table: s
   // A dismissed inquiry restores the pre-chargeback state:
   // preChargebackPaymentStatus() returns "escrow" | "payout_pending".
   { file: "handlers/chargeDisputeClosed.ts", ident: "restoredPaymentStatus", values: ["escrow", "payout_pending"], table: "jobs" },
+  // Q449: a WON chargeback on a job an internal hold still holds restores the
+  // same pre-chargeback state (preChargebackPaymentStatus).
+  { file: "handlers/chargeDisputeClosed.ts", ident: "restored", values: ["escrow", "payout_pending"], table: "jobs" },
 ];
 
 function walk(dir: string, out: string[] = []): string[] {

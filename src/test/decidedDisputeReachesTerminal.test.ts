@@ -23,11 +23,21 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
  *   - every Stripe dispute outcome charge.dispute.closed branches on.
  * Each outcome is classified: 'lost' (money gone) must call the terminal close
  * before anything else in its branch; 'warning_closed' restores the pre-block
- * payment state, so the split can still run; 'won' is Q449 (queued, exact).
- * The close itself (settle_dispute_by_chargeback, newest definition) must close
- * only a decided, unexecuted dispute, refuse a partial chargeback, and be
- * service-role only. Its behaviour is proved in PGlite by
- * src/test/pglite/chargebackLostClosesDecidedDispute.pglite.mjs.
+ * payment state, so the split can still run; 'won' (Q449) restores it too
+ * whenever an internal hold such as a decided split still holds the job,
+ * keeping that hold's markers. The close itself (settle_dispute_by_chargeback,
+ * newest definition) must close only a decided, unexecuted dispute, refuse a
+ * partial chargeback, and be service-role only. Its behaviour is proved in
+ * PGlite by src/test/pglite/chargebackLostClosesDecidedDispute.pglite.mjs.
+ *
+ * Q450. The other Stripe door out of escrow for good is a FULL refund:
+ * charge.refunded flips the job 'refunded'. Every webhook handler that writes
+ * 'refunded' must call the external-refund close right after (inventoried from
+ * the handlers), and that close (settle_dispute_by_external_refund, newest
+ * definition) must close only a decided, unexecuted, non-crew dispute, refuse
+ * a partial refund, a gift card or money a split moved, and be service-role
+ * only. Behaviour: src/test/pglite/fullRefundClosesDecidedDispute.pglite.mjs
+ * and src/test/edge/disputeSettlementWebhook.test.ts.
  *
  * Q344. Every SQL function that records a decision as NOT yet executed
  * (stamps execution_status 'pending') must not notify 'Dispute resolved' /
@@ -40,6 +50,12 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
  * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | _job.customer_id, 'info', 'Dispute decided', | _job.customer_id, 'info', 'Dispute resolved',
  * @mutate src/components/job-card/jobStatusLine.ts | case "completed":\n      if (disputeSettling(job)) return "dispute_settling";\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid"; | case "completed":\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid";
  * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | IF _payment_status = 'chargeback' THEN | IF false THEN
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | const restored = preDecisionPaymentStatus(closedJob); | const restored = preChargebackPaymentStatus(closedJob);
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | } else if (repaid.rows === 0 && decidedSplitOnly && closedJob.payment_status === "chargeback") { | } else if (repaid.rows === 0 && held && closedJob.payment_status === "chargeback") {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (crew) { | if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | await closeDecidedDisputeOnExternalRefund( | void (
+ * @mutate supabase/migrations/20261003181427_full_refund_closes_decided_dispute.sql | OR _refunded_cents < _charge_cents THEN | THEN
+ * @mutate supabase/migrations/20261003181427_full_refund_closes_decided_dispute.sql | execution_status IN ('pending', 'executing', 'failed'))\n   ORDER BY | execution_status IN ('pending', 'executing', 'failed', 'crew_fanout'))\n   ORDER BY
  */
 
 const REPO = resolve(__dirname, "../..");
@@ -50,10 +66,10 @@ const Q344_MIGRATION = "20260926034348_decided_dispute_says_payment_processing.s
 const read = (rel: string) => blankComments(readFileSync(resolve(REPO, rel), "utf8"));
 
 /** How each Stripe dispute outcome leaves a decided-but-unexecuted dispute. */
-const OUTCOME_CLASS: Record<string, "closes" | "restores" | "queued:Q449"> = {
+const OUTCOME_CLASS: Record<string, "closes" | "restores"> = {
   lost: "closes",
   warning_closed: "restores",
-  won: "queued:Q449",
+  won: "restores",
 };
 
 /** The body of `} else if (outcome === "<o>") {` … up to the next sibling branch. */
@@ -107,6 +123,32 @@ describe("Q342: every chargeback outcome leaves a decided dispute settleable or 
     expect(branch(closed, "warning_closed")).toMatch(/preChargebackPaymentStatus\(closedJob\)/);
   });
 
+  it("Q449: 'won' restores the state the decision left ONLY for a decided single-Helpr split, keeping its markers", () => {
+    const won = branch(closed, "won");
+    // Gated on a decided single-Helpr split and nothing else (review HIGH:
+    // every other hold has an automatic settler the restore would switch back
+    // on), never on a clawed-back released job, never with no hold.
+    expect(won).toMatch(/else if \(repaid\.rows === 0 && decidedSplitOnly && closedJob\.payment_status === "chargeback"\) \{/);
+    const gate = closed.slice(closed.indexOf("const decidedSplitOnly ="), closed.indexOf("if (ownsMarkers) {"));
+    expect(gate).toMatch(/hold\.unsettledDisputeId !== "unknown"/);
+    expect(gate).toMatch(/hold\.unsettledExecutionStatus !== "crew_fanout"/);
+    expect(gate).toMatch(/closedJob\.is_group_job !== true/);
+    expect(gate).toMatch(/holdReasons\(closedJob, \{ openDisputeId: hold\.openDisputeId, reversedTransferId: hold\.reversedTransferId \}\)\.length === 0/);
+    // Any other hold keeps the block and is handed to a person.
+    expect(won).toMatch(/else if \(repaid\.rows === 0 && held && closedJob\.payment_status === "chargeback"\) \{\s*wonNeedsHuman = true;/);
+    const restore = won.slice(won.indexOf("repaid.rows === 0 && decidedSplitOnly"));
+    expect(restore).toMatch(/const restored = preDecisionPaymentStatus\(closedJob\);/);
+    // rpc_decide_dispute never touches payment_status / payout_scheduled_at.
+    expect(closed).toMatch(/function preDecisionPaymentStatus\([\s\S]*?return job\.payout_scheduled_at \? "payout_pending" : "escrow";/);
+    // disputed_at is KEPT (stamped if empty): never cleared on 'won'.
+    expect(restore).toMatch(/disputed_at: closedJob\.disputed_at \?\? new Date\(\)\.toISOString\(\)/);
+    // A compare-and-set on the job status, the chargeback block and the
+    // dispute_status read.
+    expect(restore).toMatch(/\.eq\("status", closedJob\.status\)\s*\.eq\("payment_status", "chargeback"\)\s*\.or\(disputeStatusAsReadFilter\(closedJob\.dispute_status\)\)\s*\.select\("id"\)/);
+    // The hold read fails closed for 'won' too (it decides the restore).
+    expect(closed).toMatch(/if \(outcome === "warning_closed" \|\| outcome === "won"\) \{\s*hold = await findInternalPayoutHold\(supabase, closedJob\.id\);\s*if \(hold\.readError\) \{/);
+  });
+
   it("the close calls the RPC, throws on a DB error, and pages on anything but 'nothing to close'", () => {
     const fn = closed.slice(closed.indexOf("async function closeDecidedDisputeOnLostChargeback("));
     const body = fn.slice(0, fn.indexOf("\nfunction ") > 0 ? fn.indexOf("\nfunction ") : undefined);
@@ -131,6 +173,62 @@ describe("Q342: every chargeback outcome leaves a decided dispute settleable or 
     const file = readFileSync(resolve(MIGRATIONS, def!.file), "utf8");
     expect(file).toMatch(/REVOKE ALL ON FUNCTION public\.settle_dispute_by_chargeback\(uuid, text, bigint, bigint\) FROM PUBLIC, anon, authenticated;/);
     expect(file).toMatch(/GRANT EXECUTE ON FUNCTION public\.settle_dispute_by_chargeback\(uuid, text, bigint, bigint\) TO service_role;/);
+  });
+});
+
+describe("Q450: a full refund made outside the split closes a decided dispute", () => {
+  it("every webhook handler that writes payment_status 'refunded' calls the close right after (inventoried)", () => {
+    const writers = readdirSync(resolve(REPO, HANDLERS))
+      .filter((f) => f.endsWith(".ts"))
+      .filter((f) => /\.update\(\{\s*payment_status:\s*"refunded"/.test(read(`${HANDLERS}/${f}`)));
+    expect(writers.length).toBeGreaterThanOrEqual(1);
+    expect(writers).toContain("chargeRefunded.ts");
+    for (const f of writers) {
+      const src = read(`${HANDLERS}/${f}`);
+      const write = src.search(/\.update\(\{\s*payment_status:\s*"refunded"/);
+      const close = src.indexOf("await closeDecidedDisputeOnExternalRefund(");
+      expect(close, `${f} writes 'refunded' but never closes a decided dispute`).toBeGreaterThan(write);
+    }
+  });
+
+  it("the close keys on WHO refunded: a refund carrying the split's dispute metadata is never closed here", () => {
+    const src = read(`${HANDLERS}/chargeRefunded.ts`);
+    const fn = src.slice(src.indexOf("async function closeDecidedDisputeOnExternalRefund("));
+    expect(fn).toMatch(/stripe\.refunds\.list\(\{ charge: charge\.id/);
+    expect(fn).toMatch(/metadata[^\n]*dispute_id/);
+    // A crew decision is read and handed to a person, before any Stripe read
+    // (the fan-out never runs on a refunded job; review MEDIUM).
+    expect(src).toMatch(/const UNEXECUTED_DECISION_FILTER = "execution_status\.is\.null,execution_status\.in\.\(pending,executing,failed,crew_fanout\)";/);
+    const crewAt = fn.indexOf("if (crew) {");
+    expect(crewAt).toBeGreaterThan(-1);
+    expect(crewAt).toBeLessThan(fn.indexOf("stripe.refunds.list("));
+    expect(fn.slice(crewAt, fn.indexOf("stripe.refunds.list("))).toMatch(/await handBack\([\s\S]*?return "needs_human";/);
+    // The split's own refund returns BEFORE the RPC; a mixed charge pages.
+    expect(fn.indexOf('return "split_refund"')).toBeGreaterThan(-1);
+    expect(fn.indexOf('return "split_refund"')).toBeLessThan(fn.indexOf('supabase.rpc("settle_dispute_by_external_refund"'));
+    // A DB error or a run in flight throws (Stripe redelivers); needs_human pages critical.
+    expect(fn).toMatch(/if \(error\) \{[\s\S]*?throw new Error/);
+    expect(fn).toMatch(/if \(outcome === "busy"\) \{[\s\S]*?throw new Error/);
+    expect(fn).toMatch(/severity: "critical",\s*title: "Full refund on a decided dispute — settle it by hand"/);
+  });
+
+  it("settle_dispute_by_external_refund (newest definition) closes only what it may, service-role only", () => {
+    const def = effectiveDefs(MIGRATIONS).get("settle_dispute_by_external_refund");
+    expect(def, "settle_dispute_by_external_refund is not defined by any migration").toBeDefined();
+    const sql = def!.stmt;
+    expect(sql).toMatch(/status = 'decided'\s+AND \(execution_status IS NULL OR execution_status IN \('pending', 'executing', 'failed'\)\)/);
+    // A crew decision is the payout fan-out's to settle, never this close's.
+    expect(sql).not.toMatch(/crew_fanout/);
+    expect(sql).toMatch(/_refunded_cents < _charge_cents/);
+    expect(sql).toMatch(/payment_status IS DISTINCT FROM 'refunded'/);
+    expect(sql).toMatch(/g\.status IN \('redeemed', 'reserved'\)/);
+    expect(sql).toMatch(/money_step_at IS NOT NULL/);
+    expect(sql).toMatch(/r\.source = 'dispute_split'/);
+    expect(sql).toMatch(/'busy'/);
+    expect(sql).toMatch(/SET execution_status\s+= 'executed'/);
+    const file = readFileSync(resolve(MIGRATIONS, def!.file), "utf8");
+    expect(file).toMatch(/REVOKE ALL ON FUNCTION public\.settle_dispute_by_external_refund\(uuid, text, bigint, bigint\) FROM PUBLIC, anon, authenticated;/);
+    expect(file).toMatch(/GRANT EXECUTE ON FUNCTION public\.settle_dispute_by_external_refund\(uuid, text, bigint, bigint\) TO service_role;/);
   });
 });
 

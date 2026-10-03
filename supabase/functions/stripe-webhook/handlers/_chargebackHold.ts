@@ -95,6 +95,13 @@ export const SETTLED_INTERNAL_DISPUTE_STATUSES = ["resolved", "auto_resolved"] a
 export type InternalPayoutHold = {
   /** A decided dispute on this job whose split has not executed. */
   unsettledDisputeId?: string;
+  /**
+   * That decided dispute's execution_status ('pending', 'failed', 'crew_fanout',
+   * ...); undefined when the block is a settlement claim with no decided row
+   * behind it (unsettledDisputeId is then "unknown"). Q449 restores the
+   * payment state only for a single-Helpr split the admin can run.
+   */
+  unsettledExecutionStatus?: string | null;
   /** A dispute on this job that is still open (not decided, not withdrawn). */
   openDisputeId?: string;
   /** A payout transfer on this job that Stripe reversed and no operator has cleared. */
@@ -120,7 +127,14 @@ export function holdReasons(
   if (job.dispute_status && (INTERNAL_HOLD_DISPUTE_STATUSES as readonly string[]).includes(job.dispute_status)) {
     reasons.push(`the job's dispute_status is '${job.dispute_status}'`);
   }
-  if (hold.unsettledDisputeId) reasons.push(`dispute ${hold.unsettledDisputeId} is decided and its split has not executed`);
+  if (hold.unsettledDisputeId) {
+    // "unknown" is a settlement CLAIM with no decided row behind it (a Quick
+    // Release / Quick Refund / sweep / split live or stopped part-way), not a
+    // decision: worded as what it is (Q449 review, LOW).
+    reasons.push(hold.unsettledDisputeId === "unknown"
+      ? "a settlement of this job is running or stopped part-way (a settlement claim is held)"
+      : `dispute ${hold.unsettledDisputeId} is decided and its split has not executed`);
+  }
   if (hold.openDisputeId) reasons.push(`dispute ${hold.openDisputeId} is still open`);
   if (hold.reversedTransferId) reasons.push(`payout transfer ${hold.reversedTransferId} was reversed`);
   return reasons;
@@ -169,6 +183,7 @@ export async function findInternalPayoutHold(
 
   return {
     unsettledDisputeId: settlement.blocked ? (settlement.dispute?.id ?? "unknown") : undefined,
+    unsettledExecutionStatus: settlement.dispute ? (settlement.dispute.execution_status ?? null) : undefined,
     openDisputeId: open?.id,
     reversedTransferId: reversed ? (reversed.stripe_transfer_id ?? reversed.id) : undefined,
   };

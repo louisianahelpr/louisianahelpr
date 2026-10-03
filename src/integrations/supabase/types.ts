@@ -7381,6 +7381,15 @@ export type Database = {
         }
         Returns: Json
       }
+      settle_dispute_by_external_refund: {
+        Args: {
+          _charge_cents: number
+          _job_id: string
+          _refunded_cents: number
+          _stripe_charge_id: string
+        }
+        Returns: Json
+      }
       settle_dispute_record: {
         Args: {
           _decided_by?: string

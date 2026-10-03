@@ -25,8 +25,8 @@
  * `status`/`statusCode` (auth-js, storage-js, and `unwrap()`, which now copies
  * the response status), an edge-function error's `context` Response, and
  * otherwise the PostgREST error `code`, mapped with PostgREST's own status table
- * (https://docs.postgrest.org/en/stable/references/errors.html). Anything
- * unrecognised keeps today's behaviour: retried once.
+ * (the "Errors" page of the PostgREST reference docs). Anything unrecognised
+ * keeps today's behaviour: retried once.
  */
 
 /** PostgREST's own PGRST-code status exceptions; the rest of each group uses the group default below. */

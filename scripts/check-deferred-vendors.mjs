@@ -84,6 +84,27 @@ const DEFERRED_PACKAGES = [
   },
 ];
 
+/**
+ * FIRST-PARTY modules that only a lazy feature reads, found the same way as
+ * DEFERRED_PACKAGES: by the source files a chunk's sourcemap lists, never by
+ * a chunk name (Q1158, 2026-10-03).
+ *
+ * vite.config.ts's `app-shared` group captures every src/lib module that two
+ * chunks share, and puts it on the boot path of every page. pdfDocument.ts is
+ * shared by the two PDF exports (Home History, Work Record), so it went there,
+ * and with it helprMarkPng.ts: a 32 KB base64 crest that compresses badly
+ * (~24 KB brotli), read by nothing but a PDF export. The `pdf-documents`
+ * group now keeps both with their importers. A prefix check on
+ * `pdf-documents-*` could not catch the regression it exists for: with the
+ * group gone there IS no such chunk, the crest is back inside app-shared, and
+ * a prefix scan passes having seen nothing. So the files themselves are looked
+ * for in every reached chunk's sources.
+ */
+const DEFERRED_MODULES = [
+  { file: "src/lib/helprMarkPng.ts", why: "a 32 KB base64 crest only the PDF exports embed (vite.config.ts pdf-documents group)" },
+  { file: "src/lib/pdfDocument.ts", why: "the PDF document builder (Home History, Work Record exports); vite.config.ts pdf-documents group" },
+];
+
 const json = process.argv.includes("--json");
 const fail = (msg) => { console.error(`\n✗ ${msg}`); process.exit(1); };
 
@@ -181,6 +202,29 @@ for (const { pkg, why } of DEFERRED_PACKAGES) {
   }
 }
 
+/** first-party src/ files inside a chunk, from its hidden sourcemap. */
+const sourcesIn = (file) => {
+  let map;
+  try { map = JSON.parse(readFileSync(`${ASSETS}/${file}.map`, "utf8")); } catch { return null; }
+  return new Set((map.sources ?? []).map((src) => {
+    const hit = src.match(/(?:^|\/)(src\/.+)$/);
+    return hit ? hit[1] : src;
+  }));
+};
+
+for (const { file, why } of DEFERRED_MODULES) {
+  const carriers = all.filter((f) => sourcesIn(f)?.has(file));
+  // Blindness check, as for packages: the module is live code, so SOME chunk
+  // must carry it. None means the maps are gone or the path shape changed.
+  if (!carriers.length) {
+    fail(`found no chunk whose sourcemap lists ${file}. Either the .js.map files are no longer ` +
+         `emitted, the path shape changed, or the module was deleted (then remove it from DEFERRED_MODULES).`);
+  }
+  for (const chunk of carriers) {
+    if (reached.has(chunk)) violations.push({ chunk, why: `${file}: ${why}`, gzip: bytes(chunk), chain: chainTo(chunk) });
+  }
+}
+
 let critRaw = 0, critGz = 0;
 for (const f of reached) { const b = readFileSync(`${ASSETS}/${f}`); critRaw += b.length; critGz += gzipSync(b).length; }
 
@@ -206,9 +250,11 @@ if (violations.length) {
     console.error(`    FIX: find the static import of it in that chain and make it dynamic at that`);
     console.error(`         boundary (Sentry/PostHog: route the call through \`report()\` in`);
     console.error(`         src/lib/errorLogger.ts; framer-motion: load it on demand, as`);
-    console.error(`         src/components/notificationPanel/useFramerMotion.ts does). Do not add it to an allow list.\n`);
+    console.error(`         src/components/notificationPanel/useFramerMotion.ts does; a src/lib module`);
+    console.error(`         app-shared captured: give it its own codeSplitting group in vite.config.ts,`);
+    console.error(`         as \`pdf-documents\` does). Do not add it to an allow list.\n`);
   }
   process.exit(1);
 }
 
-console.log(`\n✓ no deferred vendor (${[...DEFERRED.map((d) => d.prefix + "*"), ...DEFERRED_PACKAGES.map((d) => d.pkg)].join(", ")}) is statically reachable from the entry`);
+console.log(`\n✓ no deferred vendor (${[...DEFERRED.map((d) => d.prefix + "*"), ...DEFERRED_PACKAGES.map((d) => d.pkg), ...DEFERRED_MODULES.map((d) => d.file)].join(", ")}) is statically reachable from the entry`);

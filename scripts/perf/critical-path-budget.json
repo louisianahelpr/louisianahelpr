@@ -1,6 +1,6 @@
 {
   "_what": "Q178 critical-path budget, checked by `node scripts/perf/critical-path.mjs --check` against the BUILT bundle (bundle-size.yml, npm run gate). Rounds are exact both ways; KB is a band (+5% fails as a regression, -10% fails as a stale budget). Lower these in the same commit as the change that lowers them.",
-  "_measured": "2026-09-26, production vite build (Q206 b: the entry starts the guest /browse job list, +0.7 KB gz: 3.4 -> 4.1; /browse first card 4929 -> 4518 ms median, data-start 3796 -> 589 ms, scripts/perf/measure-load.mjs)",
+  "_measured": "2026-10-03, production vite build (Q1158: the PDF crest helprMarkPng.ts + pdfDocument.ts left app-shared for their own `pdf-documents` chunk, boot graph 303 -> 278 KB gz; every first screen -25 KB gz). Previous: 2026-09-26 (Q206 b: the entry starts the guest /browse job list, +0.7 KB gz: 3.4 -> 4.1; /browse first card 4929 -> 4518 ms median, data-start 3796 -> 589 ms, scripts/perf/measure-load.mjs)",
   "entry": {
     "staticChunks": 2,
     "kb": 4.1
@@ -9,27 +9,27 @@
     "/": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 307
+      "jsKB": 294
     },
     "/browse": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 376
+      "jsKB": 362
     },
     "/login": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 309
+      "jsKB": 296
     },
     "/signup": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 343
+      "jsKB": 330
     },
     "/posts": {
       "routeRound": 2,
       "rounds": 2,
-      "jsKB": 337
+      "jsKB": 323
     }
   }
 }

@@ -724,6 +724,21 @@ export default defineConfig(({ mode }) => ({
               priority: 20,
               minSize: 0,
             },
+            // The PDF documents (Home History, Work Record) and the 32 KB
+            // base64 crest they embed (helprMarkPng.ts). pdfDocument is shared
+            // by the two profile tabs, so app-shared captured it — and with it
+            // the crest, the single largest first-party module in that chunk —
+            // onto the boot path of EVERY page, though only a PDF export reads
+            // it (Q1158, 2026-10-03). Same shape as `forms` above: riding with
+            // its only importers keeps it off every first screen.
+            // scripts/check-deferred-vendors.mjs fails if a `pdf-documents-*`
+            // chunk is ever reachable from a first screen again.
+            {
+              name: "pdf-documents",
+              test: /[\\/]src[\\/]lib[\\/](pdfDocument|helprMarkPng)\.ts$/,
+              priority: 20,
+              minSize: 0,
+            },
             {
               name: "app-shared",
               test: /[\\/]src[\\/](lib|hooks|utils|contexts|integrations|config|constants)[\\/]/,

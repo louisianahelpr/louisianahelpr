@@ -1,0 +1,53 @@
+name: Code scanning alerts
+
+# Zero open code-scanning alerts on main, from scans that really ran
+# (docs/OPEN.md Q1143). CodeQL's default setup and the ESLint SARIF upload file
+# alerts and stop there; the ledger feed (Q1141) reports open alerts but cannot
+# see a scan that went silent. This fails while any alert on main is open, or
+# when a category in EXPECTED_CATEGORIES has no analysis of main newer than
+# 8 days, or main is analysed under a category the script does not list.
+# Script: scripts/code-scanning-check.mjs. Guard: src/test/codeScanningCheck.test.ts.
+
+on:
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: code-scanning-alerts
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  security-events: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: No open code-scanning alert on main, and every scan is running
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/code-scanning-check.mjs
+
+  # A red scheduled run files/updates one nightly-red issue (closed on the next
+  # green run of this workflow, never by hand).
+  notify:
+    name: Report nightly result
+    needs: [check]
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: code-scanning-alerts
+          status: ${{ needs.check.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

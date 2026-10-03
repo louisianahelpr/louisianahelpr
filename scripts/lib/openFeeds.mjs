@@ -3,19 +3,21 @@
  * merged into open so we aren't tracking several different things").
  *
  * The other trackers are FEEDS into it: the ops alert ledger
- * (public.ops_alert_ledger), the open nightly-red GitHub issues and the audit
- * bus (docs/audit/launch-2026-09/findings.jsonl). Each open source item is
- * mirrored by exactly one OPEN.md queue item carrying a sticky tag:
+ * (public.ops_alert_ledger), the open GitHub issues under an alert label
+ * (nightly-red, schedule-stalled, ...: scripts/lib/alertIssueLabels.mjs) and
+ * the audit bus (docs/audit/launch-2026-09/findings.jsonl). Each open source
+ * item is mirrored by exactly one OPEN.md queue item carrying a sticky tag:
  *
- *   feed: issue #1921          a nightly-red issue
+ *   feed: issue #1921          an alert issue (nightly-red, schedule-stalled, ...)
  *   feed: ledger 88ecf6e765df  an ops_alert_ledger row (first 12 hex of its fingerprint)
  *   feed: bus NB-004           an audit-bus finding
  *
- * A nightly-red ledger row and its GitHub issue are ONE source and share one
+ * A nightly_red ledger row and its GitHub issue are ONE source and share one
  * item (both tags). scripts/open-sync-trackers.mjs writes the tags;
  * src/test/openFeedsMirrored.test.ts fails when an open source has none.
  */
 import { CLOSED_STATUSES, foldFindings, parseFindingsLog } from "./auditFindings.mjs";
+import { ALERT_ISSUE_LABELS, ALERT_LABELS } from "./alertIssueLabels.mjs";
 
 export const FINDINGS = "docs/audit/launch-2026-09/findings.jsonl";
 export const SNAPSHOT = "docs/audit/open-feeds.json";
@@ -105,19 +107,44 @@ const oneLine = (s, n) => {
 const bare = (t) => String(t ?? "").toLowerCase().replace(/^(nightly-red:\s*)+/, "").trim();
 
 /**
+ * Every OPEN issue under an alert label, once each, with the label it was
+ * found under. `list(label)` returns `gh issue list --label <label> --state
+ * open --json number,title`. Before 2026-10-03 the feed read nightly-red
+ * only, and schedule-stalled #2196 reached no list.
+ */
+export function openAlertIssues(list) {
+  const seen = new Map();
+  for (const label of ALERT_LABELS) {
+    for (const i of list(label) ?? []) if (!seen.has(i.number)) seen.set(i.number, { number: i.number, title: i.title, label });
+  }
+  return [...seen.values()].sort((a, b) => a.number - b.number);
+}
+
+/** The queue-item title for an alert issue: "<nightly title> is red", else "<label>: <title>" without a leading emoji. */
+function issueTitle(i, label) {
+  if (label === "nightly-red") return `${i.title} is red`;
+  const t = String(i.title ?? "").replace(/^[^\p{L}\p{N}]+/u, "");
+  return t.toLowerCase().startsWith(`${label}:`) ? t : `${label}: ${t}`;
+}
+
+/**
  * One source group per mirrored item. A nightly_red ledger row joins its
  * issue by sample_ref.issue, else by title ("nightly-red: nightly-red: X").
+ * An issue with no `label` (a snapshot from before labels were recorded) is
+ * nightly-red.
  */
 export function groupSources({ ledger, issues }) {
   const groups = [];
   const byIssue = new Map();
   for (const i of issues ?? []) {
+    const label = i.label ?? "nightly-red";
     const g = {
       keys: [`issue #${i.number}`],
-      title: `${i.title} is red`,
-      origin: `nightly-red issue #${i.number}`,
+      title: issueTitle(i, label),
+      origin: `${label} issue #${i.number}`,
       markers: [`done-when: issue #${i.number} closed`],
       issue: i,
+      ...(ALERT_ISSUE_LABELS[label]?.severity === "critical" ? { tier: "HIGH" } : {}),
     };
     groups.push(g);
     byIssue.set(i.number, g);

@@ -5,7 +5,8 @@
  * (scripts/lib/openFeeds.mjs):
  *
  *   ops alert ledger, rows with status <> 'closed'   feed: ledger <fp[0:12]>
- *   open GitHub issues labelled nightly-red          feed: issue #N
+ *   open GitHub issues under an alert label         feed: issue #N
+ *     (nightly-red, schedule-stalled, ...: scripts/lib/alertIssueLabels.mjs)
  *   open audit-bus findings (findings.jsonl fold)    feed: bus <ID>
  *
  * For each open source it ensures exactly ONE not-done queue item carries its
@@ -38,7 +39,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { nextFreeAcross } from "./queue-count.mjs";
-import { FINDINGS, SNAPSHOT, LEDGER_SQL, applyFeeds, busSources, busStatus, groupSources, mirrored, feedCounts } from "./lib/openFeeds.mjs";
+import { FINDINGS, SNAPSHOT, LEDGER_SQL, applyFeeds, busSources, busStatus, groupSources, mirrored, feedCounts, openAlertIssues } from "./lib/openFeeds.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OPEN = "docs/OPEN.md";
@@ -46,8 +47,9 @@ const OPEN = "docs/OPEN.md";
 async function measure() {
   const snap = { note: "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts", measured_at: new Date().toISOString().slice(0, 16) + "Z" };
   try {
-    const out = execFileSync("gh", ["issue", "list", "--label", "nightly-red", "--state", "open", "--limit", "200", "--json", "number,title"], { encoding: "utf8", timeout: 30000, cwd: ROOT });
-    snap.issues = { readable: true, open: JSON.parse(out).map((i) => ({ number: i.number, title: i.title })).sort((a, b) => a.number - b.number) };
+    // Every alert label (scripts/lib/alertIssueLabels.mjs), not only nightly-red.
+    const list = (label) => JSON.parse(execFileSync("gh", ["issue", "list", "--label", label, "--state", "open", "--limit", "200", "--json", "number,title"], { encoding: "utf8", timeout: 30000, cwd: ROOT }));
+    snap.issues = { readable: true, open: openAlertIssues(list) };
   } catch (e) {
     snap.issues = { readable: false, error: String(e.message).split("\n")[0], open: [] };
   }
@@ -88,12 +90,12 @@ function apply(snap, { dryRun }) {
   const keys = Object.fromEntries([...by].map(([k, ids]) => [k, ids[0]]).sort());
   const out = { ...snap, mirrored: keys };
   const counts = feedCounts(res.md);
-  console.log(`sources open: ${issues.length} nightly-red issue(s)${snap.issues.readable ? "" : " (UNREADABLE)"}, ${ledger.length} ledger row(s)${snap.ledger.readable ? "" : " (UNREADABLE)"}, ${[...bus.values()].filter((s) => s === "open").length - (bus.get("bus V-001") === "open" ? 1 : 0)} bus finding(s)`);
+  console.log(`sources open: ${issues.length} alert issue(s)${snap.issues.readable ? "" : " (UNREADABLE)"}, ${ledger.length} ledger row(s)${snap.ledger.readable ? "" : " (UNREADABLE)"}, ${[...bus.values()].filter((s) => s === "open").length - (bus.get("bus V-001") === "open" ? 1 : 0)} bus finding(s)`);
   for (const c of res.created) console.log(`  created ${c.id}  ${c.keys.join(" + ")}`);
   for (const a of res.attached) console.log(`  attached to ${a.id}  ${a.keys.join(" + ")}`);
   for (const f of res.flipped) console.log(`  source closed -> [~] ${f}`);
   for (const a of res.ambiguous) console.error(`  AMBIGUOUS ${a.keys.join(" + ")}: first line of ${a.ids.join(", ")} — add \`feed: ${a.keys[0]}\` to the ONE item that owns it`);
-  console.log(`OPEN.md items from feeds: ${counts.ledger} ledger, ${counts.issue} nightly-red, ${counts.bus} audit bus (${res.created.length} created, ${res.attached.length} attached, ${res.flipped.length} flipped)`);
+  console.log(`OPEN.md items from feeds: ${counts.ledger} ledger, ${counts.issue} alert issue, ${counts.bus} audit bus (${res.created.length} created, ${res.attached.length} attached, ${res.flipped.length} flipped)`);
   if (!dryRun) {
     writeFileSync(join(ROOT, OPEN), res.md);
     writeFileSync(join(ROOT, SNAPSHOT), JSON.stringify(out, null, 2) + "\n");

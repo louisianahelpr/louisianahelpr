@@ -1,7 +1,10 @@
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs | r.conclusion === "cancelled" | r.conclusion === "failure"
 // @mutate .github/workflows/schedule-heartbeat.yml | STALE_COUNT=$((STALE_COUNT + CANCELLED)) | STALE_COUNT=$((STALE_COUNT + 0))
-// @mutate .github/workflows/schedule-heartbeat.yml | node scripts/ci/cancelled-prod-load-runs.mjs > /tmp/cancelled.txt | echo cancelled=0 > /tmp/cancelled.txt
+// @mutate .github/workflows/schedule-heartbeat.yml | node scripts/ci/cancelled-prod-load-runs.mjs --redispatch > /tmp/cancelled.txt | echo cancelled=0 > /tmp/cancelled.txt
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   return group === "prod-load" \|\| /'prod-load'/.test(group); |   return group === "prod-load";
+// @mutate scripts/ci/cancelled-prod-load-runs.mjs |   return COVERING_EVENTS.has(o.event) && !String(o.display_title ?? "").includes("(main batch "); |   return COVERING_EVENTS.has(o.event);
+// @mutate scripts/ci/cancelled-prod-load-runs.mjs |   if (later.some((o) => IN_FLIGHT.has(o.status))) return "recovering"; |   if (false) return "recovering";
+// @mutate scripts/ci/cancelled-prod-load-runs.mjs |   if (!open.length) return sched; |   return sched;
 // @mutate .github/workflows/privacy-journey.yml | status: ${{ needs.gate.result == 'success' && needs.privacy-journey.result == 'success' && 'success' \|\| 'failure' }} | status: ${{ needs.gate.result != 'failure' && needs.privacy-journey.result != 'failure' && 'success' \|\| 'failure' }}
 /*
  * CLASS GUARD (docs/OPEN.md Q293): a scheduled prod-load run that was
@@ -9,10 +12,13 @@
  *
  * Two ways a prod-load run can be cancelled, two layers:
  *
- * One layer reports it: schedule-heartbeat.yml runs
+ * schedule-redispatch.yml re-dispatches every such run once, the moment it
+ * is cancelled (cancelledScheduleIsRedispatched.test.ts). The backstop reports
+ * whatever that did not cover: schedule-heartbeat.yml runs
  * scripts/ci/cancelled-prod-load-runs.mjs daily and counts every cancelled
- * scheduled prod-load run (8-day window) as stalled: schedule-stalled issue
- * + red heartbeat. That covers both ways a run is cancelled:
+ * scheduled prod-load run (8-day window) that no later FULL run re-tested as
+ * stalled: schedule-stalled issue + red heartbeat. A re-test still in flight
+ * is shown as recovering, not counted. That covers both ways a run is cancelled:
  *  - PENDING: GitHub keeps one pending run per concurrency group; a third run
  *    entering `prod-load` cancels the waiting one before any job starts,
  *    notify included, so nothing in the run can report it.
@@ -34,8 +40,12 @@ import { parse } from "yaml";
 import * as cancelled from "../../scripts/ci/cancelled-prod-load-runs.mjs";
 
 const ROOT = resolve(__dirname, "../..");
+type Run = Record<string, unknown>;
 const prodLoadWorkflows = cancelled.prodLoadWorkflows as (dir?: string) => string[];
-const cancelledScheduledRuns = cancelled.cancelledScheduledRuns as (runs: Record<string, unknown>[], o?: { now?: number; windowDays?: number }) => Record<string, unknown>[];
+const cancelledScheduledRuns = cancelled.cancelledScheduledRuns as (runs: Run[], o?: { now?: number; windowDays?: number }) => Run[];
+const recoveringScheduledRuns = cancelled.recoveringScheduledRuns as (runs: Run[], o?: { now?: number; windowDays?: number }) => Run[];
+const cancelCause = cancelled.cancelCause as (jobs: unknown[], annotations?: { message: string }[]) => string;
+const workflowRuns = cancelled.workflowRuns as (repo: string, file: string, o: { now: number; runs: (path: string) => Run[] }) => Run[];
 const WINDOW_DAYS = cancelled.WINDOW_DAYS as number;
 const read = (f: string) => readFileSync(resolve(ROOT, f), "utf8");
 
@@ -68,15 +78,53 @@ describe("Q293: a cancelled scheduled prod-load run is red", () => {
     expect(cancelledScheduledRuns([run({}), later({ event: "workflow_dispatch" })], { now })).toHaveLength(0);
     expect(cancelledScheduledRuns([run({}), later({ conclusion: "cancelled" })], { now })).toHaveLength(2);
     expect(cancelledScheduledRuns([run({}), later({ event: "push" })], { now })).toHaveLength(1);
-    expect(cancelledScheduledRuns([run({}), later({ status: "in_progress", conclusion: null })], { now })).toHaveLength(1);
     expect(cancelledScheduledRuns([run({}), later({ created_at: "2026-09-20T03:17:00Z" })], { now })).toHaveLength(1);
+    // A later run still in flight (schedule-redispatch.yml's re-dispatch, usually)
+    // is RECOVERING: not counted, shown, and judged again by the next heartbeat.
+    const inFlight = later({ event: "workflow_dispatch", status: "in_progress", conclusion: null });
+    expect(cancelledScheduledRuns([run({}), inFlight], { now })).toHaveLength(0);
+    expect(recoveringScheduledRuns([run({}), inFlight], { now })).toHaveLength(1);
+    expect(recoveringScheduledRuns([run({}), later({})], { now })).toHaveLength(0);
+    // A main-batch dispatch skips every scheduled job: it covers nothing, done or not.
+    const batch = { display_title: "E2E real backend (main batch 3c80b47ac3a5)", event: "workflow_dispatch" };
+    expect(cancelledScheduledRuns([run({}), later(batch)], { now })).toHaveLength(1);
+    expect(cancelledScheduledRuns([run({}), later({ ...batch, status: "in_progress", conclusion: null })], { now })).toHaveLength(1);
     // A weekly workflow's cancelled run is still in the window at the next daily heartbeat.
     expect(WINDOW_DAYS).toBeGreaterThanOrEqual(8);
   });
 
+  it("reads scheduled runs on their own, and dispatches only to judge a cancelled one", () => {
+    // 2026-10-03: e2e-real-backend's 50 newest runs on main spanned 34 hours
+    // (39 main-batch dispatches), so one mixed page hid most of the window.
+    const now = Date.parse("2026-10-03T16:00:00Z");
+    const calls: string[] = [];
+    const sched = [{ id: 1, event: "schedule", status: "completed", conclusion: "cancelled", created_at: "2026-10-03T14:18:55Z" }];
+    const dispatched = [{ id: 2, event: "workflow_dispatch", status: "completed", conclusion: "success", created_at: "2026-10-03T15:30:00Z" }];
+    const runs = (path: string) => (calls.push(path), path.includes("event=schedule") ? sched : dispatched);
+    const got = workflowRuns("o/r", "write-contract-refresh.yml", { now, runs });
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatch(/event=schedule&per_page=100&created=%3E%3D/);
+    expect(calls[1]).toMatch(/event=workflow_dispatch&per_page=100&created=%3E%3D2026-10-03T14%3A18%3A55Z/);
+    expect(cancelledScheduledRuns(got, { now })).toHaveLength(0);
+    // Nothing cancelled: one read.
+    calls.length = 0;
+    workflowRuns("o/r", "x.yml", { now, runs: (p: string) => (calls.push(p), []) });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("says why a run was cancelled: lost the pending slot, or a person (#2196's two rows)", () => {
+    // write-contract-refresh 37129164563: no job at all.
+    expect(cancelCause([], [])).toMatch(/no job ever started/);
+    // expiry-monitor 37082255950: its job sat queued, then a bulk cancel took it.
+    expect(cancelCause([{ id: 111085124328 }, { id: 111090166314 }], [{ message: "The run was canceled by @louisianahelpr." }])).toBe(
+      "cancelled by hand (@louisianahelpr) with 2 job(s) created",
+    );
+    expect(cancelCause([{ id: 1 }], [{ message: "Canceling since a higher priority waiting request for prod-lifecycle-shared-accounts exists" }])).toMatch(/pending slot/);
+  });
+
   it("schedule-heartbeat runs the check and adds every cancelled run to its stalled count", () => {
     const wf = read(".github/workflows/schedule-heartbeat.yml");
-    const i = wf.indexOf("node scripts/ci/cancelled-prod-load-runs.mjs > /tmp/cancelled.txt");
+    const i = wf.indexOf("node scripts/ci/cancelled-prod-load-runs.mjs --redispatch > /tmp/cancelled.txt");
     expect(i).toBeGreaterThan(0);
     const tail = wf.slice(i, wf.indexOf('echo "stale=$STALE_COUNT"', i));
     expect(tail).toContain("CANCELLED=$(sed -n 's/^cancelled=//p' /tmp/cancelled.txt)");

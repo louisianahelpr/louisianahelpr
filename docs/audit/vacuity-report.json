@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-03T21:58:01.054Z",
-  "guards": 1364,
-  "registered": 1363,
+  "generated": "2026-10-03T22:18:48.555Z",
+  "guards": 1366,
+  "registered": 1365,
   "unregistered": [
     "src/test/jobPermissionsAllowCheckout.test.ts"
   ],
@@ -20,6 +20,7 @@
     "src/lib/workRecordDocument.test.ts",
     "src/pages/jobs/appliedJobCard/helperDisputeCopy.test.tsx",
     "src/pages/profile/types.test.ts",
+    "src/test/acceptCompletesAfterStripeSetup.test.ts",
     "src/test/adminEndpointAuthz.test.ts",
     "src/test/banEvasionSurface.test.ts",
     "src/test/blockedStorageBoot.test.ts",

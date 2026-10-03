@@ -43,5 +43,8 @@
     "src/lib/arrivalGate.test.ts",
     "src/test/prodSeedGroupJobFixture.test.ts"
   ],
-  "survivingMutations": []
+  "survivingMutations": [],
+  "liveSkipGuards": [
+    "e2e/job-status-fixtures/accepted.spec.ts"
+  ]
 }

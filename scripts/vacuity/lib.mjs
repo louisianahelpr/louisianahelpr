@@ -195,6 +195,47 @@ export function parseDirectives(rel) {
   return { mutations, exemptions };
 }
 
+/**
+ * docs/OPEN.md Q1144 (nightly-red #2183). While Stripe is LIVE, a spec whose
+ * fixture needs a paid job cannot mint one before launch (owner, 2026-10-02:
+ * never complete a live payment), so EVERY test in it skips with the
+ * documented reason, and the runner used to score that INCONCLUSIVE, which no
+ * full vacuity run could ever pass. Every such reason starts with this prefix:
+ * LIVE_PAY_SKIP in e2e/prod-audit/fundedOpenJobPlan.ts (parity pinned by
+ * src/test/vacuityLiveStripeSkip.test.ts).
+ */
+export const LIVE_PAY_SKIP_PREFIX = "Stripe LIVE: owner decision 2026-09-27";
+
+/**
+ * Read a Playwright JSON report: how many tests there were, how many skipped,
+ * and how many of the skips gave ONLY the justified live-Stripe reason.
+ * `allLivePay` is true only when every test skipped for that reason; any test
+ * that ran, or any skip for another reason, makes it false.
+ */
+export function skipCensus(report) {
+  let tests = 0;
+  let skipped = 0;
+  let livePay = 0;
+  const walk = (suite) => {
+    for (const spec of suite?.specs ?? []) {
+      for (const t of spec.tests ?? []) {
+        tests++;
+        const results = t.results ?? [];
+        const isSkipped = t.status === "skipped" || (results.length > 0 && results.every((r) => r.status === "skipped"));
+        if (!isSkipped) continue;
+        skipped++;
+        const reasons = [...(t.annotations ?? []), ...results.flatMap((r) => r.annotations ?? [])]
+          .filter((a) => a?.type === "skip")
+          .map((a) => String(a.description ?? ""));
+        if (reasons.length && reasons.every((d) => d.startsWith(LIVE_PAY_SKIP_PREFIX))) livePay++;
+      }
+    }
+    for (const child of suite?.suites ?? []) walk(child);
+  };
+  for (const suite of report?.suites ?? []) walk(suite);
+  return { tests, skipped, livePay, allLivePay: tests > 0 && skipped === tests && livePay === tests };
+}
+
 export const BASELINE_PATH = "src/test/vacuity.baseline.json";
 
 export function loadBaseline() {

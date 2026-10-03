@@ -21,7 +21,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
-import { REPO, guardFiles, parseDirectives, gitIsClean, c, applyMutation } from "./lib.mjs";
+import os from "node:os";
+import { REPO, guardFiles, parseDirectives, gitIsClean, c, applyMutation, skipCensus, LIVE_PAY_SKIP_PREFIX } from "./lib.mjs";
 
 /**
  * Vitest's CLI entry, RESOLVED rather than guessed.
@@ -376,14 +377,17 @@ function runPlaywright(guard, { rebuild = false } = {}) {
     const b = runBuild();
     if (!b.ok) return { green: false, out: "npm run build FAILED before the spec ran:\n" + b.out.slice(-4000) };
   }
+  // The JSON report is read only to learn WHY tests skipped (Q1144).
+  const jsonOut = path.join(os.tmpdir(), `vacuity-pw-${process.pid}-${Date.now()}.json`);
   const r = spawnSync(
     process.execPath,
     [PLAYWRIGHT_CLI,
-     "test", guard, `--project=${PW_PROJECT(guard)}`, "--reporter=line", "--workers=1"],
+     "test", guard, `--project=${PW_PROJECT(guard)}`, "--reporter=line,json", "--workers=1"],
     {
       cwd: REPO, encoding: "utf8", timeout: 900_000,
       env: {
         ...process.env,
+        PLAYWRIGHT_JSON_OUTPUT_NAME: jsonOut,
         PLAYWRIGHT_WEB_SERVER: "1",
         ...BUILD_ENV,
         ...specGateEnv(guard),
@@ -433,6 +437,24 @@ function runPlaywright(guard, { rebuild = false } = {}) {
    */
   const m = /(\d+)\s+skipped/.exec(out);
   const ranSomething = /\b(\d+)\s+(passed|failed)\b/.test(out);
+  let census = null;
+  try {
+    census = skipCensus(JSON.parse(fs.readFileSync(jsonOut, "utf8")));
+  } catch {
+    // No report (a build failure before Playwright started): nothing to read.
+  } finally {
+    fs.rmSync(jsonOut, { force: true });
+  }
+  if (r.status === 0 && m && !ranSomething && census?.allLivePay) {
+    return {
+      green: false,
+      allSkipped: true,
+      livePay: true,
+      out:
+        `EVERY test in ${guard} SKIPPED (${census.tests}) with the justified live-Stripe reason ` +
+        `("${LIVE_PAY_SKIP_PREFIX}…"): its fixture needs a paid job, which cannot be minted before launch.`,
+    };
+  }
   if (r.status === 0 && m && !ranSomething) {
     return {
       green: false,
@@ -543,6 +565,7 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
    * handful of runs; the full sweep is weekly and has the wall clock.
    */
   const guards = [...new Set(mutations.map((m) => m.guard))];
+  const livePaySkipped = new Set();
   const baselineRed = new Set();
   const baselineWhy = new Map();
   // Playwright guards cannot be batched into one vitest invocation; each is
@@ -580,6 +603,12 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
     const r = runPlaywright(g, { rebuild: !builtOnce });
     builtOnce = true;
     if (r.green) continue;
+    // Q1144: deterministic, and not a failure to observe the guard: its whole
+    // fixture is unpayable before launch. Scored on its own, never retried.
+    if (r.livePay) {
+      livePaySkipped.add(g);
+      continue;
+    }
     /*
      * A RED BASELINE MUST SAY WHY. The verdict "guard is RED before any
      * mutation" was reported with the run's output thrown away, so an
@@ -611,6 +640,11 @@ export function runMutations(mutations, { onResult, allowDirty = false } = {}) {
 
   for (const m of mutations) {
     const id = `${m.guard} ⟵ ${m.target}`;
+    if (livePaySkipped.has(m.guard)) {
+      results.push({ ...m, verdict: "live-stripe", why: "every test skipped: its fixture needs a paid job, unpayable while Stripe is live (Q1144)" });
+      onResult?.(results.at(-1));
+      continue;
+    }
     if (baselineRed.has(m.guard)) {
       results.push({
         ...m,

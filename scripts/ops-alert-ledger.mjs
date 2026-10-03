@@ -27,7 +27,10 @@
  *           it re-ran after the item's last occurrence and that run is covered;
  *        2. a nightly_red item whose issue was CLOSED BY github-actions[bot] —
  *           i.e. by that workflow's own green run — closes, evidence = the
- *           issue; closed by a person does NOT close it (not a re-run);
+ *           issue; closed by a person does NOT close it (not a re-run): such
+ *           an item closes only on the workflow's own newest scheduled or
+ *           dispatched run on main, green and after its last occurrence
+ *           (greenNightlyRunAfter, Q1139);
  *        3. a workflow item closes when its workflow's newest completed run on
  *           main is green AND started after the item's last_seen;
  *        4. every Sentry issue with an event in the last 25h, WHATEVER its
@@ -45,7 +48,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
+import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 
 const [, , cmd, ...rest] = process.argv;
@@ -258,6 +261,23 @@ async function sync() {
       if (iss.state === "closed" && iss.closed_by?.login === "github-actions[bot]") {
         evidence = `issue #${ref.issue} closed by its workflow's own green run (github-actions[bot]) at ${iss.closed_at}: ${iss.html_url}`;
         rerunAt = iss.closed_at;
+      } else if (iss.state === "closed") {
+        // Q1139: a person closed it, which proves nothing, and the workflow's
+        // next green run now has no issue to close. Its own green nightly run
+        // after the last occurrence is the evidence instead.
+        const key = ledgerWorkflowKey({ source_kind: "nightly_red", title: it.title }, selfRec.aliases);
+        const wf = workflowFiles().find((f) => f.file.replace(/\.ya?ml$/, "") === key)?.file;
+        if (wf) {
+          // By event: a workflow that also runs on every push (staleness-watch)
+          // pushes its scheduled run out of any short unfiltered list.
+          const runs = ["schedule", "workflow_dispatch"].flatMap((event) => gh(["run", "list", "--repo", repo, "--workflow", wf,
+            "--branch", "main", "--event", event, "--limit", "5", "--json", "conclusion,status,createdAt,url,event"]));
+          const green = greenNightlyRunAfter(runs, it.last_seen);
+          if (green) {
+            evidence = `issue #${ref.issue} was closed by ${iss.closed_by?.login ?? "a person"}, not by a run; ${wf} then ran green on main (${green.event}) after the last occurrence: ${green.url}`;
+            rerunAt = green.createdAt;
+          }
+        }
       }
     } else if (it.source_kind === "workflow" && it.verify_ref) {
       const runs = gh(["run", "list", "--repo", repo, "--workflow", it.verify_ref, "--branch", "main", "--limit", "5",

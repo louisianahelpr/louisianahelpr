@@ -5,6 +5,7 @@
  * The text a caller sees must not change for an Error or a thrown string, and
  * the stack must never appear.
  */
+// @mutate supabase/functions/_shared/caughtMessage.ts | if (err instanceof Error) return err.message; | if (err instanceof Error) return err.stack ?? err.message;
 import { describe, expect, it } from "vitest";
 import { caughtMessage } from "../../../supabase/functions/_shared/caughtMessage";
 

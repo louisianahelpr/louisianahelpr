@@ -1,8 +1,10 @@
 {
-  "generated": "2026-10-03T03:56:00.898Z",
-  "guards": 1336,
+  "generated": "2026-10-03T04:20:07.524Z",
+  "guards": 1337,
   "registered": 1336,
-  "unregistered": [],
+  "unregistered": [
+    "src/test/edge/caughtMessage.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",
@@ -21,6 +23,7 @@
     "src/test/adminEndpointAuthz.test.ts",
     "src/test/banEvasionSurface.test.ts",
     "src/test/blockedStorageBoot.test.ts",
+    "src/test/destructiveDdlGate.test.ts",
     "src/test/e2eNoSupabaseMocks.test.ts",
     "src/test/expiryFormatterClass.test.ts",
     "src/test/jobMatchPreferenceGate.test.ts",

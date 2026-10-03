@@ -62,7 +62,7 @@ function validatorSource(): string {
  * test is not able to vouch for a predicate it cannot read.
  */
 const ALT_RE =
-  /_url\s*~\s*\(\s*((?:\s*(?:'[^']*(?:''[^']*)*'|_uploader::text|_job_id::text|\|\|))+?)\s*\)/g;
+  /_url\s*~\s*\(\s*((?:\s*(?:'(?:''|[^'])*'|_uploader::text|_job_id::text|\|\|))+?)\s*\)/g;
 
 type Alt = { chain: string; usesUploaderArg: boolean; usesJobArg: boolean };
 

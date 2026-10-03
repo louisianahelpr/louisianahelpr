@@ -54,6 +54,7 @@ import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { loadGiftCardPaidJobIds } from "@/components/admin/giftCardPaidJobIds";
+import { sparklineBuckets } from "@/components/admin/dashboard/sparklineBuckets";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => safeStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -329,26 +330,7 @@ const Admin = () => {
     const sumFees = (rows: Pick<Tables<"jobs">, "platform_fee_amount" | "customer_fee_amount">[] | null) =>
       (rows || []).reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0);
 
-    // Build a 10-point sparkline series across the current window. Rows
-    // outside the window or with no usable timestamp are silently
-    // dropped — the bucket math is forgiving so a few bad rows don't
-    // skew the chart.
-    const bucket10 = <R extends { ts?: string | null }>(rows: R[] | undefined | null, valueFn?: (row: R) => number): number[] => {
-      const buckets = Array(10).fill(0);
-      if (!rows) return buckets;
-      const nowMs = now.getTime();
-      const startMs = nowMs - windowDays * 86400000;
-      const span = windowDays * 86400000;
-      for (const r of rows) {
-        const ts = r.ts;
-        if (!ts) continue;
-        const t = new Date(ts).getTime();
-        if (!Number.isFinite(t) || t < startMs || t > nowMs) continue;
-        const idx = Math.min(9, Math.max(0, Math.floor(((t - startMs) / span) * 10)));
-        buckets[idx] += valueFn ? valueFn(r) : 1;
-      }
-      return buckets;
-    };
+    const bucket10 = <R extends { ts?: string | null }>(rows: R[] | undefined | null, valueFn?: (row: R) => number) => sparklineBuckets(rows, now, windowDays, valueFn);
 
     const newUsersSeries = bucket10(
       (newUsersInRangeRows.data || []).map((r) => ({ ts: r.created_at })),

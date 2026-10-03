@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 402** (357 to do, 45 fixed with protection pending; 507 done). Feeds mirrored in: 14 from the alert ledger, 8 from nightly-red issues, 7 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 410** (362 to do, 48 fixed with protection pending; 508 done). Feeds mirrored in: 14 from the alert ledger, 8 from nightly-red issues, 7 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 6 red, 8 stale, 0 unknown, 53 green of 67 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-03T04:27Z)_
 - **Remote branches:** 17 carry patches not on main, 3 fully merged, of 23 (Q79). _(2026-10-03T04:27Z)_
@@ -53,18 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 909 items — 507 done, 45 partly done (fixed, protection pending), 357 open.**
-
-**HELD 2026-10-03 (ask only when main is current, one pop-up per sub-choice):**
-- Make the "CodeQL" check REQUIRED on main? It fails a PR that adds an alert; today it is optional, which is how 63 alerts accumulated (now synced to the ledger, Q1141).
-- Turn on secret-scanning PUSH PROTECTION (secret scanning is on; push protection is off)?
-- Two LIVE Stripe Connect accounts (acct_1ULXMy3ISOxM8qBC, acct_1ULXMw40YhFTkeRO): keep or remove?
-- Two dead Supabase preview branches (from PR #253 and #235): delete?
-- When to move Vercel to Pro (needed by launch: Hobby caps deploys at 100/day, Q271)?
-- Ruleset 15556282 is inert (branch protection does the work): leave it, or delete it?
-- Apex universal links: clear "Redirect to www" on louisianahelpr.com in Vercel (then entitlements + an iOS build).
-- Loading-state check (#2148, Q429) is red because pre-launch prod shows EMPTY states (0 browsable jobs, test accounts with no payout account or history) while the skeletons draw the populated layout (Earnings: switcher + Earned + history; the page: connect card + "No activity yet"). Pick: (a) data-aware skeletons where the state is known before the data (payout account connected or not, marketplace empty); (b) measure against seeded, populated test accounts; (c) baseline the empty-state jumps until launch.
-- Replace GitHub's template SECURITY.md (placeholder version table, no contact) with a real policy: private reporting via the Security tab or admin@louisianahelpr.com, testing rules (own accounts only, never complete a real payment), and the repo's automated checks? Draft: ~/.lh-ws/codescan-gate (Q1143). The repo is public, so this is a public statement.
+**Queue: 918 items — 508 done, 48 partly done (fixed, protection pending), 362 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

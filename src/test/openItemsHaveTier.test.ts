@@ -15,6 +15,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { applyFeeds, tierOf } from "../../scripts/lib/openFeeds.mjs";
+// @ts-expect-error — plain .mjs script, no declaration file
+import { queueCounts } from "../../scripts/queue-count.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const md = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
@@ -23,8 +25,15 @@ const TIER = /\b(HIGH|MEDIUM|LOW)\b/;
 describe("every open OPEN.md item has a tier", () => {
   const items = md.split("\n").map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => /^- \[[ ~]\] /.test(l));
 
-  it("measures a real set of open items (floor)", () => {
-    expect(items.length).toBeGreaterThan(300);
+  // Not a magic floor: a fixed "more than 300" (2026-10-03) would fail the day
+  // the list honestly shrinks below it, and the owner's goal is 0. What this
+  // must prove is that the regex reads the REAL set, so it has to equal what
+  // queue-count computes from the same file (numbered open + partly done +
+  // unnumbered open lines), and be non-empty while that count is.
+  it("measures the real set of open items (agrees with queue-count)", () => {
+    const c = queueCounts(md);
+    expect(items.length).toBe(c.open + c.partial + c.unnumbered);
+    if (c.open + c.partial > 0) expect(items.length).toBeGreaterThan(0);
   });
 
   it("no open or partly-done item lacks HIGH/MEDIUM/LOW", () => {

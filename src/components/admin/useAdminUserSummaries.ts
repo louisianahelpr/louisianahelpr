@@ -2,7 +2,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
-import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
+import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
+import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
 import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
 import type { Profile } from "./adminUserHelpers";
 
@@ -130,17 +131,21 @@ export function useAdminUserSummaries() {
     // — a figure four fifths of which is in-flight escrow on jobs nobody has
     // finished. The chip is now labelled for what this query actually returns
     // (see AdminUserRow), so the number and its noun agree.
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("helper_id, customer_id, budget, helper_fee_percent, platform_fee_amount, urgent_fee, is_group_job, helpers_needed, customer_fee_amount, sales_tax_amount, status, payment_status")
-      .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
-      // Q233: a held status without a PaymentIntent is a row nobody charged.
-      .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
-      .filter("payment_captured", "eq", true);
+    const [{ data, error }, giftCardPaid] = await Promise.all([
+      supabase
+        .from("jobs")
+        .select("id, stripe_payment_intent_id, helper_id, customer_id, budget, helper_fee_percent, platform_fee_amount, urgent_fee, is_group_job, helpers_needed, customer_fee_amount, sales_tax_amount, status, payment_status")
+        .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
+        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]),
+      loadGiftCardPaidJobIds(),
+    ]);
     if (error) { console.error("[useAdminUserSummaries] loadPaySummary:", error); return; }
+    if (giftCardPaid.error) { console.error("[useAdminUserSummaries] loadPaySummary gift cards:", giftCardPaid.error); return; }
     if (!data) return;
     const totals: Record<string, number> = {};
-    for (const j of data) {
+    // Q233: a held status without a PaymentIntent is a row nobody charged,
+    // unless a gift card paid it (Q443).
+    for (const j of withGiftCardPaid(data, giftCardPaid.ids).filter(isCapturedPayment)) {
       const budget = Number(j.budget) || 0;
       if (j.helper_id && userIds.includes(j.helper_id)) {
         // ONE take-home formula (helperEarnings.ts, Q765): roster split, the

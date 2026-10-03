@@ -73,7 +73,7 @@ export function renderReport(results, v, now, warnDays) {
   ];
   const order = { EXPIRED: 0, DUE: 1, UNREADABLE: 2, OK: 3, NO_EXPIRY: 4 };
   for (const r of [...results].sort((a, b) => order[a.status] - order[b.status] || (a.daysLeft ?? 1e9) - (b.daysLeft ?? 1e9))) {
-    const cell = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
+    const cell = (s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ");
     lines.push(`| ${cell(r.label)} | ${r.status}${r.status === "UNREADABLE" && r.ciReadable ? " (CI should read this)" : ""} | ${r.expiresAt?.slice(0, 10) ?? "—"} | ${r.daysLeft ?? "—"} | ${cell(r.source)} | ${cell(r.detail)} |`);
   }
   return lines.join("\n") + "\n";

@@ -234,7 +234,7 @@ for (const theme of THEMES) {
             // the harness simply could not address is indistinguishable from a
             // real defect — which is the whole failure mode this audit exists
             // to avoid.
-            const esc = label.replace(/"/g, '\\"');
+            const esc = label.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
             // Every candidate is restricted to an INTERACTIVE element.
             // `getByLabel` alone matches any element carrying the name — on
             // /home it resolved "Notifications" to the panel's own

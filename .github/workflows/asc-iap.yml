@@ -24,6 +24,11 @@ on:
         type: boolean
         default: false
 
+# Least privilege (CodeQL actions/missing-workflow-permissions): the job only
+# checks out the repo and calls App Store Connect with its own secrets.
+permissions:
+  contents: read
+
 jobs:
   asc:
     runs-on: ubuntu-latest

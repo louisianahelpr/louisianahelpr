@@ -10,6 +10,19 @@ import { isCapturedPayment } from "@/lib/capturedPayment";
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
 // from AdminAnalytics.tsx — no hooks, no state, no side effects. Given the raw
 // profiles / jobs / tips, returns every derived value the dashboard renders.
+/** user_id → that user's most-privileged role (admin > helper > customer). */
+export function mostPrivilegedRoleByUser(rows: readonly { user_id: string; role: string }[]): Map<string, string> {
+  const roleMap = new Map<string, string>();
+  const priority = (r: string) => r === "admin" ? 1 : r === "helper" ? 2 : 3;
+  for (const r of rows) {
+    const existing = roleMap.get(r.user_id);
+    if (!existing || priority(r.role) < priority(existing)) {
+      roleMap.set(r.user_id, r.role);
+    }
+  }
+  return roleMap;
+}
+
 export const computeMetrics = (
   profiles: Profile[],
   allJobs: Job[],

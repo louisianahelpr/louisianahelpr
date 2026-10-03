@@ -124,6 +124,16 @@ describe("open_jobs_browse stays a pinned SECURITY DEFINER view (Q182)", () => {
   const view = newestView();
   const cols = projection(view.sql);
 
+  it("repairs anon browse access without granting SELECT on jobs", () => {
+    const repair = files().find((f) => f.endsWith("_restore_open_jobs_browse_anon_access.sql"));
+    expect(repair, "the anon browse access repair migration is missing").toBeDefined();
+    const sql = blankSqlComments(readFileSync(join(MIGRATIONS, repair!), "utf8"));
+    expect(sql).toMatch(/ALTER\s+VIEW\s+public\.open_jobs_browse\s+SET\s*\(\s*security_invoker\s*=\s*false\s*\)/i);
+    expect(sql).toMatch(/REVOKE\s+ALL\s+ON\s+public\.open_jobs_browse\s+FROM\s+PUBLIC,\s*anon,\s*authenticated/i);
+    expect(sql).toMatch(/GRANT\s+SELECT\s+ON\s+public\.open_jobs_browse\s+TO\s+anon,\s*authenticated/i);
+    expect(sql).not.toMatch(/GRANT\s+SELECT\s+ON\s+public\.jobs\s+TO\s+anon/i);
+  });
+
   it("is still security_invoker = false, and the ledger documents why", () => {
     expect(view.sql).toMatch(/security_invoker\s*=\s*(false|off)/i);
     const documented = files().some((f) =>

@@ -158,7 +158,7 @@ export function usePostJobForm() {
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
   // Credential tier requirement for the job:
-  // 0 = open (anyone), 1 = ID-verified, 2 = licensed, 3 = licensed + insured.
+  // 0 = open (anyone), 2 = licensed, 3 = licensed + insured.
   // Only relevant for trade categories; other categories always use 0.
   const [credentialTier, setCredentialTierRaw] = useState(0);
   // Setting a credential tier used to silently flip the job into "Accept bids"

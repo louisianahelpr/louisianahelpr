@@ -79,10 +79,21 @@ export type AvatarPhotoRejection =
  */
 export function isPlaceholderAvatarUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  const u = url.toLowerCase();
-  if (u.includes("api.dicebear.com")) return true;
-  if (u.includes("ui-avatars.com")) return true;
-  if (u.includes("gravatar.com") && /[?&]d=(blank|identicon|mp|mystery|monsterid|retro|robohash|wavatar)/.test(u)) {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    // Not an absolute URL (a storage path, a blank): nothing a generator serves.
+    return false;
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === "api.dicebear.com") return true;
+  if (host === "ui-avatars.com" || host === "www.ui-avatars.com") return true;
+  const gravatarDefault = parsed.searchParams.get("d")?.toLowerCase();
+  if (
+    (host === "gravatar.com" || host.endsWith(".gravatar.com")) &&
+    /^(blank|identicon|mp|mystery|monsterid|retro|robohash|wavatar)$/.test(gravatarDefault ?? "")
+  ) {
     return true;
   }
   return false;

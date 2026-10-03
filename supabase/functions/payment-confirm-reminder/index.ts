@@ -74,6 +74,7 @@ import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 /**
  * Hours after the helper marks complete before the poster is nudged. Leaves
@@ -352,7 +353,7 @@ serve(async (req) => {
       corsHeaders,
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = caughtMessage(err);
     console.error("[payment-confirm-reminder] unexpected error", message);
     return cronError("payment-confirm-reminder", message, corsHeaders);
   }

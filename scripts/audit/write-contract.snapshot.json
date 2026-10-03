@@ -84,6 +84,15 @@
     "nargs": 2
    }
   ],
+  "admin_gift_card_paid_job_ids": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "admin_last_activity": [
    {
     "anon": false,

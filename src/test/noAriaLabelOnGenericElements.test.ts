@@ -15,7 +15,7 @@ import { join } from "node:path";
 
 function offenders(src: string): string[] {
   const out: string[] = [];
-  for (const m of src.matchAll(/<(label|div|span|p)\b((?:[^>]|\n)*?)>/g)) {
+  for (const m of src.matchAll(/<(label|div|span|p)\b([^>]*?)>/g)) {
     const attrs = m[2];
     if (/\baria-label=/.test(attrs) && !/\brole=/.test(attrs) && !/aria-hidden/.test(attrs)) {
       // section/ul/li are excluded: they have implicit roles (region, list,

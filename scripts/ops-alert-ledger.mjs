@@ -10,8 +10,9 @@
  *
  *   node scripts/ops-alert-ledger.mjs record --source-kind workflow --source <name> \
  *        --title <text> --severity critical|error|warning|info [--sample <text>] \
- *        [--verify-ref <workflow file>] [--run-url <url>]
- *       What a workflow Slack step runs next to its curl. Never exits non-zero.
+ *        [--verify-ref <workflow file>] [--run-url <url>] [--strict]
+ *       What a workflow Slack step runs next to its curl. Best-effort by default;
+ *       --strict exits non-zero when the ledger does not accept the write.
  *       --source-kind nightly_red for a self-recording workflow records nothing.
  *
  *   node scripts/ops-alert-ledger.mjs sync
@@ -26,7 +27,10 @@
  *           it re-ran after the item's last occurrence and that run is covered;
  *        2. a nightly_red item whose issue was CLOSED BY github-actions[bot] —
  *           i.e. by that workflow's own green run — closes, evidence = the
- *           issue; closed by a person does NOT close it (not a re-run);
+ *           issue; closed by a person does NOT close it (not a re-run): such
+ *           an item closes only on the workflow's own newest scheduled or
+ *           dispatched run on main, green and after its last occurrence
+ *           (greenNightlyRunAfter, Q1139);
  *        3. a workflow item closes when its workflow's newest completed run on
  *           main is green AND started after the item's last_seen;
  *        4. every Sentry issue with an event in the last 25h, WHATEVER its
@@ -44,8 +48,9 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
+import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
+import { CODE_SCANNING_JQ, CODE_SCANNING_SOURCE, CODE_SCANNING_TITLE, codeScanningChanged, summarizeCodeScanning } from "./lib/codeScanningLedger.mjs";
 
 const [, , cmd, ...rest] = process.argv;
 const opt = (name, dflt = undefined) => {
@@ -156,7 +161,7 @@ async function record() {
     console.log(`ops-alert-ledger record: ${own}.yml records its own item on every red; generic nightly_red item "${title}" not recorded`);
     return;
   }
-  await recordOpsAlert({
+  const recorded = await recordOpsAlert({
     sourceKind,
     source: opt("source", process.env.GITHUB_WORKFLOW ?? "unknown"),
     title,
@@ -166,6 +171,7 @@ async function record() {
     verifyKind: opt("verify-kind", undefined),
     verifyRef: opt("verify-ref", undefined),
   });
+  if (!recorded && flag("strict")) process.exitCode = 1;
 }
 
 async function sync() {
@@ -256,6 +262,23 @@ async function sync() {
       if (iss.state === "closed" && iss.closed_by?.login === "github-actions[bot]") {
         evidence = `issue #${ref.issue} closed by its workflow's own green run (github-actions[bot]) at ${iss.closed_at}: ${iss.html_url}`;
         rerunAt = iss.closed_at;
+      } else if (iss.state === "closed") {
+        // Q1139: a person closed it, which proves nothing, and the workflow's
+        // next green run now has no issue to close. Its own green nightly run
+        // after the last occurrence is the evidence instead.
+        const key = ledgerWorkflowKey({ source_kind: "nightly_red", title: it.title }, selfRec.aliases);
+        const wf = workflowFiles().find((f) => f.file.replace(/\.ya?ml$/, "") === key)?.file;
+        if (wf) {
+          // By event: a workflow that also runs on every push (staleness-watch)
+          // pushes its scheduled run out of any short unfiltered list.
+          const runs = ["schedule", "workflow_dispatch"].flatMap((event) => gh(["run", "list", "--repo", repo, "--workflow", wf,
+            "--branch", "main", "--event", event, "--limit", "5", "--json", "conclusion,status,createdAt,url,event"]));
+          const green = greenNightlyRunAfter(runs, it.last_seen);
+          if (green) {
+            evidence = `issue #${ref.issue} was closed by ${iss.closed_by?.login ?? "a person"}, not by a run; ${wf} then ran green on main (${green.event}) after the last occurrence: ${green.url}`;
+            rerunAt = green.createdAt;
+          }
+        }
       }
     } else if (it.source_kind === "workflow" && it.verify_ref) {
       const runs = gh(["run", "list", "--repo", repo, "--workflow", it.verify_ref, "--branch", "main", "--limit", "5",
@@ -281,6 +304,50 @@ async function sync() {
       const r = await sql(`SELECT public.ops_alert_close(${lit(it.id)}::uuid, ${lit(evidence)}, ${lit(rerunAt)}::timestamptz) AS ok`);
       log.push(`${r?.[0]?.ok ? "closed" : "NOT closed (re-run predates last occurrence)"}: ${it.title}`);
     }
+  }
+
+  // 3b. GitHub code scanning (CodeQL, ESLint SARIF): ONE item listing the open
+  // alerts, recorded only when that set changes, closed with evidence at zero
+  // (scripts/lib/codeScanningLedger.mjs). Unreadable is itself an alert, like
+  // Sentry below: 63 sat unseen until 2026-10-03.
+  let codeScanningProblem = null;
+  try {
+    const out = execFileSync("gh", ["api", "--paginate", `repos/${repo}/code-scanning/alerts?state=open&per_page=100`, "-q", CODE_SCANNING_JQ],
+      { encoding: "utf8", maxBuffer: 1 << 24 });
+    const alerts = out.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    const item = summarizeCodeScanning(alerts);
+    const [prev] = await sql(`SELECT id, sample_ref FROM public.ops_alert_ledger
+                               WHERE status <> 'closed' AND source = ${lit(CODE_SCANNING_SOURCE)}
+                               ORDER BY last_seen DESC LIMIT 1`);
+    if (item) {
+      const prevRef = typeof prev?.sample_ref === "string" ? JSON.parse(prev.sample_ref) : prev?.sample_ref;
+      if (codeScanningChanged(prevRef, item.sampleRef.alerts)) {
+        const ok = await recordOpsAlert({
+          sourceKind: "workflow", source: CODE_SCANNING_SOURCE, title: CODE_SCANNING_TITLE, severity: item.severity,
+          sample: item.sample, sampleRef: item.sampleRef, verifyKind: "manual",
+        });
+        if (!ok) throw new Error("the ledger refused the code-scanning item");
+        log.push(`code-scanning: ${alerts.length} open alert(s) recorded (${item.sample.slice(0, 120)})`);
+      } else {
+        log.push(`code-scanning: ${alerts.length} open alert(s), unchanged since the last sync`);
+      }
+    } else if (prev) {
+      const at = new Date().toISOString();
+      const r = await sql(`SELECT public.ops_alert_close(${lit(prev.id)}::uuid, ${lit(`0 open code-scanning alerts on ${repo} at ${at} (gh api code-scanning/alerts?state=open)`)}, ${lit(at)}::timestamptz) AS ok`);
+      log.push(`code-scanning: 0 open alerts; ${r?.[0]?.ok ? "closed" : "NOT closed"} its ledger item`);
+    } else {
+      log.push("code-scanning: 0 open alerts");
+    }
+  } catch (e) {
+    codeScanningProblem = `code-scanning alerts could not be read: ${String(e.message).slice(0, 200)}`;
+  }
+  if (codeScanningProblem) {
+    log.push(`code-scanning: NOT SYNCED — ${codeScanningProblem}`);
+    console.log(`::warning title=Code-scanning alerts are NOT in the ops alert ledger::${codeScanningProblem}`);
+    await recordOpsAlert({
+      sourceKind: "workflow", source: "ops-alert-ledger", title: "Code-scanning alerts are not synced into the ops alert ledger",
+      severity: "warning", sample: codeScanningProblem, verifyKind: "workflow", verifyRef: "prod-errors.yml",
+    });
   }
 
   // 4. Sentry. A sync that cannot read Sentry is itself an alert: it goes in

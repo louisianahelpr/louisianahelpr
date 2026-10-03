@@ -41,6 +41,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { arrivalNudgeStage, NEAR_MISS_ESCALATE_AFTER_HOURS, type NudgeLedger } from "../_shared/arrivalNudge.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -264,6 +265,6 @@ serve(async (req) => {
       corsHeaders,
     );
   } catch (e) {
-    return cronError("arrival-confirm-reminder", (e as Error).message ?? String(e), corsHeaders);
+    return cronError("arrival-confirm-reminder", caughtMessage(e), corsHeaders);
   }
 });

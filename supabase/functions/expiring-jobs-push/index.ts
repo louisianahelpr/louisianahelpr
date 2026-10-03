@@ -20,6 +20,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -142,7 +143,7 @@ serve(async (req) => {
       corsHeaders,
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = caughtMessage(err);
     console.error("[expiring-jobs-push] unexpected error", message);
     return cronError("expiring-jobs-push", message, corsHeaders);
   }

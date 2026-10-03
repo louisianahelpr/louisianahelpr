@@ -211,11 +211,7 @@ export const JobDetailFooter = ({
             className="font-sans font-semibold text-ds-14 truncate"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            {(job.credential_tier ?? 0) === 1
-              ? "Get Verified to Apply"
-              : (job.credential_tier ?? 0) === 2
-                ? "Licensed Pros Only"
-                : "Licensed & Insured Only"}
+            {(job.credential_tier ?? 0) === 2 ? "Licensed Pros Only" : "Licensed & Insured Only"}
           </span>
           <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
         </button>

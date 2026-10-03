@@ -10,6 +10,7 @@ import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 // Map notification "type" values to (a) the email pref column and (b) the
 // log category used for admin observability.
@@ -534,7 +535,7 @@ serve(async (req) => {
         delivery = 'direct'
         console.log(`Notification email sent directly to ${profile.email}: ${title}`)
       } catch (sendErr) {
-        const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+        const sendErrMsg = caughtMessage(sendErr)
         console.error('Notification email failed:', sendErrMsg)
         const { error: failedLogError } = await supabase.from('email_send_log').update({
           status: 'failed',

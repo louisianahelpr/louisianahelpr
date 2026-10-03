@@ -280,7 +280,10 @@ describe("realtime channel inventory (Q105)", () => {
             const ids = st.expression.getText(sf).match(/[A-Za-z_$][\w$]*/g) ?? [];
             const guarded = effects.every((e) => {
               const bail = /\bif\s*\(([^)]*)\)\s*return\b/.exec(e)?.[1] ?? "";
-              return ids.some((id) => new RegExp(`\\b${id.replace(/\$/g, "\\$")}\\b`).test(bail));
+              return ids.some((id) => {
+                const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                return new RegExp(`\\b${escaped}\\b`).test(bail);
+              });
             });
             if (!guarded) {
               offenders.push(`${relative(SRC, file)}:${sf.getLineAndCharacterOfPosition(st.getStart(sf)).line + 1} ${st.expression.getText(sf)}`);

@@ -23,8 +23,10 @@
 // Since 2026-10-01 identity gates NEITHER posting nor hiring (migration
 // 20261001222911_remove_idv_requirement; guarded by
 // src/test/identityNeverGatesPostOrAward.test.ts). What is left reading identity
-// is display: the credential tier that draws the badge. That tier must still
-// honour both verdicts, or a verified person shows as unverified.
+// was the credential tier, and since Q906 (owner, 2026-10-01: "Drop id from
+// tiers bc stripe id collects and verified") the tier no longer counts identity
+// at all: Stripe collects and verifies ID at payout onboarding, so a separate
+// identity rung only repeated it. The tier is licence and insurance only.
 //
 // This test derives each predicate FROM THE MIGRATIONS rather than from a list
 // written here, because a list of "places that check identity" maintained by
@@ -90,26 +92,28 @@ describe("migration discovery is actually finding things", () => {
   });
 });
 
-describe("every identity verdict honours both sources", () => {
-  // `idv_status` is written by stripe-idv-webhook. A reader that ignores it
-  // shows somebody who completed the check as unverified.
-  const GATES = ["get_user_credential_tier"];
+describe("the credential tier never counts identity (Q906)", () => {
+  // Owner, 2026-10-01: "Drop id from tiers bc stripe id collects and
+  // verified". Stripe Connect verifies identity before anyone is paid, so a
+  // separate identity rung only hid jobs from people who had not finished a
+  // second check. The tier is licence and insurance only: 3, 2 or 0.
+  const def = latestDefinitionOf("get_user_credential_tier");
 
-  it.each(GATES)("%s is defined in a migration", (fn) => {
-    expect(latestDefinitionOf(fn)).not.toBeNull();
+  it("is defined in a migration", () => {
+    expect(def).not.toBeNull();
   });
 
-  it.each(GATES)("%s reads idv_status", (fn) => {
-    const def = latestDefinitionOf(fn)!;
-    expect(def).toMatch(/idv_status/);
+  it("reads no identity verdict", () => {
+    expect(def).not.toMatch(/idv_status|stripe_identity_verified|id_verification_status|'identity'/);
   });
 
-  it.each(GATES)("%s still honours the Stripe Connect verdict too", (fn) => {
-    // UNION, not replacement. One real profile carries stripe_identity_verified
-    // WITHOUT idv_status='verified'; dropping this branch would trade ten
-    // broken accounts for one.
-    const def = latestDefinitionOf(fn)!;
-    expect(def).toMatch(/stripe_identity_verified/);
+  it("has no tier-1 arm", () => {
+    expect(def).not.toMatch(/THEN\s+1\b/);
+  });
+
+  it("still grades licence and insurance", () => {
+    expect(def).toMatch(/THEN\s+3\b/);
+    expect(def).toMatch(/THEN\s+2\b/);
   });
 });
 
@@ -121,8 +125,6 @@ describe("the hiring gate still bites", () => {
   });
 });
 
-// Stop `get_user_credential_tier` reading `idv_status`: a person who completed
-// Stripe Identity but carries no Connect flag drops a tier and loses the badge.
-// The comment above the clause still says "idv_status", which is why the
-// assertions read comment-stripped SQL.
-// @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | OR p.idv_status = 'verified') | OR NULL::text = 'verified')
+// Put an identity rung back in the tier: a Helpr with Stripe's identity
+// verdict but no licence would again rank above an unverified one.
+// @mutate supabase/migrations/20261002191601_credential_tier_drop_identity.sql | ELSE 0 | WHEN EXISTS (SELECT 1 FROM profiles p WHERE p.user_id = p_user_id AND p.stripe_identity_verified) THEN 1 ELSE 0

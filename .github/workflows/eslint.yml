@@ -1,0 +1,87 @@
+# ESLint findings in GitHub code scanning (the Security tab), beside CodeQL's.
+# Owner, 2026-10-02 (#2159). Lint already GATES every PR in test.yml ("Lint,
+# type-check, build, test"); this run adds the SARIF upload.
+#
+# It runs the repo's OWN eslint and flat config (eslint.config.js). GitHub's
+# starter installed eslint@8.10.0 with --config .eslintrc.js: that cannot
+# resolve against this lockfile (ERESOLVE, eslint 10) and there is no
+# .eslintrc.js, so the job failed before linting anything (#2159's run).
+# Suppressed findings (eslint-disable with a reason) are not uploaded.
+
+name: ESLint
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "main" ]
+  schedule:
+    - cron: '30 7 * * 2'
+  workflow_dispatch:
+
+concurrency:
+  group: eslint-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  eslint:
+    name: Run eslint scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      # knip reads this file: knip.json lists the formatter under ignoreDependencies,
+      # like the other packages installed outside package.json (pg, @electric-sql/pglite).
+      - name: Install the SARIF formatter (not saved to package.json)
+        run: npm install --no-save --no-audit --no-fund --legacy-peer-deps @microsoft/eslint-formatter-sarif@3.1.0
+
+      - name: Run ESLint
+        id: eslint
+        env:
+          SARIF_ESLINT_IGNORE_SUPPRESSED: "true"
+        run: npx eslint . --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif
+        continue-on-error: true
+
+      - name: Upload analysis results to GitHub
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: eslint-results.sarif
+          category: eslint
+          wait-for-processing: true
+
+      - name: Fail if ESLint found errors
+        if: ${{ always() && steps.eslint.outcome == 'failure' }}
+        run: exit 1
+
+  notify:
+    name: Report scheduled result
+    needs: [eslint]
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: eslint
+          status: ${{ needs.eslint.result == 'success' && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -133,6 +133,9 @@ import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import { PostedJobCard } from "@/pages/posts/PostedJobCard";
 import { glyphPx } from "./jobStepRowCases";
 import { Constants } from "@/integrations/supabase/types";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});

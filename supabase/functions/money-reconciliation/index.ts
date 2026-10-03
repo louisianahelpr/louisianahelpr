@@ -54,6 +54,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 /** Offending ids reported per check. A bad day must not emit a 10MB payload. */
 const MAX_IDS_PER_CHECK = 10;
@@ -1780,7 +1781,7 @@ serve(async (req) => {
       corsHeaders,
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = caughtMessage(err);
     console.error("[money-reconciliation] run failed:", message);
     // A reconciler that dies quietly is the same failure mode it was built to
     // fix, so the crash itself pages ops.

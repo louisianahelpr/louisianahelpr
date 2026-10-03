@@ -103,6 +103,12 @@ describe("isPlaceholderAvatarUrl", () => {
     expect(isPlaceholderAvatarUrl("https://www.gravatar.com/avatar/abc123")).toBe(false);
   });
 
+  it("does not treat a different host with an allowed name in the path as a generator", () => {
+    expect(isPlaceholderAvatarUrl("https://evil.example/api.dicebear.com/avatar.png")).toBe(false);
+    expect(isPlaceholderAvatarUrl("https://evil.example/?next=ui-avatars.com")).toBe(false);
+    expect(isPlaceholderAvatarUrl("https://evil.example/gravatar.com/avatar/000?d=mp")).toBe(false);
+  });
+
   it("keeps a real Supabase avatar", () => {
     expect(
       isPlaceholderAvatarUrl(

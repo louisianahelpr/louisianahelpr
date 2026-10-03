@@ -90,6 +90,9 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: nul
 
 import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 const ADDRESS = "1103 Center St, New Iberia, LA 70560";
 

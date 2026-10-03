@@ -193,12 +193,26 @@ export function sanitizeHeaderValue(input: unknown, max = 200): string {
  * five retries and land in the DLQ instead of being delivered.
  */
 export function htmlToPlainText(html: string): string {
-  return html
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
+  // Each removal repeats until nothing changes: taking out one match can join
+  // the text on either side into a new one (`<scr<!-- -->ipt>`), so a single
+  // pass is not a fixed point (CodeQL js/incomplete-multi-character-
+  // sanitization, alerts 80-82).
+  let text = html;
+  let prev: string;
+  do {
+    prev = text;
+    text = text.replace(/<!--[\s\S]*?-->/g, "");
+  } while (text !== prev);
+  do {
+    prev = text;
+    text = text.replace(/<(style|script)[\s\S]*?<\/\1>/gi, "");
+  } while (text !== prev);
+  text = text.replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n");
+  do {
+    prev = text;
+    text = text.replace(/<[^>]+>/g, "");
+  } while (text !== prev);
+  return text
     .replace(/&nbsp;/g, " ")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")

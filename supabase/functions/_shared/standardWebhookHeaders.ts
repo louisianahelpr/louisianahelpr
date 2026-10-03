@@ -1,6 +1,6 @@
 /**
  * The three Standard Webhooks headers Supabase Auth signs every hook call with
- * (https://www.standardwebhooks.com/). Auth never calls without them.
+ * (the Standard Webhooks spec). Auth never calls without them.
  */
 export const STANDARD_WEBHOOK_HEADERS = ["webhook-id", "webhook-timestamp", "webhook-signature"] as const;
 

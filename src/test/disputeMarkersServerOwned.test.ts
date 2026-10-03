@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 // @ts-expect-error — plain .mjs script, no type declarations
 import * as contract from "../../scripts/audit/write-contract.mjs";
+import { jobsTriggerSpecs } from "../../scripts/lib/jobsWriteSurface.mjs";
 
 /**
  * DISPUTE MARKERS ARE SERVER-OWNED (20260915033734_dispute_markers_server_owned).
@@ -19,8 +20,10 @@ import * as contract from "../../scripts/audit/write-contract.mjs";
  * Inventory: every jobs write in src/, read off the AST by the write-contract
  * extractor (the same one writeContract.test.ts uses). The one client write
  * the trigger allows is the assigned Helpr's dispute response
- * (dispute_status 'helper_responded'). Admin screens are exempt, as they are
- * in the trigger.
+ * (dispute_status 'helper_responded', and their one dispute_helper_response,
+ * from DisputedSection.tsx). Admin screens are exempt, as they are in the
+ * trigger. Since 20261003180355 (Q966) the complaint itself, dispute_reason,
+ * is server-owned too.
  */
 
 type Write = {
@@ -37,7 +40,10 @@ type Write = {
 // @mutate src/pages/jobs/appliedJobCard/DisputedSection.tsx | dispute_status: "helper_responded" | dispute_status: "open"
 
 /** Columns no client may write, whatever the value. */
-const MARKERS = ["disputed_at", "disputed_by", "dispute_deadline", "dispute_resolved_at"] as const;
+const MARKERS = ["disputed_at", "disputed_by", "dispute_deadline", "dispute_resolved_at", "dispute_reason"] as const;
+
+/** The Helpr's answer: written by the client only from the Helpr's own dispute card. */
+const HELPER_RESPONSE_WRITER = "src/pages/jobs/appliedJobCard/DisputedSection.tsx";
 
 /**
  * Open payloads (computed keys or a variable patch) the extractor cannot read.
@@ -67,6 +73,9 @@ function violations(writes: Write[]): string[] {
       const v = keys.dispute_status;
       if (v === null || v.some((x) => x !== "helper_responded")) out.push(`${at} writes jobs.dispute_status other than 'helper_responded'`);
     }
+    if ("dispute_helper_response" in keys && w.file !== HELPER_RESPONSE_WRITER) {
+      out.push(`${at} writes jobs.dispute_helper_response outside the Helpr's dispute card`);
+    }
   }
   return out;
 }
@@ -90,13 +99,14 @@ describe("dispute markers are server-owned: no client write to jobs sets one", (
     expect(open).toEqual(Object.keys(OPEN_JOB_WRITES).sort());
   });
 
-  it("the guard's columns are the trigger's columns", () => {
+  it("the guard's columns are the LIVE trigger's columns (newest CREATE TRIGGER, any migration)", () => {
     const dir = "supabase/migrations";
-    const file = readdirSync(dir).filter((f) => f.endsWith("_dispute_markers_server_owned.sql")).sort().pop();
-    expect(file).toBeTruthy();
-    const sql = readFileSync(join(dir, file!), "utf8");
-    const of = sql.match(/BEFORE INSERT OR UPDATE OF ([a-z_, ]+)\n/)?.[1].split(",").map((s) => s.trim()).sort();
-    expect(of).toEqual([...MARKERS, "status", "dispute_status"].sort());
+    const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort().map((name) => ({ name, sql: readFileSync(join(dir, name), "utf8") }));
+    const spec = jobsTriggerSpecs(files).get("trg_dispute_markers_server_owned");
+    expect(spec, "trg_dispute_markers_server_owned is not live after replaying the migrations").toBeTruthy();
+    expect(spec!.fn).toBe("enforce_dispute_markers_server_owned");
+    const of = spec!.events.match(/UPDATE OF ([a-z_, ]+)$/)?.[1].split(",").map((s) => s.trim()).sort();
+    expect(of).toEqual([...MARKERS, "status", "dispute_status", "dispute_helper_response"].sort());
   });
 
   describe("the guard can fail", () => {
@@ -108,6 +118,7 @@ describe("dispute markers are server-owned: no client write to jobs sets one", (
       expect(violations([original])).toEqual([
         "src/components/DisputeDialog.tsx:175 writes jobs.disputed_at",
         "src/components/DisputeDialog.tsx:175 writes jobs.disputed_by",
+        "src/components/DisputeDialog.tsx:175 writes jobs.dispute_reason",
         "src/components/DisputeDialog.tsx:175 writes jobs.status with a value the guard cannot read",
       ]);
     });
@@ -117,8 +128,13 @@ describe("dispute markers are server-owned: no client write to jobs sets one", (
       expect(violations([w({ status: ["disputed"] })])).toHaveLength(1);
       expect(violations([w({ dispute_status: ["open"] })])).toHaveLength(1);
       expect(violations([w({ dispute_deadline: null })])).toHaveLength(1);
+      // Q966: the complaint, and the Helpr's answer written from anywhere but their card.
+      expect(violations([w({ dispute_reason: null })])).toEqual(["src/x.tsx:1 writes jobs.dispute_reason"]);
+      expect(violations([w({ dispute_helper_response: null })])).toEqual([
+        "src/x.tsx:1 writes jobs.dispute_helper_response outside the Helpr's dispute card",
+      ]);
       // ...and it does not fire on the one allowed write, or on an admin screen.
-      expect(violations([w({ dispute_helper_response: null, dispute_status: ["helper_responded"] })])).toEqual([]);
+      expect(violations([{ ...w({ dispute_helper_response: null, dispute_status: ["helper_responded"] }), file: HELPER_RESPONSE_WRITER }])).toEqual([]);
       expect(violations([{ ...w({ status: null, dispute_resolved_at: null }), file: "src/components/admin/AdminDisputes.tsx" }])).toEqual([]);
     });
   });

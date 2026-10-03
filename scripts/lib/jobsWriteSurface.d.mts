@@ -25,6 +25,8 @@ export function parseArgs(argList: string | undefined): FnArg[];
 export function extractFunctions(sql: string): ExtractedFn[];
 export function newestFunctions(files: MigrationFile[]): Map<string, NewestFn>;
 export function jobsTriggers(files: MigrationFile[]): Map<string, string>;
+export function jobsTriggerSpecs(files: MigrationFile[]): Map<string, { fn: string; events: string }>;
+export function firesOnUpdateOf(events: string, column: string): boolean;
 export function dynamicJobsWriterReasons(fn: { name: string; args: FnArg[]; body: string }): string[];
 export function aclIsClientCallable(acl: string | null | undefined): boolean;
 export const REVIEWED_JOBS_WRITERS: Map<string, RegExp>;

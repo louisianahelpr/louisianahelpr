@@ -126,6 +126,45 @@ export function newestFunctions(files) {
 }
 
 /**
+ * Like jobsTriggers, but keeps each live trigger's event clause too
+ * (`BEFORE INSERT OR UPDATE OF a, b`), so a reader can tell whether it fires
+ * on an UPDATE that names a given column. Returns Map trigger -> {fn, events}.
+ */
+export function jobsTriggerSpecs(files) {
+  const trg = new Map();
+  for (const { sql: raw } of files) {
+    const sql = raw.replace(/--[^\n]*/g, "");
+    const events = [];
+    for (const m of sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?TRIGGER\s+"?([a-z0-9_]+)"?([\s\S]*?)EXECUTE\s+(?:FUNCTION|PROCEDURE)\s+(?:public\.)?"?([a-z0-9_]+)"?/gi)) {
+      const on = m[2].search(/\bON\s+(?:public\.)?jobs\b/i);
+      if (on >= 0) events.push({ at: m.index, kind: "create", t: m[1].toLowerCase(), fn: m[3].toLowerCase(), spec: m[2].slice(0, on).replace(/\s+/g, " ").trim() });
+    }
+    for (const m of sql.matchAll(/DROP\s+TRIGGER\s+(?:IF\s+EXISTS\s+)?"?([a-z0-9_]+)"?\s+ON\s+(?:public\.)?jobs\b/gi)) {
+      events.push({ at: m.index, kind: "drop", t: m[1].toLowerCase() });
+    }
+    events.sort((a, b) => a.at - b.at);
+    for (const e of events) {
+      if (e.kind === "create") trg.set(e.t, { fn: e.fn, events: e.spec });
+      else trg.delete(e.t);
+    }
+  }
+  return trg;
+}
+
+/**
+ * Whether a row trigger with this event clause runs on an UPDATE whose SET
+ * names `column`. `BEFORE UPDATE` (no column list) fires on every UPDATE;
+ * `UPDATE OF a, b` fires only when the statement names a or b, so a check on
+ * any other column in its function never runs for a PATCH of that column alone.
+ */
+export function firesOnUpdateOf(events, column) {
+  if (!/\bUPDATE\b/i.test(events)) return false;
+  const of = events.match(/\bUPDATE\s+OF\s+([\s\S]*?)(?=\s+OR\s|$)/i);
+  if (!of) return true;
+  return of[1].split(",").map((c) => c.trim().replace(/"/g, "").toLowerCase()).includes(column.toLowerCase());
+}
+
+/**
  * The newest `CREATE TRIGGER <t> ... ON public.jobs ... EXECUTE FUNCTION <fn>`
  * per trigger name, minus any dropped later. Returns Map trigger -> fn.
  */

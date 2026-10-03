@@ -195,6 +195,35 @@ jobs:
           git fetch --no-tags --depth=1 origin "$HEAD_SHA" "$MB"
           node scripts/check-generated-current.mjs --attribute --head "$HEAD_SHA" --base "$MB"
 
+      - name: Work that names an open item updates that item (Q1150)
+        # Owner, 2026-10-03 ("make sure done work is ticked off ... make sure it
+        # doesn't happen again"): e952452d7 fixed Q572 and Q445 and neither
+        # docs/OPEN.md line moved, so the open count overstated the work. A
+        # commit whose subject (or a Fixes:/Closes: trailer) names an item that
+        # is still open after the landing must change that item's block in the
+        # same landing: tick it, mark it [~] with a done-when marker, or add a
+        # dated STATUS note. Rules: scripts/lib/fixUpdatesItem.mjs. Guard:
+        # src/test/fixUpdatesItem.test.ts. The PR head and base tip come from
+        # the merge commit's parents, as in the step above (CodeQL #2057).
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            git fetch --no-tags --depth=2 origin "$GITHUB_SHA"
+            BASE=$(git rev-parse "$GITHUB_SHA^1")
+            HEAD_SHA=$(git rev-parse "$GITHUB_SHA^2")
+          else
+            BASE="$BEFORE"
+            HEAD_SHA="$GITHUB_SHA"
+          fi
+          git fetch --no-tags --unshallow origin 2>/dev/null || git fetch --no-tags --deepen=2000 origin || true
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "::notice::no comparable base for this $EVENT event; nothing to judge"
+            exit 0
+          fi
+          node scripts/check-fixes-update-their-items.mjs --range "$BASE..$HEAD_SHA" --strict
+
       - name: Every stated count is generated, dated, or baselined (two-way)
         # A number typed into a doc or a test comment is a measurement frozen
         # when it was typed; undated, it reads as a claim about today. New

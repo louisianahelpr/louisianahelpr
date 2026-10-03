@@ -16,6 +16,7 @@
 // a recipient_email, the caller's email must match it.
 
 import { serve } from "../_shared/buildStamp.ts";
+import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
@@ -57,6 +58,10 @@ serve(async (req) => {
     if (!user?.id || !user.email) {
       return json(401, { error: "Your session expired — sign in again to claim this gift." });
     }
+    // Q837: an unconfirmed-email caller is refused here, as Q807 refuses at
+    // the table (that gate cannot see the caller behind a service-role write).
+    const unconfirmedEmail = refuseUnconfirmedEmail(user, corsHeaders);
+    if (unconfirmedEmail) return unconfirmedEmail;
 
     const body = await req.json().catch(() => ({}));
     const claimToken = typeof body?.claim_token === "string" ? body.claim_token.trim() : "";

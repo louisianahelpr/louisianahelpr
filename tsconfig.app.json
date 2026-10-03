@@ -68,6 +68,7 @@
     "supabase/functions/_shared/forEachBounded.ts",
     "supabase/functions/_shared/boundedFetch.ts",
     "supabase/functions/_shared/functionFetch.ts",
+    "supabase/functions/_shared/requireConfirmedEmail.ts",
     "supabase/functions/_shared/caughtMessage.ts",
     "supabase/functions/_shared/standardWebhookHeaders.ts",
     "supabase/functions/_shared/reservedRecipient.ts",

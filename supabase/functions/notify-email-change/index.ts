@@ -1,4 +1,5 @@
 import * as React from "npm:react@18.3.1";
+import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
@@ -58,6 +59,10 @@ serve(async (req) => {
       });
     }
     const oldEmail = userRes.user.email;
+    // Q837: an unconfirmed-email caller is refused here, as Q807 refuses at
+    // the table (that gate cannot see the caller behind a service-role write).
+    const unconfirmedEmail = refuseUnconfirmedEmail(userRes.user, corsHeaders);
+    if (unconfirmedEmail) return unconfirmedEmail;
 
     const body = await req.json().catch(() => ({}));
     const newEmail = typeof body?.newEmail === "string" ? body.newEmail.trim() : "";

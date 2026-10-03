@@ -431,11 +431,14 @@ test.describe.serial("admin and safety journeys", () => {
         data: { p_application_id: apps[0].id, p_deadline: new Date(Date.now() + 60 * 60_000).toISOString() },
       });
       expect(accepted.ok(), `accept_application: ${accepted.status()} ${await accepted.text()}`).toBe(true);
-      const confirmed = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${jobId}&status=eq.accepted&helper_confirmed_at=is.null&select=id`, {
-        headers: rest(h, { Prefer: "return=representation" }),
-        data: { helper_confirmed_at: new Date().toISOString(), response_deadline: null },
-      });
-      expect(await confirmed.json(), `the Helpr's confirm matched no row (${confirmed.status()})`).toHaveLength(1);
+      // The app's Accept (Q1180): accept_job_offer completes a ready Helpr's
+      // accept at once (a seed throwaway is ready by helper_accept_missing's
+      // carve-out) and tells the poster, by name, in the same transaction.
+      const acceptedOffer = await request.post(`${SUPABASE_URL}/rest/v1/rpc/accept_job_offer`, { headers: rest(h), data: { p_job_id: jobId } });
+      expect(acceptedOffer.ok(), `accept_job_offer: ${acceptedOffer.status()} ${await acceptedOffer.text()}`).toBe(true);
+      expect(await acceptedOffer.json(), "the Helpr's accept did not complete").toEqual({ state: "accepted" });
+      const told = (await (await request.get(`${SUPABASE_URL}/rest/v1/notifications?user_id=eq.${poster.user.id}&job_id=eq.${jobId}&select=title`, { headers: rest(poster) })).json()) as { title: string }[];
+      expect(told.map((n) => n.title), "the poster was not told the offer was accepted").toContainEqual(expect.stringMatching(/ accepted your offer$/));
       const otw = await request.post(`${SUPABASE_URL}/rest/v1/rpc/helper_mark_on_the_way`, { headers: rest(h), data: { p_job_id: jobId } });
       expect(otw.ok(), `helper_mark_on_the_way: ${otw.status()} ${await otw.text()}`).toBe(true);
       const job = await readJob(request, poster, jobId);

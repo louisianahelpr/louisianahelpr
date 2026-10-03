@@ -26,6 +26,17 @@
     "nargs": 3
    }
   ],
+  "accept_job_offer": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "admin_alert_close_rule": [
    {
     "anon": false,

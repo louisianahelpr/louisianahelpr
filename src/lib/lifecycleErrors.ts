@@ -116,6 +116,11 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // (payment_status 'cancelling'), 20260915034822.
   dispute_payment_being_cancelled:
     "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
+  // enforce_helper_award_gate, 20261003193541 (Q1180): an offer is not a
+  // booking. Nothing starts, finishes or is disputed until the Helpr's accept
+  // is complete, whoever tries (arrival, a status PATCH, a dispute).
+  accept_required:
+    "This job isn't booked yet: its offer hasn't been accepted. Nothing can start, finish or be disputed until it is.",
 };
 
 // Sentences more than one RPC needs, written once so they cannot drift.
@@ -178,6 +183,17 @@ export const RPC_ERROR_COPY = {
     job_not_found: "This job is no longer available.",
     // Q345: blocked in either direction. Never says who blocked.
     applicant_blocked: "This offer is no longer available to you.",
+  },
+  // useOfferHandlers — the Helpr's Accept (Q1180).
+  accept_job_offer: {
+    offer_not_active: "This offer is no longer available — it may have expired or gone to someone else.",
+    offer_expired: "This offer is no longer available — it may have expired.",
+    group_job_not_supported: "Crew jobs are confirmed from the crew card.",
+    not_authorized: "This offer isn't yours to respond to.",
+    job_not_found: "This job is no longer available.",
+    account_restricted: "Your account is restricted right now, so you can't accept jobs.",
+    helper_unknown: "We couldn't read your account right now. Try again in a moment.",
+    job_not_funded: "This job's payment isn't secured right now, so the offer can't be accepted yet.",
   },
   // useOfferHandlers — declining an accepted offer.
   decline_job_offer: {
@@ -332,6 +348,8 @@ export const RPC_ERROR_COPY = {
     job_not_funded: LIFECYCLE_REASONS.job_not_funded,
     job_not_started: LIFECYCLE_REASONS.job_not_started,
     already_reported: LIFECYCLE_REASONS.already_reported,
+    // Q1180 (20261003193541): an offer that was never accepted is not a no-show.
+    helper_never_accepted: "This Helpr never accepted the offer, so it can't be a no-show. You can pick someone else from your applicants.",
     // 20260915044137 (VN-33): an arrival means the server found them at the
     // job, so it is not a no-show. The app hides No-Show then; a stale card
     // can still send it.

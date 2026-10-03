@@ -70,12 +70,24 @@ describe("Accept Job on an unfunded job (Q320)", () => {
   beforeEach(() => { toastError.mockReset(); rpcResult.current = { data: null, error: null }; });
 
   it("application accept: says the job is not funded and re-reads, never 'try again'", async () => {
+    // accept_job_offer (Q1180) carries the funding refusal now.
+    rpcResult.current = { data: null, error: UNFUNDED };
     const refresh = vi.fn(async () => undefined);
     const { result } = setup(refresh);
     const app = { id: "app-1", job_id: "job-1", helper_id: "user-1" } as unknown as Application;
     await act(async () => { await result.current.handleHelperResponse(app, true); });
     expect(toastError).toHaveBeenCalledWith(UNFUNDED_AWARD_COPY);
     expect(toastError).not.toHaveBeenCalledWith("Couldn't accept the job — please try again.");
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("pre-RPC fallback (PGRST202): the confirm's refusal gets the same answer", async () => {
+    rpcResult.current = { data: null, error: { code: "PGRST202", message: "Could not find the function" } };
+    const refresh = vi.fn(async () => undefined);
+    const { result } = setup(refresh);
+    const app = { id: "app-1", job_id: "job-1", helper_id: "user-1" } as unknown as Application;
+    await act(async () => { await result.current.handleHelperResponse(app, true); });
+    expect(toastError).toHaveBeenCalledWith(UNFUNDED_AWARD_COPY);
     expect(refresh).toHaveBeenCalled();
   });
 
@@ -91,4 +103,5 @@ describe("Accept Job on an unfunded job (Q320)", () => {
 });
 
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | if (isUnfundedAwardRefusal(confirmError)) { | if (false) {
+// @mutate src/components/job-card/activityActions/useOfferHandlers.ts | if (isUnfundedAwardRefusal(acceptError)) { | if (false) {
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | if (isUnfundedAwardRefusal(error)) { | if (false) {

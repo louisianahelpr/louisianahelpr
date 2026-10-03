@@ -6,6 +6,8 @@ import { MessageSquare, CheckCircle2, XCircle, Timer } from "lucide-react";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
+import { useAcceptPendingJobs } from "@/hooks/useAcceptPendingJobs";
+import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import type { Application, AppliedApp, Job } from "../../../components/job-card/activityConstants";
 
 interface OfferedActionsProps {
@@ -48,6 +50,15 @@ const DEFAULT_RESPONSE_WINDOW_HOURS = 24;
 export function OfferedActions({ app, job, onHelperResponse, respondingHelperAppId }: OfferedActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const busy = respondingHelperAppId === app.id;
+  // Q1180: they tapped Accept and it waits on their Stripe setup; tapping
+  // again reopens the checklist (accept_job_offer answers with what is left).
+  const acceptPending = useAcceptPendingJobs().has(job.id);
+  // decline_job_offer (20261003193541) files no strike while setup is
+  // unfinished OR while this job's accept is pending; the confirm mirrors both
+  // halves so it never promises what the server will not do (re-review #9).
+  // The profile is live over realtime, and the decline's own result decides
+  // the toast afterwards.
+  const noStrike = useAwardBlockReason() !== null || acceptPending;
   const skipConfirm = isDirectOffer(app);
   // THE CLOCK, in priority order.
   //
@@ -252,6 +263,11 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           refuses it (`offer_expired`), so leaving Accept / Decline on screen
           offered the helper two buttons that both fail — and the one they'd
           reach for is the one that earns money. */}
+      {!isExpired && acceptPending && (
+        <p className="text-ds-12 font-sans leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
+          You accepted. Finish your Stripe setup to complete it; we&rsquo;ll tell the person who posted the job as soon as it&rsquo;s done.
+        </p>
+      )}
       {isExpired ? null : (
       <div className="flex gap-2 pt-1">
         <Button
@@ -276,7 +292,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           aria-busy={busy}
           onClick={() => onHelperResponse(app, true)}
         >
-          <CheckCircle2 className="w-4 h-4 mr-1" /> {busy ? "Accepting…" : "Accept Job"}
+          <CheckCircle2 className="w-4 h-4 mr-1" /> {busy ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept Job"}
         </Button>
       </div>
       )}
@@ -284,12 +300,19 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Decline This Job?"
-        description="You applied for this one and the person who posted it picked you, so backing out now counts against your account."
+        description={
+          noStrike
+            ? "You applied for this one and the person who posted it picked you. Your Stripe setup isn't finished yet, so declining now isn't a strike."
+            : "You applied for this one and the person who posted it picked you, so backing out now counts against your account."
+        }
         callout={{
           // The real ladder, from the shared statement — this callout used to
           // quote the retired 5-strike math ("Three declines gets you a
-          // warning. Five is a permanent ban.").
-          text: `Declining after accepting counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. This can’t be undone.`,
+          // warning. Five is a permanent ban."). No strike while Stripe setup
+          // is unfinished (decline_job_offer, 20261003193541).
+          text: noStrike
+            ? "The job goes back to everyone. This can’t be undone."
+            : `Declining after accepting counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. This can’t be undone.`,
         }}
         primaryLabel="Decline the Job"
         primaryTone="sienna"

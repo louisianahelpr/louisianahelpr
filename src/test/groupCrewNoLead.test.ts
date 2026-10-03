@@ -78,6 +78,7 @@ const HELPER_ID_KEYED =
  * roster-aware one fails until it is taken off.
  */
 const SINGLE_HELPER_ONLY: Record<string, string> = {
+  accept_job_offer: "the single Helpr's Accept (Q1180); it refuses a group job outright (group_job_not_supported), a crew confirms through rpc_group_member_confirm",
   block_user_and_settle: "settles a block against the single hired Helpr; a crew has none (Q728: what a block between the poster and ONE member settles is an owner question)",
   claim_series_dates: "a recurring series is never a group job (20260831200113 constraint); each date has one Helpr",
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",

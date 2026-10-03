@@ -754,12 +754,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           <AwardGateDialog
             open={!!actions.awardBlockReason}
             onOpenChange={(o) => {
-              if (!o) {
-                actions.setAwardBlockReason(null);
-                actions.setPendingAcceptApp(null);
-              }
+              if (!o) actions.closeAwardGate();
             }}
             reason={actions.awardBlockReason}
+            pendingMissing={actions.acceptPendingMissing}
           />
         </Suspense>
       )}

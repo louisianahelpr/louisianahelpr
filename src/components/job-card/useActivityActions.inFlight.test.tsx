@@ -2,7 +2,8 @@
 //
 // What this prevents: two taps dispatched in the same frame both firing
 //   - completeJob            → create-payment { action: "release" }
-//   - handleHelperResponse   → the conditional helper_confirmed_at UPDATE
+//   - handleHelperResponse   → accept_job_offer (Q1180; the conditional
+//                              helper_confirmed_at UPDATE before it)
 // Both handlers used to guard only with React state (completingJobId /
 // respondingHelperAppId), which two calls from one render's closure both read
 // as null. Same class and fix as useApplyFlow.test.tsx (27b2e9b86): a ref set
@@ -12,6 +13,7 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 
 const invokeMock = vi.fn();
 const confirmUpdateMock = vi.fn();
+const acceptRpcMock = vi.fn();
 const pending: Array<() => void> = [];
 
 // A chainable builder whose terminal await never settles until released, so
@@ -35,7 +37,12 @@ vi.mock("@/integrations/supabase/client", () => ({
       },
     },
     from: () => chain(() => confirmUpdateMock(), { data: [], error: null }),
-    rpc: async () => ({ data: null, error: null }),
+    // accept_job_offer stays in flight until released, like the release invoke.
+    rpc: (name: string, args: unknown) => {
+      if (name !== "accept_job_offer") return Promise.resolve({ data: null, error: null });
+      acceptRpcMock(args);
+      return new Promise((resolve) => { pending.push(() => resolve({ data: { state: "accepted" }, error: null })); });
+    },
   },
 }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
@@ -92,6 +99,7 @@ describe("useActivityActions money handlers — same-frame double tap", () => {
   beforeEach(() => {
     invokeMock.mockReset();
     confirmUpdateMock.mockReset();
+    acceptRpcMock.mockReset();
     pending.length = 0;
   });
 
@@ -110,18 +118,19 @@ describe("useActivityActions money handlers — same-frame double tap", () => {
     await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(2));
   });
 
-  it("handleHelperResponse(accept): two calls in one frame send exactly one confirm", async () => {
+  it("handleHelperResponse(accept): two calls in one frame send exactly one accept", async () => {
     const { result } = setup();
     const respond = result.current.handleHelperResponse;
     const app = { id: "app-1", job_id: "job-1", helper_id: "user-1" } as unknown as Application;
     act(() => { void respond(app, true); void respond(app, true); });
-    await waitFor(() => expect(confirmUpdateMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(acceptRpcMock).toHaveBeenCalledTimes(1));
     await flush();
-    expect(confirmUpdateMock).toHaveBeenCalledTimes(1);
+    expect(acceptRpcMock).toHaveBeenCalledTimes(1);
+    expect(acceptRpcMock).toHaveBeenCalledWith({ p_job_id: "job-1" });
 
     await releaseAll();
     act(() => { void result.current.handleHelperResponse(app, true); });
-    await waitFor(() => expect(confirmUpdateMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(acceptRpcMock).toHaveBeenCalledTimes(2));
   });
 
   it("completeJob: a tap on a DIFFERENT job while one is in flight still goes through", async () => {
@@ -136,7 +145,7 @@ describe("useActivityActions money handlers — same-frame double tap", () => {
     const a = { id: "app-1", job_id: "job-1", helper_id: "user-1" } as unknown as Application;
     const b = { id: "app-2", job_id: "job-2", helper_id: "user-1" } as unknown as Application;
     act(() => { void result.current.handleHelperResponse(a, true); void result.current.handleHelperResponse(b, true); });
-    await waitFor(() => expect(confirmUpdateMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(acceptRpcMock).toHaveBeenCalledTimes(2));
   });
 });
 

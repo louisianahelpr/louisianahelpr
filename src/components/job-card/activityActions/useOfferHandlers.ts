@@ -8,7 +8,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { fireSuccessMoment } from "@/lib/successMoment";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
-import { awardBlockFromError, isUnfundedAwardRefusal, posterAwardBlockMessage, UNFUNDED_AWARD_COPY, type AwardBlockReason } from "@/lib/awardGate";
+import { awardBlockFromError, isUnfundedAwardRefusal, posterAwardBlockMessage, reasonFromMissing, UNFUNDED_AWARD_COPY, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { postedActivityBucket } from "@/components/job-card/activityFilters";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
@@ -45,6 +45,8 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   setDeadlineDialogApp: (app: EnrichedApplication | null) => void;
   setPendingAcceptApp: (app: Application | null) => void;
   setAwardBlockReason: (reason: AwardBlockReason | null) => void;
+  /** Q1180: the steps a pending accept waits on (accept_job_offer said pending_setup). */
+  setAcceptPendingMissing: (missing: AcceptMissing[] | null) => void;
   setW9Context: (ctx: { jobId: string; businessId: string | null } | null) => void;
   setW9DialogOpen: (open: boolean) => void;
   setRespondingHelperAppId: Dispatch<SetStateAction<string | null>>;
@@ -74,6 +76,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setDeadlineDialogApp,
     setPendingAcceptApp,
     setAwardBlockReason,
+    setAcceptPendingMissing,
     setW9Context,
     setW9DialogOpen,
     setRespondingHelperAppId,
@@ -231,11 +234,14 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // 20260924042503, Q346), so the database refuses that write anyway.
       rollbackActivity(snapshot);
       hapticError();
-      // The server-side acceptance gate (trigger jobs_award_gate) refusing
-      // THIS applicant. The poster can do nothing about someone else's Stripe
-      // account, so name the situation plainly rather than offering them a
-      // fix that isn't theirs to make. The applicant card also carries this
-      // as a "Can't be hired yet" chip, so reaching here should be rare.
+      // A payout-gate refusal of THIS applicant. A single job's Hire is only
+      // an offer and is never refused for the Helpr's Stripe state: the gate
+      // (payout setup and Stripe ID) is at the Helpr's accept (20261003193541,
+      // owner 2026-10-02/03). A
+      // crew hire still meets its roster gate at hire time
+      // (group_job_helpers_award_gate). The poster can do nothing about
+      // someone else's Stripe account, so name the situation plainly rather
+      // than offering them a fix that isn't theirs to make.
       const blocked = awardBlockFromError(error);
       if (blocked) {
         throw new Error(
@@ -378,6 +384,82 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     }
   };
 
+  // Everything an accepted offer does on the Helpr's side once the accept is
+  // COMPLETE: the W-9 a business job requires, the funnel events, and the
+  // move to the Accepted bucket. Shared by accept_job_offer's 'accepted' answer
+  // and the pre-RPC fallback below (Q1180).
+  const afterAccepted = async (app: Application) => {
+    if (!user) return;
+  // W-9 collection — if the business poster set requires_w9 = true,
+  // the helper signs immediately at acceptance. The column may not
+  // exist yet (PGRST204) on prod between merge and `supabase db push`;
+  // in that case we skip silently.
+  try {
+    // `requires_w9` is a new column not in the generated types yet, so
+    // the builder is cast to a minimal shape returning the row we read.
+    // The cast MUST include `error`. Omitting it made a genuine read failure
+    // indistinguishable from `requires_w9: false`, so the W-9 signature
+    // dialog was silently skipped on a business job that legally requires
+    // one — a compliance gap that looked identical to the happy path.
+    const { data: jobMeta, error: jobMetaError } = await (supabase.from("jobs") as unknown as {
+      select: (cols: string) => {
+        eq: (col: string, val: string) => {
+          maybeSingle: () => Promise<{
+            data: { requires_w9?: boolean | null; business_id?: string | null } | null;
+            error: { code?: string; message: string } | null;
+          }>;
+        };
+      };
+    })
+      .select("requires_w9, business_id")
+      .eq("id", app.job_id)
+      .maybeSingle();
+    // Rethrow into the catch below so a real failure is REPORTED rather
+    // than silently treated as "no W-9 needed". PGRST204/42703 (column not
+    // on prod yet) is still handled there as the intended graceful skip.
+    if (jobMetaError) throw jobMetaError;
+    if (jobMeta && jobMeta.requires_w9) {
+      setW9Context({ jobId: app.job_id, businessId: jobMeta.business_id ?? null });
+      setW9DialogOpen(true);
+    }
+  } catch (err) {
+    // requires_w9 column missing on pre-migration prod → skip is the
+    // intended graceful degrade. Any other unexpected error still gets
+    // reported so we can see it in monitoring rather than dropping it
+    // into the same silent bucket.
+    const code = (err as { code?: string })?.code;
+    if (code !== "PGRST204" && code !== "42703") {
+      report(err, { tags: { source: "useOfferHandlers.w9Fetch" }, context: { job_id: app.job_id } });
+    }
+  }
+
+  hapticSuccess();
+  // Funnel: helper accepted an offer — closes the "applied → hired" gap
+  // in the helper funnel that previously had zero instrumentation.
+  const ppoProps = ppoTrackingProps();
+  track(AhaEvent.JobAccepted, { job_id: app.job_id, ...ppoProps });
+  // First-acceptance aha — count prior confirmed acceptances by this
+  // helper (helper_confirmed_at != null). ≤ 1 covers the row we just
+  // wrote since the count read may race the just-written update.
+  try {
+    const { count } = await supabase
+      .from("jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("helper_id", user.id)
+      .not("helper_confirmed_at", "is", null);
+    if ((count ?? 0) <= 1) {
+      track(AhaEvent.FirstJobAccepted, { job_id: app.job_id, ...ppoProps });
+      // First-acceptance push nudge — best moment to ask a helper to
+      // turn on notifications: they now care about new-job pings and
+      // customer messages on this job. The hook self-suppresses if
+      // permission is already granted or the user dismissed recently.
+      void triggerPushNudge("helper-first-accept");
+    }
+  } catch { /* analytics must never break the flow */ }
+  await refresh();
+  setStatusFilter("accepted");
+  };
+
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     // Same-frame double tap: both calls share one render's closure, so only
     // the ref sees the first. Cleared in `finally` below.
@@ -390,6 +472,57 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       return;
     }
     if (accept) {
+      // Q1180 (owner, 2026-10-02/03): the server decides, in one call.
+      // accept_job_offer completes the accept now when payout setup and Stripe
+      // ID are both done (and tells the poster), or records it as pending and
+      // answers with what is missing: the thank-you dialog lists only that,
+      // and the accept completes by itself when Stripe reports both done. The
+      // live Stripe read first writes Stripe's current verdict onto the profile
+      // (useStripeConnectCheck), so a Helpr who just finished setup is judged
+      // on it; its own verdict no longer stops the tap.
+      await checkHelperAwardEligibility();
+      const { data: acceptData, error: acceptError } = await supabase.rpc("accept_job_offer", { p_job_id: app.job_id });
+      if (!acceptError) {
+        const result = (acceptData ?? {}) as { state?: string; missing?: AcceptMissing[] };
+        if (result.state === "pending_setup") {
+          const missing = result.missing ?? [];
+          hapticSuccess();
+          setPendingAcceptApp(app);
+          setAcceptPendingMissing(missing);
+          setAwardBlockReason(reasonFromMissing(missing) ?? "helper_payout_setup_incomplete");
+          await refresh();
+          return;
+        }
+        await afterAccepted(app);
+        return;
+      }
+      if (acceptError.code !== "PGRST202") {
+        hapticError();
+        const blocked = awardBlockFromError(acceptError);
+        if (blocked) {
+          setPendingAcceptApp(app);
+          setAwardBlockReason(blocked);
+          return;
+        }
+        if (isUnfundedAwardRefusal(acceptError)) {
+          toast.error(UNFUNDED_AWARD_COPY);
+          await refresh();
+          return;
+        }
+        const guard = rpcErrorMessage("accept_job_offer", acceptError);
+        if (guard) {
+          toast.error(guard);
+          await refresh();
+          return;
+        }
+        report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
+        toast.error("Couldn't accept the job — please try again.");
+        return;
+      }
+      // PGRST202: this build is live before db-deploy has pushed the RPC. The
+      // previous path below (gate check, then the conditional confirm) still
+      // works until it lands.
+
       // The acceptance gate: payout-ready.
       // A blocked accept has to carry its own way out — never a refusal with
       // nowhere to go — so the failure opens AwardGateDialog, which names the
@@ -491,74 +624,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         console.warn("Failed to auto-reject other applications", rejectErr);
       }
 
-      // W-9 collection — if the business poster set requires_w9 = true,
-      // the helper signs immediately at acceptance. The column may not
-      // exist yet (PGRST204) on prod between merge and `supabase db push`;
-      // in that case we skip silently.
-      try {
-        // `requires_w9` is a new column not in the generated types yet, so
-        // the builder is cast to a minimal shape returning the row we read.
-        // The cast MUST include `error`. Omitting it made a genuine read failure
-        // indistinguishable from `requires_w9: false`, so the W-9 signature
-        // dialog was silently skipped on a business job that legally requires
-        // one — a compliance gap that looked identical to the happy path.
-        const { data: jobMeta, error: jobMetaError } = await (supabase.from("jobs") as unknown as {
-          select: (cols: string) => {
-            eq: (col: string, val: string) => {
-              maybeSingle: () => Promise<{
-                data: { requires_w9?: boolean | null; business_id?: string | null } | null;
-                error: { code?: string; message: string } | null;
-              }>;
-            };
-          };
-        })
-          .select("requires_w9, business_id")
-          .eq("id", app.job_id)
-          .maybeSingle();
-        // Rethrow into the catch below so a real failure is REPORTED rather
-        // than silently treated as "no W-9 needed". PGRST204/42703 (column not
-        // on prod yet) is still handled there as the intended graceful skip.
-        if (jobMetaError) throw jobMetaError;
-        if (jobMeta && jobMeta.requires_w9) {
-          setW9Context({ jobId: app.job_id, businessId: jobMeta.business_id ?? null });
-          setW9DialogOpen(true);
-        }
-      } catch (err) {
-        // requires_w9 column missing on pre-migration prod → skip is the
-        // intended graceful degrade. Any other unexpected error still gets
-        // reported so we can see it in monitoring rather than dropping it
-        // into the same silent bucket.
-        const code = (err as { code?: string })?.code;
-        if (code !== "PGRST204" && code !== "42703") {
-          report(err, { tags: { source: "useOfferHandlers.w9Fetch" }, context: { job_id: app.job_id } });
-        }
-      }
-
-      hapticSuccess();
-      // Funnel: helper accepted an offer — closes the "applied → hired" gap
-      // in the helper funnel that previously had zero instrumentation.
-      const ppoProps = ppoTrackingProps();
-      track(AhaEvent.JobAccepted, { job_id: app.job_id, ...ppoProps });
-      // First-acceptance aha — count prior confirmed acceptances by this
-      // helper (helper_confirmed_at != null). ≤ 1 covers the row we just
-      // wrote since the count read may race the just-written update.
-      try {
-        const { count } = await supabase
-          .from("jobs")
-          .select("id", { count: "exact", head: true })
-          .eq("helper_id", user.id)
-          .not("helper_confirmed_at", "is", null);
-        if ((count ?? 0) <= 1) {
-          track(AhaEvent.FirstJobAccepted, { job_id: app.job_id, ...ppoProps });
-          // First-acceptance push nudge — best moment to ask a helper to
-          // turn on notifications: they now care about new-job pings and
-          // customer messages on this job. The hook self-suppresses if
-          // permission is already granted or the user dismissed recently.
-          void triggerPushNudge("helper-first-accept");
-        }
-      } catch { /* analytics must never break the flow */ }
-      await refresh();
-      setStatusFilter("accepted");
+      await afterAccepted(app);
     } else {
       // Decline — atomic via the decline_job_offer RPC: the violation
       // insert, ladder escalation (apply_job_denial_consequence, migration

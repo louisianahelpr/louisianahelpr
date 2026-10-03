@@ -1082,7 +1082,7 @@ export function JobTracking({
           arrivalErr.code === "PGRST202"
             // Short window between merge and the auto-deploy landing.
             ? "Arrival check-in is updating — try again in a minute."
-            : (rpcErrorMessage("mark_helper_arrival", arrivalErr) ?? "Couldn't mark you arrived — try again?"),
+            : (rpcErrorMessage("mark_helper_arrival", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? "Couldn't mark you arrived — try again?"),
         );
         setUpdating(false);
         loadTracking();

@@ -2,31 +2,76 @@
 /**
  * The acceptance gate, client side.
  *
- * A helper may browse and APPLY freely, but may not be AWARDED a job until
- * Stripe can pay them. Identity verification used to be a second requirement
- * (owner, 2026-08-27); it was removed on 2026-10-01 ("Remove finish verifying
- * id we don't do that anymore", migration 20261001222911). Identity is now
- * display only: see {@link isIdentityVerified}.
+ * A helper may browse and APPLY freely, and a poster may OFFER them a job
+ * whatever their Stripe state. The Helpr's ACCEPT completes only once their
+ * payout setup and Stripe ID are both done (owner, 2026-10-02/03, docs/OPEN.md
+ * Q1180): tapping Accept before that records the accept as pending and opens
+ * the thank-you dialog listing only what is missing; the accept completes by
+ * itself when Stripe reports both done, and only then is the poster told.
+ * Identity gates nothing else (posting and the poster's Hire stay ungated,
+ * migration 20261001222911).
  *
- * THE ENFORCEMENT IS NOT HERE. It is the `jobs_award_gate` trigger in migration
- * 20260827191647, which raises these exact codes from `helper_award_block_reason`
- * on every write that hands someone a job. This module exists so the app can
- * (a) stop the user before the tap, and (b) explain a refusal the server did
- * make. Turning it off would change nothing about who can be hired.
+ * THE ENFORCEMENT IS NOT HERE. It is `accept_job_offer`, `jobs_award_gate` and
+ * `helper_accept_block_reason` (migration 20261003193541). This module exists
+ * so the app can explain the server's answer and ask for exactly the missing
+ * steps. Turning it off would change nothing about who can accept a job.
  */
 export type AwardBlockReason =
   | "helper_payout_setup_incomplete"
+  | "helper_identity_unverified"
   | "helper_unknown";
 
 const REASONS: readonly string[] = [
   "helper_payout_setup_incomplete",
+  "helper_identity_unverified",
   "helper_unknown",
 ];
+
+/** What `accept_job_offer` says is still missing (helper_accept_missing). */
+export type AcceptMissing = "payout_setup" | "stripe_id";
+
+/**
+ * The client's copy of `helper_accept_missing` (20261003193541), branch for
+ * branch, from the caller's own profile row: the seed carve-out, the payout
+ * check, then Stripe ID ({@link isIdentityVerified}).
+ */
+export function acceptMissingFromProfile(profile: {
+  is_seed?: boolean | null;
+  stripe_account_id?: string | null;
+  stripe_payouts_enabled?: boolean | null;
+  stripe_identity_verified?: boolean | null;
+  idv_status?: string | null;
+}): AcceptMissing[] {
+  if (profile.is_seed === true && profile.stripe_account_id == null) return [];
+  const missing: AcceptMissing[] = [];
+  if (profile.stripe_account_id == null || profile.stripe_payouts_enabled !== true) missing.push("payout_setup");
+  if (!isIdentityVerified({ connectIdentityVerified: profile.stripe_identity_verified, idvStatus: profile.idv_status })) {
+    missing.push("stripe_id");
+  }
+  return missing;
+}
+
+/** The first missing step as a gate reason (helper_accept_block_reason's order). */
+export function reasonFromMissing(missing: readonly AcceptMissing[]): AwardBlockReason | null {
+  if (missing.includes("payout_setup")) return "helper_payout_setup_incomplete";
+  if (missing.includes("stripe_id")) return "helper_identity_unverified";
+  return null;
+}
 
 /** Reads a gate refusal out of a Postgres error the server actually raised. */
 export function awardBlockFromError(err: unknown): AwardBlockReason | null {
   const msg = String((err as { message?: unknown } | null)?.message ?? err ?? "");
   return (REASONS.find((r) => msg.includes(r)) as AwardBlockReason | undefined) ?? null;
+}
+
+/**
+ * The award pop-up's sentence for a gate refusal that came back from some
+ * other RPC's write (jobs_award_gate is a trigger, so its codes are not the
+ * RPC's own and have no row in RPC_ERROR_COPY), or null.
+ */
+export function awardBlockMessage(err: unknown): string | null {
+  const reason = awardBlockFromError(err);
+  return reason ? awardBlockCopy(reason).body : null;
 }
 
 /**
@@ -124,6 +169,14 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
         ctaLabel: "Set Up Payouts",
         collect: "currently_due",
       };
+    case "helper_identity_unverified":
+      return {
+        title: "Finish Your Stripe ID Check",
+        body:
+          "Stripe still needs to confirm your ID before you can accept a job. It's part of the same Stripe setup, and you only do it once.",
+        ctaLabel: "Finish Stripe Setup",
+        collect: "currently_due",
+      };
     case "helper_unknown":
       return {
         title: "We Couldn't Find Your Profile",
@@ -175,13 +228,41 @@ export function helperApplyBlockNotice(
   switch (reason) {
     case "helper_payout_setup_incomplete":
       return {
-        headline: "You can apply — but you can't be hired yet.",
+        headline: "You can apply — but you can't accept an offer yet.",
         body:
-          "Helpr pays through Stripe, and no one can hand you a job until your payout account exists. It takes about two minutes, once.",
+          "Helpr pays through Stripe, so you'll need a payout account before you can accept a job you're offered. It takes about two minutes, once.",
         ctaLabel: "Set Up Payouts",
         href: "/profile?tab=payment",
       };
+    case "helper_identity_unverified":
+      return {
+        headline: "You can apply — but you can't accept an offer yet.",
+        body:
+          "Stripe still needs to confirm your ID before you can accept a job you're offered. Finish what Stripe is asking for and this clears on its own.",
+        ctaLabel: "Finish Stripe Setup",
+        href: "/profile?tab=payment",
+      };
   }
+}
+
+/**
+ * The thank-you dialog after an Accept that is waiting on setup (owner,
+ * 2026-10-03: "thank you for accepting the offer, in order to fully accept
+ * these 2 things must be done before we will notify the poster that you have
+ * accepted"). Names only what is still missing.
+ */
+export function acceptPendingCopy(missing: readonly AcceptMissing[]): AwardBlockCopy {
+  const steps = [
+    missing.includes("payout_setup") ? "set up payouts" : null,
+    missing.includes("stripe_id") ? "finish your Stripe ID check" : null,
+  ].filter(Boolean) as string[];
+  const todo = steps.length === 2 ? `${steps[0]} and ${steps[1]}` : steps[0] ?? "finish your Stripe setup";
+  return {
+    title: "Thanks for Accepting!",
+    body: `To fully accept, ${todo}. As soon as ${steps.length === 2 ? "both are" : "that's"} done, your accept goes through and we let the person who posted the job know.`,
+    ctaLabel: "Finish Stripe Setup",
+    collect: "currently_due",
+  };
 }
 
 /**
@@ -195,6 +276,8 @@ export function posterAwardBlockMessage(reason: AwardBlockReason, helperName?: s
   switch (reason) {
     case "helper_payout_setup_incomplete":
       return `${who} hasn't finished setting up payouts yet, so they can't be hired. They'll show as ready once they do.`;
+    case "helper_identity_unverified":
+      return `Stripe hasn't finished checking ${who}'s ID yet, so they can't be hired yet.`;
     case "helper_unknown":
       return `We couldn't check ${who}'s verification status — give it a moment and try again.`;
   }

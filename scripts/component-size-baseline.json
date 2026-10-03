@@ -13,7 +13,7 @@
     "src/components/dashboard/FilterSheet.tsx": 763,
     "src/components/dashboard/JobCard.tsx": 837,
     "src/components/dashboard/JobDetailDialog.tsx": 954,
-    "src/components/job-card/JobListPage.tsx": 791,
+    "src/components/job-card/JobListPage.tsx": 789,
     "src/components/JobTracking.tsx": 2673,
     "src/components/messages/ChatView.tsx": 610,
     "src/components/messages/ConversationList.tsx": 1849,

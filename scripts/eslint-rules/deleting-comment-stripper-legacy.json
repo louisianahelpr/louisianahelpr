@@ -1,5 +1,4 @@
 [
-  "e2e/happy-path/zz-runtime-probe.spec.ts",
   "src/components/job-card/locationPressHintCentred.test.ts",
   "src/components/profile/ProfileTabFallback.test.tsx",
   "src/components/profile/profileTabShell.test.ts",

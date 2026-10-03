@@ -145,12 +145,16 @@ export function groupSources({ ledger, issues }) {
 
 function safeJson(s) { try { return JSON.parse(s); } catch { return {}; } }
 
+function escapeRegExpLiteral(value) {
+  return String(value ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /** Exact tokens that let an existing item cover a source key. */
 function coverTokens(key) {
   const [feed, id] = key.split(" ");
   if (feed === "issue") return [new RegExp(`(?<![\\w#])${id}(?!\\d)`), new RegExp(`issues/${id.slice(1)}(?!\\d)`)];
-  if (feed === "ledger") return [new RegExp(id)];
-  return [new RegExp(`(?<![\\w-])${id.replace(/[#]/g, "\\#")}(?![\\w-]|#)`)];
+  if (feed === "ledger") return [new RegExp(escapeRegExpLiteral(id))];
+  return [new RegExp(`(?<![\\w-])${escapeRegExpLiteral(id)}(?![\\w-]|#)`)];
 }
 
 /**

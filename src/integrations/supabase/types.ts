@@ -740,6 +740,27 @@ export type Database = {
         }
         Relationships: []
       }
+      deleted_jobs_log: {
+        Row: {
+          deleted_at: string
+          is_seed: boolean
+          job_created_at: string
+          job_id: string
+        }
+        Insert: {
+          deleted_at?: string
+          is_seed: boolean
+          job_created_at: string
+          job_id: string
+        }
+        Update: {
+          deleted_at?: string
+          is_seed?: boolean
+          job_created_at?: string
+          job_id?: string
+        }
+        Relationships: []
+      }
       dispute_settlement_claims: {
         Row: {
           action: string

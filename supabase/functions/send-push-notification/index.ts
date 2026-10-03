@@ -1,9 +1,7 @@
-// Send a push notification to all active devices for a given user.
-// Routes iOS tokens via APNs (token-auth) and Android tokens via FCM v1
-// (OAuth2 service-account auth). Either backend may be left unconfigured
-// (env vars unset) and the function silently skips that platform —
-// useful while iOS-only is in production and Android is still in
-// development.
+// Send a push notification to all active devices for a given user, through
+// APNs (token-auth). The app ships on iOS only (owner, 2026-10-03, Q1126: no
+// Android app, so the FCM v1 branch that lived here was removed); a token
+// registered with platform 'android' is logged as skipped and never sent.
 //
 // ── Required for iOS push (APNs) ─────────────────────────────────────
 //   APNS_KEY_ID         — 10-char Apple key ID
@@ -11,12 +9,6 @@
 //   APNS_BUNDLE_ID      — iOS bundle ID (com.Helpr)
 //   APNS_AUTH_KEY       — Full .p8 contents including BEGIN/END lines
 //   APNS_USE_SANDBOX    — '1' for sandbox APNs, anything else = production
-//
-// ── Required for Android push (FCM v1) ───────────────────────────────
-//   FCM_PROJECT_ID         — Firebase project ID (e.g. 'helpr-prod-12345')
-//   FCM_SERVICE_ACCOUNT    — Full service-account JSON pasted verbatim
-//                             (download from Firebase Console → Project
-//                             Settings → Service Accounts → Generate key)
 //
 // ── Caller auth ──────────────────────────────────────────────────────
 // Requires SECRET_KEY (service_role) bearer. Not user-callable —
@@ -37,9 +29,7 @@
 //                      docs/ios-rich-notifications.md follow-up) for
 //                      the thumbnail to actually render. Without an NSE
 //                      the push still fires; the thumbnail is just
-//                      silently dropped client-side. FCM v1 takes the
-//                      same URL via `notification.image` and Android
-//                      renders it natively, no extension needed.
+//                      silently dropped client-side.
 //   category         — APNs category identifier that maps to a set of
 //                      action buttons registered on the iOS side
 //                      (UNNotificationCategory). Common values:
@@ -63,14 +53,14 @@
 // ── Observability ────────────────────────────────────────────────────
 // Every invocation writes at least one `notification_logs` row with
 // channel='push' (via _shared/notificationLog.ts), plus one extra
-// `token_deleted` row per push registration APNs/FCM rejected as dead.
+// `token_deleted` row per push registration APNs rejected as dead.
 // Until 2026-09-01 this function wrote nothing at all — the push channel
 // had zero rows in that table for the life of the project, which meant a
 // completely dead push pipeline and a healthy one on a quiet night were
 // indistinguishable in the only place anyone looks.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { signEs256Jwt, signRs256Jwt } from '../_shared/jwt.ts'
+import { signEs256Jwt } from '../_shared/jwt.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import {
   adminPushEventKey,
@@ -204,131 +194,8 @@ async function sendApnsOne(
   return { ok: false, status: res.status, reason, isInvalidToken }
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// FCM v1 (Android)
-// ─────────────────────────────────────────────────────────────────────
-
-interface FcmServiceAccount {
-  client_email: string
-  private_key: string
-  token_uri?: string
-}
-
-// FCM v1 OAuth2 access tokens last 1 hour; cache for 55 minutes so any
-// in-flight call finishes with the live token. Keyed by service account
-// email so a key swap invalidates the cache automatically.
-const FCM_TOKEN_TTL_MS = 55 * 60 * 1000
-let fcmTokenCache: { accessToken: string; expiresAt: number; saEmail: string } | null = null
-
-async function buildFcmAccessToken(sa: FcmServiceAccount): Promise<string> {
-  if (fcmTokenCache && fcmTokenCache.saEmail === sa.client_email && fcmTokenCache.expiresAt > Date.now()) {
-    return fcmTokenCache.accessToken
-  }
-
-  const now = Math.floor(Date.now() / 1000)
-  const tokenUri = sa.token_uri ?? 'https://oauth2.googleapis.com/token'
-  const jwt = await signRs256Jwt({
-    privateKeyPem: sa.private_key,
-    claims: {
-      iss: sa.client_email,
-      scope: 'https://www.googleapis.com/auth/firebase.messaging',
-      aud: tokenUri,
-      iat: now,
-      exp: now + 3600,
-    },
-  })
-
-  // Exchange the signed JWT for an OAuth2 access token.
-  const res = await fetch(tokenUri, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt,
-    }),
-  })
-  if (!res.ok) throw new Error(`FCM token exchange failed: ${res.status} ${await res.text()}`)
-  const json = (await res.json()) as { access_token?: string }
-  if (!json.access_token) throw new Error('FCM token exchange returned no access_token')
-
-  fcmTokenCache = {
-    accessToken: json.access_token,
-    expiresAt: Date.now() + FCM_TOKEN_TTL_MS,
-    saEmail: sa.client_email,
-  }
-  return json.access_token
-}
-
-async function sendFcmOne(
-  projectId: string,
-  accessToken: string,
-  deviceToken: string,
-  payload: PushPayload,
-): Promise<{ ok: true } | { ok: false; status: number; reason: string; isInvalidToken: boolean }> {
-  const category = inferCategory(payload)
-  // Carry rich-notification fields in `data` so the Capacitor receiver
-  // (or a Notification Trampoline) can read them on tap. FCM v1's
-  // `notification.image` is the canonical thumbnail field on Android —
-  // it renders natively, no extension needed (unlike iOS NSE).
-  const message: Record<string, unknown> = {
-    token: deviceToken,
-    notification: {
-      title: payload.title,
-      body: payload.body,
-      ...(payload.media_url ? { image: payload.media_url } : {}),
-    },
-    ...(payload.link || payload.thread_id || payload.media_url || category
-      ? {
-          data: {
-            ...(payload.link ? { link: payload.link } : {}),
-            ...(payload.thread_id ? { thread_id: payload.thread_id } : {}),
-            ...(payload.media_url ? { media_url: payload.media_url } : {}),
-            ...(category ? { category } : {}),
-          },
-        }
-      : {}),
-    android: {
-      priority: 'HIGH',
-      notification: {
-        sound: 'default',
-        ...(payload.thread_id ? { tag: payload.thread_id } : {}),
-        ...(payload.media_url ? { image: payload.media_url } : {}),
-        ...(category ? { click_action: category } : {}),
-      },
-    },
-  }
-
-  const res = await fetch(
-    `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-    {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ message }),
-    },
-  )
-  if (res.ok) return { ok: true }
-
-  let reason = 'unknown'
-  try {
-    const j = await res.json()
-    // FCM v1 uses error.status (e.g. 'NOT_FOUND', 'INVALID_ARGUMENT')
-    const errStatus = (j as { error?: { status?: string } }).error?.status
-    if (errStatus) reason = errStatus
-  } catch {
-    /* ignore */
-  }
-  // NOT_FOUND = unregistered token. INVALID_ARGUMENT often signals a
-  // malformed token. Both → mark dead and remove.
-  const isInvalidToken =
-    res.status === 404 || reason === 'NOT_FOUND' || reason === 'UNREGISTERED'
-  return { ok: false, status: res.status, reason, isInvalidToken }
-}
-
 // Run an async mapper over an array with a fixed concurrency cap. Used
-// to fan out APNs/FCM sends without flooding the rate limiter or running
+// to fan out APNs sends without flooding the rate limiter or running
 // fully sequential (which is what the original code did).
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -411,17 +278,15 @@ serve(async (req) => {
       error: error ?? null,
     })
 
-  // Detect backend availability — both are optional, both can be off.
+  // APNs is the only backend (iOS only, Q1126); without its four secrets every
+  // send is skipped.
   const apnsConfigured = !!(
     Deno.env.get('APNS_KEY_ID') &&
     Deno.env.get('APNS_TEAM_ID') &&
     Deno.env.get('APNS_BUNDLE_ID') &&
     Deno.env.get('APNS_AUTH_KEY')
   )
-  const fcmConfigured = !!(
-    Deno.env.get('FCM_PROJECT_ID') && Deno.env.get('FCM_SERVICE_ACCOUNT')
-  )
-  if (!apnsConfigured && !fcmConfigured) {
+  if (!apnsConfigured) {
     console.warn('No push backend configured — skipping')
     await logOutcome('skipped', 'no_push_backend_configured')
     return new Response(
@@ -614,84 +479,54 @@ serve(async (req) => {
   let sent = 0
   let failed = 0
   // Dead registrations carry their REJECTION with them, not just their id: the
-  // whole value of logging a token deletion is being able to read WHY Apple or
-  // Google refused it (410 / BadDeviceToken = the app was deleted or the token
-  // was reissued; NOT_FOUND = unregistered). An id alone would tell an operator
+  // whole value of logging a token deletion is being able to read WHY Apple
+  // refused it (410 / BadDeviceToken = the app was deleted or the token was
+  // reissued). An id alone would tell an operator
   // that something vanished and nothing about what happened.
   const deadTokens: { id: string; platform: string; status: number; reason: string }[] = []
   const result: Record<string, unknown> = {}
 
-  // ── iOS path ──────────────────────────────────────────────────────
+  // ── iOS path (APNs is configured: the early return above guarantees it) ──
   if (iosTokens.length > 0) {
-    if (!apnsConfigured) {
-      result.ios = { skipped: 'apns_not_configured', tokens: iosTokens.length }
-    } else {
-      try {
-        const jwt = await buildApnsJwt(
-          Deno.env.get('APNS_KEY_ID')!,
-          Deno.env.get('APNS_TEAM_ID')!,
-          Deno.env.get('APNS_AUTH_KEY')!,
-        )
-        const apnsHost =
-          Deno.env.get('APNS_USE_SANDBOX') === '1'
-            ? 'api.development.push.apple.com'
-            : 'api.push.apple.com'
-        const bundleId = Deno.env.get('APNS_BUNDLE_ID')!
+    try {
+      const jwt = await buildApnsJwt(
+        Deno.env.get('APNS_KEY_ID')!,
+        Deno.env.get('APNS_TEAM_ID')!,
+        Deno.env.get('APNS_AUTH_KEY')!,
+      )
+      const apnsHost =
+        Deno.env.get('APNS_USE_SANDBOX') === '1'
+          ? 'api.development.push.apple.com'
+          : 'api.push.apple.com'
+      const bundleId = Deno.env.get('APNS_BUNDLE_ID')!
 
-        const iosResults = await mapWithConcurrency(iosTokens, SEND_CONCURRENCY, async (t) => {
-          const r = await sendApnsOne(apnsHost, jwt, bundleId, t.token, payload)
-          if (!r.ok) {
-            console.warn('APNs send failed', { token_id: t.id, status: r.status, reason: r.reason })
-            if (r.isInvalidToken) {
-              deadTokens.push({ id: t.id, platform: 'ios', status: r.status, reason: r.reason })
-            }
+      const iosResults = await mapWithConcurrency(iosTokens, SEND_CONCURRENCY, async (t) => {
+        const r = await sendApnsOne(apnsHost, jwt, bundleId, t.token, payload)
+        if (!r.ok) {
+          console.warn('APNs send failed', { token_id: t.id, status: r.status, reason: r.reason })
+          if (r.isInvalidToken) {
+            deadTokens.push({ id: t.id, platform: 'ios', status: r.status, reason: r.reason })
           }
-          return r.ok
-        })
-        const iosSent = iosResults.filter(Boolean).length
-        const iosFailed = iosResults.length - iosSent
-        sent += iosSent
-        failed += iosFailed
-        result.ios = { sent: iosSent, failed: iosFailed, tokens: iosTokens.length }
-      } catch (err) {
-        console.error('APNs init failed', err)
-        result.ios = { error: 'apns_init_failed', tokens: iosTokens.length }
-        failed += iosTokens.length
-      }
+        }
+        return r.ok
+      })
+      const iosSent = iosResults.filter(Boolean).length
+      const iosFailed = iosResults.length - iosSent
+      sent += iosSent
+      failed += iosFailed
+      result.ios = { sent: iosSent, failed: iosFailed, tokens: iosTokens.length }
+    } catch (err) {
+      console.error('APNs init failed', err)
+      result.ios = { error: 'apns_init_failed', tokens: iosTokens.length }
+      failed += iosTokens.length
     }
   }
 
-  // ── Android path ─────────────────────────────────────────────────
+  // ── Android ──────────────────────────────────────────────────────
+  // No Android app exists (Q1126): such a token is test data or a stale
+  // registration. Counted and skipped, never sent.
   if (androidTokens.length > 0) {
-    if (!fcmConfigured) {
-      result.android = { skipped: 'fcm_not_configured', tokens: androidTokens.length }
-    } else {
-      try {
-        const sa = JSON.parse(Deno.env.get('FCM_SERVICE_ACCOUNT')!) as FcmServiceAccount
-        const accessToken = await buildFcmAccessToken(sa)
-        const projectId = Deno.env.get('FCM_PROJECT_ID')!
-
-        const aResults = await mapWithConcurrency(androidTokens, SEND_CONCURRENCY, async (t) => {
-          const r = await sendFcmOne(projectId, accessToken, t.token, payload)
-          if (!r.ok) {
-            console.warn('FCM send failed', { token_id: t.id, status: r.status, reason: r.reason })
-            if (r.isInvalidToken) {
-              deadTokens.push({ id: t.id, platform: 'android', status: r.status, reason: r.reason })
-            }
-          }
-          return r.ok
-        })
-        const aSent = aResults.filter(Boolean).length
-        const aFailed = aResults.length - aSent
-        sent += aSent
-        failed += aFailed
-        result.android = { sent: aSent, failed: aFailed, tokens: androidTokens.length }
-      } catch (err) {
-        console.error('FCM init failed', err)
-        result.android = { error: 'fcm_init_failed', tokens: androidTokens.length }
-        failed += androidTokens.length
-      }
-    }
+    result.android = { skipped: 'android_unsupported', tokens: androidTokens.length }
   }
 
   // Best-effort cleanup of dead tokens.
@@ -751,8 +586,9 @@ serve(async (req) => {
   // ── The aggregate outcome for this send ───────────────────────────
   // `sent > 0` is a success even if some other device failed — the person was
   // reached. Zero delivered with failures is a failure. Zero delivered with no
-  // failures means every token belonged to a platform whose backend is not
-  // configured, which is a skip, not a failure.
+  // failures means no token was sent to: Android registrations are counted and
+  // skipped (no Android app, Q1126), and a 'web' row is skipped uncounted.
+  // Either is a skip, not a failure.
   const perPlatform = JSON.stringify(result)
   if (sent > 0) {
     await logOutcome('sent', failed > 0 ? `partial: ${failed} of ${tokens.length} failed — ${perPlatform}` : null)

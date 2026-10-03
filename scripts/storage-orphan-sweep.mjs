@@ -155,6 +155,15 @@ async function readWorld() {
   const profiles = await restAll("profiles", "user_id");
   const jobs = await restAll("jobs", "id");
   const msgs = await restAll("messages", "attachment_url", "&attachment_url=not.is.null");
+  // Q1149: jobs the database logged deleting as SEED jobs (deleted_jobs_log,
+  // AFTER DELETE trigger on jobs). A failed read leaves the set empty, so those
+  // files meet the caps like any other orphan: it fails toward deleting less.
+  let deletedSeed = [];
+  try {
+    deletedSeed = await restAll("deleted_jobs_log", "job_id,job_created_at,deleted_at", "&is_seed=is.true");
+  } catch (e) {
+    console.error(`::warning::deleted_jobs_log read failed (${String(e?.message || e).slice(0, 160)}); no deleted-seed exemption this run`);
+  }
   const authUserIds = new Set();
   for (let page = 1; ; page++) {
     if (page > 200) throw new Error("auth user read exceeded 200 pages");
@@ -174,6 +183,9 @@ async function readWorld() {
     authUserIds,
     jobIds: new Set(jobs.map((j) => j.id)),
     attachmentRefs: msgs.map((m) => m.attachment_url).filter(Boolean),
+    deletedSeedJobs: new Map(
+      deletedSeed.map((r) => [r.job_id, { from: r.job_created_at ? Date.parse(r.job_created_at) : null, until: Date.parse(r.deleted_at) }]),
+    ),
   };
 }
 
@@ -277,6 +289,17 @@ async function main() {
   for (const o of sel.orphans) log(`orphan ${o.bucket}/${o.name} ${o.size} (${o.reason})`);
   output("orphans", sel.orphans.length);
 
+  // The log only has to outlive the files it explains; 90 days is many sweeps.
+  // Pruned on every real run, including one that trips the caps or finds
+  // nothing to delete.
+  if (!DRY_RUN) {
+    try {
+      await req("DELETE", `/rest/v1/deleted_jobs_log?deleted_at=lt.${new Date(Date.now() - 90 * 86_400_000).toISOString()}`);
+    } catch (e) {
+      console.error(`::warning::deleted_jobs_log prune failed: ${String(e?.message || e).slice(0, 160)}`);
+    }
+  }
+
   const caps = checkCaps({ orphans: sel.orphans, objects, maxFiles: MAX_FILES, maxBucketPct: MAX_PCT });
   if (caps.tripped) {
     for (const r of caps.reasons) log(`CAP TRIPPED: ${r}`);
@@ -300,6 +323,7 @@ async function main() {
   }
 
   let removed = 0;
+  let removedSeed = 0;
   let removedBytes = 0;
   const failures = [];
   for (const o of sel.orphans) {
@@ -314,6 +338,12 @@ async function main() {
         log(`skip-owner-present ${o.bucket}/${o.name} ${o.size}`);
         continue;
       }
+      // A seed exemption was granted for "job gone" only; any other reason now
+      // (the id came back as a live job) must wait for the ordinary rules.
+      if (o.seedDeleted && reason !== "job gone") {
+        log(`skip-seed-reason-changed ${o.bucket}/${o.name} ${o.size} (${reason})`);
+        continue;
+      }
       log(`deleting ${o.bucket}/${o.name} ${o.size} (${reason})`);
       const res = await req("DELETE", `/storage/v1/object/${o.bucket}`, { prefixes: [o.name] });
       // A 200 with an empty array removed nothing: say so, never count it.
@@ -323,6 +353,7 @@ async function main() {
         continue;
       }
       removed++;
+      if (o.seedDeleted) removedSeed++;
       removedBytes += o.size;
       log(`deleted ${o.bucket}/${o.name} ${o.size}`);
     } catch (e) {
@@ -332,7 +363,8 @@ async function main() {
       if (/timed out/.test(msg)) break; // prod is struggling: stop.
     }
   }
-  const summary = `storage orphan sweep: ${removed} files, ${formatMB(removedBytes)} removed${failures.length ? `, ${failures.length} failed` : ""}`;
+  const seedRemoved = removedSeed;
+  const summary = `storage orphan sweep: ${removed} files, ${formatMB(removedBytes)} removed${seedRemoved ? ` (${seedRemoved} of them a deleted seed job's, Q1149)` : ""}${failures.length ? `, ${failures.length} failed` : ""}`;
   log(summary);
   output("summary", summary);
   console.log(summary);

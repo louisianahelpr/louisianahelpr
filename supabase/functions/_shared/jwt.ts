@@ -1,8 +1,8 @@
 // Shared JWT signing helpers for edge functions.
 //
-// Used by send-push-notification (APNs ES256 + FCM RS256). Reusable for
-// any future function that needs to sign Apple Sign In client_secret JWTs,
-// Google service-account JWTs, or other token-auth flows.
+// Used by send-push-notification (APNs ES256). Reusable for any future
+// function that needs to sign an ES256 token (Apple Sign In client_secret
+// JWTs, for example). The RS256 signer went with the FCM path (Q1126).
 //
 // All functions are pure (no Deno-only deps beyond crypto.subtle which is
 // part of the Web Crypto standard). Safe to import from any Deno edge
@@ -19,8 +19,8 @@ function base64UrlEncode(bytes: Uint8Array): string {
 // to WebCrypto importKey. Returns a CryptoKey suitable for signing.
 //
 // algParams selects the algorithm:
-//   { name: 'ECDSA', namedCurve: 'P-256' }      — APNs (ES256)
-//   { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' } — Google service accounts (RS256)
+//   { name: 'ECDSA', namedCurve: 'P-256' }      — APNs (ES256), the only caller
+//   { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' } — RS256, unused since Q1126
 async function importPkcs8Pem(
   pem: string,
   algParams: EcKeyImportParams | RsaHashedImportParams,
@@ -76,24 +76,5 @@ export async function signEs256Jwt(opts: {
     claims,
     key,
     { name: "ECDSA", hash: "SHA-256" },
-  );
-}
-
-// Convenience: sign an RS256 JWT (Google service-account assertion).
-// Used for FCM v1 OAuth2 token exchange — the signed JWT is POSTed
-// to oauth2.googleapis.com/token to get an access_token.
-export async function signRs256Jwt(opts: {
-  privateKeyPem: string;
-  claims: Record<string, unknown>;
-}): Promise<string> {
-  const key = await importPkcs8Pem(opts.privateKeyPem, {
-    name: "RSASSA-PKCS1-v1_5",
-    hash: "SHA-256",
-  });
-  return await signJwt(
-    { alg: "RS256", typ: "JWT" },
-    opts.claims,
-    key,
-    { name: "RSASSA-PKCS1-v1_5" },
   );
 }

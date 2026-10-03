@@ -17,6 +17,8 @@ import {
   emptyListingError,
   identityDocumentDeletable,
   orphanReason,
+  owningJobId,
+  seedJobDeleted,
   selectOrphans,
   uncacheableAvatars,
 } from "../../scripts/lib/storageOrphans.mjs";
@@ -35,6 +37,7 @@ type World = {
   authUserIds: Set<string>;
   jobIds: Set<string>;
   attachmentRefs: string[];
+  deletedSeedJobs?: Map<string, { from: number | null; until: number }>;
 };
 function world(over: Partial<World> = {}): World {
   return {
@@ -223,7 +226,7 @@ describe("an empty listing is a broken read, never a clean sweep", () => {
 // object younger than 7 days"; ignoring the second read fails "an owner that
 // reappears on the second read is NOT deleted"; downgrading the empty-listing
 // abort to a log fails the mount-wiring test added the same day.
-// @mutate scripts/lib/storageOrphans.mjs | if (!Number.isFinite(created) \|\| now - created < floorMs) { | if (!Number.isFinite(created)) {
+// @mutate scripts/lib/storageOrphans.mjs | if (!seed && (!Number.isFinite(created) \|\| now - created < floorMs)) { | if (!seed && (!Number.isFinite(created))) {
 // @mutate scripts/lib/storageOrphans.mjs | if (!r2 \|\| !identityDocumentDeletable(o.bucket, o.name, first) | if (false \|\| !identityDocumentDeletable(o.bucket, o.name, first)
 // @mutate scripts/storage-orphan-sweep.mjs | if (listingError) throw new Error(listingError); | if (listingError) log(listingError);
 
@@ -242,5 +245,88 @@ describe("uncacheableAvatars (nightly-red #1719: a no-cache avatar made 527 GETs
     const src = readFileSync(resolve(__dirname, "../../scripts/storage-orphan-sweep.mjs"), "utf8");
     expect(src).toMatch(/cacheControl: r\.metadata\?\.cacheControl/);
     expect(src).toMatch(/process\.exit\(code \|\| \(cacheFailures \? 1 : 0\)\)/);
+  });
+});
+
+// docs/OPEN.md Q1149 (2026-10-03): 228 "job gone" test-fixture files tripped the
+// caps and paged critical with nothing wrong in the matching. A job the
+// database logged deleting as a SEED job (deleted_jobs_log) explains the files
+// created within its lifetime.
+// @mutate scripts/lib/storageOrphans.mjs | orphans = orphans.filter((o) => !o.seedDeleted); | orphans = orphans.filter(() => true);
+// @mutate scripts/lib/storageOrphans.mjs | if (life.from == null \|\| createdAtMs < life.from) return false; | if (false) return false;
+// @mutate scripts/lib/storageOrphans.mjs | return createdAtMs <= life.until; | return true;
+// @mutate scripts/lib/storageOrphans.mjs | orphanReason(o.bucket, o.name, second) === "job gone" && | true &&
+// @mutate scripts/lib/storageOrphans.mjs | if (seg[1] === "disputes") return isId(seg[2]) ? seg[2] : null; | if (seg[1] === "disputes") return isId(seg[0]) ? seg[0] : null;
+// @mutate scripts/storage-orphan-sweep.mjs | if (o.seedDeleted && reason !== "job gone") { | if (false) {
+describe("a deleted seed job's files (Q1149)", () => {
+  const J_SEED = "5eed0de1-0000-4000-8000-00000000c0de";
+  const YOUNG = new Date(NOW - 2 * DAY).toISOString();
+  const life = (fromDaysAgo: number | null, untilDaysAgo: number) =>
+    new Map([[J_SEED, { from: fromDaysAgo == null ? null : NOW - fromDaysAgo * DAY, until: NOW - untilDaysAgo * DAY }]]);
+
+  it("owningJobId reads the same path schemes as orphanReason", () => {
+    expect(owningJobId("job-photos", `${J_SEED}/1790520121993-x.png`)).toBe(J_SEED);
+    expect(owningJobId("proof-photos", `${J_SEED}/after-1.png`)).toBe(J_SEED);
+    expect(owningJobId("proof-photos", `${U_LIVE}/disputes/${J_SEED}/a.png`)).toBe(J_SEED);
+    expect(owningJobId("job-photos", `${U_LIVE}/reviews/r.png`)).toBeNull();
+    expect(owningJobId("message-attachments", `${J_SEED}/${U_LIVE}/m.png`)).toBe(J_SEED);
+    expect(owningJobId("message-attachments", `voice-notes/${J_SEED}/${U_LIVE}/v.m4a`)).toBe(J_SEED);
+    expect(owningJobId("application-attachments", `${U_LIVE}/${J_SEED}/a.pdf`)).toBe(J_SEED);
+    expect(owningJobId("avatars", `${U_LIVE}/avatar.png`)).toBeNull();
+  });
+
+  it("is swept even when young, and marked, when BOTH reads log it as a deleted seed job", () => {
+    const objects = [obj("proof-photos", `${J_SEED}/after-1.png`, YOUNG, 70), obj("proof-photos", `${J_GONE}/after-1.png`, YOUNG, 70)];
+    const logged = life(3, 1);
+    const r = selectOrphans({ objects, first: world({ deletedSeedJobs: logged }), second: world({ readAt: NOW, deletedSeedJobs: logged }), now: NOW });
+    expect(r.orphans.map((o) => [o.name, o.reason, o.seedDeleted])).toEqual([[`${J_SEED}/after-1.png`, "seed job deleted", true]]);
+    expect(r.skippedYoung.map((o) => o.name)).toEqual([`${J_GONE}/after-1.png`]);
+  });
+
+  it("needs BOTH reads: a log entry seen once is not enough to skip the age wait", () => {
+    const objects = [obj("proof-photos", `${J_SEED}/after-1.png`, YOUNG, 70)];
+    const r = selectOrphans({ objects, first: world({ deletedSeedJobs: life(3, 1) }), second: world({ readAt: NOW }), now: NOW });
+    expect(r.orphans).toEqual([]);
+    expect(r.skippedYoung).toHaveLength(1);
+  });
+
+  it("needs the job gone on the SECOND read too: an id that came back is not a seed deletion", () => {
+    const objects = [obj("proof-photos", `${J_SEED}/after-1.png`, YOUNG, 70)];
+    const logged = life(3, 1);
+    const r = selectOrphans({ objects, first: world({ deletedSeedJobs: logged }), second: world({ readAt: NOW, deletedSeedJobs: logged, jobIds: new Set([J_LIVE, J_SEED]) }), now: NOW });
+    expect(r.orphans).toEqual([]);
+  });
+
+  it("only files created WITHIN the logged job's lifetime qualify (an id reused later vouches for nothing older)", () => {
+    const w = world({ deletedSeedJobs: life(3, 1) });
+    const at = (daysAgo: number) => NOW - daysAgo * DAY;
+    expect(seedJobDeleted("proof-photos", `${J_SEED}/a.png`, w, at(2))).toBe(true);
+    expect(seedJobDeleted("proof-photos", `${J_SEED}/a.png`, w, at(5))).toBe(false); // before the job existed
+    expect(seedJobDeleted("proof-photos", `${J_SEED}/a.png`, w, at(0.5))).toBe(false); // after it was deleted
+    expect(seedJobDeleted("proof-photos", `${J_SEED}/a.png`, w, NaN)).toBe(false);
+    // A window with no start fails closed (review LOW-4, 2026-10-03): the log
+    // column is NOT NULL, and a missing start is no exemption.
+    expect(seedJobDeleted("proof-photos", `${J_SEED}/a.png`, world({ deletedSeedJobs: life(null, 1) }), at(30))).toBe(false);
+  });
+
+  it("never exempts a user-keyed file", () => {
+    const w = world({ deletedSeedJobs: new Map([[U_GONE, { from: null, until: NOW }]]) });
+    expect(seedJobDeleted("avatars", `${U_GONE}/avatar.png`, w, NOW - DAY)).toBe(false);
+  });
+
+  it("does not count against the caps; the orphans nothing explains still do", () => {
+    const seedFiles = Array.from({ length: 228 }, (_, i) => ({ ...obj("proof-photos", `${J_SEED}/${i}.png`), seedDeleted: true }));
+    const objects = [...seedFiles, ...Array.from({ length: 23 }, (_, i) => obj("proof-photos", `${J_LIVE}/${i}.png`))];
+    expect(checkCaps({ orphans: seedFiles, objects }).tripped).toBe(false);
+    const unexplained = Array.from({ length: 51 }, (_, i) => obj("proof-photos", `${J_GONE}/${i}.png`));
+    expect(checkCaps({ orphans: [...seedFiles, ...unexplained], objects: [...objects, ...unexplained] }).tripped).toBe(true);
+  });
+
+  it("the sweep reads the log (seed rows, with lifetimes), prunes it on every real run, and rechecks the reason before deleting", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../../scripts/storage-orphan-sweep.mjs"), "utf8"));
+    expect(src).toMatch(/restAll\("deleted_jobs_log", "job_id,job_created_at,deleted_at", "&is_seed=is\.true"\)/);
+    expect(src).toMatch(/deletedSeedJobs: new Map\(/);
+    expect(src.indexOf("deleted_jobs_log?deleted_at=lt.")).toBeLessThan(src.indexOf("const caps = checkCaps("));
+    expect(src).toMatch(/if \(o\.seedDeleted && reason !== "job gone"\) \{/);
   });
 });

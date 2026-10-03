@@ -1,5 +1,7 @@
 // @mutate scripts/land.sh |     src/test/deadcodeRatchet.test.ts \ |     \
 // @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   git push --no-verify origin HEAD:main
+// @mutate scripts/land.sh |     if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus 2>/dev/null); then |     if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus); [ "$INFO" ]; then
+// @mutate scripts/land.sh |     git reset -q --hard "$START_HEAD" |     true
 // @mutate scripts/land.sh |     if [ "$MSS" = BEHIND ] \|\| [ "$MSS" = DIRTY ]; then |     if [ "$MSS" = BEHIND ]; then
 // @mutate scripts/land.sh |   if [ "$N_REFRESH" -gt 0 ]; then |   if false; then
 // @mutate scripts/land.sh |   SUBJECTS=$(git log --format=%s origin/main..HEAD) |   SUBJECTS=$(git log --format=%s origin/main..HEAD \| grep -qxF "$REFRESH_SUBJECT")
@@ -85,6 +87,16 @@ describe("landing path (Q44)", () => {
     expect(code).toMatch(/GIT_SEQUENCE_EDITOR="sed -E -i\.land-bak -e '\/\^\(pick\|p\) \[0-9a-f\]\+ \(# \)\?\$REFRESH_SUBJECT/);
     expect(code).toContain('REFRESH_SUBJECT="chore: refresh generated inventories"');
     expect(code).toContain('-m "chore: refresh generated inventories');
+  });
+
+  it("land.sh survives a GitHub hiccup and never restarts the checks for nothing", () => {
+    // 2026-10-03: an HTTP 503 from gh pr view ended a wait under set -e while
+    // the PR was fine; a re-run then minted a new SHA for an identical tree.
+    expect(code).toMatch(/if ! INFO=\$\(gh pr view "\$BR" --json state,mergeStateStatus 2>\/dev\/null\); then\n[^\n]*\n\s*continue\n\s*fi/);
+    expect(code).toMatch(/START_HEAD=\$\(git rev-parse HEAD\)/);
+    expect(code).toMatch(/git merge-base --is-ancestor origin\/main "\$START_HEAD"; then\n\s*git reset -q --hard "\$START_HEAD"/);
+    // the reuse runs before the push
+    expect(code.indexOf('git reset -q --hard "$START_HEAD"')).toBeLessThan(code.indexOf("git push --no-verify --force"));
   });
 
   it("land.sh closes any open land PR its HEAD supersedes", () => {

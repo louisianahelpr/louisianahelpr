@@ -96,8 +96,22 @@ while :; do
     REBASE=(git rebase -q origin/main)
   fi
   if ! "${REBASE[@]}"; then
-    echo "land: the rebase onto origin/main stopped on a conflict in this branch's own work; resolve it (git status), then re-run bash scripts/land.sh." >&2
-    exit 1
+    # A stop on docs/OPEN.md alone is almost always two landings filing or
+    # noting items at the same place (five such stops on 2026-10-03, each
+    # resolved by hand the same way): merge it item by item and go on. An item
+    # both sides changed, or any other conflicted file, still stops for a
+    # person. Guard: src/test/openItemMerge.test.ts.
+    while [ -d "$(git rev-parse --git-path rebase-merge)" ] || [ -d "$(git rev-parse --git-path rebase-apply)" ]; do
+      UNMERGED=$(git diff --name-only --diff-filter=U)
+      if [ "$UNMERGED" = "docs/OPEN.md" ] && node scripts/lib/openItemMerge.mjs; then
+        git add docs/OPEN.md
+        # stops again if the next replayed commit conflicts; the loop looks again
+        GIT_EDITOR=true git rebase --continue >/dev/null 2>&1 || true
+        continue
+      fi
+      echo "land: the rebase onto origin/main stopped on a conflict in this branch's own work; resolve it (git status), then re-run bash scripts/land.sh." >&2
+      exit 1
+    done
   fi
 
   # Queue numbers are taken from each lane's own base, so two lanes file the

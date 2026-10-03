@@ -73,9 +73,16 @@ while :; do
   # are what conflicts when another landing regenerated the same files first
   # (2026-10-03: #2210 and #2211 went DIRTY the moment #2212 merged, and each
   # took a hand `git rebase --skip` and a re-run). Guard: landingPath.test.ts.
+  # Counted from a here-string, never `cmd | grep -q`: under pipefail, grep -q
+  # exiting early can SIGPIPE the writer and fail the test at random
+  # (2026-10-03: it once reported six real commits as "nothing to land").
+  # Every grep in this script reads a variable for the same reason.
   REFRESH_SUBJECT="chore: refresh generated inventories"
-  if git log --format=%s origin/main..HEAD | grep -qxF "$REFRESH_SUBJECT"; then
-    if ! git log --format=%s origin/main..HEAD | grep -qvxF "$REFRESH_SUBJECT"; then
+  SUBJECTS=$(git log --format=%s origin/main..HEAD)
+  N_REFRESH=$(grep -cxF "$REFRESH_SUBJECT" <<<"$SUBJECTS" || true)
+  N_ALL=$(grep -c . <<<"$SUBJECTS" || true)
+  if [ "$N_REFRESH" -gt 0 ]; then
+    if [ "$N_ALL" -eq "$N_REFRESH" ]; then
       echo "land: nothing to land but earlier refresh commits; reset to origin/main." >&2
       exit 1
     fi
@@ -148,7 +155,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # NULL argument"; newest 36361411866 / 36360932660 from the Q807 migration)
   # each have a repo-only vitest twin that was already red on that commit.
   # Run the twins here whenever the push touches migrations or their inputs.
-  if git diff --name-only origin/main..HEAD | grep -qE '^(supabase/migrations/|scripts/ci/|src/integrations/supabase/types\.ts$)'; then
+  PUSHED_FILES=$(git diff --name-only origin/main..HEAD)
+  if grep -qE '^(supabase/migrations/|scripts/ci/|src/integrations/supabase/types\.ts$)' <<<"$PUSHED_FILES"; then
     npx vitest run src/test/typesCoverMigrationFunctions.test.ts src/test/nullArgNeverAllows.test.ts
   fi
 
@@ -162,7 +170,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   WT_HASH=$(printf '%s' "$PWD" | shasum | cut -c1-8)
   BR="land/$(git rev-parse --abbrev-ref HEAD | tr '/' '-')-$WT_HASH"
   git push --no-verify --force origin "HEAD:refs/heads/$BR"
-  if ! gh pr view "$BR" --json state --jq .state 2>/dev/null | grep -qx OPEN; then
+  PR_STATE=$(gh pr view "$BR" --json state --jq .state 2>/dev/null || true)
+  if [ "$PR_STATE" != OPEN ]; then
     # Title/body given explicitly: --fill needs a local branch ref, and a
     # detached HEAD has none (first run, 2026-09-30).
     gh pr create --base main --head "$BR" \

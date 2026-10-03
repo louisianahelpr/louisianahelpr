@@ -42,6 +42,7 @@
     "supabase",
     "gitleaks",
     "jq",
-    "psql"
+    "psql",
+    "openssl"
   ]
 }

@@ -19,10 +19,11 @@
  * with no write, RPC, Stripe call or fetch between the call and the pair.
  * No _shared module may resolve a caller (a gate there would be invisible).
  *
- * RUNTIME, through the edge harness: create-payment and cash-out-credits
- * answer 403 with the user-facing sentence in `error` and the code in `code`
- * to a verified caller with no email_confirmed_at, and write nothing (no
- * table write, RPC or Stripe call); a confirmed caller is not stopped.
+ * RUNTIME, through the edge harness (2026-10-03): create-payment and
+ * cash-out-credits refuse a verified caller with no email_confirmed_at with
+ * the user-facing sentence in `error` and the code in `code`, and write
+ * nothing (no table write, RPC or Stripe call); a confirmed caller is not
+ * stopped.
  */
 // @mutate supabase/functions/create-payment/index.ts |     const unconfirmedEmail = refuseUnconfirmedEmail(user, corsHeaders);\n    if (unconfirmedEmail) return unconfirmedEmail; |     const unconfirmedEmail = null;
 // @mutate supabase/functions/_shared/requireConfirmedEmail.ts |   return !user?.email_confirmed_at; |   return false;

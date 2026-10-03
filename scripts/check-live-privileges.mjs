@@ -32,6 +32,11 @@
  *     run in UTC, so an unpinned `date_needed < CURRENT_DATE` calls a job dated
  *     today "already passed" every evening from 19:00 CDT. Not a privilege, but
  *     a catalog setting a dashboard edit can drop like one.
+ *  7. scripts/ci/unconfirmed-email-gate.sql (Q838) — every public table but
+ *     the two anon-writable telemetry tables keeps an ENABLED Q807 email gate
+ *     (zz_refuse_unconfirmed_email_write on INSERT/UPDATE/DELETE, running
+ *     refuse_unconfirmed_email_write). The migration guard cannot see a table
+ *     made in the dashboard or a gate disabled outside a migration.
  *
  * Both queries are shared with the db-smoke replay gate; this reads PROD,
  * because prod is where a dashboard edit, an MCP apply or a failed replay can
@@ -58,6 +63,7 @@ const NULL_UID_SQL = load("./ci/null-uid-trust.sql");
 const ROWTYPE_SQL = load("./ci/rowtype-args-unreadable.sql");
 const CLIENT_INSERT_SQL = load("./ci/client-insert-columns.sql");
 const CURRENT_DATE_SQL = load("./ci/current-date-time-zone.sql");
+const EMAIL_GATE_SQL = load("./ci/unconfirmed-email-gate.sql");
 
 // Q304: profiles columns only the server may write. The locked list is what
 // sync_profiles_update_grants() subtracts every 10 minutes; the two literals
@@ -85,6 +91,8 @@ SELECT (SELECT count(*) FROM pg_proc p JOIN pg_language l ON l.oid = p.prolang
        coalesce((SELECT json_agg(o) FROM (${ROWTYPE_SQL}) o), '[]'::json) AS rowtype_offenders,
        coalesce((SELECT json_agg(o) FROM (${CLIENT_INSERT_SQL}) o), '[]'::json) AS client_insert_offenders,
        coalesce((SELECT json_agg(o) FROM (${CURRENT_DATE_SQL}) o), '[]'::json) AS current_date_offenders,
+       coalesce((SELECT json_agg(o) FROM (${EMAIL_GATE_SQL}) o), '[]'::json) AS email_gate_offenders,
+       (SELECT count(*) FROM pg_trigger WHERE tgname = 'zz_refuse_unconfirmed_email_write' AND NOT tgisinternal)::int AS email_gates,
        (SELECT count(*) FROM pg_attribute
          WHERE attrelid = 'public.profiles'::regclass AND attname = ANY (ARRAY['ban_status', 'auto_suspended_until'])
            AND NOT attisdropped)::int AS server_only_columns_present,
@@ -132,9 +140,11 @@ const serverOnly = parse(row?.server_only_column_offenders);
 const rowtype = parse(row?.rowtype_offenders);
 const clientInsert = parse(row?.client_insert_offenders);
 const currentDate = parse(row?.current_date_offenders);
+const emailGate = parse(row?.email_gate_offenders);
+const emailGates = Number(row?.email_gates ?? 0);
 const serverOnlyPresent = Number(row?.server_only_columns_present ?? 0);
-if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || !Array.isArray(rowtype) || !Array.isArray(clientInsert) || !Array.isArray(currentDate) || serverOnlyPresent !== 2) {
-  console.error(`::error::live catalog returned ${fns} plpgsql functions / ${acl} postgres default-ACL entries in public / ${serverOnlyPresent} of 2 server-only profiles columns (Q304: ban_status, auto_suspended_until) — refusing to report clean.`);
+if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || !Array.isArray(rowtype) || !Array.isArray(clientInsert) || !Array.isArray(emailGate) || !Array.isArray(currentDate) || emailGates < 50 || serverOnlyPresent !== 2) {
+  console.error(`::error::live catalog returned ${fns} plpgsql functions / ${acl} postgres default-ACL entries in public / ${serverOnlyPresent} of 2 server-only profiles columns (Q304: ban_status, auto_suspended_until) / ${emailGates} Q807 email gates (Q838: ~100 live) — refusing to report clean.`);
   process.exit(2);
 }
 
@@ -145,6 +155,7 @@ if (process.argv.includes("--self-test")) {
   rowtype.push({ function_name: "zz_fake_field(jobs)", row_of: "jobs", role: "authenticated" });
   clientInsert.push({ table: "messages", role: "authenticated", what: "INSERT (is_system)" });
   currentDate.push({ function_name: "zz_fake_date_check", config: "search_path=public" });
+  emailGate.push({ table: "jobs", what: "email gate trigger not enabled (tgenabled D)" });
 }
 
 let failed = false;
@@ -203,8 +214,18 @@ if (currentDate.length) {
       "Fix: add SET \"TimeZone\" TO 'America/Chicago' to the function (see 20261003214350), as enforce_application_job_state has.",
   );
 }
+if (emailGate.length) {
+  failed = true;
+  for (const o of emailGate) console.error(`::error::public.${o.table}: ${o.what} (Q838, scripts/ci/unconfirmed-email-gate.sql)`);
+  console.error(
+    "An unconfirmed-email session can write this table: Q807's gate is missing or off. Fix: SELECT " +
+      "public.attach_unconfirmed_email_gate() in a migration (it attaches to every gated table), or re-enable the " +
+      "trigger; a table that must take anonymous writes joins the exemption list in both 20260927234313's attach " +
+      "function and the SQL file, with its reason.",
+  );
+}
 if (!Number(row?.has_server_context_helper)) {
   console.log("note: public.is_server_context() is not deployed yet.");
 }
 if (failed) process.exit(1);
-console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read; no client INSERT beyond the declared columns; every function that reads the date pins America/Chicago.");
+console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read; no client INSERT beyond the declared columns; every function that reads the date pins America/Chicago; every public table keeps its email gate.");

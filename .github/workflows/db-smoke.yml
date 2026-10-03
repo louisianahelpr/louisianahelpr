@@ -38,6 +38,7 @@ on:
       - "scripts/ci/rowtype-args-unreadable.sql"
       - "scripts/ci/client-insert-columns.sql"
       - "scripts/ci/current-date-time-zone.sql"
+      - "scripts/ci/unconfirmed-email-gate.sql"
       - "scripts/sql/identity-linking-scenarios.sql"
       - "scripts/check-identity-linking.mjs"
   workflow_dispatch:
@@ -295,6 +296,28 @@ jobs:
             exit 1
           fi
           echo "✅ all $N CURRENT_DATE readers pin America/Chicago"
+
+      # Q838: every public table keeps an ENABLED Q807 email gate. The migration
+      # guard (unconfirmedEmailWritesRefused.test.ts) reads text; this reads the
+      # catalog the replay built. The same query runs live in
+      # scripts/check-live-privileges.mjs.
+      - name: Smoke — every public table keeps its unconfirmed-email gate
+        run: |
+          set -euo pipefail
+          N=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_trigger WHERE tgname = 'zz_refuse_unconfirmed_email_write' AND NOT tgisinternal")
+          if [ "${N:-0}" -lt 50 ]; then
+            echo "::error::replayed schema has ${N:-0} Q807 email gates — the check would pass vacuously"
+            exit 1
+          fi
+          OUT=$(psql -q -v ON_ERROR_STOP=1 -At -F '|' -f scripts/ci/unconfirmed-email-gate.sql)
+          if [ -n "$OUT" ]; then
+            echo "$OUT" | while IFS='|' read -r tbl what; do
+              echo "::error::public.$tbl: $what"
+            done
+            echo "::error::FIX: SELECT public.attach_unconfirmed_email_gate() in the migration that made the table (20260927234313), or re-enable the trigger."
+            exit 1
+          fi
+          echo "✅ $N public tables carry an enabled unconfirmed-email gate"
 
       - name: Smoke — post a job, expect triggers to fire cleanly
         # The actual P0: every INSERT INTO public.jobs invokes

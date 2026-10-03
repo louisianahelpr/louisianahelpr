@@ -11320,6 +11320,18 @@
    ],
    "columnGrants": {
     "authenticated": {
+     "INSERT": [
+      "attachment_duration",
+      "attachment_mime",
+      "attachment_size",
+      "attachment_url",
+      "client_id",
+      "content",
+      "job_id",
+      "receiver_id",
+      "reply_to_id",
+      "sender_id"
+     ],
      "UPDATE": [
       "content",
       "edited_at",
@@ -11462,7 +11474,6 @@
     ],
     "authenticated": [
      "DELETE",
-     "INSERT",
      "REFERENCES",
      "SELECT"
     ]

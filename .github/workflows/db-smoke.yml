@@ -36,6 +36,7 @@ on:
       - "scripts/ci/replay-migrations.sh"
       - "scripts/ci/null-arg-validators.sql"
       - "scripts/ci/rowtype-args-unreadable.sql"
+      - "scripts/ci/client-insert-columns.sql"
       - "scripts/sql/identity-linking-scenarios.sql"
       - "scripts/check-identity-linking.mjs"
   workflow_dispatch:
@@ -245,6 +246,31 @@ jobs:
             exit 1
           fi
           echo "✅ canary flagged; no client-callable function in public takes a row its caller cannot read"
+
+      # Q340: authenticated held table-level INSERT on public.messages, so a
+      # client could set is_system (a fake platform notice), created_at (an
+      # edit window that never closes), read and the moderation flags on its
+      # own message. A client role may INSERT exactly the columns the client
+      # sends: declared in the SQL file, pinned to the client's own insert
+      # payloads by src/test/messagesInsertColumnsClientScoped.test.ts. The
+      # same query runs live in scripts/check-live-privileges.mjs.
+      - name: Smoke — a client INSERTs only the columns it sends
+        run: |
+          set -euo pipefail
+          N=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_class WHERE oid = to_regclass('public.messages')")
+          if [ "${N:-0}" -ne 1 ]; then
+            echo "::error::replayed schema has no public.messages — the check would pass vacuously"
+            exit 1
+          fi
+          OUT=$(psql -q -v ON_ERROR_STOP=1 -At -F '|' -f scripts/ci/client-insert-columns.sql)
+          if [ -n "$OUT" ]; then
+            echo "$OUT" | while IFS='|' read -r tbl role what; do
+              echo "::error::public.$tbl: $role $what"
+            done
+            echo "::error::FIX: REVOKE INSERT ON <table> FROM PUBLIC, anon, authenticated, then GRANT INSERT (<declared columns>) TO authenticated (20261003182009)."
+            exit 1
+          fi
+          echo "✅ client INSERT on public.messages is exactly the declared send columns"
 
       - name: Smoke — post a job, expect triggers to fire cleanly
         # The actual P0: every INSERT INTO public.jobs invokes

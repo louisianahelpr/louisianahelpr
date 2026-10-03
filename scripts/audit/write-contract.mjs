@@ -36,8 +36,8 @@
 // too. That list is hand-maintained; each entry names why it is pre-auth.
 
 import fs from "node:fs";
+import { supabaseDbQuery } from "../lib/supabaseDbQuery.mjs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
@@ -484,7 +484,7 @@ function sortDeep(v) {
 }
 
 export function fetchSnapshot() {
-  const raw = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", "-f", SQL_PATH], {
+  const raw = supabaseDbQuery(["--linked", "-o", "json", "-f", SQL_PATH], {
     cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"],
   });
   const start = raw.indexOf("{");

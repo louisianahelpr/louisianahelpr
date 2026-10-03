@@ -50,9 +50,9 @@
  * Exit 0 = no drift, 1 = drift, 2 = the check could not run.
  */
 import fs from "node:fs";
+import { supabaseDbQuery } from "../lib/supabaseDbQuery.mjs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseRewriteTuples, pgRegexpReplace } from "../lib/functionRewrites.mjs";
 
@@ -272,7 +272,7 @@ export function diffFunctions(expected, live, baseline = {}) {
 }
 
 function fetchLive() {
-  const raw = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", LIVE_SQL], {
+  const raw = supabaseDbQuery(["--linked", "-o", "json", LIVE_SQL], {
     cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"],
   });
   // Shapes seen: {rows:[…]} locally, a bare […] in CI (same as write-contract.mjs).

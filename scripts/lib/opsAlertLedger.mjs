@@ -13,7 +13,7 @@
  * recordOpsAlert NEVER throws: a ledger write must not turn a Slack alert or a
  * sweep into a failure. It returns false and prints a ::warning instead.
  */
-import { execFileSync } from "node:child_process";
+import { supabaseDbQuery } from "./supabaseDbQuery.mjs";
 
 /** SQL string literal. standard_conforming_strings is on in Supabase. */
 export const lit = (v) =>
@@ -32,14 +32,12 @@ export async function sql(query, { readOnly = false, timeoutMs = 20000 } = {}) {
     if (!res.ok) throw new Error(`Management API ${res.status}: ${(await res.text()).slice(0, 300)}`);
     return res.json();
   }
-  const args = ["db", "query", "--linked", "-o", "json", query];
-  if (process.env.LH_SUPABASE_WORKDIR) args.unshift("--workdir", process.env.LH_SUPABASE_WORKDIR);
-  const out = execFileSync("supabase", args, {
+  const globalArgs = process.env.LH_SUPABASE_WORKDIR ? ["--workdir", process.env.LH_SUPABASE_WORKDIR] : [];
+  const out = supabaseDbQuery(["--linked", "-o", "json", query], {
     encoding: "utf8",
     maxBuffer: 1 << 24,
     timeout: timeoutMs,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  }, { globalArgs });
   const json = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
   return json.rows ?? json;
 }

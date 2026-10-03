@@ -98,6 +98,8 @@ on:
       - "scripts/check-applied-migration-edits.mjs"
       - "scripts/lib/appliedMigrationEdits.mjs"
       - "scripts/audit/applied-migration-edits.json"
+      # Every live read above goes through it (Q1176).
+      - "scripts/lib/supabaseDbQuery.mjs"
   # Manual trigger so you can re-run the deploy without a new commit
   # (e.g., to apply a backlog after secrets are first configured).
   workflow_dispatch:

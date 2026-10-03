@@ -30,6 +30,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { parse } from "yaml";
+import { WORKFLOW_CHECKS } from "./helpers/requiredChecks";
 import {
   GENERATED,
   EVIDENCE,
@@ -307,16 +308,10 @@ describe("no workflow pushes with git directly — refresh-pr is the only pusher
  * Playwright contexts never reported, so the PR could not merge even on a green
  * main.
  *
- * REQUIRED_CHECKS is a dated measurement of a GitHub setting (not in the repo):
- * `gh api repos/louisianahelpr/louisianahelpr/branches/main/protection
- * --jq .required_status_checks.contexts` on 2026-09-23. If branch protection
- * changes, re-measure and update this list in the same commit.
+ * REQUIRED_CHECKS is the workflow-produced part of the one copy of the GitHub
+ * setting (./helpers/requiredChecks; CodeQL is posted by GitHub itself).
  */
-const REQUIRED_CHECKS = [
-  "Playwright happy-path smoke (mocked Supabase, mobile viewport)",
-  "Playwright mobile viewports (320 / 375 / 414 / 768 / 1024)",
-  "Vitest unit tests",
-];
+const REQUIRED_CHECKS = WORKFLOW_CHECKS.map((c) => c.name);
 
 describe("refresh PRs dispatch every workflow behind main's required checks (Q32)", () => {
   type Wf = { on?: unknown; jobs?: Record<string, { name?: string } | null> };

@@ -25,17 +25,15 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { REQUIRED_CHECKS as ALL_REQUIRED, WORKFLOW_CHECKS } from "./helpers/requiredChecks";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 
-// The required status checks on main, and the workflow each comes from.
-const REQUIRED_CHECKS: Record<string, string> = {
-  "Vitest unit tests": ".github/workflows/vitest.yml",
-  "Lint, type-check, build, test": ".github/workflows/test.yml",
-  "Playwright happy-path smoke (mocked Supabase, mobile viewport)": ".github/workflows/e2e-happy-path.yml",
-  "Playwright mobile viewports (320 / 375 / 414 / 768 / 1024)": ".github/workflows/mobile-viewports.yml",
-};
+// The required status checks on main (one copy: ./helpers/requiredChecks), and
+// the workflow each comes from. CodeQL is posted by GitHub's code scanning
+// default setup, not by a workflow file here.
+const REQUIRED_CHECKS: Record<string, string> = Object.fromEntries(WORKFLOW_CHECKS.map((c) => [c.name, c.workflow]));
 
 const COUNT_GUARDS = [
   "src/test/deadcodeRatchet.test.ts",
@@ -60,6 +58,7 @@ describe("landing path (Q44)", () => {
     .join("\n");
 
   it("names every required check and every count guard", () => {
+    expect(ALL_REQUIRED.map((c) => c.name)).toEqual([...Object.keys(REQUIRED_CHECKS), "CodeQL"]);
     expect(Object.keys(REQUIRED_CHECKS)).toHaveLength(4);
     expect(COUNT_GUARDS).toHaveLength(5);
   });
@@ -82,6 +81,17 @@ describe("landing path (Q44)", () => {
       const at = code.indexOf(g);
       expect(at, `${g} missing from land.sh`).toBeGreaterThan(-1);
       expect(at, `${g} runs after the push`).toBeLessThan(pushAt);
+    }
+  });
+
+  it("CodeQL comes from code scanning default setup, so no workflow file may compete with it", () => {
+    // An advanced codeql.yml cannot upload while default setup is on (the
+    // owner's louisianahelpr-patch-1 PR runs failed exactly so); a job named
+    // "CodeQL" would post a second check under the required name.
+    expect(existsSync(join(ROOT, ".github/workflows/codeql.yml"))).toBe(false);
+    expect(existsSync(join(ROOT, ".github/workflows/codeql.yaml"))).toBe(false);
+    for (const c of ALL_REQUIRED.filter((r) => r.workflow === null)) {
+      expect(c.app, `${c.name} is posted by github-advanced-security`).toBe(57789);
     }
   });
 

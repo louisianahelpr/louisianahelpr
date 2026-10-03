@@ -10,18 +10,16 @@
 // default dispatch list was "test.yml vitest.yml": two of the three required
 // checks were never produced.
 //
-// REQUIRED_CHECKS is a copy of a GitHub setting; re-measure it with the command
-// above when branch protection changes.
+// The required checks come from ./helpers/requiredChecks (the one copy of the
+// GitHub setting). Only those a workflow file produces need dispatching; CodeQL
+// is posted by GitHub's code scanning default setup on every PR.
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
+import { WORKFLOW_CHECKS } from "./helpers/requiredChecks";
 
-const REQUIRED_CHECKS = [
-  "Playwright happy-path smoke (mocked Supabase, mobile viewport)",
-  "Playwright mobile viewports (320 / 375 / 414 / 768 / 1024)",
-  "Vitest unit tests",
-];
+const REQUIRED_CHECKS = WORKFLOW_CHECKS.map((c) => c.name);
 
 const ROOT = join(__dirname, "..", "..");
 const WF_DIR = join(ROOT, ".github", "workflows");

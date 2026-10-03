@@ -328,20 +328,16 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         </div>
       </div>
 
-      {/* NOT CONNECTED YET: the connect card is the page. Everything below it
-          — the wallet, the goal, the charts, the ledger — is either empty or
-          about money that cannot move until Stripe is set up, so the one thing
-          a helpr can do sits at the top rather than behind a tab.
-          `!stripeError` matters: a failed status fetch is NOT "not
-          connected" — that state renders its own retry banner below. */}
-      {/* Mounted (so its queries run) but hidden until the whole page is ready:
-          see `pageReady` above. */}
+      {/* NOT CONNECTED YET: the connect card is the page; everything below it
+          (wallet, goal, charts, ledger) is empty or about money that cannot
+          move until Stripe is set up. `!stripeError` matters: a failed status
+          fetch is NOT "not connected" (it has its own retry banner below).
+          Mounted so its queries run, hidden until `pageReady`; until then, with
+          no Stripe account on the profile row, its data-aware bones hold the
+          slot (owner, 2026-10-03). */}
       {!stripeLoading && !stripeError && !stripeData?.connected && (
         <div hidden={!pageReady}>{payoutSection}</div>
       )}
-      {/* DATA-AWARE placeholder for that block (owner, 2026-10-03): no Stripe
-          account on the profile row means the connect card IS coming, so its
-          shape holds the slot until the page is ready. */}
       {!pageReady && !profile?.stripe_account_id && <EarningsPayoutSetupSkeleton />}
 
       {/* 1099-K banner — appears once YTD payouts cross the federal gross

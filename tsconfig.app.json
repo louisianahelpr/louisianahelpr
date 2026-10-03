@@ -69,6 +69,7 @@
     "supabase/functions/_shared/boundedFetch.ts",
     "supabase/functions/_shared/functionFetch.ts",
     "supabase/functions/_shared/caughtMessage.ts",
+    "supabase/functions/_shared/standardWebhookHeaders.ts",
     "supabase/functions/_shared/reservedRecipient.ts",
     "supabase/functions/_shared/testRecipient.ts",
     "supabase/functions/_shared/disputePayoutStamp.ts",

@@ -11,6 +11,9 @@ import {
 import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import type { AppliedApp } from "@/components/job-card/activityConstants";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 /**
  * The tab badge and the list under it must agree.

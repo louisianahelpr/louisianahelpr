@@ -35,6 +35,7 @@
  * The fix is `jobLocalDateISO` (src/test/helpers/jobLocalDate.ts).
  *
  * @mutate src/components/job-card/activityBadgeListAgreement.test.tsx | date_needed: jobLocalDateISO(6), | date_needed: new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10),
+ * @mutate src/components/job-card/jobStepOneRow.test.tsx | pinJobClock(); | ;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
@@ -289,5 +290,62 @@ describe("a job day is Central, never UTC", () => {
     expect(hits(bomb), "the real 2026-09-20 bomb must be caught").toBe(1);
     expect(hits(past), "a permanently-historical literal is legitimate").toBe(0);
     expect(hits(future), "a permanently-future literal is legitimate").toBe(0);
+  });
+});
+
+/* ── THE THIRD WAY: A JOB DAY MEETS THE CLOCK ─────────────────────────────
+   The zone and the calendar can both be right and a fixture still go red at a
+   time nobody chose. `date_needed: TODAY, start_time: "23:59"` is a start LATER
+   today for 1,439 minutes and NOW for the last one: from 23:59 to midnight
+   Central the start has arrived and Cancel Job is (correctly) gone, so a row
+   that should hold four controls holds three. jobRowControlSameness went red on
+   exactly that at 04:59Z (PR #1996, run 36817413591) and pinned its own clock;
+   its sibling jobStepOneRow did not, and went red the same way on PR #2178
+   (run 37098219105, 04:59Z = 23:59 CDT).
+
+   The rule: a file that dates a job to Central TODAY (`jobLocalDateISO(0)`, or
+   a const bound to it) and gives a job a literal `start_time` runs on a pinned
+   clock: pinJobClock() (src/test/helpers/pinJobClock.ts) or its own
+   vi.setSystemTime. Otherwise whether that start has passed depends on when CI
+   happens to run. Measured 2026-10-03 with the clock forced to seven instants
+   across the Central day: of the 12 such files then on the real clock, only
+   jobStepOneRow failed, only at 23:59; all 12 are pinned now. */
+export function centralTodayWithLiteralStart(src: string): boolean {
+  const body = stripComments(src);
+  const names = [...body.matchAll(/\b(?:const|let|var)\s+(\w+)\s*=\s*jobLocalDateISO\(\s*0\s*\)/g)].map((m) => m[1]);
+  const today = new RegExp(`\\bdate_needed\\s*:\\s*(?:jobLocalDateISO\\(\\s*0\\s*\\)${names.map((n) => `|${n}\\b`).join("")})`);
+  return today.test(body) && /\bstart_time\s*:\s*["'`]\d{2}:\d{2}/.test(body);
+}
+
+const pinsTheClock = (src: string) => /\bpinJobClock\(|\bvi\.setSystemTime\(/.test(stripComments(src));
+
+describe("a job dated today with a literal start time runs on a pinned clock", () => {
+  // src/ only: Playwright specs run a real browser clock against the real
+  // backend, where a pin would test nothing the product does.
+  const TODAY_START_FILES = ALL.filter((f) => f !== SELF && f.startsWith("src/") && centralTodayWithLiteralStart(read(f)));
+
+  it("the inventory is real", () => {
+    // 14 on 2026-10-03: the 12 pinned by that change, jobRowControlSameness and jobStepRowCases.
+    expect(TODAY_START_FILES.length, "nothing dates a job today with a literal start — the matcher is broken").toBeGreaterThan(10);
+  });
+
+  it("the matcher catches the shape and does not cry wolf", () => {
+    expect(centralTodayWithLiteralStart('const TODAY = jobLocalDateISO(0);\nx = { date_needed: TODAY, start_time: "23:59" };')).toBe(true);
+    expect(centralTodayWithLiteralStart('x = { date_needed: jobLocalDateISO(0), start_time: "09:00" };')).toBe(true);
+    expect(centralTodayWithLiteralStart('x = { date_needed: jobLocalDateISO(-1), start_time: "09:00" };')).toBe(false);
+    expect(centralTodayWithLiteralStart('const TODAY = jobLocalDateISO(0);\nx = { date_needed: TODAY, start_time: null };')).toBe(false);
+    expect(centralTodayWithLiteralStart('// date_needed: jobLocalDateISO(0), start_time: "23:59"\nx = 1;')).toBe(false);
+    expect(pinsTheClock("pinJobClock();")).toBe(true);
+    expect(pinsTheClock("// pinJobClock();\nconst NOW = Date.now();")).toBe(false);
+  });
+
+  it("every such file pins the clock", () => {
+    const offenders = TODAY_START_FILES.filter((f) => !pinsTheClock(read(f)));
+    expect(
+      offenders,
+      "these files date a job TODAY with a literal start_time on the real clock, so a case can flip " +
+        "when CI runs near that time (a 23:59 start is NOW from 23:59 to midnight Central). " +
+        "Call pinJobClock() after the imports (src/test/helpers/pinJobClock.ts):\n  " + offenders.join("\n  "),
+    ).toEqual([]);
   });
 });

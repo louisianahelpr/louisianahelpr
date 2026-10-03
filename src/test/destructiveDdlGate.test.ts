@@ -205,6 +205,7 @@ describe("check-destructive-ddl — the escape hatch cannot be tripped by accide
     // If one is ever added, this test is the thing that should have to be
     // deleted first — deliberately, in a diff someone reads.
     const src = readFileSync(SCRIPT, "utf8");
+    expect(src.length).toBeGreaterThan(2000); // the whole script was read, not an empty file
     expect(src).not.toMatch(/process\.env\.[A-Z_]*(SKIP|FORCE|BYPASS|ALLOW|OVERRIDE)/);
     expect(src.match(/--(force|skip|no-verify|bypass)\b/)).toBeNull();
   });

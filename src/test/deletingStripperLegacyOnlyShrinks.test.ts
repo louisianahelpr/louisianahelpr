@@ -73,4 +73,4 @@ describe("the deleting-stripper legacy list only shrinks", () => {
 
 // Proof this is able to fail: a file that no longer has the pattern must not
 // keep its entry.
-// @mutate scripts/eslint-rules/deleting-comment-stripper-legacy.json | "e2e/happy-path/zz-runtime-probe.spec.ts", | "src/test/alertPolicy.test.ts",
+// @mutate scripts/eslint-rules/deleting-comment-stripper-legacy.json | "src/test/twoFontTypeSystem.test.tsx", | "src/test/alertPolicy.test.ts",

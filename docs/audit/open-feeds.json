@@ -1,20 +1,23 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-03T13:50Z",
+  "measured_at": "2026-10-03T17:13Z",
   "issues": {
     "readable": true,
     "open": [
       {
         "number": 2183,
-        "title": "nightly-red: vacuity"
+        "title": "nightly-red: vacuity",
+        "label": "nightly-red"
       },
       {
-        "number": 2189,
-        "title": "nightly-red: prod-errors"
+        "number": 2198,
+        "title": "nightly-red: staleness-watch",
+        "label": "nightly-red"
       },
       {
-        "number": 2193,
-        "title": "nightly-red: press-every-control"
+        "number": 2200,
+        "title": "nightly-red: e2e-real-backend",
+        "label": "nightly-red"
       }
     ]
   },
@@ -30,28 +33,12 @@
         "issue": 1754
       },
       {
-        "fingerprint": "7e141f206640992d5c398b4e39d71f94",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: press-every-control",
-        "issue": 2193
-      },
-      {
-        "fingerprint": "37cccbe58bb354c6d7a1a80e77bd1711",
-        "source_kind": "workflow",
-        "source": "ops-alert-ledger",
-        "status": "open",
-        "title": "sentry alerts are not synced into the ops alert ledger",
-        "issue": null
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: staleness-watch",
-        "issue": 2121
+        "issue": 2198
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -70,12 +57,12 @@
         "issue": 2183
       },
       {
-        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
+        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: prod-errors",
-        "issue": 2189
+        "title": "nightly-red: e2e-real-backend",
+        "issue": 2200
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -129,16 +116,16 @@
     "issue #2054": "Q788",
     "issue #2121": "Q787",
     "issue #2183": "Q788",
-    "issue #2188": "Q1147",
     "issue #2189": "Q1148",
     "issue #2193": "Q783",
+    "issue #2198": "Q787",
+    "issue #2200": "Q1164",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1148",
-    "ledger 27789cd6fd0c": "Q1149",
     "ledger 37cccbe58bb3": "Q1132",
-    "ledger 3eff7210ea51": "Q1147",
+    "ledger 3a3460b71be7": "Q1164",
     "ledger 51722889b9d8": "Q1133",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",

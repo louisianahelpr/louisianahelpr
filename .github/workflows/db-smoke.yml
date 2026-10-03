@@ -35,6 +35,7 @@ on:
       - ".github/workflows/db-smoke.yml"
       - "scripts/ci/replay-migrations.sh"
       - "scripts/ci/null-arg-validators.sql"
+      - "scripts/ci/rowtype-args-unreadable.sql"
       - "scripts/sql/identity-linking-scenarios.sql"
       - "scripts/check-identity-linking.mjs"
   workflow_dispatch:
@@ -208,6 +209,42 @@ jobs:
             exit 1
           fi
           echo "✅ $FNS boolean functions in public classified — no allow check says yes to a NULL argument"
+
+      # PostgREST hands a computed field the WHOLE row, and a whole-row
+      # reference needs SELECT on every column: payment_captured(jobs) 403'd
+      # every admin money read for a day, because authenticated may not read
+      # jobs.offered_to_helper_id (20260915045110). The canary (a throwaway
+      # table with a column withheld from authenticated, and a function over
+      # its row, rolled back) proves the query fires on this schema before its
+      # clean answer is believed. The same query runs live in
+      # scripts/check-live-privileges.mjs.
+      - name: Smoke — no client-callable function takes a row its caller cannot read
+        run: |
+          set -euo pipefail
+          CANARY=$(psql -q -v ON_ERROR_STOP=1 -At -F ' ' <<'SQL'
+          BEGIN;
+          CREATE TABLE public.zz_rowtype_canary_t (id int, withheld text);
+          REVOKE ALL ON public.zz_rowtype_canary_t FROM PUBLIC, anon, authenticated;
+          GRANT SELECT (id) ON public.zz_rowtype_canary_t TO authenticated;
+          CREATE FUNCTION public.zz_rowtype_canary(r public.zz_rowtype_canary_t) RETURNS boolean LANGUAGE sql STABLE AS 'SELECT true';
+          GRANT EXECUTE ON FUNCTION public.zz_rowtype_canary(public.zz_rowtype_canary_t) TO authenticated;
+          \i scripts/ci/rowtype-args-unreadable.sql
+          ROLLBACK;
+          SQL
+          )
+          if ! echo "$CANARY" | grep -q "^zz_rowtype_canary(zz_rowtype_canary_t) zz_rowtype_canary_t authenticated$"; then
+            echo "::error::the check did not flag its canary (got: ${CANARY:-no rows}) — it cannot fail here, so a clean answer would mean nothing"
+            exit 1
+          fi
+          OUT=$(psql -q -v ON_ERROR_STOP=1 -At -F ' ' -f scripts/ci/rowtype-args-unreadable.sql)
+          if [ -n "$OUT" ]; then
+            echo "$OUT" | while read -r fn rel role; do
+              echo "::error::$role may EXECUTE public.$fn but cannot SELECT every column of $rel: every computed-field call fails 42501"
+            done
+            echo "::error::FIX: answer from a function with scalar arguments or an admin RPC (20261003050100), or REVOKE EXECUTE from that role if no client calls it."
+            exit 1
+          fi
+          echo "✅ canary flagged; no client-callable function in public takes a row its caller cannot read"
 
       - name: Smoke — post a job, expect triggers to fire cleanly
         # The actual P0: every INSERT INTO public.jobs invokes

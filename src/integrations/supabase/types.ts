@@ -5774,6 +5774,12 @@ export type Database = {
         Args: { _reason: string; _review_id: string }
         Returns: undefined
       }
+      admin_gift_card_paid_job_ids: {
+        Args: never
+        Returns: {
+          job_id: string
+        }[]
+      }
       admin_last_activity: {
         Args: never
         Returns: {
@@ -7063,10 +7069,6 @@ export type Database = {
       }
       ops_alert_verify: { Args: never; Returns: Json }
       ops_route_key: { Args: { p_route: string }; Returns: string }
-      payment_captured: {
-        Args: { j: Database["public"]["Tables"]["jobs"]["Row"] }
-        Returns: boolean
-      }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json

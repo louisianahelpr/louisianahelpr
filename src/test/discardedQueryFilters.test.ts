@@ -56,11 +56,10 @@ describe("discarded-builder guard — red on origin/main (d492446), green on the
     const source = live(ADMIN);
     expect(guard.hitsInSource(ADMIN, source)).toEqual([]);
     // The fix is the reassignment, not a reworded comment.
-    // (Q233: the status list is now the shared CAPTURED_PAYMENT_STATUSES, and
-    // a PaymentIntent is required too — still one reassigned chain. Q443:
-    // "captured" is the payment_captured computed field, so a gift-card-paid
-    // job with no PaymentIntent counts.)
-    expect(source).toMatch(/query = query\.in\("payment_status", \[\.\.\.CAPTURED_PAYMENT_STATUSES\]\)\.filter\("payment_captured", "eq", true\);/);
+    // (Q233: the status list is now the shared CAPTURED_PAYMENT_STATUSES —
+    // still one reassigned chain. Q443: a PaymentIntent or a gift card is then
+    // required client-side, by isCapturedPayment.)
+    expect(source).toMatch(/query = query\.in\("payment_status", \[\.\.\.CAPTURED_PAYMENT_STATUSES\]\);/);
   });
 
   it("flags the pre-fix en-route position write that never fired", () => {

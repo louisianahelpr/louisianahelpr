@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
-import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
+import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
+import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -100,7 +101,7 @@ const AdminAnalytics = () => {
       let page = 0;
       const PAGE_SIZE = 999;
       while (true) {
-        const { data, error } = await supabase.from("jobs").select(`${JOB_READABLE_COLUMNS}, payment_captured`).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        const { data, error } = await supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
         if (error) {
           report(error, { tags: { source: "AdminAnalytics.loadJobs" } });
           break;
@@ -111,7 +112,7 @@ const AdminAnalytics = () => {
         page++;
       }
 
-      const [profilesRes, tipsRes, rolesRes, transfersRes] = await Promise.all([
+      const [profilesRes, tipsRes, rolesRes, transfersRes, giftCardPaidRes] = await Promise.all([
         readAllProfiles<Profile>(ANALYTICS_PROFILE_COLUMNS),
         // Seed-filtered like every other source in this loader. `tips` has no
         // `is_seed` column of its own, so we constrain through the job it
@@ -126,12 +127,16 @@ const AdminAnalytics = () => {
         // `job_id` so the Payout Pipeline's Released rung can be attributed to
         // the jobs it settled rather than quoting a budget as a settlement.
         supabase.from("payout_transfers").select("amount_cents, status, job_id"),
+        // Q443: which jobs a gift card paid, so computeMetrics counts them as
+        // collected (they carry no job PI).
+        loadGiftCardPaidJobIds(),
       ]);
       if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
       if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
       if (rolesRes.error) report(rolesRes.error, { tags: { source: "AdminAnalytics.loadRoles" } });
+      if (giftCardPaidRes.error) report(giftCardPaidRes.error, { tags: { source: "AdminAnalytics.loadGiftCardPaid" } });
       setProfiles(profilesRes.rows);
-      setAllJobs(allJobsData);
+      setAllJobs(withGiftCardPaid(allJobsData, giftCardPaidRes.ids));
       setTips(tipsRes.data || []);
       // This error was the ONE of the four that went unchecked, and it was the
       // one guarding a money figure: a failed read fell through `|| []` to an
@@ -259,11 +264,19 @@ const AdminAnalytics = () => {
       // Named columns, not `*`: offered_to_helper_id is not selectable
       // (20260915045110) and `*` would 42501 the whole read.
       let query = supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false });
-      if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true);
-      if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true);
+      if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
+      if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
       const { data, error } = await query;
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
-      setDrillJobs(readableJobRows<Job>(data));
+      if (type === "jobs") {
+        setDrillJobs(readableJobRows<Job>(data));
+      } else {
+        // A held status is a claim; the money list keeps only rows with a job
+        // PI or a gift card behind them (Q233, Q443).
+        const giftCardPaid = await loadGiftCardPaidJobIds();
+        if (giftCardPaid.error) report(giftCardPaid.error, { tags: { source: "AdminAnalytics.drillDownGiftCardPaid" } });
+        setDrillJobs(withGiftCardPaid(readableJobRows<Job>(data), giftCardPaid.ids).filter(isCapturedPayment));
+      }
     } else if (type === "subscriptions") {
       const { rows, error } = await readAllProfiles<DrillProfile>(DRILL_PROFILE_COLUMNS, (q) => q.not("subscription_tier", "is", null).order("subscription_tier").order("id"));
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownSubscriptions" } });

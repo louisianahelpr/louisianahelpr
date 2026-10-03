@@ -90,6 +90,9 @@ import { AppliedJobCard } from "../../pages/jobs/AppliedJobCard";
 import { POSTER_PROOF_MISSING_NOTE } from "@/components/PhotoProof";
 import { requiredProof } from "@/lib/photoProofPolicy";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 const HELPER = "helper-1";
 const POSTER = "poster-1";

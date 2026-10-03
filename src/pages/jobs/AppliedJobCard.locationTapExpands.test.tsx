@@ -79,6 +79,9 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: nul
 
 import { AppliedJobCard } from "./AppliedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 /** A real street address, so `hasStreetAddress` is true and the full-address
     branch (the one that goes `basis-full`) is the branch under test. */

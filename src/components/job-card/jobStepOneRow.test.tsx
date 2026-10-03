@@ -84,6 +84,9 @@ import { JobStepCard } from "./JobStepCard";
 import { JobStepRowSlot, shouldTightenJobStepRow, primaryRoomAfterTightening } from "./jobStepRow";
 // The sweep's own copy, never a retyped copy of it (owner item 7).
 import { STALLED_APPROVE_DISABLED_LABEL } from "../../../supabase/functions/_shared/stalledCompletion";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});

@@ -64,6 +64,9 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: nul
 
 import { AppliedJobCard } from "./AppliedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 const job = {
   id: "job-1",

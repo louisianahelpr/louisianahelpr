@@ -193,15 +193,6 @@
       "ciReadable": false
     },
     {
-      "id": "fcm-service-account",
-      "label": "Firebase (FCM) service-account key",
-      "env": ["FCM_SERVICE_ACCOUNT"],
-      "hosts": [],
-      "sourceOfTruth": "Google Cloud IAM > service account > Keys (expiry only under an org key-expiry policy)",
-      "read": { "method": "manual", "date": null, "recorded": null },
-      "ciReadable": false
-    },
-    {
       "id": "github-actions-token",
       "label": "GitHub token used by workflows (GITHUB_TOKEN)",
       "env": ["GITHUB_TOKEN"],
@@ -228,7 +219,6 @@
     "EMAIL_UNSUBSCRIBE_SECRET": "self-generated HMAC secret",
     "FASTLANE_APPLE_ID": "identifier, not a credential",
     "FASTLANE_PASSWORD": "Apple ID password; no expiry date (liveness is ios-beta itself)",
-    "FCM_PROJECT_ID": "identifier, not a credential",
     "GEMINI_API_KEY": "Google AI API key; no expiry date",
     "HELPR_POSTAL_ADDRESS": "config, not a credential",
     "KEYCHAIN_PASSWORD": "self-generated passphrase for a throwaway CI keychain",

@@ -4,6 +4,8 @@ export interface OwnerWorld {
   authUserIds: Set<string>;
   jobIds: Set<string>;
   attachmentRefs: string[];
+  /** public.deleted_jobs_log seed rows: job id -> its lifetime in ms (Q1149). */
+  deletedSeedJobs?: Map<string, { from: number | null; until: number }>;
 }
 export interface StoredObject {
   bucket: string;
@@ -12,11 +14,13 @@ export interface StoredObject {
   createdAt: string;
   cacheControl?: string | null;
 }
-export type OrphanObject = StoredObject & { reason: string };
+export type OrphanObject = StoredObject & { reason: string; seedDeleted?: boolean };
 export const USER_BUCKETS: string[];
 export const IDENTITY_DOCUMENT_BUCKETS: string[];
 export const DEFAULTS: Readonly<{ minAgeDays: number; maxFiles: number; maxBucketPct: number; waitMinutes: number }>;
 export function orphanReason(bucket: string, name: string, world: OwnerWorld): string | null;
+export function owningJobId(bucket: string, name: string): string | null;
+export function seedJobDeleted(bucket: string, name: string, world: OwnerWorld, createdAtMs: number): boolean;
 export function identityDocumentDeletable(bucket: string, name: string, world: OwnerWorld): boolean;
 export function selectOrphans(args: {
   objects: StoredObject[];

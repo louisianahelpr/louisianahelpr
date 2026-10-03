@@ -24,7 +24,7 @@ import { queueCounts, unnumberedLines } from "../../scripts/queue-count.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 
-/** Unnumbered open lines in docs/OPEN.md + archives: 0 since 2026-10-02, when the last 205 were numbered Q926-Q1130. Any new one is red. */
+/** Current unnumbered open lines in docs/OPEN.md + archives; lower when numbering one. */
 const UNNUMBERED_OPEN_LINES = 0;
 
 describe("open lines carry a Q number", () => {

@@ -163,3 +163,5 @@
 {"sha":"6387b3be8f356a4a30849eca067aaef999bd418d","reviewer":"lh-silent-failure","verdict":"APPROVE","date":"2026-10-02"}
 {"sha":"fa2ee54242710528c556a92bd51aa7292216dd60","reviewer":"lh-money-escrow","verdict":"APPROVE: behaviour-preserving hoist (owner confirmed 2026-10-02)","date":"2026-10-02"}
 {"sha":"f270158f2bf1d52d393e60b81d5c38e9ce48d024","reviewer":"code-review","verdict":"ok: plaintext email fallback decodes &amp; last; no money, authz or data-model change; red-then-green test","date":"2026-10-02"}
+{"sha":"c4cd2e3cb69ceb0ec558e67ef02f27f9b8670ec0","reviewer":"code-review","verdict":"PASS: ampersand decoding last prevents double-decoding escaped entities; existing single-entity behavior retained; isolated helper/test change","date":"2026-10-03"}
+{"sha":"ad371a26bb3bf56e98b4a73a2a079d120f4063e9","reviewer":"lh-authz-rls","verdict":"PASS: eligibility adds only completed jobs by this poster; poster, series, block, ban, open-date and restricted-execution checks remain; tested positive and negative cases","date":"2026-10-03"}

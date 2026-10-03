@@ -44,7 +44,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { queueCounts } from "./queue-count.mjs";
-import { gitRefReader, queueText } from "./lib/openQueue.mjs";
+import { foreignLines, gitRefReader, queueText } from "./lib/openQueue.mjs";
 import { countFindings, foldFindings, parseFindingsLog } from "./lib/auditFindings.mjs";
 import { feedCounts } from "./lib/openFeeds.mjs";
 import { INVENTORY as EXPIRY_INVENTORY, inventoryCounts, runAll as runExpiry, scoreboardRows as expiryScoreboardRows } from "./lib/expiryMonitor.mjs";
@@ -955,6 +955,14 @@ export function renderLiveOpen(live) {
   return lines.join("\n");
 }
 
+/** The lines renderOpenBlock writes (foreignLines refuses anything else between the markers). */
+export const OPEN_BLOCK_SHAPES = [
+  /^\*\*Open work — start here\*\*/,
+  /^Numbers for everything we test: /,
+  /^- \*\*Open: \d+\*\* /,
+  /^- \*\*(Workflows on main|Remote branches|Live \(workflows, branches\)|Ops alert ledger|nightly-red issues):/,
+];
+
 /** Replace [start..end] in `text` (inclusive of the markers) or insert after the H1. */
 export function spliceOpen(text, block) {
   const i = text.indexOf(EO_START), j = text.indexOf(EO_END);
@@ -1113,6 +1121,11 @@ async function main() {
     openLive = committedLive(between(openText ?? "", EO_START, EO_END) ?? "");
   }
   const sb = renderScoreboard(local, sbLive);
+  const foreign = foreignLines(between(openText, EO_START, EO_END) ?? "", OPEN_BLOCK_SHAPES);
+  if (foreign.length) {
+    console.error(`scoreboard: ${foreign.length} hand-written line(s) inside the generated Everything-open block in ${OPEN}; writing would delete them. Move them outside the markers:\n${foreign.map((l) => `  ${l.slice(0, 160)}`).join("\n")}`);
+    process.exit(1);
+  }
   const open = spliceOpen(openText, renderOpenBlock(local, openLive, openText));
   writeFileSync(sbPath, sb);
   writeFileSync(openPath, open);

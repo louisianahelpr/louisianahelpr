@@ -14,7 +14,7 @@
  *   node scripts/queue-count.mjs --write  # rewrite it in docs/OPEN.md
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { gitRefReader, queueText } from "./lib/openQueue.mjs";
+import { foreignLines, gitRefReader, queueText } from "./lib/openQueue.mjs";
 
 export const START = "<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->";
 export const END = "<!-- /generated: queue-count -->";
@@ -76,6 +76,9 @@ export function countLine(c) {
   return `**Queue: ${c.total} items — ${c.done} done, ${c.partial} partly done (fixed, protection pending), ${c.open} open${un ? `; plus ${un} unnumbered open line${un === 1 ? "" : "s"} still to number` : ""}.**`;
 }
 
+/** The only line the queue-count block may hold (foreignLines). */
+export const COUNT_LINE_SHAPE = /^\*\*Queue: \d+ items — .*\*\*$/;
+
 export function storedLine(md) {
   const a = md.indexOf(START), b = md.indexOf(END);
   return a >= 0 && b > a ? md.slice(a + START.length, b).trim() : null;
@@ -90,6 +93,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv.includes("--write")) {
     if (storedLine(md) === null) throw new Error(`no ${START} marker in ${path}`);
     const a = md.indexOf(START), b = md.indexOf(END);
+    const foreign = foreignLines(md.slice(a + START.length, b), [COUNT_LINE_SHAPE]);
+    if (foreign.length) {
+      console.error(`queue-count: ${foreign.length} hand-written line(s) inside the generated block in ${path}; --write would delete them. Move them outside the markers:\n${foreign.map((l) => `  ${l.slice(0, 160)}`).join("\n")}`);
+      process.exit(1);
+    }
     writeFileSync(path, md.slice(0, a + START.length) + "\n" + line + "\n" + md.slice(b));
   }
   console.log(line);

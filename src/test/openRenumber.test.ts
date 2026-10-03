@@ -13,7 +13,14 @@
  *    item's first line named it, and otherwise FILED A NEW ONE — one more copy
  *    of a source already named by several items (issue #1719 opened the first
  *    line of 10 items, #1582 of 9). It now refuses and reports it as ambiguous.
+ * 4. (2026-10-03) ONE item twice under one number (ticked into an archive by
+ *    the branch, still open in OPEN.md on main) was renumbered like two items:
+ *    f38b17024 made Q456 -> Q919 ... Q900 -> Q924, so Q456 stayed open while
+ *    done as Q919. The done copy now stays and the other is dropped.
  */
+// @mutate scripts/open-renumber.mjs |     if (list.every((o) => sameItemHead(o.line, list[0].line))) { |     if (false) {
+// @mutate scripts/open-renumber.mjs |       if (!done.length) { stuck.push(id); continue; } |       if (!done.length) { continue; }
+// @mutate scripts/open-renumber.mjs |     while (o.li + n < lines[o.fi].length && /^[ \t]+\S/.test(lines[o.fi][o.li + n])) n++; |     n = 1;
 // @mutate scripts/open-renumber.mjs |     const keep = onBase[0] ?? list[0]; |     const keep = list[0];
 // @mutate scripts/open-renumber.mjs |     if (o === keep) continue; |     if (o !== keep) continue;
 // @mutate scripts/lib/openFeeds.mjs |       else if (hits.length > 1) { ambiguous.push | else if (false) { ambiguous.push
@@ -25,7 +32,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { renumberPlan } from "../../scripts/open-renumber.mjs";
+import { renumberPlan, sameItemHead } from "../../scripts/open-renumber.mjs";
 // @ts-expect-error — plain .mjs script, no declaration file
 import { nextFreeAcross, duplicateIds } from "../../scripts/queue-count.mjs";
 import { applyFeeds } from "../../scripts/lib/openFeeds.mjs";
@@ -60,6 +67,46 @@ describe("open-renumber: main keeps the number, the branch's copy moves", () => 
     const real = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
     expect(real.split("\n").filter((l) => /^- \[[ x~]\] \*\*Q\d+/.test(l)).length).toBeGreaterThan(50);
     expect(renumberPlan([{ path: "docs/OPEN.md", text: base }], base, 9).renames).toEqual([]);
+  });
+});
+
+describe("open-renumber: one item in two states is not a collision (2026-10-03)", () => {
+  const fed = (s: string, note = "") => `- [${s}] **Q5 MEDIUM nightly-red: x is red.**${note} Mirrored 2026-09-30 from nightly-red issue #7.`;
+  const DONE = fed("x", " DONE 2026-10-02: issue #7 closed.");
+  const ARCH = "docs/archive/OPEN-done-2026-10.md";
+  // Main still has Q5 open (with a note under it); this branch ticked it into the archive.
+  const open = ["# Open", item(4, "old"), fed(" "), "  **STATUS 2026-10-01:** a note under the open copy", item(6, "next"), ""].join("\n");
+  const arch = ["# Done", DONE, ""].join("\n");
+
+  it("keeps the done copy, drops the open one with its indented lines, renumbers nothing", () => {
+    const plan = renumberPlan([{ path: "docs/OPEN.md", text: open }, { path: ARCH, text: arch }], open, 9);
+    expect(plan.renames).toEqual([]);
+    expect(plan.stuck).toEqual([]);
+    expect(plan.drops).toEqual([{ id: "Q5", path: "docs/OPEN.md", line: 3, kept: `${ARCH}:2` }]);
+    expect(plan.files.map((f: { path: string }) => f.path)).toEqual(["docs/OPEN.md"]);
+    expect(plan.files[0].text).toBe(["# Open", item(4, "old"), item(6, "next"), ""].join("\n"));
+  });
+
+  it("two done copies: main's stays, the branch's goes", () => {
+    const mainArch = ["# Done", DONE, ""].join("\n");
+    const branch = ["# Done", fed("x", " TICKED 2026-10-02 (branch)."), DONE, ""].join("\n");
+    const plan = renumberPlan([{ path: ARCH, text: branch }], mainArch, 9);
+    expect(plan.drops).toEqual([{ id: "Q5", path: ARCH, line: 2, kept: `${ARCH}:3` }]);
+    expect(plan.files[0].text).toBe(mainArch);
+  });
+
+  it("one item twice with no done copy: stuck, nothing written", () => {
+    const tree = ["# Open", fed(" "), fed("~"), ""].join("\n");
+    const plan = renumberPlan([{ path: "docs/OPEN.md", text: tree }], ["# Open", fed(" "), ""].join("\n"), 9);
+    expect(plan.stuck).toEqual(["Q5"]);
+    expect(plan.files).toEqual([]);
+  });
+
+  it("number-only heads (the real Q456/Q919 pair) match by their first 100 characters", () => {
+    const text = "(lh-money-escrow review of Q411, 2026-09-25, code read only): a job left at payment_status 'cancelling' (cancel_escrow's refund landed but a later step failed)";
+    expect(sameItemHead(`- [ ] **Q456** ${text}`, `- [x] **Q456** ${text} DONE: guarded.`)).toBe(true);
+    expect(sameItemHead("- [ ] **Q5 branch item.** body", "- [ ] **Q5 main item.** body")).toBe(false);
+    expect(sameItemHead("- [ ] **Q5** short", "- [x] **Q5** short")).toBe(false);
   });
 });
 

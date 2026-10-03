@@ -106,3 +106,71 @@ export function appendToArchive(existing, moved, date) {
   }
   return out;
 }
+
+/**
+ * One item under two numbers (found 2026-10-03). open-renumber met the SAME
+ * item twice under one number (ticked into an archive by the branch, still
+ * open in OPEN.md on main), took the pair for a number collision and gave the
+ * ticked copy a new number. f38b17024 made Q456 -> Q919, Q877 -> Q920,
+ * Q878 -> Q921, Q897 -> Q922, Q899 -> Q923 and Q900 -> Q924: Q456 stayed open
+ * while done as Q919, and five done items were counted twice.
+ *
+ * itemOriginKey(line) says where an item came from, so two numbers for one
+ * item can be found: a feed item's "Mirrored|Filed <date> from <source>" (an
+ * alert that fires again later is mirrored on a later date, a NEW item with a
+ * different key), else the first 100 characters of its text, when it has at
+ * least 100 (a shorter head says too little to call two items one, and a
+ * prefix no longer than the shortest head keeps a DONE note appended to the
+ * ticked copy out of the key).
+ */
+const QUEUE_HEAD = /^- \[([ x~])\] \*\*(Q\d+)\b(.*)$/;
+const FEED_SOURCE = String.raw`(?:nightly-red issue #\d+|alert-ledger row [0-9a-f]{12}|audit-bus finding [A-Z]+-\d+|issue #\d+)`;
+const FEED_ORIGIN = new RegExp(String.raw`\b(?:Mirrored|Filed) (\d{4}-\d{2}-\d{2}) from (${FEED_SOURCE}(?: and ${FEED_SOURCE})?)`);
+
+/** The text of a queue head line after its number: no bold, no severity, lower case, one space. */
+export function itemHeadText(line) {
+  const m = QUEUE_HEAD.exec(line);
+  if (!m) return null;
+  return m[3].replace(/\*\*/g, "").replace(/^\s*(CRITICAL|URGENT|HIGH|MEDIUM|LOW)\b/i, "")
+    .toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+export function itemOriginKey(line) {
+  const text = itemHeadText(line);
+  if (text === null) return null;
+  const o = FEED_ORIGIN.exec(line);
+  if (o) return `origin ${o[1]} ${o[2].toLowerCase()}`;
+  return text.length >= 100 ? `text ${text.slice(0, 100)}` : null;
+}
+
+/**
+ * Items that appear under two or more numbers, across the queue text
+ * (queueText: OPEN.md + archives). Returns [{ key, items: [{ id, state }] }].
+ */
+export function duplicateItems(md) {
+  const byKey = new Map();
+  for (const line of md.split("\n")) {
+    const m = QUEUE_HEAD.exec(line);
+    if (!m) continue;
+    const key = itemOriginKey(line);
+    if (!key) continue;
+    if (!byKey.has(key)) byKey.set(key, new Map());
+    byKey.get(key).set(m[2], m[1]);
+  }
+  return [...byKey].filter(([, ids]) => ids.size > 1)
+    .map(([key, ids]) => ({ key, items: [...ids].map(([id, state]) => ({ id, state })) }));
+}
+
+/**
+ * Hand-written lines inside a generated block are deleted by the next refresh
+ * (2026-10-03: 8f3dae96a, land.sh's refresh after a rebase, deleted the nine
+ * questions held for the owner, written between the queue-count markers, and
+ * the answers that came back had nowhere to land). A block writer calls this
+ * first and refuses to write while the block holds a line its generator could
+ * not have written. `shapes` are regexes for the lines the generator writes;
+ * blank lines and HTML comments are always allowed. Returns the foreign lines.
+ */
+export function foreignLines(blockText, shapes) {
+  return String(blockText ?? "").split("\n")
+    .filter((l) => l.trim() && !/^\s*<!--.*-->\s*$/.test(l) && !shapes.some((re) => re.test(l)));
+}

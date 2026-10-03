@@ -242,7 +242,18 @@ export default defineConfig({
       // The real-backend specs outside a project dir — excludes happy-path/*
       // (mocked) and the dirs that have their own project.
       testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary|slow-network|privacy|job-status-fixtures)\//,
-      use: { ...devices["Desktop Chrome"] },
+      // serviceWorkers "block", as every other project that loads the app does.
+      // This project also collects e2e/visual-audit/{responsive,desktop-fill},
+      // which answer Supabase from page.route mocks under a forged session.
+      // Workbox's NetworkFirst rule for *.supabase.co sends every call past
+      // page.route once the worker (sw-push.js) claims the page, so those
+      // "mocked" loads read PROD with the fake token: 401 PGRST301, then the
+      // retry, and the meter counted each call twice (page + worker). One
+      // mocked /home load at 1440 measured 104 metered requests, 24 of them
+      // 401s from prod, 36 duplicate GETs; with the worker blocked, 42, none
+      // to prod, 0 duplicates (Q1164, e2e-real-backend 37132155495 at
+      // 410/min). Guard: src/test/mockedSpecsBlockServiceWorkers.test.ts.
+      use: { ...devices["Desktop Chrome"], serviceWorkers: "block" },
     },
     {
       name: "happy-path",

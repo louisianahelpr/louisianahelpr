@@ -79,13 +79,12 @@ export function renumberPlan(files, baseText, nextFree) {
     if (list.every((o) => sameItemHead(o.line, list[0].line))) {
       const done = list.filter((o) => /^- \[x\] /.test(o.line));
       if (!done.length) { stuck.push(id); continue; }
-      const keep = done.find((o) => baseHeads.has(o.line)) ?? done[0];
-      for (const o of list) {
-        if (o === keep) continue;
+      const stays = done.find((o) => baseHeads.has(o.line)) ?? done[0];
+      for (const o of list.filter((c) => c !== stays)) {
         let n = 1;
         while (o.li + n < lines[o.fi].length && /^[ \t]+\S/.test(lines[o.fi][o.li + n])) n++;
         for (let k = 0; k < n; k++) dropped[o.fi].add(o.li + k);
-        drops.push({ id, path: files[o.fi].path, line: o.li + 1, kept: `${files[keep.fi].path}:${keep.li + 1}` });
+        drops.push({ id, path: files[o.fi].path, line: o.li + 1, kept: `${files[stays.fi].path}:${stays.li + 1}` });
       }
       continue;
     }

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-03T21:32:44.853Z",
-  "guards": 1362,
-  "registered": 1361,
+  "generated": "2026-10-03T21:58:01.054Z",
+  "guards": 1364,
+  "registered": 1363,
   "unregistered": [
     "src/test/jobPermissionsAllowCheckout.test.ts"
   ],

@@ -228,6 +228,7 @@ jobs:
         # ONE line: e2eSpecsReachableInCi reads workflow files line by line.
         if: always()
         env:
+          REQUEST_BUDGET_LABEL: chromium-anon-surface  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
         run: npx playwright test --project=chromium e2e/memory/route-retention.spec.ts e2e/probes/shell-spacing-probe.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)
@@ -235,7 +236,7 @@ jobs:
         # fails over e2e/request-budgets.json. `always()`: this leg allows
         # only always-run conditions (e2eSpecsReachableInCi).
         if: always()
-        run: node scripts/e2e/request-budget.mjs --label chromium
+        run: node scripts/e2e/request-budget.mjs --label chromium-anon-surface
 
   # ---------------------------------------------------------------------
   # Leg 2 — a real account against the deployed site.
@@ -271,6 +272,7 @@ jobs:
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
       - name: auth + payment lifecycle
         env:
+          REQUEST_BUDGET_LABEL: chromium-authenticated  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
           PLAYWRIGHT_TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
@@ -300,6 +302,7 @@ jobs:
         # feed grid measured 1344px (93%). The route now declares its own
         # content container and the suite is 16/16.
         env:
+          REQUEST_BUDGET_LABEL: chromium-authenticated  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_TEST_USER_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_USER_EMAIL }}
           PLAYWRIGHT_TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD }}
@@ -311,7 +314,7 @@ jobs:
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
         if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label chromium
+        run: node scripts/e2e/request-budget.mjs --label chromium-authenticated
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v7
@@ -391,6 +394,7 @@ jobs:
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
       - name: day-of confirm across two roles
         env:
+          REQUEST_BUDGET_LABEL: chromium-two-role  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_TWO_ROLE: "1"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_POSTER_SESSION: ${{ secrets.PLAYWRIGHT_POSTER_SESSION }}
@@ -401,7 +405,7 @@ jobs:
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
         if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label chromium
+        run: node scripts/e2e/request-budget.mjs --label chromium-two-role
 
   # ---------------------------------------------------------------------
   # Leg 4 — the full money loop against PRODUCTION, on a Stripe test key.
@@ -500,6 +504,7 @@ jobs:
 
       - name: post → fund → apply → hire → complete → release → review
         env:
+          REQUEST_BUDGET_LABEL: chromium-prod-lifecycle  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
           PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
@@ -520,7 +525,7 @@ jobs:
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
         if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label chromium
+        run: node scripts/e2e/request-budget.mjs --label chromium-prod-lifecycle
 
       # The whole point of this job is the legs a mock cannot cover, and when
       # one of them breaks the log says "waitForURL timed out" — which names the
@@ -638,6 +643,7 @@ jobs:
 
       - name: buy → deliver → claim → spend → cancel → restore
         env:
+          REQUEST_BUDGET_LABEL: chromium-gift-card  # its own budget (Q1175): five jobs used to share "chromium"
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
           PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
           PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
@@ -651,7 +657,7 @@ jobs:
         run: npx playwright test --project=chromium e2e/prod-gift-card.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts --trace=on
       - name: Backend request budget (Q104)
         if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label chromium
+        run: node scripts/e2e/request-budget.mjs --label chromium-gift-card
 
       - name: Keep the trace and screenshots when the journey fails
         if: failure()

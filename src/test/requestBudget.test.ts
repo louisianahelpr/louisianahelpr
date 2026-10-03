@@ -87,8 +87,12 @@ function requiredBudgetSteps(): { wf: string; label: string; has: boolean }[] {
       const labels = new Set<string>();
       for (const m of code.matchAll(/npx playwright test[^\n]*--project=(\S+)/g)) {
         const p = m[1];
-        // A job that sets REQUEST_BUDGET_LABEL meters under that name (e2e/prodTest.ts).
+        // A job that sets REQUEST_BUDGET_LABEL meters under that name (e2e/prodTest.ts):
+        // a matrix label, or a literal one (Q1175: five e2e-real-backend jobs with
+        // very different loads each meter under their own name, not "chromium").
+        const literal = /REQUEST_BUDGET_LABEL:\s*([A-Za-z0-9_.-]+)/.exec(code)?.[1];
         if (/REQUEST_BUDGET_LABEL:\s*\$\{\{ matrix\.label \}\}/.test(code)) labels.add("${{ matrix.label }}");
+        else if (literal) labels.add(literal);
         else if (p === "${{" || p.startsWith("${{")) labels.add("${{ matrix.project }}");
         else if (!MOCKED_PROJECTS.has(p)) labels.add(p);
       }
@@ -291,7 +295,7 @@ describe("Q104 calibration: budgets written from the first metered runs", () => 
     // EXACT, two-way: a label calibrated from a measured run (2026-09-23, run
     // ids in the file's _calibrated note) cannot silently go back to null, and
     // a new one is written here in the same commit.
-    expect(calibrated).toEqual(["a11y-prod", "a11y-prod-webkit", "abuse-journeys", "abuse-journeys-webkit", "journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "prod-audit", "slow-network"]);
+    expect(calibrated).toEqual(["a11y-prod", "a11y-prod-webkit", "abuse-journeys", "abuse-journeys-webkit", "chromium-anon-surface", "chromium-authenticated", "chromium-gift-card", "chromium-prod-lifecycle", "journeys", "journeys-webkit", "loading-states", "press-every-control", "privacy", "prod-audit", "slow-network"]);
     for (const k of calibrated) {
       const b = budgets[k];
       expect(typeof b.perTest, `${k}.perTest`).toBe("number");

@@ -37,7 +37,10 @@ const lines = [`### Open items named by this work (Q1150)`, ""];
 lines.push(`Range \`${range}\`: ${commits.length} commit(s); **${rows.length} named item(s) still open and untouched**.`);
 if (rows.length) {
   lines.push("", "| commit | item | subject |", "|---|---|---|");
-  for (const r of rows) lines.push(`| ${r.sha.slice(0, 9)} | ${r.id} | ${r.subject.replace(/\|/g, "\\|")} |`);
+  // A markdown table cell: escape backslashes first, then the pipe, so a
+  // subject ending in "\" cannot turn an escaped pipe back into a cell break.
+  const cell = (s) => s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+  for (const r of rows) lines.push(`| ${r.sha.slice(0, 9)} | ${r.id} | ${cell(r.subject)} |`);
   lines.push(
     "",
     "Each of these commits says it worked on an item, and the item's line in docs/OPEN.md was not changed.",

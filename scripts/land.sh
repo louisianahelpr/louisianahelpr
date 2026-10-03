@@ -101,6 +101,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # (node scripts/check-sensitive-review.mjs record <sha> <reviewer> <verdict>).
   node scripts/check-sensitive-review.mjs --range origin/main..HEAD --strict
 
+  # A commit that names an open docs/OPEN.md item must update that item in the
+  # same landing (Q1150, owner 2026-10-03: e952452d7 fixed Q572 and Q445 and
+  # neither line moved, so the open count overstated the work). Runs after the
+  # refresh, so an item ticked [x] here has already moved to the archive.
+  node scripts/check-fixes-update-their-items.mjs --range origin/main..HEAD --strict
+
   # Exact-count bookkeeping guards. Every main Vitest red on 2026-09-30 (12 of
   # 12, runs 36740238457..36787599011) was one of these: a commit moved a
   # count (unused exports, markerless [~] items, a done-when marker, an

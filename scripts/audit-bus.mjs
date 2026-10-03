@@ -29,6 +29,7 @@ import { countFindings, foldFindings } from "./lib/auditFindings.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = join(ROOT, "docs/audit/launch-2026-09");
 const LOG = join(DIR, "findings.jsonl");
+const mdCell = (value) => String(value).replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 
 const SEVERITIES = ["HIGH", "MEDIUM", "LOW", "POLISH"];
 const STATUSES = ["filed", "verified", "retracted", "duplicate", "fixed", "wontfix", "obsolete"];
@@ -183,7 +184,7 @@ if (cmd === "file") {
     lines.push("| ID | Blocker | Status | Surface | Claim | Agent | Evidence |");
     lines.push("|---|---|---|---|---|---|---|");
     for (const f of bucket) {
-      lines.push(`| ${f.id} | ${f.launch_blocker ? "**YES**" : ""} | ${f.status}${f.unevidenced ? " ⚠︎" : ""} | \`${f.surface}\` | ${f.claim.replace(/\|/g, "\\|")} | ${f.agent} | ${f.evidence.length || "—"} |`);
+      lines.push(`| ${f.id} | ${f.launch_blocker ? "**YES**" : ""} | ${f.status}${f.unevidenced ? " ⚠︎" : ""} | \`${f.surface}\` | ${mdCell(f.claim)} | ${f.agent} | ${f.evidence.length || "—"} |`);
     }
     lines.push("");
   }

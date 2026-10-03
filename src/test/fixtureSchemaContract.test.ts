@@ -198,6 +198,10 @@ describe("the constraint reader really read the constraints", () => {
     // …and accepts one it would accept, so the grader is not simply always red.
     const good = checkRow("jobs", literalReader(`{ pricing_mode: "set_price", budget: 180 }`), jobs, "probe");
     expect(good).toEqual([]);
+    expect(checkRow("jobs", literalReader(`{ credential_tier: 0 }`), jobs, "probe")).toEqual([]);
+    expect(checkRow("jobs", literalReader(`{ credential_tier: 1 }`), jobs, "probe")).toMatchObject([
+      { message: expect.stringContaining("jobs_credential_tier_check") },
+    ]);
   });
 });
 

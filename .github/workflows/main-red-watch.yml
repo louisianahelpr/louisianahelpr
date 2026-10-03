@@ -37,6 +37,7 @@ on:
       - Deploy iOS (TestFlight / App Store)
       - E2E happy-path smoke
       - E2E real backend
+      - ESLint
       - Supabase Edge Functions Deploy
       - Migration Timestamp Guard
       - Mobile viewport spot-check

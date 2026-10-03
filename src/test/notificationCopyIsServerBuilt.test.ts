@@ -343,7 +343,7 @@ describe("notification copy is server-built for every non-admin path (Q223)", ()
   });
 
   it("the scanners can fail: a planted offender in each shape is caught", () => {
-    const code = `const { note } = await req.json();\nawait db.from("notifications").insert({ user_id, title: "Hi", message: \`\${note}\` });`;
+    const code = 'const { note } = await req.json();\nawait db.from("notifications").insert({ user_id, title: "Hi", message: `${note}` });';
     const ids = bodyIdentifiers(code);
     const args = callArgs(code, code.indexOf(".insert(") + ".insert".length);
     expect(propertyValues(args, "message").some((v) => [...ids].some((id) => expressionOnly(v).includes(id)))).toBe(true);

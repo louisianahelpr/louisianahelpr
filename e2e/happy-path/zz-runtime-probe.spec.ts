@@ -196,7 +196,7 @@ function enumerateChannelSites(): ChannelSite[] {
       // appear near each other".
       const back = text.slice(Math.max(0, idx - 800), idx);
       const viaRecovery =
-        /subscribeWithRecovery\s*\(\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/|\s)*\(?\s*[A-Za-z_$][\w$]*\s*\)?\s*=>\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/|\s)*[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*$/.test(back);
+        /subscribeWithRecovery\s*\(\s*(?:\/\/[^\n]*\n|\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/|\s)*\(?\s*[A-Za-z_$][\w$]*\s*\)?\s*=>\s*(?:\/\/[^\n]*\n|\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/|\s)*[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*$/.test(back);
 
       // `subscribeWithRecovery` appends a fresh `channelNonce()` per attempt
       // (src/lib/realtimeRecovery.ts) UNLESS the caller opts out with

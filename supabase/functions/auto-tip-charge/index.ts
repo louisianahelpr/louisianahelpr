@@ -30,6 +30,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
 class AmbiguousCharge extends Error {}
@@ -572,7 +573,7 @@ serve(async (req) => {
     log("done", results);
     return cronResult("auto-tip-charge", results, defects.defects, corsHeaders);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = caughtMessage(err);
     log("FATAL", { error: message });
     return cronError("auto-tip-charge", message, corsHeaders);
   }

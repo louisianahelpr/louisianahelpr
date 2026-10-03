@@ -90,6 +90,12 @@ concurrency:
   group: ${{ github.event_name == 'schedule' && 'prod-load' || format('db-backup-{0}', github.run_id) }}
   cancel-in-progress: false
 
+# Least privilege (CodeQL actions/missing-workflow-permissions): backup only
+# reads the repo and uploads an artifact (runtime token, not GITHUB_TOKEN);
+# notify keeps its own issues: write override below.
+permissions:
+  contents: read
+
 jobs:
   backup:
     runs-on: ubuntu-latest

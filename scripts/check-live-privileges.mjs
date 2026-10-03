@@ -16,6 +16,11 @@
  *     and auto_suspended_until named explicitly (so the check still bites if
  *     they are ever dropped from that list). authenticated held UPDATE on both
  *     until 20260923212305.
+ *  4. scripts/ci/rowtype-args-unreadable.sql — no function a client role may
+ *     EXECUTE takes a whole row of a relation that role cannot SELECT in full.
+ *     PostgREST hands a computed field the whole row, so payment_captured(jobs)
+ *     403'd every admin money read (authenticated may not read
+ *     jobs.offered_to_helper_id) until 20261003050100 dropped it.
  *
  * Both queries are shared with the db-smoke replay gate; this reads PROD,
  * because prod is where a dashboard edit, an MCP apply or a failed replay can
@@ -39,6 +44,7 @@ const load = (p) =>
 
 const DEFAULTS_SQL = load("./ci/client-default-privileges.sql");
 const NULL_UID_SQL = load("./ci/null-uid-trust.sql");
+const ROWTYPE_SQL = load("./ci/rowtype-args-unreadable.sql");
 
 // Q304: profiles columns only the server may write. The locked list is what
 // sync_profiles_update_grants() subtracts every 10 minutes; the two literals
@@ -63,6 +69,7 @@ SELECT (SELECT count(*) FROM pg_proc p JOIN pg_language l ON l.oid = p.prolang
        (SELECT count(*) FROM pg_proc WHERE oid = to_regprocedure('public.is_server_context()'))::int AS has_server_context_helper,
        coalesce((SELECT json_agg(o) FROM (${DEFAULTS_SQL}) o), '[]'::json) AS default_offenders,
        coalesce((SELECT json_agg(o) FROM (${NULL_UID_SQL}) o), '[]'::json) AS null_uid_offenders,
+       coalesce((SELECT json_agg(o) FROM (${ROWTYPE_SQL}) o), '[]'::json) AS rowtype_offenders,
        (SELECT count(*) FROM pg_attribute
          WHERE attrelid = 'public.profiles'::regclass AND attname = ANY (ARRAY['ban_status', 'auto_suspended_until'])
            AND NOT attisdropped)::int AS server_only_columns_present,
@@ -107,8 +114,9 @@ const acl = Number(row?.postgres_default_acl_entries ?? 0);
 const defaults = parse(row?.default_offenders);
 const nullUid = parse(row?.null_uid_offenders);
 const serverOnly = parse(row?.server_only_column_offenders);
+const rowtype = parse(row?.rowtype_offenders);
 const serverOnlyPresent = Number(row?.server_only_columns_present ?? 0);
-if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || serverOnlyPresent !== 2) {
+if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || !Array.isArray(rowtype) || serverOnlyPresent !== 2) {
   console.error(`::error::live catalog returned ${fns} plpgsql functions / ${acl} postgres default-ACL entries in public / ${serverOnlyPresent} of 2 server-only profiles columns (Q304: ban_status, auto_suspended_until) — refusing to report clean.`);
   process.exit(2);
 }
@@ -117,6 +125,7 @@ if (process.argv.includes("--self-test")) {
   defaults.push({ owner_role: "postgres", schema: "public", object_type: "tables", grantee: "anon", privilege: "INSERT" });
   nullUid.push({ function_name: "zz_fake_guard", shape: "A", condition: "auth.uid() IS NULL" });
   serverOnly.push({ column: "ban_status", role: "authenticated" });
+  rowtype.push({ function_name: "zz_fake_field(jobs)", row_of: "jobs", role: "authenticated" });
 }
 
 let failed = false;
@@ -150,8 +159,16 @@ if (serverOnly.length) {
       "SELECT public.sync_profiles_update_grants() in a migration (a bare REVOKE is re-granted by the 10-minute sync cron).",
   );
 }
+if (rowtype.length) {
+  failed = true;
+  for (const o of rowtype) console.error(`::error::${o.role} may EXECUTE public.${o.function_name} but cannot SELECT every column of ${o.row_of}: every call through PostgREST (a computed field) fails 42501`);
+  console.error(
+    "PostgREST passes a computed field the whole row, and a whole-row reference needs SELECT on every column. " +
+      "Fix: answer from a function with scalar arguments or an admin RPC (see 20261003050100), or REVOKE EXECUTE from that role if no client calls it.",
+  );
+}
 if (!Number(row?.has_server_context_helper)) {
   console.log("note: public.is_server_context() is not deployed yet.");
 }
 if (failed) process.exit(1);
-console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column.");
+console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read.");

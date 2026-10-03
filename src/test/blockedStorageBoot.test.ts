@@ -34,7 +34,7 @@ describe("index.html blocked-storage boot repair", () => {
     // legitimately touches localStorage and is excluded.
     const repairTagStart = html.lastIndexOf("<script", repairMarkerIndex);
 
-    const scriptTags = [...html.matchAll(/<script\b[^>]*>/g)];
+    const scriptTags = [...html.matchAll(/<script\b[^>]*>/gi)];
     let checked = 0;
     for (const match of scriptTags) {
       const tagStart = match.index ?? -1;

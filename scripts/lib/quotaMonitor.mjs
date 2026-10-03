@@ -258,7 +258,7 @@ export function evaluateQuotas(readings, opts = {}) {
     notMonitored.length ? `${notMonitored.length} NOT MONITORED (no API)` : null,
   ].filter(Boolean).join("; ");
 
-  const esc = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
+  const esc = (s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ");
   const report = [
     "## Quota and limit monitor (Q63)",
     "",

@@ -40,6 +40,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { inspectPageToken, readMetaEnv, type TokenHealth } from "../_shared/marketing/meta.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 const FN = "marketing-token-health";
 
@@ -404,7 +405,7 @@ serve(async (req) => {
     // `probes` FIRST and un-nested: the detector reads these at the top level.
     return cronResult(FN, { ...probes, ...report }, defects.defects, corsHeaders);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = caughtMessage(err);
     console.error(`[${FN}] unhandled:`, err);
     return cronError(FN, message, corsHeaders);
   }

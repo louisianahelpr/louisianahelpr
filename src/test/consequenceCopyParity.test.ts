@@ -291,8 +291,14 @@ describe("the strike ladder is stated ONCE", () => {
           const after = line.slice(m.index! + m[0].length, m.index! + m[0].length + 140);
           if (!CONSEQUENCE.test(after)) continue; // "Strike 2 of 3" reports state, it doesn't restate the ladder
           if (offenders.some((o) => o.startsWith(`${file}:${i + 1} `))) continue; // one report per line
+          // Strip markup to a fixed point: one pass can join `<b<i>>` into a new tag.
+          let shown = after;
+          for (let prev = ""; prev !== shown; ) {
+            prev = shown;
+            shown = shown.replace(/<[^>]*>/g, "");
+          }
           offenders.push(
-            `${file}:${i + 1} — "${m[0]}${after.replace(/<[^>]*>/g, "").trim().slice(0, 60)}…" ` +
+            `${file}:${i + 1} — "${m[0]}${shown.trim().slice(0, 60)}…" ` +
               `is a hand-typed rung. Render RELIABILITY_LADDER_RUNGS (src/lib/reliabilityLadder.ts) ` +
               `so this sentence cannot survive the next change to apply_consequence_ladder.`,
           );

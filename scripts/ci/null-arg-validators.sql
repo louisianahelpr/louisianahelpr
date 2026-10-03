@@ -72,7 +72,6 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_category_taxable',           'classify', 'labels an earnings export row Taxable/Exempt'),
   ('is_late_cancellation',          'classify', 'labels a cancellation late (fee ladder)'),
   ('is_seed_email',                 'classify', 'labels an address as a seed account'),
-  ('payment_captured',              'classify', 'labels a jobs row as money actually collected (admin money reads); grants no access; a NULL row yields NULL, never true'),
   ('is_user_error_screen_row',      'classify', 'labels an error_logs row as a user-facing error screen'),
   ('get_thread_counterparty_deleted', 'classify', 'labels a thread''s other party as a deleted account (read-only notice); grants no access (it discloses one bit, account gone vs exists, see its migration), and a NULL argument returns false (threadCounterpartyDeleted.pglite.mjs)'),
   ('user_error_screen_is_real',     'classify', 'labels an error screen as real-user (ops alert counting)'),

@@ -42,6 +42,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { serve } from "../_shared/buildStamp.ts";
 import { fetchFunction } from '../_shared/functionFetch.ts';
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -129,7 +130,7 @@ serve(async (req) => {
   } catch (err) {
     console.error('[admin-test-push] send-push-notification unreachable:', err)
     return json(
-      { error: 'Could not reach the push service', detail: err instanceof Error ? err.message : String(err) },
+      { error: 'Could not reach the push service', detail: caughtMessage(err) },
       502,
     )
   }

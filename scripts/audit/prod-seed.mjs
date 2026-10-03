@@ -56,6 +56,7 @@ import { STUCK_SEED_SPLIT_QUERY, isStuckSeedSplit, retireStuckSplitPatch, stuckS
 import { removeJobMediaRest, removeUserStorageRest } from "../lib/jobMediaRest.mjs";
 import { latestConsentVersions } from "../lib/acceptCurrentTerms.mjs";
 import { seedPasswordFor } from "./seedPasswords.mjs";
+import { classifyVerifyRow } from "../lib/moneyStateExpectations.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));
@@ -875,7 +876,7 @@ async function teardown() {
   // Notifications the triggers fanned out to the pair from rows above (message
   // bodies are copied verbatim; application/dispute ones carry the job_id).
   const pairIn = inList([posterId, helperId]);
-  const bodies = THREAD.map(([, c]) => `"${c.replace(/"/g, '\\"')}"`);
+  const bodies = THREAD.map(([, c]) => JSON.stringify(c));
   await del("notifications", `user_id=${pairIn}&type=eq.message&message=in.(${bodies.map(encodeURIComponent).join(",")})`);
   await del("notifications", `user_id=${pairIn}&job_id=${inList(jobIds)}`);
   const disputed = await select(`disputes?reason=like.${encodeURIComponent("SEED audit fixture*")}&select=job_id`);
@@ -963,7 +964,8 @@ async function verify() {
     } catch (e) {
       err = e.message.slice(0, 80);
     }
-    rows.push({ state, n, min, ok: !err && n >= min, source, err });
+    const { ok, expectedUnseeded } = classifyVerifyRow({ n, min, err, source });
+    rows.push({ state, n, min, ok, expectedUnseeded, source, err });
   };
   const pair = `or=(customer_id.eq.${posterId},helper_id.eq.${posterId},customer_id.eq.${helperId},helper_id.eq.${helperId})`;
   for (const s of ["open", "accepted", "in_progress", "completed", "cancelled", "revision_requested", "disputed", "pending_approval"]) {
@@ -1060,11 +1062,18 @@ async function verify() {
 
   const w = Math.max(...rows.map((r) => r.state.length));
   console.log(`\n${"state".padEnd(w)}  count  min  ok   source`);
-  for (const r of rows) console.log(`${r.state.padEnd(w)}  ${String(r.n).padStart(5)}  ${String(r.min).padStart(3)}  ${r.ok ? "yes" : "NO "}  ${r.source}${r.err ? `  (${r.err})` : ""}`);
+  for (const r of rows) {
+    const status = r.ok ? (r.expectedUnseeded ? "UNS" : "yes") : "NO ";
+    console.log(`${r.state.padEnd(w)}  ${String(r.n).padStart(5)}  ${String(r.min).padStart(3)}  ${status}  ${r.source}${r.err ? `  (${r.err})` : ""}`);
+  }
   console.log("\nNot produced, by design:");
   for (const [what, why] of HONEST_GAPS) console.log(`  - ${what}: ${why}`);
+  const unseeded = rows.filter((r) => r.expectedUnseeded);
   const gaps = rows.filter((r) => !r.ok);
-  console.log(`\n${rows.length - gaps.length}/${rows.length} states present.`);
+  console.log(
+    `\n${rows.length - gaps.length}/${rows.length} states present` +
+      `${unseeded.length ? ` (${unseeded.length} expected-unseeded: live-Stripe money states, owner decision 2026-10-02: never complete a live payment to seed)` : ""}.`,
+  );
   return gaps.length === 0;
 }
 

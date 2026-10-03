@@ -161,7 +161,10 @@ function parseCheck(bodyRaw: string): ConstraintSpec | null {
     // constraint is conditional and this reading of it would be wrong.
     if (norm(b.slice(open + inner.length + 2)) !== "") return null;
     if (/\bSELECT\b/i.test(inner)) return null;
-    const values = [...inner.matchAll(/'((?:[^']|'')*)'/g)].map((v) => v[1].replace(/''/g, "'"));
+    let values = [...inner.matchAll(/'((?:[^']|'')*)'/g)].map((v) => v[1].replace(/''/g, "'"));
+    // A bare integer list — `credential_tier IN (0, 2, 3)` — reads as its
+    // digits, so a numeric column's allowed set compares like any other enum.
+    if (!values.length && /^[\s\d,]+$/.test(inner)) values = inner.split(",").map((v) => v.trim()).filter(Boolean);
     if (!values.length) return null;
     return { kind: "enum", column: inList[1], values, nullable };
   }
@@ -365,7 +368,11 @@ export function checkRow(
     const { present, value } = read(c.column);
     if (!present || value === null || value === undefined) continue;
     if (c.kind === "enum") {
-      if (typeof value !== "string" || !c.values.includes(value)) {
+      const enumValue =
+        typeof value === "number" && c.values.every((v) => /^-?\d+(?:\.\d+)?$/.test(v))
+          ? String(value)
+          : value;
+      if (typeof enumValue !== "string" || !c.values.includes(enumValue)) {
         out.push({
           where,
           message: `${table}.${c.column} = ${JSON.stringify(value)} — ${name} admits only ${JSON.stringify(c.values)}`,

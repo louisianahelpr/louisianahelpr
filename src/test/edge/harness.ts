@@ -492,6 +492,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/tipFees.ts";`,
   );
 
+  // Caught-value text: `_shared/caughtMessage.ts` has ZERO imports (a pure
+  // function), so the REAL module runs — what a failed run reports in its
+  // response body is exactly what the cron and admin tests assert.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/caughtMessage\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/caughtMessage.ts";`,
+  );
+
   // Poster tier service fee + Stripe floor: `_shared/posterFees.ts` is pure
   // TypeScript too (it only re-exports the helper ladder + the floor helper), so
   // the generated file points at the REAL module — the poster fee the checkout

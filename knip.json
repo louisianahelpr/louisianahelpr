@@ -20,7 +20,8 @@
     "puppeteer",
     "cordova-plugin-purchase",
     "pg",
-    "@electric-sql/pglite"
+    "@electric-sql/pglite",
+    "@microsoft/eslint-formatter-sarif"
   ],
   "rules": {
     "files": "error",

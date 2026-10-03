@@ -52,7 +52,9 @@ import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { publishAdminBadges } from "@/components/admin/adminBadgeStore";
 import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
+import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
+import { loadGiftCardPaidJobIds } from "@/components/admin/giftCardPaidJobIds";
+import { sparklineBuckets } from "@/components/admin/dashboard/sparklineBuckets";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => safeStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -246,6 +248,7 @@ const Admin = () => {
       activeJobsInRangeRows,
       quarterRes,
       testActiveRes, testDisputesRes, testSubsRes,
+      giftCardPaidRes,
     ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_seed", false),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
@@ -253,20 +256,20 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", false),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").eq("is_seed", false),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", false),
-      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true).neq("status", "cancelled").eq("is_seed", false),
+      supabase.from("jobs").select("id, payment_status, stripe_payment_intent_id, budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).neq("status", "cancelled").eq("is_seed", false),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", false),
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]).eq("is_seed", false),
       // New users by created_at — rows so we can bucket into a sparkline.
       supabase.from("profiles").select("created_at").gte("created_at", dStart).eq("is_seed", false),
       supabase.from("profiles").select("created_at").gte("created_at", dPrevStart).lt("created_at", dStart).eq("is_seed", false),
       // Revenue rows in current window
-      supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
-        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true)
+      supabase.from("jobs").select("id, payment_status, stripe_payment_intent_id, platform_fee_amount, customer_fee_amount, updated_at")
+        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
         .neq("status", "cancelled")
         .gte("updated_at", dStart).eq("is_seed", false),
       // Revenue rows in previous window
-      supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
-        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true)
+      supabase.from("jobs").select("id, payment_status, stripe_payment_intent_id, platform_fee_amount, customer_fee_amount, updated_at")
+        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
         .neq("status", "cancelled")
         .gte("updated_at", dPrevStart).lt("updated_at", dStart).eq("is_seed", false),
       // Completed jobs in current window
@@ -277,14 +280,16 @@ const Admin = () => {
       supabase.from("jobs").select("created_at").in("status", ["open", "accepted", "in_progress"]).gte("created_at", dStart).eq("is_seed", false),
       // Platform-fee revenue accrued this calendar quarter — feeds the
       // tax-reserve tracker's "this quarter" figure.
-      supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
-        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true)
+      supabase.from("jobs").select("id, payment_status, stripe_payment_intent_id, platform_fee_amount, customer_fee_amount, updated_at")
+        .in("payment_status", [...CAPTURED_PAYMENT_STATUSES])
         .neq("status", "cancelled")
         .gte("updated_at", quarterStart).eq("is_seed", false),
       // Q368: the seed rows the three counts above leave out, for "(+N test)".
       supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", true),
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", true),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", true),
+      // Q443: which held jobs a gift card paid (they carry no job PI).
+      loadGiftCardPaidJobIds(),
     ]);
 
     // Surface any failed query instead of silently rendering a misleading
@@ -300,6 +305,7 @@ const Admin = () => {
       ["completedInRange", completedInRangeRows], ["completedPrev", completedPrevRows],
       ["activeJobsInRange", activeJobsInRangeRows], ["quarter", quarterRes],
       ["testActive", testActiveRes], ["testDisputes", testDisputesRes], ["testSubs", testSubsRes],
+      ["giftCardPaid", giftCardPaidRes],
     ];
     const failed = namedResults.filter(([, res]) => res.error);
     if (failed.length > 0) {
@@ -309,7 +315,12 @@ const Admin = () => {
     }
     setStatsLoadError(failed.length > 0);
 
-    const paymentRows = paymentsRes.data || [];
+    // The four held-status reads above return every held row; a payment counts
+    // only with a job PI or a gift card behind it (Q233, Q443).
+    const captured = <R extends { id: string; payment_status: string | null; stripe_payment_intent_id: string | null }>(rows: R[] | null) =>
+      withGiftCardPaid(rows, giftCardPaidRes.ids).filter(isCapturedPayment);
+    const paymentRows = captured(paymentsRes.data);
+    const revInRange = captured(revInRangeRows.data);
     const cancelledPaidRows = lateCancelRes.data || [];
     // `null > 0` is false in JS, the same result as `0 > 0`, so reading the
     // nullable column as a number here states the runtime comparison exactly.
@@ -319,32 +330,13 @@ const Admin = () => {
     const sumFees = (rows: Pick<Tables<"jobs">, "platform_fee_amount" | "customer_fee_amount">[] | null) =>
       (rows || []).reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0);
 
-    // Build a 10-point sparkline series across the current window. Rows
-    // outside the window or with no usable timestamp are silently
-    // dropped — the bucket math is forgiving so a few bad rows don't
-    // skew the chart.
-    const bucket10 = <R extends { ts?: string | null }>(rows: R[] | undefined | null, valueFn?: (row: R) => number): number[] => {
-      const buckets = Array(10).fill(0);
-      if (!rows) return buckets;
-      const nowMs = now.getTime();
-      const startMs = nowMs - windowDays * 86400000;
-      const span = windowDays * 86400000;
-      for (const r of rows) {
-        const ts = r.ts;
-        if (!ts) continue;
-        const t = new Date(ts).getTime();
-        if (!Number.isFinite(t) || t < startMs || t > nowMs) continue;
-        const idx = Math.min(9, Math.max(0, Math.floor(((t - startMs) / span) * 10)));
-        buckets[idx] += valueFn ? valueFn(r) : 1;
-      }
-      return buckets;
-    };
+    const bucket10 = <R extends { ts?: string | null }>(rows: R[] | undefined | null, valueFn?: (row: R) => number) => sparklineBuckets(rows, now, windowDays, valueFn);
 
     const newUsersSeries = bucket10(
       (newUsersInRangeRows.data || []).map((r) => ({ ts: r.created_at })),
     );
     const revenueSeries = bucket10(
-      (revInRangeRows.data || []).map((r) => ({
+      revInRange.map((r) => ({
         ts: r.updated_at,
         platform_fee_amount: r.platform_fee_amount,
         customer_fee_amount: r.customer_fee_amount,
@@ -376,11 +368,11 @@ const Admin = () => {
       lateCancellationRevenue,
       newUsersInRange: (newUsersInRangeRows.data || []).length,
       newUsersPrev: (newUsersPrevRows.data || []).length,
-      revenueInRange: sumFees(revInRangeRows.data),
-      revenuePrev: sumFees(revPrevRows.data),
+      revenueInRange: sumFees(revInRange),
+      revenuePrev: sumFees(captured(revPrevRows.data)),
       completedJobsInRange: (completedInRangeRows.data || []).length,
       completedJobsPrev: (completedPrevRows.data || []).length,
-      feesThisQuarter: sumFees(quarterRes.data),
+      feesThisQuarter: sumFees(captured(quarterRes.data)),
       newUsersSeries,
       revenueSeries,
       completedJobsSeries,

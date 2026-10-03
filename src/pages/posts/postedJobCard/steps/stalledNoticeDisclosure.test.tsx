@@ -64,6 +64,9 @@ import {
   STALLED_APPROVE_DISABLED_LABEL,
   STALLED_APPROVE_DISABLED_REASON,
 } from "../../../../../supabase/functions/_shared/stalledCompletion";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});

@@ -5,14 +5,17 @@
 // @mutate src/components/admin/adminJobs/JobListItem.tsx | {job.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/AdminNotificationLogs.tsx | const seedIds = await fetchSeedUserIds(logRows.map((r) => r.user_id)); | const seedIds = new Set<string>();
 // @mutate src/components/admin/AdminAnalytics.tsx | .select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false }); | .select(JOB_READABLE_COLUMNS).order("created_at", { ascending: false });
-// @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.payment_captured === true) | true
-// @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.payment_captured === true) | (!!job.stripe_payment_intent_id)
-// @mutate src/pages/admin/Admin.tsx | select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true) | select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).not("stripe_payment_intent_id", "is", null)
-// @mutate src/components/admin/useAdminUserSummaries.ts | .filter("payment_captured", "eq", true); | ;
-// @mutate src/components/admin/AdminAnalytics.tsx | .select(`${JOB_READABLE_COLUMNS}, payment_captured`).eq("is_seed", false).range( | .select(JOB_READABLE_COLUMNS).eq("is_seed", false).range(
-// @mutate supabase/migrations/20261002050635_q443_job_payment_captured.sql |        OR (\n         public.has_role(auth.uid(), 'admin') |        OR (\n         true
-// @mutate supabase/migrations/20261002050635_q443_job_payment_captured.sql |               AND g.status = 'redeemed' | AND true
-// @mutate supabase/migrations/20261002050635_q443_job_payment_captured.sql | FROM PUBLIC, anon; | FROM PUBLIC;
+// @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.gift_card_paid === true) | true
+// @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.gift_card_paid === true) | (!!job.stripe_payment_intent_id)
+// @mutate src/lib/capturedPayment.ts | gift_card_paid: giftCardPaidJobIds.has(row.id) | gift_card_paid: false
+// @mutate src/pages/admin/Admin.tsx | withGiftCardPaid(rows, giftCardPaidRes.ids).filter(isCapturedPayment) | withGiftCardPaid(rows, giftCardPaidRes.ids)
+// @mutate src/pages/admin/Admin.tsx | select("id, payment_status, stripe_payment_intent_id, budget, platform_fee_amount, customer_fee_amount") | select("budget, platform_fee_amount, customer_fee_amount")
+// @mutate src/components/admin/useAdminUserSummaries.ts | for (const j of withGiftCardPaid(data, giftCardPaid.ids).filter(isCapturedPayment)) { | for (const j of data) {
+// @mutate src/components/admin/AdminAnalytics.tsx | setAllJobs(withGiftCardPaid(allJobsData, giftCardPaidRes.ids)); | setAllJobs(allJobsData);
+// @mutate supabase/migrations/20261003050100_admin_gift_card_paid_job_ids.sql |    WHERE public.has_role((SELECT auth.uid()), 'admin'::public.app_role)\n     AND g.job_id IS NOT NULL |    WHERE g.job_id IS NOT NULL
+// @mutate supabase/migrations/20261003050100_admin_gift_card_paid_job_ids.sql |      AND g.status = 'redeemed' |      AND true
+// @mutate supabase/migrations/20261003050100_admin_gift_card_paid_job_ids.sql | ON FUNCTION public.admin_gift_card_paid_job_ids() FROM PUBLIC, anon; | ON FUNCTION public.admin_gift_card_paid_job_ids() FROM PUBLIC;
+// @mutate supabase/migrations/20261003050100_admin_gift_card_paid_job_ids.sql | DROP FUNCTION IF EXISTS public.payment_captured(public.jobs); | SELECT 1;
 /*
  * Q233 (+ Q368, owner 2026-09-24): every admin view either FILTERS seed
  * (is_seed) rows out of its numbers or KEEPS them in its list and marks each
@@ -30,7 +33,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { isCapturedPayment } from "@/lib/capturedPayment";
+import { isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { newestFunction } from "@/test/helpers/parityReaders";
 
 const ROOT = join(__dirname, "..", "..", "..");
@@ -148,27 +151,32 @@ describe("Q233: Payments Collected counts only charged payments", () => {
     expect(isCapturedPayment({ payment_status: "refunded", stripe_payment_intent_id: "pi_1" })).toBe(false);
   });
 
-  it("Q443: a job a gift card paid in full counts when the database says it was captured", () => {
-    // redeem_gift_card leaves such a job in escrow with no job PI; the computed
-    // field payment_captured answers from gift_cards, which admins cannot read.
-    expect(isCapturedPayment({ payment_status: "escrow", stripe_payment_intent_id: null, payment_captured: true })).toBe(true);
-    expect(isCapturedPayment({ payment_status: "escrow", stripe_payment_intent_id: null, payment_captured: false })).toBe(false);
-    expect(isCapturedPayment({ payment_status: "refunded", stripe_payment_intent_id: null, payment_captured: true })).toBe(false);
+  it("Q443: a job a gift card paid in full counts as captured", () => {
+    // redeem_gift_card leaves such a job in escrow with no job PI; the admin
+    // reads learn which jobs those are from admin_gift_card_paid_job_ids().
+    expect(isCapturedPayment({ payment_status: "escrow", stripe_payment_intent_id: null, gift_card_paid: true })).toBe(true);
+    expect(isCapturedPayment({ payment_status: "escrow", stripe_payment_intent_id: null, gift_card_paid: false })).toBe(false);
+    expect(isCapturedPayment({ payment_status: "refunded", stripe_payment_intent_id: null, gift_card_paid: true })).toBe(false);
+    const marked = withGiftCardPaid([{ id: "job-a" }, { id: "job-b" }], new Set(["job-b"]));
+    expect(marked.map((r) => r.gift_card_paid)).toEqual([false, true]);
   });
 
-  it("Q443: payment_captured counts a held job with a PI, or (for an admin only) a redeemed paid gift card", () => {
-    const def = newestFunction("payment_captured");
+  it("Q443: admin_gift_card_paid_job_ids answers admins only, from redeemed paid gift cards", () => {
+    const def = newestFunction("admin_gift_card_paid_job_ids");
     const body = def.body.replace(/\s+/g, " ");
-    expect(body, def.file).toMatch(/payment_status IN \('escrow', 'payout_pending', 'released'\)/);
-    expect(body, def.file).toMatch(/stripe_payment_intent_id IS NOT NULL OR \( public\.has_role\(auth\.uid\(\), 'admin'\) AND EXISTS/);
-    expect(body, def.file).toMatch(/g\.job_id = j\.id AND g\.status = 'redeemed' AND g\.payment_status = 'paid'/);
+    expect(body, def.file).toMatch(/WHERE public\.has_role\(\(SELECT auth\.uid\(\)\), 'admin'::public\.app_role\) AND g\.job_id IS NOT NULL/);
+    expect(body, def.file).toMatch(/AND g\.status = 'redeemed' AND g\.payment_status = 'paid'/);
     const file = readFileSync(join(ROOT, "supabase/migrations", def.file.split("/").pop()!), "utf8");
-    expect(file, def.file).toMatch(/REVOKE ALL ON FUNCTION public\.payment_captured\(public\.jobs\) FROM PUBLIC, anon;/);
-    // The admin Analytics page judges rows client-side, so its load must select the field.
-    expect(code(`${A}AdminAnalytics.tsx`)).toContain(".select(`${JOB_READABLE_COLUMNS}, payment_captured`).eq(\"is_seed\", false).range(");
+    expect(file, def.file).toMatch(/REVOKE ALL ON FUNCTION public\.admin_gift_card_paid_job_ids\(\) FROM PUBLIC, anon;/);
+    // The computed field it replaces 403'd every admin money read (a whole jobs
+    // row needs offered_to_helper_id, which authenticated may not read). It
+    // must stay dropped: db-smoke's rowtype-args-unreadable check is the class.
+    expect(() => newestFunction("payment_captured")).toThrow(/no live definition/);
+    // The Analytics page judges its loaded rows client-side, so the load marks them.
+    expect(code(`${A}AdminAnalytics.tsx`)).toContain("setAllJobs(withGiftCardPaid(allJobsData, giftCardPaidRes.ids));");
   });
 
-  it("every admin money read of a held status also requires payment_captured (PI or gift card, Q443)", () => {
+  it("every admin money read of a held status carries id + PI and is judged by isCapturedPayment (Q233, Q443)", () => {
     const files = [
       "src/pages/admin/Admin.tsx",
       `${A}AdminAnalytics.tsx`,
@@ -178,10 +186,23 @@ describe("Q233: Payments Collected counts only charged payments", () => {
     for (const f of files) {
       const src = code(f);
       expect(src, `${f} hand-writes the captured-status list`).not.toMatch(/\["escrow", "payout_pending", "released"\]/);
+      expect(src, `${f} names the dropped computed field`).not.toMatch(/payment_captured/);
       const HELD = '.in("payment_status", [...CAPTURED_PAYMENT_STATUSES])';
+      let here = 0;
       for (let i = src.indexOf(HELD); i !== -1; i = src.indexOf(HELD, i + 1)) {
         n++;
-        expect(src.slice(i + HELD.length).trimStart(), f).toMatch(/^\.filter\("payment_captured", "eq", true\)/);
+        here++;
+        const sel = src.lastIndexOf(".select(", i);
+        const selected = src.slice(sel, src.indexOf(")", sel) + 1);
+        // JOB_READABLE_COLUMNS is every column authenticated may read, id and PI included.
+        if (selected !== ".select(JOB_READABLE_COLUMNS)") {
+          expect(selected, f).toMatch(/\bid\b/);
+          expect(selected, f).toMatch(/\bstripe_payment_intent_id\b/);
+        }
+      }
+      if (here > 0) {
+        expect(src, f).toContain("loadGiftCardPaidJobIds()");
+        expect(src, f).toMatch(/withGiftCardPaid\([^\n]*\)\.filter\(isCapturedPayment\)/);
       }
     }
     expect(n).toBe(7);

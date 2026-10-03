@@ -218,4 +218,4 @@ jobs:
 // SOURCE-TEXT PIN: it reads files, never prod. Whether the RPC exists live is
 // `to_regprocedure('public.ops_alert_record(text,text,text,text,text,jsonb,text,text,timestamptz)')`.
 // @mutate supabase/functions/slack-ops-alert/index.ts | await recordOpsAlertLedger({ | await noLedger({
-// @mutate .github/workflows/uptime.yml | node scripts/ops-alert-ledger.mjs record | node scripts/ops-alert-ledger.mjs rec
+// @mutate .github/workflows/uptime.yml | node scripts/ops-alert-ledger.mjs record --source-kind workflow --source "uptime" | node scripts/ops-alert-ledger.mjs rec --source-kind workflow --source "uptime"

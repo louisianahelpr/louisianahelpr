@@ -124,6 +124,9 @@ vi.mock("@/integrations/supabase/client", () => makeSupabase());
 import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import { PostedJobCard } from "@/pages/posts/PostedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
+
+pinJobClock();
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});

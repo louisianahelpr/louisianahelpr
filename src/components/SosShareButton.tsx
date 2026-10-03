@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldAlert, Share2, Loader2 } from "lucide-react";
+import { ShieldAlert, Share2, Loader2, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -233,6 +233,26 @@ export function SosShareSheet({
           DialogContent uses. */}
       <SheetContent side="bottom">
           <SheetHero title="Share Your Location" />
+          {/* THE EMERGENCY NUMBER (TS-007). Sharing a location reaches only the
+              person the user picks; it alerts nobody else, so the sheet says
+              so and puts 911 one tap away. A real `tel:` link, not a handler:
+              the OS dialer opens on web and in the native shell alike.
+              Guard: src/test/sosOffersEmergencyCall.test.ts. */}
+          <p className="text-ds-13 text-muted-foreground mt-1">
+            In immediate danger? Call 911 first. Sharing sends your location only to the
+            person you pick. It does not alert us or emergency services.
+          </p>
+          <Button
+            asChild
+            variant="outline"
+            className="w-full mt-3"
+            style={{ ...SOS_TINT, border: SOS_TINT.border }}
+          >
+            <a href="tel:911" aria-label="Call 911">
+              <Phone className="w-4 h-4 mr-2" />
+              Call 911
+            </a>
+          </Button>
           {/* THE SHARED POPUP FOOTER, not a hand-rolled stack of two
               full-width buttons. This was the last sheet drawing its own
               action row, and it was also the last surface in the app showing a

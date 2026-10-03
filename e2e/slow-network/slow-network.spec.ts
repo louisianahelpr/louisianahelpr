@@ -541,7 +541,7 @@ test(stepTitle("pay-start", "3g"), async ({ browser, request, journey }) => {
   const submit = await fillToCheckout(page, title, journey.allowReport);
   await throttle3g(ctx, page);
   // Stops at Stripe's door: pay START, nothing is charged.
-  await waitShowsProgress(page, "Continue to Payment → Stripe Checkout", () => submit.click(), async () => page.url().includes("checkout.stripe.com"));
+  await waitShowsProgress(page, "Continue to Payment → Stripe Checkout", () => submit.click(), async () => new URL(page.url()).hostname === "checkout.stripe.com");
   await ctx.close();
 });
 

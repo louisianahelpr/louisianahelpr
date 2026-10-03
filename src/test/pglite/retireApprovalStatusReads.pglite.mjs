@@ -269,8 +269,9 @@ check("anon cannot set email_verified", anonHeld);
 check("an unconfirmed member cannot set their own email_verified", (await selfUpd(FORM_ONLY, FORM_ONLY)) === false);
 
 // 5. The INSERT policy still pins every gate input, including email_verified.
+let nextTestUserId = 40;
 const ins = async (cols) => {
-  const uid = U(40 + Math.floor(Math.random() * 50));
+  const uid = U(nextTestUserId++);
   await db.exec(`SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub', '${uid}', false)`);
   try {
     await db.query(`INSERT INTO public.profiles (user_id${cols ? ", " + Object.keys(cols).join(", ") : ""}) VALUES ($1${cols ? Object.keys(cols).map((_, i) => `, $${i + 2}`).join("") : ""})`, [uid, ...Object.values(cols ?? {})]);

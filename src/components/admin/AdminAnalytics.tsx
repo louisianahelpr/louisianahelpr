@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
-import { CAPTURED_PAYMENT_STATUSES } from "@/lib/capturedPayment";
+import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
+import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -13,7 +14,7 @@ import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { SUB_PRICE, ANALYTICS_PROFILE_COLUMNS, DRILL_PROFILE_COLUMNS, type Profile, type DrillProfile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
 import { TIER_ORDER } from "@/lib/subscriptionTiers";
 import { TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
-import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
+import { computeMetrics, mostPrivilegedRoleByUser } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
@@ -100,7 +101,7 @@ const AdminAnalytics = () => {
       let page = 0;
       const PAGE_SIZE = 999;
       while (true) {
-        const { data, error } = await supabase.from("jobs").select(`${JOB_READABLE_COLUMNS}, payment_captured`).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        const { data, error } = await supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
         if (error) {
           report(error, { tags: { source: "AdminAnalytics.loadJobs" } });
           break;
@@ -111,7 +112,7 @@ const AdminAnalytics = () => {
         page++;
       }
 
-      const [profilesRes, tipsRes, rolesRes, transfersRes] = await Promise.all([
+      const [profilesRes, tipsRes, rolesRes, transfersRes, giftCardPaidRes] = await Promise.all([
         readAllProfiles<Profile>(ANALYTICS_PROFILE_COLUMNS),
         // Seed-filtered like every other source in this loader. `tips` has no
         // `is_seed` column of its own, so we constrain through the job it
@@ -126,12 +127,14 @@ const AdminAnalytics = () => {
         // `job_id` so the Payout Pipeline's Released rung can be attributed to
         // the jobs it settled rather than quoting a budget as a settlement.
         supabase.from("payout_transfers").select("amount_cents, status, job_id"),
+        loadGiftCardPaidJobIds(), // Q443: jobs a gift card paid (no job PI) still count as collected
       ]);
       if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
       if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
       if (rolesRes.error) report(rolesRes.error, { tags: { source: "AdminAnalytics.loadRoles" } });
+      if (giftCardPaidRes.error) report(giftCardPaidRes.error, { tags: { source: "AdminAnalytics.loadGiftCardPaid" } });
       setProfiles(profilesRes.rows);
-      setAllJobs(allJobsData);
+      setAllJobs(withGiftCardPaid(allJobsData, giftCardPaidRes.ids));
       setTips(tipsRes.data || []);
       // This error was the ONE of the four that went unchecked, and it was the
       // one guarding a money figure: a failed read fell through `|| []` to an
@@ -144,16 +147,7 @@ const AdminAnalytics = () => {
       } else {
         setTransfers((transfersRes.data as { amount_cents: number | string; status: string; job_id?: string | null }[] | null) || []);
       }
-      // Build user_id → most-privileged role map (admin > helper > customer).
-      const roleMap = new Map<string, string>();
-      const priority = (r: string) => r === "admin" ? 1 : r === "helper" ? 2 : 3;
-      for (const r of rolesRes.data ?? []) {
-        const existing = roleMap.get(r.user_id);
-        if (!existing || priority(r.role) < priority(existing)) {
-          roleMap.set(r.user_id, r.role);
-        }
-      }
-      setRoleByUser(roleMap);
+      setRoleByUser(mostPrivilegedRoleByUser(rolesRes.data ?? []));
       setLoading(false);
     };
     load();
@@ -259,11 +253,14 @@ const AdminAnalytics = () => {
       // Named columns, not `*`: offered_to_helper_id is not selectable
       // (20260915045110) and `*` would 42501 the whole read.
       let query = supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false });
-      if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true);
-      if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).filter("payment_captured", "eq", true);
+      if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
+      if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
       const { data, error } = await query;
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
-      setDrillJobs(readableJobRows<Job>(data));
+      // A held status is a claim: a money list keeps rows with a job PI or a gift card behind them (Q233, Q443).
+      const giftCardPaid = type === "jobs" ? null : await loadGiftCardPaidJobIds();
+      if (giftCardPaid?.error) report(giftCardPaid.error, { tags: { source: "AdminAnalytics.drillDownGiftCardPaid" } });
+      setDrillJobs(giftCardPaid ? withGiftCardPaid(readableJobRows<Job>(data), giftCardPaid.ids).filter(isCapturedPayment) : readableJobRows<Job>(data));
     } else if (type === "subscriptions") {
       const { rows, error } = await readAllProfiles<DrillProfile>(DRILL_PROFILE_COLUMNS, (q) => q.not("subscription_tier", "is", null).order("subscription_tier").order("id"));
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownSubscriptions" } });

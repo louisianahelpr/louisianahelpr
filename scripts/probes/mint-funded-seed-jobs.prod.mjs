@@ -232,7 +232,7 @@ try {
       const link = page.locator("#enableStripePass");
       if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true }).catch(() => {});
       await page.getByTestId("hosted-payment-submit-button").click();
-      await page.waitForURL((u) => !u.host.endsWith("checkout.stripe.com"), { timeout: 120_000 });
+      await page.waitForURL((u) => u.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 120_000 });
     } catch (e) {
       // The webhook, not the redirect, is the authority — poll below decides.
       console.log(`  checkout wait for ${job.id}: ${String(e.message).split("\n")[0]}`);

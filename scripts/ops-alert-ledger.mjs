@@ -50,6 +50,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
+import { CODE_SCANNING_JQ, CODE_SCANNING_SOURCE, CODE_SCANNING_TITLE, codeScanningChanged, summarizeCodeScanning } from "./lib/codeScanningLedger.mjs";
 
 const [, , cmd, ...rest] = process.argv;
 const opt = (name, dflt = undefined) => {
@@ -303,6 +304,50 @@ async function sync() {
       const r = await sql(`SELECT public.ops_alert_close(${lit(it.id)}::uuid, ${lit(evidence)}, ${lit(rerunAt)}::timestamptz) AS ok`);
       log.push(`${r?.[0]?.ok ? "closed" : "NOT closed (re-run predates last occurrence)"}: ${it.title}`);
     }
+  }
+
+  // 3b. GitHub code scanning (CodeQL, ESLint SARIF): ONE item listing the open
+  // alerts, recorded only when that set changes, closed with evidence at zero
+  // (scripts/lib/codeScanningLedger.mjs). Unreadable is itself an alert, like
+  // Sentry below: 63 sat unseen until 2026-10-03.
+  let codeScanningProblem = null;
+  try {
+    const out = execFileSync("gh", ["api", "--paginate", `repos/${repo}/code-scanning/alerts?state=open&per_page=100`, "-q", CODE_SCANNING_JQ],
+      { encoding: "utf8", maxBuffer: 1 << 24 });
+    const alerts = out.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    const item = summarizeCodeScanning(alerts);
+    const [prev] = await sql(`SELECT id, sample_ref FROM public.ops_alert_ledger
+                               WHERE status <> 'closed' AND source = ${lit(CODE_SCANNING_SOURCE)}
+                               ORDER BY last_seen DESC LIMIT 1`);
+    if (item) {
+      const prevRef = typeof prev?.sample_ref === "string" ? JSON.parse(prev.sample_ref) : prev?.sample_ref;
+      if (codeScanningChanged(prevRef, item.sampleRef.alerts)) {
+        const ok = await recordOpsAlert({
+          sourceKind: "workflow", source: CODE_SCANNING_SOURCE, title: CODE_SCANNING_TITLE, severity: item.severity,
+          sample: item.sample, sampleRef: item.sampleRef, verifyKind: "manual",
+        });
+        if (!ok) throw new Error("the ledger refused the code-scanning item");
+        log.push(`code-scanning: ${alerts.length} open alert(s) recorded (${item.sample.slice(0, 120)})`);
+      } else {
+        log.push(`code-scanning: ${alerts.length} open alert(s), unchanged since the last sync`);
+      }
+    } else if (prev) {
+      const at = new Date().toISOString();
+      const r = await sql(`SELECT public.ops_alert_close(${lit(prev.id)}::uuid, ${lit(`0 open code-scanning alerts on ${repo} at ${at} (gh api code-scanning/alerts?state=open)`)}, ${lit(at)}::timestamptz) AS ok`);
+      log.push(`code-scanning: 0 open alerts; ${r?.[0]?.ok ? "closed" : "NOT closed"} its ledger item`);
+    } else {
+      log.push("code-scanning: 0 open alerts");
+    }
+  } catch (e) {
+    codeScanningProblem = `code-scanning alerts could not be read: ${String(e.message).slice(0, 200)}`;
+  }
+  if (codeScanningProblem) {
+    log.push(`code-scanning: NOT SYNCED — ${codeScanningProblem}`);
+    console.log(`::warning title=Code-scanning alerts are NOT in the ops alert ledger::${codeScanningProblem}`);
+    await recordOpsAlert({
+      sourceKind: "workflow", source: "ops-alert-ledger", title: "Code-scanning alerts are not synced into the ops alert ledger",
+      severity: "warning", sample: codeScanningProblem, verifyKind: "workflow", verifyRef: "prod-errors.yml",
+    });
   }
 
   // 4. Sentry. A sync that cannot read Sentry is itself an alert: it goes in

@@ -21,6 +21,12 @@ import { queueCounts } from "../../scripts/queue-count.mjs";
 const ROOT = join(__dirname, "..", "..");
 const md = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
 const TIER = /\b(HIGH|MEDIUM|LOW)\b/;
+// Where the tier sits: right after a Q item's id (`**Q7 MEDIUM`, `**Q929** MEDIUM`,
+// `**Q362** (HIGH, ...`), else the first word. Anywhere
+// in the line was too loose: Q7 kept passing with its tier deleted because its
+// text says "LOW" elsewhere (vacuity run 37156530397, 2026-10-03).
+const TIER_AT = (l: string) =>
+  /^- \[[ ~]\] \*\*Q\d+/.test(l) ? /^- \[[ ~]\] \*\*Q\d+(?:\*\*)? \(?(HIGH|MEDIUM|LOW)\b/.test(l) : /^- \[[ ~]\] \**(HIGH|MEDIUM|LOW)\b/.test(l);
 
 describe("every open OPEN.md item has a tier", () => {
   const items = md.split("\n").map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => /^- \[[ ~]\] /.test(l));
@@ -37,7 +43,7 @@ describe("every open OPEN.md item has a tier", () => {
   });
 
   it("no open or partly-done item lacks HIGH/MEDIUM/LOW", () => {
-    const missing = items.filter(({ l }) => !TIER.test(l)).map(({ l, n }) => `OPEN.md:${n} ${l.slice(0, 100)}`);
+    const missing = items.filter(({ l }) => !TIER_AT(l)).map(({ l, n }) => `OPEN.md:${n} ${l.slice(0, 100)}`);
     expect(missing, "add HIGH, MEDIUM or LOW after the Q-number").toEqual([]);
   });
 });

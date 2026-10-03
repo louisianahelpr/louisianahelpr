@@ -1,3 +1,4 @@
+// @mutate .github/workflows/quota-monitor.yml |     permissions:\n      contents: read\n      issues: write |     permissions:\n      issues: write
 /*
  * GUARD (2026-10-03): a job that checks the repo out may read it.
  *

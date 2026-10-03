@@ -67,6 +67,8 @@ describe("open_jobs_browse heals itself back to a definer view (Q1156)", () => {
 
   it("no later migration unschedules the heal or makes the view an invoker view", () => {
     const later = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql") && f > FILE);
+    // Floor: 3 later migrations on 2026-10-03, and migrations are only ever added.
+    expect(later.length).toBeGreaterThan(0);
     for (const f of later) {
       const text = blankComments(readFileSync(join(MIG_DIR, f), "utf8"));
       expect(text, f).not.toMatch(/cron\.unschedule\(\s*'open-jobs-browse-heal'/);

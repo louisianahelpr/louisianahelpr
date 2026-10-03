@@ -80,6 +80,7 @@ function repoWith(name: string, file: string, steps: Step[]): string {
   mkdirSync(join(dir, "scripts/ci"), { recursive: true });
   copyFileSync(join(ROOT, "scripts/ci/schedule-added-at.mjs"), join(dir, "scripts/ci/schedule-added-at.mjs"));
   const path = `.github/workflows/${file}`;
+  expect(steps.length, "a fixture repo with no commits proves nothing").toBeGreaterThan(0);
   for (const s of steps) {
     if (s.body === null) git(dir, ["rm", "-q", path]);
     else {

@@ -217,12 +217,12 @@ jobs:
             BASE="$BEFORE"
             HEAD_SHA="$GITHUB_SHA"
           fi
-          git fetch --no-tags --unshallow origin 2>/dev/null || git fetch --no-tags --deepen=2000 origin || true
-          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            echo "::notice::no comparable base for this $EVENT event; nothing to judge"
-            exit 0
+          if [ -f "$(git rev-parse --git-dir)/shallow" ]; then git fetch --no-tags --unshallow origin; fi
+          if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            node scripts/check-fixes-update-their-items.mjs --range "$BASE..$HEAD_SHA" --strict
+          else
+            echo "::notice::no comparable base for this $EVENT event (a new branch or a force-push): there is no landing to judge"
           fi
-          node scripts/check-fixes-update-their-items.mjs --range "$BASE..$HEAD_SHA" --strict
 
       - name: Every stated count is generated, dated, or baselined (two-way)
         # A number typed into a doc or a test comment is a measurement frozen

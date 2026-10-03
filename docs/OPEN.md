@@ -107,6 +107,11 @@ sure someone hears it and closes it.
 
 ## MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)
 
+**Held 2026-10-03 night (owner: "hold questions for morning"); ask one pop-up per question:**
+- Q989: `user-documents/76b07824…/avatar.png` is NO LONGER a duplicate (measured: no other object shares its eTag 837a28b9… or its 810,107-byte size), so it is the only copy of that image. Delete it anyway, or keep it?
+- open_jobs_browse: the 2026-10-02 21:25:07Z and 21:25:17Z flips came from a Supabase DASHBOARD session (`-- source: dashboard`, session e68fec63…), statement identical to the Security Advisor's one-click "security definer view" fix. May a 5-minute cron put security_invoker back to false and page, so a repeat heals itself instead of breaking anon browse for hours?
+- Vercel: Web Analytics and Speed Insights are NOT enabled on the project (API: "Web Analytics not found"); PostHog covers product analytics. Turn Vercel's on (real-user Core Web Vitals on prod), or leave them off?
+
 - ANSWERED + DONE 2026-09-27 (Q747, owner pop-up "Delete all 13"): the 13 were deleted from origin; was: may I delete the 13 remote branches the move-aware re-check found fully on main (list in Q747; tip SHAs saved in ~/.lh-branch-backup/q747-candidates-2026-09-27.txt)? The permission classifier blocked the `git push origin --delete`; approving it, or adding a Bash rule for it, lets the lead finish.
 **ANSWERED 2026-09-27 (owner pop-ups, all held questions asked at once):**
 - Q183: (b) make `auto_restrict_repeat_violators` warn-first: suspend only on a second trip within 7 days, and count only its own types. BUILT 2026-09-27: migration 20260927043454_auto_restrict_warn_first (see Q183 below).

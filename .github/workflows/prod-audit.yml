@@ -214,9 +214,30 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$GREP" ]; then
-            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts -g "$GREP"
+            npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP"
           else
             npx playwright test --project=prod-audit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+          fi
+
+      # Core Web Vitals of every first screen in the lab (docs/OPEN.md Q1157,
+      # Q1158): FCP/LCP/CLS per first screen under the Lighthouse mobile and
+      # desktop profiles, and a walk of the dock/rail for taps that lead to a
+      # jump. It serves the dist/ the step above built itself, over HTTP/2
+      # (e2e/web-vitals/first-screens.spec.ts). Its own project and request
+      # budget label, so prod-audit's measured per-test number is untouched.
+      # Runs even when the audit suites above failed: an independent signal.
+      # A `grep` dispatch that names only one of the two projects finds no
+      # test in the other, hence --pass-with-no-tests on both grep branches.
+      - name: Run the first-screen Web Vitals lab budget
+        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: |
+          set -euo pipefail
+          if [ -n "$GREP" ]; then
+            npx playwright test --project=web-vitals --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts --pass-with-no-tests -g "$GREP"
+          else
+            npx playwright test --project=web-vitals --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
           fi
 
       # Q89 (owner pop-up 2026-09-23): five guards (a11y-prod, trailing-icon-
@@ -243,6 +264,14 @@ jobs:
         env:
           GREP: ${{ inputs.grep }}
         run: node scripts/e2e/request-budget.mjs --label prod-audit ${GREP:+--ceiling-only}
+      - name: Backend request budget, Web Vitals lab (Q104)
+        # The web-vitals project meters under its own label. A `grep` dispatch
+        # judges the ceiling only (as the prod-audit budget above does) and,
+        # since it may run none of this project's tests, allows an empty label.
+        if: ${{ !cancelled() && inputs.vacuity_only == '' }}
+        env:
+          GREP: ${{ inputs.grep }}
+        run: node scripts/e2e/request-budget.mjs --label web-vitals ${GREP:+--ceiling-only --allow-empty}
       - name: Keep failure screenshots, samples and traces
         if: always()
         uses: actions/upload-artifact@v7

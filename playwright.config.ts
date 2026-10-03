@@ -168,6 +168,27 @@ export default defineConfig({
         actionTimeout: 20_000,
       },
     },
+    {
+      name: "web-vitals",
+      // Core Web Vitals of every first screen in the lab (docs/OPEN.md Q1157,
+      // Q1158): this commit's dist/ served by the spec itself over HTTP/2 the
+      // way Vercel serves it, prod data as the shared poster account, under
+      // the Lighthouse mobile and desktop profiles. Its own project so its
+      // request budget is its own label (e2e/request-budgets.json), not a
+      // change to prod-audit's measured per-test number. Twice a week with
+      // the prod audit: .github/workflows/prod-audit.yml.
+      testDir: "./e2e/web-vitals",
+      fullyParallel: false,
+      workers: 1,
+      timeout: 45 * 60_000,
+      retries: 0,
+      use: {
+        ...devices["Desktop Chrome"],
+        serviceWorkers: "block",
+        trace: "retain-on-failure",
+        actionTimeout: 20_000,
+      },
+    },
     // PRIVACY REQUESTS (docs/OPEN.md Q70): create a disposable seed account,
     // export its data through the real button, delete it through the real
     // dialog, verify the purge row by row. Prod backend, this commit's local

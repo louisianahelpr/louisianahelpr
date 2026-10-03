@@ -66,6 +66,11 @@ UNTRACKED_BEFORE=$(git ls-files --others --exclude-standard | sort)
 attempt=0
 while :; do
   attempt=$((attempt + 1))
+  # The head this run starts from. When the rebase and refresh below land on
+  # the very same tree, it is pushed again unchanged (same SHA), so a re-run
+  # never restarts the checks for nothing (dropping and regenerating the
+  # refresh commit would otherwise mint a new SHA every time).
+  START_HEAD=$(git rev-parse HEAD)
   git fetch -q origin main
 
   # This script's own earlier refresh commits are dropped before the rebase:
@@ -160,6 +165,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     npx vitest run src/test/typesCoverMigrationFunctions.test.ts src/test/nullArgNeverAllows.test.ts
   fi
 
+  if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "$START_HEAD^{tree}")" ] &&
+     git merge-base --is-ancestor origin/main "$START_HEAD"; then
+    git reset -q --hard "$START_HEAD"
+    echo "land: same tree as the last push; keeping $(git rev-parse --short HEAD)."
+  fi
+
   if [ "$DRY" = 1 ]; then
     echo "land: --dry-run, not pushing. HEAD $(git rev-parse --short HEAD)"
     exit 0
@@ -206,7 +217,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   while :; do
     sleep 60
     waited=$((waited + 1))
-    INFO=$(gh pr view "$BR" --json state,mergeStateStatus)
+    # A GitHub hiccup (HTTP 503, 2026-10-03) is not a verdict: ask again next
+    # minute instead of letting set -e end the wait.
+    if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus 2>/dev/null); then
+      echo "land: GitHub did not answer; asking again in a minute."
+      continue
+    fi
     STATE=$(echo "$INFO" | jq -r .state)
     if [ "$STATE" = MERGED ]; then
       echo "land: $BR merged into main."

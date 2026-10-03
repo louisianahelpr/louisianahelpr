@@ -1,5 +1,5 @@
 // @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql |   IF p_type NOT IN ('trade_license', 'insurance') THEN |   IF p_type NOT IN ('trade_license', 'insurance', 'bond') THEN
-// @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql |           AND hc.credential_type = 'insurance'\n |           AND hc.credential_type IN ('insurance','bond')\n
+// @mutate supabase/migrations/20261002191601_credential_tier_drop_identity.sql |           AND hc.credential_type = 'insurance'\n |           AND hc.credential_type IN ('insurance','bond')\n
 // @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | 'trade_license'::text, 'insurance'::text])); | 'trade_license'::text, 'insurance'::text, 'bond'::text]));
 // @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql |   DROP CONSTRAINT IF EXISTS helper_credentials_pending_bond_needs_document;\n |   ALTER COLUMN document_url DROP DEFAULT;\n
 import { describe, expect, it } from "vitest";

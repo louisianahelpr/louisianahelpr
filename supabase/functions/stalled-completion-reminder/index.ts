@@ -68,6 +68,7 @@ import {
 } from "../_shared/stalledCompletion.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -322,6 +323,6 @@ serve(async (req) => {
       corsHeaders,
     );
   } catch (e) {
-    return cronError("stalled-completion-reminder", (e as Error).message ?? String(e), corsHeaders);
+    return cronError("stalled-completion-reminder", caughtMessage(e), corsHeaders);
   }
 });

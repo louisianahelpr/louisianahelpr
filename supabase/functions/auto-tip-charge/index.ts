@@ -107,6 +107,8 @@ serve(async (req) => {
     }
 
     const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0, held: 0, heldAgedOut: 0 };
+    /** Q1224: jobs whose poster was already told this run that a held tip aged out. */
+    const agedOutNotified = new Set<string>();
     // `results.failed` is NOT the page-worthy counter. It mixes real defects
     // (a read that errored) with business outcomes that recur forever by
     // design: a helper with no connected account, a poster with no saved card,
@@ -197,8 +199,13 @@ serve(async (req) => {
           continue;
         }
         results.heldAgedOut++;
+        // One notice per JOB (review of Q1224): a crew job has one candidate
+        // per member, and its members' rows are recorded in the same run.
+        if (agedOutNotified.has(jobId)) continue;
+        agedOutNotified.add(jobId);
         const { error: agedNotifyErr } = await supabase.from("notifications").insert({
           user_id: c.customer_id,
+          job_id: c.job_id,
           type: "payment",
           title: "Your automatic tip wasn't sent",
           message: "Your Helpr can't receive payments right now, so your automatic tip for this job was not charged. Nothing was taken from your card.",

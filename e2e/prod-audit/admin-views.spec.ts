@@ -17,10 +17,11 @@
  * load failure the firewall caused says which call it blocked.
  */
 import { expect, test } from "../prodTest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen, readScreenText } from "../errorScreens";
 import { isStorageSignPath } from "../readRpc";
+import { READ_RPC, WRITE_RPC, adminRpcNames } from "../adminRpcClassification";
 import { isConsentAcceptance, newUserContext, sessionFor, settle, SUPABASE_URL } from "./harness";
 
 function adminViews(src = readFileSync(join(process.cwd(), "src/pages/admin/Admin.tsx"), "utf8")): string[] {
@@ -30,62 +31,6 @@ function adminViews(src = readFileSync(join(process.cwd(), "src/pages/admin/Admi
 }
 
 const VIEWS = adminViews();
-
-/**
- * Read RPCs by prefix, plus read RPCs whose names carry no read verb. Adding a
- * name here is a claim that the function does not write: check
- * `pg_get_functiondef` on prod first.
- *
- * `admin_stalled_job_queue` added 2026-09-20. Verified live on prod before
- * adding: `LANGUAGE sql STABLE SECURITY DEFINER`, one SELECT over
- * `job_completion_nudges JOIN jobs`, and `pg_proc.provolatile = 's'`.
- *
- * `admin_last_activity` and `admin_last_logins` added 2026-09-30. Verified live
- * on prod: both `LANGUAGE sql STABLE`, one SELECT (jobs/applications and
- * login_history), `pg_proc.provolatile = 's'`.
- */
-const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_last_logins(\?|$))/;
-
-/**
- * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
- * how the inventory check below is told "yes, the firewall is right to refuse
- * this one". Each verified `provolatile = 'v'` on prod, 2026-09-20.
- */
-const WRITE_RPC = new Set([
-  "rpc_settle_dispute_without_payment",
-  "admin_delete_review",
-  "admin_reverse_violation",
-  "resolve_stalled_job_flag",
-  "review_credential",
-  "rpc_decide_dispute",
-]);
-
-/**
- * Every RPC name the admin surface calls, read out of the admin source itself.
- *
- * Matches `supabase.rpc("x"` AND `(supabase.rpc as any)("x"` — the second form
- * is how a brand-new RPC is called before `types.ts` is regenerated, and it is
- * exactly the form that hid `admin_stalled_job_queue` from a narrower scan.
- */
-function adminRpcNames(): string[] {
-  const files: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const p = join(dir, entry);
-      if (statSync(p).isDirectory()) walk(p);
-      else if (/\.tsx?$/.test(p) && !/\.test\./.test(p)) files.push(p);
-    }
-  };
-  walk(join(process.cwd(), "src/components/admin"));
-  files.push(join(process.cwd(), "src/pages/admin/Admin.tsx"));
-  const names = new Set<string>();
-  for (const f of files) {
-    const src = readFileSync(f, "utf8");
-    for (const m of src.matchAll(/\brpc\b[^("]{0,40}?\(\s*"([a-z0-9_]+)"/g)) names.add(m[1]);
-  }
-  return [...names].sort();
-}
 
 // Shown able to fail on the exact miss this file's own comment describes: a
 // READ whose name carries no read verb, so the firewall refuses it and the

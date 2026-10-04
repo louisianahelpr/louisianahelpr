@@ -35,6 +35,7 @@
     "src",
     "e2e/liveSession.ts",
     "e2e/readRpc.ts",
+    "e2e/adminRpcClassification.ts",
     "e2e/browserLock.ts",
     // The ONE error-screen signature list every harness shares.
     // `src/test/errorScreenPatternsVsAppProse.test.ts` imports it to prove no

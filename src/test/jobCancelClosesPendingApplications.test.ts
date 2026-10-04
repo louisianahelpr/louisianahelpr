@@ -4,7 +4,7 @@
 // the guard reads the NEWEST, so its mutation must break the newest (pointing it at
 // 20260923205811 left the guard green: it SURVIVED, 2026-09-25). Re-point this line
 // whenever a later migration redefines notify_on_application.
-// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | IF NEW.closed_reason = 'job_cancelled' THEN | IF false THEN
+// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | IF NEW.closed_reason = 'job_cancelled' THEN | IF false THEN
 // @mutate src/components/job-card/jobStatusLine.ts | if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected"; | if (app.status === "rejected") return "not_selected";
 // @mutate src/pages/jobs/AppliedJobCard.tsx | {app.closed_reason === "job_cancelled" | {app.closed_reason === "never"
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {app.status === "rejected" && app.closed_reason !== "job_cancelled" && ( | {app.status === "rejected" && (

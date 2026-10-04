@@ -315,27 +315,15 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
   const isSyntheticDirectOffer = (app: Application) => app.id.startsWith("direct-");
 
   const respondToDirectOffer = async (app: Application, accept: boolean) => {
-    if (accept) {
-      // The same gate as an application accept — a helper Stripe can't pay, or
-      // hasn't finished identifying, must not be able to take a job, whichever
-      // door they came through.
-      const gate = await checkHelperAwardEligibility();
-      if (gate.indeterminate) {
-        // "We couldn't ask" is not "you're not set up". Saying the second
-        // when we only know the first is what used to trap a ready helper.
-        hapticError();
-        toast.error("Couldn't check your payout status — please try again.");
-        return;
-      }
-      if (!gate.ok && gate.reason) {
-        setPendingAcceptApp(app);
-        setAwardBlockReason(gate.reason);
-        return;
-      }
-    }
+    // Q1185 (owner, 2026-10-03: "Same as a regular offer"): the server decides
+    // the accept, as accept_job_offer does. Ready, it completes now and the
+    // poster is told; otherwise it is remembered and the thank-you dialog
+    // lists only what is missing. The live Stripe read first writes Stripe's
+    // current verdict onto the profile; its own verdict no longer stops the tap.
+    if (accept) await checkHelperAwardEligibility();
 
-    // Shipped by migration 20260820000000.
-    const { error } = await supabase.rpc("respond_to_direct_offer", {
+    // Shipped by migration 20260820000000; the accept since 20261003214350.
+    const { data, error } = await supabase.rpc("respond_to_direct_offer", {
       p_job_id: app.job_id,
       p_accept: accept,
     });
@@ -374,6 +362,16 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       return;
     }
 
+    const answer = (data ?? {}) as { action?: string; missing?: AcceptMissing[] };
+    if (accept && answer.action === "pending_setup") {
+      const missing = answer.missing ?? [];
+      hapticSuccess();
+      setPendingAcceptApp(app);
+      setAcceptPendingMissing(missing);
+      setAwardBlockReason(reasonFromMissing(missing) ?? "helper_payout_setup_incomplete");
+      await refresh();
+      return;
+    }
     hapticSuccess();
     if (accept) {
       fireSuccessMoment({ label: "Job accepted" });

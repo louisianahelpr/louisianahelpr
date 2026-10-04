@@ -121,10 +121,11 @@ describe("Q346 layer 2: every hire-writing function is a definer the trigger let
 
   it("the inventory is real", () => {
     expect(defs.size).toBeGreaterThan(100);
-    // accept_application, accept_group_application, respond_to_direct_offer
-    // at the least.
+    // accept_application, accept_group_application, complete_direct_offer_accept
+    // at the least (the direct offer's hire writes moved there from
+    // respond_to_direct_offer in 20261003214350, Q1185).
     expect(writers.size).toBeGreaterThan(2);
-    for (const n of ["accept_application", "accept_group_application", "respond_to_direct_offer"]) {
+    for (const n of ["accept_application", "accept_group_application", "complete_direct_offer_accept"]) {
       expect(writers.has(n), `${n} not recognised as a hire writer — the scan is blind`).toBe(true);
     }
   });

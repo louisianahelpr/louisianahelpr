@@ -10109,14 +10109,6 @@
      ]
     },
     {
-     "cmd": "UPDATE",
-     "name": "Targeted helper can respond to direct offer",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
      "cmd": "SELECT",
      "name": "Targeted helper can view direct offer",
      "permissive": "PERMISSIVE",

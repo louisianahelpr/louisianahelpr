@@ -193,6 +193,12 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
    */
   const REVIEWED: Record<string, "returns-guarded" | "own-row-only" | "no-return"> = {
     "function:get_job_offer_targets": "own-row-only",
+    // Q1185: read the offeree to judge or clear a pending direct accept; none returns it.
+    "function:direct_accept_block_reason": "no-return",
+    "function:complete_pending_accepts_on_setup": "no-return",
+    "function:clear_job_accept_pending": "no-return",
+    // matches its UPDATE on the offeree; returns only {action, application_id}
+    "function:complete_direct_offer_accept": "no-return",
     "function:get_my_pending_direct_offers": "own-row-only",
     "function:get_jobs_for_my_applications": "returns-guarded",
     "view:open_jobs_browse": "returns-guarded",

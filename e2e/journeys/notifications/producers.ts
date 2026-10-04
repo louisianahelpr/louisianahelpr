@@ -74,6 +74,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered: "fires on a referred Helpr's first completed job; no referrals row names either shared account (measured on prod 2026-09-26: 0 rows), and a new referred account needs a signup the journeys cannot complete (email verification)",
   },
   "sql:claim_series_dates": { uncovered: SERIES },
+  "sql:clear_job_accept_pending": {
+    uncovered:
+      "tells a Helpr their pending direct accept ended because the poster changed the offer's terms; a pending accept needs a Helpr whose payout setup is unfinished, and every journey account is a seed account whose accept is never pending (helper_accept_missing's seed carve-out). Proven in PGlite instead (src/test/pglite/acceptCompletesAfterStripeSetup.pglite.mjs S14, P7, P9; Q1185)",
+  },
   "sql:complete_job_accept": { driven: { spec: ADMIN_SAFETY, evidence: "rpc/accept_job_offer" } },
   "sql:complete_pending_accepts_on_setup": {
     uncovered:

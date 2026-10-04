@@ -26,6 +26,12 @@
  *     on exactly those columns: no table-level INSERT, no server-owned column
  *     (is_system, created_at, read...), and none of the send columns missing.
  *     authenticated held table-level INSERT on messages until 20261003182009.
+ *  6. scripts/ci/current-date-time-zone.sql (Q1185) — every function in public
+ *     that reads the date (CURRENT_DATE, now()::date, date(now()), ...) pins
+ *     TimeZone to America/Chicago. Prod sessions
+ *     run in UTC, so an unpinned `date_needed < CURRENT_DATE` calls a job dated
+ *     today "already passed" every evening from 19:00 CDT. Not a privilege, but
+ *     a catalog setting a dashboard edit can drop like one.
  *
  * Both queries are shared with the db-smoke replay gate; this reads PROD,
  * because prod is where a dashboard edit, an MCP apply or a failed replay can
@@ -51,6 +57,7 @@ const DEFAULTS_SQL = load("./ci/client-default-privileges.sql");
 const NULL_UID_SQL = load("./ci/null-uid-trust.sql");
 const ROWTYPE_SQL = load("./ci/rowtype-args-unreadable.sql");
 const CLIENT_INSERT_SQL = load("./ci/client-insert-columns.sql");
+const CURRENT_DATE_SQL = load("./ci/current-date-time-zone.sql");
 
 // Q304: profiles columns only the server may write. The locked list is what
 // sync_profiles_update_grants() subtracts every 10 minutes; the two literals
@@ -77,6 +84,7 @@ SELECT (SELECT count(*) FROM pg_proc p JOIN pg_language l ON l.oid = p.prolang
        coalesce((SELECT json_agg(o) FROM (${NULL_UID_SQL}) o), '[]'::json) AS null_uid_offenders,
        coalesce((SELECT json_agg(o) FROM (${ROWTYPE_SQL}) o), '[]'::json) AS rowtype_offenders,
        coalesce((SELECT json_agg(o) FROM (${CLIENT_INSERT_SQL}) o), '[]'::json) AS client_insert_offenders,
+       coalesce((SELECT json_agg(o) FROM (${CURRENT_DATE_SQL}) o), '[]'::json) AS current_date_offenders,
        (SELECT count(*) FROM pg_attribute
          WHERE attrelid = 'public.profiles'::regclass AND attname = ANY (ARRAY['ban_status', 'auto_suspended_until'])
            AND NOT attisdropped)::int AS server_only_columns_present,
@@ -123,8 +131,9 @@ const nullUid = parse(row?.null_uid_offenders);
 const serverOnly = parse(row?.server_only_column_offenders);
 const rowtype = parse(row?.rowtype_offenders);
 const clientInsert = parse(row?.client_insert_offenders);
+const currentDate = parse(row?.current_date_offenders);
 const serverOnlyPresent = Number(row?.server_only_columns_present ?? 0);
-if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || !Array.isArray(rowtype) || !Array.isArray(clientInsert) || serverOnlyPresent !== 2) {
+if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || !Array.isArray(rowtype) || !Array.isArray(clientInsert) || !Array.isArray(currentDate) || serverOnlyPresent !== 2) {
   console.error(`::error::live catalog returned ${fns} plpgsql functions / ${acl} postgres default-ACL entries in public / ${serverOnlyPresent} of 2 server-only profiles columns (Q304: ban_status, auto_suspended_until) — refusing to report clean.`);
   process.exit(2);
 }
@@ -135,6 +144,7 @@ if (process.argv.includes("--self-test")) {
   serverOnly.push({ column: "ban_status", role: "authenticated" });
   rowtype.push({ function_name: "zz_fake_field(jobs)", row_of: "jobs", role: "authenticated" });
   clientInsert.push({ table: "messages", role: "authenticated", what: "INSERT (is_system)" });
+  currentDate.push({ function_name: "zz_fake_date_check", config: "search_path=public" });
 }
 
 let failed = false;
@@ -185,8 +195,16 @@ if (clientInsert.length) {
       "(see 20261003182009); a 'missing' row means a send column lost its grant and every client send now fails.",
   );
 }
+if (currentDate.length) {
+  failed = true;
+  for (const o of currentDate) console.error(`::error::public.${o.function_name} reads the date (CURRENT_DATE, now()::date, ...) without TimeZone=America/Chicago (config: ${o.config || "none"}) (Q1185, scripts/ci/current-date-time-zone.sql)`);
+  console.error(
+    "CURRENT_DATE is the session's date and prod sessions run in UTC, a day ahead of Louisiana from 19:00 CDT. " +
+      "Fix: add SET \"TimeZone\" TO 'America/Chicago' to the function (see 20261003214350), as enforce_application_job_state has.",
+  );
+}
 if (!Number(row?.has_server_context_helper)) {
   console.log("note: public.is_server_context() is not deployed yet.");
 }
 if (failed) process.exit(1);
-console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read; no client INSERT beyond the declared columns.");
+console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read; no client INSERT beyond the declared columns; every function that reads the date pins America/Chicago.");

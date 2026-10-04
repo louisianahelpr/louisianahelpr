@@ -106,8 +106,9 @@ describe("Q274: a cancelled job closes its pending applications, truthfully", ()
   });
 
   it("the applied card and the poster's Applicants panel read the marker before saying Not selected / Declined", () => {
-    const card = src("src/pages/jobs/AppliedJobCard.tsx");
-    expect(card).toMatch(/app\.closed_reason === "job_cancelled"\s*\?\s*"Job cancelled"/);
+    expect(src("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/\{closedCardLabel\(app\)\}/);
+    const card = src("src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts");
+    expect(card).toMatch(/if \(app\.closed_reason === "job_cancelled"\) return "Job cancelled"/);
     const panel = src("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
     expect(panel).toMatch(/app\.status === "rejected" && app\.closed_reason !== "job_cancelled" && \(/);
   });

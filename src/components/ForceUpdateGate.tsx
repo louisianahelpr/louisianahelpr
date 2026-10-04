@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { APP_STORE_URL } from "@/lib/appStore";
+import { APP_STORE_URL, APP_STORE_LISTING_LIVE } from "@/lib/appStore";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 
 /**
@@ -112,11 +112,15 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
               because this is a real external navigation, not a click handler —
               a blocked app must not depend on its own JS to get the user out.
               Default size is h-14, comfortably over the 44px target. */}
-          <Button variant="primary" className="w-full" asChild>
-            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
-              Update on the App Store
-            </a>
-          </Button>
+          {/* Hidden while the listing 404s (owner, 2026-10-04, Q1124); the
+              support address below is the way out until then. */}
+          {APP_STORE_LISTING_LIVE && (
+            <Button variant="primary" className="w-full" asChild>
+              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+                Update on the App Store
+              </a>
+            </Button>
+          )}
 
           <p
             className="text-center font-sans text-ds-12"

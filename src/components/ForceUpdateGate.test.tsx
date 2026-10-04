@@ -43,6 +43,7 @@ vi.mock("@/lib/nativeInit", () => ({
 
 import { ForceUpdateGate } from "./ForceUpdateGate";
 import { resetMinSupportedBuildCache } from "@/lib/minSupportedBuild";
+import { APP_STORE_LISTING_LIVE } from "@/lib/appStore";
 
 const APP_MARKER = "the app rendered";
 const renderGate = () =>
@@ -167,8 +168,15 @@ describe("ForceUpdateGate — the block screen is not a dead end", () => {
     rpc.mockResolvedValue({ data: [{ min_supported_build: 6000 }], error: null });
   });
 
-  it("offers the App Store as the primary, glossy action", async () => {
+  it("offers the App Store as the primary, glossy action once the listing is live (hidden before: Q1124)", async () => {
     renderGate();
+    // Owner 2026-10-04: every App Store link is hidden while the listing 404s;
+    // the support address is the way out until then.
+    if (!APP_STORE_LISTING_LIVE) {
+      await screen.findByRole("link", { name: /admin@louisianahelpr\.com/i });
+      expect(screen.queryByRole("link", { name: /App Store/i })).toBeNull();
+      return;
+    }
     const link = await screen.findByRole("link", { name: /Update on the App Store/i });
     expect(link).toHaveAttribute("href", "https://apps.apple.com/us/app/helpr/id6754470134");
     expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));

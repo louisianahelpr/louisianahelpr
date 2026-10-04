@@ -25,6 +25,8 @@ import { jobBudgetOutOfRange, urgentFeeOverCap, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { louisianaToday } from "../_shared/louisianaDate.ts";
+import { jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 
 /**
@@ -1419,8 +1421,7 @@ serve(async (req) => {
       }
       if (!row || row.payer_id !== user.id) throw new PublicError("Visit payment not found");
       if (row.status !== "pending") throw new PublicError("This visit is no longer waiting for payment");
-      const todayUtc = new Date().toISOString().slice(0, 10);
-      if (String(row.visit_date) <= todayUtc) throw new PublicError("This visit's payment window has closed");
+      if (String(row.visit_date) <= louisianaToday()) throw new PublicError("This visit's payment window has closed");
 
       const { data: parent, error: parentErr } = await supabaseAdmin
         .from("jobs")
@@ -1467,7 +1468,10 @@ serve(async (req) => {
       // from a 10-minute bucket so a retry sends the SAME params under the same
       // idempotency key (a changed expires_at would be refused for 24h).
       const bucketSec = Math.floor(Date.now() / 1000 / 600) * 600;
-      const visitStartSec = Math.floor(Date.parse(`${row.visit_date}T00:00:00Z`) / 1000);
+      // The visit's day starts at Louisiana midnight, not UTC midnight: the UTC
+      // one is 5-6 hours EARLIER, so from 19:00 CDT the evening before it read
+      // as already started and the payment window closed a day early (Q1203).
+      const visitStartSec = Math.floor(jobLocalMidnightMs(String(row.visit_date)) / 1000);
       // Too close to the visit to pay before it: the payment would be refunded.
       if (visitStartSec - bucketSec < 40 * 60) throw new PublicError("This visit's payment window has closed");
       const expiresAt = Math.min(bucketSec + 24 * 60 * 60, visitStartSec);

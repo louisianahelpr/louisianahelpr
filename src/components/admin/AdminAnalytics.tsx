@@ -1,6 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
@@ -19,6 +21,7 @@ import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
@@ -76,88 +79,119 @@ async function readAllProfiles<T>(
   }
 }
 
+type AnalyticsLoad = {
+  profiles: Profile[];
+  allJobs: Job[];
+  transfers: { amount_cents: number | string; status: string; job_id?: string | null }[] | null;
+  tips: Tip[];
+  roleByUser: Map<string, string>;
+};
+
+/**
+ * The analytics page's one load. A failed jobs page THROWS (`unwrap`): every
+ * money tile is computed from the jobs, and a partial set sums to a plausible
+ * wrong number, or to $0.00. The other sources degrade on their own and report
+ * (a missing profile page or tip row is a smaller figure, not a false zero), and
+ * the transfer ledger carries its own `null` = "unknown".
+ */
+async function loadAnalytics(): Promise<AnalyticsLoad> {
+  // Paginate jobs to avoid 1000-row limit
+  let allJobsData: Job[] = [];
+  let page = 0;
+  const PAGE_SIZE = 999;
+  while (true) {
+    const data = unwrap(await supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1));
+    if (!data || data.length === 0) break;
+    allJobsData = [...allJobsData, ...readableJobRows<Job>(data)];
+    if (data.length < PAGE_SIZE) break;
+    page++;
+  }
+
+  let transfers: AnalyticsLoad["transfers"];
+  const [profilesRes, tipsRes, rolesRes, transfersRes, giftCardPaidRes] = await Promise.all([
+    readAllProfiles<Profile>(ANALYTICS_PROFILE_COLUMNS),
+    // Seed-filtered like every other source in this loader. `tips` has no
+    // `is_seed` column of its own, so we constrain through the job it
+    // belongs to with an inner join. Without this the Money grid rendered
+    // an impossible state: "$0.00 Payments Collected" (seed-filtered)
+    // beside "Tips Collected: $45.00" (not) — both seeded tips sit on
+    // seeded jobs, so the tile was reporting test data as real revenue.
+    supabase.from("tips").select("*, jobs!inner(is_seed)").eq("jobs.is_seed", false),
+    supabase.from("user_roles").select("user_id, role"),
+    // THE LEDGER. "Helpr Payouts" used to be recomputed from job budgets
+    // with a fee fallback, which overstated it — see computeMetrics.
+    // `job_id` so the Payout Pipeline's Released rung can be attributed to
+    // the jobs it settled rather than quoting a budget as a settlement.
+    supabase.from("payout_transfers").select("amount_cents, status, job_id"),
+    loadGiftCardPaidJobIds(), // Q443: jobs a gift card paid (no job PI) still count as collected
+  ]);
+  if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
+  if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
+  if (rolesRes.error) report(rolesRes.error, { tags: { source: "AdminAnalytics.loadRoles" } });
+  if (giftCardPaidRes.error) report(giftCardPaidRes.error, { tags: { source: "AdminAnalytics.loadGiftCardPaid" } });
+  // This error was the ONE of the four that went unchecked, and it was the
+  // one guarding a money figure: a failed read fell through `|| []` to an
+  // empty array, which sums to $0.00 and renders identically to "no helper
+  // has ever been paid". Null now means "we don't know", and the tile says
+  // so instead of asserting a zero.
+  if (transfersRes.error) {
+    report(transfersRes.error, { tags: { source: "AdminAnalytics.loadTransfers" } });
+    transfers = null;
+  } else {
+    transfers = (transfersRes.data as { amount_cents: number | string; status: string; job_id?: string | null }[] | null) || [];
+  }
+  return {
+    profiles: profilesRes.rows,
+    allJobs: withGiftCardPaid(allJobsData, giftCardPaidRes.ids),
+    transfers,
+    tips: tipsRes.data || [],
+    roleByUser: mostPrivilegedRoleByUser(rolesRes.data ?? []),
+  };
+}
+
 const AdminAnalytics = () => {
-  const [loading, setLoading] = useState(true);
   const [drillDown, setDrillDown] = useState<DrillDown>(null);
   const [drillLoading, setDrillLoading] = useState(false);
-
-  // Raw data
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [allJobs, setAllJobs] = useState<Job[]>([]);
-  // `null` = the ledger read FAILED. Not the same fact as an empty ledger, and
-  // the money tiles below render the two differently — see computeMetrics.
-  const [transfers, setTransfers] = useState<{ amount_cents: number | string; status: string; job_id?: string | null }[] | null>([]);
-  const [tips, setTips] = useState<Tip[]>([]);
   const [drillUsers, setDrillUsers] = useState<DrillProfile[]>([]);
   const [drillJobs, setDrillJobs] = useState<Job[]>([]);
+
+  // Q1140: a React Query load, so a failed jobs read reaches `isError` and the
+  // page shows ErrorState. It used to `break` out of the paging loop on an
+  // error and carry on with whatever pages had loaded, so every money tile read
+  // $0.00 and nothing on screen said the load had failed.
+  const { data, isLoading: loading, isError, refetch } = useQuery({
+    queryKey: ["admin-analytics-load"],
+    queryFn: loadAnalytics,
+    refetchOnWindowFocus: false,
+  });
+  const profiles = data?.profiles ?? [];
+  const allJobs = data?.allJobs ?? [];
+  // `null` = the ledger read FAILED. Not the same fact as an empty ledger, and
+  // the money tiles below render the two differently — see computeMetrics.
+  const transfers = data ? data.transfers : [];
+  const tips = data?.tips ?? [];
   // user_id → role lookup (profiles.role was dropped — fetched separately
   // from user_roles and joined client-side for the helper/customer counts).
-  const [roleByUser, setRoleByUser] = useState<Map<string, string>>(new Map());
-
-  useEffect(() => {
-    const load = async () => {
-      // Paginate jobs to avoid 1000-row limit
-      let allJobsData: Job[] = [];
-      let page = 0;
-      const PAGE_SIZE = 999;
-      while (true) {
-        const { data, error } = await supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-        if (error) {
-          report(error, { tags: { source: "AdminAnalytics.loadJobs" } });
-          break;
-        }
-        if (!data || data.length === 0) break;
-        allJobsData = [...allJobsData, ...readableJobRows<Job>(data)];
-        if (data.length < PAGE_SIZE) break;
-        page++;
-      }
-
-      const [profilesRes, tipsRes, rolesRes, transfersRes, giftCardPaidRes] = await Promise.all([
-        readAllProfiles<Profile>(ANALYTICS_PROFILE_COLUMNS),
-        // Seed-filtered like every other source in this loader. `tips` has no
-        // `is_seed` column of its own, so we constrain through the job it
-        // belongs to with an inner join. Without this the Money grid rendered
-        // an impossible state: "$0.00 Payments Collected" (seed-filtered)
-        // beside "Tips Collected: $45.00" (not) — both seeded tips sit on
-        // seeded jobs, so the tile was reporting test data as real revenue.
-        supabase.from("tips").select("*, jobs!inner(is_seed)").eq("jobs.is_seed", false),
-        supabase.from("user_roles").select("user_id, role"),
-        // THE LEDGER. "Helpr Payouts" used to be recomputed from job budgets
-        // with a fee fallback, which overstated it — see computeMetrics.
-        // `job_id` so the Payout Pipeline's Released rung can be attributed to
-        // the jobs it settled rather than quoting a budget as a settlement.
-        supabase.from("payout_transfers").select("amount_cents, status, job_id"),
-        loadGiftCardPaidJobIds(), // Q443: jobs a gift card paid (no job PI) still count as collected
-      ]);
-      if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
-      if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
-      if (rolesRes.error) report(rolesRes.error, { tags: { source: "AdminAnalytics.loadRoles" } });
-      if (giftCardPaidRes.error) report(giftCardPaidRes.error, { tags: { source: "AdminAnalytics.loadGiftCardPaid" } });
-      setProfiles(profilesRes.rows);
-      setAllJobs(withGiftCardPaid(allJobsData, giftCardPaidRes.ids));
-      setTips(tipsRes.data || []);
-      // This error was the ONE of the four that went unchecked, and it was the
-      // one guarding a money figure: a failed read fell through `|| []` to an
-      // empty array, which sums to $0.00 and renders identically to "no helper
-      // has ever been paid". Null now means "we don't know", and the tile says
-      // so instead of asserting a zero.
-      if (transfersRes.error) {
-        report(transfersRes.error, { tags: { source: "AdminAnalytics.loadTransfers" } });
-        setTransfers(null);
-      } else {
-        setTransfers((transfersRes.data as { amount_cents: number | string; status: string; job_id?: string | null }[] | null) || []);
-      }
-      setRoleByUser(mostPrivilegedRoleByUser(rolesRes.data ?? []));
-      setLoading(false);
-    };
-    load();
-  }, []);
+  const roleByUser = data?.roleByUser ?? new Map<string, string>();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <HelprSpinner size={20} />
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <AdminViewShell>
+        <ErrorState
+          variant="inline"
+          title="We couldn't load analytics."
+          body="Tap Try again. These figures did not load; they are not zero."
+          onRetry={() => refetch()}
+        />
+      </AdminViewShell>
     );
   }
 

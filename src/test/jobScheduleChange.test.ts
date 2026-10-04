@@ -14,6 +14,9 @@
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   ON public.job_schedule_change_requests (job_id) WHERE status = 'pending'; |   ON public.job_schedule_change_requests (job_id, id) WHERE status = 'pending';
  * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     RAISE EXCEPTION 'schedule_change_clash'; |     NULL;
  * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |        AND (o.helper_id = v_job.helper_id\n |        AND (false\n
+ * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | IF FOUND THEN\n        RAISE EXCEPTION 'schedule_change_clash'; | IF false THEN\n        RAISE EXCEPTION 'schedule_change_clash';
+ * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | FOR SHARE OF o; | ;
+ * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | AND (o.helper_id = v_job.helper_id | AND (false
  * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -78,6 +81,23 @@ describe("a booked one-time job's date/time changes only by an accepted request 
     expect(check).toMatch(/OVERLAPS/);
   });
 
+  it("Q925: accepting re-checks the clash, under the job lock, before the job moves", () => {
+    const lock = respond.indexOf("FOR UPDATE;");
+    const at = respond.indexOf("RAISE EXCEPTION 'schedule_change_clash'");
+    expect(lock).toBeGreaterThan(0);
+    expect(at).toBeGreaterThan(lock);
+    // Inside the accept branch, ahead of the write that moves the job.
+    expect(respond.lastIndexOf("IF p_accept THEN", at)).toBeGreaterThan(lock);
+    expect(at).toBeLessThan(respond.indexOf("set_config('app.schedule_change_rpc', '1', true)"));
+    const check = respond.slice(respond.lastIndexOf("PERFORM 1", at), at);
+    expect(check).toMatch(/o\.helper_id = v_job\.helper_id/);
+    expect(check).toMatch(/g\.helper_id = v_job\.helper_id/);
+    expect(check).toMatch(/OVERLAPS/);
+    expect(check).toMatch(/FOR SHARE OF o/);
+    expect(respond).toMatch(/IF FOUND THEN\s+RAISE EXCEPTION 'schedule_change_clash';/);
+    expect(respond).toMatch(/j\.estimated_hours\s+INTO v_job/);
+  });
+
   it("the direct client write stays refused, and only the accept RPC's flag lets a Helpr's row change", () => {
     const lock = newestFunction("enforce_series_columns_client_lock");
     expect(lock).toMatch(/RAISE EXCEPTION 'schedule_locked/);
@@ -92,5 +112,7 @@ describe("a booked one-time job's date/time changes only by an accepted request 
     const probe = readFileSync("src/test/pglite/jobScheduleChange.pglite.mjs", "utf8");
     expect(probe).toContain("20260927012807_job_schedule_change_requests.sql");
     expect(probe).toContain("OLD STATE RED");
+    expect(probe).toContain("Q925 OLD STATE");
+    expect(probe).toContain("20261004004707_schedule_change_accept_rechecks_clash.sql");
   });
 });

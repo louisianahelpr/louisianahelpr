@@ -8,7 +8,7 @@
  * World: seriesWorld.mjs (the real jobs trigger chain from the newest
  * migrations, the helper column whitelist included). Chain under test:
  * 20260927012804, 20260927012805, 20260927012806, 20260927012807,
- * 20261002060514 (Q736 clash check), 3x.
+ * 20261002060514 (Q736 clash check), 20261004004707 (Q925 accept re-check), 3x.
  *
  * OLD STATE (20260927012804 only): the poster moves a booked one-time job's
  * date with a plain PATCH (rows=1) and there is no request flow. "OLD STATE RED".
@@ -25,7 +25,10 @@ const CHAIN = [
   "20260927012806_recurring_split_days.sql",
   "20260927012807_job_schedule_change_requests.sql",
   "20261002060514_schedule_change_refuses_helpr_clash.sql",
+  "20261004004707_schedule_change_accept_rechecks_clash.sql",
 ].map(readMigration);
+// The chain as it stood before Q925 (the OLD STATE of the accept re-check).
+const PRE_Q925 = CHAIN.slice(0, -1);
 const { P, A, X } = USERS;
 const { check, failures, fail } = checker();
 const J = (n) => `c0000000-0000-0000-0000-0000000000${String(n).padStart(2, "0")}`;
@@ -147,7 +150,7 @@ await db.close();
 
   const old = new PGlite();
   await old.exec(baseSchema("20260927012804"));
-  for (const m of CHAIN.slice(0, -1)) await old.exec(m);
+  for (const m of CHAIN.slice(0, -2)) await old.exec(m);
   await old.exec(seed);
   const o = await ask(old, P, 9, "14:00");
   console.log(`-- Q736 OLD STATE ${o.ok ? "RED" : "NOT RED"}: a request onto the Helpr's 13:00-16:00 booking -> ${o.ok ? "accepted as a request" : o.err}`);
@@ -175,6 +178,85 @@ await db.close();
   q = await ask(cdb, P, 10, "14:00");
   check("Q736: another day is allowed", q.ok, q.err);
   await cdb.close();
+}
+
+
+// ── Q925: accepting re-checks the clash ────────────────────────────────────
+// The request-time check is an unlocked read, and the Helpr can be booked
+// elsewhere while a request sits pending. OLD STATE (the chain without
+// 20261004004707): the accept moves the job onto the Helpr's other booking.
+{
+  const K = J(40), L = J(41), M = J(42), C = J(43);
+  const seed = `
+    insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, helper_confirmed_at, estimated_hours)
+    values ('${K}', 'Move me', '${P}', '${A}', 'accepted', current_date + 5, '09:00', now(), 2);`;
+  // The Helpr is hired elsewhere AFTER the request was filed (the race).
+  const later = `
+    insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, helper_confirmed_at, estimated_hours)
+    values ('${L}', 'Booked meanwhile', '${X}', '${A}', 'accepted', current_date + 9, '13:00', now(), 3),
+           ('${M}', 'Finished meanwhile', '${X}', '${A}', 'accepted', current_date + 11, '13:00', now(), 3);
+    update public.jobs set helper_completed_at = now() where id = '${M}';`;
+  const laterCrew = `
+    insert into public.jobs (id, title, customer_id, helper_id, status, date_needed, start_time, helper_confirmed_at, estimated_hours)
+    values ('${C}', 'Crew job', '${X}', '${X}', 'accepted', current_date + 12, '08:00', now(), 4);
+    update public.jobs set is_group_job = true where id = '${C}';
+    insert into public.group_job_helpers (job_id, helper_id, status) values ('${C}', '${A}', 'accepted');`;
+  const ask = async (dbx, who, days, time) => {
+    const q = await as(dbx, "authenticated", who, `select public.request_job_schedule_change('${K}', current_date + ${days}, ${time === null ? "null" : `'${time}'`}) as v`);
+    return q.ok ? q.rows[0].v.request_id : null;
+  };
+  const accept = (dbx, who, id) => as(dbx, "authenticated", who, `select public.respond_job_schedule_change('${id}', true) as v`);
+  const pending = async (dbx, id) => (await dbx.query(`select status from public.job_schedule_change_requests where id='${id}'`)).rows[0].status;
+  const scenario = async (chain, reps) => {
+    const dbx = new PGlite();
+    await dbx.exec(baseSchema("20260927012804"));
+    for (let i = 0; i < reps; i++) for (const m of chain) await dbx.exec(m);
+    await dbx.exec(seed);
+    return dbx;
+  };
+
+  const old = await scenario(PRE_Q925, 1);
+  const oid = await ask(old, P, 9, "14:00");
+  await old.exec(later);
+  const o = await accept(old, A, oid);
+  const oj = await job(old, K);
+  const red = o.ok && o.rows[0].v.status === "accepted" && oj.t === "14:00:00";
+  console.log(`-- Q925 OLD STATE ${red ? "RED" : "NOT RED"}: accepting a request that now overlaps the Helpr's 13:00-16:00 booking -> ${o.ok ? o.rows[0].v.status + " at " + oj.t : o.err}`);
+  if (!red) fail();
+  await old.close();
+
+  const ndb = await scenario(CHAIN, 3);
+  check("Q925: the chain with the re-check applies 3x (replay-safe)", true);
+  const id1 = await ask(ndb, P, 9, "14:00");
+  check("Q925: the request was fine when filed (no overlap yet)", !!id1);
+  await ndb.exec(later);
+  let q = await accept(ndb, A, id1);
+  check("Q925: the Helpr cannot accept onto a booking made after the request", refused(q, /schedule_change_clash/), q.err);
+  let jj = await job(ndb, K);
+  check("Q925: ...the job did not move", jj.t === "09:00:00" && jj.d === (await ndb.query(`select (current_date + 5)::text d`)).rows[0].d, JSON.stringify(jj));
+  check("Q925: ...the request is still pending (it can be declined)", (await pending(ndb, id1)) === "pending");
+  q = await as(ndb, "authenticated", A, `select public.respond_job_schedule_change('${id1}', false) as v`);
+  check("Q925: ...and declining it still works", q.ok && q.rows[0].v.status === "declined", q.err);
+  // A crew seat the Helpr holds counts, and the poster accepting the Helpr's request is checked too.
+  const id3 = await ask(ndb, A, 12, "10:00");
+  await ndb.exec(laterCrew);
+  q = await accept(ndb, P, id3);
+  check("Q925: the poster accepting the Helpr's request is refused when it overlaps a crew seat", refused(q, /schedule_change_clash/), q.err);
+  // Boundaries and exemptions, each accepted.
+  for (const [label, days, time] of [
+    ["a start right when the other booking ends", 9, "16:00"],
+    ["a start whose 2 hours end right when the other begins", 9, "11:00"],
+    ["a booking the Helpr has finished", 11, "14:00"],
+    ["an any-time-that-day request", 9, null],
+    ["another day", 10, "14:00"],
+  ]) {
+    const rid = await ask(ndb, P, days, time);
+    q = await accept(ndb, A, rid);
+    jj = await job(ndb, K);
+    check(`Q925: accept lands for ${label}`, q.ok && q.rows[0].v.status === "accepted" && (time === null ? jj.t === null : jj.t === `${time}:00`), q.err ?? JSON.stringify(jj));
+    await server(ndb, `update public.jobs set date_needed = current_date + 5, start_time = '09:00' where id='${K}'`);
+  }
+  await ndb.close();
 }
 
 // ── The Q423 poster lock (20260925231810) and the accept carve-out ────────

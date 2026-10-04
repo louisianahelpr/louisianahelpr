@@ -632,6 +632,78 @@
         background: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%) !important;
         background-color: hsl(220 15% 8%) !important;
       }
+      /* Q651 (owner decisions 2026-10-04: "a CSS-only, filter-free loading
+         hint", then "ship it but add the h on top"). For slow cold loads, where
+         the screen used to be bare background for ~3.9 s on slow 3G (run
+         36101678860): the wrought-iron H above a thin olive bar sliding in a
+         faint track.
+
+         WHY THE H WAS REMOVED ON 2026-09-23 (5833178bd), and how this avoids
+         it: the old .boot-mark was an <img> wearing a two-layer drop-shadow
+         FILTER (plus brightness/saturate in dark), and iPhone WebKit painted
+         that filtered layer as a clipped square. This H has no filter, no
+         box-shadow and no mask at all. It is a CSS background on a box with
+         the artwork's own 256:220 ratio (64 x 74.5 px), so nothing draws
+         outside the art and there is no square box. Dark mode cannot lift the
+         dark iron with a filter, so it swaps to /boot-h-dark.webp, the header's
+         dark .helpr-emblem filter (brightness 3.4, contrast 0.85, saturate 0.7)
+         BAKED into the pixels. /boot-h.webp is a byte copy of
+         src/assets/helpr-logo-256.webp (the header's H). Static public files,
+         so they load before any JS; a background only fetches the one its
+         theme uses.
+
+         The whole stack fades in only after 600 ms, so a normal load still
+         shows nothing but the background. Olive = --bark (#5E6544 light,
+         72 22% 52% dark). Reduced motion: no slide, a still half-width bar. */
+      #boot-loader .boot-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        opacity: 0;
+        animation: boot-progress-in 240ms ease-out 600ms forwards;
+      }
+      #boot-loader .boot-h {
+        width: 74.5px;
+        height: 64px;
+        background: url("/boot-h.webp") center / contain no-repeat;
+      }
+      [data-theme="dark"] #boot-loader .boot-h {
+        background-image: url("/boot-h-dark.webp");
+      }
+      #boot-loader .boot-progress {
+        width: 112px;
+        height: 3px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: hsl(70 20% 33% / 0.14);
+      }
+      #boot-loader .boot-progress-fill {
+        width: 40%;
+        height: 100%;
+        border-radius: inherit;
+        background: hsl(70 20% 33%);
+        animation: boot-progress-slide 1.3s ease-in-out infinite;
+      }
+      [data-theme="dark"] #boot-loader .boot-progress {
+        background: hsl(72 22% 52% / 0.18);
+      }
+      [data-theme="dark"] #boot-loader .boot-progress-fill {
+        background: hsl(72 22% 52%);
+      }
+      @keyframes boot-progress-in {
+        to { opacity: 1; }
+      }
+      @keyframes boot-progress-slide {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(250%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-loader .boot-progress-fill {
+          animation: none;
+          width: 50%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -683,9 +755,13 @@
         style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;"
       >
         <!-- Owner, 2026-09-23: nothing but the page background while the
-             bundle loads (no H mark: on iPhone its filter shadow rendered as a
-             clipped square). The element stays for its role/label and the
-             boot-failure fallback, which keys off #boot-loader. -->
+             bundle loads (no H mark then: on iPhone its filter shadow rendered
+             as a clipped square). The element stays for its role/label and the
+             boot-failure fallback, which keys off #boot-loader.
+             Owner, 2026-10-04 (Q651): the H back on top of a CSS-only,
+             filter-free progress bar, the pair fading in after 600 ms (styles
+             and the clipped-square history in #boot-theme above). -->
+        <div class="boot-stack" aria-hidden="true"><div class="boot-h"></div><div class="boot-progress"><div class="boot-progress-fill"></div></div></div>
       </div>
     </div>
     <script type="module" src="/src/entry.ts"></script>

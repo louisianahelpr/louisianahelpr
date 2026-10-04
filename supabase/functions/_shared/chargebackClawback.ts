@@ -40,9 +40,25 @@
 // thrown so the webhook answers 500 and Stripe redelivers.
 
 import type Stripe from "https://esm.sh/stripe@18.5.0";
-import type { WebhookContext } from "../context.ts";
-import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
-import { checkPayoutHold } from "../../_shared/payoutHold.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+// `../_shared/` (not `./`) so the edge test harness mocks slack-alerts here
+// exactly as it does for every function that imports it.
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { checkPayoutHold } from "../_shared/payoutHold.ts";
+
+// Q1223: lives in _shared (it was stripe-webhook/handlers/_chargebackClawback.ts)
+// so process-scheduled-payouts can re-run a won chargeback's re-payment once a
+// payout hold is released. A module another function imports must be here:
+// functions-deploy redeploys every function when _shared changes, and only the
+// changed function when a function's own directory changes.
+
+/** The request-scoped dependencies (stripe-webhook's WebhookContext, or any caller's). */
+export interface ClawbackContext {
+  stripe: Stripe;
+  supabase: SupabaseClient;
+  logStep: (step: string, details?: any) => void;
+}
+type WebhookContext = ClawbackContext;
 
 type Db = WebhookContext["supabase"];
 

@@ -16,7 +16,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | if (decidedClose !== "closed" && lost.rows === 0 && closedJob.helper_id | if (decidedClose !== "closed" && false && closedJob.helper_id
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | so `held` is the answer.)\n        if (closedJob.helper_id | so `held` is the answer.)\n        if (false
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | say how it ended.\n          if (closedJob.helper_id | say how it ended.\n          if (false
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | return !error && (data?.length ?? 0) > 0; | return true;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | return !error && (data?.length ?? 0) > 0; | return true;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";

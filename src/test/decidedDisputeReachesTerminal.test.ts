@@ -89,14 +89,20 @@ describe("Q342: every chargeback outcome leaves a decided dispute settleable or 
   const closed = read(CLOSED);
 
   it("the handlers that block a job as 'chargeback' are inventoried", () => {
-    const blockers = readdirSync(resolve(REPO, HANDLERS))
+    // The handlers, plus _shared (the clawback helper moved there for Q1223).
+    const SHARED = "supabase/functions/_shared";
+    const blockers = [
+      ...readdirSync(resolve(REPO, HANDLERS)).map((f) => `${HANDLERS}/${f}`),
+      ...readdirSync(resolve(REPO, SHARED)).map((f) => `${SHARED}/${f}`),
+    ]
       .filter((f) => f.endsWith(".ts"))
-      .filter((f) => /\.update\(\{\s*payment_status:\s*"chargeback"/.test(read(`${HANDLERS}/${f}`)));
+      .filter((f) => /\.update\(\{\s*payment_status:\s*"chargeback"/.test(read(f)))
+      .map((f) => f.split("/").slice(-2).join("/"));
     // chargeDisputeCreated's escrow/payout_pending block and released flip, and
     // the clawback helper it calls (released -> chargeback). Every one of them
     // runs on charge.dispute.created / funds_withdrawn, so every job they block
     // ends in charge.dispute.closed, classified below.
-    expect(blockers).toEqual(["_chargebackClawback.ts", "chargeDisputeCreated.ts"]);
+    expect(blockers).toEqual(["handlers/chargeDisputeCreated.ts", "_shared/chargebackClawback.ts"]);
     expect(read(`${HANDLERS}/chargeDisputeCreated.ts`)).toMatch(/clawBackReleasedPayout\(/);
   });
 

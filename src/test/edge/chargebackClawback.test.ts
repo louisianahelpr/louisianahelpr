@@ -21,26 +21,26 @@
  *
  * Each mutation below undoes one of those and must turn this file red.
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | if (!isInquiry) clawbackJob = { id: chargebackJob.id, title: chargebackJob.title ?? null }; | if (false) clawbackJob = { id: chargebackJob.id, title: chargebackJob.title ?? null };
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | if (row && row.status !== "reversing" && row.status !== "reverse_failed") continue; | if (false) continue;
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = reversible;
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = Math.min(reversible, remaining);
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const target = Math.min(Math.max(0, Math.floor(Number(disputedCents) \|\| 0)), total); | const target = Math.max(0, Math.floor(Number(disputedCents) \|\| 0));
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | b.rem - a.rem \|\| a.created - b.created | b.rem - a.rem \|\| b.created - a.created
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | for (let k = 0; given < target && k < frac.length; k++, given++) { | for (let k = 0; false; k++, given++) {
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |   if (result.shortfall.length > 0) { |   if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | { idempotencyKey: `clawback-${dispute.id}-${t.id}` }, | {},
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | result.failed.push({ transferId: t.id, error: message }); | void message;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | if (row && row.status !== "reversing" && row.status !== "reverse_failed") continue; | if (false) continue;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = reversible;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = Math.min(reversible, remaining);
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | const target = Math.min(Math.max(0, Math.floor(Number(disputedCents) \|\| 0)), total); | const target = Math.max(0, Math.floor(Number(disputedCents) \|\| 0));
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | b.rem - a.rem \|\| a.created - b.created | b.rem - a.rem \|\| b.created - a.created
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | for (let k = 0; given < target && k < frac.length; k++, given++) { | for (let k = 0; false; k++, given++) {
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |   if (result.shortfall.length > 0) { |   if (false) {
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | { idempotencyKey: `clawback-${dispute.id}-${t.id}` }, | {},
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | result.failed.push({ transferId: t.id, error: message }); | void message;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | .eq("payment_status", "released") | .eq("id", chargebackJob.id)
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | repaid = await repayClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title }); | repaid = { repaidNowCents: 0, failed: [], rows: 0 };
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await finalizeLostClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title }); | void 0;
  * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | } else if (ours.disputeId) { | } else if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const found = await existingReversal(stripe, t.id, dispute.id); | const found = null;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | const found = await existingReversal(stripe, t.id, dispute.id); | const found = null;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           .update({ chargeback_evidence_due_by: | .update({ chargeback_evidence_due_by_x:
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           link: `/admin?view=jobs&job=${chargebackJob.id}`, |           link: "/admin",
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id); | const prior = null;
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |     await markJob();\n    try { |     try {
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |           status: "paid",\n          initiated_by: "system", |           status: "pending",\n          initiated_by: "system",
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |         out.neverTaken++; |         void 0;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id); | const prior = null;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |     await markJob();\n    try { |     try {
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |           status: "paid",\n          initiated_by: "system", |           status: "pending",\n          initiated_by: "system",
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |         out.neverTaken++; |         void 0;
  * @mutate supabase/functions/stripe-webhook/index.ts |   "charge.dispute.funds_withdrawn": handleChargeDisputeFundsWithdrawn, |   // (unregistered)
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |   if (mode === "created" \|\| changed) await postSlackOpsAlert({ |   if (mode === "created") await postSlackOpsAlert({
  */

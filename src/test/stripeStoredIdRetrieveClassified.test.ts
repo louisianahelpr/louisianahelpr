@@ -178,7 +178,7 @@ const EXEMPT: Record<string, string> = {
   "stripe-idv-webhook/index.ts::stripe.identity.verificationSessions.retrieve(session.id)": EVENT,
   "stripe-payouts/index.ts::stripe.accounts.retrieve(accountId)": ACCOUNT,
   "stripe-payouts/index.ts::stripe.balance.retrieve({ stripeAccount: accountId })": ACCOUNT,
-  "stripe-webhook/handlers/_chargebackClawback.ts::stripe.transfers.retrieve(id)": EVENT,
+  "_shared/chargebackClawback.ts::stripe.transfers.retrieve(id)": EVENT,
   "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(account.id)": EVENT,
   "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(accountId)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(chargeId)": EVENT,

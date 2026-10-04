@@ -64,7 +64,7 @@ const NOT_A_JOB_PAYOUT: Record<string, string> = {
     "moves the instant-payout fee from the Helpr's own connected balance to the platform",
   "supabase/functions/cash-out-credits/index.ts":
     "cashes out referral/credit balance the user already holds, at its exact value",
-  "supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts":
+  "supabase/functions/_shared/chargebackClawback.ts":
     "re-pays exactly the cents a clawback reversed (row.reversed_cents); the original transfer was already rounded",
 };
 
@@ -76,7 +76,7 @@ const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
   "supabase/functions/instant-payout/index.ts": 1,
   "supabase/functions/process-scheduled-payouts/index.ts": 1,
   "supabase/functions/release-payout/index.ts": 1,
-  "supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts": 1,
+  "supabase/functions/_shared/chargebackClawback.ts": 1,
   "supabase/functions/void-cancelled-payments/index.ts": 2,
 };
 

@@ -77,6 +77,6 @@ Native iOS releases go through Fastlane (see `docs/CICD_AND_ASO.md`).
 
 ## Contributing
 
-Commit directly to `main` — no branch or PR required. Ensure `npm run typecheck`,
-`npm run lint`, and `npm run build` all pass before pushing. See `CLAUDE.md` for
-the full working rules.
+Land changes with `bash scripts/land.sh` (branch + PR; a direct push to `main` is
+refused). Ensure `npm run typecheck`, `npm run lint`, and `npm run build` all pass.
+See `CLAUDE.md` for the full working rules.

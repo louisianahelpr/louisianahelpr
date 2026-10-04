@@ -227,8 +227,8 @@ Cross-session protocol when authorizing prod-touching work:
   dialogs. Apply the editorial header pattern.
 - Don't add inline `confirm()` JavaScript dialogs. Use the
   `<AlertDialog>` primitive.
-- Don't write tests that hit a real Supabase. Mock
-  `@/integrations/supabase/client`.
+- Don't add new mocked-Supabase specs; migrate existing ones. Audits and
+  journeys run against real prod using the shared test accounts (see CLAUDE.md).
 - Don't bypass the migration filename rule "just this once."
 - Don't `git mv` migration files without coordinating — the
   prefix is the primary key into `schema_migrations`.

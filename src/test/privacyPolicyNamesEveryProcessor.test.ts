@@ -6,6 +6,11 @@
  * fails here until it is either disclosed or listed as carrying no personal
  * data. Inventory: every https host in src and supabase/functions.
  *
+ * Q1190 (owner, 2026-10-03): push is iOS-only (Q1126), nothing calls FCM, so
+ * the three FCM hosts left DISCLOSED and the policy names APNs only; the legal
+ * version was NOT bumped (owner: removing an unused processor needs none).
+ *
+ * @mutate src/pages/info/legal/PrivacySection.tsx | push-notification delivery (APNs). | push-notification delivery (APNs / FCM).
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Resend</strong> | <strong className="text-foreground">Mailer</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Google Gemini</strong> | <strong className="text-foreground">An AI model</strong>
  */
@@ -32,9 +37,6 @@ const DISCLOSED: Record<string, string> = {
   "nominatim.openstreetmap.org": "OpenStreetMap",
   "generativelanguage.googleapis.com": "Gemini",
   "api.resend.com": "Resend",
-  "fcm.googleapis.com": "FCM",
-  "oauth2.googleapis.com": "FCM",
-  "www.googleapis.com": "FCM",
 };
 // Hosts that are links, our own domains, test fixtures, or calls that carry no
 // personal data (HIBP gets a 5-char hash prefix only).
@@ -62,6 +64,10 @@ describe("the privacy policy names every data processor (CS-002)", () => {
   it("every called host is disclosed or known not to be a processor", () => {
     const undisclosed = [...hosts].filter((h) => !DISCLOSED[h] && !NOT_PROCESSORS.some((n) => h === n || h.endsWith(`.${n}`) || h.endsWith(n)));
     expect(undisclosed).toEqual([]);
+  });
+  it("the policy no longer names FCM: push is iOS-only and nothing calls it (Q1190)", () => {
+    expect(policy).not.toMatch(/\bFCM\b/);
+    expect([...hosts].filter((h) => h === "fcm.googleapis.com")).toEqual([]);
   });
   it("each processor's name appears in the policy", () => {
     const missing = [...new Set(Object.values(DISCLOSED))].filter((n) => !policy.includes(n));

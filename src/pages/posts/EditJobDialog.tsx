@@ -121,9 +121,14 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       // server-side, so this also holds for any other client.
       ...(scheduleChanged ? { expires_at: computeJobExpiresAt(dateNeeded, startTime) } : {}),
     };
+    // Once a Helpr is booked the place and details are locked server-side
+    // (enforce_poster_jobs_money_lock, Q1204), so a booked job sends only the
+    // one field the lock leaves open: photo proof, turned OFF. Everything else
+    // is simply not sent (a re-trimmed location would read as a change).
+    const payload: TablesUpdate<"jobs"> = job.helper_id ? { require_photo_proof: requirePhotoProof } : updateData;
     try {
       unwrapMutation(
-        await supabase.from("jobs").update(updateData).eq("id", job.id).select("id"),
+        await supabase.from("jobs").update(payload).eq("id", job.id).select("id"),
         { action: "save these changes" },
       );
       hapticSuccess();
@@ -173,6 +178,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const hasHelper = !!job.helper_id;
   const locked = hasHelper;
+  // The only edit a booked job still takes (Q1204): relaxing photo proof.
+  // Turning it ON is refused by the server once booked, so a job that already
+  // has it off offers no switch, and Save needs that one change to be made.
+  const savedPhotoProof = (job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true;
+  const bookedNothingToSave = hasHelper && requirePhotoProof === savedPhotoProof;
   // ME-010: sales tax was charged at checkout from the category, so a paid job
   // cannot cross between taxed and untaxed categories (the server refuses it:
   // trg_funded_category_tax_class). Same funded test as the money lock.
@@ -198,7 +208,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <div className="space-y-5">
           {locked && (
             <DialogCallout icon={Lock}>
-              These fields are locked — a Helpr's already accepted this job.
+              The place and details are locked once a Helpr is booked.
             </DialogCallout>
           )}
 
@@ -285,8 +295,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Special requirements</Label>
               <Textarea aria-label="Special requirements" value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
             </div>
-            {/* PHOTO PROOF — editable even once a Helpr is assigned, which is
-                the opposite of every field above it and is the point.
+            {/* PHOTO PROOF — can still be turned OFF once a Helpr is assigned
+                (never back on: the server refuses it, Q1204), which is the
+                opposite of every field above it and is the point.
                 `enforce_helper_completion_gates()` reads NEW.require_photo_proof
                 at the moment the Helpr marks the job done, not the value at
                 post time, so a poster who answered wrong is otherwise stuck:
@@ -311,6 +322,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
                 id="edit-require-photo-proof"
                 checked={requirePhotoProof}
                 onCheckedChange={setRequirePhotoProof}
+                disabled={hasHelper && !savedPhotoProof}
                 aria-label="Require before and after photos"
               />
             </div>
@@ -326,7 +338,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           </DialogSecondaryAction>
           <DialogPrimaryAction
             onClick={handleSaveClick}
-            disabled={saving || hasHelper}
+            disabled={saving || bookedNothingToSave}
           >
             {saving ? "Saving…" : "Save Changes"}
           </DialogPrimaryAction>

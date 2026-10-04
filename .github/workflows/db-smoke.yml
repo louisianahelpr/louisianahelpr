@@ -37,6 +37,7 @@ on:
       - "scripts/ci/null-arg-validators.sql"
       - "scripts/ci/rowtype-args-unreadable.sql"
       - "scripts/ci/client-insert-columns.sql"
+      - "scripts/ci/current-date-time-zone.sql"
       - "scripts/sql/identity-linking-scenarios.sql"
       - "scripts/check-identity-linking.mjs"
   workflow_dispatch:
@@ -271,6 +272,29 @@ jobs:
             exit 1
           fi
           echo "✅ client INSERT on public.messages is exactly the declared send columns"
+
+      # Q1185 final review #1: CURRENT_DATE is the session's date, and prod
+      # sessions run in UTC, a day ahead of Louisiana from 19:00 CDT. Every
+      # function that reads it pins TimeZone to America/Chicago, or a job dated
+      # today reads as "already passed" every evening. The same query runs live
+      # in scripts/check-live-privileges.mjs.
+      - name: Smoke — every CURRENT_DATE reader pins America/Chicago
+        run: |
+          set -euo pipefail
+          N=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND prosrc ~* '\\mcurrent_date\\M'")
+          if [ "${N:-0}" -lt 1 ]; then
+            echo "::error::replayed schema has no function reading CURRENT_DATE — the check would pass vacuously"
+            exit 1
+          fi
+          OUT=$(psql -q -v ON_ERROR_STOP=1 -At -F '|' -f scripts/ci/current-date-time-zone.sql)
+          if [ -n "$OUT" ]; then
+            echo "$OUT" | while IFS='|' read -r fn config; do
+              echo "::error::public.$fn reads CURRENT_DATE without TimeZone=America/Chicago (config: ${config:-none})"
+            done
+            echo "::error::FIX: add SET \"TimeZone\" TO 'America/Chicago' to the function, as enforce_application_job_state has (20261003214350)."
+            exit 1
+          fi
+          echo "✅ all $N CURRENT_DATE readers pin America/Chicago"
 
       - name: Smoke — post a job, expect triggers to fire cleanly
         # The actual P0: every INSERT INTO public.jobs invokes

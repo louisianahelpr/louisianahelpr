@@ -26,7 +26,12 @@
  * SUPABASE_PROJECT_REF, as prod-errors.yml has); locally the linked supabase
  * CLI (LH_SUPABASE_WORKDIR). Only a single SELECT/WITH statement is accepted.
  *
- * Usage: node scripts/open-done-when.mjs [--file docs/OPEN.md] [--no-sql] [--no-test] [--out <md>]
+ * Usage: node scripts/open-done-when.mjs [--file docs/OPEN.md] [--no-sql] [--no-test] [--out <md>] [--tick]
+ *
+ * --tick (owner, 2026-10-04: "the count lags the work"): every READY item is
+ * ticked IN the file (`- [~]` -> `- [x]`) with its evidence, and the run exits 0
+ * unless a marker could not be read. .github/workflows/open-auto-tick.yml runs it
+ * after each deploy and lands the ticks through a refresh PR.
  * Nightly: .github/workflows/open-done-when.yml (one nightly-red issue listing what to tick).
  * Guard: src/test/openPartlyDoneItemsSayDoneWhen.test.ts.
  */
@@ -168,6 +173,25 @@ async function runMarker(mk, opts) {
   return { ok: state === "MERGED", note: `pr #${mk.number} is ${state}` };
 }
 
+/**
+ * Tick the READY items in `md`: `- [~] **Qn` becomes `- [x] **Qn` and the line
+ * gains the evidence. Only the item's first line changes; an id not in `ready`
+ * (or not a `[~]` line) is left exactly as it was.
+ * @param {string} md
+ * @param {Map<string, string>} ready  item id -> what its markers read
+ * @param {string} date  YYYY-MM-DD
+ */
+export function tickReady(md, ready, date) {
+  return md
+    .split("\n")
+    .map((line) => {
+      const id = /^- \[~\] \*\*(Q\d+)\b/.exec(line)?.[1];
+      if (!id || !ready.has(id)) return line;
+      return `- [x]${line.slice(5)} **DONE ${date} (auto-tick, verified live): every done-when marker on this item read as expected on prod (${ready.get(id)}).**`;
+    })
+    .join("\n");
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const opt = (n) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : undefined; };
@@ -176,6 +200,7 @@ async function main() {
   const items = partlyDoneItems(readFileSync(file, "utf8"));
   const withMarkers = items.filter((it) => it.markers.length || it.malformed.length);
   const ready = [];
+  const readyIds = new Map();
   const problems = [];
   for (const it of withMarkers) {
     for (const bad of it.malformed) problems.push(`${it.id} (line ${it.line}): unparseable marker "done-when: ${bad}"`);
@@ -190,7 +215,10 @@ async function main() {
     }
     const notes = res.map((r) => r.note ?? r.error).join("; ");
     console.log(`${res.every((r) => r.ok === true) ? "READY  " : "not yet"} ${it.id} (line ${it.line}): ${notes}`);
-    if (res.every((r) => r.ok === true)) ready.push(`- **${it.id}** (docs/OPEN.md line ${it.line}): ${notes}`);
+    if (res.every((r) => r.ok === true)) {
+      ready.push(`- **${it.id}** (docs/OPEN.md line ${it.line}): ${notes}`);
+      readyIds.set(it.id, notes.replace(/\s+/g, " ").slice(0, 300));
+    }
   }
   console.log(`\n${items.length} [~] item(s), ${withMarkers.length} with a done-when marker, ${ready.length} READY to tick, ${problems.length} problem(s).`);
   for (const p of problems) console.log(`::error title=done-when marker::${p}`);
@@ -199,6 +227,11 @@ async function main() {
     problems.length ? `### Markers that could not be read\n${problems.map((p) => `- ${p}`).join("\n")}` : "",
   ].filter(Boolean).join("\n\n");
   if (opt("out")) writeFileSync(opt("out"), report);
+  if (argv.includes("--tick")) {
+    if (readyIds.size) writeFileSync(file, tickReady(readFileSync(file, "utf8"), readyIds, new Date().toISOString().slice(0, 10)));
+    console.log(`--tick: ticked ${readyIds.size} item(s) in ${file}`);
+    process.exit(problems.length ? 1 : 0);
+  }
   process.exit(ready.length || problems.length ? 1 : 0);
 }
 

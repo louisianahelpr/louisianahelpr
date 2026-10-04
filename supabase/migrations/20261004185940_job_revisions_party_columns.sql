@@ -33,7 +33,7 @@ REVOKE INSERT, UPDATE ON public.job_revisions FROM authenticated;
 -- No client deletes a revision request (write-contract AST: no
 -- .from("job_revisions").delete()); with DELETE granted, the FOR ALL policy
 -- let the Helpr delete the poster's request and its evidence outright
--- (lh-authz-rls review, 2026-10-04; was Q1276). The purge, the seed cleanup
+-- (lh-authz-rls review, 2026-10-04; folded into Q1231). The purge, the seed cleanup
 -- and the job's ON DELETE CASCADE run as the server.
 REVOKE DELETE ON public.job_revisions FROM PUBLIC, anon, authenticated;
 GRANT INSERT (job_id, requested_by, description, photos, status) ON public.job_revisions TO authenticated;

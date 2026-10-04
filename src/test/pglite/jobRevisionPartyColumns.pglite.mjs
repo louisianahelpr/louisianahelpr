@@ -145,7 +145,7 @@ const fresh = async (status) => (await db.query(
 {
   const r1 = await fresh("pending");
   const d = await as(HELPR, `DELETE FROM public.job_revisions WHERE id = '${r1}' RETURNING id`);
-  check("R9 the Helpr cannot delete the poster's request (was Q1276)", !(d.ok && d.rows.length) && (await row(r1)) !== undefined, d.ok ? `${d.rows.length} row(s)` : d.err);
+  check("R9 the Helpr cannot delete the poster's request (a review must-fix folded into Q1231)", !(d.ok && d.rows.length) && (await row(r1)) !== undefined, d.ok ? `${d.rows.length} row(s)` : d.err);
   const r2 = await fresh("pending");
   const dp = await as(POSTER, `DELETE FROM public.job_revisions WHERE id = '${r2}' RETURNING id`);
   check("R10 no client deletes one at all (the poster neither)", !(dp.ok && dp.rows.length) && (await row(r2)) !== undefined, dp.ok ? `${dp.rows.length} row(s)` : dp.err);

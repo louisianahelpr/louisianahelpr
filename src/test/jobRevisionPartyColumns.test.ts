@@ -17,7 +17,7 @@
  *      client seat: requested_by pinned to the caller, only the job's poster
  *      inserts, a request is born pending, its text/photos/requester never
  *      change, and only the job's Helpr moves status, once, out of pending.
- *   3. No client DELETE (was Q1276: the Helpr could delete the poster's request).
+ *   3. No client DELETE (a review must-fix folded into Q1231: the Helpr could delete the poster's request).
  * Behaviour, red then green: src/test/pglite/jobRevisionPartyColumns.pglite.mjs
  * (applied 3x: ALL PASS; NEW_MIGRATION=skip: 10 FAILED).
  */
@@ -80,7 +80,7 @@ describe("Q1231 layer 1: the grants", () => {
     expect([...a.cols.get("UPDATE")!]).toEqual(["status"]);
     const anon = replayTablePrivileges(files(), "job_revisions", "anon");
     expect([...anon.table]).toEqual([]);
-    // No client deletes a revision request (was Q1276).
+    // No client deletes a revision request (a review must-fix folded into Q1231).
     expect(a.table.has("DELETE")).toBe(false);
     expect([...a.cols.get("DELETE")!]).toEqual([]);
   });

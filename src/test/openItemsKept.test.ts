@@ -25,6 +25,7 @@ describe("no landing loses or overwrites an item on main", () => {
   });
 
   it("flags an item that is gone", () => {
+    expect(base.split("\n").length).toBeGreaterThan(2);
     const tree = base.split("\n").filter((l) => !l.includes("Q700")).join("\n");
     expect(lostItems(base, tree)).toEqual([expect.stringMatching(/^Q700 is on the base and gone/)]);
   });

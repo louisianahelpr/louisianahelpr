@@ -1,9 +1,9 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 565,
-    "files": 141,
-    "rendering": 544,
+    "calls": 566,
+    "files": 142,
+    "rendering": 545,
     "suppressedByPolicy": 21,
     "byKind": {
       "confirmConsequential": 23,
@@ -14,10 +14,10 @@
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
-      "toast.warning": 20
+      "toast.warning": 21
     },
     "copyPiecesByForm": {
-      "literal": 310,
+      "literal": 311,
       "template": 73,
       "dynamic": 222,
       "jsx": 0
@@ -1366,7 +1366,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 102,
+      "line": 103,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1376,7 +1376,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 139,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1386,7 +1386,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 158,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1852,7 +1852,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 89,
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1862,7 +1862,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 246,
+      "line": 247,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1872,7 +1872,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 262,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1882,7 +1882,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 304,
+      "line": 306,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1892,7 +1892,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 397,
+      "line": 399,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2607,6 +2607,16 @@
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage(profileErr, \"Ban row cleared, but the account status didn't update — re-check this user.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/giftRestoreWarning.ts",
+      "line": 10,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Refunded, but the poster's gift card was not returned. Ops has been paged to return it by hand."
       },
       "renders": true
     },

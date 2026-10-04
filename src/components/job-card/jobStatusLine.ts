@@ -684,6 +684,10 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
 export function deriveHelperWait(app: AppliedApp): HelperWait {
   const job = app.job;
   if (!job) return "job_gone";
+  // Q1207: the hourly sweep (expire_unanswered_offers) closes a lapsed offer
+  // as 'rejected' and reopens the job, so after it runs only this stamp says
+  // the offer expired. Nobody passed on this Helpr.
+  if (app.status === "rejected" && app.closed_reason === "offer_expired") return "offer_expired";
   // A job-cancel close (Q274) is 'rejected' too, but nobody passed on this
   // applicant: let the job's own status speak.
   if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected";

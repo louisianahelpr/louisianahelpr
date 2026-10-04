@@ -301,6 +301,15 @@ describe("Activity (helper) — every counted row actually renders a card", () =
     expect(container.textContent).toMatch(/closed/i);
   });
 
+  it("an expired offer whose job is no longer visible says it expired, not 'Not selected' (Q1207 review)", () => {
+    // The sweep reopens the job; once someone else is booked the jobs SELECT
+    // policy hides it from this Helpr, and only the stamp is left.
+    const orphan = FIXTURES.find((f) => f.app.job == null)!;
+    const { container } = renderCard({ ...orphan.app, closed_reason: "offer_expired" } as AppliedApp);
+    expect(container.textContent).toContain("Offer expired");
+    expect(container.textContent).not.toContain("Not selected");
+  });
+
   it.each(BUCKETS)(
     "the number of cards rendered equals the badge: %s",
     (bucket) => {
@@ -324,3 +333,4 @@ describe("Activity (helper) — every counted row actually renders a card", () =
 // Proof this guard can fail: restore the bare `return null` that made the Done
 // badge read 3 over a list of 2. The counted-but-blank row stops rendering.
 // @mutate src/pages/jobs/AppliedJobCard.tsx |   if (!job) { |   if (!job) return null;\n  if (!job) {
+// @mutate src/pages/jobs/AppliedJobCard.tsx |                 : app.closed_reason === "offer_expired" |                 : false

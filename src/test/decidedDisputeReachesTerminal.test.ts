@@ -194,15 +194,18 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
   it("the close keys on WHO refunded: a refund carrying the split's dispute metadata is never closed here", () => {
     const src = read(`${HANDLERS}/chargeRefunded.ts`);
     const fn = src.slice(src.indexOf("async function closeDecidedDisputeOnExternalRefund("));
-    expect(fn).toMatch(/stripe\.refunds\.list\(\{ charge: charge\.id/);
+    // Q1193: the one Stripe list now lives in the handler (listChargeRefunds) and
+    // the close reads it from there, so it is still Stripe's own refund list.
+    expect(src).toMatch(/stripe\.refunds\.list\(\{ charge: charge\.id/);
+    expect(fn).toMatch(/await listChargeRefunds\(\)/);
     expect(fn).toMatch(/metadata[^\n]*dispute_id/);
     // A crew decision is read and handed to a person, before any Stripe read
     // (the fan-out never runs on a refunded job; review MEDIUM).
     expect(src).toMatch(/const UNEXECUTED_DECISION_FILTER = "execution_status\.is\.null,execution_status\.in\.\(pending,executing,failed,crew_fanout\)";/);
     const crewAt = fn.indexOf("if (crew) {");
     expect(crewAt).toBeGreaterThan(-1);
-    expect(crewAt).toBeLessThan(fn.indexOf("stripe.refunds.list("));
-    expect(fn.slice(crewAt, fn.indexOf("stripe.refunds.list("))).toMatch(/await handBack\([\s\S]*?return "needs_human";/);
+    expect(crewAt).toBeLessThan(fn.indexOf("await listChargeRefunds()"));
+    expect(fn.slice(crewAt, fn.indexOf("await listChargeRefunds()"))).toMatch(/await handBack\([\s\S]*?return "needs_human";/);
     // The split's own refund returns BEFORE the RPC; a mixed charge pages.
     expect(fn.indexOf('return "split_refund"')).toBeGreaterThan(-1);
     expect(fn.indexOf('return "split_refund"')).toBeLessThan(fn.indexOf('supabase.rpc("settle_dispute_by_external_refund"'));

@@ -163,7 +163,8 @@ describe("race-class guard — edge functions (create-payment release, proven on
     expect(flips).toHaveLength(1);
     expect(live).toMatch(/\}\)\.eq\("id", jobId\)\.eq\("status", job\.status\);\s*\n\s*generalFlip = job\.payment_status == null/);
     expect(live).toMatch(/\.update\(updateFields\)\s*\n\s*\.eq\("id", jobId\)\s*\n\s*\.eq\("status", job\.status\)/);
-    expect(live.match(/\.eq\("id", jobId\)\.eq\("status", "disputed"\)\.select\("id"\)/g)).toHaveLength(2);
+    // Q1192: both flips also pin the payment_status they read.
+    expect(live.match(/\.eq\("id", jobId\)\.eq\("status", "disputed"\)\.in\("payment_status", \[\.\.\.DISPUTE_FLIP_PAYMENT_STATES\]\)\.select\("id"\)/g)).toHaveLength(2);
   });
 
   it("the 2026-09-14 lifecycle-writes audit: every fixed write is flagged pre-fix and clean (or audited-safe) live", () => {

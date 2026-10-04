@@ -12,8 +12,8 @@ import { blankComments } from "./helpers/blankNonCode";
 const FILE = "supabase/functions/create-payment/index.ts";
 const src = blankComments(readFileSync(resolve(__dirname, "../..", FILE), "utf8"));
 
-/** Every `payment_status: "<terminal>"` written into a jobs update payload. */
-const TERMINAL_WRITE = /payment_status:\s*"(released|refunded|cancelled)"/g;
+/** Every terminal payment_status write (released, refunded, cancelled) in a jobs update payload. */
+const TERMINAL_WRITE = new RegExp(`payment_status:\\s*"(${["released", "refunded", "cancelled"].join("|")})"`, "g");
 // The pin must sit in the same chain: before the next job write begins.
 const PIN = /\.(?:eq|in|is)\(\s*"payment_status"/;
 

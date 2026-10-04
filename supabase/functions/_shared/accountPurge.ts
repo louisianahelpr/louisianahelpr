@@ -44,6 +44,7 @@
 import { removeJobMedia, type JobMediaOwner } from "./jobMedia.ts";
 import { IDENTITY_BUCKETS, missingBuckets } from "./purgeBuckets.ts";
 import { recurringVisitDates } from "./recurringSchedule.ts";
+import { louisianaToday } from "./louisianaDate.ts";
 
 /**
  * Structural, not `SupabaseClient`.
@@ -155,11 +156,6 @@ export interface ActiveWorkResult {
 export const SERIES_BLOCKS_DELETION_MESSAGE =
   "You have a recurring series that is still running. End it from your posts (or leave it from My Jobs if you're doing its visits) before deleting your account.";
 
-/** Today's date in America/Chicago, the platform's calendar. */
-function chicagoToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
-
 /**
  * Is this account on a RUNNING recurring series (Q407 (7), money audit
  * LOW-14)? A series the account POSTED that is not cancelled, not ended
@@ -174,7 +170,7 @@ function isMissingSeriesEndColumn(e: { code?: string | null; message?: string | 
 }
 
 async function findRunningSeries(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
-  const today = chicagoToday();
+  const today = louisianaToday();
   // `date_needed` bounds the scan exactly as the charge cron does: the last
   // visit of any series is at most 52 weeks after its first.
   const since = new Date(Date.now() - 371 * 86_400_000).toISOString().slice(0, 10);

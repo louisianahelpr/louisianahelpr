@@ -351,6 +351,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/seedBoundary.ts";`,
   );
 
+  // Louisiana calendar day (Q1203): `_shared/louisianaDate.ts` imports only the
+  // zone constant from cancellationFee.ts, so the generated file runs the REAL
+  // helper. A mock would put "which day is it in Louisiana" outside the tests
+  // that pin the clock to a Chicago evening.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/louisianaDate\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/louisianaDate.ts";`,
+  );
+
   // Bounded pool: `_shared/forEachBounded.ts` has ZERO imports, so the
   // generated file runs the daily sweeps through the REAL pool.
   out = out.replace(

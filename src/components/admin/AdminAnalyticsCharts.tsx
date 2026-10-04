@@ -7,13 +7,13 @@ import {
   PieChart as RePieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
 } from "recharts";
 
-interface SubPieDatum {
+export interface SubPieDatum {
   value: number;
   name: string;
   color: string;
 }
 
-interface MonthlyDatum {
+export interface MonthlyDatum {
   month: string;
   revenue: number;
   fees: number;

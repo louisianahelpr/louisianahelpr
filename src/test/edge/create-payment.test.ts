@@ -3520,8 +3520,31 @@ describe("create-payment: recurring_visit (Q210b)", () => {
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
-  it("refuses less than 40 minutes before the visit", async () => {
-    vi.setSystemTime(new Date("2026-10-01T23:30:00Z"));
+  it("refuses less than 40 minutes before the visit's Louisiana midnight", async () => {
+    // 23:30 CDT on Oct 1 = 04:30Z on Oct 2; the visit's day starts 05:00Z.
+    vi.setSystemTime(new Date("2026-10-02T04:30:00Z"));
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    const res = await pay();
+    expect(res.status).not.toBe(200);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  // Q1203: the window was judged against the UTC date and UTC midnight, both of
+  // which turn over at 19:00 CDT. The eve of the visit, in the evening, is
+  // still open in Louisiana.
+  it("Q1203: still opens Checkout on the eve of the visit at 20:00 CDT (UTC date is already the visit's)", async () => {
+    vi.setSystemTime(new Date("2026-10-02T01:00:00Z")); // 20:00 CDT on Oct 1
+    scenario.reads.recurring_visit_payments = { rows: [ROW] }; // visit_date 2026-10-02
+    const res = await pay();
+    expect(res.status).toBe(200);
+    expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_new");
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0] as [Record<string, unknown>];
+    // Closes at the visit's Louisiana midnight (05:00Z in CDT), never later.
+    expect(params.expires_at).toBe(Date.parse("2026-10-02T05:00:00Z") / 1000);
+  });
+
+  it("Q1203: refuses on the visit's own Louisiana date, even at 10:00 CDT", async () => {
+    vi.setSystemTime(new Date("2026-10-02T15:00:00Z")); // 10:00 CDT on Oct 2
     scenario.reads.recurring_visit_payments = { rows: [ROW] };
     const res = await pay();
     expect(res.status).not.toBe(200);

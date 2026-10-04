@@ -13,6 +13,7 @@ import { EarningsForecastCard } from "./EarningsForecastCard";
  */
 const mockQueryResult = { data: [] as unknown[], error: null as { message: string } | null };
 
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/integrations/supabase/client", () => {
   const builder: Record<string, unknown> = {};
   // Each chained call returns the same builder so we can `await` the

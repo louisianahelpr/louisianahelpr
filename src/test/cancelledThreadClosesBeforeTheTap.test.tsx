@@ -282,6 +282,7 @@ describe("2. both realtime listeners deliver the announcement", () => {
         scrollToBottom: vi.fn(),
         patchConversationForMessage: vi.fn(),
         onJobStatusAnnouncement,
+        onOwnMessageOrphaned: vi.fn(),
         onRecovered: vi.fn(),
       }),
     );
@@ -335,6 +336,7 @@ describe("2b. inbound messages ride the shared user bus and split by event type 
         scrollToBottom: vi.fn(),
         patchConversationForMessage: patch,
         onJobStatusAnnouncement: vi.fn(),
+        onOwnMessageOrphaned: vi.fn(),
         onRecovered,
       }),
     );

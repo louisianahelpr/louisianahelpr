@@ -19,6 +19,7 @@ import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { stripeConnectStatusKey } from "@/hooks/useStripeConnectStatus";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -88,6 +89,7 @@ const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser } = useCurrentUser();
   const queryClient = useQueryClient();
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -625,10 +627,8 @@ const ProfilePage = () => {
   // was refunded to the poster or charged back stays `completed` forever, and
   // counting it here made this total disagree with the Earnings tab's about
   // the same helper. See src/components/profile/earningsTab/earningsTabHelpers.ts.
-  const totalEarnings = sumHelperTakeHomeDollars(
-    earningsJobs.filter(isEarnedJob),
-    helperFeeFallbackPct,
-  );
+  // Q753: the one-time setup fee still due comes off once, as EarningsTab does.
+  const totalEarnings = sumHelperTakeHomeDollars(earningsJobs.filter(isEarnedJob), helperFeeFallbackPct, firstPayoutFee);
 
 // The last-6-weeks sparkline series was computed here for the header
   // teaser that the owner removed on 2026-08-27; nothing consumes it now.

@@ -18,8 +18,8 @@ import {
   DELETED_ACCOUNT_NOTICE,
   DELETED_ACCOUNT_TOAST,
   fetchCounterpartyDeleted,
+  flipToDeletedAccountThread,
 } from "@/lib/deletedCounterparty";
-import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 
 // Module-level so it survives the per-render re-creation of the handlers:
 // a blocked send logs at most ONE violation per unique (user, message) —
@@ -214,16 +214,7 @@ export function createSendHandlers({
         (await fetchCounterpartyDeleted(optimistic.job_id, receiverId)) === true
       ) {
         toast.error(DELETED_ACCOUNT_TOAST);
-        setActiveConvo?.((prev) =>
-          prev && prev.jobId === optimistic.job_id && prev.otherUserId === receiverId
-            ? {
-                ...prev,
-                otherUserId: null,
-                otherUserName: FORMER_MEMBER_LABEL,
-                otherUserAvatarUrl: null,
-              }
-            : prev,
-        );
+        setActiveConvo?.((prev) => flipToDeletedAccountThread(prev, optimistic.job_id, receiverId));
         setMessages((prev) =>
           prev.map((m) =>
             m.clientId === optimistic.clientId ? { ...m, sendStatus: "refused" } : m,

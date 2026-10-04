@@ -103,6 +103,7 @@ const Messages = () => {
     loadOlderMessages,
     patchConversationForMessage,
     applyJobStatusAnnouncement,
+    checkCounterpartyDeleted,
     sendMessage,
     retryMessage,
   } = useMessagesData({
@@ -231,6 +232,9 @@ const Messages = () => {
     // stayed enabled after the other party cancelled and only the Send tap
     // discovered it, which is the fail-on-tap pattern this app rejects.
     onJobStatusAnnouncement: applyJobStatusAnnouncement,
+    // The other party deleting their account flips the open thread to its
+    // read-only notice at once, not on the viewer's next send (Q510).
+    onOwnMessageOrphaned: checkCounterpartyDeleted,
     // Backfill the outage. The realtime channel is the only thing that
     // delivers an inbound message, so anything sent while it was down exists
     // only in the database — reconnecting alone would leave a silent hole in
@@ -239,6 +243,9 @@ const Messages = () => {
     onRecovered: () => {
       if (userId) void loadConversations(userId);
       void refreshActiveThread();
+      // A deletion during the outage left no event behind (Q510).
+      const open = activeConvoRef.current;
+      if (open && open.otherUserId !== null) void checkCounterpartyDeleted(open.jobId, open.otherUserId);
     },
   });
 

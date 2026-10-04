@@ -28,6 +28,12 @@ interface EarningHistoryProps {
    * computed at different fee rates and did not add up. One rate, one source.
    */
   feeFallbackPct: number;
+  /**
+   * The one-time setup fee still due from the viewer's first payout (Q753), in
+   * dollars. It rides on the FIRST earned job only, the same row EarningsTab's
+   * totals subtract it from, so the rows still add up to the tile above.
+   */
+  firstPayoutFeeDollars?: number;
 }
 
 /**
@@ -54,6 +60,7 @@ export function EarningHistory({
   onLoadMore,
   onBrowseJobs,
   feeFallbackPct,
+  firstPayoutFeeDollars = 0,
 }: EarningHistoryProps) {
   if (loading) {
     // Content-shaped skeleton: section eyebrow + heading, plus three
@@ -93,6 +100,8 @@ export function EarningHistory({
   // own status filtering — narrowing the shared array would silently change
   // three other numbers.
   const moneyJobs = earningsJobs.filter((j) => EARNED_OR_IN_FLIGHT.has(j.status));
+  // Same "first earned job" EarningsTab subtracts the one-time fee from (Q753).
+  const firstEarnedJobId = earningsJobs.find(isEarnedJob)?.id ?? null;
 
   return (
     <div>
@@ -146,7 +155,13 @@ export function EarningHistory({
             // completed job that was refunded to the poster or charged back
             // stays `completed` forever, and printing its take-home here read
             // as income the helper never received.
-            const payout = isEarnedJob(job) ? helperTakeHomeDollars(job, feeFallbackPct) : null;
+            const payout = isEarnedJob(job)
+              ? helperTakeHomeDollars(
+                  job,
+                  feeFallbackPct,
+                  job.id === firstEarnedJobId ? firstPayoutFeeDollars : 0,
+                )
+              : null;
             // Approved, transfer scheduled, not sent. Without this caption the
             // row is indistinguishable from one already paid — which is how a
             // helper reads "$105.60" beside a job, checks their bank, and finds

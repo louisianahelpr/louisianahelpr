@@ -16,7 +16,7 @@ import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
  * platform's fee setting), so the real predicate that decides whether a fee is
  * due runs here, not a stub of it.
  */
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | const payout = beforeFirstPayoutFee - firstPayoutFee; | const payout = beforeFirstPayoutFee;
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | const payout = netAfterFirstPayoutFee(beforeFirstPayoutFee, firstPayoutFee); | const payout = beforeFirstPayoutFee;
 
 const profileMock = vi.fn<() => { onboarding_fee_paid: boolean | null } | null>();
 vi.mock("@/hooks/useCurrentUser", () => ({

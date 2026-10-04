@@ -35,6 +35,7 @@ function mount(onRecovered: () => void) {
       scrollToBottom: vi.fn(),
       patchConversationForMessage: vi.fn(),
       onJobStatusAnnouncement: vi.fn(),
+      onOwnMessageOrphaned: vi.fn(),
       onRecovered,
     }),
   );

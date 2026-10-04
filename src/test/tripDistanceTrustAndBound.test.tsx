@@ -83,6 +83,7 @@ import { COMMUTE_RANGE_MILES } from "@/lib/geo";
 import JobCard from "@/components/dashboard/JobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "idle" }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn() }));
 

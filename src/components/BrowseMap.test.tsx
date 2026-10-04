@@ -26,6 +26,7 @@ import type { MapJob } from "./browseMap/config";
 // rows the map sees (matters for the auto-Heat-at-50 heuristic).
 const rpcResolver = { value: [] as Array<Record<string, unknown>> };
 
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: vi.fn(() => Promise.resolve({ data: rpcResolver.value, error: null })),

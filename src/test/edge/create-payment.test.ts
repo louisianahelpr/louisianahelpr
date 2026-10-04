@@ -1923,7 +1923,7 @@ describe("create-payment edge function", () => {
       // Poster won → gets budget + service fee back, but Stripe's 2.9%+$0.30 on
       // the $100 capture (320c) is withheld so the platform never eats the fee.
       expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-        { payment_intent: "pi_r", amount: 9680 },
+        { payment_intent: "pi_r", amount: 9680, metadata: { source: "admin_refund_dispute", job_id: "job-1" } },
         { idempotencyKey: "refund-dispute-job-1" },
       );
       const jobUpdate = scenario.writes.find(
@@ -1989,7 +1989,7 @@ describe("create-payment edge function", () => {
       );
       expect(res.status).toBe(200);
       expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-        { payment_intent: "pi_rf", amount: 9680 },
+        { payment_intent: "pi_rf", amount: 9680, metadata: { source: "admin_refund_dispute", job_id: "job-1" } },
         { idempotencyKey: "refund-dispute-job-1" },
       );
     });
@@ -3185,7 +3185,7 @@ describe("create-payment edge function", () => {
           id: "pi_r", status: "succeeded", amount: 10000, amount_received: 10000,
           latest_charge: { id: "ch_r", amount_refunded: 9680 },
         });
-        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_prior", amount: 9680, status: "succeeded" }] });
+        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_prior", amount: 9680, status: "succeeded", metadata: { source: "admin_refund_dispute", job_id: "job-1" } }] });
         const fn = await load();
         const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
         expect(res.status).toBe(200);
@@ -3204,7 +3204,7 @@ describe("create-payment edge function", () => {
           rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "completed", payment_status: "payout_pending", budget: 100, title: "Goodwill job", stripe_payment_intent_id: "pi_g" }],
         };
         stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded", amount: 10000, amount_received: 10000 });
-        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_full", amount: 10000, status: "succeeded" }] });
+        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_full", amount: 10000, status: "succeeded", metadata: { source: "admin_refund_general", partial: "false" } }] });
         const fn = await load();
         const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
         expect(res.status).toBe(200);
@@ -3212,6 +3212,28 @@ describe("create-payment edge function", () => {
         expect(scenario.writes.find((w) => w.table === "payment_refunds")?.payload).toMatchObject({ stripe_refund_id: "re_full" });
         const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
         expect(flip?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+      });
+
+      // Review of Q1209 (should-fix): a covering refund ANOTHER flow wrote (a
+      // Dashboard refund, cancel_escrow's) is never reused or booked as this
+      // action's; only one carrying this action's metadata.source is.
+      // @mutate supabase/functions/create-payment/index.ts |     r.metadata?.source === source && |
+      it("Q1209 review: another flow's covering refund is NOT reused as this action's", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", title: "Disputed job", stripe_payment_intent_id: "pi_r" }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_r", status: "succeeded", amount: 10000, amount_received: 10000,
+          latest_charge: { id: "ch_r", amount_refunded: 9680 },
+        });
+        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_dash", amount: 9680, status: "succeeded", metadata: {} }] });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_mine", amount: 9680 });
+        const fn = await load();
+        await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+        expect(scenario.writes.some((w) => w.table === "payment_refunds" && (w.payload as Record<string, unknown>).stripe_refund_id === "re_dash")).toBe(false);
       });
 
       it("control: a PARTIAL prior refund does not count as the full one (the rest is refunded)", async () => {

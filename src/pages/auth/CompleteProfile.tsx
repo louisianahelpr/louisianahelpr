@@ -576,7 +576,6 @@ const CompleteProfile = () => {
     <AuthShell hideBack hideHeader centerColumn maxWidth="lg" noWebChrome>
       <div className="pb-12">
           <div className="text-center mb-7">
-            <span className="text-display-eyebrow">Welcome aboard</span>
             <h1
               // One page-title size everywhere (Q236(e)): text-headline-hero.
               className="font-display italic font-bold text-headline-hero leading-tight mt-2"

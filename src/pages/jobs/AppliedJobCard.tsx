@@ -19,7 +19,7 @@ import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
 import { formatPrice, formatPriceFloor, formatShortDate } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
-import { deriveAppliedJobCardState, describeCancellation } from "./appliedJobCard/appliedJobCardHelpers";
+import { closedCardLabel, deriveAppliedJobCardState, describeCancellation } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
@@ -122,11 +122,7 @@ function AppliedJobCardInner({
         <JobCardShell expandable={false} expanded={false} onToggle={() => {}}>
           <div className="px-4 py-3 space-y-1">
             <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              {app.closed_reason === "job_cancelled"
-                ? "Job cancelled"
-                : app.closed_reason === "offer_expired"
-                  ? "Offer expired"
-                  : app.status === "rejected" ? "Not selected" : "Job no longer available"}
+              {closedCardLabel(app)}
             </p>
             <p className="text-ds-11 text-muted-foreground">
               This job has closed, so its details aren’t available any more.

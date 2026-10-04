@@ -126,6 +126,13 @@ BEGIN
   -- DELETED when the real email owner takes the account over
   -- (zz_wipe_on_provider_takeover, 20261004194257); they fill in their own
   -- profile on /complete-profile. Was: "signup data kept through the confirm".
+  -- The trigger reads auth.identities to tell a takeover from an email-link
+  -- confirm. The replayed CI schema (--psql) has no auth.identities, so there
+  -- it must leave the data alone; prod (the nightly run) proves the wipe.
+  IF NOT v_has_ident THEN
+    v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'no auth.identities: the takeover wipe stands down, signup data kept (Q447)',
+      'ok', v_row.full_name = 'Oa Eighteen' AND v_row.phone IS NOT NULL, 'got', to_jsonb(v_row));
+  ELSE
   v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'signup data deleted at the takeover (Q447)',
     'ok', coalesce(v_row.full_name, '') = '' AND v_row.phone IS NULL AND v_row.dob IS NULL AND v_row.location IS NULL,
     'got', to_jsonb(v_row));
@@ -134,6 +141,7 @@ BEGIN
     v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'the takeover wipe is recorded (Q447)', 'ok', v_n = 1, 'got', v_n);
   ELSE
     v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'the takeover wipe is recorded (Q447)', 'ok', false, 'got', 'pre_verification_wipes missing');
+  END IF;
   END IF;
   v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'profiles.email_verified follows the confirm',
     'ok', v_row.email_verified IS TRUE, 'got', v_row.email_verified);

@@ -21,7 +21,8 @@ import { JobCardShell } from "@/components/job-card/JobCardShell";
 import { todayLocalISO, formatJobDate } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
-import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { helperTakeHomeDollars, isSettledForDisplay } from "@/lib/helperEarnings";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { jobStartTimeLabel } from "@/lib/jobDate";
@@ -136,6 +137,7 @@ const ScheduleCard = ({
   viewerFeePercent: number;
 }) => {
   const navigate = useNavigate();
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   const { to, destination } = scheduleRowTarget(job, isPosted);
   // ONE rule for "when" (src/lib/jobDate.ts): a clock time, the word
   // "Flexible" only when the poster ticked `is_flexible_schedule`, else null
@@ -148,23 +150,20 @@ const ScheduleCard = ({
   // flag, i.e. every one of those was a claim no poster had made.
   const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
   // Whose money is this? On a job you POSTED the budget is what you pay, so
-  // the raw figure is right. On a job you were ASSIGNED it is not your money —
-  // your take-home is the budget minus the platform fee, and that is the
-  // number every other helper-facing surface shows (My Jobs, Earnings &
-  // Payouts, Work Record). The whole job row is passed so `payment_status`
-  // comes with it: these are LIVE jobs, so the escrow-time stamp must not be
-  // trusted over the viewer's tier.
+  // the raw figure is right. On a job you were ASSIGNED your take-home is the
+  // budget minus the platform fee (and, Q753, the one-time setup fee while
+  // unpaid), as on every other helper-facing surface. The whole job row is
+  // passed so `payment_status` comes with it: these are LIVE jobs, so the
+  // escrow-time stamp must not be trusted over the viewer's tier.
   // The two branches use DIFFERENT formatters, and that asymmetry is the point.
   // A gross budget is a number the poster typed, so it rounds (`formatPrice`).
   // A take-home is money OWED TO THE VIEWER, and a payout figure may never read
-  // above the payout — so it floors, exactly as JobPrice, CompactJobCard,
-  // AppliedJobCard and WorkRecord already do (owner, 2026-08-19). Both branches
-  // shared `formatPrice` here, so an $83.60 take-home rendered "$84" on this
-  // row while My Jobs rendered "$83" for the same job: the one number a helper
-  // checks, answered two ways, with this screen quoting the higher of the two.
+  // above the payout — so it floors, as JobPrice, CompactJobCard, AppliedJobCard
+  // and WorkRecord do (owner, 2026-08-19). Both branches shared `formatPrice`,
+  // so an $83.60 take-home read "$84" here while My Jobs read "$83".
   const amount = isPosted
     ? formatPrice(job.budget)
-    : formatPriceFloor(helperTakeHomeDollars(job, viewerFeePercent));
+    : formatPriceFloor(helperTakeHomeDollars(job, viewerFeePercent, isSettledForDisplay(job) ? 0 : firstPayoutFee));
   const amountTitle = isPosted
     ? "Your budget for this job"
     : "Your take-home after the platform fee";

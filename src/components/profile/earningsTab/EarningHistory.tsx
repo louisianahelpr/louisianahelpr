@@ -28,6 +28,13 @@ interface EarningHistoryProps {
    * computed at different fee rates and did not add up. One rate, one source.
    */
   feeFallbackPct: number;
+  /**
+   * The one-time setup fee still due from the viewer's next payout (Q753), in
+   * dollars; 0 when none is due. Rows show each job's own take-home and the fee
+   * is stated once on its own line: the server takes it from whichever payout
+   * transfers first, so pinning it to one row would mislabel that row.
+   */
+  firstPayoutFeeDollars?: number;
 }
 
 /**
@@ -54,6 +61,7 @@ export function EarningHistory({
   onLoadMore,
   onBrowseJobs,
   feeFallbackPct,
+  firstPayoutFeeDollars = 0,
 }: EarningHistoryProps) {
   if (loading) {
     // Content-shaped skeleton: section eyebrow + heading, plus three
@@ -99,6 +107,11 @@ export function EarningHistory({
       <h2 className="font-display italic font-bold leading-tight mb-3 text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
         Earning history
       </h2>
+      {firstPayoutFeeDollars > 0 && moneyJobs.length > 0 && (
+        <p className="text-ds-12 -mt-1 mb-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+          Your next payout is ${firstPayoutFeeDollars % 1 === 0 ? firstPayoutFeeDollars : firstPayoutFeeDollars.toFixed(2)} less: the one-time payout setup fee.
+        </p>
+      )}
       {moneyJobs.length === 0 ? (
         <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-3 px-6 py-12">
           <div

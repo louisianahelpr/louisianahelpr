@@ -1,4 +1,4 @@
-import { helperDisplayFeePercent, helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { helperDisplayFeePercent, helperTakeHomeDollars, isSettledForDisplay } from "@/lib/helperEarnings";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
 
@@ -18,6 +18,8 @@ export function deriveAppliedJobCardState(
    * Used only when the job has no rate stamped on it yet.
    */
   viewerTierFeePercent?: number | null,
+  /** One-time setup fee still due from the viewer's first payout (Q753), in dollars. */
+  firstPayoutFeeDollars = 0,
 ) {
   const status = job.status;
   // An accepted application whose JOB row is still `open` is not a data
@@ -80,7 +82,13 @@ export function deriveAppliedJobCardState(
   // rule; this card only supplies the viewer's tier as the live rate.
   const fallbackFeePercent = viewerTierFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
   const commissionPercent = helperDisplayFeePercent(job, fallbackFeePercent);
-  const payout = helperTakeHomeDollars(job, fallbackFeePercent);
+  // The fee is still ahead only while the job's money has not moved: a released
+  // job already paid it (or not), so its figure is the record, not a preview.
+  const payout = helperTakeHomeDollars(
+    job,
+    fallbackFeePercent,
+    isSettledForDisplay(job) ? 0 : firstPayoutFeeDollars,
+  );
 
   const isMinimalCard = isRejected || isCancelled;
 

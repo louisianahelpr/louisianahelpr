@@ -3,6 +3,7 @@ import { Star } from "lucide-react";
 import { categoryColors } from "@/components/job-card/activityConstants";
 import { getCity } from "@/lib/locationUtils";
 import { computeNet } from "@/components/dashboard/JobPrice";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
@@ -53,8 +54,10 @@ export function CompactJobCard({
   // set budget and there is no second price treatment to branch on.)
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const isNet = effectiveFee != null;
+  // Q753: the one-time setup fee still due from the viewer's first payout.
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   const priceAmount = isNet
-    ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers).netEarnings
+    ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers, firstPayoutFee).netEarnings
     : job.budget;
   // Take-home FLOORED to whole dollars, gross budget rounded — the same split
   // JobPrice makes (owner, 2026-08-19): a payout figure may never read above

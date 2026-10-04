@@ -29,6 +29,7 @@ export function useMessagesRealtime({
   scrollToBottom,
   patchConversationForMessage,
   onJobStatusAnnouncement,
+  onOwnMessageOrphaned,
   onRecovered,
 }: {
   userId: string | null;
@@ -50,6 +51,16 @@ export function useMessagesRealtime({
    * reasoning as `onRecovered` below.
    */
   onJobStatusAnnouncement: (msg: Message) => void;
+  /**
+   * One of MY messages in the open thread lost its receiver (`receiver_id` ->
+   * NULL): the other party deleted their account (`messages_receiver_id_fkey ...
+   * ON DELETE SET NULL`, Q262). Called with the open thread's job and the
+   * person the viewer believes they are talking to, so the page can ask the
+   * server and flip the thread to its read-only notice BEFORE the viewer types
+   * (Q510). REQUIRED for the same reason as `onJobStatusAnnouncement`: an
+   * optional prop is a hole a future caller reopens by omission.
+   */
+  onOwnMessageOrphaned: (jobId: string, otherUserId: string) => void;
   /**
    * Re-read the inbox and the open thread after the channel comes back.
    *
@@ -227,6 +238,21 @@ export function useMessagesRealtime({
         (payload) => {
           const updated = payload.new as Message;
           setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
+          // Q510: the SET NULL that follows an account deletion arrives here as
+          // an UPDATE of the viewer's own row. `receiver_id` going null on a
+          // human message in the open thread means its other party is gone.
+          // Not proof by itself (the server decides), and `!is_system` keeps
+          // the trigger's announcement rows out of it.
+          const open = activeConvoRef.current;
+          if (
+            updated.receiver_id === null &&
+            !updated.is_system &&
+            open &&
+            open.otherUserId !== null &&
+            open.jobId === updated.job_id
+          ) {
+            onOwnMessageOrphaned(open.jobId, open.otherUserId);
+          }
         },
       )
       .on(

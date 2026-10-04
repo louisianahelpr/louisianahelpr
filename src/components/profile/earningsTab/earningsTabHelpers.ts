@@ -211,3 +211,11 @@ export const isAwaitingTransfer = (job: MoneyJob): boolean =>
   AWAITING_TRANSFER_PAYMENT_STATUSES.includes(
     job.payment_status as (typeof AWAITING_TRANSFER_PAYMENT_STATUSES)[number],
   );
+
+/**
+ * The one-time setup fee (Q753) still to come out of a set of jobs: the fee
+ * while any of them awaits its transfer (the server takes it from a payout
+ * that has not happened), else 0. A set of settled rows never pays it again.
+ */
+export const firstPayoutFeeDueFrom = (jobs: readonly MoneyJob[], firstPayoutFeeDollars: number): number =>
+  jobs.some(isAwaitingTransfer) ? firstPayoutFeeDollars : 0;

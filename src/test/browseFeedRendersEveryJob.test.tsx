@@ -48,6 +48,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),

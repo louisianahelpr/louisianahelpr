@@ -34,6 +34,7 @@ import { render, screen } from "@testing-library/react";
 // composes "drive · miles"), but MapKit must not try to load a script in
 // jsdom. "idle" is the heuristic branch, which is what a web viewer without
 // a MapKit token gets anyway.
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "idle" }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn() }));
 

@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { Info, Sparkles, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -152,6 +154,11 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
     gcTime: 5 * 60_000,
   });
 
+  // Q753: the one-time setup fee still due from the viewer's first payout. It
+  // comes off the week's money once (the earned part and the projection that
+  // contains it), not per job, so it is applied here and not in the queryFn.
+  const firstPayoutFee = useFirstPayoutFeeDollars();
+
   if (!enabled) return null;
 
   // On a hard query error `data` stays undefined, which the condition below
@@ -173,7 +180,9 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
     );
   }
 
-  const { projectedTotal, earnedSoFar, inProgressCount } = data;
+  const { inProgressCount } = data;
+  const projectedTotal = netAfterFirstPayoutFee(data.projectedTotal, firstPayoutFee);
+  const earnedSoFar = netAfterFirstPayoutFee(data.earnedSoFar, data.earnedSoFar > 0 ? firstPayoutFee : 0);
 
   // Empty state: no scheduled / in-progress jobs AND nothing earned yet
   // this week — the helper has a clean slate, nudge them to browse.

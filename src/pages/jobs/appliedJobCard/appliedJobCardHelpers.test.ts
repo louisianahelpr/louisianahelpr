@@ -116,3 +116,24 @@ describe("describeCancellation — the card names who cancelled", () => {
 // isPending, or the card offers Withdraw/Edit against an id no table holds.
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | const isPending = app.status === "pending" && !isDirectOffer; | const isPending = app.status === "pending";
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | const isOffered = isDirectOffer \|\| (isAssigned && !job.helper_confirmed_at); | const isOffered = isAssigned && !job.helper_confirmed_at;
+
+/**
+ * Q753 — My Jobs' payout figure carries the one-time setup fee while the job's
+ * money has not moved, and only then: a released job's figure is the record.
+ */
+// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | isSettledForDisplay(job) ? 0 : firstPayoutFeeDollars, | 0,
+describe("deriveAppliedJobCardState payout and the first-payout fee (Q753)", () => {
+  const state = (j: Job, fee: number) =>
+    deriveAppliedJobCardState(app({ status: "accepted" }), j, new Set(), new Set(), 12, fee);
+
+  it("an unpaid-out job's payout is net of the fee", () => {
+    const j = job({ status: "accepted", payment_status: "escrowed" } as Partial<Job>);
+    expect(state(j, 0).payout).toBe(88);
+    expect(state(j, 2).payout).toBe(86);
+  });
+
+  it("a released job's payout is the record and is not reduced again", () => {
+    const j = job({ status: "completed", payment_status: "released", helper_fee_percent: 10 } as Partial<Job>);
+    expect(state(j, 2).payout).toBe(state(j, 0).payout);
+  });
+});

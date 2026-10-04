@@ -49,6 +49,7 @@ import type { AppliedApp, Job } from "../../components/job-card/activityConstant
    the collapsed card computes from them. Same partial mock as
    AppliedJobCard.posterTile.test.tsx. */
 // Q344: the cards read unsettled decided disputes through React Query; none here.
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 vi.mock("@/components/JobTracking", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/JobTracking")>()),

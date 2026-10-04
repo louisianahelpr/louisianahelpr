@@ -1,5 +1,7 @@
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { MoneyAmount, MONEY_CHIP_SURFACE, MONEY_CHIP_SURFACE_LG } from "@/components/job/MoneyChip";
 
 export interface JobPriceProps {
@@ -60,6 +62,8 @@ export function computeNet(
   effectiveFee: number,
   urgentFee: number,
   helpersNeeded: number,
+  /** The one-time setup fee still due from the viewer's first payout (Q753). */
+  firstPayoutFeeDollars = 0,
 ) {
   const helpers = helpersNeeded > 0 ? helpersNeeded : 1;
   const perHelperBudget = budget / helpers;
@@ -71,7 +75,10 @@ export function computeNet(
   // against a single urgent fee the poster paid, over-paying the platform N×.
   // Netting then dividing keeps every term reconciling to the shown take-home.
   const netUrgent = netUrgentFeeDollars(urgentFee) / helpers;
-  const netEarnings = perHelperBudget - commission + netUrgent;
+  const netEarnings = netAfterFirstPayoutFee(
+    perHelperBudget - commission + netUrgent,
+    firstPayoutFeeDollars,
+  );
   return { helpers, perHelperBudget, commission, netEarnings, netUrgent };
 }
 
@@ -85,12 +92,10 @@ export function JobPrice({
   className,
   size = "sm",
 }: JobPriceProps) {
-  const { netEarnings } = computeNet(
-    budget,
-    effectiveFee,
-    urgentFee,
-    helpersNeeded,
-  );
+  // Q753: a viewer who has not paid the one-time setup fee loses it from their
+  // first payout, so the chip and the detail pill must not read higher.
+  const firstPayoutFee = useFirstPayoutFeeDollars();
+  const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, firstPayoutFee);
 
   // Bidding was removed (zero production usage), so a job's price is always the
   // poster's set budget: gross on guest/poster surfaces, net take-home otherwise.

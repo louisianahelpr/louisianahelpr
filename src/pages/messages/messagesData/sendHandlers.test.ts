@@ -160,7 +160,7 @@ describe("sendMessage — client-flagged content, honest strike wording", () => 
 // open thread becomes the deleted-account thread (otherUserId null, read-only
 // notice) and the bubble is not retryable.
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | (await fetchCounterpartyDeleted(optimistic.job_id, receiverId)) === true | false
-// @mutate src/pages/messages/messagesData/sendHandlers.ts |                 otherUserId: null, |                 otherUserId: prev.otherUserId,
+// @mutate src/lib/deletedCounterparty.ts |     otherUserId: null, |     otherUserId: convo.otherUserId,
 describe("dispatchMessage — the other party deleted their account mid-thread (Q334)", () => {
   function refusedSend(deleted: boolean | "error") {
     insertResult.data = null;

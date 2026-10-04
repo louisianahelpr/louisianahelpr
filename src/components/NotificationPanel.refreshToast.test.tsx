@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { __resetNotificationFeedLoad } from "@/components/notificationPanel/notificationFeed";
 
 /**
  * THE ONE CASE A REFRESH FAILURE MAY TOAST — executed, not read.
@@ -97,6 +98,8 @@ describe("NotificationPanel refresh failure", () => {
     state.fail = false;
     state.rows = ROWS;
     toastError.mockReset();
+    // Each test mounts its own page: no feed load carried over from the last one (Q1183).
+    __resetNotificationFeedLoad();
   });
 
   it("toasts when a refresh fails while the panel is OPEN and showing rows", async () => {

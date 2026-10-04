@@ -48,17 +48,47 @@ let inFlight: { userId: string; promise: Promise<void> } | null = null;
  */
 export const loadNotificationFeed = (userId: string): Promise<void> => {
   if (inFlight?.userId === userId) return inFlight.promise;
-  const promise = loadOnce(userId).finally(() => {
+  // The stamp says "the store holds this user's list as of now": only a load
+  // that actually filled the bound user's store sets it, and a failure clears
+  // it, so a later mount never reuses a load that failed or went nowhere
+  // (lh-silent-failure review of Q1183).
+  const promise = loadOnce(userId).then(() => {
+    lastLoaded = listHeldFor(userId) ? { userId, at: Date.now() } : null;
+  }, (e: unknown) => {
+    lastLoaded = null;
+    throw e;
+  }).finally(() => {
     if (inFlight?.promise === promise) inFlight = null;
   });
   inFlight = { userId, promise };
   return promise;
 };
 
+let lastLoaded: { userId: string; at: number } | null = null;
+
+/**
+ * The feed as of at most `maxAgeMs` ago: joins a load in flight, reuses one
+ * that just succeeded, otherwise loads. The panel's mount and the feed's own
+ * first load both fire 800 ms after the page mounts; the panel reaches here
+ * after its session read, often just AFTER the feed's request finished, so
+ * joining only an in-flight load still sent the list twice (Q1183). A forced
+ * refresh (pull-to-refresh, Try again) calls loadNotificationFeed directly.
+ */
+export const ensureFreshNotificationFeed = (userId: string, maxAgeMs = 5_000): Promise<void> => {
+  if (inFlight?.userId === userId) return inFlight.promise;
+  if (lastLoaded?.userId === userId && Date.now() - lastLoaded.at < maxAgeMs && listHeldFor(userId)) return Promise.resolve();
+  return loadNotificationFeed(userId);
+};
+
 /** Tests only: forget a load left in flight by a previous test's fake clock. */
-export const __resetNotificationFeedLoad = () => { inFlight = null; };
+export const __resetNotificationFeedLoad = () => { inFlight = null; lastLoaded = null; };
 
 const stillBound = (userId: string) => getNotificationSnapshot().userId === userId;
+/** The store is bound to `userId` and holds a loaded list (not one emptied by a sign-out or user switch). */
+const listHeldFor = (userId: string) => {
+  const snap = getNotificationSnapshot();
+  return snap.userId === userId && snap.listLoaded;
+};
 
 const loadOnce = async (userId: string) => {
   // No-op while the same person stays signed in; clears everything the

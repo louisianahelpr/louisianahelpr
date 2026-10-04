@@ -184,8 +184,9 @@ describe("2. the page asks the server and flips only the open thread", () => {
   it("a server 'yes' turns the open thread into the deleted-account thread", async () => {
     const hook = mountPage(OPEN);
     await act(async () => { await hook.result.current.checkCounterpartyDeleted("job-1", "other-1"); });
-    await waitFor(() => expect(hook.result.current.activeConvo?.otherUserId).toBeNull());
-    expect(hook.result.current.activeConvo?.otherUserName).toBe(FORMER_MEMBER_LABEL);
+    // Wait for the arrival (the label), not for an empty value the first paint may already show.
+    await waitFor(() => expect(hook.result.current.activeConvo?.otherUserName).toBe(FORMER_MEMBER_LABEL));
+    expect(hook.result.current.activeConvo?.otherUserId).toBeNull();
     expect(hook.result.current.activeConvo?.otherUserAvatarUrl).toBeNull();
     expect(hoisted.asked).toEqual([["job-1", "other-1"]]);
   });

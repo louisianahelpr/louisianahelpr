@@ -6,6 +6,8 @@
 // @mutate supabase/migrations/20261004001242_messages_status_notices_and_sender_writes.sql | GRANT UPDATE (content, read) ON public.messages TO authenticated; | GRANT UPDATE (content, read, edited_at) ON public.messages TO authenticated;
 // Q1166: the client starts sending a server-stamped column on edit.
 // @mutate src/pages/messages/Messages.tsx | .update({ content: trimmed }) | .update({ content: trimmed, edited_at: new Date().toISOString() })
+// Q1009: a signed-in client may INSERT applications again (only the definer RPCs may write one).
+// @mutate supabase/migrations/20261004184135_applications_insert_rpc_only.sql | REVOKE INSERT ON public.applications FROM PUBLIC, anon, authenticated; | REVOKE INSERT ON public.applications FROM PUBLIC, anon;
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -158,6 +160,8 @@ describe("a signed-in client INSERTs and UPDATEs only the columns it sends (Q340
     expect(declared.get("messages:authenticated:UPDATE")?.length).toBeGreaterThan(1);
     expect(declared.get("messages:anon:INSERT")).toEqual([]);
     expect(declared.get("messages:anon:UPDATE")).toEqual([]);
+    expect(declared.get("applications:authenticated:INSERT")).toEqual([]);
+    expect(declared.get("applications:anon:INSERT")).toEqual([]);
     expect(writes.length).toBeGreaterThan(100);
     expect(clientWriteColumns(writes, "messages", "INSERT").sites.length).toBeGreaterThan(0);
     expect(clientWriteColumns(writes, "messages", "UPDATE").sites.length).toBeGreaterThan(2);
@@ -198,6 +202,12 @@ describe("a signed-in client INSERTs and UPDATEs only the columns it sends (Q340
     it("on the pre-Q1166 grants: authenticated may UPDATE edited_at", () => {
       const before = migrations().filter((f) => f.name < "20261004001242");
       expect(replayGrant(before, "messages", "UPDATE")).toEqual({ tableLevel: false, cols: ["content", "edited_at", "read"] });
+    });
+
+    it("on the pre-Q1009 grants: authenticated may INSERT applications (the PGRST202 fallback's door)", () => {
+      const before = migrations().filter((f) => f.name < "20261004184135");
+      expect(replayGrant(before, "applications", "INSERT").tableLevel).toBe(true);
+      expect(replayGrant(migrations(), "applications", "INSERT")).toEqual({ tableLevel: false, cols: [] });
     });
 
     it("on a column REVOKE that leaves the table-level grant (Postgres keeps it), and on a later re-GRANT", () => {

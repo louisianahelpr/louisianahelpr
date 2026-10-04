@@ -5175,14 +5175,12 @@
    "grants": {
     "anon": [
      "DELETE",
-     "INSERT",
      "REFERENCES",
      "SELECT",
      "UPDATE"
     ],
     "authenticated": [
      "DELETE",
-     "INSERT",
      "REFERENCES",
      "SELECT",
      "UPDATE"

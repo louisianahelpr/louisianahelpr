@@ -14,11 +14,15 @@
 -- src/test/messagesInsertColumnsClientScoped.test.ts pins each list to the
 -- client's own insert/update payloads (write-contract AST), two-way.
 --
+-- An EMPTY list means no client column at all: the table is written only by
+-- server functions (Q1009, applications).
+--
 -- Shared by:
 --   scripts/check-live-privileges.mjs   prod, after every db-deploy and nightly (db-drift-detect)
 --   .github/workflows/db-smoke.yml      the replayed migration set, before a deploy
 --   src/test/pglite/messagesInsertColumnsClientScoped.pglite.mjs   PGlite red/green proof (INSERT)
 --   src/test/pglite/messageReadReceiptIsTheReceivers.pglite.mjs    PGlite red/green proof (UPDATE)
+--   src/test/pglite/applicationsInsertRpcOnly.pglite.mjs           PGlite red/green proof (applications, Q1009)
 -- Keep it a single SELECT with no trailing semicolon-dependent statements.
 WITH declared(tbl, role, priv, cols) AS (
   VALUES
@@ -27,7 +31,12 @@ WITH declared(tbl, role, priv, cols) AS (
                                                   'attachment_duration', 'reply_to_id']::text[]),
     ('messages', 'anon', 'INSERT', ARRAY[]::text[]),
     ('messages', 'authenticated', 'UPDATE', ARRAY['content', 'read']::text[]),
-    ('messages', 'anon', 'UPDATE', ARRAY[]::text[])
+    ('messages', 'anon', 'UPDATE', ARRAY[]::text[]),
+    -- Q1009: an application is written only by a definer RPC (apply_to_job,
+    -- claim_series_dates, complete_direct_offer_accept); a direct INSERT
+    -- skipped the minute/hour caps and the apply_rate advisory lock.
+    ('applications', 'authenticated', 'INSERT', ARRAY[]::text[]),
+    ('applications', 'anon', 'INSERT', ARRAY[]::text[])
 ),
 rels AS (
   SELECT d.tbl, d.role, d.priv, d.cols, c.oid

@@ -13,17 +13,23 @@ import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 
 const rpcMock = vi.fn();
+const writeMock = vi.fn();
 let resolveRpc: (() => void) | null = null;
+// When set, the RPC answers at once with this error (Q1009: PGRST202).
+let rpcFailsWith: { code: string; message: string } | null = null;
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: (...args: unknown[]) => {
       rpcMock(...args);
+      if (rpcFailsWith) return Promise.resolve({ data: null, error: rpcFailsWith });
       return new Promise((resolve) => {
         resolveRpc = () => resolve({ data: "app-1", error: null });
       });
     },
-    from: () => ({
+    from: (table: string) => ({
+      insert: (row: unknown) => { writeMock(table, "insert", row); return Promise.resolve({ data: null, error: null }); },
+      upsert: (row: unknown) => { writeMock(table, "upsert", row); return Promise.resolve({ data: null, error: null }); },
       select: () => ({
         eq: () => ({
           eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
@@ -65,7 +71,9 @@ function setup() {
 describe("useApplyFlow in-flight guard", () => {
   beforeEach(() => {
     rpcMock.mockReset();
+    writeMock.mockReset();
     resolveRpc = null;
+    rpcFailsWith = null;
   });
 
   it("two confirms in the same frame send exactly one apply_to_job", async () => {
@@ -82,8 +90,8 @@ describe("useApplyFlow in-flight guard", () => {
     expect(rpcMock).toHaveBeenCalledTimes(1);
     // ...and that the one call is the RPC BY NAME. Counting calls alone cannot
     // tell `apply_to_job` from a renamed/missing function: a name the server
-    // does not have returns PGRST202, which is precisely the door into the
-    // direct-INSERT fallback below (see the REPORT at the foot of this file).
+    // does not have returns PGRST202, which used to open a direct-INSERT
+    // fallback (Q1009, removed; see the case below).
     expect(rpcMock).toHaveBeenCalledWith("apply_to_job", { p_job_id: "job-1", p_message: null });
   });
 
@@ -113,35 +121,36 @@ describe("useApplyFlow in-flight guard", () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REPORTED, NOT GUARDED — the PGRST202 direct-INSERT fallback (2026-09-21).
-//
-// `mutationFn` falls back to `supabase.from("applications").insert({...})` when
-// the RPC answers PGRST202. Verified read-only against prod
-// (fncmgoasalhdgfwzhsqa) on 2026-09-21: `apply_to_job(uuid, text)` IS deployed
-// with exactly the signature the client calls, so the fallback is unreachable
-// TODAY. What it would skip if the RPC were ever renamed or dropped, checked
-// against `pg_get_functiondef` and every non-internal trigger on
-// `public.applications`:
-//
-//   • the per-MINUTE and per-HOUR rungs of the cap ladder. `application_cap`
-//     is read for 'minute'/'hour'/'day' inside apply_to_job, but the only
-//     trigger behind it — `enforce_application_limit` — reads ONLY
-//     `application_cap('day')`. Minute and hour have NO trigger.
-//   • the funding gate `job_payment_is_funded(jobs.payment_status)`. Present
-//     in the RPC; absent from `enforce_application_job_state`, which covers
-//     own-job, not-open, direct-offer reservation, Early Access, seed, past
-//     date and expiry — but not payment.
-//   • `pg_advisory_xact_lock('apply_rate:' || auth.uid())`, the serialization
-//     that makes those counts see each other.
-//
-// Not registered as a mutation and not "fixed" here: writing a test around the
-// fallback would lock in a bypass, and deleting the branch is a production
-// change outside this hardening pass. It belongs in docs/OPEN.md.
-// ─────────────────────────────────────────────────────────────────────────────
+// Q1009: apply_to_job is the only door. The PGRST202 direct-INSERT fallback
+// (which skipped the minute/hour caps and the apply_rate advisory lock) is
+// gone, and authenticated holds no INSERT on applications
+// (20261004184135_applications_insert_rpc_only.sql, pinned live by
+// scripts/ci/client-insert-columns.sql). Server-side proof:
+// src/test/pglite/applicationsInsertRpcOnly.pglite.mjs.
+describe("useApplyFlow writes an application only through apply_to_job (Q1009)", () => {
+  beforeEach(() => {
+    rpcMock.mockReset();
+    writeMock.mockReset();
+    resolveRpc = null;
+    rpcFailsWith = null;
+  });
+
+  it("a PGRST202 (the RPC missing) is an error, never a direct INSERT", async () => {
+    rpcFailsWith = { code: "PGRST202", message: "Could not find the function public.apply_to_job" };
+    const { errorToast } = await import("@/lib/toast");
+    vi.mocked(errorToast).mockClear();
+    const { result } = setup();
+    act(() => { result.current.handleApplyConfirm("job-1"); });
+    await waitFor(() => expect(rpcMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.applyLoading).toBe(false));
+    expect(writeMock.mock.calls.filter(([t, kind]) => t === "applications" && kind !== "update")).toEqual([]);
+  });
+});
 
 // @mutate src/pages/home/useApplyFlow.ts | if (!user \|\| !jobId \|\| applyLoading \|\| applyInFlight.current) return; | if (!user \|\| !jobId \|\| applyLoading) return;
 // @mutate src/pages/home/useApplyFlow.ts | { onSettled: () => { applyInFlight.current = false; setApplyLoading(false); toast.dismiss(APPLY_PENDING_TOAST_ID); } }, | { onSettled: () => { setApplyLoading(false); toast.dismiss(APPLY_PENDING_TOAST_ID); } },
 // Q324: the dialog closes at once, so this toast is the only sign the apply is on its way.
 // @mutate src/pages/home/useApplyFlow.ts | toast.loading("Sending your application…", { id: APPLY_PENDING_TOAST_ID }); | void 0;
 // @mutate src/pages/home/useApplyFlow.ts | setApplyLoading(false); toast.dismiss(APPLY_PENDING_TOAST_ID); } }, | setApplyLoading(false); } },
+// Q1009: the direct-INSERT fallback comes back on a PGRST202.
+// @mutate src/pages/home/useApplyFlow.ts |         recoveredId = await confirmThisAttemptLanded(rpcError);\n        if (!recoveredId) { |         if ((rpcError as { code?: string }).code === "PGRST202") { await supabase.from("applications").insert({ job_id: jobId, helper_id: helperId, message: message.trim() \|\| null }); return; }\n        recoveredId = await confirmThisAttemptLanded(rpcError);\n        if (!recoveredId) {

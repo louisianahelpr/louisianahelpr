@@ -193,8 +193,11 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         }
         attachmentUrls.push(path);
       }
-      // Try the apply_to_job RPC first.
-      // Fall back to a direct INSERT if PGRST202 (function not yet deployed to prod).
+      // apply_to_job is the ONLY way an application is written (Q1009). There
+      // is no direct-INSERT fallback: a signed-in client holds no INSERT on
+      // applications (20261004 revoke), and the RPC carries the rate ladder,
+      // its advisory lock and the funding gate that a raw INSERT skipped. A
+      // PGRST202 (the RPC missing) is an error like any other.
       // `p_proposed_price` is deliberately NOT passed. Bidding was removed
       // (PRICING_MODE_REMOVED in BudgetSection); the RPC no longer declares
       // the parameter at all, so there is nothing to omit.
@@ -211,50 +214,30 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         p_message: (message.trim() || null) as string,
       });
       void rpcData; // UUID returned but not currently used.
-      // Whether attachment_urls still has to be written onto the row. The RPC
-      // does not take attachments; the direct INSERT below carries them itself.
-      let patchAttachments = true;
+      // The RPC does not take attachments; they are patched onto the row below.
       // The row to patch. Null means "the row this call just created", found by
       // (job_id, helper_id) — UNIQUE, so there is exactly one.
       let recoveredId: string | null = null;
       if (rpcError) {
-        const errCode = (rpcError as { code?: string }).code;
-        if (errCode !== "PGRST202") {
-          // Rate limit errors from apply_to_job come back as PostgrestError with
-          // .message = "rate_limit_minute" / "rate_limit_hour" / "rate_limit_day".
-          // Convert them to a RATE_LIMITED throw so onError can toast the right copy.
-          const rateLimited = rpcErrorMessage("apply_to_job", rpcError);
-          if (rateLimited) {
-            throw Object.assign(new Error(rateLimited), { code: "RATE_LIMITED" });
-          }
-          // Q269: the retry of an apply that already landed. The first
-          // attempt's response was lost, so this refusal is the proof that it
-          // WORKED; fall through to success rather than telling the helper they
-          // were refused, straight after telling them it had failed.
-          recoveredId = await confirmThisAttemptLanded(rpcError);
-          if (!recoveredId) {
-            // Real error (duplicate, job closed, price-required, etc.) — surface it.
-            throw rpcError as Error & { code?: string };
-          }
-        } else {
-          // PGRST202: apply_to_job not deployed yet — fall back to direct INSERT
-          // (no proposed_price column yet; no harm, it's not on prod either).
-          const { error } = await supabase.from("applications").insert({
-            job_id: jobId,
-            helper_id: helperId,
-            message: message.trim() || null,
-            attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
-          });
-          if (error) {
-            recoveredId = await confirmThisAttemptLanded(error);
-            if (!recoveredId) throw error as Error & { code?: string };
-          }
-          // A fresh INSERT carried the attachments; a recovered one did not.
-          if (!error) patchAttachments = false;
+        // Rate limit errors from apply_to_job come back as PostgrestError with
+        // .message = "rate_limit_minute" / "rate_limit_hour" / "rate_limit_day".
+        // Convert them to a RATE_LIMITED throw so onError can toast the right copy.
+        const rateLimited = rpcErrorMessage("apply_to_job", rpcError);
+        if (rateLimited) {
+          throw Object.assign(new Error(rateLimited), { code: "RATE_LIMITED" });
+        }
+        // Q269: the retry of an apply that already landed. The first
+        // attempt's response was lost, so this refusal is the proof that it
+        // WORKED; fall through to success rather than telling the helper they
+        // were refused, straight after telling them it had failed.
+        recoveredId = await confirmThisAttemptLanded(rpcError);
+        if (!recoveredId) {
+          // Real error (duplicate, job closed, price-required, etc.) — surface it.
+          throw rpcError as Error & { code?: string };
         }
       }
       // Patch attachment_urls onto the new row if needed (RPC doesn't handle attachments).
-      if (patchAttachments && attachmentUrls.length > 0) {
+      if (attachmentUrls.length > 0) {
         // Both the error AND the row count matter here, and neither was
         // being read. `.update().eq(...)` with no `.select()` resolves
         // `{data: null, error: null}` whether it matched one row or none, so

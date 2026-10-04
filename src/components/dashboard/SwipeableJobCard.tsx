@@ -1,6 +1,7 @@
-import { memo, useState, useRef } from "react";
-import { motion, useMotionValue, useTransform, animate, useReducedMotion, PanInfo } from "framer-motion";
-import { Send, X } from "lucide-react";
+import { memo, useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { createLazyModule } from "@/lib/lazyModule";
+import { whenPageSettled } from "@/lib/routePrefetch";
 import JobCard from "./JobCard";
 import type { EnrichedJob } from "./types";
 
@@ -25,11 +26,32 @@ interface SwipeableJobCardProps {
   recommended?: boolean;
 }
 
-const DISMISS_THRESHOLD = -100;
-// Owner, 2026-08-30: right = Apply, left = Not interested — the Tinder/Mail
-// convention (right = positive/accept), mirroring the LEFT dismiss gesture
-// that already existed rather than a new invented direction.
-const APPLY_THRESHOLD = 100;
+/**
+ * framer-motion rides this card's swipe gesture only (SwipeMotionLayer), and
+ * that chunk is fetched once the page has settled, or on the first touch of a
+ * card, not before /home's first draw (Q1172: proxy.js + animate.js, ~40 kB
+ * brotli, sat on /home's route closure through BrowseTasksFeed). Until it
+ * arrives the card is its content in a plain `relative z-10` div: the swipe
+ * trails and underlays are invisible at rest, so the first frame is the same.
+ *
+ * THE CONTENT MUST NOT REMOUNT when the layer arrives (a remount restarts
+ * OptimizedImage's fade and drops JobCard's local state on every card that is
+ * already on screen). React remounts a subtree whose parent element type
+ * changes, `div` -> `motion.div`, so the card is portaled into one DOM node
+ * (`slot`, `display: contents`) that React never recreates; the host that
+ * currently stands in for the surface, the plain div or the motion.div, adopts
+ * that node through its ref. The swap moves the DOM node; JobCard's fibers and
+ * its images stay where they are.
+ */
+const swipeLayer = createLazyModule(() => import("./SwipeMotionLayer"), "SwipeableJobCard.loadSwipeLayer");
+
+let swipeLayerScheduled = false;
+/** One page-settle watch for the whole list, not one per card. */
+function scheduleSwipeLayer() {
+  if (swipeLayerScheduled) return;
+  swipeLayerScheduled = true;
+  whenPageSettled(swipeLayer.start);
+}
 
 const SwipeableJobCard = ({
   job,
@@ -49,45 +71,19 @@ const SwipeableJobCard = ({
   userLng = null,
   recommended = false,
 }: SwipeableJobCardProps) => {
-  const reducedMotion = useReducedMotion();
-  const x = useMotionValue(0);
-  const backgroundOpacity = useTransform(x, [-150, -50, 0], [1, 0.6, 0]);
-  const iconScale = useTransform(x, [-150, -80, 0], [1.2, 0.8, 0.5]);
-  // Right-swipe (Apply) trail — mirrors the left/dismiss transforms above.
-  const applyBackgroundOpacity = useTransform(x, [0, 50, 150], [0, 0.6, 1]);
-  const applyIconScale = useTransform(x, [0, 80, 150], [0.5, 0.8, 1.2]);
+  const Layer = swipeLayer.use();
   const [swiping, setSwiping] = useState(false);
   const [held, setHeld] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // All 4 snap-back animations below use a FIXED-duration tween (was
-  // spring physics, same stiffness/damping everywhere) — a spring's settle
-  // time is proportional to how far it has to travel, so two cards
-  // released after different drag distances visibly finished at different
-  // real times even though both used identical spring params (owner,
-  // 2026-08-31: "the jobs have different transition. they open at
-  // different times. this should not be happening"). A fixed duration
-  // makes every card settle in exactly 220ms regardless of drag distance.
-
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.x < DISMISS_THRESHOLD) {
-      // Hold in swiped position — the dismiss is immediate (toast+Undo, no
-      // confirm dialog), so the card just stays swiped-out until the parent
-      // re-renders without it a moment later.
-      if (reducedMotion) { x.set(-120); } else { animate(x, -120, { type: "tween", duration: 0.22, ease: "easeOut" }); }
-      setHeld(true);
-      onDismiss(job.id);
-    } else if (info.offset.x > APPLY_THRESHOLD) {
-      // Apply has its own confirm flow (handleApplyRequest opens the confirm
-      // dialog) — the card just snaps back rather than holding, since
-      // nothing here needs to stay swiped while that dialog is open.
-      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "tween", duration: 0.22, ease: "easeOut" }); }
-      onApply(job.id);
-    } else {
-      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "tween", duration: 0.22, ease: "easeOut" }); }
-    }
-    setSwiping(false);
-  };
+  useEffect(scheduleSwipeLayer, []);
+  const [slot] = useState(() => {
+    const el = document.createElement("div");
+    el.style.display = "contents";
+    return el;
+  });
+  const adoptSlot = useCallback((el: HTMLDivElement | null) => {
+    if (el) el.appendChild(slot);
+  }, [slot]);
 
   // The "Just in" freshness pill used to be rendered HERE — an absolutely
   // positioned overlay at `top-2 left-20`, painted over the finished JobCard
@@ -100,99 +96,27 @@ const SwipeableJobCard = ({
   // See the BADGE RAIL block in JobCard.tsx.
 
   return (
-    <div ref={containerRef} className="relative overflow-hidden rounded-2xl">
-      {/* Swipe-to-dismiss trail — gradient deepens from the right edge as
-          you pull left, so you feel the action growing rather than just
-          a flat tinted background. */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          opacity: backgroundOpacity,
-          background:
-            "linear-gradient(to right, transparent 0%, hsl(var(--burnt-sienna) / 0.04) 40%, hsl(var(--burnt-sienna) / 0.16) 100%)",
-        }}
-      />
-      {/* Swipe-to-apply trail — the mirror, deepening from the left edge as
-          you pull right. */}
-      <motion.div
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          opacity: applyBackgroundOpacity,
-          background:
-            "linear-gradient(to left, transparent 0%, hsl(var(--bark) / 0.04) 40%, hsl(var(--bark) / 0.16) 100%)",
-        }}
-      />
-      {/* Swipe-reveal underlay. Purely decorative for the mobile
-          swipe-to-dismiss gesture — announced by screen readers as
-          "NOT INTERESTED" between every job card (Chrome-drove
-          /home 2026-07-08 → real defect), and desktop users
-          can never trigger the gesture at all. `aria-hidden` so the
-          a11y tree stays focused on the JobCard's real action set. */}
-      <motion.div
-        aria-hidden="true"
-        className="absolute inset-y-0 right-0 flex items-center justify-end pr-5 rounded-2xl"
-        style={{ opacity: backgroundOpacity }}
-      >
-        <motion.div
-          className="flex flex-col items-center gap-1 px-3 py-2 rounded-ds-md"
-          style={{
-            scale: iconScale,
-            background: "hsl(var(--burnt-sienna) / 0.15)",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.35)",
-          }}
-        >
-          {/* --danger-ink, not raw --burnt-sienna: the brand hue has no dark
-              sibling, so on the dark canvas this label resolved to
-              rgb(212,103,53) over its own 0.15 tint and measured 3.68:1 at
-              10px — under AA, on the only thing telling the user what the
-              swipe they are mid-way through will do. Same fix, same reason, as
-              the SOS chip. Tint and border unchanged. */}
-          <X className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.5} />
-          <span
-            className="text-ds-10 font-sans uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--danger-ink))" }}
-          >
-            Not interested
-          </span>
-        </motion.div>
-      </motion.div>
-
-      {/* Swipe-right-reveal underlay — Apply, the mirror of the dismiss
-          underlay above. Same reasons for `aria-hidden` + `pointer-events`
-          handling apply: purely decorative, the real Apply action already
-          exists on the card itself (JobCard's own button / tap-through). */}
-      <motion.div
-        aria-hidden="true"
-        className="absolute inset-y-0 left-0 flex items-center justify-start pl-5 rounded-2xl"
-        style={{ opacity: applyBackgroundOpacity }}
-      >
-        <motion.div
-          className="flex flex-col items-center gap-1 px-3 py-2 rounded-ds-md"
-          style={{
-            scale: applyIconScale,
-            background: "hsl(var(--bark) / 0.15)",
-            border: "0.5px solid hsl(var(--bark) / 0.35)",
-          }}
-        >
-          <Send className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.5} />
-          <span
-            className="text-ds-10 font-sans uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Apply
-          </span>
-        </motion.div>
-      </motion.div>
-
-      <motion.div
-        style={{ x }}
-        drag={held ? false : "x"}
-        dragConstraints={{ left: -160, right: 160 }}
-        dragElastic={0.1}
-        onDragStart={() => setSwiping(true)}
-        onDragEnd={handleDragEnd}
-        className="relative z-10"
-      >
+    <div
+      ref={containerRef}
+      className="relative overflow-hidden rounded-2xl"
+      onPointerDownCapture={swipeLayer.start}
+    >
+      {Layer ? (
+        <Layer.default
+          surfaceRef={adoptSlot}
+          held={held}
+          onSwipeStart={() => setSwiping(true)}
+          onSwipeEnd={() => setSwiping(false)}
+          onHold={() => setHeld(true)}
+          onApply={() => onApply(job.id)}
+          onDismiss={() => onDismiss(job.id)}
+        />
+      ) : (
+        <div ref={adoptSlot} className="relative z-10" />
+      )}
+      {/* After the host above, so the slot is in the document before JobCard's
+          layout effects measure. */}
+      {createPortal(
         <div style={{ pointerEvents: swiping || held ? "none" : "auto" }}>
           <JobCard
             job={job}
@@ -211,8 +135,9 @@ const SwipeableJobCard = ({
             userLng={userLng}
             recommended={recommended}
           />
-        </div>
-      </motion.div>
+        </div>,
+        slot,
+      )}
     </div>
   );
 };

@@ -257,6 +257,10 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl!, serviceRoleKey!);
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
+    // The ONE place this monitor reads payout holds (Q764 stranded exemption,
+    // Q1241 held cancellation fees): one site, so the payoutPathsHonourHold
+    // registration that removes it removes every read.
+    const readPayoutHolds = (ids: ReadonlyArray<string | null | undefined>) => loadPayoutHolds(admin, ids);
 
     // Every check is declared up front so a clean run still reports which
     // invariants were actually evaluated — "0 findings" is only meaningful
@@ -717,7 +721,7 @@ serve(async (req) => {
       let feeHolds: ReadonlyMap<string, unknown> = new Map<string, unknown>();
       if (waitingFeeRows.length) {
         const helperIds = [...new Set(waitingFeeRows.map((r) => r.helper_id).filter((h): h is string => !!h))];
-        const feeHoldLookup = await loadPayoutHolds(admin, helperIds);
+        const feeHoldLookup = await readPayoutHolds(helperIds);
         if (feeHoldLookup.ok) feeHolds = feeHoldLookup.holds;
         else notes.push(`payout hold read failed, no held cancellation fee exempted: ${feeHoldLookup.message}`);
       }
@@ -888,7 +892,7 @@ serve(async (req) => {
           }
         }
       }
-      const holdLookup = await loadPayoutHolds(admin, [...membersByJob.values()].flat());
+      const holdLookup = await readPayoutHolds([...membersByJob.values()].flat());
       if (!holdLookup.ok) {
         notes.push(`payout hold read failed, no held payout exempted: ${holdLookup.message}`);
       } else {

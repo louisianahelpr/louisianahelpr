@@ -3174,7 +3174,7 @@ describe("create-payment edge function", () => {
     // the button. The charge's own refunds are the authority (as cancel_escrow
     // reads amount_refunded): an existing refund that covers it is reused.
     describe("Q1209 an admin refund retried after the refund already went out", () => {
-      // @mutate supabase/functions/create-payment/index.ts | const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, refundAmount); | const reusedDispute = null;
+      // @mutate supabase/functions/create-payment/index.ts | const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, refundAmount, "admin_refund_dispute"); | const reusedDispute = null;
       it("admin_refund_dispute reuses the existing refund, records it, and finishes the job", async () => {
         seedAuth(scenario, ADMIN);
         scenario.rpc.has_role = true;
@@ -3939,7 +3939,7 @@ describe("create-payment: the admin refunds give the gift card back (Q454)", () 
 
   // Q1208 (1): a job no gift ever funded pages nothing about a gift, even
   // when a reversed payout row sits on it.
-  // @mutate supabase/functions/create-payment/index.ts | if (!held \|\| replaced) return { restoredCents: 0, spendableCents: 0, failed: false, posterSentence: "" }; | if (false) return { restoredCents: 0, spendableCents: 0, failed: false, posterSentence: "" };
+  // @mutate supabase/functions/create-payment/index.ts |     if (!held \|\| replaced) { |     if (false) {
   // Review of Q1208 (should-fix): no gift is no reason to stay quiet about a
   // PAID (or pending) payout that landed during the full refund: the Q1211
   // double-outflow race still pages. Only a reversed row is quiet.

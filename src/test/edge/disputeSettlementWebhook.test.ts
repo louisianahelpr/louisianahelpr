@@ -499,8 +499,8 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     // Q1208 (3): the person deciding whether to pay the Helpr is told the
     // gift (if any) goes back to the poster whole.
     // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | decide whether to pay it. ${GIFT_GOES_BACK_WHOLE}` | decide whether to pay it.`
-    expect(notes().some((n) => n.user_id === "admin-1" && /gift card that paid part of this job is given back to the poster in full/.test(String(n.message)))).toBe(true);
-    expect(alerts().find((a) => /dispute closed, nothing left to split/.test(a.title))?.message).toMatch(/given back to the poster in full/);
+    expect(notes().some((n) => n.user_id === "admin-1" && /gift card that paid part of this job is given back in full to the person who posted it/.test(String(n.message)))).toBe(true);
+    expect(alerts().find((a) => /dispute closed, nothing left to split/.test(a.title))?.message).toMatch(/given back in full to the person who posted it/);
     const helperNote = notes().filter((n) => n.user_id === "h");
     expect(helperNote).toHaveLength(1);
     expect(helperNote[0].link).toBe("/jobs?job=job-r");

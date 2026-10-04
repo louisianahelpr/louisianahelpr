@@ -248,6 +248,7 @@ export const RPC_ERROR_COPY = {
   respond_job_schedule_change: {
     not_authorized: "Only the other person on this job can answer this request.",
     request_not_found: "That request no longer exists. Refresh to see the job as it is.",
+    schedule_change_clash: "The Helpr is now booked at that time, so this change can't be accepted. You can decline it.",
     account_restricted: "Your account is restricted, so you can't answer requests right now.",
     not_authenticated: "Please sign in again to answer this request.",
   },

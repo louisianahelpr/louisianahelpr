@@ -962,7 +962,7 @@
     },
     {
       "file": "src/components/ResponseDeadlineDialog.tsx",
-      "line": 85,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2872,7 +2872,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useApplicantsState.ts",
-      "line": 121,
+      "line": 126,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2882,7 +2882,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useApplicantsState.ts",
-      "line": 146,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "literal",

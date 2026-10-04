@@ -15,6 +15,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 
@@ -43,9 +44,8 @@ export type PayoutMethod = {
  */
 export async function fetchPayoutStatus(): Promise<PayoutAccountStatus | null> {
   try {
-    const res = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
-    if (res.error) throw res.error;
-    return (res.data as PayoutAccountStatus | null) || null;
+    const data = unwrap(await supabase.functions.invoke("stripe-connect", { body: { action: "status" } }));
+    return (data as PayoutAccountStatus | null) || null;
   } catch (err: unknown) {
     report(err, { tags: { source: "PayoutSetupForm.status" } });
     throw err;

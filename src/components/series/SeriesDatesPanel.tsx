@@ -15,6 +15,7 @@ import {
   offerSeriesDates,
   type SeriesDate,
 } from "@/lib/seriesDates";
+import { unwrap } from "@/lib/supabaseResult";
 
 /**
  * Visit dates of a recurring series, per date (docs/OPEN.md Q407 (5), (6) and
@@ -73,16 +74,16 @@ export function SeriesDatesPanel({
     enabled: isPoster && open,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("applications")
-        .select("helper_id")
-        .eq("job_id", jobId)
-        .eq("status", "pending");
-      if (error) throw error;
+      const data = unwrap(
+        await supabase
+          .from("applications")
+          .select("helper_id")
+          .eq("job_id", jobId)
+          .eq("status", "pending"),
+      );
       const ids = [...new Set((data ?? []).map((a) => a.helper_id as string))];
       if (ids.length === 0) return [] as Array<{ id: string; name: string }>;
-      const { data: people, error: peopleErr } = await supabase.rpc("get_safe_profiles", { user_ids: ids });
-      if (peopleErr) throw peopleErr;
+      const people = unwrap(await supabase.rpc("get_safe_profiles", { user_ids: ids }));
       const names = new Map((people ?? []).map((p: { user_id: string; full_name: string | null }) => [p.user_id, formatName(p.full_name, "Helpr")]));
       return ids.map((id) => ({ id, name: names.get(id) ?? "Helpr" }));
     },

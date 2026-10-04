@@ -32,9 +32,12 @@ export const useHealthData = () => {
       const suppressed = suppressedRes.count || 0;
       const emailStats = { total: sent + failed + suppressed, sent, failed, suppressed };
 
-      const { count: fc, error: fcErr } = await supabase.from("fraud_flags").select("id", { count: "exact", head: true }).eq("resolved", false);
-      if (fcErr) throw fcErr;
-      const fraudCount = fc || 0;
+      // A HEAD count: unwrap() checks the error and carries the HTTP status
+      // (a refused HEAD has no body, so no code either); the count is read off
+      // the result itself (Q1182).
+      const fraudRes = await supabase.from("fraud_flags").select("id", { count: "exact", head: true }).eq("resolved", false);
+      unwrap(fraudRes);
+      const fraudCount = fraudRes.count || 0;
 
       // Push token stats — useful at-a-glance for "is push working" debugging.
       const [pushTotalRes, pushIosRes, pushAndroidRes, pushLatestRes] = await Promise.all([

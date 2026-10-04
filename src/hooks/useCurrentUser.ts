@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
@@ -102,10 +103,7 @@ const firstFulfilled = <T,>(promises: Promise<T>[]): Promise<T> =>
 
 const readProfile = (userId: string): Promise<Profile | null> => {
   const fresh = Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(
-    ({ data, error }) => {
-      if (error) throw error;
-      return data ?? null;
-    },
+    (result) => unwrap(result) ?? null,
   );
   const orphan = orphanedProfileReads.get(userId);
   orphanedProfileReads.delete(userId);
@@ -205,10 +203,7 @@ const fetchCurrentUser = async (
   const readAdminRoleOnce = () =>
     Promise.resolve(
       supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
-    ).then(({ data, error }): { ok: true; isAdmin: boolean } => {
-      if (error) throw error;
-      return { ok: true, isAdmin: !!data };
-    });
+    ).then((result): { ok: true; isAdmin: boolean } => ({ ok: true, isAdmin: !!unwrap(result) }));
   const adminPromise = withTimeout(
     (async (): Promise<{ ok: true; isAdmin: boolean }> => {
       let lastErr: unknown;

@@ -29,7 +29,7 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { TestTag } from "@/components/admin/TestTag";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
-import { functionInvokeError } from "@/lib/supabaseResult";
+import { functionInvokeError, unwrap } from "@/lib/supabaseResult";
 
 /**
  * Ban Review — the human half of EVERY consequence ladder.
@@ -114,27 +114,24 @@ const BanReviewInner = () => {
     key: queryKey,
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await supabase
+      const result = await supabase
         .from("user_violations")
         .select("id, user_id, description, action_taken, violation_type, created_at")
         .eq("action_taken", "pending_ban_review")
         .order("created_at", { ascending: true });
 
-      if (error) {
-        // PGRST202 / missing column — the migration hasn't deployed yet. An
-        // empty queue is the honest answer, not an error banner.
-        if ((error as { code?: string }).code === "PGRST202" || error.message?.includes("does not exist")) {
-          return [];
-        }
-        // Throw rather than return []: a swallowed read error rendered "No
-        // accounts awaiting review", which is the same screen as a genuinely
-        // empty queue — an outage read as an all-clear on the surface that
-        // decides whether someone stays banned. The PGRST202 branch above is
-        // the ONE legitimate empty: the migration simply hasn't deployed yet.
-        throw error;
+      // PGRST202 / missing column — the migration hasn't deployed yet. An
+      // empty queue is the honest answer, not an error banner.
+      const { error } = result;
+      if (error && ((error as { code?: string }).code === "PGRST202" || error.message?.includes("does not exist"))) {
+        return [];
       }
-
-      const pending = (data ?? []) as ViolationRow[];
+      // Throw (unwrap) rather than return []: a swallowed read error rendered
+      // "No accounts awaiting review", which is the same screen as a genuinely
+      // empty queue — an outage read as an all-clear on the surface that
+      // decides whether someone stays banned. The PGRST202 branch above is
+      // the ONE legitimate empty: the migration simply hasn't deployed yet.
+      const pending = (unwrap(result) ?? []) as ViolationRow[];
       if (pending.length === 0) return [];
 
       // One open case per user — a user with two flagged rows is still one

@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTimestamp } from "@/lib/format";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
 
 export default function StrikeBanner() {
   // The signed-in user's id, tracked off the auth stream exactly as before —
@@ -31,17 +32,16 @@ export default function StrikeBanner() {
   const { data: status = null } = useQuery({
     queryKey: queryKeys.banStatus.byUser(userId),
     queryFn: async () => {
-      const { data, error } = await supabase
+      const result = await supabase
         .from("profiles")
         .select("ban_status, auto_suspended_until")
         .eq("user_id", userId as string)
         .maybeSingle();
-      if (error) {
-        console.error("[StrikeBanner] failed to load ban status:", error);
-        report(error, { severity: "warning", tags: { source: "StrikeBanner.load" } });
-        throw error;
+      if (result.error) {
+        console.error("[StrikeBanner] failed to load ban status:", result.error);
+        report(result.error, { severity: "warning", tags: { source: "StrikeBanner.load" } });
       }
-      return data ?? null;
+      return unwrap(result) ?? null;
     },
     enabled: !!userId,
     staleTime: 30_000,

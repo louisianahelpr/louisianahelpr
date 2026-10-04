@@ -11,6 +11,7 @@ import type { TrackingData } from "@/components/JobTracking";
 import { queryKeys } from "@/lib/queryKeys";
 import { checkDrift } from "@/lib/checkDrift";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
@@ -183,7 +184,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
 
   // Surface a failed primary fetch so the screen can show an ErrorState
   // instead of a misleading "nothing here yet" empty state.
-  if (jobsRes.error) throw jobsRes.error;
+  unwrap(jobsRes);
 
   // Enrichments — not fatal, but a silent drop means the poster sees 0
   // applicants and no start-request badge on jobs that actually have
@@ -467,8 +468,8 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
     supabase.from("reviews").select("job_id").eq("reviewer_id", userId),
   ]);
 
-  const primaryError = appsRes.error || directOffersRes.error;
-  if (primaryError) throw primaryError;
+  unwrap(appsRes);
+  unwrap(directOffersRes);
 
   // Runtime Zod check at one of the app's highest-stakes Supabase reads —
   // see validateResult.ts. The applied-jobs list drives the entire helper
@@ -498,11 +499,11 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
     // a failed jobs fetch would leave every app with `job: null` and render
     // a blank tab. Surface it as a query error, like the primary fetches.
     //
-    // Checked HERE rather than beside `primaryError` above, deliberately: a
+    // Checked HERE rather than beside the primary reads above, deliberately: a
     // helper with no applications has no cards for these rows to be missing
     // from, and failing their whole tab on an RPC whose result would have
     // been discarded is worse than the extra request the move above costs.
-    if (jobsRes.error) throw jobsRes.error;
+    unwrap(jobsRes);
     // We still intersect with `jobIds` to keep the map scoped to the apps in
     // this payload rather than trusting the RPC's row set to match it.
     const jobMap = new Map(

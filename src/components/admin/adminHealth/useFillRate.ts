@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import type { FillRateRow, FillRateSummary, FillSortKey, FillDays } from "./types";
 
@@ -18,18 +19,15 @@ export const useFillRate = () => {
       median_minutes_to_first_app: null, parishes: [], available: true,
     },
     fetcher: async () => {
-      const { data, error } = await supabase.rpc("get_fill_rate_stats", { p_days: fillDays });
+      const result = await supabase.rpc("get_fill_rate_stats", { p_days: fillDays });
       // PGRST202 = function not deployed yet — hide the section gracefully.
-      if (error) {
-        if ((error as { code?: string }).code === "PGRST202") {
-          return {
-            total_jobs: 0, filled_jobs: 0, fill_rate_pct: null,
-            median_minutes_to_first_app: null, parishes: [], available: false,
-          };
-        }
-        throw error;
+      if ((result.error as { code?: string } | null)?.code === "PGRST202") {
+        return {
+          total_jobs: 0, filled_jobs: 0, fill_rate_pct: null,
+          median_minutes_to_first_app: null, parishes: [], available: false,
+        };
       }
-      const rows = (data ?? []) as FillRateRow[];
+      const rows = (unwrap(result) ?? []) as FillRateRow[];
       // First row (parish IS NULL) is the overall summary.
       const overall = rows.find((r) => r.parish === null);
       const parishRows = rows.filter((r) => r.parish !== null);

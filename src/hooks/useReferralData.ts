@@ -39,7 +39,8 @@ export async function fetchReferralData(userId: string): Promise<ReferralData> {
   // returning blank data. Critically, a transient failure on the code
   // lookup must throw *here* — otherwise it falls through to inserting
   // a brand-new referral code even though the user already has one.
-  if (referralsRes.error) throw referralsRes.error;
+  // A HEAD count (no body, so no code): unwrap() carries its HTTP status (Q1182).
+  unwrap(referralsRes);
   const codeRow = unwrap(codeRes);
   const credits = unwrap(creditsRes);
   const profile = unwrap(profileRes);

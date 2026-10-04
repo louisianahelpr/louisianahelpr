@@ -3,13 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { unwrapMutation, isWriteRejected } from "@/lib/mutationResult";
+import { unwrap } from "@/lib/supabaseResult";
 
 /**
  * Returns the set of user IDs that the current user has blocked,
  * plus user IDs that have blocked the current user.
  * Either side of the block hides the other.
  */
-type BlockRows = { data: { blocker_id: string; blocked_id: string }[] | null; error: PostgrestError | null };
+/**
+ * The raw result, `status` included: unwrap() copies it onto the error it
+ * throws, and without it the read-retry policy cannot tell a refused read from
+ * a failing server (Q1182, src/lib/queryRetry.ts).
+ */
+type BlockRows = { data: { blocker_id: string; blocked_id: string }[] | null; error: PostgrestError | null; status: number };
 /**
  * How long a SUCCESSFUL read is reused. A signed-in boot mounts the dashboard
  * feed and the nav badge within a second of each other; sharing only while a
@@ -62,7 +68,7 @@ export function readUserBlockRows(currentUserId: string, now: number = Date.now(
       .select("blocker_id, blocked_id")
       .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`),
   )
-    .then(({ data, error }) => ({ data, error }))
+    .then(({ data, error, status }) => ({ data, error, status }))
     .then(
       (res) => {
         // Only its OWN entry: after a block dropped it, a newer read may hold the slot.
@@ -87,17 +93,15 @@ export function __resetBlockReadsForTests(): void {
 }
 
 export async function getBlockedUserIds(currentUserId: string): Promise<Set<string>> {
-  const { data, error } = await readUserBlockRows(currentUserId);
+  const result = await readUserBlockRows(currentUserId);
 
   // FAIL CLOSED. Returning an empty set on error reads as "nobody is blocked",
   // so a failed read silently un-blocks every harassment block the user has
   // set: blocked people reappear in the inbox, the nav badge, the applicant
-  // list and the desktop rail. Throwing keeps the caller's error path — and
-  // its existing loading/error UI — in charge of what to show.
-  if (error) {
-    report(error, { severity: "warning", tags: { source: "userBlocks.getBlockedUserIds" } });
-    throw error;
-  }
+  // list and the desktop rail. Throwing (unwrap) keeps the caller's error
+  // path — and its existing loading/error UI — in charge of what to show.
+  if (result.error) report(result.error, { severity: "warning", tags: { source: "userBlocks.getBlockedUserIds" } });
+  const data = unwrap(result);
   if (!data) return new Set();
 
   const ids = new Set<string>();

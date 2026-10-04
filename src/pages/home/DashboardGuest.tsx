@@ -23,6 +23,7 @@ const BrowseMap = lazy(() =>
 // Apply/contact/save/report inside the dialog stay gated to /signup.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { fetchRatingStats } from "@/lib/reviewStats";
 import { report } from "@/lib/errorLogger";
@@ -231,21 +232,20 @@ const DashboardGuest = () => {
       // (src/boot/guestJobsPrefetch.ts). Taken once; if it failed or is old,
       // ask Supabase as before.
       const prefetched = await takeGuestJobsPrefetch();
-      const { data: rawJobs, error } = prefetched
-        ? { data: prefetched, error: null }
-        : await supabase
-            .from("open_jobs_browse")
-            // `latitude, longitude` are the view's MASKED coordinates (rounded
-            // to 2dp ≈ 1.1km — 20260903031231), and they are what makes the
-            // "Nearby" radius chip a real filter on this surface (BD-001).
-            // `credential_tier`, `parish` — same column parity fix as the
-            // authed feed (useDashboardData.ts), see 20260904031002.
-            .select(GUEST_JOBS_SELECT)
-            .neq("payment_status", "abandoned")
-            .order("boosted_at", { ascending: false, nullsFirst: false })
-            .order("created_at", { ascending: false })
-            .limit(GUEST_JOBS_LIMIT);
-      if (error) throw error;
+      const rawJobs = prefetched ?? unwrap(
+        await supabase
+          .from("open_jobs_browse")
+          // `latitude, longitude` are the view's MASKED coordinates (rounded
+          // to 2dp ≈ 1.1km — 20260903031231), and they are what makes the
+          // "Nearby" radius chip a real filter on this surface (BD-001).
+          // `credential_tier`, `parish` — same column parity fix as the
+          // authed feed (useDashboardData.ts), see 20260904031002.
+          .select(GUEST_JOBS_SELECT)
+          .neq("payment_status", "abandoned")
+          .order("boosted_at", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .limit(GUEST_JOBS_LIMIT),
+      );
 
       const now = new Date();
       // The prefetch (Q206) hands back the same rows untyped (unknown[]).

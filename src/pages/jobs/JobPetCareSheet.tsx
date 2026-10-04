@@ -3,6 +3,7 @@ import { PawPrint, Stethoscope, Utensils, Phone, AlertTriangle, Pill } from "luc
 
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
 
 /**
  * The care sheet for the pets on a job — the END of the flow PetPicker starts.
@@ -67,17 +68,14 @@ export function JobPetCareSheet({ jobId }: { jobId: string }) {
     queryKey: ["job_pets", jobId],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error: rpcErr } = await supabase.rpc("get_job_pets", {
+      const result = await supabase.rpc("get_job_pets", {
         p_job_id: jobId,
       });
       // PGRST202 = the migration has merged but db-deploy has not finished.
       // Expected for a few minutes on every deploy; render nothing rather than
       // an error state on a card that is otherwise fine.
-      if (rpcErr) {
-        if (rpcErr.code === "PGRST202") return [];
-        throw rpcErr;
-      }
-      return (data ?? []) as JobPet[];
+      if (result.error?.code === "PGRST202") return [];
+      return (unwrap(result) ?? []) as JobPet[];
     },
   });
 

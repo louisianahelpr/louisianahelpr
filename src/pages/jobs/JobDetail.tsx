@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Briefcase } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { useJobRef } from "@/hooks/useJobRef";
@@ -49,14 +50,15 @@ const JobDetail = () => {
   const { data: job, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<EnrichedJob | null> => {
-      const { data, error } = await supabase
-        .from("open_jobs_browse")
-        .select(
-          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode",
-        )
-        .eq("id", id!)
-        .maybeSingle();
-      if (error) throw error;
+      const data = unwrap(
+        await supabase
+          .from("open_jobs_browse")
+          .select(
+            "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode",
+          )
+          .eq("id", id!)
+          .maybeSingle(),
+      );
       if (!data) return null;
       const now = new Date();
       // A job that expired between share and open is no longer browsable.

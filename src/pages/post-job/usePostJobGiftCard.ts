@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 
@@ -67,14 +68,15 @@ export function usePostJobGiftCard(creditId: string | null): PostJobGiftCardStat
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["post-job-gift-card", creditId, user?.id],
     queryFn: async () => {
-      const { data: row, error: qErr } = await supabase
-        .from("gift_cards" as never)
-        .select("id, amount, status, payment_status, expires_at, recipient_id")
-        .eq("id", creditId as string)
-        .maybeSingle();
       // Never drop this error. A dropped one reads as "no gift here", which
       // is the full-price quote we are trying to stop shipping.
-      if (qErr) throw qErr;
+      const row = unwrap(
+        await supabase
+          .from("gift_cards" as never)
+          .select("id, amount, status, payment_status, expires_at, recipient_id")
+          .eq("id", creditId as string)
+          .maybeSingle(),
+      );
       return (row ?? null) as GiftCardLite | null;
     },
     enabled,

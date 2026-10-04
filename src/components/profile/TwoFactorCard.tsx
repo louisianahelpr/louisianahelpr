@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { ShieldCheck, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 
 interface VerifiedFactor {
@@ -33,14 +34,14 @@ export function useVerifiedFactor() {
   return useQuery<VerifiedFactor | null>({
     queryKey: ["security", "mfa-factor"],
     queryFn: async () => {
-      const { data, error } = await supabase.auth.mfa.listFactors();
       // THROW, don't return null. `null` here is indistinguishable from "this
       // account has no TOTP factor", so a failed read rendered the card as
       // "Two-factor authentication — Off / Turn on" to a user who HAS it on.
       // A security control that misreports its own state is worse than one
       // that admits it doesn't know. The enroll query below already throws for
-      // exactly this reason.
-      if (error) throw error;
+      // exactly this reason. (`!`: auth-js's RequestResult pairs `data: null`
+      // only with an error, which unwrap() has already thrown.)
+      const data = unwrap(await supabase.auth.mfa.listFactors())!;
       const totp = data.totp.find((f) => f.status === "verified");
       return totp ? { id: totp.id, friendlyName: totp.friendly_name } : null;
     },
@@ -212,17 +213,18 @@ function EnrollDialog({
       // masked the real problem and produced hard-to-debug enrollment
       // failures downstream. Throw so the queryFn's error state kicks in
       // and the UI shows a proper error, not a spinning enroll dialog.
-      const list = await supabase.auth.mfa.listFactors();
-      if (list.error) throw list.error;
-      const stale = list.data?.totp.filter((f) => f.status !== "verified") ?? [];
+      const list = unwrap(await supabase.auth.mfa.listFactors());
+      const stale = list?.totp.filter((f) => f.status !== "verified") ?? [];
       await Promise.all(
         stale.map((f) => supabase.auth.mfa.unenroll({ factorId: f.id })),
       );
-      const { data: enrolled, error: enrollError } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}`,
-      });
-      if (enrollError) throw enrollError;
+      // `!` as above: a null `data` only ever comes with the error unwrap() throws.
+      const enrolled = unwrap(
+        await supabase.auth.mfa.enroll({
+          factorType: "totp",
+          friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}`,
+        }),
+      )!;
       return {
         factorId: enrolled.id,
         secret: enrolled.totp.secret,

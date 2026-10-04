@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import type { PayoutLedgerRow, StripePayoutData } from "./types";
-import { functionInvokeError } from "@/lib/supabaseResult";
+import { functionInvokeError, unwrap } from "@/lib/supabaseResult";
 
 export function useEarningsData(helperId: string) {
   const qc = useQueryClient();
@@ -42,18 +42,15 @@ export function useEarningsData(helperId: string) {
     queryKey: queryKeys.payoutTransfers.byHelper(helperId),
     queryFn: async () => {
       if (!helperId) return [];
-      const { data, error } = await supabase.from("payout_transfers")
+      const result = await supabase.from("payout_transfers")
         .select("id, job_id, amount_cents, platform_fee_cents, status, created_at, paid_at, failed_at, failure_reason, stripe_transfer_id, jobs(title)")
         .eq("helper_id", helperId)
         .order("created_at", { ascending: false })
         .limit(50);
-      if (error) {
-        // Throw, don't collapse to [] — an empty ledger and a failed fetch
-        // are different facts, and the tab shows a retry for the latter.
-        report(error, { severity: "warning", tags: { source: "EarningsTab.fetchLedger" } });
-        throw error;
-      }
-      return (data ?? []) as PayoutLedgerRow[];
+      // Throw (unwrap), don't collapse to [] — an empty ledger and a failed
+      // fetch are different facts, and the tab shows a retry for the latter.
+      if (result.error) report(result.error, { severity: "warning", tags: { source: "EarningsTab.fetchLedger" } });
+      return (unwrap(result) ?? []) as PayoutLedgerRow[];
     },
     enabled: !!helperId,
     staleTime: 60_000,

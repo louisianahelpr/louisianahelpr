@@ -44,7 +44,7 @@ export async function fetchRatingStats(revieweeIds: string[]): Promise<RatingSta
   const ids = [...new Set(revieweeIds)].filter(Boolean);
   if (ids.length === 0) return new Map();
 
-  const { data, error } = await supabase.rpc("get_public_profile_stats", {
+  const statsRes = await supabase.rpc("get_public_profile_stats", {
     p_user_ids: ids,
   });
 
@@ -52,9 +52,9 @@ export async function fetchRatingStats(revieweeIds: string[]): Promise<RatingSta
   // main, so a freshly-shipped client can run for a window against a database
   // that has not caught up (CLAUDE.md). Degrade to the direct read rather than
   // showing every helper as unrated, which is the very bug this replaces.
-  if (error && (error as { code?: string }).code !== "PGRST202") throw error;
-
-  if (!error) {
+  // Any other error throws, through unwrap() so it keeps its HTTP status.
+  if ((statsRes.error as { code?: string } | null)?.code !== "PGRST202") {
+    const data = unwrap(statsRes);
     const map: RatingStats = new Map();
     for (const row of (data ?? []) as PublicProfileStatsRow[]) {
       const count = Number(row.review_count ?? 0);

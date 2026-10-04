@@ -83,10 +83,11 @@ export function useProfileStats(userId: string | undefined) {
         // own row passes its gate even while pending.
         supabase.rpc("get_public_profile_stats", { p_user_ids: [id] }),
       ]);
-      if (helperJobsRes.error) throw helperJobsRes.error;
-      if (reviewsRes.error) throw reviewsRes.error;
-      if (postedRes.error) throw postedRes.error;
-      const ratings = reviewsRes.data ?? [];
+      // Two of these are HEAD counts (no body, so no code): only unwrap()
+      // carries their HTTP status to the retry policy (Q1182).
+      unwrap(helperJobsRes);
+      const ratings = unwrap(reviewsRes) ?? [];
+      unwrap(postedRes);
 
       // Badge inputs are secondary: a failed aggregate must not blank the
       // landing, so it falls back to an exact own-row split instead.

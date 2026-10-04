@@ -2579,7 +2579,17 @@ serve(async (req) => {
               }
               let refund;
               try {
-                refund = await stripe.refunds.create(
+                // Q1209: a retry whose refund already went out reuses it.
+                const disputeAlreadyRefundedCents = Number(
+                  (pi.latest_charge && typeof pi.latest_charge === "object"
+                    ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
+                    : 0) ?? 0,
+                );
+                const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, refundAmount);
+                if (reusedDispute) {
+                  console.log(`[create-payment] admin_refund_dispute: charge for job ${jobId} already refunded ${disputeAlreadyRefundedCents}¢ — reusing ${reusedDispute.id}, not refunding again`);
+                }
+                refund = reusedDispute ?? await stripe.refunds.create(
                   { payment_intent: paymentIntentId, amount: refundAmount },
                   { idempotencyKey: `refund-dispute-${jobId}` },
                 );
@@ -2952,7 +2962,20 @@ serve(async (req) => {
           });
           const refundSeq = priorRefunds.data.length;
 
-          const refund = await stripe.refunds.create({
+          // Q1209: a FULL refund retried after it already went out reuses it.
+          // Measured on the refunds Stripe lists for this charge (succeeded or
+          // pending), against the whole capture; a partial never reuses.
+          const generalAlreadyRefundedCents = priorRefunds.data
+            .filter((r) => r.status === "succeeded" || r.status === "pending")
+            .reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+          const reused = !isPartial
+            ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, capturedCents, priorRefunds.data)
+            : null;
+          if (reused) {
+            console.log(`[create-payment] admin_refund_general: charge for job ${jobId} already refunded ${generalAlreadyRefundedCents}¢ — reusing ${reused.id}, not refunding again`);
+          }
+
+          const refund = reused ?? await stripe.refunds.create({
             payment_intent: paymentIntentId,
             ...(isPartial ? { amount: requestedCents } : {}),
             metadata: {
@@ -4160,6 +4183,29 @@ async function returnGiftAfterRefund(
       ? ` The $${formatExactDollars(minted / 100)} your gift card paid is back as a gift you can use on another job.`
       : "",
   };
+}
+
+/**
+ * Q1209: the charge's own refunds are the authority, as cancel_escrow reads
+ * amount_refunded. An admin refund retried after its refund already went out
+ * (its flip failed) must not ask Stripe for a second one: inside the ~24h key
+ * window that replays, past it Stripe refuses ("charge already refunded") and
+ * the job could never be finished from the button. Returns an existing live
+ * (succeeded or pending) refund on this PaymentIntent when the amount already
+ * refunded covers `cents`: the one of exactly that amount, else the largest.
+ * Null when nothing covers it, so the caller refunds as before.
+ */
+async function existingRefundCovering(
+  stripe: Stripe,
+  paymentIntentId: string,
+  alreadyRefundedCents: number,
+  cents: number,
+  listed?: Stripe.Refund[],
+): Promise<Stripe.Refund | null> {
+  if (!(cents > 0) || !(alreadyRefundedCents >= cents)) return null;
+  const refunds = listed ?? (await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 })).data;
+  const live = (refunds ?? []).filter((r) => r.status === "succeeded" || r.status === "pending");
+  return live.find((r) => r.amount === cents) ?? [...live].sort((a, b) => b.amount - a.amount)[0] ?? null;
 }
 
 /**

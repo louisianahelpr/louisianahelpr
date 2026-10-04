@@ -3168,6 +3168,68 @@ describe("create-payment edge function", () => {
     // over whatever landed during the Stripe round-trips (a dispute filed, a
     // Quick Release, a payout). Deferred from the 2026-09-14 lifecycle-writes
     // audit to this branch.
+    // Q1209: a retry after the refund already went out (its flip failed) must
+    // not ask Stripe for a second one: past the ~24h key window Stripe refuses
+    // it (charge already refunded) and the job could never be finished from
+    // the button. The charge's own refunds are the authority (as cancel_escrow
+    // reads amount_refunded): an existing refund that covers it is reused.
+    describe("Q1209 an admin refund retried after the refund already went out", () => {
+      // @mutate supabase/functions/create-payment/index.ts | const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, refundAmount); | const reusedDispute = null;
+      it("admin_refund_dispute reuses the existing refund, records it, and finishes the job", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", title: "Disputed job", stripe_payment_intent_id: "pi_r" }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_r", status: "succeeded", amount: 10000, amount_received: 10000,
+          latest_charge: { id: "ch_r", amount_refunded: 9680 },
+        });
+        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_prior", amount: 9680, status: "succeeded" }] });
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+        expect(ledger?.payload).toMatchObject({ stripe_refund_id: "re_prior" });
+        const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+        expect((flip?.payload as Record<string, unknown>).payment_status).toBe("refunded");
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts | const reused = !isPartial\n | const reused = false\n
+      it("admin_refund_general (full) reuses the existing full refund and finishes the job", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "completed", payment_status: "payout_pending", budget: 100, title: "Goodwill job", stripe_payment_intent_id: "pi_g" }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded", amount: 10000, amount_received: 10000 });
+        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_full", amount: 10000, status: "succeeded" }] });
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.find((w) => w.table === "payment_refunds")?.payload).toMatchObject({ stripe_refund_id: "re_full" });
+        const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+        expect(flip?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+      });
+
+      it("control: a PARTIAL prior refund does not count as the full one (the rest is refunded)", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "completed", payment_status: "payout_pending", budget: 100, title: "Goodwill job", stripe_payment_intent_id: "pi_g" }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_g", status: "succeeded", amount: 10000, amount_received: 10000 });
+        stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_part", amount: 2000, status: "succeeded" }] });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_rest", amount: 8000 });
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      });
+    });
+
     describe("admin_refund_general full-refund flip", () => {
       const seedFull = (payment_status: string | null = "payout_pending") => {
         seedAuth(scenario, ADMIN);

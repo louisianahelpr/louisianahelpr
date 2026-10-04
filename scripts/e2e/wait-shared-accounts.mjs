@@ -48,15 +48,26 @@ const DRIVES_ACCOUNTS = new Set(["schedule", "workflow_dispatch"]);
 const WAITING = new Set(["queued", "pending", "waiting", "requested"]);
 
 /**
- * Can this run (an /actions/runs entry) reach a locked job? Only scheduled and
- * dispatched runs can: every locked job is gated off push/PR. A MAIN BATCH
+ * Workflows whose PUSH runs can reach a locked job. Every other locked job is
+ * gated off push/PR; vacuity.yml's `vacuity-e2e` (Q551) runs on the push to
+ * main that changed a Playwright guard, so such a run queues for the accounts
+ * like a scheduled one and must be seen by the other waiters, or its pending
+ * job is the one a third arrival cancels.
+ */
+export const PUSH_DRIVERS = new Set([".github/workflows/vacuity.yml"]);
+
+/**
+ * Can this run (an /actions/runs entry) reach a locked job? Scheduled and
+ * dispatched runs can: every locked job is gated off PR, and off push except
+ * for PUSH_DRIVERS. A MAIN BATCH
  * dispatch (scripts/ci/main-batch.mjs, titled "(main batch <sha>)") is the old
  * push leg of e2e-real-backend: its locked jobs are gated off `inputs.batch`,
  * so it never signs in and must not queue anyone (2026-10-02). The marker is
  * inlined, not imported: this script runs from a sparse checkout.
  */
 export function drivesAccounts(run) {
-  return DRIVES_ACCOUNTS.has(run.event) && !String(run.display_title ?? "").includes("(main batch ");
+  const pushDriver = run.event === "push" && PUSH_DRIVERS.has(String(run.path ?? "").split("@")[0]);
+  return (DRIVES_ACCOUNTS.has(run.event) || pushDriver) && !String(run.display_title ?? "").includes("(main batch ");
 }
 
 /**

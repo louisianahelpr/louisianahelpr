@@ -50,6 +50,7 @@
 //     anywhere could recover it. Leg 3 below is that guard replaced with an
 //     answer.)
 
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -408,7 +409,18 @@ serve(async (req) => {
         }
       }
     } catch (e) {
-      console.warn(`[execute-dispute-split] could not retrieve session for job ${job.id}:`, e);
+      // Both branches refuse (lh-money-escrow review of Q891, S1 and R1): a job
+      // that opened a checkout may hold card money even when a gift was also
+      // applied, so an unreadable session must never be split as gift-only.
+      if (isTestObjectUnderLiveKey(e)) {
+        logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "checkout.session", id: job.stripe_session_id });
+        return await refuse(
+          { error: "this job's checkout ran in Stripe test mode, so there is no real money behind it — split refused. No money was moved." },
+          409,
+        );
+      }
+      console.error(`[execute-dispute-split] could not retrieve session for job ${job.id}:`, e);
+      return await refuse({ error: "could not read the checkout session — retry" }, 502);
     }
   }
   if (!paymentIntentId && giftAppliedCents === 0) {
@@ -429,6 +441,13 @@ serve(async (req) => {
         expand: ["latest_charge.balance_transaction"],
       });
     } catch (e) {
+      if (isTestObjectUnderLiveKey(e)) {
+        logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "payment_intent", id: paymentIntentId });
+        return await refuse(
+          { error: "this escrow was paid in Stripe test mode, so there is no real money behind it — split refused. No money was moved." },
+          409,
+        );
+      }
       console.error(`[execute-dispute-split] paymentIntents.retrieve failed for ${paymentIntentId}:`, e);
       return await refuse({ error: "could not verify the escrow charge — retry" }, 502);
     }
@@ -720,11 +739,24 @@ serve(async (req) => {
         const stamped = await stripe.transfers.retrieve(dispute.execution_transfer_id);
         if (stamped?.id) recovered = stamped.id;
       } catch (e) {
-        console.error(
-          `[execute-dispute-split] could not verify stamped transfer ${dispute.execution_transfer_id}:`,
-          e,
-        );
-        return await refuse({ error: "could not verify prior transfers — retry" }, 502);
+        if (isTestObjectUnderLiveKey(e)) {
+          // A test-mode stamp means an earlier execution ran under the test
+          // key. That run's money never moved, but its state is unknowable from
+          // here, so a live transfer now could pay a leg the admin already
+          // settled another way (lh-money-escrow review of Q891, must-fix).
+          // Refuse and leave the decision to a person.
+          logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "transfer", id: dispute.execution_transfer_id });
+          return await refuse(
+            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand" },
+            409,
+          );
+        } else {
+          console.error(
+            `[execute-dispute-split] could not verify stamped transfer ${dispute.execution_transfer_id}:`,
+            e,
+          );
+          return await refuse({ error: "could not verify prior transfers — retry" }, 502);
+        }
       }
     }
     if (recovered) {

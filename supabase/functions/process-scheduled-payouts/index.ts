@@ -1,3 +1,4 @@
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -719,6 +720,10 @@ serve(async (req) => {
           const captured = resolveCapturedEscrow(pi);
           capturedCents = pi.status === "succeeded" && captured.kind === "captured" ? captured.cents : 0;
         } catch (e) {
+          if (isTestObjectUnderLiveKey(e)) {
+            logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: a.paymentIntentId });
+            return { ok: false };
+          }
           jobDefect(job.id, `crew ${source} PI read ${job.id}: ${(e as Error).message}`);
           return { ok: false };
         }
@@ -1033,6 +1038,11 @@ serve(async (req) => {
               await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
             }
           } catch (e) {
+            if (isTestObjectUnderLiveKey(e)) {
+              logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+              results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
+              continue;
+            }
             console.warn("Could not retrieve session:", e);
           }
         }
@@ -1092,6 +1102,11 @@ serve(async (req) => {
           }
           capturedCents = captured.cents;
         } catch (e: any) {
+          if (isTestObjectUnderLiveKey(e)) {
+            logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+            results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
+            continue;
+          }
           console.error(`Failed to verify payment for job ${job.id}:`, e);
           results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
           jobDefect(job.id, `payment verify ${job.id}: ${(e as Error).message}`);

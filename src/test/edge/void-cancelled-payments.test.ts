@@ -10,12 +10,13 @@
  *
  * Runs the REAL function source via the edge harness.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 
 const CRON_SECRET = "cron-secret-void";
 
@@ -182,6 +183,154 @@ describe("void-cancelled-payments — an unexecuted dispute decision owns the es
     const h = await load();
     await h.fetch(cronReq());
     expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalled();
+  });
+});
+
+// ── Q891: a Stripe id minted under the TEST key, read under the LIVE key ────
+//
+// Every job funded before prod went live (2026-09-27) holds one, and Stripe
+// answers 404 resource_missing "a similar object exists in test mode". No real
+// money sits behind it, so the row is skipped (or, for a never-paid checkout,
+// abandoned exactly as a missing session is) with ONE structured log line:
+// never a 500, never a defect, never a page, never a refund/capture/cancel or
+// transfer. Every other error keeps the behaviour it had (the controls).
+describe("void-cancelled-payments — Q891: a test-mode Stripe object under the live key", () => {
+  let skips: ReturnType<typeof captureTestModeSkips>;
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+    skips = captureTestModeSkips();
+  });
+  afterEach(() => {
+    skips.restore();
+  });
+
+  const run = async () => {
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    return { res, body: JSON.parse(await res.text()) as Record<string, unknown> };
+  };
+
+  /** Part B (open + unpaid) or Part B2 (cancelled + unpaid) holds one job on `cs_test_old`. */
+  function seedUnpaidCheckout(part: "B" | "B2") {
+    const row = { id: "job-unpaid", title: "Never paid", stripe_session_id: "cs_test_old", is_seed: false };
+    scenario.reads.jobs = {
+      selectOverrides: [
+        // Part A (and the D/E retry reads that also name cancellation_fee): nothing.
+        { includes: "cancellation_fee", result: { rows: [] } },
+        // Part B2's read — the only jobs select that names is_seed.
+        { includes: "is_seed", result: { rows: part === "B2" ? [row] : [] } },
+        // Part B's read: exactly "id, title, stripe_session_id".
+        { includes: "id, title, stripe_session_id", result: { rows: part === "B" ? [row] : [] } },
+      ],
+      rows: [],
+    };
+  }
+
+  const abandonWrites = () =>
+    scenario.writes.filter(
+      (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "abandoned",
+    );
+
+  function expectCleanRun(res: Response, body: Record<string, unknown>) {
+    expect(res.status).toBe(200);
+    expect(body.defects).toBe(0);
+    expect(body.defectReasons).toBeUndefined();
+    expect(slackAlerts).toHaveLength(0);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+    expect(scenario.writes.some((w) => w.table === "payout_transfers" || w.table === "cancellation_fee_transfers" || w.table === "payment_refunds")).toBe(false);
+  }
+
+  // Red on the old code by the log line alone: the test-mode error is ALSO a
+  // 404 resource_missing, so the old catch abandoned it as "session 404".
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });\n          if (await markAbandoned(job, "test-mode session")) abandonedCount++; | throw e;
+  it("Part B: an open unpaid job on a TEST-mode checkout session is abandoned, named in one structured line, no defect", async () => {
+    seedUnpaidCheckout("B");
+    stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+    const { res, body } = await run();
+    expectCleanRun(res, body);
+    expect(body.abandoned).toBe(1);
+    expect(abandonWrites()).toHaveLength(1);
+    expect(abandonWrites()[0].filters).toEqual(expect.arrayContaining([{ op: "eq", column: "id", value: "job-unpaid" }]));
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(skips.lines()).toEqual([
+      expect.objectContaining({ fn: "void-cancelled-payments", object: "checkout.session", id: "cs_test_old", job_id: "job-unpaid" }),
+    ]);
+  });
+
+  it("Part B control: a transient Stripe error (503) still leaves the job alone for the next run, and writes no test-mode line", async () => {
+    seedUnpaidCheckout("B");
+    stripeMock.checkout.sessions.retrieve.mockRejectedValue(
+      Object.assign(new Error("Stripe is down"), { type: "StripeAPIError", statusCode: 503 }),
+    );
+    const { body } = await run();
+    expect(body.abandoned).toBe(0);
+    expect(abandonWrites()).toHaveLength(0);
+    expect(skips.lines()).toEqual([]);
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });\n          if (await markAbandoned(job, "cancelled, test-mode session")) abandonedCount++; | throw e;
+  it("Part B2: a cancelled unpaid job on a TEST-mode checkout session is abandoned, named in one structured line, no defect", async () => {
+    seedUnpaidCheckout("B2");
+    stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+    const { res, body } = await run();
+    expectCleanRun(res, body);
+    expect(body.abandoned).toBe(1);
+    expect(abandonWrites()).toHaveLength(1);
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(skips.lines()).toEqual([
+      expect.objectContaining({ fn: "void-cancelled-payments", object: "checkout.session", id: "cs_test_old", job_id: "job-unpaid" }),
+    ]);
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });\n            results.push({ job_id: job.id, title: job.title, status: "skipped_test_mode_object", skipped: true }); | throw e;
+  it("Part A: a cancelled escrow job whose SESSION (to resolve its PaymentIntent) is a test-mode object is skipped, not settled, no defect", async () => {
+    seedCancelledEscrowJob();
+    const partA = (scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> }).selectOverrides[0].result.rows[0];
+    Object.assign(partA, { stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" });
+    stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+    const { res, body } = await run();
+    expectCleanRun(res, body);
+    expect(body.results).toEqual([
+      expect.objectContaining({ job_id: "job-decided", status: "skipped_test_mode_object", skipped: true }),
+    ]);
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    expect(skips.lines()).toEqual([
+      expect.objectContaining({ fn: "void-cancelled-payments", object: "checkout.session", id: "cs_test_old", job_id: "job-decided" }),
+    ]);
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | throw e;
+  it("Part A: a cancelled escrow job whose PaymentIntent is a test-mode object is skipped: no refund, capture, cancel or fee transfer, not settled, no defect", async () => {
+    seedCancelledEscrowJob();
+    stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_decided"));
+    const { res, body } = await run();
+    expectCleanRun(res, body);
+    expect(body.refunded).toBe(0);
+    expect(body.results).toEqual([
+      expect.objectContaining({ job_id: "job-decided", status: "skipped_test_mode_object", skipped: true }),
+    ]);
+    expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    expect(skips.lines()).toEqual([
+      expect.objectContaining({ fn: "void-cancelled-payments", object: "payment_intent", id: "pi_decided", job_id: "job-decided" }),
+    ]);
+  });
+
+  it("Part A control: any OTHER PaymentIntent read error keeps its old 'error' row, no refund, and no test-mode line", async () => {
+    seedCancelledEscrowJob();
+    stripeMock.paymentIntents.retrieve.mockRejectedValue(
+      Object.assign(new Error("Stripe is down"), { type: "StripeAPIError", statusCode: 503 }),
+    );
+    const { body } = await run();
+    expect(body.results).toEqual([expect.objectContaining({ job_id: "job-decided", status: "error" })]);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    expect(skips.lines()).toEqual([]);
   });
 });
 

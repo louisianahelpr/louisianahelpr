@@ -1,3 +1,4 @@
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -888,6 +889,14 @@ serve(async (req) => {
         // (5xx, network, rate-limit) must NOT abandon a still-unpaid job —
         // otherwise a blip silently kills a live checkout. Log and leave it
         // for the next run, mirroring the void loop below.
+        // BEFORE the 404 test: a test-mode session under the live key answers
+        // 404 resource_missing too. Same outcome as a missing session (it can
+        // never be paid now, and no money sits behind it), but named.
+        if (isTestObjectUnderLiveKey(e)) {
+          logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+          if (await markAbandoned(job, "test-mode session")) abandonedCount++;
+          continue;
+        }
         const missing = (e as any)?.statusCode === 404 || (e as any)?.code === "resource_missing";
         if (missing) {
           if (await markAbandoned(job, "session 404")) abandonedCount++;
@@ -953,6 +962,11 @@ serve(async (req) => {
           });
         }
       } catch (e) {
+        if (isTestObjectUnderLiveKey(e)) {
+          logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+          if (await markAbandoned(job, "cancelled, test-mode session")) abandonedCount++;
+          continue;
+        }
         const missing = (e as any)?.statusCode === 404 || (e as any)?.code === "resource_missing";
         if (missing) {
           if (await markAbandoned(job, "cancelled, session 404")) abandonedCount++;
@@ -1091,6 +1105,10 @@ serve(async (req) => {
           crewSharesRetried += shares.length;
           results.push({ job_id: job.id, title: job.title, status: "crew_shares_retried", shares: shares.length });
         } catch (retryErr) {
+          if (isTestObjectUnderLiveKey(retryErr)) {
+            logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "payment_intent", id: job.stripe_payment_intent_id });
+            continue;
+          }
           defects.record(`crew share retry ${job.id}: ${(retryErr as Error)?.message ?? retryErr}`);
         }
         continue;
@@ -1114,6 +1132,10 @@ serve(async (req) => {
           feeTransfersRetried++;
           results.push({ job_id: job.id, title: job.title, status: "fee_transfer_retried" });
         } catch (retryErr) {
+          if (isTestObjectUnderLiveKey(retryErr)) {
+            logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "payment_intent", id: job.stripe_payment_intent_id });
+            continue;
+          }
           defects.record(`cancellation fee retry ${job.id}: ${(retryErr as Error)?.message ?? retryErr}`);
         }
         continue;
@@ -1281,6 +1303,11 @@ serve(async (req) => {
             }
           }
         } catch (e: any) {
+          if (isTestObjectUnderLiveKey(e)) {
+            logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+            results.push({ job_id: job.id, title: job.title, status: "skipped_test_mode_object", skipped: true });
+            continue;
+          }
           results.push({ job_id: job.id, title: job.title, status: "session_not_found", error: (e as Error).message });
           continue;
         }
@@ -1501,6 +1528,11 @@ serve(async (req) => {
           results.push({ job_id: job.id, title: job.title, status: `pi_status_${pi.status}`, skipped: true });
         }
       } catch (e: any) {
+        if (isTestObjectUnderLiveKey(e)) {
+          logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+          results.push({ job_id: job.id, title: job.title, status: "skipped_test_mode_object", skipped: true });
+          continue;
+        }
         // Handle "already refunded" gracefully
         if (e.message?.includes("already been refunded")) {
           const settledAlready = await settleCancelledJob(job, { payment_status: "refunded" }, "already-refunded");

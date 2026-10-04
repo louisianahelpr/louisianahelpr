@@ -16,6 +16,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 
 const CRON_SECRET = "cron-secret-crew";
 
@@ -414,5 +415,74 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     await run();
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect((slackAlerts as Array<{ title?: string }>).filter((a) => /could not be restored/i.test(a.title ?? ""))).toHaveLength(1);
+  });
+  // ── Q891: the partial-gift crew's charge is a test-mode PaymentIntent ──
+  // Minted under the TEST key before prod went live; the live key answers 404
+  // "a similar object exists in test mode". No real money sits behind it, so
+  // the card refund is skipped with one structured log line: no refund, no
+  // defect (the run answers 200, not 500), no page, the job not released.
+  function seedPartialGiftCrew() {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    // Every member was paid on an earlier run, so this run is only the
+    // unfilled-share refund (the already-transferred branch).
+    (scenario.reads.payout_transfers as { selectOverrides: Array<{ includes: string; result: { rows: unknown[] } }> }).selectOverrides.push({
+      includes: "stripe_transfer_id, status, created_at",
+      result: { rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid", created_at: "2026-09-25T00:00:00Z" }] },
+    });
+    scenario.reads.gift_cards = { rows: [{ id: "gc-1" }] };
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
+      const a = args as { p_share_bps: number; p_dry_run: boolean };
+      return a.p_dry_run
+        ? { outcome: "would_restore", applied_cents: 4000 }
+        : { outcome: "restored", restore_cents: Math.floor((4000 * a.p_share_bps) / 10000) };
+    };
+  }
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: a.paymentIntentId }); | throw e;
+  it("Q891: a partial-gift crew whose charge is a TEST-mode PaymentIntent: no card refund, no defect (200), no page, not released, one structured log line", async () => {
+    const skips = captureTestModeSkips();
+    try {
+      seedPartialGiftCrew();
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_1"));
+      const res = await run();
+      expect(res.status).toBe(200);
+      const body = JSON.parse(await res.text()) as Record<string, unknown>;
+      expect(body.defects).toBe(0);
+      expect(body.defectReasons).toBeUndefined();
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "payment_refunds")).toBe(false);
+      expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
+      expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+      expect(slackAlerts).toHaveLength(0);
+      // One line per ask: each member's pass re-asks whether the crew may
+      // release (the refund is read from the ledger), so it may log per member.
+      const lines = skips.lines();
+      expect(lines.length).toBeGreaterThan(0);
+      for (const line of lines) {
+        expect(line).toMatchObject({ fn: "process-scheduled-payouts", object: "payment_intent", id: "pi_1", job_id: "job-crew" });
+      }
+    } finally {
+      skips.restore();
+    }
+  });
+
+  it("Q891 control: any OTHER error on that crew PI read still fails closed (500, a defect, no refund, no log line)", async () => {
+    const skips = captureTestModeSkips();
+    try {
+      seedPartialGiftCrew();
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(
+        Object.assign(new Error("Stripe is down"), { type: "StripeAPIError", statusCode: 503 }),
+      );
+      const res = await run();
+      expect(res.status).toBe(500);
+      const body = JSON.parse(await res.text()) as Record<string, unknown>;
+      expect((body.defectReasons as string[]).some((r) => /crew .* PI read job-crew/.test(r))).toBe(true);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(skips.lines()).toEqual([]);
+    } finally {
+      skips.restore();
+    }
   });
 });

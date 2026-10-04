@@ -178,6 +178,42 @@ serve(async (req) => {
 
   logStep("Event received", { type: event.type, id: event.id });
 
+  // ---- Key mode vs event mode (Q891 item 4) ----
+  // A correctly signed event can still belong to the other Stripe mode: a
+  // test-mode endpoint left pointed at this function, or a live endpoint
+  // reaching a function whose key is a test key. Nothing below tells the two
+  // apart (every handler reads the same tables), so a mismatch is decided HERE,
+  // before the dedupe row is written or any handler runs. ONE direction each:
+  //   LIVE key, TEST event: sandbox data with no real money behind it. Ack 200
+  //     (a retry can never change the answer), process nothing, no alert.
+  //   TEST key, LIVE event: a REAL payment this deploy cannot read. Refuse 400
+  //     so Stripe retries once the key is fixed, and page (once a day).
+  // An event with no boolean livemode, or a key with an unknown prefix, is not
+  // judged: it takes the old path.
+  const keyMode = stripeKeyMode(stripeKey);
+  const eventMode = typeof event.livemode === "boolean" ? (event.livemode ? "LIVE" : "TEST") : "UNKNOWN";
+  if (keyMode !== "UNKNOWN" && eventMode !== "UNKNOWN" && keyMode !== eventMode) {
+    console.log(JSON.stringify({
+      event: "stripe_webhook_livemode_mismatch", fn: "stripe-webhook",
+      key_mode: keyMode, event_mode: eventMode, event_id: event.id, event_type: event.type,
+    }));
+    if (keyMode === "LIVE") {
+      return new Response(JSON.stringify({ received: true, ignored: "livemode_mismatch" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe webhook got a LIVE event but runs a TEST key",
+      message: `\`${event.type}\` (${event.id}) is a live-mode event and STRIPE_SECRET_KEY is a test key. It was refused (400), NOT processed; Stripe retries it. Set the live key.`,
+      fields: { "Event ID": event.id },
+      oncePerDayKey: "stripe-webhook-live-event-test-key",
+    });
+    return webhookRejectResponse("livemode_mismatch");
+  }
+
   // ---- Idempotency guard ----
   // Stripe retries webhooks on any non-2xx or timeout. Without this guard a
   // single checkout could grant a subscription twice or send duplicate emails.

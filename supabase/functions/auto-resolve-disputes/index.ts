@@ -1,3 +1,4 @@
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -423,6 +424,10 @@ serve(async (req) => {
             ? session.payment_intent
             : session.payment_intent?.id ?? null;
         } catch (e) {
+          if (isTestObjectUnderLiveKey(e)) {
+            logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+            continue;
+          }
           console.error(`[auto-resolve-disputes] failed to retrieve session for job ${job.id}:`, e);
           defects.record(`session retrieve ${job.id}: ${e instanceof Error ? e.message : String(e)}`);
         }
@@ -447,6 +452,10 @@ serve(async (req) => {
           continue;
         }
       } catch (e) {
+        if (isTestObjectUnderLiveKey(e)) {
+          logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+          continue;
+        }
         console.error(`[auto-resolve-disputes] failed to verify PI for job ${job.id}:`, e);
         defects.record(`PI verify ${job.id}: ${e instanceof Error ? e.message : String(e)}`);
         continue;
@@ -581,6 +590,10 @@ serve(async (req) => {
             continue;
           }
         } catch (e) {
+          if (isTestObjectUnderLiveKey(e)) {
+            logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+            continue;
+          }
           console.error(`[auto-resolve-disputes] Stripe refund check failed for job ${job.id}; not auto-resolving:`, e);
           defects.record(`Stripe refund check ${job.id}: ${e instanceof Error ? e.message : String(e)} — not auto-resolved`);
           continue;

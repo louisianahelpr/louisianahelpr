@@ -39,7 +39,7 @@
  */
 // @mutate supabase/functions/auto-release-payment/index.ts | .is("revision_requested_at", null)\n      .or(`poster_completed_at | .or(`poster_completed_at
 // @mutate supabase/functions/auto-release-payment/index.ts | if (pi.status !== "succeeded") { | if (false) {
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
@@ -48,7 +48,8 @@ import {
   resetSupabaseMock,
   type SupabaseScenario,
 } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 import {
   DEFAULT_TIER_FEE_PERCENT,
   helperCommissionDollars,
@@ -383,6 +384,107 @@ describe("auto-release-payment edge function", () => {
       expect(helperNotification()).toBeUndefined();
       expect(res.status).toBe(500);
       expect(((await json(res)).defectReasons as string[]).join(" ")).toContain("payout hold read job-1");
+    });
+
+    /**
+     * Q891: a job funded before prod went live (2026-09-27) holds a Stripe id
+     * minted under the TEST key. The LIVE key answers "No such ...; a similar
+     * object exists in test mode". No real money is behind it, so the row is
+     * skipped with ONE structured log line: never a release, never a defect,
+     * never a page.
+     */
+    describe("Q891: a test-mode Stripe id read under the live key", () => {
+      let skips: ReturnType<typeof captureTestModeSkips>;
+      beforeEach(() => {
+        skips = captureTestModeSkips();
+      });
+      afterEach(() => {
+        skips.restore();
+      });
+
+      function expectNoMoneyMoved(out: Record<string, unknown>, res: Response) {
+        expect(res.status).toBe(200);
+        expect(out.released).toBe(0);
+        expect((out.defectReasons as string[] | undefined) ?? []).toEqual([]);
+        expect(slackAlerts).toHaveLength(0);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        // (The Stripe mock has no paymentIntents.capture: this function never captures.)
+        expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+        expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+      }
+
+      // @mutate supabase/functions/auto-release-payment/index.ts | logTestObjectUnderLiveKey("auto-release-payment", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id }); | throw e;
+      it("skips (never 500, never pages) when the checkout SESSION is a test-mode object", async () => {
+        seedDueJob(scenario, { stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" });
+        seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+        stripeMock.checkout.sessions.retrieve.mockRejectedValue(
+          testModeUnderLiveKey("checkout.session", "cs_test_old"),
+        );
+
+        const fn = await load();
+        const res = await fn.fetch(cronRequest(fn));
+        const out = await json(res);
+        expectNoMoneyMoved(out, res);
+        expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        expect(out.results).toContainEqual(
+          expect.objectContaining({ job_id: "job-1", status: "skipped_test_mode_object", skipped: true }),
+        );
+        expect(skips.lines()).toEqual([
+          expect.objectContaining({
+            event: "stripe_test_object_under_live_key",
+            fn: "auto-release-payment",
+            object: "checkout.session",
+            id: "cs_test_old",
+            job_id: "job-1",
+          }),
+        ]);
+      });
+
+      // @mutate supabase/functions/auto-release-payment/index.ts | logTestObjectUnderLiveKey("auto-release-payment", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | throw e;
+      it("skips (never 500, never pages) when the PaymentIntent to verify is a test-mode object", async () => {
+        seedDueJob(scenario, { stripe_payment_intent_id: "pi_test_old" });
+        seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+        stripeMock.paymentIntents.retrieve.mockRejectedValue(
+          testModeUnderLiveKey("payment_intent", "pi_test_old"),
+        );
+
+        const fn = await load();
+        const res = await fn.fetch(cronRequest(fn));
+        const out = await json(res);
+        expectNoMoneyMoved(out, res);
+        expect(out.results).toContainEqual(
+          expect.objectContaining({ job_id: "job-1", status: "skipped_test_mode_object", skipped: true }),
+        );
+        expect(out.results).not.toContainEqual(expect.objectContaining({ status: "verify_failed" }));
+        expect(skips.lines()).toEqual([
+          expect.objectContaining({
+            event: "stripe_test_object_under_live_key",
+            fn: "auto-release-payment",
+            object: "payment_intent",
+            id: "pi_test_old",
+            job_id: "job-1",
+          }),
+        ]);
+      });
+
+      // Control: any OTHER session-read error keeps its old outcome (no PI =>
+      // skipped_no_pi, never a release) and is NOT logged as a test-mode skip.
+      // The PI-verify control is "fails CLOSED when the charge cannot be read at all" above.
+      it("control: a plain session-read failure still ends at skipped_no_pi, not a test-mode skip", async () => {
+        seedDueJob(scenario, { stripe_payment_intent_id: null, stripe_session_id: "cs_1" });
+        seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+        stripeMock.checkout.sessions.retrieve.mockRejectedValue(new Error("stripe down"));
+
+        const fn = await load();
+        const res = await fn.fetch(cronRequest(fn));
+        const out = await json(res);
+        expect(out.released).toBe(0);
+        expect(scenario.writes.filter((w) => w.table === "jobs" && w.op === "update")).toHaveLength(0);
+        expect(out.results).toContainEqual(expect.objectContaining({ job_id: "job-1", status: "skipped_no_pi" }));
+        expect(skips.lines()).toEqual([]);
+      });
     });
 
     it("notifies both parties", async () => {

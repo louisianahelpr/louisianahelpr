@@ -2114,3 +2114,92 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     expect(refundFailedPages()).toHaveLength(1);
   });
 });
+
+/*
+ * Q891 item 4: a correctly signed event can still belong to the OTHER Stripe
+ * mode. Nothing in the handlers tells the two apart, so index.ts decides it
+ * before the dedupe row is written. Before this check a livemode:false event
+ * under the live key (a test-mode endpoint left pointed at the function) was
+ * processed like any other.
+ *
+ * @mutate supabase/functions/stripe-webhook/index.ts | keyMode !== "UNKNOWN" && eventMode !== "UNKNOWN" && keyMode !== eventMode | false
+ * @mutate supabase/functions/stripe-webhook/index.ts | if (keyMode === "LIVE") { | if (keyMode !== "LIVE") {
+ * @mutate supabase/functions/stripe-webhook/index.ts | return webhookRejectResponse("livemode_mismatch"); | return new Response(JSON.stringify({ received: true }), { status: 200 });
+ * @mutate supabase/functions/stripe-webhook/index.ts | oncePerDayKey: "stripe-webhook-live-event-test-key", | oncePerDayKey: undefined,
+ * @mutate supabase/functions/_shared/stripeWebhookReject.ts | livemode_mismatch: 400, | livemode_mismatch: 200,
+ */
+describe("stripe-webhook rejects an event whose livemode differs from the key's mode (Q891)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  async function loadWithKey(key: string): Promise<EdgeHarness> {
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      STRIPE_SECRET_KEY: key,
+      STRIPE_WEBHOOK_SECRET: "whsec_test_secret",
+    });
+    return loadEdgeFunction("stripe-webhook");
+  }
+
+  const event = (livemode: boolean | undefined) => ({
+    id: "evt_mode",
+    type: "tax.settings.updated",
+    ...(livemode === undefined ? {} : { livemode }),
+    data: { object: {} },
+  });
+
+  it("LIVE key + TEST event: acked 200 but NOT processed, no dedupe row, no alert", async () => {
+    const fn = await loadWithKey("sk_live_abc");
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(event(false));
+    const logs: string[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((...a) => { logs.push(String(a[0])); });
+    try {
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      expect(await json(res)).toEqual({ received: true, ignored: "livemode_mismatch" });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(scenario.writes).toHaveLength(0);
+    expect(slackAlerts).toHaveLength(0);
+    const line = logs.find((l) => l.includes("stripe_webhook_livemode_mismatch"));
+    expect(JSON.parse(line ?? "{}")).toMatchObject({ key_mode: "LIVE", event_mode: "TEST", event_id: "evt_mode" });
+  });
+
+  it("TEST key + LIVE event: REFUSED 400 (Stripe retries), nothing processed, paged once a day", async () => {
+    const fn = await loadWithKey("sk_test_abc");
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(event(true));
+    const res = await fn.fetch(webhookRequest(fn, "{}"));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("livemode_mismatch");
+    expect(scenario.writes).toHaveLength(0);
+    const alert = slackAlerts.find((a) => /LIVE event but runs a TEST key/.test(String((a as { title?: string }).title ?? ""))) as
+      | { kind: string; severity: string; oncePerDayKey?: string }
+      | undefined;
+    expect(alert?.kind).toBe("stripe_webhook_error");
+    expect(alert?.severity).toBe("critical");
+    expect(alert?.oncePerDayKey).toBe("stripe-webhook-live-event-test-key");
+  });
+
+  it("matching modes still process: LIVE key + LIVE event writes the dedupe row", async () => {
+    const fn = await loadWithKey("sk_live_abc");
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(event(true));
+    const res = await fn.fetch(webhookRequest(fn, "{}"));
+    expect(res.status).toBe(200);
+    expect((await json(res)).received).toBe(true);
+    expect(scenario.writes.some((w) => w.table === "stripe_webhook_events" && w.op === "insert")).toBe(true);
+  });
+
+  it("an event with no boolean livemode is not judged (old path)", async () => {
+    const fn = await loadWithKey("sk_live_abc");
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue(event(undefined));
+    const res = await fn.fetch(webhookRequest(fn, "{}"));
+    expect(res.status).toBe(200);
+    expect(scenario.writes.some((w) => w.table === "stripe_webhook_events" && w.op === "insert")).toBe(true);
+  });
+});

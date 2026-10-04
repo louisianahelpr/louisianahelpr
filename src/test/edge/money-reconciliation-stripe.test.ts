@@ -34,6 +34,7 @@ import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { computeCancellationFee } from "../../../supabase/functions/_shared/cancellationFee";
 import { jobLocalDateISO } from "../helpers/jobLocalDate";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 
 const CRON_SECRET = "cron-secret";
 const DAY = 86_400_000;
@@ -302,6 +303,48 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
 
     const { b } = await run(fn);
     expect(finding(b, "stripe_payment_intent_not_found")).toMatchObject({ severity: "warning", count: 1 });
+  });
+
+  describe("a test-mode PaymentIntent read under the live key (Q891)", () => {
+    let cap: ReturnType<typeof captureTestModeSkips>;
+    beforeEach(() => {
+      cap = captureTestModeSkips();
+    });
+    afterEach(() => cap.restore());
+
+    // The same 404 / resource_missing shape as the test above, plus Stripe's
+    // "a similar object exists in test mode" sentence. Not a missing
+    // PaymentIntent and not a failed read: there is no real money behind it,
+    // so the row is skipped with one structured line — no finding, no alert,
+    // and the run stays ok. (The plain 404 above still lands in
+    // stripe_payment_intent_not_found; the "connection reset" test below still
+    // degrades the run.)
+    // @mutate supabase/functions/money-reconciliation/index.ts | logTestObjectUnderLiveKey("money-reconciliation", { job_id: job.id, object: "payment_intent", id: piId }); | throw e;
+    it("skips the row with one structured log line: no stripe_payment_intent_not_found, no failure, no alert", async () => {
+      const fn = await load();
+      seed();
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_c"));
+
+      const { res, b } = await run(fn);
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledTimes(1);
+      expect(res.status).toBe(200);
+      expect(b.ok).toBe(true);
+      expect(finding(b, "stripe_payment_intent_not_found")).toBeUndefined();
+      expect((b.notes as string[]).join(" ")).not.toMatch(/stripe comparison incomplete/);
+      expect(slackAlerts).toHaveLength(0);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.filter((w) => w.table !== "error_logs")).toHaveLength(0);
+      expect(cap.lines()).toEqual([
+        expect.objectContaining({
+          event: "stripe_test_object_under_live_key",
+          fn: "money-reconciliation",
+          object: "payment_intent",
+          id: "pi_c",
+          job_id: "job-c",
+        }),
+      ]);
+    });
   });
 
   it("a Stripe read that FAILS is degraded, never clean", async () => {

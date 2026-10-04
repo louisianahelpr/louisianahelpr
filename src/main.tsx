@@ -19,6 +19,7 @@ import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
 import { bounceToNativeAppIfReturning } from "./lib/nativeReturnBounce";
+import { purgeApiCache } from "./lib/apiCachePurge";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -159,7 +160,7 @@ if (import.meta.env.DEV && typeof navigator !== "undefined" && "serviceWorker" i
 // The actual SW file is one of two:
 //   • Web build (mode=production, !isCapacitorBuild): vite-plugin-pwa
 //     emits a Workbox SW at /sw.js with HTML NetworkFirst (3s
-//     timeout), Supabase API NetworkFirst, hashed-asset SWR. The plugin
+//     timeout), hashed-asset SWR (no API caching, Q1174). The plugin
 //     ALSO auto-injects a deferred registerSW.js into index.html via
 //     `injectRegister: "script-defer"`.
 //   • Capacitor / dev: vite-plugin-pwa is disabled and `public/sw.js`
@@ -174,6 +175,8 @@ if (import.meta.env.DEV && typeof navigator !== "undefined" && "serviceWorker" i
 // exorcism block below).
 if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
+    // Q1174: drop the `api-cache` an older worker filled with signed-in rows.
+    void purgeApiCache();
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .catch(() => {

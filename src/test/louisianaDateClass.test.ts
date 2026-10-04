@@ -27,7 +27,8 @@
  * @mutate supabase/functions/_shared/louisianaDate.ts | export function louisianaToday(now: Date = new Date()): string { | export function louisianaToday(now: Date = new Date()): string { return now.toISOString().slice(0, 10);
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { louisianaToday } from "../../supabase/functions/_shared/louisianaDate";

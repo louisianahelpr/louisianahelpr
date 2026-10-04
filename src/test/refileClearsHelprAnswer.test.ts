@@ -12,7 +12,8 @@
  *
  * @mutate supabase/migrations/20261004004705_refile_clears_helpr_dispute_answer.sql | dispute_helper_response = NULL, | dispute_reason = _reason,
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { blankSqlComments } from "./helpers/blankNonCode";
 

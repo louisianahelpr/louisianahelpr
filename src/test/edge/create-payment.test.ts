@@ -1,7 +1,7 @@
 // @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer"); | const raced = null as Response \| null;
 // @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund"); | const raced = null as Response \| null;
 // @mutate supabase/functions/create-payment/index.ts | if (error \|\| !current \|\| current.payment_status !== "chargeback") return null; | if (error \|\| !current) return null;
-// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");\n      if (!releaseUpdateErr | .eq("status", "disputed").select("id");\n      if (!releaseUpdateErr
+// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_RELEASE_FLIP_PAYMENT_STATES]).select("id");\n      if (!releaseUpdateErr | .eq("status", "disputed").select("id");\n      if (!releaseUpdateErr
 // @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
 // @mutate supabase/functions/create-payment/index.ts |         payment_method_types: TIP_PAYMENT_METHOD_TYPES, |
 /**

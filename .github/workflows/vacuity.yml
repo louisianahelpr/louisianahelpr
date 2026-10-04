@@ -192,8 +192,8 @@ jobs:
 
   vacuity:
     name: Guards shown able to fail
-    needs: prod-load-turn
     runs-on: ubuntu-latest
+    needs: prod-load-turn
     # The full set needs hours, not 30 minutes; a push run still finishes in
     # seconds and is unaffected by a higher ceiling. 30 min is what killed the
     # first credentialed full sweep mid-flight, which reports as `cancelled` -

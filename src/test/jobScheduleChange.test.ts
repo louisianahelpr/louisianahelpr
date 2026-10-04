@@ -8,8 +8,8 @@
  * trigger chain, OLD STATE RED, chain 3x). This file pins the shape of the
  * NEWEST definitions so a later migration cannot drop a clause silently.
  *
- * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
- * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   IF now() >= v_req.expires_at\n     OR v_job.status::text <> 'accepted' |   IF v_job.status::text <> 'accepted'
+ * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
+ * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql |   IF now() >= v_req.expires_at\n     OR v_job.status::text <> 'accepted' |   IF v_job.status::text <> 'accepted'
  * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at) |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at + interval '30 days')
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   ON public.job_schedule_change_requests (job_id) WHERE status = 'pending'; |   ON public.job_schedule_change_requests (job_id, id) WHERE status = 'pending';
  * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     RAISE EXCEPTION 'schedule_change_clash'; |     NULL;

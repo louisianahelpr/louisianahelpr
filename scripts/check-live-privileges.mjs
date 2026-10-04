@@ -21,11 +21,13 @@
  *     PostgREST hands a computed field the whole row, so payment_captured(jobs)
  *     403'd every admin money read (authenticated may not read
  *     jobs.offered_to_helper_id) until 20261003050100 dropped it.
- *  5. scripts/ci/client-insert-columns.sql (Q340) — on a table whose client
- *     INSERT columns are declared there (messages), a client role holds INSERT
- *     on exactly those columns: no table-level INSERT, no server-owned column
- *     (is_system, created_at, read...), and none of the send columns missing.
- *     authenticated held table-level INSERT on messages until 20261003182009.
+ *  5. scripts/ci/client-insert-columns.sql (Q340, Q1166) — on a table whose
+ *     client INSERT/UPDATE columns are declared there (messages), a client role
+ *     holds that privilege on exactly those columns: nothing table-level, no
+ *     server-owned column (is_system, created_at, read on INSERT; edited_at,
+ *     read_at on UPDATE), and none of the client's columns missing.
+ *     authenticated held table-level INSERT on messages until 20261003182009,
+ *     and UPDATE on edited_at until 20261004001242.
  *  6. scripts/ci/current-date-time-zone.sql (Q1185) — every function in public
  *     that reads the date (CURRENT_DATE, now()::date, date(now()), ...) pins
  *     TimeZone to America/Chicago. Prod sessions
@@ -154,6 +156,7 @@ if (process.argv.includes("--self-test")) {
   serverOnly.push({ column: "ban_status", role: "authenticated" });
   rowtype.push({ function_name: "zz_fake_field(jobs)", row_of: "jobs", role: "authenticated" });
   clientInsert.push({ table: "messages", role: "authenticated", what: "INSERT (is_system)" });
+  clientInsert.push({ table: "messages", role: "authenticated", what: "UPDATE (edited_at)" });
   currentDate.push({ function_name: "zz_fake_date_check", config: "search_path=public" });
   emailGate.push({ table: "jobs", what: "email gate trigger not enabled (tgenabled D)" });
 }
@@ -199,11 +202,11 @@ if (rowtype.length) {
 }
 if (clientInsert.length) {
   failed = true;
-  for (const o of clientInsert) console.error(`::error::public.${o.table}: ${o.role} ${o.what} (Q340, scripts/ci/client-insert-columns.sql)`);
+  for (const o of clientInsert) console.error(`::error::public.${o.table}: ${o.role} ${o.what} (Q340/Q1166, scripts/ci/client-insert-columns.sql)`);
   console.error(
-    "A client may INSERT only the columns it sends; table-level INSERT implies every column, the server-owned ones included. " +
-      "Fix: REVOKE INSERT ON <table> FROM PUBLIC, anon, authenticated, then GRANT INSERT (<the declared columns>) TO authenticated " +
-      "(see 20261003182009); a 'missing' row means a send column lost its grant and every client send now fails.",
+    "A client may INSERT and UPDATE only the columns it sends; a table-level privilege implies every column, the server-owned ones included. " +
+      "Fix: REVOKE <INSERT|UPDATE> ON <table> FROM PUBLIC, anon, authenticated, then GRANT <INSERT|UPDATE> (<the declared columns>) TO authenticated " +
+      "(see 20261003182009, 20261004001242); a 'missing' row means a client column lost its grant and every such client write now fails.",
   );
 }
 if (currentDate.length) {
@@ -228,4 +231,4 @@ if (!Number(row?.has_server_context_helper)) {
   console.log("note: public.is_server_context() is not deployed yet.");
 }
 if (failed) process.exit(1);
-console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read; no client INSERT beyond the declared columns; every function that reads the date pins America/Chicago; every public table keeps its email gate.");
+console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read; no client INSERT or UPDATE beyond the declared columns; every function that reads the date pins America/Chicago; every public table keeps its email gate.");

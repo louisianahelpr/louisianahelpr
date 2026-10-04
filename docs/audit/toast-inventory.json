@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 566,
+    "calls": 562,
     "files": 142,
-    "rendering": 545,
+    "rendering": 541,
     "suppressedByPolicy": 21,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 452,
+      "toast.error": 448,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
       "toast.warning": 21
     },
     "copyPiecesByForm": {
-      "literal": 311,
+      "literal": 308,
       "template": 73,
-      "dynamic": 222,
+      "dynamic": 221,
       "jsx": 0
     }
   },
@@ -3126,7 +3126,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 506,
+      "line": 510,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3136,7 +3136,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 512,
+      "line": 516,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3146,7 +3146,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 517,
+      "line": 521,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3156,47 +3156,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 534,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't check your payout status — please try again."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 592,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "UNFUNDED_AWARD_COPY"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 596,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't accept the job — please try again."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 605,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "This offer is no longer available — it may have expired."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 658,
+      "line": 554,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3206,7 +3166,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 662,
+      "line": 558,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3216,7 +3176,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 675,
+      "line": 571,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3226,7 +3186,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 690,
+      "line": 586,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3236,7 +3196,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 698,
+      "line": 594,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3246,7 +3206,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 722,
+      "line": 618,
       "kind": "toast",
       "title": {
         "form": "literal",

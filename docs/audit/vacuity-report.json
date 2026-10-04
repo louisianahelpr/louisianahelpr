@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-04T17:27:24.536Z",
-  "guards": 1394,
-  "registered": 1394,
+  "generated": "2026-10-04T17:31:08.455Z",
+  "guards": 1400,
+  "registered": 1400,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -288,6 +288,15 @@
       "module": "src/components/profile/EarningsForecastCard.tsx",
       "tests": [
         "src/components/profile/EarningsForecastCard.test.tsx"
+      ],
+      "parents": [
+        "src/components/profile/EarningsTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/profile/earningsTab/EarningHistory.tsx",
+      "tests": [
+        "src/components/profile/earningsTab/EarningHistory.firstPayoutFee.test.tsx"
       ],
       "parents": [
         "src/components/profile/EarningsTab.tsx"

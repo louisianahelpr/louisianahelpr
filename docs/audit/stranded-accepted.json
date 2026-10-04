@@ -72,6 +72,36 @@
       "sha": "1a601ee57d6e23368809f1d1afec308f7b481192",
       "reason": "prod-seed --verify marks live-Stripe-only money states expected-unseeded (Q915): on main via #2187 (scripts/lib/moneyStateExpectations.mjs, src/test/prodSeedMoneyStatesExpectedUnseeded.test.ts).",
       "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "remote:origin/cloud/booked-job-lock",
+      "sha": "f7f34b371a211794ccc2a78d2501b4e329af9294",
+      "reason": "Q1204's booked-job lock: landed in batch 2 re-minted as 20261004165404_booked_job_place_and_details_locked.sql (prod applied, Q1204 auto-ticked live); the branch's lines differ only by its pre-mint 20261004003046 file name and the references to it.",
+      "checked": "2026-10-04 (lead, line-by-line content check against origin/main fdc860cb8)"
+    },
+    {
+      "id": "remote:origin/cloud/ci-guards",
+      "sha": "6bea643cdfb7c79574dbc54297f73ad975c5f175",
+      "reason": "landed in batch 2 (#2252: bc246c7de Q1184, e2322e09a, 5ac631d9d Q1142); the remaining lines are its own generated docs (SCOREBOARD, GUARD-BURNDOWN, vacuity-report, OPEN.md counts), its follow-ups that landed renumbered (Q1270, Q1271, Q1258 on main), and two workflow comments main rewrote.",
+      "checked": "2026-10-04 (lead, line-by-line content check against origin/main fdc860cb8)"
+    },
+    {
+      "id": "remote:origin/cloud/ci-lane-2",
+      "sha": "cefbf2499c8d86a7e3efa6ad890cc5f1a149c32a",
+      "reason": "landed in batch 2 (#2252); the remaining lines are its generated docs and its two follow-ups, which landed renumbered as Q1255 and Q1256.",
+      "checked": "2026-10-04 (lead, line-by-line content check against origin/main fdc860cb8)"
+    },
+    {
+      "id": "remote:origin/cloud/q753-q510",
+      "sha": "b6b2cc08ecd143633215871b45db7efbccd83688",
+      "reason": "Q753/Q510 landed in batch 2 as f5a982fdb; the remaining EarningsTab lines are the per-job fee approach the lh-money-escrow review replaced on main (the fee is subtracted once, firstPayoutFeeDueFrom); its follow-up landed as Q1273; the rest are generated docs.",
+      "checked": "2026-10-04 (lead, line-by-line content check against origin/main fdc860cb8)"
+    },
+    {
+      "id": "remote:origin/worktree-agent-addbfa2d0a8fa72c6",
+      "sha": "0539848f8b5303e90b37e17c9cddf81fa71a360f",
+      "reason": "an older agent branch (2026-10-02): its remaining lines are generated docs, a privacyJourney comment naming a since-superseded migration, a node:fs readdirSync that main replaced with helpers/trackedFiles (Q1142), and two void-cancelled-payments section comments main renumbered.",
+      "checked": "2026-10-04 (lead, line-by-line content check against origin/main fdc860cb8)"
     }
   ]
 }

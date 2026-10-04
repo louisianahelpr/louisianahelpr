@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { isPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
 import { useExpiryClock } from "@/lib/useExpiryClock";
+import { isDirectOffer, offerClock } from "@/components/job-card/offerClock";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
@@ -307,6 +308,11 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   if (app.status !== "rejected" && cardPaymentProblem(app.job)) return "needs_you";
   if (app.status === "rejected" || jobStatus === "cancelled") return "cancelled";
   if (jobStatus === "completed") return "done";
+  // An offer whose answer window has closed is over: the card says "This offer
+  // has expired", and the server files the application as rejected on its
+  // next sweep, so it goes where that will put it, now (owner, 2026-10-03: "If
+  // the offer expired then it should no longer be in needs you").
+  if (offerHasExpired(app)) return "cancelled";
   // An offer held for me, or a revision the poster asked for — my move, and the
   // offer is the one that expires if I do nothing.
   if (needsHelperResponse(app)) return "needs_you";
@@ -371,19 +377,57 @@ export function bucketPostedJob(job: { status: string }): Bucket {
  * `helper_confirmed_at` is the discriminator for the second: an application
  * can read `accepted` while the helper still has to say yes.
  */
-function needsHelperResponse(app: {
+type HeldOfferApp = {
+  id: string;
+  helper_id?: string | null;
   status: string;
-  job?: { status?: string; direct_offer_status?: string | null; helper_confirmed_at?: string | null } | null;
-}): boolean {
-  if (app.job?.direct_offer_status === "pending") return true;
-  return (
-    app.status === "accepted" &&
-    (app.job?.status === "accepted" || app.job?.status === "open") &&
-    !app.job?.helper_confirmed_at
-  );
+  updated_at?: string | null;
+  job?: {
+    status?: string;
+    direct_offer_status?: string | null;
+    helper_confirmed_at?: string | null;
+    helper_id?: string | null;
+    offered_to_helper_id?: string | null;
+    is_group_job?: boolean | null;
+    response_deadline?: string | null;
+    direct_offer_expires_at?: string | null;
+  } | null;
+};
+
+/**
+ * The job is held for this helper's answer, whether or not time is left. The
+ * server's own definition of a live offer (respond_to_direct_offer,
+ * accept_job_offer): a confirmed booking is never an offer, whatever stale
+ * direct-offer marker the row still carries (a poster can PATCH that marker:
+ * UI review of d39666f53, must-fix 1), and a direct offer is open, unassigned
+ * and this helper's. Group crews have no job-level answer window.
+ */
+function isHeldOffer(app: HeldOfferApp): boolean {
+  const job = app.job;
+  if (!job || job.helper_confirmed_at || job.is_group_job) return false;
+  // the direct-offer half can only ever add a true: a marker never hides a Hire's offer
+  if (job.direct_offer_status === "pending" && job.status === "open" && !job.helper_id
+      && (isDirectOffer(app) || (!!job.offered_to_helper_id && job.offered_to_helper_id === app.helper_id))) return true;
+  return app.status === "accepted" && (job.status === "accepted" || job.status === "open");
 }
 
-export function bucketAppliedApp(app: { status: string; job?: { status: string } | null }): Bucket {
+/** A held offer whose answer window has closed (offerClock, the card's own rule). */
+export function offerHasExpired(app: HeldOfferApp, now: number = Date.now()): boolean {
+  return isHeldOffer(app) && offerClock(app, app.job, now).isExpired;
+}
+
+/** When a held offer's answer window closes (null for anything else): the instant its bucket changes. */
+function heldOfferDeadline(app: HeldOfferApp): string | null {
+  if (!isHeldOffer(app)) return null;
+  const { hardDeadline, derivedDeadline } = offerClock(app, app.job);
+  return hardDeadline ?? derivedDeadline;
+}
+
+function needsHelperResponse(app: HeldOfferApp): boolean {
+  return isHeldOffer(app) && !offerClock(app, app.job).isExpired;
+}
+
+export function bucketAppliedApp(app: HeldOfferApp): Bucket {
   const jobStatus = app.job?.status;
   // Same rule as appliedActivityBucket above, for the grouped "All" view: a
   // missing job row means the job is gone, so the application belongs under
@@ -392,6 +436,8 @@ export function bucketAppliedApp(app: { status: string; job?: { status: string }
   if (jobStatus === "completed") return "completed";
   if (jobStatus === "cancelled") return "cancelled";
   if (app.status === "rejected") return "cancelled";
+  // An expired offer, as in appliedActivityBucket.
+  if (offerHasExpired(app)) return "cancelled";
   return "active";
 }
 
@@ -516,6 +562,10 @@ export function useActivityFilters({
       .sort((a, b) => Number(jobIsOverdue(b)) - Number(jobIsOverdue(a))),
     [postedJobs, statusFilter, searchLower, pendingApplicantCounts, now]);
 
+  // Re-read exactly when a held offer's answer window closes, so the card
+  // leaves Needs You at that instant, not on the next unrelated re-render.
+  const offerNow = useExpiryClock(appliedApps.map(heldOfferDeadline));
+
   const filteredAppliedApps = useMemo(() => {
     const query = searchLower;
     return appliedApps.filter((a) => {
@@ -569,7 +619,8 @@ export function useActivityFilters({
     // Dep list intentionally matches the pre-refactor Activity.tsx exactly
     // (userId omitted) to preserve identical memo behavior — userId comes
     // from a stable session and the page only renders past `loading`.
-  }, [appliedApps, statusFilter, searchLower]);
+    // `offerNow` re-runs it when an offer's window closes.
+  }, [appliedApps, statusFilter, searchLower, offerNow]);
 
   const appliedCounts = useMemo(() => {
     const counts: Record<string, number> = { all: 0, active: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0, cancelled: 0 };
@@ -597,7 +648,8 @@ export function useActivityFilters({
       else if (a.status === "rejected" || a.job?.status === "cancelled") counts.not_selected++;
     });
     return counts;
-  }, [appliedApps]);
+    // `offerNow` re-tallies when an offer's window closes.
+  }, [appliedApps, offerNow]);
 
   const postedCounts = useMemo(() => {
     const counts: Record<string, number> = { all: postedJobs.length, active: 0, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0 };

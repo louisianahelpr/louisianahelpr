@@ -26,6 +26,9 @@ interface AuthShellProps {
    * chrome and half didn't. The back chevron in the title row is the exit
    * hatch on all four. */
   noWebChrome?: boolean;
+  /** Keep the web Navbar but drop the marketing Footer under the page
+      (/account-banned: owner, 2026-10-03). */
+  hideFooter?: boolean;
   children: ReactNode;
   eyebrow?: string;
   hideBack?: boolean;
@@ -130,6 +133,7 @@ const AuthShell = ({
   title,
   backOnClick,
   noWebChrome = false,
+  hideFooter = false,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
@@ -173,7 +177,7 @@ const AuthShell = ({
           style={{ height: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }}
         />
         {content}
-        <Footer />
+        {!hideFooter && <Footer />}
       </>
     );
 

@@ -66,6 +66,11 @@ const defs = effectiveDefs(MIG);
 const body = (fn: string) => blankSqlComments(defs.get(fn)!.stmt);
 
 describe("the database: Hire is an offer, Accept completes after setup (Q1180)", () => {
+  it("reads the real definitions (442 effective functions on 2026-10-03)", () => {
+    // A floor for the inventory every pin below reads: an empty read would make them all vacuous.
+    expect(defs.size).toBeGreaterThan(400);
+  });
+
   it("jobs_award_gate judges the accept and every way around it, never a plain Hire", () => {
     const gate = body("enforce_helper_award_gate");
     // the accept itself (also a stamp with nobody on the job: review F2)

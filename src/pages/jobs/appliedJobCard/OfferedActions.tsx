@@ -2,13 +2,14 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { MessageSquare, CheckCircle2, XCircle, Timer } from "lucide-react";
+import { CheckCircle2, XCircle, Timer } from "lucide-react";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { useAcceptPendingJobs } from "@/hooks/useAcceptPendingJobs";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import type { Application, AppliedApp, Job } from "../../../components/job-card/activityConstants";
+import { DEFAULT_RESPONSE_WINDOW_HOURS, isDirectOffer, offerClock } from "../../../components/job-card/offerClock";
 
 interface OfferedActionsProps {
   app: AppliedApp;
@@ -33,15 +34,6 @@ interface OfferedActionsProps {
  * unsolicited work isn't misconduct and `respond_to_direct_offer` files no
  * violation. Those decline in one tap, as they should.
  */
-const isDirectOffer = (app: AppliedApp) => app.id.startsWith("direct-");
-
-/**
- * How long a helper has to respond once a poster hands them a job, when the
- * poster didn't set an explicit deadline. Mirrors the 24h
- * `direct_offer_expires_at` that jobSubmitHelpers stamps on a direct offer.
- */
-const DEFAULT_RESPONSE_WINDOW_HOURS = 24;
-
 /**
  * Offered: accept/decline — celebratory framing since this is a poster
  * reaching out directly. Gold-warm accent surfaces the "you were picked"
@@ -60,56 +52,12 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // the toast afterwards.
   const noStrike = useAwardBlockReason() !== null || acceptPending;
   const skipConfirm = isDirectOffer(app);
-  // THE CLOCK, in priority order.
-  //
-  // 1. `response_deadline` — stamped by accept_application on an offer that
-  //    came from the helper's own application.
-  // 2. `direct_offer_expires_at` — stamped by jobSubmitHelpers on a direct
-  //    offer.
-  // 3. Derived: the offer stamp + the 24-hour rule. `updated_at` is the write
-  //    that moved this application into the offered state (the helper cannot
-  //    edit an offer, so nothing else touches the row here), so this is the
-  //    documented rule applied to a real timestamp — not a number invented to
-  //    fill a gap. Owner: the flat "Respond within 24 hours" sentence "should
-  //    be a count down", and it now is on every offer rather than only the
-  //    ones the backend happened to stamp.
-  //
-  // NEVER derived for a SYNTHETIC direct-offer row: its `updated_at` is the
-  // JOB row's updated_at (useActivityData copies it in), which moves on any
-  // write to the job — so a clock derived from it restarts arbitrarily. A
-  // direct offer carries a real `direct_offer_expires_at` stamp anyway; when
-  // only updated_at is available the flat 24-hour sentence renders instead.
-  const derivedDeadline = !isDirectOffer(app) && app.updated_at
-    ? new Date(
-        new Date(app.updated_at).getTime() +
-          DEFAULT_RESPONSE_WINDOW_HOURS * 3_600_000,
-      ).toISOString()
-    : null;
-  // The BACKEND-STAMPED deadline, kept separate from the derived one above.
-  // Only this one is allowed to take the buttons away: `respond_to_direct_offer`
-  // raises `offer_expired` past `direct_offer_expires_at`, so once it passes
-  // Accept and Decline are dead controls that error on tap. The derived clock
-  // is an inference from `updated_at` — fine for telling the helper how long
-  // they have, never grounds for removing their ability to answer.
-  const hardDeadline = job.response_deadline ?? job.direct_offer_expires_at ?? null;
-  /* TIME UP MEANS THE OFFER IS GONE — from either clock (owner: "once the time
-     is up they no longer have the option if the job was reoffered elsewhere").
-     This card used to keep Accept and Decline live past the derived window and
-     say "Waiting on your answer", on the reasoning that a clock the server did
-     not stamp should not take a decision away. That reasoning is now wrong in
-     both directions: `expire_unanswered_offers` DOES act on the deadline, so a
-     lapsed offer has genuinely been reopened and may already belong to somebody
-     else — and offering Accept on a job that is no longer yours is the worst
-     kind of dead control, because the one thing the helpr would reach for is
-     the one that fails.
-
-     The derived clock is only ever reached by legacy rows: every offer made
-     through `accept_application` carries a real `response_deadline` set by the
-     poster. */
-  const derivedClosed =
-    !hardDeadline && !!derivedDeadline && new Date(derivedDeadline).getTime() <= Date.now();
-  const isExpired =
-    (!!hardDeadline && new Date(hardDeadline).getTime() <= Date.now()) || derivedClosed;
+  // The clock and whether it has run out, from the one predicate the
+  // Activity buckets use too (offerClock.ts): an expired offer leaves Needs
+  // You the moment this card says so. Only the backend-stamped deadline is
+  // allowed to take the buttons away while time remains; past either clock
+  // the offer is gone (expire_unanswered_offers acts on it).
+  const { hardDeadline, derivedDeadline, isExpired } = offerClock(app, job);
   const deadline = isExpired ? null : (hardDeadline ?? derivedDeadline);
   return (
     <div
@@ -129,12 +77,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
             border: "0.5px solid hsl(var(--olivewood) / 0.12)",
           }}
         >
-          <p
-            className="font-sans uppercase mb-1 inline-flex items-center gap-1 text-ds-10"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            <MessageSquare className="w-3 h-3" /> Message from the person who posted it
-          </p>
+          {/* Only the message itself, no label above it (owner, 2026-10-03). */}
           {/* Same server flag as the applicant note. This is the OTHER
               direction of the same leak — the poster's message reached the
               helper verbatim in the 2026-09-06 review. */}

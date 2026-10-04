@@ -153,6 +153,14 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   # refresh, so an item ticked [x] here has already moved to the archive.
   node scripts/check-fixes-update-their-items.mjs --range origin/main..HEAD --strict
 
+  # A closing keyword in a commit message (fixes #N, closes owner/repo#N, an
+  # issue URL) must never close a nightly-red issue: an alert closes when its
+  # own workflow goes green (Q1184, #2200 closed by 584eef85c's body
+  # 2026-10-03). Reads the full messages of origin/main..HEAD, asks
+  # `gh issue view N --json labels` for each referenced issue, and fails closed
+  # when gh cannot answer. Guard: src/test/closingKeywordNightlyRed.test.ts.
+  node scripts/check-closing-keywords.mjs --range origin/main..HEAD
+
   # Exact-count bookkeeping guards. Every main Vitest red on 2026-09-30 (12 of
   # 12, runs 36740238457..36787599011) was one of these: a commit moved a
   # count (unused exports, markerless [~] items, a done-when marker, an

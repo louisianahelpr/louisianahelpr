@@ -2,6 +2,7 @@
 name: "lh-silent-failure"
 description: "Hunts the defect class that produces no error: dropped Supabase errors, zero-row writes, fail-open catches, awaited Capacitor plugin objects, unfiltered realtime channels. Static plus runtime. Launch-audit fleet, sweep phase."
 model: opus
+effort: high
 memory: project
 permissionMode: plan
 ---

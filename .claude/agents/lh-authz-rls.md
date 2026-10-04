@@ -2,6 +2,7 @@
 name: "lh-authz-rls"
 description: "Authorization audit against the live database: RLS policies, SECURITY DEFINER search_path, IDOR by real token swap, and the auth state machine. Read-only against prod. Launch-audit fleet, sweep phase."
 model: opus
+effort: high
 memory: project
 permissionMode: plan
 ---

@@ -319,13 +319,29 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     // and the run stays ok. (The plain 404 above still lands in
     // stripe_payment_intent_not_found; the "connection reset" test below still
     // degrades the run.)
-    // @mutate supabase/functions/money-reconciliation/index.ts | logTestObjectUnderLiveKey("money-reconciliation", { job_id: job.id, object: "payment_intent", id: piId }); | throw e;
-    it("skips the row with one structured log line: no stripe_payment_intent_not_found, no failure, no alert", async () => {
+    // Q1220: on a SEED job the quiet skip is right; on a REAL job it hid a
+    // stuck payment, so a real job's hit is a warning finding (it reaches the
+    // alert like any other), still with the structured line and no money moved.
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (job.is_seed !== true) checks.stripeTestObjectOnRealJob.add({ job_id: job.id, payment_intent: piId }); |
+    it("Q1220: a REAL (non-seed) job's test-mode PaymentIntent is a warning finding, not a silent skip", async () => {
       const fn = await load();
       seed();
       stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_c"));
+      const { b } = await run(fn);
+      expect(finding(b, "stripe_test_object_on_real_job")).toMatchObject({ severity: "warning", count: 1 });
+      expect(finding(b, "stripe_payment_intent_not_found")).toBeUndefined();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(cap.lines()).toHaveLength(1);
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | logTestObjectUnderLiveKey("money-reconciliation", { job_id: job.id, object: "payment_intent", id: piId }); | throw e;
+    it("a SEED job: skips the row with one structured log line: no finding, no failure, no alert", async () => {
+      const fn = await load();
+      seed(cancelledJob({ is_seed: true }));
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_c"));
 
       const { res, b } = await run(fn);
+      expect(finding(b, "stripe_test_object_on_real_job")).toBeUndefined();
       expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledTimes(1);
       expect(res.status).toBe(200);
       expect(b.ok).toBe(true);

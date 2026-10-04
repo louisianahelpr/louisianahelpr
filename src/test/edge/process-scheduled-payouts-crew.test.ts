@@ -474,7 +474,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       expect(scenario.writes.some((w) => w.table === "payment_refunds")).toBe(false);
       expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
       expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
-      expect(slackAlerts).toHaveLength(0);
+      expect(new Set((slackAlerts as Array<{ title?: string }>).map((a) => a.title))).toEqual(new Set(["Real job stuck on a Stripe test-mode object"])); // Q1220: a real job pages (once a day per job; oncePerDayKey dedupes the per-member repeats)
       // One line per ask: each member's pass re-asks whether the crew may
       // release (the refund is read from the ledger), so it may log per member.
       const lines = skips.lines();
@@ -498,7 +498,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       expect(res.status).toBe(200);
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
-      expect(slackAlerts).toHaveLength(0);
+      expect(new Set((slackAlerts as Array<{ title?: string }>).map((a) => a.title))).toEqual(new Set(["Real job stuck on a Stripe test-mode object"])); // Q1220: a real job pages (once a day per job; oncePerDayKey dedupes the per-member repeats)
       expect(skips.lines().length).toBeGreaterThan(0);
     } finally {
       skips.restore();

@@ -1033,6 +1033,23 @@ serve(async (req) => {
       let capturedCents = 0;
       /** A gift job's card leg turned out to be a Stripe TEST-mode object. */
       let cardLegTestMode = false;
+      /**
+       * Q1220: the Q891 quiet skip is right for a SEED job. A REAL job on a
+       * test-mode object is stuck (this cron skips it every run, forever), so
+       * it pages a warning, once a day per job. Unknown is_seed is REAL (Q91).
+       */
+      const alertRealJobOnTestObject = async (object: string, id: string | null | undefined) => {
+        if (job.is_seed === true) return;
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          seed: false,
+          severity: "warning",
+          title: "Real job stuck on a Stripe test-mode object",
+          message: `Job ${job.id} is not a seed job, but its ${object} is a Stripe TEST-mode object, so the live key cannot read it and every payout run skips it. Decide by hand whether it was ever really paid, then fix its payment fields.`,
+          fields: { job_id: job.id, object, id: id ?? "none" },
+          oncePerDayKey: `psp-test-object-real-job:${job.id}`,
+        });
+      };
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!isPifFunded || paymentIntentId || job.stripe_session_id) {
         if (!paymentIntentId && job.stripe_session_id) {
@@ -1047,6 +1064,7 @@ serve(async (req) => {
           } catch (e) {
             if (isTestObjectUnderLiveKey(e)) {
               logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+              await alertRealJobOnTestObject("checkout.session", job.stripe_session_id);
               if (!isPifFunded) {
                 results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
                 continue;
@@ -1127,6 +1145,7 @@ serve(async (req) => {
           } catch (e: any) {
             if (isTestObjectUnderLiveKey(e)) {
               logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+              await alertRealJobOnTestObject("payment_intent", paymentIntentId);
               if (!isPifFunded) {
                 results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
                 continue;

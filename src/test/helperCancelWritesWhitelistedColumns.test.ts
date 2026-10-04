@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |   PERFORM set_config('app.helper_cancel_rpc', '1', true);\n | \n
-// @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |          AND current_setting('app.helper_cancel_rpc', true) = '1'\n |          AND current_setting('app.helper_cancel_rpcx', true) = '1'\n
-// @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |          AND to_jsonb(NEW) -> changed_col = 'null'::jsonb THEN | THEN
+// @mutate supabase/migrations/20261004192041_helper_only_clears_response_deadline.sql |          AND current_setting('app.helper_cancel_rpc', true) = '1'\n |          AND current_setting('app.helper_cancel_rpcx', true) = '1'\n
+// @mutate supabase/migrations/20261004192041_helper_only_clears_response_deadline.sql |          AND to_jsonb(NEW) -> changed_col = 'null'::jsonb THEN | THEN
 // @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |   PERFORM set_config('app.helper_cancel_rpc', '0', true);\n | \n
 /*
  * Q402: helper_cancel_booking runs as the Helpr (SECURITY DEFINER keeps

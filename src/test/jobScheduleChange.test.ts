@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | IF FOUND THEN\n        RAISE EXCEPTION 'schedule_change_clash'; | IF false THEN\n        RAISE EXCEPTION 'schedule_change_clash';
  * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | FOR SHARE OF o; | ;
  * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | AND (o.helper_id = v_job.helper_id | AND (false
- * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
+ * @mutate supabase/migrations/20261004192041_helper_only_clears_response_deadline.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-03T22:12Z",
+  "measured_at": "2026-10-04T22:23Z",
   "issues": {
     "readable": true,
     "open": [
@@ -18,6 +18,41 @@
         "number": 2213,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red"
+      },
+      {
+        "number": 2230,
+        "title": "nightly-red: branch-prune",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2244,
+        "title": "nightly-red: nightly-red-age",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2245,
+        "title": "nightly-red: prod-audit",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2246,
+        "title": "Weekly codebase health — 2026-10-04",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2247,
+        "title": "nightly-red: open-done-when",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2253,
+        "title": "🔴 Migration drift: 0 unapplied / 3 unrecorded",
+        "label": "migration-drift"
+      },
+      {
+        "number": 2254,
+        "title": "nightly-red: db-drift-detect",
+        "label": "nightly-red"
       }
     ]
   },
@@ -30,7 +65,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: prod-audit",
-        "issue": 1754
+        "issue": 2245
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -54,7 +89,23 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": null
+        "issue": 2183
+      },
+      {
+        "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: nightly-red-age",
+        "issue": 2244
+      },
+      {
+        "fingerprint": "8018e82cb1674eba274a494805d751d1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: db-drift-detect",
+        "issue": 2254
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -65,6 +116,14 @@
         "issue": null
       },
       {
+        "fingerprint": "54b8c187374af47410a43e9dedb4f4df",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: open-done-when",
+        "issue": 2247
+      },
+      {
         "fingerprint": "0cc83c6bc20bc0e007e1ce4a5aee88e1",
         "source_kind": "edge_slack",
         "source": "ops-alert:custom",
@@ -73,12 +132,12 @@
         "issue": null
       },
       {
-        "fingerprint": "51722889b9d8493b0255c139cc38f227",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
+        "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
         "status": "open",
-        "title": "/home · error screen shown: we couldn't load jobs.",
-        "issue": null
+        "title": "nightly-red: branch-prune",
+        "issue": 2230
       },
       {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
@@ -87,6 +146,22 @@
         "status": "open",
         "title": "guest marketplace is empty: no funded jobs (pre-launch)",
         "issue": null
+      },
+      {
+        "fingerprint": "7d595594ebaa0c4ed7bce549d2f4e57a",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "weekly codebase health — <ts>",
+        "issue": 2246
+      },
+      {
+        "fingerprint": "747845433253c079b579d26e780481bc",
+        "source_kind": "nightly_red",
+        "source": "migration-drift",
+        "status": "open",
+        "title": "🔴 migration drift: # unapplied / # unrecorded",
+        "issue": 2253
       }
     ]
   },
@@ -109,13 +184,26 @@
     "issue #2183": "Q788",
     "issue #2198": "Q787",
     "issue #2213": "Q722",
+    "issue #2230": "Q1274",
+    "issue #2244": "Q1275",
+    "issue #2245": "Q785",
+    "issue #2246": "Q1276",
+    "issue #2247": "Q1277",
+    "issue #2253": "Q1278",
+    "issue #2254": "Q1279",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
     "ledger 51722889b9d8": "Q1133",
+    "ledger 54b8c187374a": "Q1277",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
+    "ledger 747845433253": "Q1278",
+    "ledger 7d595594ebaa": "Q1276",
+    "ledger 7f88b9cc45df": "Q1274",
+    "ledger 8018e82cb167": "Q1279",
     "ledger 88ecf6e765df": "Q788",
+    "ledger ab6fdbe8c882": "Q1275",
     "ledger b75d265e6201": "Q794",
     "ledger db0fb15c4ec3": "Q787"
   }

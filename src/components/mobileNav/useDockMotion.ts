@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { createLazyModule } from "@/lib/lazyModule";
+import { whenPageSettled } from "@/lib/routePrefetch";
 
 /**
  * framer-motion for the bottom dock, fetched AFTER the dock has painted (Q1172).
@@ -22,7 +24,22 @@ type DockMotion = typeof import("./dockMotion");
 
 const dock = createLazyModule<DockMotion>(() => import("./dockMotion"), "MobileNav.loadDockMotion");
 
-/** Start fetching the dock's framer chunk; safe to call any number of times. */
-export const startDockMotion = dock.start;
 /** The dock's framer module once it has arrived; `null` until then. */
 export const useDockMotion = dock.use;
+
+/**
+ * MobileNav's view of the module: starts the fetch, then returns it (null until
+ * it has arrived). The fetch starts once the page has settled, but not while the dock is hidden
+ * (guests, marketing pages: a visitor who never sees the dock never downloads
+ * framer for it), and at once when a long press opens the quick menu.
+ */
+export function useDockMotionLoader(dockHidden: boolean, menuOpen: boolean): DockMotion | null {
+  useEffect(() => {
+    if (dockHidden) return;
+    return whenPageSettled(dock.start);
+  }, [dockHidden]);
+  useEffect(() => {
+    if (menuOpen) dock.start();
+  }, [menuOpen]);
+  return dock.use();
+}

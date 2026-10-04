@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
-import { prefetchRoute, prefetchRoutesWhenIdle, whenPageSettled } from "@/lib/routePrefetch";
+import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -17,7 +17,7 @@ import { GateSheet } from "@/components/mobileNav/GateSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useLongPress } from "@/hooks/useLongPress";
 import { NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenuItem";
-import { useDockMotion, startDockMotion } from "@/components/mobileNav/useDockMotion";
+import { useDockMotionLoader } from "@/components/mobileNav/useDockMotion";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
@@ -173,19 +173,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // decide whether to render its NavQuickMenu.
   const [quickMenuTab, setQuickMenuTab] = useState<"posts" | "messages" | null>(null);
   const closeQuickMenu = () => setQuickMenuTab(null);
-  // framer-motion for the pill's slide and the quick menu arrives after the
-  // dock has painted (useDockMotion.ts, Q1172): once the page has settled, or
-  // at once when a long press needs the menu.
-  const dockMotion = useDockMotion();
-  // Not while the dock is hidden (guests, marketing pages): a visitor who never
-  // sees the dock never downloads framer for it.
-  useEffect(() => {
-    if (dockHidden) return;
-    return whenPageSettled(startDockMotion);
-  }, [dockHidden]);
-  useEffect(() => {
-    if (quickMenuTab) startDockMotion();
-  }, [quickMenuTab]);
+  const dockMotion = useDockMotionLoader(dockHidden, quickMenuTab !== null);
   // A completed long-press still ends in a `touchend`, which browsers follow
   // with a synthetic `click` a beat later — without this guard that trailing
   // click would ALSO fire the tab's normal `onTap` and navigate away right

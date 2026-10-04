@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { render, renderHook, waitFor } from "@testing-library/react";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 import { DockPill } from "./DockPill";
-import { startDockMotion } from "./useDockMotion";
+import { useDockMotionLoader } from "./useDockMotion";
 
 const props = {
   layoutId: "mobile-nav-pill",
@@ -23,7 +23,8 @@ describe("DockPill (Q1172)", () => {
     const backgroundBefore = before.style.background;
     expect(backgroundBefore).toContain("--bark");
 
-    startDockMotion();
+    // A long press (menuOpen) starts the fetch at once.
+    renderHook(() => useDockMotionLoader(false, true));
     // The framer pill replaces the plain one once the chunk is in.
     await waitFor(() => expect(container.firstElementChild).not.toBe(before));
     const after = container.firstElementChild as HTMLElement;

@@ -147,7 +147,7 @@ beforeEach(() => {
  * localStorage; and a hold list that cannot be read offers nothing for payout.
  *
  * @mutate src/components/admin/AdminPayoutBatches.tsx | const readyBatches = holdsKnown ? batches.filter((b) => !holds[b.helper_id]) : []; | const readyBatches = batches;
- * @mutate src/components/admin/AdminPayoutBatches.tsx | const row = unwrap(await supabase.rpc("admin_set_payout_hold", { p_helper_id: helperId, p_reason: reason })); | const row = { helper_id: helperId };
+ * @mutate src/components/admin/adminPayoutBatches/usePayoutHolds.ts | const row = unwrap(await supabase.rpc("admin_set_payout_hold", { p_helper_id: helperId, p_reason: reason })); | const row = { helper_id: helperId };
  * @mutate src/components/admin/AdminPayoutBatches.tsx | ) : isError \|\| holdsError ? ( | ) : isError ? (
  */
 describe("AdminPayoutBatches — server-side payout holds (Q764)", () => {

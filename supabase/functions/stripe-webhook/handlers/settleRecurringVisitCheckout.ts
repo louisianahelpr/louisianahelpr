@@ -1,3 +1,6 @@
+// seed-policy: pages for seed/E2E rows too, on purpose. Each alert here is a
+// paid Checkout that needs a person (a refund or a booking by hand), and the
+// money is real under the live key whoever owns the row.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";

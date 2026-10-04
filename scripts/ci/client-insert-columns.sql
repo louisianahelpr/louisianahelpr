@@ -23,6 +23,7 @@
 --   src/test/pglite/messagesInsertColumnsClientScoped.pglite.mjs   PGlite red/green proof (INSERT)
 --   src/test/pglite/messageReadReceiptIsTheReceivers.pglite.mjs    PGlite red/green proof (UPDATE)
 --   src/test/pglite/applicationsInsertRpcOnly.pglite.mjs           PGlite red/green proof (applications, Q1009)
+--   src/test/pglite/jobRevisionPartyColumns.pglite.mjs             PGlite red/green proof (job_revisions, Q1231)
 -- Keep it a single SELECT with no trailing semicolon-dependent statements.
 WITH declared(tbl, role, priv, cols) AS (
   VALUES
@@ -36,7 +37,14 @@ WITH declared(tbl, role, priv, cols) AS (
     -- claim_series_dates, complete_direct_offer_accept); a direct INSERT
     -- skipped the minute/hour caps and the apply_rate advisory lock.
     ('applications', 'authenticated', 'INSERT', ARRAY[]::text[]),
-    ('applications', 'anon', 'INSERT', ARRAY[]::text[])
+    ('applications', 'anon', 'INSERT', ARRAY[]::text[]),
+    -- Q1231: the poster files a revision request; the Helpr answers its status.
+    -- Who may write which (requested_by pinned, poster-only insert, Helpr-only
+    -- status) is enforce_job_revision_party_columns.
+    ('job_revisions', 'authenticated', 'INSERT', ARRAY['job_id', 'requested_by', 'description', 'photos', 'status']::text[]),
+    ('job_revisions', 'anon', 'INSERT', ARRAY[]::text[]),
+    ('job_revisions', 'authenticated', 'UPDATE', ARRAY['status']::text[]),
+    ('job_revisions', 'anon', 'UPDATE', ARRAY[]::text[])
 ),
 rels AS (
   SELECT d.tbl, d.role, d.priv, d.cols, c.oid

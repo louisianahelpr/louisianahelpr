@@ -8,7 +8,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
-import { clawbackForTransfer } from "./_chargebackClawback.ts";
+import { clawbackForTransfer } from "../../_shared/chargebackClawback.ts";
 
 export async function handleTransferReversed(
   event: Stripe.Event,
@@ -70,7 +70,7 @@ export async function handleTransferReversed(
     throw new Error(`payout_transfers status flip failed for reversed transfer ${transfer.id}: ${ledgerUpdateErr.message}`);
   }
 
-  // OUR OWN reversal: a card-dispute clawback (Q202, _chargebackClawback.ts).
+  // OUR OWN reversal: a card-dispute clawback (Q202, _shared/chargebackClawback.ts).
   // chargeDisputeCreated already moved the job to payment_status='chargeback'
   // before reversing, and the chargeback_clawbacks row is the record a won
   // dispute pays back from, so there is nothing to freeze and nothing for ops

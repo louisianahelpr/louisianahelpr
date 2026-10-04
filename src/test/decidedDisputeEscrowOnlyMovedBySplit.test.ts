@@ -95,7 +95,7 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "refunds the onboarding-fee charge, which is not a job escrow",
   },
-  "supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts": {
+  "supabase/functions/_shared/chargebackClawback.ts": {
     kind: "not-job-escrow",
     why: "reverses/repays only transfers found in Stripe's job_<id> transfer group, i.e. money that already left escrow; an unexecuted split has none",
   },

@@ -16,7 +16,7 @@ import {
   type InternalPayoutHold,
 } from "./_chargebackHold.ts";
 import { alertGiftDisputeClosed } from "./_giftCardRefund.ts";
-import { finalizeLostClawback, notifyPayee, repayClawback, wasToldOnHold, type RepayResult } from "./_chargebackClawback.ts";
+import { finalizeLostClawback, notifyPayee, repayClawback, wasToldOnHold, type RepayResult } from "../../_shared/chargebackClawback.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,

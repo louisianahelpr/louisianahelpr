@@ -739,11 +739,19 @@ const serve = (h) => __hReg(h);
 
 /** True for an intra-function local module import (`./x.ts`, `../y.ts`) that is
  * NOT a `_shared/*` helper (those are mocked/aliased by external rewriting). */
+/**
+ * `_shared` modules that are walked like a function's own files (copied into
+ * the gen graph and their imports rewritten), because they import helpers the
+ * harness mocks (slack-alerts). Q1223 moved the chargeback clawback here from
+ * stripe-webhook/handlers so process-scheduled-payouts can call it.
+ */
+const SHARED_WALKED = ["/_shared/chargebackClawback.ts"];
+
 function isLocalModuleSpecifier(spec: string): boolean {
   return (
     (spec.startsWith("./") || spec.startsWith("../")) &&
     spec.endsWith(".ts") &&
-    !spec.includes("/_shared/")
+    (!spec.includes("/_shared/") || SHARED_WALKED.some((s) => spec.endsWith(s)))
   );
 }
 

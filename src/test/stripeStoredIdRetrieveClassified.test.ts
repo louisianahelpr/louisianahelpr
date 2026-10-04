@@ -27,7 +27,7 @@
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/release-payout/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/void-cancelled-payments/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
- * @mutate supabase/functions/release-payout/index.ts | if (isTestObjectUnderLiveKey(e)) {\n        logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | if (false) {\n        logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+ * @mutate supabase/functions/release-payout/index.ts | if (isTestObjectUnderLiveKey(e)) {\n          logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | if (false) {\n          logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
  * @mutate supabase/functions/release-payout/index.ts | logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | void 0;
  * @mutate supabase/functions/charge-recurring-visits/index.ts | if (card.kind === "test_object") { | if (card.kind === "test_object") { void 0;
  * @mutate supabase/functions/create-payment/index.ts | import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false;
@@ -119,7 +119,6 @@ const CLASSIFIED = [
   "execute-dispute-split/index.ts::stripe.transfers.retrieve(dispute.execution_transfer_id)",
   "money-reconciliation/index.ts::stripe.paymentIntents.retrieve(piId)",
   "process-scheduled-payouts/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
-  "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(a.paymentIntentId)",
   "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "release-payout/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "release-payout/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",

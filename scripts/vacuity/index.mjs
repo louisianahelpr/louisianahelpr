@@ -23,13 +23,14 @@
  *   node scripts/vacuity/index.mjs --all        # weekly (vacuity.yml): every registered mutation
  *   node scripts/vacuity/index.mjs --report     # no gate, print the full vacuity report
  *   node scripts/vacuity/index.mjs --only a,b   # mutate exactly these guard files' registrations
+ *   ... --e2e | --no-e2e                        # only the Playwright registrations | none of them (Q551)
  */
 import fs from "node:fs";
 import path from "node:path";
 import { REPO, guardFiles, untrackedGuardFiles, parseDirectives, loadBaseline, BASELINE_PATH, changedFiles, c } from "./lib.mjs";
 import { scanAll } from "./scan.mjs";
 import { preflight } from "./preflight.mjs";
-import { collectMutations, runMutations, selectOnly } from "./run.mjs";
+import { collectMutations, runMutations, scopeMutations, selectKind } from "./run.mjs";
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -185,20 +186,20 @@ for (const e of errors) fail(`registration — ${e}`);
  */
 const onlyIdx = argv.indexOf("--only");
 const ONLY = onlyIdx >= 0 ? String(argv[onlyIdx + 1] ?? "").split(",").map((s) => s.trim()).filter(Boolean) : null;
-let scoped = mutations;
-if (ONLY) {
-  const sel = selectOnly(mutations, ONLY);
-  for (const e of sel.errors) fail(e);
-  scoped = sel.scoped;
-} else if (!ALL && !REPORT_ONLY) {
-  const changed = changedFiles();
-  scoped = changed
-    ? mutations.filter((m) => changed.has(m.guard) || changed.has(m.target))
-    : mutations;
-}
+/*
+ * --e2e / --no-e2e (Q551): the Playwright registrations sign in as the shared
+ * prod test accounts, so vacuity.yml runs them in a separate job that holds the
+ * account lock (--e2e) and everything else in a job with no credentials
+ * (--no-e2e). Neither flag: every registration, as a local run does.
+ */
+if (has("--e2e") && has("--no-e2e")) fail("--e2e and --no-e2e are opposites; pass at most one");
+const KIND = has("--e2e") ? "e2e" : has("--no-e2e") ? "unit" : "all";
+const sel = scopeMutations(mutations, { all: ALL, only: ONLY, report: REPORT_ONLY, changed: ONLY || ALL || REPORT_ONLY ? null : changedFiles() });
+for (const e of sel.errors) fail(e);
+const scoped = selectKind(sel.scoped, KIND);
 
 if (!NO_MUTATE && !REPORT_ONLY && scoped.length) {
-  console.log(`\n${c.bold("mutating")} ${scoped.length} registration(s)${ONLY ? ` (--only ${ONLY.join(", ")})` : ALL ? " (full set)" : " (changed since origin/main)"}…`);
+  console.log(`\n${c.bold("mutating")} ${scoped.length} ${KIND === "all" ? "" : KIND + " "}registration(s)${ONLY ? ` (--only ${ONLY.join(", ")})` : ALL ? " (full set)" : " (changed since origin/main)"}…`);
   const results = runMutations(scoped, {
     onResult: (r) => {
       const tag =

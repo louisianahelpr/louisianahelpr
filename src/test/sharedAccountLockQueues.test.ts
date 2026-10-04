@@ -24,6 +24,7 @@
 // @mutate scripts/e2e/wait-shared-accounts.mjs | lockJobs.length < locked.length && !YIELDS_BETWEEN_LEGS.has(run.path) | lockJobs.length < locked.length
 // @mutate scripts/e2e/wait-shared-accounts.mjs | /rate limit/i.test(body)) return 5 * 60_000; | false) return 5 * 60_000;
 // @mutate scripts/e2e/wait-shared-accounts.mjs |       if (e?.waitMs != null) { |       if (false) {
+// @mutate scripts/e2e/wait-shared-accounts.mjs | (DRIVES_ACCOUNTS.has(run.event) \|\| pushDriver) | (DRIVES_ACCOUNTS.has(run.event))
 // @mutate scripts/e2e/wait-shared-accounts.mjs |   if (status !== 403 && status !== 429) return null; |   if (status !== 403) return null;
 import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -232,6 +233,11 @@ describe("Q743: wait-shared-accounts decide()", () => {
     expect(drivesAccounts({ event: "workflow_dispatch", display_title: "E2E real backend" })).toBe(true);
     expect(drivesAccounts({ event: "schedule", display_title: "E2E real backend" })).toBe(true);
     expect(drivesAccounts({ event: "push", display_title: "x" })).toBe(false);
+    // Q551: vacuity.yml's push run can reach its `vacuity-e2e` lock job, so the other waiters must see it.
+    expect(drivesAccounts({ event: "push", path: ".github/workflows/vacuity.yml", display_title: "x" })).toBe(true);
+    expect(drivesAccounts({ event: "push", path: ".github/workflows/vacuity.yml@refs/heads/main", display_title: "x" })).toBe(true);
+    expect(drivesAccounts({ event: "push", path: ".github/workflows/test.yml", display_title: "x" })).toBe(false);
+    expect(drivesAccounts({ event: "pull_request", path: ".github/workflows/vacuity.yml", display_title: "x" })).toBe(false);
   });
 });
 

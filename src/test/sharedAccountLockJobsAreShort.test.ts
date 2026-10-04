@@ -31,6 +31,12 @@ export const MAX_LOCKED_MINUTES = 60;
 /** Locked jobs that cannot (yet) be split below the cap. Exact, two-way. */
 // @two-way src/test/sharedAccountLockJobsAreShort.test.ts:is in ALLOWED but no longer holds
 export const ALLOWED: Record<string, { minutes: number; reason: string }> = {
+  "vacuity.yml:vacuity-e2e": {
+    minutes: 180,
+    reason:
+      "the weekly full set runs 96 Playwright registrations at ~98 s each (about 157 min) in one locked job; " +
+      "docs/OPEN.md Q1208: shard it into legs under an hour, then drop this entry.",
+  },
   "prod-audit.yml:prod-audit": {
     minutes: 180,
     reason:

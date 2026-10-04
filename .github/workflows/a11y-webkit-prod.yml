@@ -23,11 +23,16 @@ permissions:
 # exist, the sweep generates it from this run's findings and fails with
 # "axe baseline missing" — see the "Surface a missing axe baseline" step below.
 #
-# The SWEEP is read-only against prod: the accounts are signed in and looked
-# at, nothing is written, so the two engines run in parallel and this does not
-# take the shared-account concurrency group. The one writer is the `fixtures`
-# job before them (nightly-red #1794): it keeps the job-status fixtures the
-# sweep renders alive — today the `accepted` job — through the app's own path.
+# The SWEEP signs the shared test accounts in and only looks (nothing is
+# written), but a sign-in is a session the other suites' assertions can see, so
+# the sweep holds the shared-account lock too (Q550): both engines run in ONE
+# job that holds `prod-lifecycle-shared-accounts`, one after the other (a
+# two-engine matrix under one lock would serialise itself, and GitHub's
+# one-pending-job-per-group rule would cancel the queued engine). The `fixtures`
+# job before it is the one writer (nightly-red #1794): it keeps the job-status
+# fixtures the sweep renders alive - today the `accepted` job - through the
+# app's own path, under the same lock. Both queue through `wait-accounts`
+# (Q743; sharedAccountLockQueues.test.ts).
 #
 # It is a REQUIRED release check: scripts/release-gate.mjs keys on this
 # workflow's name and on the "WebKit-only violations" job.
@@ -55,9 +60,9 @@ concurrency:
   # A SCHEDULED run joins prod-load; a workflow_dispatch gets its OWN group
   # (the split e2e-journeys.yml documents: GitHub keeps one pending run per
   # group, so a dispatch in prod-load can be cancelled by an unrelated one).
-  # This was the one exception until the `fixtures` job took the shared-account
-  # lock (Q326): that job is the only writer, the sweep legs only read, so the
-  # accounts stay serialised without prod-load.
+  # The shared test accounts are serialised by the job-level lock the
+  # `fixtures` and `sweep` jobs hold (Q326, Q550), not by this group, so the
+  # dispatch can safely leave prod-load.
   group: ${{ github.event_name == 'schedule' && 'prod-load' || format('a11y-webkit-prod-{0}', github.run_id) }}
   cancel-in-progress: false
 
@@ -167,25 +172,23 @@ jobs:
           if-no-files-found: ignore
 
   sweep:
-    name: Sweep prod (${{ matrix.engine }})
+    name: Sweep prod (chromium + webkit)
     # After the fixtures, whatever they did: a red fixtures job is its own
     # failure (notify below counts it), and the sweep's evidence of every
-    # other screen is still worth having.
-    needs: [preflight, fixtures]
-    if: ${{ !cancelled() && needs.preflight.result == 'success' }}
+    # other screen is still worth having. wait-accounts must have succeeded:
+    # `!cancelled()` alone would walk a timed-out waiter into the lock
+    # (sharedAccountLockQueues.test.ts).
+    needs: [preflight, wait-accounts, fixtures]
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.wait-accounts.result == 'success' }}
     runs-on: ubuntu-latest
-    # 80 -> 60 (2026-09-26) to fit the fixtures job in front of it inside the
-    # 120-minute prod-load slot (prodWorkflowSpacing rule 5). The full sweep
-    # measured 9.0 min (chromium) and 16.1 min (webkit) in run 36148473443.
+    # Holds the shared accounts for the whole sweep (Q550), so <= 60 min
+    # (sharedAccountLockJobsAreShort.test.ts). Measured in run 36148473443: the
+    # full sweep took 9.0 min (chromium) and 16.1 min (webkit); they run one
+    # after the other here, so ~25 min of sweep plus the install and build.
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - engine: chromium
-            project: a11y-prod
-          - engine: webkit
-            project: a11y-prod-webkit
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     env:
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
       PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
@@ -199,7 +202,6 @@ jobs:
       PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
       PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
       SWEEP_ROUTES: ${{ inputs.routes }}
-      SWEEP_OUTPUT_DIR: ${{ github.workspace }}/a11y-prod-out/${{ matrix.engine }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -210,7 +212,7 @@ jobs:
         # Same reason as e2e-happy-path.yml: its bad index fails apt-get update.
         run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: bash scripts/ci/playwright-install.sh ${{ matrix.engine }}
+      - run: bash scripts/ci/playwright-install.sh chromium webkit
       - name: Build and serve this commit locally (real backend, local frontend)
         uses: ./.github/actions/local-preview
         with:
@@ -238,48 +240,79 @@ jobs:
           echo "SWEEP_VARIANTS=$PICKED" >> "$GITHUB_ENV"
           echo "axe sweep variants this run: $PICKED" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Run the prod sweep
+      - name: Run the prod sweep (chromium)
         # The serial describe ignores --workers; kept on one line for
         # src/test/e2eSpecsReachableInCi.test.ts, which reads this file.
-        run: npx playwright test --project=${{ matrix.project }} --reporter=list,./e2e/reporters/skipReporter.ts
+        # --output keeps each engine's test-results apart: Playwright empties
+        # its output dir at the start of a run, and the two engines now share
+        # one job.
+        env:
+          SWEEP_OUTPUT_DIR: ${{ github.workspace }}/a11y-prod-out/chromium
+        run: npx playwright test --project=a11y-prod --output=test-results/chromium --reporter=list,./e2e/reporters/skipReporter.ts
 
-      - name: Backend request budget (Q104)
-        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+      - name: Backend request budget, chromium (Q104)
+        # Sums this engine's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
         if: ${{ !cancelled() }}
-        run: node scripts/e2e/request-budget.mjs --label ${{ matrix.project }}
+        run: node scripts/e2e/request-budget.mjs --label a11y-prod
+
+      - name: Run the prod sweep (webkit)
+        # After chromium whatever it did: a red chromium leg must not hide
+        # what WebKit reports (the diff below needs both reports).
+        if: ${{ !cancelled() }}
+        env:
+          SWEEP_OUTPUT_DIR: ${{ github.workspace }}/a11y-prod-out/webkit
+        run: npx playwright test --project=a11y-prod-webkit --output=test-results/webkit --reporter=list,./e2e/reporters/skipReporter.ts
+
+      - name: Backend request budget, webkit (Q104)
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label a11y-prod-webkit
+
       - name: Surface a missing axe baseline (Q181)
         # assertSweepGate (sweepCore.ts) writes this file and fails the sweep
-        # above when e2e/happy-path/axe-known-violations.json does not exist —
+        # above when e2e/happy-path/axe-known-violations.json does not exist -
         # first run against the wcag22aa+best-practice tag set, or the
         # baseline was deleted. That failure is buried in Playwright output;
         # this step puts it where a run's Summary tab and Actions annotations
         # actually show it, and names the artifact it is already inside (the
-        # a11y-prod-${{ matrix.engine }} upload below covers the whole
-        # a11y-prod-out/ directory, this file included).
+        # a11y-prod-<engine> uploads below cover the whole a11y-prod-out/<engine>
+        # directory, this file included).
         if: always()
         run: |
           set -u
-          GEN="a11y-prod-out/${{ matrix.engine }}/axe-baseline-generated.json"
-          if [ -f "$GEN" ]; then
-            COUNT=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync(process.argv[1],'utf8')).length)" "$GEN")
-            echo "::error title=axe WCAG baseline missing (${{ matrix.engine }})::e2e/happy-path/axe-known-violations.json does not exist. $COUNT violation(s) generated at $GEN — download the a11y-prod-${{ matrix.engine }} artifact, review each entry, then commit it as e2e/happy-path/axe-known-violations.json."
-            {
-              echo "## axe WCAG 2.2 AA baseline missing (${{ matrix.engine }})"
-              echo "\`e2e/happy-path/axe-known-violations.json\` does not exist yet — generated **$COUNT** violation(s) at \`$GEN\`."
-              echo ""
-              echo "Download the \`a11y-prod-${{ matrix.engine }}\` artifact from this run, review every entry in \`$GEN\` (this grandfathers real, measured debt — do not rubber-stamp it), then commit it as \`e2e/happy-path/axe-known-violations.json\` and register it in \`src/test/baselinesAreTwoWay.test.ts\`'s \`JSON_TWO_WAY\` (see \`e2e/happy-path/knownAxeViolations.ts\`'s header). This gate stays red until that file exists."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          for ENGINE in chromium webkit; do
+            GEN="a11y-prod-out/$ENGINE/axe-baseline-generated.json"
+            if [ -f "$GEN" ]; then
+              COUNT=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync(process.argv[1],'utf8')).length)" "$GEN")
+              echo "::error title=axe WCAG baseline missing ($ENGINE)::e2e/happy-path/axe-known-violations.json does not exist. $COUNT violation(s) generated at $GEN - download the a11y-prod-$ENGINE artifact, review each entry, then commit it as e2e/happy-path/axe-known-violations.json."
+              {
+                echo "## axe WCAG 2.2 AA baseline missing ($ENGINE)"
+                echo "\`e2e/happy-path/axe-known-violations.json\` does not exist yet - generated **$COUNT** violation(s) at \`$GEN\`."
+                echo ""
+                echo "Download the \`a11y-prod-$ENGINE\` artifact from this run, review every entry in \`$GEN\` (this grandfathers real, measured debt - do not rubber-stamp it), then commit it as \`e2e/happy-path/axe-known-violations.json\` and register it in \`src/test/baselinesAreTwoWay.test.ts\`'s \`JSON_TWO_WAY\` (see \`e2e/happy-path/knownAxeViolations.ts\`'s header). This gate stays red until that file exists."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
 
-      - name: Keep the report and every screenshot
+      - name: Keep the report and every screenshot (chromium)
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: a11y-prod-${{ matrix.engine }}
+          name: a11y-prod-chromium
           path: |
-            a11y-prod-out/${{ matrix.engine }}/
-            test-results/
+            a11y-prod-out/chromium/
+            test-results/chromium/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Keep the report and every screenshot (webkit)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: a11y-prod-webkit
+          path: |
+            a11y-prod-out/webkit/
+            test-results/webkit/
           retention-days: 14
           if-no-files-found: error
 

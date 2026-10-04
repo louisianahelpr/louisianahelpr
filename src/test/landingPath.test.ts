@@ -6,7 +6,8 @@
 // @mutate scripts/land.sh |   if [ "$N_REFRESH" -gt 0 ]; then |   if false; then
 // @mutate scripts/land.sh |   SUBJECTS=$(git log --format=%s origin/main..HEAD) |   SUBJECTS=$(git log --format=%s origin/main..HEAD \| grep -qxF "$REFRESH_SUBJECT")
 // @mutate .github/workflows/vacuity.yml |       - "LICENSE"\n  schedule: |       - "LICENSE"\n  pull_request:\n    branches: [main]\n  schedule:
-// @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }} | VACUITY_PUSH_BEFORE: ""
+// @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }}\n        # Per push: ratchet | VACUITY_PUSH_BEFORE: ""\n        # Per push: ratchet
+// @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }}\n        # The same scope as the unit job | VACUITY_PUSH_BEFORE: ""\n        # The same scope as the unit job
 // @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and | requires Vitest, Test, Vacuity and
 // @mutate .github/workflows/test.yml |   pull_request:\n    branches: [main]\n |   pull_request:\n    branches: [main]\n    paths-ignore:\n      - "docs/**"\n
 /*
@@ -30,6 +31,7 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parse } from "yaml";
 import { REQUIRED_CHECKS as ALL_REQUIRED, WORKFLOW_CHECKS } from "./helpers/requiredChecks";
 
 const ROOT = join(__dirname, "..", "..");
@@ -147,7 +149,15 @@ describe("landing path (Q44)", () => {
     });
 
     it("scopes a push run to everything the push brought, not its last commit", () => {
-      expect(yml).toContain("VACUITY_PUSH_BEFORE: ${{ github.event.before }}");
+      // Every job that scopes by the push (the gate, the Playwright gate, and the
+      // `scope` job that decides whether the latter runs, Q551) takes it, or the
+      // three would disagree about what the push changed.
+      const jobs = (parse(yml) as { jobs: Record<string, { steps?: { env?: Record<string, string> }[] }> }).jobs;
+      for (const j of ["scope", "vacuity", "vacuity-e2e"])
+        expect(
+          (jobs[j].steps ?? []).some((s) => s.env?.VACUITY_PUSH_BEFORE === "${{ github.event.before }}"),
+          `${j} does not scope by the push`,
+        ).toBe(true);
     });
 
     it("queues push runs instead of dropping them", () => {

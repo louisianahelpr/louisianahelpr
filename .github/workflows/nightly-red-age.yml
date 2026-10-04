@@ -162,7 +162,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [age]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

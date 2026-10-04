@@ -29,6 +29,9 @@ on:
         type: string
         default: ""
 
+# Q1161: no group is shared any more. A scheduled run is ordered by the
+# `prod-load-turn` job below (a FIFO queue); this group is per run, so GitHub
+# has nothing to cancel.
 concurrency:
   # PROD LOAD (2026-09-14): prod-hitting crons are spread across 03:00-13:00 UTC,
   # >= 2h apart, and share the prod-load concurrency group; see
@@ -56,11 +59,38 @@ concurrency:
   # the two journey JOBS below hold `prod-lifecycle-shared-accounts`, which is
   # what actually serialises the shared E2E accounts against prod-audit and
   # e2e-real-backend.
-  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('e2e-journeys-{0}', github.run_id) }}
+  group: ${{ format('e2e-journeys-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
+  # Q1161 (2026-10-04): THE PROD-LOAD QUEUE. A scheduled run waits here until no
+  # OLDER scheduled prod-load run is still in flight, then every other job runs
+  # (they all `needs:` this one). Replaces the shared workflow-level
+  # `prod-load` group: GitHub keeps one pending run per group and cancelled the
+  # third arrival, and crons arrive 127-501 min late, so they bunch.
+  # scripts/ci/wait-prod-load.mjs; src/test/prodLoadQueue.test.ts.
+  prod-load-turn:
+    name: Wait for the prod-load queue (first in, first served)
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/ci/wait-prod-load.mjs
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until no older scheduled prod-load run is in flight
+        run: node scripts/ci/wait-prod-load.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
   preflight:
+    needs: prod-load-turn
     name: What can run
     runs-on: ubuntu-latest
     timeout-minutes: 2

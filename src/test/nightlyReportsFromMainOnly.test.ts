@@ -9,15 +9,19 @@
  * issue for a tree main never ran (issuecomment-5842376019, run 36211786791 on
  * wip/vac1797-probe-journeys, which had to be disowned by hand).
  *
- * THE RULE, for e2e-journeys: the job that runs
- * ./.github/actions/nightly-issue-sync has an `if:` naming
- * `github.ref == 'refs/heads/main'`. The inventory is read from source (every
- * workflow using the action); the other reporters that lack the gate are a
- * docs/OPEN.md item (Q414; 34 on 2026-09-26), not a list here, because a two-way list of them
- * other lanes are editing right now would turn their merges red.
+ * THE RULE (Q414, every reporter): the job (or, for a job that does other work
+ * too, the step) that runs ./.github/actions/nightly-issue-sync has an `if:`
+ * naming `github.ref == 'refs/heads/main'`. The inventory is read from source
+ * (every workflow using the action) and the ungated list must be EMPTY. The one
+ * other accepted form is a `workflow_run` reporter (main-red-watch), where
+ * github.ref is always the default branch and the real gate is
+ * `github.event.workflow_run.head_branch == 'main'`.
  */
 
 // @mutate .github/workflows/e2e-journeys.yml | !cancelled() && github.ref == 'refs/heads/main' && (github.event_name | !cancelled() && (github.event_name
+// @mutate .github/workflows/nightly-webkit.yml | !cancelled() && github.ref == 'refs/heads/main' | !cancelled()
+// @mutate .github/workflows/uptime.yml | if: always() && github.ref == 'refs/heads/main' | if: always()
+// @mutate .github/workflows/main-red-watch.yml | github.event.workflow_run.head_branch == 'main' && | true &&
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -76,6 +80,25 @@ function jobIf(block: string): string {
   return "";
 }
 
+/** The `if:` of the step (6-space `- name:` list item) that uses the action. */
+function stepIfUsingAction(block: string): string {
+  const steps = block.split(/^ {6}- /m).filter((st) => st.includes("nightly-issue-sync"));
+  return steps
+    .map((st) => {
+      const m = /^ {8}if:\s*(.*)$/m.exec(st);
+      return m ? m[1] : "";
+    })
+    .join(" ");
+}
+
+const REF_GATE = /github\.ref\s*==\s*'refs\/heads\/main'/;
+const WORKFLOW_RUN_GATE = /github\.event\.workflow_run\.head_branch\s*==\s*'main'/;
+
+function gated(block: string): boolean {
+  const cond = `${jobIf(block)} ${stepIfUsingAction(block)}`;
+  return REF_GATE.test(cond) || WORKFLOW_RUN_GATE.test(jobIf(block));
+}
+
 describe("nightly-red issues are reported only from main", () => {
   const files = readdirSync(WORKFLOWS).filter((f) => /\.ya?ml$/.test(f));
   const reporting = files.filter((f) => stripComments(readFileSync(join(WORKFLOWS, f), "utf8")).includes("nightly-issue-sync"));
@@ -84,7 +107,7 @@ describe("nightly-red issues are reported only from main", () => {
       const blocks = jobBlocks(readFileSync(join(WORKFLOWS, f), "utf8"));
       return Object.values(blocks)
         .filter((b) => b.includes("nightly-issue-sync"))
-        .some((b) => !/github\.ref\s*==\s*'refs\/heads\/main'/.test(jobIf(b)));
+        .some((b) => !gated(b));
     })
     .sort();
 
@@ -93,7 +116,12 @@ describe("nightly-red issues are reported only from main", () => {
     expect(reporting).toContain("e2e-journeys.yml");
   });
 
-  it("e2e-journeys reports only from main", () => {
-    expect(ungated).not.toContain("e2e-journeys.yml");
+  it("every reporter reports only from main (Q414)", () => {
+    expect(ungated).toEqual([]);
+  });
+
+  it("the gate reads the step form and the workflow_run form", () => {
+    expect(reporting).toContain("uptime.yml");
+    expect(reporting).toContain("main-red-watch.yml");
   });
 });

@@ -294,7 +294,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [sweep]
-    if: ${{ !cancelled() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.batch != true)) }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.batch != true)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

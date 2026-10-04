@@ -117,9 +117,19 @@ BEGIN
   SELECT count(*) INTO v_n FROM public.profiles WHERE email LIKE 'oa018-_-' || v_tag || '@example.invalid';
   v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'linking created no profile', 'ok', v_n = v_profiles_before, 'got', v_n - v_profiles_before);
   SELECT full_name, phone, location, date_of_birth::text AS dob, email_verified INTO v_row FROM public.profiles WHERE user_id = v_b;
-  v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'signup data kept through the confirm',
-    'ok', v_row.full_name = 'Oa Eighteen' AND v_row.phone = '(504) 555-0118' AND v_row.dob = '1990-01-18',
+  -- Q447 (owner decision 2026-10-04): what was typed before verification is
+  -- DELETED when the real email owner takes the account over
+  -- (zz_wipe_on_provider_takeover, 20261004194257); they fill in their own
+  -- profile on /complete-profile. Was: "signup data kept through the confirm".
+  v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'signup data deleted at the takeover (Q447)',
+    'ok', coalesce(v_row.full_name, '') = '' AND v_row.phone IS NULL AND v_row.dob IS NULL AND v_row.location IS NULL,
     'got', to_jsonb(v_row));
+  IF to_regclass('public.pre_verification_wipes') IS NOT NULL THEN
+    EXECUTE 'SELECT count(*) FROM public.pre_verification_wipes WHERE user_id = $1 AND error IS NULL' INTO v_n USING v_b;
+    v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'the takeover wipe is recorded (Q447)', 'ok', v_n = 1, 'got', v_n);
+  ELSE
+    v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'the takeover wipe is recorded (Q447)', 'ok', false, 'got', 'pre_verification_wipes missing');
+  END IF;
   v_checks := v_checks || jsonb_build_object('case', 'B', 'check', 'profiles.email_verified follows the confirm',
     'ok', v_row.email_verified IS TRUE, 'got', v_row.email_verified);
 

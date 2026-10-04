@@ -165,15 +165,16 @@ describe("Q1161: scheduled prod-load runs wait in a FIFO queue", () => {
     afterEach(() => vi.unstubAllGlobals());
 
     it("asks for scheduled runs only, in every in-flight status, and keeps only queued workflows", async () => {
-      const urls: string[] = [];
       const mk = (id: number, path: string) => ({ id, created_at: `2026-10-03T0${id}:00:00Z`, name: path, html_url: `u${id}`, path });
-      vi.stubGlobal("fetch", async (url: string) => {
-        urls.push(url);
+      const fetchMock = vi.fn(async (url: string) => {
         const status = /status=(\w+)/.exec(url)![1];
         const rs = status === "queued" ? [mk(1, ".github/workflows/db-backup.yml@refs/heads/main"), mk(2, ".github/workflows/ci.yml@refs/heads/main")] : status === "in_progress" ? [mk(3, ".github/workflows/db-backup.yml"), mk(1, ".github/workflows/db-backup.yml@refs/heads/main")] : [];
         return { ok: true, json: async () => ({ workflow_runs: rs }) };
       });
+      vi.stubGlobal("fetch", fetchMock);
       const got = await snapshot("o/r", "t", new Set([".github/workflows/db-backup.yml"]));
+      // What the code under test asked GitHub for (the mock's own record).
+      const urls = fetchMock.mock.calls.map((c) => String(c[0]));
       expect(urls).toHaveLength(5);
       for (const u of urls) expect(u).toContain("event=schedule");
       expect(urls.map((u) => /status=(\w+)/.exec(u)![1]).sort()).toEqual(["in_progress", "pending", "queued", "requested", "waiting"]);

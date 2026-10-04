@@ -42,6 +42,14 @@ function isDefiniteRefusal(err: unknown): boolean {
   return type === "StripeCardError" || type === "StripeInvalidRequestError";
 }
 
+/**
+ * Q1224: auto_tip_candidates() offers a job for 336 hours (14 days) after it
+ * was completed (its _since_hours default, 20260925053956). A tip still held on
+ * the window's last day is recorded and the poster told, instead of dropping
+ * out of the window silently. One day of margin covers missed hourly ticks.
+ */
+const AUTO_TIP_HELD_RECORD_AFTER_MS = 13 * 24 * 60 * 60 * 1000;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -98,7 +106,7 @@ serve(async (req) => {
       throw new Error(`auto_tip_candidates failed: ${candErr.message}`);
     }
 
-    const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0, held: 0 };
+    const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0, held: 0, heldAgedOut: 0 };
     // `results.failed` is NOT the page-worthy counter. It mixes real defects
     // (a read that errored) with business outcomes that recur forever by
     // design: a helper with no connected account, a poster with no saved card,
@@ -149,6 +157,57 @@ serve(async (req) => {
       if (tipHold.kind === "held") {
         log("Helpr on payout hold — tip not charged", { jobId });
         results.held++;
+        // Q1224: auto_tip_candidates offers a job for 14 days after it was
+        // completed, so a hold longer than that dropped the tip with nobody
+        // told. On the window's last day the tip is recorded (a 'failed' auto
+        // row, which also ends its candidacy) and the poster is told. Nothing
+        // is charged either way.
+        const { data: heldJob, error: heldJobErr } = await supabase
+          .from("jobs")
+          .select("id, completed_at")
+          .eq("id", jobId)
+          .maybeSingle();
+        if (heldJobErr) {
+          log("ERROR reading a held tip's job — cannot tell whether its window is closing", { jobId, error: heldJobErr.message });
+          defects.record(`held tip job read ${jobId}: ${heldJobErr.message}`);
+          continue;
+        }
+        const completedMs = heldJob?.completed_at ? Date.parse(heldJob.completed_at as string) : NaN;
+        if (!Number.isFinite(completedMs) || Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) continue;
+        const { data: agedRow, error: agedErr } = await supabase
+          .from("tips")
+          .insert({
+            job_id: jobId,
+            tipper_id: c.customer_id,
+            helper_id: c.helper_id,
+            amount: tipDollars,
+            source: "auto",
+            payment_status: "failed",
+            failure_reason: "payout_hold: the Helpr's payouts were on hold for the whole automatic-tip window; nothing was charged",
+            auto_prompt_sent_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+        if (agedErr || !agedRow) {
+          // 23505: a row for this (job, member) already exists; it was recorded.
+          if ((agedErr as { code?: string } | null)?.code !== "23505") {
+            log("ERROR recording an auto-tip that aged out under a hold", { jobId, error: agedErr?.message });
+            defects.record(`held tip record ${jobId}: ${agedErr?.message ?? "no row returned"}`);
+          }
+          continue;
+        }
+        results.heldAgedOut++;
+        const { error: agedNotifyErr } = await supabase.from("notifications").insert({
+          user_id: c.customer_id,
+          type: "payment",
+          title: "Your automatic tip wasn't sent",
+          message: "Your Helpr can't receive payments right now, so your automatic tip for this job was not charged. Nothing was taken from your card.",
+          link: `/posts?job=${c.job_id}`,
+        });
+        if (agedNotifyErr) {
+          log("ERROR writing the aged-out tip notification", { jobId, error: agedNotifyErr.message });
+          defects.record(`held tip notification ${jobId}: ${agedNotifyErr.message}`);
+        }
         continue;
       }
 

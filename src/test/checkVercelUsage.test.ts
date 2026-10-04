@@ -15,7 +15,7 @@
  */
 // @mutate scripts/lib/vercelUsage.mjs | const warn = anyCritical(evals); | const warn = false;
 // @mutate scripts/lib/vercelUsage.mjs |   const scale = 30 / windowDays; |   const scale = 1;
-// @mutate scripts/lib/quotaMonitor.mjs | export const PLANS = { supabase: "Pro", vercel: "Hobby", | export const PLANS = { supabase: "Pro", vercel: "Pro",
+// @mutate scripts/lib/quotaMonitor.mjs | export const PLANS = { supabase: "Pro", vercel: "Pro", | export const PLANS = { supabase: "Pro", vercel: "Hobby",
 // @mutate scripts/lib/vercelUsage.mjs | if (isPlanNotFoundOnHobby(res.status, body)) { | if (false) {
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
@@ -130,14 +130,14 @@ describe("evaluateMetrics — threshold maths", () => {
     expect(bm.critical).toBe(false);
   });
 
-  it("grades against the HOBBY plan the team is on, from the shared PLAN_LIMITS (Q221)", () => {
-    expect(PLAN).toBe("Hobby");
+  it("grades against the PRO plan the team is on, from the shared PLAN_LIMITS (Q221, Q1152)", () => {
+    expect(PLAN).toBe("Pro");
     const byName = Object.fromEntries(METRICS.map((m) => [m.name, m.limit]));
     expect(byName["Edge Requests"]).toBe(PLAN_LIMITS.vercel_edge_requests_month.value);
     expect(byName["Fast Data Transfer"]).toBe(PLAN_LIMITS.vercel_fast_data_transfer_gb_month.value);
     expect(byName["Function Invocations"]).toBe(PLAN_LIMITS.vercel_function_invocations_month.value);
-    // Hobby's transfer allowance is 100 GB, not Pro's 1 TB.
-    expect(byName["Fast Data Transfer"]).toBe(100);
+    // Pro's included transfer is 1 TB (1000 GB), not Hobby's 100 GB.
+    expect(byName["Fast Data Transfer"]).toBe(1000);
   });
 
   it("projects a 7-day window to a month before grading (monthly allowances)", () => {
@@ -181,9 +181,9 @@ describe("evaluateMetrics — threshold maths", () => {
       expect(report).toContain(m.sourceUrl);
     }
     expect(report).toContain("Observability Plus");
-    expect(report).toContain("no published Hobby quota");
-    expect(report).toContain("## Vercel Hobby usage");
-    expect(report).not.toMatch(/\bPro\b/);
+    expect(report).toContain("no published Pro quota");
+    expect(report).toContain("## Vercel Pro usage");
+    expect(report).not.toMatch(/Hobby-included|Vercel Hobby usage/);
   });
 });
 

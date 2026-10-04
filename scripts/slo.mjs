@@ -39,7 +39,7 @@ export const SLOS = [
     target: 4000, unit: "ms", good: "max", window: "7d",
     source: "Vercel Speed Insights (`SpeedInsights` in src/App.tsx)",
     ci: null,
-    notMeasured: "real-user load times go only to Vercel Speed Insights, and no script or CI secret here reads them (no workflow reads Vercel at all: Hobby has no usage API, Q720). lighthouse.yml is one simulated lab load per URL, weekly, not a p95 of real loads",
+    notMeasured: "real-user load times go only to Vercel Speed Insights, and no script or CI secret here reads them (Vercel's usage API answers 404 Plan not found for this team, on Hobby and still on Pro, Q720/Q1152). lighthouse.yml is one simulated lab load per URL, weekly, not a p95 of real loads",
   },
   {
     id: "page-load-app", q66: "p95 page load (web + app)", name: "p95 page load, iOS/Android app",

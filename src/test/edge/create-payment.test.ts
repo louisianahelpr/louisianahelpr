@@ -3342,6 +3342,14 @@ describe("create-payment edge function", () => {
  * @mutate supabase/functions/create-payment/index.ts |       if (visitStartSec - bucketSec < 40 * 60) throw | if (false) throw
  * @mutate supabase/functions/create-payment/index.ts |       if (!row \|\| row.payer_id !== user.id) throw | if (!row) throw
  * @mutate supabase/functions/create-payment/index.ts |         payment_method_options: threeDSecureOptions(row.amount_cents), |
+ *
+ * Q843: the parked tax is charged as its own line and Stripe adds none, so the
+ * Checkout total is exactly amount_cents (the webhook refunds any other total).
+ * @mutate supabase/functions/create-payment/index.ts |         payment_method_options: threeDSecureOptions(row.amount_cents), |         automatic_tax: { enabled: true },\n        payment_method_options: threeDSecureOptions(row.amount_cents),
+ * @mutate supabase/functions/create-payment/index.ts |       if (row.tax_cents > 0) { |       if (false) {
+ * Q750 (5): a session that can never be stored is closed, not orphaned.
+ * @mutate supabase/functions/create-payment/index.ts |             await stripe.checkout.sessions.expire(session.id); |             void session;
+ * @mutate supabase/functions/create-payment/index.ts |         if (!storeErr) {\n          try { |         if (true) {\n          try {
  */
 describe("create-payment: recurring_visit (Q210b)", () => {
   const PAYMENT_ID = "11111111-2222-4333-8444-555555555555";
@@ -3424,6 +3432,37 @@ describe("create-payment: recurring_visit (Q210b)", () => {
     const res = await pay();
     expect(res.status).not.toBe(200);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("Q843: a TAXED visit charges its parked tax as a line, with automatic_tax off, so the total is amount_cents", async () => {
+    // A taxable (assembly/handyman) visit: amount_cents = budget + fee + tax.
+    const taxed = { ...ROW, tax_cents: 2925, amount_cents: 30000 + 1500 + 2925 };
+    scenario.reads.recurring_visit_payments = { rows: [taxed] };
+    const res = await pay();
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0] as [Record<string, unknown>];
+    // Stripe Tax computing a second tax on top would make amount_total exceed
+    // amount_cents, and the webhook refunds every such payment.
+    expect(params.automatic_tax).toBeUndefined();
+    const lines = params.line_items as Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
+    expect(lines.reduce((a, l) => a + l.price_data.unit_amount, 0)).toBe(taxed.amount_cents);
+    expect(lines.find((l) => l.price_data.product_data.name === "Sales tax")?.price_data.unit_amount).toBe(2925);
+  });
+
+  it("Q750 (5): a session whose row stopped waiting before it was stored is closed, not left open", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.writeSelectRows.recurring_visit_payments = [];
+    const res = await pay();
+    expect(res.status).not.toBe(200);
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_new");
+  });
+
+  it("Q750 (5): a session not stored because of a database ERROR stays open for the same-key retry to store", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.writeErrors.recurring_visit_payments = { message: "boom", code: "XX000" };
+    const res = await pay();
+    expect(res.status).not.toBe(200);
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
   });
 });
 

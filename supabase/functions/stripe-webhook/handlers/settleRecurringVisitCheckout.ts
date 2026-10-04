@@ -54,10 +54,35 @@ export async function settleRecurringVisitCheckout(
     return;
   }
 
+  // Q750 (4): ending a series (end_recurring_series, a ban) or cancelling its
+  // parent does not close a Checkout already open for one of its visits, so a
+  // payment can still land for a series that is over. Nothing can be booked on
+  // it (the cron skips an ended series and never scans a cancelled one), and
+  // marking it paid would hold the money until the visit date and then return
+  // it less the card fee. The platform left that Checkout open, so it comes
+  // back in full now. Read only for a row that could otherwise be marked paid.
+  let seriesOver = false;
+  if (row && row.status === "pending") {
+    const { data: parent, error: parentErr } = await supabase
+      .from("jobs")
+      .select("id, series_ended_on, status")
+      .eq("id", row.parent_job_id)
+      .maybeSingle();
+    if (parentErr) throw new Error(`series read failed for recurring visit payment ${rowId}: ${parentErr.message}`);
+    seriesOver = !parent || Boolean(parent.series_ended_on) || parent.status === "cancelled";
+  }
+
+  // Q843 (verified 2026-10-03, not a defect): amount_cents is budget + fee +
+  // tax (DB CHECK recurring_visit_payments_amount_adds_up), and create-payment
+  // charges the tax as its own "Sales tax" line with automatic_tax OFF, so a
+  // taxed visit's amount_total equals amount_cents. Turning automatic_tax on
+  // for that Checkout would add the tax twice and refund every taxed visit
+  // here (create-payment.test.ts pins it off).
   let refundReason: string | null = null;
   if (!rowId) refundReason = "session carries no recurring_visit_payment_id";
   else if (!row) refundReason = "payment row not found";
   else if (row.status !== "pending") refundReason = `payment row is '${row.status}', not pending`;
+  else if (seriesOver) refundReason = "the series ended (or its parent was cancelled) before this visit was paid";
   else if (session.amount_total !== row.amount_cents) {
     refundReason = `amount paid ${session.amount_total} != amount owed ${row.amount_cents}`;
   } else if ((session.currency ?? "").toLowerCase() !== "usd") {
@@ -83,8 +108,9 @@ export async function settleRecurringVisitCheckout(
 
   if (refundReason) {
     logStep("ERROR: recurring visit paid but cannot be booked — refunding", { rowId, pi, refundReason });
+    let alreadyRefunded = false;
     try {
-      await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `recurring-visit-refund:${pi}` });
+      ({ alreadyRefunded } = await refundInFullOnce(stripe, pi));
     } catch (e) {
       await postSlackOpsAlert({
         kind: "custom",
@@ -94,6 +120,27 @@ export async function settleRecurringVisitCheckout(
         fields: { session_id: session.id, payment_intent: pi, row: rowId, error: (e as Error).message },
       });
       throw e;
+    }
+    // The row of a series that is over stops asking to be paid: the payer's
+    // "Pay" card goes, and the cron's sweep never tells them "you weren't
+    // charged" about a visit they paid for and got back. A failed write throws
+    // so Stripe retries; the refund above then counts as already done.
+    // ZERO ROWS IS LEGITIMATE here (the zero-row-write rule's named
+    // exception): the conditional `.eq("status", "pending")` matches nothing
+    // when the cron's sweep already expired this row between the read above
+    // and this write, which is the same end state, so it is not checked.
+    if (seriesOver) {
+      const { error: expErr } = await supabase
+        .from("recurring_visit_payments")
+        .update({ status: "expired", updated_at: new Date().toISOString() })
+        .eq("id", rowId)
+        .eq("status", "pending")
+        .select("id");
+      if (expErr) throw new Error(`recurring_visit_payments expire failed for ${rowId}: ${expErr.message}`);
+    }
+    if (alreadyRefunded) {
+      logStep("Recurring visit payment was already refunded (retried delivery)", { rowId, pi, refundReason });
+      return;
     }
     await postSlackOpsAlert({
       kind: "custom",
@@ -107,6 +154,31 @@ export async function settleRecurringVisitCheckout(
 
   logStep("Recurring visit paid on-session", { rowId, pi, parent: row!.parent_job_id, visitDate: row!.visit_date });
   kickVisitBooking(String(row!.parent_job_id), logStep);
+}
+
+/**
+ * Q750 (3): a full refund of `pi`, where "it is already refunded" counts as
+ * done. Stripe replays the first answer for the same key and params within
+ * 24 hours; after that (a webhook retried more than a day later, say after the
+ * refund went through and the row write failed) a second full refund is
+ * refused with code `charge_already_refunded` (docs.stripe.com/error-codes),
+ * and a key reused with other params is an idempotency error. Either one is
+ * "done" only when the intent really carries a live refund; otherwise it is a
+ * failed refund and is rethrown.
+ */
+async function refundInFullOnce(stripe: WebhookContext["stripe"], pi: string): Promise<{ alreadyRefunded: boolean }> {
+  try {
+    await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `recurring-visit-refund:${pi}` });
+    return { alreadyRefunded: false };
+  } catch (e) {
+    const err = e as { type?: string; code?: string } | null;
+    const maybeDone = err?.code === "charge_already_refunded" ||
+      err?.type === "StripeIdempotencyError" || err?.type === "idempotency_error";
+    if (!maybeDone) throw e;
+    const prior = await stripe.refunds.list({ payment_intent: pi, limit: 100 });
+    if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e;
+    return { alreadyRefunded: true };
+  }
 }
 
 type EdgeRuntimeLike = { waitUntil?: (p: Promise<unknown>) => void };

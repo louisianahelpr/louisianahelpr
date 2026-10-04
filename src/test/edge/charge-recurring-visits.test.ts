@@ -89,7 +89,9 @@
 // @mutate supabase/functions/charge-recurring-visits/index.ts | const refundCents = Math.max(0, captured - actualOrEstimatedFeeCents(pi, captured)); | const refundCents = captured;
 // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (refundParams.amount !== 0) ({ alreadyRefunded } = await createRefundOnce( |             ({ alreadyRefunded } = await createRefundOnce(
 // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e; |     return;
-// @mutate supabase/functions/charge-recurring-visits/index.ts |     if (type !== "StripeIdempotencyError" && type !== "idempotency_error") throw e; |     throw e;
+// @mutate supabase/functions/charge-recurring-visits/index.ts |     if (type !== "StripeIdempotencyError" && type !== "idempotency_error" && code !== "charge_already_refunded") throw e; |     throw e;
+// Q750 (3): Stripe's "charge_already_refunded" (past the 24h key) is a failed refund again.
+// @mutate supabase/functions/charge-recurring-visits/index.ts |  && code !== "charge_already_refunded") throw e; | ) throw e;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id) { | if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (refundParams.amount !== undefined && !alreadyRefunded && parent.customer_id) { | if (refundParams.amount !== undefined && parent.customer_id) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | let capturedCents = paidRow ? paidRow.amount_cents : totalCents; | let capturedCents = NaN;
@@ -232,12 +234,16 @@ function wireJobsReads(opts: {
   winner?: TableResult;
   chargeback?: TableResult;
   live?: TableResult;
+  /** Q750: the end state of the series that have open future visit payments. */
+  over?: TableResult;
 }) {
   const firstSeries = (opts.series.rows ?? [])[0] as Record<string, unknown> | undefined;
   scenario.reads.jobs = {
     ...(opts.existing ?? { rows: [] }),
     selectOverrides: [
       { includes: "recurrence_days", result: opts.series },
+      // After the series scan, whose column list also ends "…helper_id, status, series_ended_on…".
+      { includes: "id, status, series_ended_on", result: opts.over ?? { rows: [] } },
       { includes: "stripe_payment_intent_id", result: opts.winner ?? { rows: [] } },
       // The chargeback check on the series' visits.
       { includes: "dispute_status", result: opts.chargeback ?? { rows: [] } },
@@ -1412,12 +1418,24 @@ describe("charge-recurring-visits edge function", () => {
   // Q210(b): $300+ visits are paid ON-SESSION (owner, 2026-09-27)
   // ═══════════════════════════════════════════════════════════════════════
 
-  /** Pre-flight rows (column list has budget_cents) and sweep rows (payer_id). */
-  function wireVisitPayments(opts: { preflight?: TableResult; sweep?: TableResult }) {
+  /**
+   * Pre-flight rows (column list has budget_cents), the Q750 future-visit read
+   * (embeds the parent as `series:jobs`), and sweep rows (payer_id).
+   */
+  function wireVisitPayments(opts: {
+    preflight?: TableResult;
+    sweep?: TableResult;
+    /** Q750 (c): open future rows of the series that are over (select has created_at). */
+    ahead?: TableResult;
+    /** Q750 (a): parents of every open future row (select is parent_job_id alone). Default: ahead's parents. */
+    openParents?: TableResult;
+  }) {
+    const derived = { rows: (opts.ahead?.rows ?? []).map((r) => ({ parent_job_id: r.parent_job_id })) };
     scenario.reads.recurring_visit_payments = {
-      rows: [],
+      ...(opts.openParents ?? derived),
       selectOverrides: [
         { includes: "budget_cents", result: opts.preflight ?? { rows: [] } },
+        { includes: "created_at", result: opts.ahead ?? { rows: [] } },
         { includes: "payer_id", result: opts.sweep ?? { rows: [] } },
       ],
     };
@@ -1944,5 +1962,262 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_onsession", amount: 30556, metadata: { fee_withheld: "true" } });
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toContain("refunded");
+  });
+
+  // ── Q750 (3): Stripe's answer to a refund that already happened ──────────
+  // Past the key's 24h a second full refund is refused with code
+  // `charge_already_refunded` (docs.stripe.com/error-codes), not replayed.
+  it("Q750 (3): a refund Stripe answers 'charge_already_refunded', with a live refund on the intent, is done — no page", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    paidOnSession();
+    otherPiRetrieve.mockResolvedValue({ id: "pi_onsession", amount: 31500, amount_received: 31500, latest_charge: { balance_transaction: { fee: 944 } } });
+    stripeMock.refunds.create.mockRejectedValue(
+      Object.assign(new Error("Charge ch_1 has already been refunded."), { type: "StripeInvalidRequestError", code: "charge_already_refunded" }),
+    );
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_prior", status: "succeeded", amount: 30556, metadata: { fee_withheld: "true" } }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(0);
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toContain("refunded");
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q750 (3): 'charge_already_refunded' with no live refund on the intent is still a failed refund (paged)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    paidOnSession();
+    otherPiRetrieve.mockResolvedValue({ id: "pi_onsession", amount: 31500, amount_received: 31500, latest_charge: { balance_transaction: { fee: 944 } } });
+    stripeMock.refunds.create.mockRejectedValue(
+      Object.assign(new Error("Charge ch_1 has already been refunded."), { type: "StripeInvalidRequestError", code: "charge_already_refunded" }),
+    );
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_f", status: "canceled", amount: 30556 }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical")).toHaveLength(1);
+    expect(b.errors).toBe(1);
+  });
+
+  // ── Q750 (1)/(4): a series that is OVER settles its future visits now ────
+  // On main a paid visit of an ended series sat held until its date, and a
+  // pending one kept a payable Checkout open until its date. Over or not is
+  // read from the parent (jobs: id, status, series_ended_on), and only the
+  // over parents' rows are read and capped (lh-money-escrow review).
+  const OVER_ID = "series-over";
+  const ENDED_PARENT = { id: PARENT_ID, status: "accepted", series_ended_on: "2026-08-31" };
+  const aheadPaid = {
+    id: "vp-ahead", parent_job_id: PARENT_ID, visit_date: VISIT_DATE, status: "paid", payer_id: POSTER_ID,
+    helper_id: HELPER_ID, amount_cents: 10000, stripe_payment_intent_id: "pi_ahead", stripe_session_id: "cs_ahead",
+  };
+  const aheadPending = { ...aheadPaid, id: "vp-ahead-pending", status: "pending", stripe_payment_intent_id: null };
+  /** The (c) read: open future rows of the series that are over. */
+  const overRowsQuery = () =>
+    scenario.readQueries.filter((r) => r.table === "recurring_visit_payments" && r.cols.includes("created_at"));
+
+  it("Q750 (1): a PAID future visit of an ENDED series is refunded now (less the fee, Q808), and the date is not re-parked", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({
+      series: { rows: [seriesParent({ budget: 300, series_ended_on: "2026-08-31" })] },
+      live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-31" }] },
+      over: { rows: [ENDED_PARENT] },
+    });
+    wireVisitPayments({ ahead: { rows: [aheadPaid] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    otherPiRetrieve.mockResolvedValue({ id: "pi_ahead", amount: 10000, metadata: {}, latest_charge: { balance_transaction: { fee: 320 } } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_ahead", amount: 9680, metadata: { fee_withheld: "true" } });
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    // Q750 (2): an ended series never re-parks the refunded date.
+    expect(visitPaymentWrites("insert")).toHaveLength(0);
+    expect(b.skippedEnded).toBe(1);
+    expect(b.errors).toBe(0);
+  });
+
+  // Review of Q750 (lh-money-escrow, 2026-10-03): the booked check must still
+  // run first. If it stopped matching, the payer would be refunded on a
+  // PaymentIntent the booked child's escrow still pays the Helpr from.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (booked && booked.length > 0) { |       if (false) {
+  it("Q750 (1) review: a PAID future visit of an ENDED series that is already BOOKED on that intent is marked funded, never refunded", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({
+      series: { rows: [] },
+      // The booked-child lookup (`jobs.select("id")` by parent, date and intent).
+      existing: { rows: [{ id: "child-1" }] },
+      live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-31" }] },
+      over: { rows: [ENDED_PARENT] },
+    });
+    wireVisitPayments({ ahead: { rows: [aheadPaid] } });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    const writes = visitPaymentWrites("update").map((w) => w.payload as Record<string, unknown>);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toMatchObject({ status: "funded", child_job_id: "child-1" });
+    const booked = scenario.readQueries.find((r) => r.table === "jobs" && r.cols === "id");
+    expect(booked?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "stripe_payment_intent_id", value: "pi_ahead" }),
+    ]));
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q750 (4): a PENDING future visit of an ENDED series is expired and its Checkout closed, so it can no longer take money", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [ENDED_PARENT] } });
+    wireVisitPayments({ ahead: { rows: [aheadPending] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    const expired = visitPaymentWrites("update");
+    expect(expired.map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
+    expect(expired[0].filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "status", value: "pending" })]));
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_ahead");
+    const told = JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"));
+    expect(told).toContain("The series ended");
+    expect(told).not.toContain("wasn't paid in time");
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q750 (4): a PENDING future visit of a series whose parent was CANCELLED is expired and its Checkout closed", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [{ id: PARENT_ID, status: "cancelled", series_ended_on: null }] } });
+    wireVisitPayments({ ahead: { rows: [aheadPending] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+
+    await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_ahead");
+  });
+
+  it("Q750 (1) control: future visits of a LIVE, merely PAUSED (disputed) or unread series are left alone, and their rows are never read", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({
+      series: { rows: [] },
+      over: {
+        rows: [
+          { id: PARENT_ID, status: "accepted", series_ended_on: null },
+          { id: "series-disputed", status: "disputed", series_ended_on: null },
+          // "series-unread" has an open row but no parent came back.
+        ],
+      },
+    });
+    wireVisitPayments({
+      openParents: { rows: [{ parent_job_id: PARENT_ID }, { parent_job_id: "series-disputed" }, { parent_job_id: "series-unread" }] },
+      // Would be settled if it were ever asked for.
+      ahead: { rows: [aheadPaid, aheadPending] },
+    });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(overRowsQuery()).toHaveLength(0);
+    expect(visitPaymentWrites("update")).toEqual([]);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(b.errors).toBe(0);
+  });
+
+  // Review of Q750 (lh-money-escrow, 2026-10-03): the 500 cap used to count
+  // EVERY open future row, so a busy day of live series crowded out the rows
+  // of a series that had ended. Now only the over parents' rows are read.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             .in("parent_job_id", chunk) |             .in("parent_job_id", parentIds)
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |       .filter((p) => Boolean(p.series_ended_on) \|\| p.status === "cancelled") |       .filter(() => true)
+  // Each half of "over" on its own (re-review 2026-10-04): an ended series that
+  // is not cancelled (this test), and a cancelled one (the test above).
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |       .filter((p) => Boolean(p.series_ended_on) \|\| p.status === "cancelled") |       .filter((p) => p.status === "cancelled")
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |       .filter((p) => Boolean(p.series_ended_on) \|\| p.status === "cancelled") |       .filter((p) => Boolean(p.series_ended_on))
+  // (c) reads only rows dated after today; today's and older rows are the stale sweep's.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             .gt("visit_date", today)\n            .order("id", { ascending: true }),\n      );\n      const overDefect |             .order("id", { ascending: true }),\n      );\n      const overDefect
+  it("Q750 (1) review: 600 open rows of live series do not crowd out an ended series; only its rows are read", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    const liveParents = Array.from({ length: 600 }, (_, i) => ({ parent_job_id: `live-${String(i).padStart(3, "0")}` }));
+    wireJobsReads({
+      series: { rows: [] },
+      over: {
+        rows: [
+          ...liveParents.map((p) => ({ id: p.parent_job_id, status: "accepted", series_ended_on: null })),
+          { id: OVER_ID, status: "accepted", series_ended_on: "2026-08-31" },
+        ],
+      },
+    });
+    wireVisitPayments({
+      openParents: { rows: [...liveParents, { parent_job_id: OVER_ID }] },
+      ahead: { rows: [{ ...aheadPending, parent_job_id: OVER_ID }] },
+    });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    const reads = overRowsQuery();
+    expect(reads).toHaveLength(1);
+    expect(reads[0].filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "in", column: "parent_job_id", value: [OVER_ID] }),
+      expect.objectContaining({ op: "gt", column: "visit_date", value: "2026-09-01" }),
+      expect.objectContaining({ op: "in", column: "status", value: ["pending", "paid"] }),
+    ]));
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
+    expect(reasons(b)).not.toMatch(/500|later runs/);
+    expect(b.errors).toBe(0);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (seriesOverRows.length > 500) { |       if (false) {
+  it("Q750 (1) review: more than 500 open rows of series that are over settles 500 this run and says so", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [ENDED_PARENT] } });
+    const many = Array.from({ length: 501 }, (_, i) => ({ ...aheadPending, id: `vp-${i}`, stripe_session_id: null }));
+    wireVisitPayments({ openParents: { rows: [{ parent_job_id: PARENT_ID }] }, ahead: { rows: many } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update")).toHaveLength(500);
+    expect(reasons(b)).toContain("501 future visits of series that are over; 500 settle this run");
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (openDefect) fail( |     if (false) fail(
+  it("Q750 (1): the future-visit parent read asks only for open rows dated after today, and a failed read is a defect", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireVisitPayments({ openParents: { error: { message: "boom", code: "XX000" } } });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(reasons(b)).toContain("visit-payment sweep of future visits: open future visit payments read failed: boom");
+    const q = scenario.readQueries.find((r) => r.table === "recurring_visit_payments" && r.cols === "parent_job_id");
+    expect(q?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "gt", column: "visit_date", value: "2026-09-01" }),
+      expect.objectContaining({ op: "in", column: "status", value: ["pending", "paid"] }),
+    ]));
+    expect(overRowsQuery()).toHaveLength(0);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (parentsDefect) fail( |     if (false) fail(
+  it("Q750 (1): an unreadable parent end state is a defect, and no parent that was not read is treated as over", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { error: { message: "boom", code: "XX000" } } });
+    wireVisitPayments({ ahead: { rows: [aheadPaid] } });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(reasons(b)).toContain("series of open future visit payments");
+    expect(overRowsQuery()).toHaveLength(0);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
   });
 });

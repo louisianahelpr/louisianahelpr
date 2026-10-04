@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type
 import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { loadNotificationFeed, onFeedRecoveryLoad, onNotificationArrival } from "@/components/notificationPanel/notificationFeed";
+import { ensureFreshNotificationFeed, loadNotificationFeed, onFeedRecoveryLoad, onNotificationArrival } from "@/components/notificationPanel/notificationFeed";
 import { useReducedMotion } from "@/lib/accessibility";
 import { AlertTriangle, BellRing, CheckCheck, Loader2 } from "lucide-react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
@@ -240,15 +240,15 @@ const NotificationPanel = () => {
     }
   };
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (force = true) => {
     try {
-      await loadNotificationsOnce();
+      await loadNotificationsOnce(force);
     } catch (err) {
       failLoad(err);
     }
   };
 
-  const loadNotificationsOnce = async () => {
+  const loadNotificationsOnce = async (force: boolean) => {
     const { data: { session }, error: sessionError } = await withLoadTimeout(supabase.auth.getSession());
     // An errored session read is NOT "signed out": in an outage the token
     // refresh fails and auth-js answers `{ session: null, error }`. Clearing
@@ -263,7 +263,8 @@ const NotificationPanel = () => {
     // The load itself (recency page + unread page + head count) is the bell's
     // shared feed (Q756, ./notificationPanel/notificationFeed.ts): it THROWS on
     // a failed list, which the caller turns into this panel's error card.
-    await loadNotificationFeed(session.user.id);
+    // The mount load reuses the feed's own just-finished first load (Q1183).
+    await (force ? loadNotificationFeed(session.user.id) : ensureFreshNotificationFeed(session.user.id));
     setLoadError(false);
   };
 
@@ -276,7 +277,7 @@ const NotificationPanel = () => {
 
   useEffect(() => {
     // Defer initial notification load to avoid blocking page render
-    const timer = setTimeout(() => loadNotifications(), 800);
+    const timer = setTimeout(() => loadNotifications(false), 800);
 
     // Check push support
     const supported = isPushSupported();
@@ -645,7 +646,7 @@ const NotificationPanel = () => {
               </p>
               <button
                 type="button"
-                onClick={loadNotifications}
+                onClick={() => void loadNotifications()}
                 className="mt-1 h-11 px-5 rounded-ds-md btn-grad-primary text-ds-12 font-sans font-semibold"
                 style={{ color: "hsl(var(--parchment))", boxShadow: "var(--elev-bark-raised)" }}
               >

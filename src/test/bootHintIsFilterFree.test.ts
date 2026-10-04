@@ -24,7 +24,13 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 const html = readFileSync(resolve(ROOT, "index.html"), "utf8");
-const noComments = html.replace(/<!--[\s\S]*?-->/g, "");
+// Strip HTML comments until none is left (a removal can join "<!-" + "-" into a new one).
+let noComments = html;
+let prevLen: number;
+do {
+  prevLen = noComments.length;
+  noComments = noComments.replace(/<!--[\s\S]*?-->/g, "");
+} while (noComments.length !== prevLen);
 const css = blankComments(noComments.match(/<style id="boot-theme">([\s\S]*?)<\/style>/)?.[1] ?? "");
 
 /** Every rule block whose selector names a piece of the boot stack. */

@@ -99,6 +99,11 @@ BEGIN
     'got', to_jsonb(v_row));
 
   -- ── B: UNconfirmed account + Google, same verified email ──────────────────
+  -- The unconfirmed signup happened earlier than the Google sign-in (as in life):
+  -- zz_wipe_on_provider_takeover (Q447) treats a provider identity created with
+  -- the user (within 5 s) as a provider signup, not a takeover, and this whole
+  -- script runs in one transaction where now() never moves.
+  UPDATE auth.users SET created_at = now() - interval '1 hour' WHERE id = v_b;
   v_google := jsonb_build_object('sub', 'oa018-google-b-' || v_tag, 'email', v_email_b, 'email_verified', true,
                                  'full_name', 'Google Display Name', 'iss', 'https://accounts.google.com');
   IF v_has_ident THEN

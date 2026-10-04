@@ -72,7 +72,7 @@ import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
-import { scanAll, scanDefect } from "../_shared/paginate.ts";
+import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 
 /**
  * The client type these helpers accept.
@@ -256,7 +256,12 @@ async function createRefundOnce(
     return { alreadyRefunded: false };
   } catch (e) {
     const type = (e as { type?: string } | null)?.type;
-    if (type !== "StripeIdempotencyError" && type !== "idempotency_error") throw e;
+    // Q750 (3): past the key's 24 hours, Stripe refuses a second full refund
+    // of a charge with nothing left to refund as code `charge_already_refunded`
+    // (docs.stripe.com/error-codes) rather than replaying the first. Same
+    // proof as an idempotency conflict: done only if a live refund exists.
+    const code = (e as { code?: string } | null)?.code;
+    if (type !== "StripeIdempotencyError" && type !== "idempotency_error" && code !== "charge_already_refunded") throw e;
     const prior = await stripe.refunds.list({ payment_intent: String(params.payment_intent), limit: 100 });
     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e;
     return { alreadyRefunded: true };
@@ -497,7 +502,79 @@ serve(async (req) => {
     if ((stale ?? []).length >= 500) {
       fail("visit-payment sweep read a full page of 500; the rest settle on later runs");
     }
-    for (const row of stale ?? []) {
+    // Q750 (1)/(4): a series that is OVER (ended by end_recurring_series or a
+    // ban, or its parent cancelled) can never book a future visit: the loop
+    // below skips an ended series, never scans a cancelled one, and
+    // trg_series_visit_within_end refuses the row. So its open rows are settled
+    // now instead of on their date: a pending row is expired and its Checkout
+    // closed, so it can no longer take money; a paid row is refunded under the
+    // same cause rules the visit-date sweep applies (Q808). A series that is
+    // only PAUSED (disputed, a ban or block on one Helpr, a date nobody holds
+    // yet) is left alone: its visit may still be booked, and refunding it now
+    // would re-park the date and ask the payer to pay, and lose a card fee,
+    // twice. Whether a series is over is judged in code from its own row.
+    //
+    // Three reads, so the 500-row cap counts ONLY rows of a series that is
+    // over (lh-money-escrow review of Q750: one capped read of every open
+    // future row let live series crowd them out): (a) the parent of every
+    // open future row, paged to the end (ids only); (b) those parents' end
+    // state; (c) the open future rows of the parents that are over.
+    // deno-lint-ignore no-explicit-any
+    let seriesOverRows: Array<Record<string, any>> = [];
+    const openParents = await scanAll<{ parent_job_id: string }>("open future visit payments", (countOpt) =>
+      supabase
+        .from("recurring_visit_payments")
+        .select("parent_job_id", countOpt)
+        .in("status", ["pending", "paid"])
+        .gt("visit_date", today)
+        .order("id", { ascending: true }));
+    const openDefect = scanDefect("open future visit payments", openParents);
+    if (openDefect) fail(`visit-payment sweep of future visits: ${openDefect}`);
+    const parentIds = [...new Set(openParents.rows.map((r) => String(r.parent_job_id)))];
+    const parents = await scanAllIn<{ id: string; status: string; series_ended_on: string | null }>(
+      "series of open future visit payments",
+      parentIds,
+      (chunk, countOpt) =>
+        supabase
+          .from("jobs")
+          .select("id, status, series_ended_on", countOpt)
+          .in("id", chunk)
+          .order("id", { ascending: true }),
+    );
+    const parentsDefect = scanDefect("series of open future visit payments", parents);
+    if (parentsDefect) fail(`visit-payment sweep of future visits: ${parentsDefect}`);
+    // A parent that was not read is not proof its series is over: left alone.
+    const overParentIds = parents.rows
+      .filter((p) => Boolean(p.series_ended_on) || p.status === "cancelled")
+      .map((p) => String(p.id));
+    if (overParentIds.length > 0) {
+      const overScan = await scanAllIn<Record<string, unknown>>(
+        "open future visit payments of series that are over",
+        overParentIds,
+        (chunk, countOpt) =>
+          supabase
+            .from("recurring_visit_payments")
+            .select(
+              "id, parent_job_id, visit_date, status, payer_id, helper_id, amount_cents, stripe_payment_intent_id, stripe_session_id, created_at",
+              countOpt,
+            )
+            .in("parent_job_id", chunk)
+            .in("status", ["pending", "paid"])
+            .gt("visit_date", today)
+            .order("id", { ascending: true }),
+      );
+      const overDefect = scanDefect("open future visit payments of series that are over", overScan);
+      if (overDefect) fail(`visit-payment sweep of future visits: ${overDefect}`);
+      // Each row settles on its own, so a prefix read before a fault is
+      // still settled; what was not read waits for the next run.
+      seriesOverRows = [...overScan.rows].sort((a, b) => String(a.visit_date).localeCompare(String(b.visit_date)));
+      if (seriesOverRows.length > 500) {
+        fail(`visit-payment sweep found ${seriesOverRows.length} future visits of series that are over; 500 settle this run, the rest on later runs`);
+        seriesOverRows = seriesOverRows.slice(0, 500);
+      }
+    }
+    const overIds = new Set(seriesOverRows.map((r) => String(r.id)));
+    for (const row of [...(stale ?? []), ...seriesOverRows]) {
       if (row.status === "pending") {
         const { data: exp, error: expErr } = await supabase
           .from("recurring_visit_payments")
@@ -528,7 +605,9 @@ serve(async (req) => {
             user_id: row.payer_id,
             job_id: row.parent_job_id,
             title: "A visit wasn't booked",
-            message: `The visit on ${row.visit_date} wasn't paid in time, so it wasn't booked and you weren't charged.`,
+            message: overIds.has(row.id)
+              ? `The series ended, so the visit on ${row.visit_date} won't be booked and you weren't charged for it.`
+              : `The visit on ${row.visit_date} wasn't paid in time, so it wasn't booked and you weren't charged.`,
             type: "job_updates",
             link,
           }).select("id");

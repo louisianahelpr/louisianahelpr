@@ -1563,6 +1563,21 @@ serve(async (req) => {
         .select("id");
       if (storeErr || !stored || stored.length === 0) {
         console.error("[create-payment] recurring_visit — session id not stored:", storeErr ?? "zero rows");
+        // Q750 (5): zero rows means the row stopped waiting for payment (the
+        // visit-date sweep expired it, or the series ended) between the read
+        // and here, so this session can never be stored and no sweep would
+        // ever close it. Close it now. A database ERROR is left open on
+        // purpose: a retry in the same 10-minute bucket gets this very session
+        // back from Stripe on the idempotency key and stores it, and an
+        // expired one would hand the payer a dead Checkout page. Its URL was
+        // never returned, so nobody can pay it meanwhile.
+        if (!storeErr) {
+          try {
+            await stripe.checkout.sessions.expire(session.id);
+          } catch (e) {
+            console.warn("[create-payment] recurring_visit — unstored session not expired:", e);
+          }
+        }
         throw new PublicError("Could not start this payment — please try again");
       }
 

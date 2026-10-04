@@ -1881,6 +1881,19 @@ describe("stripe-webhook edge function", () => {
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   } else if (meta?.payer_id !== row.payer_id) { |   } else if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   } else if ((session.currency ?? "").toLowerCase() !== "usd") { |   } else if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   else if (row.status !== "pending") refundReason | else if (false) refundReason
+ *
+ * Q843: a TAXED visit's amount_total equals amount_cents (the tax is in both),
+ * and a short payment is still refunded.
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   else if (session.amount_total !== row.amount_cents) { |   else if (false) {
+ * Q750 (4): a payment for a series that is over is refunded in full, never marked paid.
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   else if (seriesOver) refundReason | else if (false) refundReason
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts | seriesOver = !parent \|\| Boolean(parent.series_ended_on) \|\| parent.status === "cancelled"; | seriesOver = !parent \|\| Boolean(parent.series_ended_on);
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts | seriesOver = !parent \|\| Boolean(parent.series_ended_on) \|\| parent.status === "cancelled"; | seriesOver = !parent \|\| parent.status === "cancelled";
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (seriesOver) {\n      const { error: expErr } |     if (false) {\n      const { error: expErr }
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (parentErr) throw | if (false) throw
+ * Q750 (3): a retried refund Stripe answers "already refunded" is done, not a page.
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     const maybeDone = err?.code === "charge_already_refunded" \|\| | const maybeDone =
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e; |     void prior;
  */
 describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
   beforeEach(() => {
@@ -1888,6 +1901,8 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     resetStripeMock();
     resetSupabaseMock();
     resetSharedMocks();
+    // The series the row belongs to: live unless a test says otherwise.
+    scenario.reads.jobs = { rows: [{ id: "parent-1", series_ended_on: null, status: "in_progress" }] };
   });
 
   const ROW = {
@@ -1976,5 +1991,126 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(flips()).toHaveLength(0);
+  });
+
+  // ── Q843 (verified 2026-10-03): a taxed visit is NOT refunded ─────────────
+  // charge-recurring-visits parks amount_cents = budget + fee + tax (DB CHECK
+  // recurring_visit_payments_amount_adds_up), and create-payment charges the
+  // tax as its own line with automatic_tax off, so Stripe's amount_total for a
+  // taxed visit is exactly amount_cents.
+  const TAXED = { ...ROW, amount_cents: 30000 + 1500 + 2925 };
+
+  it("Q843: a taxed visit whose total includes the tax line is marked paid, not refunded", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [TAXED] };
+    scenario.writeSelectRows.recurring_visit_payments = [{ id: "rvp-1" }];
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}")));
+    try {
+      const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" }, { amount_total: 34425 });
+      expect(res.status).toBe(200);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect((flips()[0]?.payload as Record<string, unknown>).status).toBe("paid");
+  });
+
+  it("Q843: a taxed visit paid WITHOUT its tax (total short of amount_cents) is refunded", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [TAXED] };
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" }, { amount_total: 31500 });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_rv" },
+      { idempotencyKey: "recurring-visit-refund:pi_rv" },
+    );
+    expect(flips()).toHaveLength(0);
+  });
+
+  // ── Q750 (4): ending or cancelling the series leaves its Checkout open ────
+  // A payment that still lands is refunded IN FULL at once (the platform left
+  // the Checkout open), the row stops asking to be paid, and nothing is booked.
+  // On main it was marked paid and held until the visit-date sweep returned it
+  // less the card fee.
+  const statusWrites = () =>
+    flips().map((w) => (w.payload as Record<string, unknown>).status);
+
+  it("Q750 (4): a payment for an ENDED series is refunded in full and its row expired, never marked paid", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.reads.jobs = { rows: [{ id: "parent-1", series_ended_on: "2026-09-30", status: "in_progress" }] };
+    scenario.writeSelectRows.recurring_visit_payments = [{ id: "rvp-1" }];
+    const kick = vi.fn(async () => new Response("{}"));
+    vi.stubGlobal("fetch", kick);
+    try {
+      const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+      expect(res.status).toBe(200);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_rv" },
+      { idempotencyKey: "recurring-visit-refund:pi_rv" },
+    );
+    expect(statusWrites()).toEqual(["expired"]);
+    const expire = flips()[0];
+    expect(expire.filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "status", value: "pending" })]));
+    expect(kick).not.toHaveBeenCalled();
+  });
+
+  it("Q750 (4): a payment for a series whose parent was CANCELLED is refunded in full, never marked paid", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.reads.jobs = { rows: [{ id: "parent-1", series_ended_on: null, status: "cancelled" }] };
+    scenario.writeSelectRows.recurring_visit_payments = [{ id: "rvp-1" }];
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(statusWrites()).toEqual(["expired"]);
+  });
+
+  it("Q750 (4): an unreadable series is retried by Stripe (500), neither marked paid nor refunded", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.reads.jobs = { error: { message: "boom", code: "XX000" } };
+    const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(res.status).toBe(500);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(flips()).toHaveLength(0);
+  });
+
+  // ── Q750 (3): what Stripe answers to a refund that already happened ───────
+  // Within 24h the same key + params replays the first refund. After that a
+  // second full refund is refused with code `charge_already_refunded`
+  // (docs.stripe.com/error-codes, read 2026-10-03). That is done, not a
+  // "refund by hand" page plus a 500 that makes Stripe redeliver for 3 days.
+  /** The handler's own "refund failed, refund by hand" page. */
+  const refundFailedPages = () =>
+    slackAlerts.filter((a) => JSON.stringify(a).includes("the refund failed"));
+  const alreadyRefunded = () =>
+    Object.assign(new Error("Charge ch_1 has already been refunded."), {
+      type: "StripeInvalidRequestError",
+      code: "charge_already_refunded",
+    });
+
+  it("Q750 (3): a retried delivery whose refund Stripe calls 'already refunded' is acknowledged, not paged", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    stripeMock.refunds.create.mockRejectedValue(alreadyRefunded());
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_1", status: "succeeded", amount: 31500 }] });
+    const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(res.status).toBe(200);
+    expect(stripeMock.refunds.list).toHaveBeenCalledWith({ payment_intent: "pi_rv", limit: 100 });
+    expect(refundFailedPages()).toHaveLength(0);
+  });
+
+  it("Q750 (3): 'already refunded' with no live refund on the intent is still a failed refund (paged, retried)", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    stripeMock.refunds.create.mockRejectedValue(alreadyRefunded());
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_1", status: "failed", amount: 31500 }] });
+    const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(res.status).toBe(500);
+    expect(refundFailedPages()).toHaveLength(1);
+  });
+
+  it("Q750 (3): any other refund error is still a failed refund (paged, retried)", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    stripeMock.refunds.create.mockRejectedValue(Object.assign(new Error("charge disputed"), { type: "StripeInvalidRequestError", code: "charge_disputed" }));
+    const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(res.status).toBe(500);
+    expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    expect(refundFailedPages()).toHaveLength(1);
   });
 });

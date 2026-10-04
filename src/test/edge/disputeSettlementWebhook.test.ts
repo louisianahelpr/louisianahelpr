@@ -823,6 +823,8 @@ describe("Q454: a full refund gives the job's gift card back", () => {
     const fn = await loadConfigured();
     refundedEvent("evt_q454_decided");
     scenario.reads.jobs = { rows: [job] };
+    // A gift IS at stake: the decision, not this refund, decides it.
+    scenario.reads.gift_cards = giftAtStake;
     scenario.reads.disputes = { rows: [{ id: "d-1" }] };
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_dash", amount: 4000, status: "succeeded", metadata: {} }] });
     scenario.rpc.settle_dispute_by_external_refund = {

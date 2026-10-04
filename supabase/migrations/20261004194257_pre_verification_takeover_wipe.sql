@@ -54,6 +54,9 @@ CREATE TABLE IF NOT EXISTS public.pre_verification_wipes (
   error           text
 );
 ALTER TABLE public.pre_verification_wipes ENABLE ROW LEVEL SECURITY;
+-- Q807: every new public table carries the unconfirmed-email gate (server-only here; GoTrue's
+-- session reads session_email_unconfirmed() as false, so the takeover wipe still writes).
+SELECT public.attach_unconfirmed_email_gate();
 REVOKE ALL ON public.pre_verification_wipes FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.pre_verification_wipes TO service_role;
 CREATE INDEX IF NOT EXISTS pre_verification_wipes_pending_idx

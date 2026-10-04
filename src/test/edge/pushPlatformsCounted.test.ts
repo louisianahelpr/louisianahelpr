@@ -12,7 +12,8 @@
  * Behaviour, red then green: src/test/pglite/pushTokensNoWeb.pglite.mjs.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "../helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "../helpers/blankNonCode";
 

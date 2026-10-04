@@ -78,6 +78,8 @@ CREATE TABLE public.referrals (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), re
 CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
 CREATE FUNCTION public.has_role(_user_id uuid, _role app_role) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 -- Stubs for derive_profile_parish's lookups.
+-- The real gate is proven by unconfirmedEmailWritesRefused.pglite.mjs; the migration calls it (Q807).
+CREATE FUNCTION public.attach_unconfirmed_email_gate() RETURNS void LANGUAGE sql AS $$ SELECT $$;
 CREATE FUNCTION public.get_parish_for_zip(p text) RETURNS text LANGUAGE sql STABLE AS $$ SELECT CASE WHEN p = '70112' THEN 'Orleans' END $$;
 CREATE FUNCTION public.get_parish_for_city(p text) RETURNS text LANGUAGE sql STABLE AS $$ SELECT NULL::text $$;
 CREATE FUNCTION public.credential_document_path_ok(u uuid, kind text, p text) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT p LIKE u::text || '/credentials/' || kind || '-%' $$;

@@ -47,7 +47,7 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | const feeHold = await checkPayoutHold(supabaseAdmin, helperId); | const feeHold = { kind: "clear" } as { kind: string; message?: string };
  * @mutate supabase/functions/void-cancelled-payments/index.ts | const shareHold = await checkPayoutHold(supabaseAdmin, share.helper_id); | const shareHold = { kind: "clear" } as { kind: string; message?: string };
  * @mutate supabase/functions/_shared/chargebackClawback.ts | const repayHold = await checkPayoutHold(supabase, row.helper_id); | const repayHold = { kind: "clear" } as { kind: string; message?: string };
- * @mutate supabase/functions/money-reconciliation/index.ts | const holdLookup = await loadPayoutHolds(admin, | const holdLookup = await loadPayoutHoldz(admin,
+ * @mutate supabase/functions/money-reconciliation/index.ts | => loadPayoutHolds(admin, ids); | => ({ ok: true as const, holds: new Map<string, unknown>(), ids });
  * @mutate supabase/functions/auto-resolve-disputes/index.ts |               const holds = await loadPayoutHolds( |               const holds = await loadPayoutHoldz(
  * @mutate supabase/functions/stripe-payouts/index.ts | stripe.balance.retrieve({ stripeAccount: accountId }), | stripe.balance.retrieve({ stripeAccount: accountId }), stripe.transfers.create({ amount: 1, currency: "usd", destination: accountId }),
  * @mutate supabase/functions/cash-out-credits/index.ts | transfer = await stripe.transfers.create( | await stripe.transfers.create({ amount: 1, currency: "usd", destination: "acct_x" });\n      transfer = await stripe.transfers.create(

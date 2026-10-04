@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
@@ -24,38 +24,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
-
-/** The uppercase eyebrow the Dashboard home already uses to head a group of
- *  tiles. Twenty-odd cards down one column with no grouping is a list, not a
- *  dashboard — these four labels are what make it scannable.
- *  The negative bottom margin pulls the label back against the block it heads:
- *  AdminViewShell's rhythm spaces every child equally, which would leave the
- *  eyebrow floating exactly halfway between the group it labels and the one
- *  above it. */
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="-mb-2 sm:-mb-3 text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">
-    {children}
-  </p>
-);
-
-// Lazy-load charts so recharts (~250 KB pre-gzip) lands in its own chunk
-// instead of inflating the AdminAnalytics initial bundle. Funnel cards +
-// metric tiles paint immediately while charts hydrate in the background.
-const SubscriberPieChart = lazy(() =>
-  import("./AdminAnalyticsCharts").then((m) => ({ default: m.SubscriberPieChart }))
-);
-const RevenueLineChart = lazy(() =>
-  import("./AdminAnalyticsCharts").then((m) => ({ default: m.RevenueLineChart }))
-);
-const MonthlyJobsBarChart = lazy(() =>
-  import("./AdminAnalyticsCharts").then((m) => ({ default: m.MonthlyJobsBarChart }))
-);
-
-const ChartFallback = () => (
-  <div className="flex h-full w-full items-center justify-center">
-    <HelprSpinner size={20} />
-  </div>
-);
+import { SectionLabel, SubscriberPieChart, RevenueLineChart, MonthlyJobsBarChart, ChartFallback } from "./adminAnalytics/analyticsLazy";
 
 /** Reads every non-seed profile, `PAGE_SIZE` rows at a time. An unbounded
  *  `profiles` read stops at PostgREST's 1000-row cap without an error, and
@@ -87,13 +56,9 @@ type AnalyticsLoad = {
   roleByUser: Map<string, string>;
 };
 
-/**
- * The analytics page's one load. A failed jobs page THROWS (`unwrap`): every
- * money tile is computed from the jobs, and a partial set sums to a plausible
- * wrong number, or to $0.00. The other sources degrade on their own and report
- * (a missing profile page or tip row is a smaller figure, not a false zero), and
- * the transfer ledger carries its own `null` = "unknown".
- */
+/** The page's one load. A failed jobs page THROWS (`unwrap`): every money tile
+ *  is computed from the jobs, and a partial set sums to a wrong number or $0.00.
+ *  The other sources degrade and report; the transfer ledger carries `null`. */
 async function loadAnalytics(): Promise<AnalyticsLoad> {
   // Paginate jobs to avoid 1000-row limit
   let allJobsData: Job[] = [];
@@ -156,9 +121,7 @@ const AdminAnalytics = () => {
   const [drillJobs, setDrillJobs] = useState<Job[]>([]);
 
   // Q1140: a React Query load, so a failed jobs read reaches `isError` and the
-  // page shows ErrorState. It used to `break` out of the paging loop on an
-  // error and carry on with whatever pages had loaded, so every money tile read
-  // $0.00 and nothing on screen said the load had failed.
+  // page shows ErrorState, not $0.00 money tiles.
   const { data, isLoading: loading, isError, refetch } = useQuery({
     queryKey: ["admin-analytics-load"],
     queryFn: loadAnalytics,

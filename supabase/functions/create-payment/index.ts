@@ -2325,10 +2325,15 @@ serve(async (req) => {
       // but the flip, the dispute-record close, the audit row and both notices
       // were not. Only the call whose UPDATE flips the row does those; the
       // other gets a clean alreadyResolved with no further side effects.
-      }).eq("id", jobId).eq("status", "disputed").select("id");
+      // .in("payment_status", ...) (Q1192): charge.dispute.created sets
+      // 'chargeback' while the transfer is in flight; a flip matched on status
+      // alone wrote 'released' over that block.
+      }).eq("id", jobId).eq("status", "disputed").in("payment_status", [...DISPUTE_RELEASE_FLIP_PAYMENT_STATES]).select("id");
       if (!releaseUpdateErr && releaseUpdated && releaseUpdated.length === 0) {
         const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "completed", "released");
         if (settled) return settled;
+        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer");
+        if (raced) return raced;
       }
       if (releaseUpdateErr || !releaseUpdated || releaseUpdated.length === 0) {
         console.error(`CRITICAL: dispute transfer sent for job ${jobId} but jobs.update to released failed — manual reconciliation needed:`, releaseUpdateErr ?? "matched 0 rows");
@@ -2671,7 +2676,8 @@ serve(async (req) => {
       // .eq("status","disputed"): same race as admin_release_dispute. The refund
       // itself is idempotent (Stripe key refund-dispute-<job>, ledger upsert on
       // stripe_refund_id); the flip and everything after it run once.
-      }).eq("id", jobId).eq("status", "disputed").select("id");
+      // .in("payment_status", ...): same chargeback race as admin_release_dispute (Q1192).
+      }).eq("id", jobId).eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");
       if (!refundUpdateErr && refundUpdated && refundUpdated.length === 0) {
         const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "cancelled", "refunded");
         if (settled) {
@@ -2681,6 +2687,8 @@ serve(async (req) => {
           await returnGiftAfterRefund(supabaseAdmin, job, "Quick Refund");
           return settled;
         }
+        const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund");
+        if (raced) return raced;
       }
       if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
         console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr ?? "matched 0 rows");
@@ -3728,6 +3736,59 @@ async function stampDisputeSettlementClaim(
     return false;
   }
   return data === true;
+}
+
+/**
+ * The payment states a Quick Release / Quick Refund flip may close (Q1192): a
+ * disputed job's escrow is held ('escrow') or queued ('payout_pending'). Pinned
+ * on the flip so a chargeback block that lands during the Stripe call
+ * (charge.dispute.created sets 'chargeback') is never written over.
+ */
+const DISPUTE_FLIP_PAYMENT_STATES = ["escrow", "payout_pending"] as const;
+
+/**
+ * Quick Release also closes a job our OWN transfer webhook already marked
+ * 'released': transfer.created (stripe-webhook transferCreated.ts) sets
+ * payment_status='released' on payout_pending/escrow/released whatever the
+ * status, and it fires within milliseconds of transferToHelper, between the
+ * ledger insert and this flip. Inside a held settlement claim, 'released' can
+ * only come from that webhook (lh-money-escrow review of Q1192, must-fix 1).
+ * Quick Refund keeps the narrower set: it withholds the fee, so
+ * charge.refunded never flips the job under it.
+ */
+const DISPUTE_RELEASE_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "released"] as const;
+
+/**
+ * Zero rows matched the Quick Release / Quick Refund flip: did a chargeback
+ * block land during the Stripe call? Re-reads the job; when it reads
+ * 'chargeback' the money already left, so the claim is KEPT (never handed back
+ * over moved money), ops is paged and the caller answers 409. Returns null
+ * when no chargeback is there (or the read failed: the caller's existing
+ * fail-loud path then runs).
+ */
+async function chargebackLandedDuringSettlement(
+  supabaseAdmin: any,
+  jobId: string,
+  moved: "transfer" | "refund",
+): Promise<Response | null> {
+  const { data: current, error } = await supabaseAdmin
+    .from("jobs").select("status, payment_status").eq("id", jobId).maybeSingle();
+  if (error || !current || current.payment_status !== "chargeback") return null;
+  console.error(`[create-payment] job ${jobId}: a chargeback block landed during the ${moved} call; the flip did NOT overwrite it`);
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "critical",
+    title: `Quick ${moved === "transfer" ? "Release" : "Refund"} raced a chargeback — block kept, money already moved`,
+    message: moved === "transfer"
+      ? `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Release's transfer was in flight. The transfer went out, so the job was NOT flipped to released (the chargeback's block stands). The Helpr's transfer must be clawed back: redeliver charge.dispute.funds_withdrawn for this job's dispute from the Stripe Dashboard (its clawback is idempotent per transfer) or reverse the transfer by hand.`
+      : `A Stripe chargeback marked job ${jobId} payment_status='chargeback' while Quick Refund's refund was in flight. The refund went out, so the job was NOT flipped to refunded (the chargeback's block stands). The card holder now has the refund AND the chargeback: respond to the dispute in Stripe with the refund as evidence.`,
+    fields: { job_id: jobId, job_status: String(current.status ?? "—") },
+    oncePerDayKey: `quick-settle-raced-chargeback:${jobId}`,
+  });
+  return new Response(JSON.stringify({
+    error: `A card chargeback landed on this job while the ${moved} was being made. The ${moved} went out; the chargeback's block was left in place. Ops has been paged to reconcile.`,
+    chargebackRaced: true,
+  }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
 }
 
 async function alreadyResolvedDispute(

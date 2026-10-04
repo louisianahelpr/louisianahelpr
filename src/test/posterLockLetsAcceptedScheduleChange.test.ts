@@ -22,9 +22,9 @@
  * src/test/pglite/posterFeeInputsLocked.pglite.mjs with NEW_MIGRATION_FILE =
  * 231810 + 233954 (every Q423 case still holds).
  *
- * @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |         IF current_setting('app.schedule_change_rpc', true) = '1' THEN\n          CONTINUE;\n        END IF;\n        RAISE EXCEPTION |         RAISE EXCEPTION
+ * @mutate supabase/migrations/20261004165404_booked_job_place_and_details_locked.sql |           AND current_setting('app.schedule_change_rpc', true) = '1' THEN\n          CONTINUE;\n        END IF; |           AND current_setting('app.schedule_change_rpc', true) = '1' THEN\n          NULL;\n        END IF;
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |     PERFORM set_config('app.schedule_change_rpc', '0', true);\n    v_status := 'accepted'; |     v_status := 'accepted';
- * @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   IF public.is_server_context()\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN | IF public.is_server_context() OR current_setting('app.schedule_change_rpc', true) = '1'\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN
+ * @mutate supabase/migrations/20261004165404_booked_job_place_and_details_locked.sql |   IF public.is_server_context()\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN | IF public.is_server_context() OR current_setting('app.schedule_change_rpc', true) = '1'\n     OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -38,8 +38,8 @@ const FLAG_ON = /set_config\('app\.schedule_change_rpc',\s*'1',\s*true\)/;
 describe("the poster lock lets an accepted schedule change through, and nothing else (Q407 8 x Q423)", () => {
   it("the carve-out is inside locked_when_booked only", () => {
     const lock = body("enforce_poster_jobs_money_lock");
-    // Restated by 20261003193541 (Q1180: the no-show reopen carve-out in locked_always), schedule carve-out unchanged.
-    expect(DEFS.get("enforce_poster_jobs_money_lock")?.file).toBe("20261003193541_accept_completes_after_stripe_setup.sql");
+    // Restated by 20261004165404 (Q1204: place and details join locked_when_booked; the carve-out is narrowed to the two schedule columns).
+    expect(DEFS.get("enforce_poster_jobs_money_lock")?.file).toBe("20261004165404_booked_job_place_and_details_locked.sql");
     const booked = lock.indexOf("IF changed_col = ANY (locked_when_booked) THEN");
     expect(booked).toBeGreaterThan(-1);
     const flags = [...lock.matchAll(/current_setting\('app\.schedule_change_rpc', true\) = '1'/g)].map((m) => m.index!);

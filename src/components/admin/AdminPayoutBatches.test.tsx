@@ -41,6 +41,7 @@ const batch = {
 
 const invokeMock = vi.fn();
 const rpcMock = vi.fn();
+let holdsResult: { data: unknown; error: unknown } = { data: [], error: null };
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -53,6 +54,10 @@ vi.mock("@/integrations/supabase/client", () => ({
             order: () => ({ limit: async () => ({ data: [], error: null }) }),
           }),
         };
+      }
+      if (table === "payout_holds") {
+        // Q764: the server-side hold list every admin reads.
+        return { select: async () => holdsResult };
       }
       if (table === "profiles") {
         // Thenable for the name read; `.eq("is_seed", true)` for the Q233 seed read.
@@ -132,6 +137,59 @@ beforeEach(() => {
   // Default PASS — the happy paths must read as they would with no gate.
   requireBiometricMock.mockResolvedValue(true);
   window.localStorage.clear();
+  holdsResult = { data: [], error: null };
+});
+
+/**
+ * Q764: holds are SERVER state. A hold another admin placed (a row in
+ * payout_holds) keeps the batch out of Ready, out of Select All and away from
+ * Pay Out on this screen too; placing one writes through the admin RPC, not
+ * localStorage; and a hold list that cannot be read offers nothing for payout.
+ *
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const readyBatches = holdsKnown ? batches.filter((b) => !holds[b.helper_id]) : []; | const readyBatches = batches;
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const row = unwrap(await supabase.rpc("admin_set_payout_hold", { p_helper_id: helperId, p_reason: reason })); | const row = { helper_id: helperId };
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | ) : isError \|\| holdsError ? ( | ) : isError ? (
+ */
+describe("AdminPayoutBatches — server-side payout holds (Q764)", () => {
+  it("a hold placed by ANOTHER admin keeps the batch out of Ready and away from Pay Out", async () => {
+    holdsResult = {
+      data: [{ helper_id: HELPER_ID, reason: "fraud review", held_at: "2026-10-03T00:00:00Z", held_by: "admin-2", denied_at: null, denied_reason: null }],
+      error: null,
+    };
+    renderScreen();
+    expect(await screen.findByRole("tab", { name: /Ready.*\(0\)/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Pay Out/i })).toBeNull();
+    expect(screen.queryByText(/this device/i)).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: /Hold for Review/ }));
+    expect(await screen.findByText(/fraud review/)).toBeInTheDocument();
+  });
+
+  it("placing a hold writes it through admin_set_payout_hold", async () => {
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_payout_batches"
+        ? { data: [batch], error: null }
+        : fn === "admin_set_payout_hold"
+          ? { data: { helper_id: HELPER_ID, reason: "check the photos" }, error: null }
+          : { data: [{ job_id: JOB_ID }], error: null },
+    );
+    renderScreen();
+    fireEvent.click(await screen.findByRole("button", { name: /^Hold$/ }));
+    fireEvent.change(await screen.findByLabelText("Hold reason"), { target: { value: "check the photos" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Hold for Review$/ }));
+    await waitFor(() =>
+      expect(rpcMock).toHaveBeenCalledWith("admin_set_payout_hold", { p_helper_id: HELPER_ID, p_reason: "check the photos" }),
+    );
+    // The RPC writes the audit row itself; the client must not log a second one.
+    expect(logAdminActionMock).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("helpr.admin_payout_holds.v1")).toBeNull();
+  });
+
+  it("an unreadable hold list offers nothing for payout", async () => {
+    holdsResult = { data: null, error: { message: "permission denied", code: "42501" } };
+    renderScreen();
+    expect(await screen.findByText(/couldn't load payout holds/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Pay Out/i })).toBeNull();
+  });
 });
 
 describe("AdminPayoutBatches — the per-batch payout", () => {

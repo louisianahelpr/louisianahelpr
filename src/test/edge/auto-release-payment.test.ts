@@ -360,6 +360,31 @@ describe("auto-release-payment edge function", () => {
       expect((out.defectReasons as string[]).join(" ")).toContain("verify_failed job-1");
     });
 
+    // Q764 (lh-money-escrow review): a held Helpr is not told "you'll be paid"
+    // for a payout every payout path will refuse until the hold is released.
+    // @mutate supabase/functions/auto-release-payment/index.ts |       if (job.helper_id && promiseHold.kind === "clear") { |       if (job.helper_id) {
+    // @mutate supabase/functions/auto-release-payment/index.ts |         jobDefect(job.id, `payout hold read ${job.id}: ${promiseHold.message}`); |         void promiseHold;
+    it("Q764: a held Helpr's job still completes, but no payout promise is sent", async () => {
+      seedDueJob(scenario);
+      scenario.reads.payout_holds = { rows: [{ helper_id: HELPER_ID, reason: "review", held_at: null, denied_at: null }] };
+      const fn = await load();
+      const res = await fn.fetch(cronRequest(fn));
+      expect(res.status).toBe(200);
+      expect(helperNotification()).toBeUndefined();
+      const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect((flip?.payload as Record<string, unknown>)?.payment_status).toBe("payout_pending");
+    });
+
+    it("Q764: an unreadable hold sends no promise and is a defect", async () => {
+      seedDueJob(scenario);
+      scenario.reads.payout_holds = { error: { message: "connection reset", code: "08006" } };
+      const fn = await load();
+      const res = await fn.fetch(cronRequest(fn));
+      expect(helperNotification()).toBeUndefined();
+      expect(res.status).toBe(500);
+      expect(((await json(res)).defectReasons as string[]).join(" ")).toContain("payout hold read job-1");
+    });
+
     it("notifies both parties", async () => {
       seedDueJob(scenario);
       seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());

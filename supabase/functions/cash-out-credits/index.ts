@@ -4,6 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { formatExactDollars } from "../_shared/money.ts";
+import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,6 +106,25 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "You need to connect a Stripe account before cashing out. Go to your Profile to set this up." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Payout hold (Q764): a cash-out is a transfer to this person's Connect
+    // account, so a hold stops it like any other payout. Checked before the
+    // credits are claimed, so a refusal leaves nothing to roll back. Fails
+    // closed on an unreadable hold.
+    const hold = await checkPayoutHold(supabase, userId);
+    if (hold.kind === "error") {
+      console.error(`[cash-out-credits] payout hold check failed for ${userId}: ${hold.message}`);
+      return new Response(
+        JSON.stringify({ error: "We couldn't verify your payout account right now. Please try again in a moment." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+    if (hold.kind === "held") {
+      return new Response(
+        JSON.stringify({ error: "Payouts on your account are paused while we review it. Your credits are safe. Contact support if you have questions.", code: PAYOUT_HELD_CODE }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }
       );
     }
 

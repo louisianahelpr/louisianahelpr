@@ -695,6 +695,70 @@ describe("auto-resolve-disputes", () => {
       execution_error: null,
     };
 
+    // Q764 (lh-money-escrow review): execute-dispute-split refuses a held
+    // Helpr's split before any leg moves and records PAYOUT_HOLD_SPLIT_ERROR.
+    // That split waits on purpose; it must not page every tick while the hold
+    // stands. Any OTHER failure still pages, and an unreadable hold exempts
+    // nothing.
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts |                 stuck = stuck.filter((row) => !heldIds.has(row.id as string)); |                 void heldIds;
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts |               (row.execution_error as string).startsWith(PAYOUT_HOLD_SPLIT_ERROR) && |               true &&
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts |                 defects.record(`stuck split payout-hold read: ${holds.message}`); |                 stuck = []; void holds;
+    describe("a split a payout hold is keeping back (Q764)", () => {
+      const heldSplit = {
+        id: DISPUTE_ID,
+        job_id: "job-7",
+        execution_status: "failed",
+        execution_started_at: "2026-08-30T10:00:00Z",
+        execution_error: "the Helpr's payouts are on hold",
+      };
+      const withHelper = () =>
+        scenario.reads.jobs!.selectOverrides!.push({
+          includes: "is_seed",
+          result: { rows: [{ id: "job-7", is_seed: false, helper_id: "helper-7" }] },
+        });
+
+      it("is set aside while the Helpr is held: no defect, no admin page, answers 200", async () => {
+        seedStuck(scenario, [heldSplit]);
+        withHelper();
+        scenario.reads.payout_holds = { rows: [{ helper_id: "helper-7", reason: "review", held_at: null, denied_at: null }] };
+        const res = await (await load()).fetch(cronReq());
+        const body = await json(res);
+        expect(res.status).toBe(200);
+        expect(body.stuck_splits).toEqual([]);
+        expect(body.held_stuck_splits).toEqual([{ id: DISPUTE_ID, job_id: "job-7" }]);
+        expect(writesTo("notifications", "insert")).toHaveLength(0);
+      });
+
+      it("pages again once the hold is released", async () => {
+        seedStuck(scenario, [heldSplit]);
+        withHelper();
+        scenario.reads.payout_holds = { rows: [] };
+        const res = await (await load()).fetch(cronReq());
+        expect(res.status).toBe(500);
+        expect((await json(res)).stuck_splits).toHaveLength(1);
+      });
+
+      it("a DIFFERENT failure on a held Helpr's split still pages", async () => {
+        seedStuck(scenario, [{ ...heldSplit, execution_error: "transfer sent, refund rejected" }]);
+        withHelper();
+        scenario.reads.payout_holds = { rows: [{ helper_id: "helper-7", reason: "review", held_at: null, denied_at: null }] };
+        const res = await (await load()).fetch(cronReq());
+        expect(res.status).toBe(500);
+        expect((await json(res)).stuck_splits).toHaveLength(1);
+      });
+
+      it("FAILS CLOSED: an unreadable hold exempts nothing", async () => {
+        seedStuck(scenario, [heldSplit]);
+        withHelper();
+        scenario.reads.payout_holds = { error: { message: "connection reset", code: "08006" } };
+        const res = await (await load()).fetch(cronReq());
+        const body = await json(res);
+        expect(res.status).toBe(500);
+        expect(body.stuck_splits).toHaveLength(1);
+        expect((body.defectReasons as string[]).join(" ")).toContain("payout-hold read");
+      });
+    });
+
     it("skips a stuck split on an is_seed job: no defect, no admin page, answers 200", async () => {
       seedStuck(scenario, [seedSplit]);
       scenario.reads.jobs!.selectOverrides!.push({

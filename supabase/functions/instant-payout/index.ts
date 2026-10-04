@@ -14,6 +14,7 @@ import { profileHasPerk, tiersGrantingPerkSentence } from "../_shared/tierPerks.
 import { tierDisplayName } from "../_shared/tierNames.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { publicErrorMessage, PublicError } from "../_shared/publicError.ts";
+import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -88,6 +89,22 @@ serve(async (req) => {
     if (!profile?.stripe_account_id) {
       return new Response(JSON.stringify({ error: "No payout account connected. Set up your payout account first." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
+    }
+
+    // Payout hold (Q764), for BOTH quote and execute. The balance is already
+    // in this person's Connect account; an instant payout sends it on to their
+    // bank, where it can no longer be reversed. While an admin holds their
+    // payouts, the platform keeps that option, so no instant payout is made.
+    // (Stripe's own payout schedule on the Connect account is NOT changed by a
+    // hold: see docs/OPEN.md Q1221.) Fails closed on an unreadable hold.
+    const hold = await checkPayoutHold(supabaseAdmin, user.id);
+    if (hold.kind === "error") {
+      throw new PublicError("Could not load your payout account right now. Please try again in a moment.");
+    }
+    if (hold.kind === "held") {
+      return new Response(JSON.stringify({ error: "Payouts on your account are paused while we review it. Contact support if you have questions.", code: PAYOUT_HELD_CODE }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
       });
     }
 

@@ -22,10 +22,15 @@ import { blankComments } from "../helpers/blankNonCode";
 
 const ROOT = "supabase/functions";
 
-/** The three claimPayout decisions (error, blocked, adopt-mismatch) — the only legal exits. */
+/**
+ * The claimPayout decisions — the only legal exits: error, blocked,
+ * adopt-mismatch, and (Q764) the error that IS a payout hold (the
+ * payout_transfers trigger refused the claim insert with payout_held, so no
+ * row was left behind), answered like the hold check itself.
+ */
 const EXPECTED_EXITS: Record<string, number> = {
-  "process-scheduled-payouts": 3,
-  "release-payout": 3,
+  "process-scheduled-payouts": 4,
+  "release-payout": 4,
 };
 
 function claimWindows() {

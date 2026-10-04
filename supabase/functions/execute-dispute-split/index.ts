@@ -62,6 +62,7 @@ import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/strip
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { checkPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 
 /**
  * The client type these helpers accept.
@@ -1256,6 +1257,24 @@ serve(async (req) => {
       await markFailed(supabaseAdmin, disputeId, "helper has not completed Stripe Connect onboarding", {}, job.id, settlementClaim);
       return json(
         { error: "the Helpr has not finished setting up their payout account — nothing was moved" },
+        409,
+      );
+    }
+
+    // Payout hold (Q764). Refused before the settlement claim is stamped and
+    // before any Stripe call, and before the refund leg: the whole split waits
+    // and "Retry settlement" runs it once an admin releases the hold. Fails
+    // closed on an unreadable hold.
+    const hold = await checkPayoutHold(supabaseAdmin, job.helper_id);
+    if (hold.kind === "error") {
+      console.error(`[execute-dispute-split] payout hold check failed for ${job.helper_id}: ${hold.message}`);
+      await markFailed(supabaseAdmin, disputeId, "payout hold check failed", {}, job.id, settlementClaim);
+      return json({ error: "could not verify the Helpr's payout hold — nothing was moved, retry" }, 500);
+    }
+    if (hold.kind === "held") {
+      await markFailed(supabaseAdmin, disputeId, PAYOUT_HOLD_SPLIT_ERROR, {}, job.id, settlementClaim);
+      return json(
+        { error: "the Helpr's payouts are on hold — release the hold in the Payout Queue, then retry the settlement. Nothing was moved.", code: PAYOUT_HELD_CODE },
         409,
       );
     }

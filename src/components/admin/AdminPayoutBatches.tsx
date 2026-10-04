@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -29,13 +29,13 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { PayoutBatch, PayoutLedgerRow } from "./adminPayoutBatches/types";
-import { loadHolds, saveHolds } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
 import { BatchRow } from "./adminPayoutBatches/BatchRow";
 import { LedgerList } from "./adminPayoutBatches/LedgerList";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { releaseBatchJobs } from "./adminPayoutBatches/releaseBatchJobs";
 
 const AdminPayoutBatches = () => {
@@ -49,44 +49,93 @@ const AdminPayoutBatches = () => {
   const [bulkPaying, setBulkPaying] = useState(false);
   const [confirmBulk, setConfirmBulk] = useState(false);
   const [tab, setTab] = useState<"ready" | "hold">("ready");
-  const [holds, setHolds] = useState<Record<string, { reason: string; addedAt: string; addedBy?: string }>>(() => loadHolds());
   const [holdReasonDraft, setHoldReasonDraft] = useState<{ helperId: string; reason: string } | null>(null);
   // Deny flow: required reason, seeded with the default the old
   // window.prompt offered so a one-tap deny still records a sensible note.
   const [denyDraft, setDenyDraft] = useState<{ helperId: string; reason: string } | null>(null);
 
-  const updateHolds = (next: Record<string, { reason: string; addedAt: string; addedBy?: string }>) => {
-    setHolds(next);
-    saveHolds(next);
+  // ── Payout holds live on the SERVER (Q764) ──────────────────────────────
+  // public.payout_holds: every admin reads the same rows (RLS: admins only),
+  // and every payout path refuses a held Helpr (release-payout, the scheduled
+  // crons, cash-outs, tips). They used to live in this browser's localStorage,
+  // so a second admin's Send Payout or Bulk Approve, and the crons, paid a
+  // "held" Helpr. Writes go through admin-only RPCs, which also write the
+  // admin_audit_log row themselves (so nothing here calls logAdminAction).
+  const holdsKey = ["admin-payout-holds", adminId] as const;
+  const {
+    data: holdRows,
+    isLoading: holdsLoading,
+    isError: holdsError,
+    refetch: refetchHolds,
+  } = useQuery({
+    queryKey: holdsKey,
+    enabled: !!adminId,
+    // Admin-only safety state: opt out of disk persistence like the queue.
+    meta: { persist: false },
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from("payout_holds")
+          .select("helper_id, reason, held_at, held_by, denied_at, denied_reason"),
+      ),
+  });
+  const holds = useMemo(() => {
+    const out: Record<string, { reason: string; addedAt: string; addedBy?: string }> = {};
+    for (const h of holdRows ?? []) {
+      out[h.helper_id] = {
+        reason: h.denied_reason ? `[DENIED] ${h.denied_reason}` : h.reason,
+        addedAt: h.held_at,
+        addedBy: h.held_by ?? undefined,
+      };
+    }
+    return out;
+  }, [holdRows]);
+
+  /** One hold write: throws into a toast, and re-reads the holds on success. */
+  const runHoldWrite = async (
+    label: string,
+    write: () => Promise<boolean>,
+    copyFor: (err: unknown) => string | null,
+  ): Promise<boolean> => {
+    try {
+      if (!(await write())) throw new Error(`${label}: the server did not confirm the change`);
+      await qc.invalidateQueries({ queryKey: holdsKey });
+      return true;
+    } catch (err: unknown) {
+      report(err, { tags: { source: `AdminPayoutBatches.${label}` } });
+      toast.error(copyFor(err) ?? userFacingError(err, "Couldn't update that payout hold — try again."));
+      return false;
+    }
   };
 
-  const addHold = (helperId: string, reason: string) => {
-    const next = { ...holds, [helperId]: { reason, addedAt: new Date().toISOString(), addedBy: adminId } };
-    updateHolds(next);
+  const addHold = async (helperId: string, reason: string) => {
+    const ok = await runHoldWrite("addHold", async () => {
+      const row = unwrap(await supabase.rpc("admin_set_payout_hold", { p_helper_id: helperId, p_reason: reason }));
+      return !!row && row.helper_id === helperId;
+    }, (err) => rpcErrorMessage("admin_set_payout_hold", err));
+    if (!ok) return;
     setSelected((prev) => {
       const n = new Set(prev);
       n.delete(helperId);
       return n;
     });
-    void logAdminAction("payout_held_for_review", "user", helperId, { reason });
   };
-  const releaseHold = (helperId: string) => {
-    const next = { ...holds };
-    delete next[helperId];
-    updateHolds(next);
-    void logAdminAction("payout_hold_released", "user", helperId);
+  const releaseHold = async (helperId: string) => {
+    // The RPC answers false when there was no hold to clear (another admin
+    // released it first). The end state is the one asked for, so that is not
+    // an error; a thrown error is.
+    await runHoldWrite("releaseHold", async () => {
+      unwrap(await supabase.rpc("admin_release_payout_hold", { p_helper_id: helperId }));
+      return true;
+    }, (err) => rpcErrorMessage("admin_release_payout_hold", err));
   };
   const denyHold = async (helperId: string, reason: string) => {
-    // Denial just records the audit decision — it doesn't refund
-    // anything yet, because we don't have a "deny payout" RPC. The
-    // helper stays in the hold tab with the deny reason appended so
-    // it's visible until manual cleanup.
-    void logAdminAction("payout_denied", "user", helperId, { reason });
-    const existing = holds[helperId];
-    if (existing) {
-      const next = { ...holds, [helperId]: { ...existing, reason: `[DENIED] ${reason}` } };
-      updateHolds(next);
-    }
+    // A denial is recorded ON the hold and keeps blocking every payout path.
+    // Nothing is refunded or reversed here.
+    await runHoldWrite("denyHold", async () => {
+      const row = unwrap(await supabase.rpc("admin_deny_payout_hold", { p_helper_id: helperId, p_reason: reason }));
+      return !!row && row.helper_id === helperId;
+    }, (err) => rpcErrorMessage("admin_deny_payout_hold", err));
   };
   // Admin-scoped key: two admins on the same device should not share
   // cached views, and the persister must never surface the prior admin's
@@ -216,8 +265,11 @@ const AdminPayoutBatches = () => {
     }
   };
 
-  const readyBatches = batches.filter((b) => !holds[b.helper_id]);
-  const heldBatches = batches.filter((b) => holds[b.helper_id]);
+  // Until the holds are known, NOTHING is ready: a batch must never be
+  // offered for (bulk) payout on the strength of a hold list not yet read.
+  const holdsKnown = !!holdRows;
+  const readyBatches = holdsKnown ? batches.filter((b) => !holds[b.helper_id]) : [];
+  const heldBatches = holdsKnown ? batches.filter((b) => holds[b.helper_id]) : [];
   const visibleBatches = tab === "ready" ? readyBatches : heldBatches;
 
   const grandTotal = readyBatches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
@@ -316,12 +368,12 @@ const AdminPayoutBatches = () => {
       )}
 
       {/* Tabs — Ready vs Hold for Review. Held batches sit in their own
-          queue so they don't sneak into a bulk select. NOTE: holds live in
-          localStorage (see adminPayoutBatchesHelpers), so they are scoped to
-          THIS browser — the tab label says so, because a second admin sees an
-          unheld batch with a live Pay Out button. */}
-      {/* `overflow-x-auto` + nowrap tabs: "Hold for Review (this device) (0)"
-          wrapped to three lines at 375 and read as a broken control. */}
+          queue so they don't sneak into a bulk select. Holds are server-side
+          (public.payout_holds, Q764): every admin sees the same held list, and
+          the payout functions refuse a held Helpr even if a stale screen
+          offers Pay Out. */}
+      {/* `overflow-x-auto` + nowrap tabs: a longer tab label once wrapped to
+          three lines at 375 and read as a broken control. */}
       {batches.length > 0 && (
         <div role="tablist" aria-label="Payout queue" className="flex gap-1.5 border-b border-border overflow-x-auto no-scrollbar">
           <button
@@ -349,7 +401,6 @@ const AdminPayoutBatches = () => {
           >
             <span className="inline-flex items-center gap-1.5">
               <Pause className="w-3.5 h-3.5" /> Hold for Review
-              <span className="text-ds-10 font-normal text-muted-foreground">(this device)</span>
               <span className="text-ds-11 tabular-nums">({heldBatches.length})</span>
             </span>
           </button>
@@ -369,7 +420,7 @@ const AdminPayoutBatches = () => {
         </div>
       )}
 
-      {isInitialLoading ? (
+      {isInitialLoading || holdsLoading ? (
         // Skeleton rows give the page a stable shape while the RPC resolves
         // instead of dropping to a lone "Loading…" line.
         <div className="space-y-2" aria-hidden="true">
@@ -383,13 +434,16 @@ const AdminPayoutBatches = () => {
             </div>
           ))}
         </div>
-      ) : isError ? (
+      ) : isError || holdsError ? (
         <ErrorState
           surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
-          title="We couldn't load payout batches."
+          title={isError ? "We couldn't load payout batches." : "We couldn't load payout holds."}
           body="Tap Try again. No transfers were fired — the queue is server-side."
-          onRetry={() => refetch()}
+          onRetry={() => {
+            if (isError) void refetch();
+            if (holdsError) void refetchHolds();
+          }}
         />
       ) : visibleBatches.length === 0 ? (
         /* The shared EmptyState. This screen hand-rolled an icon over a grey
@@ -464,8 +518,9 @@ const AdminPayoutBatches = () => {
           <div className="space-y-3">
             <DialogBody>
               <p>
-                Moves this Helpr's batch to the Hold-for-review queue. No
-                Stripe transfer is fired. Logged to admin_audit_log.
+                Stops every payout to this Helpr until an admin releases the
+                hold: Send Payout, Bulk Approve, scheduled payouts, cash-outs
+                and tips. Every admin sees it. Logged to admin_audit_log.
               </p>
             </DialogBody>
             <Textarea
@@ -481,7 +536,7 @@ const AdminPayoutBatches = () => {
             <DialogPrimaryAction
               onClick={() => {
                 if (!holdReasonDraft) return;
-                addHold(holdReasonDraft.helperId, holdReasonDraft.reason.trim() || "No reason given");
+                void addHold(holdReasonDraft.helperId, holdReasonDraft.reason.trim() || "No reason given");
                 setHoldReasonDraft(null);
               }}
               disabled={!holdReasonDraft?.reason.trim()}

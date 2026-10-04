@@ -56,7 +56,8 @@ describe("every framer layoutId goes through SharedLayoutPill (PD-009)", () => {
         // in the same tag (a `>` inside it) cannot hide the prop.
         const tags = [...src.slice(0, m.index).matchAll(/<([A-Za-z][\w.]*)/g)];
         const tag = tags.length ? tags[tags.length - 1][1] : "?";
-        if (tag === "SharedLayoutPill") continue;
+        // DockPill is the dock's plain-until-framer-arrives wrapper (Q1172); it renders SharedLayoutPill.
+        if (tag === "SharedLayoutPill" || tag === "DockPill") continue;
         const line = src.slice(0, m.index).split("\n").length;
         hits.push(`${f}:${line} <${tag} layoutId=…> — use <SharedLayoutPill layoutId=…> (src/components/ui/SharedLayoutPill.tsx)`);
       }
@@ -66,8 +67,8 @@ describe("every framer layoutId goes through SharedLayoutPill (PD-009)", () => {
 
   it("the pills that exist use the primitive (inventory floor)", () => {
     let uses = 0;
-    for (const [f, src] of code) if (f !== PRIMITIVE) uses += (src.match(/<SharedLayoutPill\b/g) ?? []).length;
-    // Legal, LegalTab, SubscriptionTab and MobileNav's two on 2026-09-25.
+    for (const [f, src] of code) if (f !== PRIMITIVE) uses += (src.match(/<(?:SharedLayoutPill|DockPill)\b/g) ?? []).length;
+    // Legal, LegalTab, SubscriptionTab, MobileNav's two DockPills and the one SharedLayoutPill inside DockPill.
     expect(uses).toBeGreaterThan(4);
   });
 });

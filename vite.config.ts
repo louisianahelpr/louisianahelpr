@@ -5,6 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
+import { signedInOnlyModules } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -143,6 +144,8 @@ function restartOnDependencyChange(): Plugin {
     },
   };
 }
+
+const { signedInOnly } = signedInOnlyModules(process.cwd());
 
 export default defineConfig(({ mode }) => ({
   define: {
@@ -740,6 +743,28 @@ export default defineConfig(({ mode }) => ({
               test: /[\\/]src[\\/]lib[\\/](pdfDocument|helprMarkPng)\.ts$/,
               priority: 20,
               minSize: 0,
+            },
+            // Shared code no signed-OUT cold load reaches (Q654). app-shared sits
+            // on the boot path of every page, and the modules two SIGNED-IN pages
+            // share (useActivityData, subscriptionTiers, nativePush, ...) rode in
+            // it, so every public visitor downloaded and parsed them: Lighthouse's
+            // unused-javascript put 138-146 KiB on each public route. The set is
+            // computed from source on every build (scripts/perf/bootReach.mjs:
+            // static imports from main.tsx and each guest first screen in
+            // ENTRY_ROUTE_CHUNKS), so there is no list to go stale. Signed-in
+            // first screens fetch this chunk beside their own page chunk, in
+            // the same round. scripts/check-deferred-vendors.mjs fails if any of
+            // these modules is found in a chunk of the boot graph again.
+            {
+              name: "signed-in-shared",
+              test: (id: string) => signedInOnly.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 15,
+              minSize: 0,
+              // Without this rolldown also captures every module these ones import
+              // (utils, the Supabase client, react-router, ...), and the chunk
+              // then holds boot code too, so boot imports it and nothing moves.
+              includeDependenciesRecursively: false,
             },
             {
               name: "app-shared",

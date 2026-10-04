@@ -37,3 +37,14 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 export const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
+
+/**
+ * Is the listing live? NO, and every App Store link and badge is hidden until
+ * it is (owner, 2026-10-04, Q1124: the listing 404s). Footer's Apple chip and
+ * ForceUpdateGate's "Update on the App Store" button render only when this is
+ * true; index.html's Smart App Banner meta was removed (static HTML cannot read
+ * this flag). Restoring all three with the real App Store ID is a launch
+ * checklist item in docs/OPEN.md (Q1276); src/test/appStoreLinksHiddenUntilLive.test.ts
+ * holds every reader of APP_STORE_URL to this flag.
+ */
+export const APP_STORE_LISTING_LIVE: boolean = false;

@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 562,
-    "files": 142,
-    "rendering": 541,
+    "calls": 563,
+    "files": 143,
+    "rendering": 542,
     "suppressedByPolicy": 21,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 448,
+      "toast.error": 449,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 308,
       "template": 73,
-      "dynamic": 221,
+      "dynamic": 222,
       "jsx": 0
     }
   },
@@ -1982,7 +1982,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 179,
+      "line": 154,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1992,7 +1992,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 213,
+      "line": 188,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2002,7 +2002,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 276,
+      "line": 254,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2567,6 +2567,16 @@
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage( err, `That change is saved, but ${who} couldn't be notified — tell them directly.`, )"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/usePayoutHolds.ts",
+      "line": 62,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copyFor(err) ?? userFacingError(err, \"Couldn't update that payout hold — try again.\")"
       },
       "renders": true
     },

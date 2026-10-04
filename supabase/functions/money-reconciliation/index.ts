@@ -744,9 +744,79 @@ serve(async (req) => {
     // Helpr's due jobs in payout_pending ON PURPOSE: every payout path refuses
     // them until the hold is released. Those jobs are not stranded, so they are
     // reported in `payout_pending_held` (body only, no page) instead of here.
-    // A crew job is held when ANY roster member is held (its release waits for
-    // every member). FAIL CLOSED: if the holds or the roster cannot be read,
-    // nothing is exempted and the run is degraded, so it keeps paging.
+    // A crew job is held when every member still UNPAID is held (its release
+    // waits for every member; Q1240: one held member used to exempt the whole
+    // job). FAIL CLOSED: if the holds or the roster cannot be read, nothing is
+    // exempted and the run is degraded, so it keeps paging.
+    //
+    // ── Payout ledger ────────────────────────────────────────────────────────
+    // Read HERE, above the hold exemption below, because that exemption needs
+    // to know which crew members were already paid (Q1240).
+    type TransferRow = {
+      job_id: string;
+      helper_id?: string | null;
+      amount_cents: number | null;
+      platform_fee_cents: number | null;
+      status: string | null;
+      stripe_transfer_id: string | null;
+    };
+    const transferScan = await scanAll<TransferRow>("payout_transfers", (countOpt) =>
+      admin
+        .from("payout_transfers")
+        .select("job_id, helper_id, amount_cents, platform_fee_cents, status, stripe_transfer_id", countOpt)
+        .order("id", { ascending: true }),
+    );
+    if (transferScan.error) throw new Error(`payout_transfers read failed: ${transferScan.error.message}`);
+    // A TRUNCATED payout ledger does not hide findings here — it MANUFACTURES
+    // them. `paidJobIds` is built from whatever came back, so every `released`
+    // job whose transfer row fell outside a short read is reported as
+    // `released_without_payout_transfer`: "money supposedly left, with no
+    // record of where." That is a CRITICAL, and a critical that fires because a
+    // scan came up short is how an alarm gets muted. `transferFeeMismatch` has
+    // the same exposure for the same reason.
+    //
+    // So both ledger checks degrade to "skipped", exactly as the dispute
+    // cross-check below already does. Skipping is recorded in `notes`, which
+    // feeds the defect count and the degraded Slack alert, so the skip is
+    // louder than the false criticals would have been — and honest.
+    const transferCap = scanDefect("payout_transfers", transferScan);
+    const transfers = transferScan.rows;
+
+    // Only rows where money actually moved count as "this job was paid".
+    //
+    // This used to be `status !== 'reversed'`, an allow-everything-else test
+    // that was correct only because 'failed' rows never existed — nothing in
+    // the payout set ever wrote one. They do now (the claim protocol in
+    // _shared/payoutClaim.ts records every failed attempt), and so do 'pending'
+    // CLAIM rows written moments before a transfer that may never happen. Under
+    // the old test both would have counted as payment, and
+    // `released_without_payout_transfer` — a critical check — would have gone
+    // quiet on exactly the jobs it exists to catch.
+    // Money is out, and stayed out, iff the row is 'paid' — or 'pending' with a
+    // REAL Stripe transfer id, which is the brief window between
+    // transfers.create returning and the row being stamped paid.
+    //
+    // 'reversed' and 'reversal_cleared' both mean money was clawed back, so
+    // neither counts. A 'pending' row with a NULL id is a CLAIM taken moments
+    // before a transfer that may never happen, and 'failed'/'canceled' are
+    // attempts that moved nothing.
+    const isSettledTransfer = (t: { status: unknown; stripe_transfer_id?: unknown }) =>
+      String(t.status) === "paid" ||
+      (String(t.status) === "pending" && t.stripe_transfer_id != null);
+
+    // Each job's members whose payout settled. On a TRUNCATED ledger nobody
+    // counts as paid, so a crew is exempted only when every member is held:
+    // fail closed toward paging.
+    const paidMembersByJob = new Map<string, Set<string>>();
+    if (!transferCap) {
+      for (const t of transfers) {
+        if (!t.helper_id || !isSettledTransfer(t)) continue;
+        const set = paidMembersByJob.get(t.job_id) ?? new Set<string>();
+        set.add(t.helper_id);
+        paidMembersByJob.set(t.job_id, set);
+      }
+    }
+
     const pendingRows = jobRows.filter((j) => j.payment_status === "payout_pending");
     const heldPayoutJobs: Array<{ job_id: string; helper_ids: string[] }> = [];
     const heldJobIds = new Set<string>();
@@ -788,8 +858,14 @@ serve(async (req) => {
         for (const [jobId, members] of membersByJob) {
           const isCrew = crewPending.includes(jobId);
           if (isCrew && !rosterOk) continue;
+          // Exempt only when EVERY member still owed is held (Q1240): one held
+          // member must not hide an unheld one whose leg is stuck, and a job
+          // whose members were all paid but never flipped is not "held".
           const held = members.filter((m) => holdLookup.holds.has(m));
-          if (held.length) {
+          const paid = paidMembersByJob.get(jobId);
+          const unpaid = members.filter((m) => !paid?.has(m));
+          const unpaidHeld = unpaid.filter((m) => holdLookup.holds.has(m));
+          if (unpaidHeld.length > 0 && unpaidHeld.length === unpaid.length) {
             heldJobIds.add(jobId);
             heldPayoutJobs.push({ job_id: jobId, helper_ids: [...new Set(held)] });
           }
@@ -965,58 +1041,7 @@ serve(async (req) => {
       }
     }
 
-    // ── Payout ledger ────────────────────────────────────────────────────────
-    type TransferRow = {
-      job_id: string;
-      helper_id?: string | null;
-      amount_cents: number | null;
-      platform_fee_cents: number | null;
-      status: string | null;
-      stripe_transfer_id: string | null;
-    };
-    const transferScan = await scanAll<TransferRow>("payout_transfers", (countOpt) =>
-      admin
-        .from("payout_transfers")
-        .select("job_id, helper_id, amount_cents, platform_fee_cents, status, stripe_transfer_id", countOpt)
-        .order("id", { ascending: true }),
-    );
-    if (transferScan.error) throw new Error(`payout_transfers read failed: ${transferScan.error.message}`);
-    // A TRUNCATED payout ledger does not hide findings here — it MANUFACTURES
-    // them. `paidJobIds` is built from whatever came back, so every `released`
-    // job whose transfer row fell outside a short read is reported as
-    // `released_without_payout_transfer`: "money supposedly left, with no
-    // record of where." That is a CRITICAL, and a critical that fires because a
-    // scan came up short is how an alarm gets muted. `transferFeeMismatch` has
-    // the same exposure for the same reason.
-    //
-    // So both ledger checks degrade to "skipped", exactly as the dispute
-    // cross-check below already does. Skipping is recorded in `notes`, which
-    // feeds the defect count and the degraded Slack alert, so the skip is
-    // louder than the false criticals would have been — and honest.
-    const transferCap = scanDefect("payout_transfers", transferScan);
-    const transfers = transferScan.rows;
-
-    // Only rows where money actually moved count as "this job was paid".
-    //
-    // This used to be `status !== 'reversed'`, an allow-everything-else test
-    // that was correct only because 'failed' rows never existed — nothing in
-    // the payout set ever wrote one. They do now (the claim protocol in
-    // _shared/payoutClaim.ts records every failed attempt), and so do 'pending'
-    // CLAIM rows written moments before a transfer that may never happen. Under
-    // the old test both would have counted as payment, and
-    // `released_without_payout_transfer` — a critical check — would have gone
-    // quiet on exactly the jobs it exists to catch.
-    // Money is out, and stayed out, iff the row is 'paid' — or 'pending' with a
-    // REAL Stripe transfer id, which is the brief window between
-    // transfers.create returning and the row being stamped paid.
-    //
-    // 'reversed' and 'reversal_cleared' both mean money was clawed back, so
-    // neither counts. A 'pending' row with a NULL id is a CLAIM taken moments
-    // before a transfer that may never happen, and 'failed'/'canceled' are
-    // attempts that moved nothing.
-    const isSettledTransfer = (t: { status: unknown; stripe_transfer_id?: unknown }) =>
-      String(t.status) === "paid" ||
-      (String(t.status) === "pending" && t.stripe_transfer_id != null);
+    // ── Payout ledger: read above, before the payout hold exemption (Q1240) ──
     if (transferCap) {
       notes.push(`payout-ledger checks skipped: ${transferCap}`);
     } else {

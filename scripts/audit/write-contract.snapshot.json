@@ -5039,7 +5039,16 @@
     "CHECK ((stake_status = ANY (ARRAY['none'::text, 'staked'::text, 'returned'::text, 'forfeited'::text])))",
     "CHECK (((stake_amount IS NULL) OR (stake_amount >= (0)::numeric)))"
    ],
-   "columnGrants": {},
+   "columnGrants": {
+    "authenticated": {
+     "UPDATE": [
+      "attachment_urls",
+      "decline_reason",
+      "message",
+      "status"
+     ]
+    }
+   },
    "columns": {
     "attachment_urls": {
      "enum": null,
@@ -5176,14 +5185,12 @@
     "anon": [
      "DELETE",
      "REFERENCES",
-     "SELECT",
-     "UPDATE"
+     "SELECT"
     ],
     "authenticated": [
      "DELETE",
      "REFERENCES",
-     "SELECT",
-     "UPDATE"
+     "SELECT"
     ]
    },
    "kind": "table",

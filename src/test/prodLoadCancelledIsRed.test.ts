@@ -5,6 +5,7 @@
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   return COVERING_EVENTS.has(o.event) && !String(o.display_title ?? "").includes("(main batch "); |   return COVERING_EVENTS.has(o.event);
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   if (later.some((o) => IN_FLIGHT.has(o.status))) return "recovering"; |   if (false) return "recovering";
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   if (!open.length) return sched; |   return sched;
+// @mutate scripts/ci/cancelled-prod-load-runs.mjs | l.includes("node scripts/ci/wait-prod-load.mjs")); | l.includes("node scripts/ci/wait-prod-load-X.mjs"));
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs | files: scheduledWorkflows(dir), | files: [...prodLoadWorkflows(dir)],
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs | Date.parse(r.created_at) <= now - graceMs && | true &&
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |     return !/^\d+$/.test(min) \|\| !/^\d+$/.test(hour); |     return false;
@@ -51,6 +52,8 @@ const recoveringScheduledRuns = cancelled.recoveringScheduledRuns as (runs: Run[
 const cancelCause = cancelled.cancelCause as (jobs: unknown[], annotations?: { message: string }[], o?: { prodLoad?: boolean }) => string;
 const workflowRuns = cancelled.workflowRuns as (repo: string, file: string, o: { now: number; runs: (path: string) => Run[] }) => Run[];
 const WINDOW_DAYS = cancelled.WINDOW_DAYS as number;
+const isProdLoadGroup = cancelled.isProdLoadGroup as (group: string | null) => boolean;
+const runsProdLoadQueue = cancelled.runsProdLoadQueue as (src: string) => boolean;
 const SUB_DAILY_GRACE_MS = cancelled.SUB_DAILY_GRACE_MS as number;
 const scanTargets = cancelled.scanTargets as (dir?: string) => { files: string[]; prodLoad: Set<string> };
 const firesMoreThanDaily = cancelled.firesMoreThanDaily as (src: string) => boolean;
@@ -68,6 +71,16 @@ describe("Q293: a cancelled scheduled prod-load run is red", () => {
     // Both shapes of group: the literal, and the schedule-only expression.
     expect(files).toContain("press-every-control.yml");
     expect(files).toContain("privacy-journey.yml");
+  });
+
+  it("a workflow is in prod-load by its queue job (Q1161) or by the legacy shared group, in either shape", () => {
+    // Both shapes of the legacy group: the literal, and the schedule-only expression.
+    expect(isProdLoadGroup("prod-load")).toBe(true);
+    expect(isProdLoadGroup("${{ github.event_name == 'schedule' && 'prod-load' || format('x-{0}', github.run_id) }}")).toBe(true);
+    expect(isProdLoadGroup("${{ format('x-{0}', github.run_id) }}")).toBe(false);
+    expect(isProdLoadGroup(null)).toBe(false);
+    expect(runsProdLoadQueue("jobs:\n  prod-load-turn:\n    steps:\n      - run: node scripts/ci/wait-prod-load.mjs\n")).toBe(true);
+    expect(runsProdLoadQueue("jobs:\n  a:\n    steps:\n      # - run: node scripts/ci/wait-prod-load.mjs\n      - run: npm test\n")).toBe(false);
   });
 
   it("counts a cancelled SCHEDULED run inside the window, and nothing else", () => {

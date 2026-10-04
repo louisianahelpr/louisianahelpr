@@ -96,3 +96,15 @@ regexTarget = "line"
 regexes = [
   '''VITE_APPLE_MAPKIT_TOKEN''',
 ]
+
+# PGlite proofs pin the LIVE function bodies they were proven against as
+# md5(prosrc) fingerprints, one per line: `  fn_name: "<32 lowercase hex>",`.
+# generic-api-key read one as a key because the function name contained
+# "credential" (main, 2026-10-04: acceptCompletesAfterStripeSetup.pglite.mjs:51).
+# Only a WHOLE line of exactly that shape is allowed. A path condition was
+# tried and dropped: with `condition = "AND"` gitleaks 8.30 allowed every
+# finding in the path, including a planted non-hex key (measured 2026-10-04).
+[[allowlists]]
+description = "md5(prosrc) fingerprint lines"
+regexTarget = "line"
+regexes = ['''^\s+[a-z_][a-z0-9_]*: "[0-9a-f]{32}",?$''']

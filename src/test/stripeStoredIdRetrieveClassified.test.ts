@@ -27,6 +27,9 @@
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/release-payout/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/void-cancelled-payments/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
+ * @mutate supabase/functions/release-payout/index.ts | if (isTestObjectUnderLiveKey(e)) {\n        logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | if (false) {\n        logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+ * @mutate supabase/functions/release-payout/index.ts | logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | void 0;
+ * @mutate supabase/functions/charge-recurring-visits/index.ts | if (card.kind === "test_object") { | if (card.kind === "test_object") { void 0;
  * @mutate supabase/functions/create-payment/index.ts | import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false;
  */
 import { describe, it, expect } from "vitest";
@@ -85,6 +88,7 @@ for (const f of files) {
 }
 
 /** Functions whose skip must also write the structured line. */
+// @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:SKIP_LOGGING_FILES entry still classifies a retrieve
 const SKIP_LOGGING_FILES = [
   "auto-release-payment/index.ts",
   "auto-resolve-disputes/index.ts",
@@ -95,6 +99,9 @@ const SKIP_LOGGING_FILES = [
   "release-payout/index.ts",
   "void-cancelled-payments/index.ts",
 ];
+
+/** Classified sites whose skip line is written by their caller, not their catch. */
+const LOGS_AT_CALLER = ["charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)"];
 
 /** The retrieves that go through the classifier: EXACT. */
 const CLASSIFIED = [
@@ -139,6 +146,7 @@ const EVENT =
 const PLATFORM = "reads the platform's own account/balance, not a stored id";
 
 /** The retrieves that do NOT go through it, each with why: EXACT. */
+// @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:toEqual(Object.keys(EXEMPT).sort())
 const EXEMPT: Record<string, string> = {
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)": OUTER,
@@ -205,9 +213,18 @@ describe("every stored-id Stripe retrieve is classified for a test-mode id under
   });
 
   it("a skip in a money cron also writes the structured line", () => {
-    const missing = sites.filter((s) => s.classified && SKIP_LOGGING_FILES.includes(s.file) && !s.logged).map((s) => s.key);
+    const missing = sites
+      .filter((s) => s.classified && SKIP_LOGGING_FILES.includes(s.file) && !s.logged && !LOGS_AT_CALLER.includes(s.key))
+      .map((s) => s.key);
     expect(missing).toEqual([]);
+    // seriesCard() only RETURNS kind "test_object"; its one caller writes the line.
+    expect(sources.get("charge-recurring-visits/index.ts")).toMatch(
+      /card\.kind === "test_object"\)\s*\{\s*logTestObjectUnderLiveKey\(/,
+    );
     expect(sites.filter((s) => s.logged).length).toBeGreaterThan(15);
+    for (const f of SKIP_LOGGING_FILES) {
+      expect(sites.some((s) => s.file === f && s.classified), `SKIP_LOGGING_FILES entry still classifies a retrieve: ${f}`).toBe(true);
+    }
   });
 
   it("every function that classifies imports THE shared classifier and does not shadow it", () => {

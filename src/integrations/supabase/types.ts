@@ -3751,6 +3751,33 @@ export type Database = {
         }
         Relationships: []
       }
+      pre_verification_wipes: {
+        Row: {
+          error: string | null
+          id: string
+          objects: Json
+          storage_done_at: string | null
+          user_id: string
+          wiped_at: string
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          objects?: Json
+          storage_done_at?: string | null
+          user_id: string
+          wiped_at?: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          objects?: Json
+          storage_done_at?: string | null
+          user_id?: string
+          wiped_at?: string
+        }
+        Relationships: []
+      }
       profile_search_rate_log: {
         Row: {
           created_at: string
@@ -7229,6 +7256,13 @@ export type Database = {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json
       }
+      pre_verification_wipe_objects: {
+        Args: { p_wipe_id: string }
+        Returns: {
+          bucket: string
+          name: string
+        }[]
+      }
       process_referral: {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: boolean
@@ -7548,6 +7582,7 @@ export type Database = {
         Args: { p_reason: string; p_reported_type: string }
         Returns: string
       }
+      wipe_pre_verification_account: { Args: { p_user_id: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "customer" | "helper"

@@ -48,7 +48,7 @@
 //                      flag is silently ignored.
 //
 // ── Returns ──────────────────────────────────────────────────────────
-//   { sent: N, failed: M, no_tokens: bool, ios?: {...}, android?: {...} }
+//   { sent: N, failed: M, no_tokens: bool, ios?: {...}, android?: {...}, other?: {...} }
 //
 // ── Observability ────────────────────────────────────────────────────
 // Every invocation writes at least one `notification_logs` row with
@@ -433,6 +433,9 @@ serve(async (req) => {
 
   const iosTokens = tokens.filter((t) => t.platform === 'ios')
   const androidTokens = tokens.filter((t) => t.platform === 'android')
+  // Q1252: any other platform ('web' was admitted by the CHECK until
+  // 20261004191820) has no sender here. Counted, so a skip is never silent.
+  const otherTokens = tokens.filter((t) => t.platform !== 'ios' && t.platform !== 'android')
 
   // NB-002: the app-icon badge only changed while the app ran, so a closed app
   // kept whatever count its last session left. Every iOS push now carries the
@@ -528,6 +531,13 @@ serve(async (req) => {
   if (androidTokens.length > 0) {
     result.android = { skipped: 'android_unsupported', tokens: androidTokens.length }
   }
+  if (otherTokens.length > 0) {
+    result.other = {
+      skipped: 'platform_unsupported',
+      tokens: otherTokens.length,
+      platforms: [...new Set(otherTokens.map((t) => t.platform))].sort(),
+    }
+  }
 
   // Best-effort cleanup of dead tokens.
   //
@@ -586,8 +596,8 @@ serve(async (req) => {
   // ── The aggregate outcome for this send ───────────────────────────
   // `sent > 0` is a success even if some other device failed — the person was
   // reached. Zero delivered with failures is a failure. Zero delivered with no
-  // failures means no token was sent to: Android registrations are counted and
-  // skipped (no Android app, Q1126), and a 'web' row is skipped uncounted.
+  // failures means no token was sent to: Android registrations (no Android
+  // app, Q1126) and any other platform (Q1252) are counted and skipped.
   // Either is a skip, not a failure.
   const perPlatform = JSON.stringify(result)
   if (sent > 0) {

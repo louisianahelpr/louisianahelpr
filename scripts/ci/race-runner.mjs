@@ -204,8 +204,12 @@ const RACES = {
   1: {
     name: "apply vs cancel",
     A: CANCEL,
-    B: { as: "helper", run: (c, f) => c.query("INSERT INTO public.applications (job_id, helper_id, status) VALUES ($1, $2, 'pending')", [f.job, f.helper]) },
-    refusal: /job_not_open/,
+    // Through apply_to_job: since Q1009 (20261004184135) a client holds no
+    // INSERT on applications, so the RPC is the only way an apply is written.
+    // Its FOR SHARE read of the job refuses in prose; the trigger behind it
+    // (enforce_application_job_state) refuses as job_not_open.
+    B: { as: "helper", run: (c, f) => c.query("SELECT public.apply_to_job($1, NULL)", [f.job]) },
+    refusal: /job_not_open|no longer accepting applications/,
     bad: (s) => s.status === "cancelled" && s.apps > 0,
   },
   2: {

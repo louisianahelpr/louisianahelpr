@@ -162,7 +162,7 @@ await lands("L6 the sender deletes their message (DELETE unchanged)", `DELETE FR
 // (edited_at included), which the UPDATE half reports by design; that half's
 // proof is messageReadReceiptIsTheReceivers.pglite.mjs.
 {
-  const rows = (await db.query(CHECK.replace(/;\s*$/, ""))).rows.filter((r) => /\bINSERT\b/.test(r.what));
+  const rows = (await db.query(CHECK.replace(/;\s*$/, ""))).rows.filter((r) => r.table === "messages" && /\bINSERT\b/.test(r.what));
   check(
     "C1 scripts/ci/client-insert-columns.sql is clean (INSERT)",
     rows.length === 0,
@@ -172,7 +172,7 @@ await lands("L6 the sender deletes their message (DELETE unchanged)", `DELETE FR
 if (MODE !== "skip") {
   // ...and can fail: put one server-owned column back, and drop one send column.
   await db.exec("GRANT INSERT (is_system) ON public.messages TO authenticated; REVOKE INSERT (reply_to_id) ON public.messages FROM authenticated;");
-  const rows = (await db.query(CHECK.replace(/;\s*$/, ""))).rows.map((r) => `${r.role}: ${r.what}`);
+  const rows = (await db.query(CHECK.replace(/;\s*$/, ""))).rows.filter((r) => r.table === "messages").map((r) => `${r.role}: ${r.what}`);
   check(
     "C2 the check flags an extra column AND a missing one (two-way)",
     rows.includes("authenticated: INSERT (is_system)") && rows.includes("authenticated: missing INSERT (reply_to_id)"),

@@ -277,9 +277,10 @@ async function assertSurface(
     soloRow?: string;
     minFieldPx?: number;
     ownLine?: OwnLine;
+    retapGuard?: string;
   },
 ) {
-  const { name, vw, triggerSel, fieldSel, closeSel, soloRow, minFieldPx, ownLine } = opts;
+  const { name, vw, triggerSel, fieldSel, closeSel, soloRow, minFieldPx, ownLine, retapGuard } = opts;
   // On an own-line width the field's row IS its line, and it is alone there
   // by design (see OwnLine).
   const rowSel = ownLine ? ownLine.lineSel : opts.rowSel;
@@ -349,6 +350,14 @@ async function assertSurface(
 
   const shipped = overlap(closeRect!, closedTrigger!);
   const shippedOverlapPx = Math.min(shipped.x, shipped.y) > 0 ? shipped.x : 0;
+
+  if (retapGuard) {
+    /* (c') THE ✕ SITS ON THE MAGNIFIER'S BOX BY DESIGN (owner, 2026-10-04,
+       Q912 on /legal: the field fills the pill). The geometry is allowed, so
+       what (c) protects is checked as BEHAVIOUR below, at the dismiss: the ✕,
+       then the same point 150 ms later, must leave the field closed. */
+    note(info, { type: `${tag} (c')`, description: `✕ over the magnifier's box by ${Math.round(shippedOverlapPx)}px, by design: ${retapGuard}` });
+  } else {
 
   // THE VACUITY PROOF, on the same page: delete the held-open landing slot and
   // the pre-fix geometry comes straight back. If it does not, this assertion
@@ -449,6 +458,8 @@ async function assertSurface(
     ).toBeGreaterThan(0);
   }
 
+  }
+
   // ── (d) THE FIELD IS WIDE ENOUGH TO READ WHAT YOU TYPED ───────────────────
   //
   // (a) proves the field covers nothing and (c) proves the ✕ clears the
@@ -476,8 +487,22 @@ async function assertSurface(
   }
 
   // ── ONE press out, and the magnifier comes back where it was ──
-  await page.click(closeSel);
-  await page.waitForTimeout(400);
+  if (retapGuard) {
+    // The same finger landing twice: ✕, then the same point 150 ms later.
+    const cx = closeRect!.x + closeRect!.w / 2;
+    const cy = closeRect!.y + closeRect!.h / 2;
+    await page.mouse.click(cx, cy);
+    await page.waitForTimeout(150);
+    await page.mouse.click(cx, cy);
+    await page.waitForTimeout(400);
+    expect(
+      await page.locator(fieldSel).count(),
+      `${tag}: the second press under the ✕ reopened the field — the 2026-09-19 close-then-reopen is back`,
+    ).toBe(0);
+  } else {
+    await page.click(closeSel);
+    await page.waitForTimeout(400);
+  }
   expect(
     await page.locator(fieldSel).count(),
     `${tag}: ONE press of the ✕ must close the field`,
@@ -566,6 +591,12 @@ const SURFACES: {
    * can get worse and this spec will say so.
    */
   minFieldPx?: number;
+  /**
+   * The ✕ sits on the magnifier's return box BY DESIGN (an owner decision,
+   * quoted): clause (c) is then checked as behaviour, a second press under the
+   * ✕ must not reopen the field, and no landing slot is required.
+   */
+  retapGuard?: string;
   /** Below this width the field opens on its OWN LINE under the header row. */
   ownLine?: OwnLine & { belowPx: number };
   /**
@@ -663,6 +694,8 @@ const SURFACES: {
        The surface therefore takes the SHARED floor now, like every other row
        here: no `minFieldPx` override, so `MIN_TYPABLE_FIELD_PX` applies and a
        regression below 120 fails instead of being recorded. */
+    retapGuard:
+      "owner 2026-10-04 (Q912): the field fills the pill, so the landing slot is gone and the re-press is refused (Legal.tsx RETAP_GUARD_MS)",
   },
 ];
 
@@ -686,6 +719,7 @@ for (const vw of [320, 375, 1440] as const) {
           rowSel: surface.rowSel,
           soloRow: surface.soloRow,
           minFieldPx: surface.minFieldPx,
+          retapGuard: surface.retapGuard,
           ownLine:
             surface.ownLine && vw < surface.ownLine.belowPx
               ? surface.ownLine

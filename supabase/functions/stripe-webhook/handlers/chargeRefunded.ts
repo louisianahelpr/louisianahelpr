@@ -40,11 +40,32 @@ export async function handleChargeRefunded(
   // leaves the bulk of escrow in place, so marking the whole job refunded would
   // strand held funds in a wrong terminal state. Reconcile on the actual amounts.
   const isFullRefund = charge.amount_refunded >= charge.amount;
+  // Q1193: a webhook's Charge is the minimal form and never carries `refunds`
+  // (a Charge dropped it in API version 2022-11-15, and webhook objects are not
+  // expanded), so reading charge.refunds left latestRefund undefined on every
+  // current-version delivery: no payment_refunds ledger row, and an
+  // onboarding-fee correction never recognised. The refunds are listed from
+  // Stripe instead, ONCE per delivery (the decided-dispute close below reuses
+  // the same list). A failed list throws before anything is written, so Stripe
+  // redelivers: a silent skip would misread a correction as an ordinary refund.
+  let listed: Promise<Stripe.Refund[]> | null = null;
+  const listChargeRefunds = (): Promise<Stripe.Refund[]> => {
+    listed ??= (async () => {
+      try {
+        const list = await stripe.refunds.list({ charge: charge.id, limit: 100 });
+        return (list?.data ?? []) as Stripe.Refund[];
+      } catch (e) {
+        throw new Error(`Could not list the refunds on charge ${charge.id}: ${String(e)}`);
+      }
+    })();
+    return listed;
+  };
   // The onboarding-fee correction refund is created with
   // metadata.reason = "duplicate_onboarding_fee" on the Refund object itself,
-  // NOT on the parent Charge. Read from the latest refund (data[0] = newest
-  // first in Stripe's reverse-chronological list) to correctly detect it.
-  const latestRefund = charge.refunds?.data?.[0];
+  // NOT on the parent Charge. Read from the latest refund (newest first in
+  // Stripe's reverse-chronological list) to correctly detect it. An event that
+  // does carry refunds (an older API version) is used as it is.
+  const latestRefund: Stripe.Refund | undefined = charge.refunds?.data?.[0] ?? (await listChargeRefunds())[0];
   const isOnboardingFeeCorrection =
     (latestRefund?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
 
@@ -149,8 +170,9 @@ export async function handleChargeRefunded(
       // the notice, so a throw (Stripe redelivers) repeats nothing visible.
       if (nowRefunded) {
         await closeDecidedDisputeOnExternalRefund(
-          { stripe, supabase, logStep },
+          { supabase, logStep },
           charge,
+          listChargeRefunds,
           {
             id: String(refundedJob.id),
             title: (refundedJob as { title?: string | null }).title ?? null,
@@ -318,8 +340,9 @@ const UNEXECUTED_DECISION_FILTER = "execution_status.is.null,execution_status.in
  * A DB or Stripe read failure throws too, before anything is written.
  */
 async function closeDecidedDisputeOnExternalRefund(
-  { stripe, supabase, logStep }: Pick<WebhookContext, "stripe" | "supabase" | "logStep">,
+  { supabase, logStep }: Pick<WebhookContext, "supabase" | "logStep">,
   charge: Stripe.Charge,
+  listChargeRefunds: () => Promise<Stripe.Refund[]>,
   job: { id: string; title: string | null; helper_id: string | null },
 ): Promise<string> {
   // Cheap, and first: most refunded jobs have no decided dispute, and they
@@ -380,13 +403,8 @@ async function closeDecidedDisputeOnExternalRefund(
   // Whose refunds made the charge whole. Read from Stripe: a webhook carries
   // the Charge in its minimal form, and `refunds` is not included on current
   // API versions (2022-11-15 stopped expanding it).
-  let refunds: Stripe.Refund[];
-  try {
-    const list = await stripe.refunds.list({ charge: charge.id, limit: 100 });
-    refunds = (list?.data ?? []) as Stripe.Refund[];
-  } catch (e) {
-    throw new Error(`Could not list the refunds on charge ${charge.id} (job ${job.id}): ${String(e)}`);
-  }
+  // (The same list the handler read for its own ledger row: one Stripe call.)
+  const refunds = await listChargeRefunds();
   const live = refunds.filter((r) => r.status !== "failed" && r.status !== "canceled");
   const splitOf = (r: Stripe.Refund) => String((r.metadata as Record<string, string> | null)?.dispute_id ?? "");
   const bySplit = live.filter((r) => splitOf(r) !== "");

@@ -1,3 +1,8 @@
+// @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "transfer"); | const raced = null as Response \| null;
+// @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund"); | const raced = null as Response \| null;
+// @mutate supabase/functions/create-payment/index.ts | if (error || !current || current.payment_status !== "chargeback") return null; | if (error || !current) return null;
+// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");\n      if (!releaseUpdateErr | .eq("status", "disputed").select("id");\n      if (!releaseUpdateErr
+// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
 // @mutate supabase/functions/create-payment/index.ts |         payment_method_types: TIP_PAYMENT_METHOD_TYPES, |
 /**
  * Unit tests for the `create-payment` Supabase edge function.
@@ -2708,6 +2713,89 @@ describe("create-payment edge function", () => {
           );
           expect(res.status).toBeGreaterThanOrEqual(400);
           expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+        });
+
+        // Q1192: a chargeback block (charge.dispute.created -> payment_status
+        // 'chargeback') that lands while the Stripe call is in flight must not be
+        // written over by the flip. Compare-and-set on the payment_status read,
+        // and a re-read on zero rows.
+        const chargebackLanded = (extraJob: Record<string, unknown> = {}) => {
+          const base = (scenario.reads.jobs.rows ?? [])[0] ?? {};
+          scenario.reads.jobs = {
+            selectOverrides: [
+              { includes: "status, payment_status", result: { rows: [{ status: "disputed", payment_status: "chargeback" }] } },
+            ],
+            rows: [{ ...base, ...extraJob }],
+          };
+          // The flip matched nothing: the block moved payment_status off escrow.
+          scenario.writeSelectRows.jobs = [];
+        };
+        const raceAlerts = () =>
+          slackAlerts.filter((a) => /raced a chargeback/.test(String((a as { title?: string }).title)));
+
+        it.each([
+          ["admin_release_dispute", seedReleasable],
+          ["admin_refund_dispute", seedRefundable],
+        ])("%s flips only a job still in escrow/payout_pending — never over a chargeback block (Q1192)", async (action, seed) => {
+          seed();
+          const fn = await load();
+          const res = await fn.fetch(fn.request({ headers: AUTH, body: { action, jobId: "job-1" } }));
+          expect(res.status).toBe(200);
+          const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+          expect(flip).toBeTruthy();
+          const pin = flip!.filters.find((f) => f.op === "in" && f.column === "payment_status");
+          expect(pin?.value).toEqual(["escrow", "payout_pending"]);
+        });
+
+        it("Quick Release: a chargeback that lands during the transfer is KEPT, ops is paged, the claim stays (Q1192)", async () => {
+          seedReleasable();
+          chargebackLanded();
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect((await json(res)).chargebackRaced).toBe(true);
+          expect(stripeMock.transfers.create).toHaveBeenCalled();
+          expect(raceAlerts()).toHaveLength(1);
+          // Nothing after the flip ran: no dispute-record close, no audit row.
+          expect(scenario.rpcCalls!.some((c) => c.name === "settle_dispute_record")).toBe(false);
+          expect(scenario.writes.some((w) => w.table === "admin_audit_log")).toBe(false);
+          // Money moved, so the claim is not handed back.
+          expect(scenario.rpcCalls!.some((c) => c.name === "release_dispute_settlement_claim")).toBe(false);
+        });
+
+        it("Quick Release: zero rows with NO chargeback behind them keeps the manual-reconciliation 500, no race page (Q1192)", async () => {
+          seedReleasable();
+          scenario.reads.jobs = {
+            selectOverrides: [
+              { includes: "status, payment_status", result: { rows: [{ status: "disputed", payment_status: "cancelling" }] } },
+            ],
+            rows: [(scenario.reads.jobs.rows ?? [])[0]],
+          };
+          scenario.writeSelectRows.jobs = [];
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(500);
+          expect((await json(res)).chargebackRaced).toBeUndefined();
+          expect(raceAlerts()).toHaveLength(0);
+        });
+
+        it("Quick Refund: a chargeback that lands during the refund is KEPT and paged (Q1192)", async () => {
+          seedRefundable();
+          chargebackLanded();
+          const fn = await load();
+          const res = await fn.fetch(
+            fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+          );
+          expect(res.status).toBe(409);
+          expect((await json(res)).chargebackRaced).toBe(true);
+          expect(stripeMock.refunds.create).toHaveBeenCalled();
+          expect(raceAlerts()).toHaveLength(1);
+          expect(scenario.rpcCalls!.some((c) => c.name === "settle_dispute_record")).toBe(false);
+          expect(scenario.writes.some((w) => w.table === "admin_audit_log")).toBe(false);
         });
 
         it("Quick Refund gives the claim back when Stripe DEFINITELY refused the refund (round 5)", async () => {

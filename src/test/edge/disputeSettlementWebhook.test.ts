@@ -48,6 +48,12 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |           : wonNeedsHuman\n          ? " It stays blocked as |           : true\n          ? " It stays blocked as
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (outcome === "busy") { | if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (outside.length === 0 && bySplit.every((r) => splitOf(r) === decidedId)) { | if (false) {
+ *
+ * Q1193: a webhook's minimal Charge carries no `refunds`; the handler lists them.
+ *
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | charge.refunds?.data?.[0] ?? (await listChargeRefunds())[0]; | charge.refunds?.data?.[0];
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | throw new Error(`Could not list the refunds on charge ${charge.id}: ${String(e)}`); | return [];
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | listed ??= (async () => { | listed = (async () => {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -494,11 +500,15 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     expect(helperNote).toHaveLength(1);
     expect(helperNote[0].link).toBe("/jobs?job=job-r");
     // The refund's own effects still happen after the close.
-    expect(scenario.writes.some((w) => w.table === "payment_refunds")).toBe(false); // refunds: null on the event
+    // The event is a minimal Charge (refunds: null): the ledger row comes from the
+    // refunds list the handler read from Stripe (Q1193), and that one list also
+    // served the close above (no second Stripe call).
+    expect(scenario.writes.find((w) => w.table === "payment_refunds")?.payload).toMatchObject({ stripe_refund_id: "re_dash", source: "stripe_dashboard" });
+    expect(stripeMock.refunds.list).toHaveBeenCalledTimes(1);
     expect(notes().some((n) => n.user_id === "p" && n.title === "Refund processed")).toBe(true);
   });
 
-  it("a CREW decision on the refunded job is handed to a person (the fan-out never runs on a refunded job), before any Stripe read", async () => {
+  it("a CREW decision on the refunded job is handed to a person (the fan-out never runs on a refunded job), with no refund read for the close", async () => {
     const fn = await loadConfigured();
     refundedEvent("evt_q450_crew");
     scenario.reads.jobs = { rows: [job] };
@@ -506,7 +516,8 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     const res = await post(fn);
     expect(res.status).toBe(200);
     expect(closeCalls()).toHaveLength(0);
-    expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    // Only the handler's own refund read (Q1193); the close adds none.
+    expect(stripeMock.refunds.list).toHaveBeenCalledTimes(1);
     const page = alerts().find((a) => /settle it by hand/.test(a.title));
     expect(page?.severity).toBe("critical");
     expect(page?.message).toMatch(/crew decision/);
@@ -537,13 +548,13 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     expect(alerts().some((a) => a.severity === "critical" && /settle it by hand/.test(a.title))).toBe(true);
   });
 
-  it("no decided dispute waiting: no Stripe read and no close (the common refund pays nothing extra)", async () => {
+  it("no decided dispute waiting: no close, and no refund read beyond the handler's own one (Q1193)", async () => {
     const fn = await loadConfigured();
     refundedEvent("evt_q450_none");
     scenario.reads.jobs = { rows: [job] };
     scenario.reads.disputes = { rows: [] };
     await post(fn);
-    expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.list).toHaveBeenCalledTimes(1);
     expect(closeCalls()).toHaveLength(0);
   });
 
@@ -604,6 +615,75 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     scenario.reads.disputes = { rows: [{ id: "d-1" }] };
     await post(fn);
     expect(closeCalls()).toHaveLength(0);
+    expect(stripeMock.refunds.list).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Q1193: charge.refunded reads the refunds from Stripe, not from the event's Charge", () => {
+  // A webhook's Charge is minimal: since API version 2022-11-15 it carries no
+  // `refunds` at all (not even null), and webhook objects are never expanded.
+  function minimalChargeEvent(id: string, amountRefunded: number) {
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id,
+      type: "charge.refunded",
+      data: { object: { id: `ch_${id}`, object: "charge", payment_intent: "pi_r", amount: 5000, amount_refunded: amountRefunded, currency: "usd" } },
+    });
+  }
+  const job = { id: "job-m", customer_id: "p", helper_id: "h", title: "Job", payment_status: "escrow" };
+  const ledger = () => scenario.writes.filter((w) => w.table === "payment_refunds").map((w) => w.payload as Record<string, unknown>);
+
+  it("FULL Dashboard refund on a minimal Charge still writes the ledger row (red on main: no row)", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1193_full", 5000);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_full", amount: 5000, status: "succeeded", reason: "requested_by_customer", metadata: {} }] });
+    expect((await post(fn)).status).toBe(200);
+    expect(stripeMock.refunds.list).toHaveBeenCalledWith(expect.objectContaining({ charge: "ch_evt_q1193_full" }));
+    expect(ledger()).toEqual([expect.objectContaining({
+      job_id: "job-m", stripe_refund_id: "re_full", amount_cents: 5000, is_partial: false, source: "stripe_dashboard",
+    })]);
+    expect(alerts().some((a) => /payment_refunds ledger/.test(a.title))).toBe(false);
+  });
+
+  it("PARTIAL Dashboard refund on a minimal Charge writes the partial ledger row (it was silent)", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1193_part", 300);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_part", amount: 300, status: "succeeded", metadata: {} }] });
+    expect((await post(fn)).status).toBe(200);
+    expect(ledger()).toEqual([expect.objectContaining({ stripe_refund_id: "re_part", amount_cents: 300, is_partial: true, source: "stripe_dashboard" })]);
+    expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+  });
+
+  it("an onboarding-fee correction is recognised from the listed refund: no job flip, no ledger row", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1193_fee", 5000);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_fee", amount: 5000, status: "succeeded", metadata: { reason: "duplicate_onboarding_fee" } }] });
+    expect((await post(fn)).status).toBe(200);
+    expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+    expect(ledger()).toHaveLength(0);
+  });
+
+  it("an event that does carry refunds (older API version) is used as is: no Stripe list", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_q1193_old",
+      type: "charge.refunded",
+      data: { object: { id: "ch_old", payment_intent: "pi_r", amount: 5000, amount_refunded: 300, currency: "usd", refunds: { data: [{ id: "re_old", amount: 300 }] } } },
+    });
+    scenario.reads.jobs = { rows: [job] };
+    expect((await post(fn)).status).toBe(200);
     expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    expect(ledger()).toEqual([expect.objectContaining({ stripe_refund_id: "re_old" })]);
+  });
+
+  it("a failed refunds list throws BEFORE any write, so Stripe redelivers (never a silent skip)", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1193_down", 5000);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockRejectedValue(new Error("stripe down"));
+    expect((await post(fn)).status).toBeGreaterThanOrEqual(500);
+    expect(scenario.writes.some((w) => (w.table === "jobs" || w.table === "payment_refunds" || w.table === "notifications"))).toBe(false);
   });
 });

@@ -122,6 +122,12 @@ while :; do
   # Guard: src/test/openRenumber.test.ts.
   node scripts/open-renumber.mjs --base origin/main
 
+  # A merge may REPLACE an item main already has (2026-10-04: a batch merge put
+  # the branches' new items over main's Q1208/Q1209/Q1210 and nothing moved the
+  # count). Every item on origin/main must still be here as itself.
+  # Guard: src/test/openItemsKept.test.ts.
+  node scripts/check-open-items-kept.mjs --base origin/main
+
   npm run -s inventories:refresh
 
   CHANGED=$( { git diff --name-only; comm -13 <(printf '%s\n' "$UNTRACKED_BEFORE") <(git ls-files --others --exclude-standard | sort); } | sed '/^$/d' | sort -u)

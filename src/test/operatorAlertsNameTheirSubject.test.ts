@@ -1,4 +1,4 @@
-// @mutate supabase/functions/process-scheduled-payouts/index.ts | payout cannot proceed. PI status: ${pi.status}.`,\n                  type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`, | payout cannot proceed. PI status: ${pi.status}.`,\n                  type: "admin_alert", link: "/admin",
+// @mutate supabase/functions/process-scheduled-payouts/index.ts | payout cannot proceed. PI status: ${pi.status}.`,\n                    type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`, | payout cannot proceed. PI status: ${pi.status}.`,\n                    type: "admin_alert", link: "/admin",
 // @mutate supabase/functions/auto-resolve-disputes/index.ts |             link: `/admin?view=jobs&job=${job.id}`, |             link: "/admin",
 // @mutate supabase/functions/auto-resolve-disputes/index.ts | `/admin?view=disputes&job=${job.id}`,\n        `unsettleable dispute reminder job | `/admin?view=disputes`,\n        `unsettleable dispute reminder job
 import { describe, expect, it } from "vitest";

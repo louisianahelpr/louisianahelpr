@@ -500,9 +500,10 @@ serve(async (req) => {
   // DB as ground truth for real money movement. A bug, a manual DB edit, or a
   // webhook race that set payout_pending WITHOUT a captured charge would pay the
   // helper out of the platform's own balance. Mirror process-scheduled-payouts:
-  // re-verify the PaymentIntent succeeded — EXCEPT for gift-card-funded jobs, which
-  // are funded from the prepaid platform balance and legitimately have no poster
-  // charge on this job (auto-release-payment Phase 2 hands us gift-card jobs too).
+  // re-verify the PaymentIntent succeeded — EXCEPT for wholly gift-funded jobs,
+  // which are funded from the prepaid platform balance and legitimately have no
+  // poster charge on this job (auto-release-payment Phase 2 hands us gift-card
+  // jobs too). A mixed gift + card job reads its shortfall charge (Q1210).
   const { data: giftCardRow, error: giftCardErr } = await supabaseAdmin
     .from("gift_cards")
     .select("id")
@@ -517,8 +518,9 @@ serve(async (req) => {
     return jsonResponse({ error: "funding-source check failed — retry" }, 500);
   }
   // Carried OUT of the escrow-verification block below so the transfer itself
-  // can be capped by what was actually captured. Both stay null for a
-  // gift-card-funded job, which legitimately has no Stripe charge behind it.
+  // can be capped by what was actually captured. Both stay null for a wholly
+  // gift-funded job, which legitimately has no Stripe charge behind it; a
+  // MIXED gift + card job sets only the captured figure (Q1210, below).
   let escrowChargeId: string | null = null;
   let escrowAmountReceivedCents: number | null = null;
 
@@ -561,7 +563,18 @@ serve(async (req) => {
     }
   }
 
-  if (!giftCardRow) {
+  // Q1210: a gift smaller than the cost is RESERVED and the shortfall is
+  // collected by card (create-payment's gift branch), so a gift job that also
+  // carries a PaymentIntent or a session is MIXED: its escrow is the gift plus
+  // that capture. Skipping the read for every gift job capped the payout at
+  // the gift alone and refused any payout larger than it, so a mixed job could
+  // never pay out. The capture now counts toward the cap; the charge is still
+  // never the transfer SOURCE (it holds only the shortfall; see
+  // execute-dispute-split's transferSourceChargeId). On a gift job a card leg
+  // with no intent, or one that never captured, adds nothing (the pre-Q1210
+  // cap); one that cannot be read defers.
+  const giftFunded = !!giftCardRow;
+  if (!giftFunded || job.stripe_payment_intent_id || job.stripe_session_id) {
     let paymentIntentId = job.stripe_payment_intent_id;
     if (!paymentIntentId && job.stripe_session_id) {
       try {
@@ -574,79 +587,97 @@ serve(async (req) => {
         }
       } catch (e) {
         if (isTestObjectUnderLiveKey(e)) {
-          // Treated as absent, as create-payment does: falls to the 409 below.
+          // Treated as absent, as create-payment does: falls to the 409 below
+          // (on a gift job the card leg simply adds nothing).
           logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+        } else if (giftFunded) {
+          console.error(`[release-payout] could not retrieve the shortfall session for gift job ${job.id}:`, e);
+          return jsonResponse({ error: "could not read the checkout session — retry" }, 502);
         } else {
           console.warn(`[release-payout] could not retrieve session for job ${job.id}:`, e);
         }
       }
     }
-    if (!paymentIntentId) {
+    if (!paymentIntentId && !giftFunded) {
       console.error(`[release-payout] no payment intent for job ${job.id} — cannot verify escrow capture, refusing transfer.`);
       return jsonResponse({ error: "no payment intent on file — cannot verify escrow capture" }, 409);
     }
-    let pi: Stripe.PaymentIntent;
-    try {
-      pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-    } catch (e) {
-      if (isTestObjectUnderLiveKey(e)) {
-        logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+    let pi: Stripe.PaymentIntent | null = null;
+    if (paymentIntentId) {
+      try {
+        pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+      } catch (e) {
+        if (isTestObjectUnderLiveKey(e)) {
+          logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+          if (!giftFunded) {
+            return jsonResponse(
+              { error: "this escrow was paid in Stripe test mode, so there is no real money behind it — payout refused. No money was moved." },
+              409,
+            );
+          }
+        } else {
+          console.error(`[release-payout] paymentIntents.retrieve failed for ${paymentIntentId} (job ${job.id}):`, e);
+          return jsonResponse({ error: "could not verify escrow charge — retry" }, 502);
+        }
+      }
+    }
+    if (pi && giftFunded && pi.status !== "succeeded") {
+      console.warn(`[release-payout] gift job ${job.id}: shortfall intent ${paymentIntentId} is "${pi.status}", so its card leg counts as 0.`);
+      pi = null;
+    }
+    if (pi) {
+      if (pi.status !== "succeeded") {
+        // The charge was never captured — transferring now would drain the platform
+        // balance for money that was never collected. Refuse and alert admins.
+        console.error(`[release-payout] PI ${paymentIntentId} for job ${job.id} status "${pi.status}" — refusing transfer.`);
+        const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
+        for (const adminId of adminIds) {
+          await insertNotifications(supabaseAdmin, {
+            user_id: adminId,
+            job_id: job.id,
+            title: "Payout blocked — charge not captured",
+            message: `Job ${job.id} ("${job.title}") payout blocked. PaymentIntent status: ${pi.status}.`,
+            type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
+          });
+        }
+        return jsonResponse({ error: `escrow charge not captured (PI status: ${pi.status}) — payout refused`, pi_status: pi.status }, 409);
+      }
+      // Read the AMOUNT, not just the status — and never let a missing field
+      // read as zero captured, which would refuse the payout under the wrong
+      // banner. See `_shared/capturedEscrow.ts`.
+      const captured = resolveCapturedEscrow(pi);
+      if (captured.kind === "unverifiable") {
+        console.error(
+          `[release-payout] cannot establish captured escrow for job ${job.id} (PI ${paymentIntentId}): ${captured.reason}`,
+        );
+        const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
+        for (const adminId of adminIds) {
+          await insertNotifications(supabaseAdmin, {
+            user_id: adminId,
+            job_id: job.id,
+            title: "Payout blocked — escrow amount unverifiable",
+            message: `Job ${job.id} ("${job.title}") payout blocked: ${captured.reason}. This is an integration fault, not a poster problem — the charge may well be fine.`,
+            type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
+          });
+        }
         return jsonResponse(
-          { error: "this escrow was paid in Stripe test mode, so there is no real money behind it — payout refused. No money was moved." },
+          { error: "could not verify how much escrow was captured — payout refused", reason: captured.reason },
           409,
         );
       }
-      console.error(`[release-payout] paymentIntents.retrieve failed for ${paymentIntentId} (job ${job.id}):`, e);
-      return jsonResponse({ error: "could not verify escrow charge — retry" }, 502);
-    }
-    if (pi.status !== "succeeded") {
-      // The charge was never captured — transferring now would drain the platform
-      // balance for money that was never collected. Refuse and alert admins.
-      console.error(`[release-payout] PI ${paymentIntentId} for job ${job.id} status "${pi.status}" — refusing transfer.`);
-      const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
-      for (const adminId of adminIds) {
-        await insertNotifications(supabaseAdmin, {
-          user_id: adminId,
-          job_id: job.id,
-          title: "Payout blocked — charge not captured",
-          message: `Job ${job.id} ("${job.title}") payout blocked. PaymentIntent status: ${pi.status}.`,
-          type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
-        });
+      if (captured.source === "amount") {
+        console.warn(
+          `[release-payout] PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`,
+        );
       }
-      return jsonResponse({ error: `escrow charge not captured (PI status: ${pi.status}) — payout refused`, pi_status: pi.status }, 409);
+      escrowAmountReceivedCents = captured.cents;
+      // Never the transfer source on a gift job (see Q1210 above).
+      escrowChargeId = giftFunded
+        ? null
+        : typeof pi.latest_charge === "string"
+          ? pi.latest_charge
+          : pi.latest_charge?.id ?? null;
     }
-    // Read the AMOUNT, not just the status — and never let a missing field
-    // read as zero captured, which would refuse the payout under the wrong
-    // banner. See `_shared/capturedEscrow.ts`.
-    const captured = resolveCapturedEscrow(pi);
-    if (captured.kind === "unverifiable") {
-      console.error(
-        `[release-payout] cannot establish captured escrow for job ${job.id} (PI ${paymentIntentId}): ${captured.reason}`,
-      );
-      const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
-      for (const adminId of adminIds) {
-        await insertNotifications(supabaseAdmin, {
-          user_id: adminId,
-          job_id: job.id,
-          title: "Payout blocked — escrow amount unverifiable",
-          message: `Job ${job.id} ("${job.title}") payout blocked: ${captured.reason}. This is an integration fault, not a poster problem — the charge may well be fine.`,
-          type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
-        });
-      }
-      return jsonResponse(
-        { error: "could not verify how much escrow was captured — payout refused", reason: captured.reason },
-        409,
-      );
-    }
-    if (captured.source === "amount") {
-      console.warn(
-        `[release-payout] PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`,
-      );
-    }
-    escrowAmountReceivedCents = captured.cents;
-    escrowChargeId = typeof pi.latest_charge === "string"
-      ? pi.latest_charge
-      : pi.latest_charge?.id ?? null;
   }
 
   // Compute payout: budget - platform cut + any urgent fee, in cents.

@@ -664,6 +664,82 @@ describe("process-scheduled-payouts edge function", () => {
     });
   });
 
+  // Q1210: a gift smaller than the cost is reserved and the shortfall paid by
+  // card, so the escrow is gift + capture. Capping at the gift alone refused
+  // every payout larger than it, so the job could never pay out.
+  describe("Q1210 a job paid partly by gift and partly by card", () => {
+    function seedMixed(piStatus = "succeeded") {
+      // $100 budget = $50 gift + $50 card shortfall; pro 10% → $90 payout.
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
+      scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 5000 };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: piStatus,
+        latest_charge: "ch_1",
+        amount: 5000,
+        amount_received: piStatus === "succeeded" ? 5000 : 0,
+      });
+    }
+    const runCron = async () => {
+      const fn = await load();
+      return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+    };
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (!isPifFunded \|\| paymentIntentId \|\| job.stripe_session_id) { | if (!isPifFunded) {
+    it("pays it, capped at the card capture plus the gift, never drawn from the shortfall charge", async () => {
+      seedMixed();
+      const res = await runCron();
+      const body = await json(res);
+      expect((body.results as Array<Record<string, unknown>>)[0].status).not.toBe("exceeds_captured_escrow");
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      const args = stripeMock.transfers.create.mock.calls[0][0];
+      expect(args.amount).toBe(9000);
+      expect(args.source_transaction).toBeUndefined();
+    });
+
+    it("still refuses a payout above card + gift", async () => {
+      seedMixed();
+      scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
+      const res = await runCron();
+      const body = await json(res);
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("exceeds_captured_escrow");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (pi.status !== "succeeded" && isPifFunded) { | if (false) {
+    it("counts an uncaptured card leg as zero instead of blocking the gift's share", async () => {
+      seedMixed("requires_payment_method");
+      scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };
+      await runCron();
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+    });
+
+    it("defers (verify_error) when the card leg cannot be read, rather than capping at the gift", async () => {
+      seedMixed();
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("stripe down"));
+      const res = await runCron();
+      const body = await json(res);
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("verify_error");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | } else if (isPifFunded) { | } else if (false) {
+    it("defers (verify_error) when the shortfall SESSION cannot be read", async () => {
+      seedMixed();
+      scenario.reads.jobs = {
+        rows: [{ ...(scenario.reads.jobs as { rows: Record<string, unknown>[] }).rows[0], stripe_payment_intent_id: null }],
+      };
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(new Error("stripe down"));
+      const res = await runCron();
+      const body = await json(res);
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("verify_error");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe("group-job urgent split (#114)", () => {
     it("splits the urgent fee across the roster like the budget", async () => {
       // The poster is charged the urgent fee ONCE, bundled into escrow, so a

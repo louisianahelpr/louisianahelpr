@@ -17,9 +17,10 @@
  * (or ticking one) without lowering the baseline in the same commit.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");

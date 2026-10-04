@@ -41,10 +41,11 @@
 // @mutate src/test/truncatedActionLabel.test.ts | ?.label":\n    "MEASURED NOT CLIPPED | ?.label":\n    "Q119 not yet measured
 // @mutate src/components/policy/CollapsedPolicy.tsx | <span className="text-ds-13 font-semibold text-foreground leading-snug"> | <span className="text-ds-13 font-semibold text-foreground line-clamp-2 leading-snug">
 // @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | <span className="truncate" title={q}>{q}</span> | <span className="truncate">{q}</span>
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const SCAN_DIR = join(ROOT, "src");

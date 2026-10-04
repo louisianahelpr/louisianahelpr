@@ -7,13 +7,14 @@
 // @mutate src/components/profile/CredentialsTab.tsx | "image/webp", "application/pdf"]; | "image/webp", "application/pdf", "image/tiff"];
 // @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | p_kind \|\| '-[0-9]{13}\.([Pp][Dd][Ff]\|[Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp]\|[Hh][Ee][Ii][Cc])$') THEN | p_kind \|\| '-[0-9]{13}\.([Pp][Dd][Ff]\|[Pp][Nn][Gg]\|[Jj][Pp][Ee]?[Gg]\|[Ww][Ee][Bb][Pp])$') THEN
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import {
   CREDENTIAL_DOCUMENT_EXT_MIME,
   credentialDocument,
 } from "../../supabase/functions/_shared/storageKeys.ts";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q133 (docs/OPEN.md): four lists decide what a credential document may be,

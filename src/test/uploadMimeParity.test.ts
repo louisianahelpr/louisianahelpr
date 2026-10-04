@@ -29,10 +29,11 @@
 // @mutate src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx | accept="image/*,application/pdf" | accept="image/*,.pdf,.doc,.docx"
 // @mutate src/lib/messageAttachments.ts | ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"] | ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg", "audio/wav"]
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { computeState } from "./storageBucketLimits.test";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");

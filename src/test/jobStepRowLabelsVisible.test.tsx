@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { act } from "@testing-library/react";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 /**
@@ -130,6 +130,7 @@ import {
   JOB_STEP_ROW_GAP_PX,
   LABELLED_CHIP_MIN_PX,
 } from "@/components/job-card/jobStepRow";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 

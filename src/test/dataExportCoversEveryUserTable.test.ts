@@ -35,7 +35,7 @@
  * @mutate supabase/migrations/20261004162818_export_poster_side_of_job_rows.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { anonExecuteRevoked, latestFunctionDefs } from "./helpers/rpcErrorInventory";
@@ -49,6 +49,7 @@ import {
   userKeyedColumns,
 } from "./helpers/dataExportInventory";
 import { EXPORT_SECTIONS, KNOWN_NOT_EXPORTED } from "../../scripts/lib/privacyJourney.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
 const MIGRATIONS = join(ROOT, "supabase", "migrations");

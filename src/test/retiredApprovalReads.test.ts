@@ -40,10 +40,11 @@
  * @mutate supabase/migrations/20260923171331_referral_credit_eligibility_drop_denied.sql | IF v_ban_status IN ('banned', 'temp_banned', 'permanently_banned') THEN | IF v_ban_status IN ('banned', 'temp_banned', 'permanently_banned') OR (SELECT approval_status FROM public.profiles WHERE user_id = NEW.user_id) = 'denied' THEN
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { latestFunctionDefs } from "./helpers/rpcErrorInventory";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const ROOTS = ["src", "supabase/functions", "scripts", "e2e"];

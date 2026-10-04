@@ -19,8 +19,9 @@
  * @mutate src/App.tsx | <Route path="/rules" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} /> | <Route path="/rules" element={<Navigate to="/legal?tab=rules" replace />} />
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function redirectRoutes(app: string): string[] {
   const out: string[] = [];

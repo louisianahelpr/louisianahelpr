@@ -3,10 +3,11 @@
 // @mutate supabase/migrations/20260925234342_retired_relation_reads_from_stale_builds.sql | IF coalesce(NEW.tags ->> 'origin', '') <> 'client' THEN | IF false THEN
 // @mutate src/integrations/supabase/types.ts |       reviews: {\n        Row: { |       broadcast_messages: {\n        Row: {}\n      }\n      reviews: {\n        Row: {
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
 import { relationsInSchema } from "@/test/helpers/schemaRelations";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * CLASS GUARD (Q387): a PGRST205 from a table the schema RETIRED ON PURPOSE is

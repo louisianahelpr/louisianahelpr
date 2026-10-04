@@ -1,7 +1,8 @@
 // @mutate e2e/prod-audit/fundedApplicantJob.ts | await api.post(`${SUPABASE_URL}/rest/v1/rpc/poster_cancel_job`, {\n          headers: headers(poster),\n          data: { p_job_id: r.id, p_reason: "prod-audit fixture teardown" }, | await api.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${r.id}&select=id`, {\n          headers: headers(poster),\n          data: { status: "cancelled" },
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Prod refuses a direct `jobs.status = 'cancelled'` write (42501: "Jobs may

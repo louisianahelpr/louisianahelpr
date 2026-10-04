@@ -12,9 +12,10 @@
 // @mutate src/components/SosShareButton.tsx | <a href="tel:911" aria-label="Call 911"> | <a href="#" aria-label="Call 911">
 // @mutate src/components/SosShareButton.tsx | It does not alert us or emergency services. | Help is on the way.
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const SRC = join(ROOT, "src");

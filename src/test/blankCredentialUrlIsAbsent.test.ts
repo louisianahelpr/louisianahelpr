@@ -7,9 +7,10 @@
 // @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql | SET search_path TO 'public'\nAS $function$ | SET search_path TO 'public', 'pg_temp'\nAS $function$
 // @mutate supabase/migrations/20260923110759_credential_url_is_own_document.sql | auto_pending_credentials() FROM PUBLIC, anon, authenticated; | auto_pending_credentials() FROM PUBLIC;
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q120 (docs/OPEN.md): a blank or whitespace-only license_url / insurance_url

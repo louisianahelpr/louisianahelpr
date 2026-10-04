@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q281 parity guard: a banned account is refused on every client write path

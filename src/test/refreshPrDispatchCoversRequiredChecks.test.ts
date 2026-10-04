@@ -14,10 +14,11 @@
 // GitHub setting). Only those a workflow file produces need dispatching; CodeQL
 // is posted by GitHub's code scanning default setup on every PR.
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { WORKFLOW_CHECKS } from "./helpers/requiredChecks";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REQUIRED_CHECKS = WORKFLOW_CHECKS.map((c) => c.name);
 

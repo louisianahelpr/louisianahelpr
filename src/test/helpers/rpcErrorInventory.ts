@@ -18,10 +18,11 @@
 // read. Prose messages ('job not found') are a different class and out of
 // scope here. Triggers fired by an RPC's own writes are not followed.
 import ts from "typescript";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { walkSource, readSource } from "./walkSource";
 import { blankSqlComments } from "./blankNonCode";
+import { readdirSync } from "./trackedFiles";
 
 export type RpcCall = { file: string; line: number };
 

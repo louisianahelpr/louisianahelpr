@@ -26,9 +26,10 @@
  * @mutate src/hooks/useCurrentUser.test.tsx | it("hydrates profile + isAdmin when user is signed in and admin", async () => {\n    mocks.authReadyState.user = { id: "u1" };\n    mocks.authReadyState.isReady = true;\n    mocks.profileMaybeSingle.mockResolvedValue({\n      data: { user_id: "u1", full_name: "Lexi" }, | it("hydrates profile + isAdmin when user is signed in and admin", async () => {\n    mocks.authReadyState.user = { id: "u1" };\n    mocks.authReadyState.isReady = true;\n    mocks.profileMaybeSingle.mockResolvedValue({\n      data: { user_id: "u1", full_name: "Lexi", approval_status: "approved" },
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { readFileSync, statSync, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const SELF = "src/test/approvalStatusDropped.test.ts";

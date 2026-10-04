@@ -34,10 +34,11 @@
 // enum values (`"poster"` as a `who` discriminant — one lowercase token, no
 // whitespace), comments, imports and log/console arguments are not copy.
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { ROLE_COPY_ALLOWLIST, isAllowedRoleCopy } from "./roleNeutralCopy.allowlist";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 // supabase/functions since 2026-09-15 (owner decision): push, email and error

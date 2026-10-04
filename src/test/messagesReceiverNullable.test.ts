@@ -43,10 +43,11 @@
  * @mutate src/components/messages/ConversationList.tsx | onTogglePin={c.otherUserId === null ? undefined : () => handleTogglePin(c)} | onTogglePin={() => handleTogglePin(c)}
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { threadPairFilter } from "@/lib/deletedCounterparty";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");

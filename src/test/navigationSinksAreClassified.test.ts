@@ -1,8 +1,9 @@
 // @mutate src/components/profile/HelperWorkPhotos.tsx | href={openableDocumentUrl(url) ?? undefined} | href={url}
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * CLASS CHECK: every navigation sink in src/ is either safe by construction or

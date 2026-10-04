@@ -17,8 +17,15 @@
 // Raising the timeout does not address either — the file is missing, not slow.
 // So: skip generated modules, and treat a file that vanishes mid-walk as
 // absent rather than fatal.
-import { readdirSync, readFileSync, statSync } from "node:fs";
+//
+// Q1142 (2026-10-04): a directory under src/ is now listed from the git index
+// (trackedFiles.ts readdirSync), so a fixture that exists for a millisecond
+// (vacuityGate.test.ts writes src/test/fixtures/q136Control-*.ts) is never
+// listed at all; the vanishing-file handling below stays for directories
+// outside src/.
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./trackedFiles";
 
 const SKIP_DIRS = new Set(["node_modules", "dist", "coverage", ".git", "playwright-report", "test-results"]);
 const EXTS = [".ts", ".tsx"];

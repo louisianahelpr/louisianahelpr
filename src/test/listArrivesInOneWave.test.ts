@@ -44,10 +44,11 @@
 // @mutate src/lib/simpleMode.ts | let profileSeniorMode = cachedProfileFlag(); | let profileSeniorMode = false;
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { useArrivalGate, ARRIVAL_CAP_MS } from "@/hooks/useArrivalGate";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = resolve(__dirname, "..");
 const read = (rel: string) => blankComments(readFileSync(join(SRC, rel), "utf8"));

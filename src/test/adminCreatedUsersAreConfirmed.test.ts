@@ -13,9 +13,10 @@
  */
 // @mutate scripts/audit/prod-seed.mjs | body: JSON.stringify({ email: spec.email, email_confirm: true, | body: JSON.stringify({ email: spec.email,
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const ROOTS = ["src", "supabase/functions", "scripts", "e2e"];

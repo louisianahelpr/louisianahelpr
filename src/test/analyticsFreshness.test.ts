@@ -10,13 +10,14 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { AhaEvent } from "@/lib/analytics";
 import { blankComments } from "./helpers/blankNonCode";
 import {
   KEY_EVENTS, MISSING_MILESTONES, NOT_MONITORED, classify, evaluateFreshness, freshnessSql,
 } from "../../scripts/lib/analyticsFreshness.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q72: analytics that silently stop. The monitored list is DERIVED from the

@@ -1,8 +1,9 @@
 // @mutate src/components/profile/CredentialsTab.tsx | const safe = openableDocumentUrl(path); | const safe = path;
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { safeDocumentUrl } from "@/lib/storagePath";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * CLASS CHECK: a stored value that is not a storage path reaches the DOM (href,

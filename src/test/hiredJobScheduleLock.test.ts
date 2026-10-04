@@ -19,9 +19,10 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |      AND (OLD.helper_id IS NOT NULL\n          OR OLD.parent_job_id IS NOT NULL | AND (OLD.helper_id IS NOT NULL
  * @mutate supabase/functions/_shared/cancellationFee.ts |   const hours = hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time); |   const hours = hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time ?? job.helper_confirmed_at);
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const dir = "supabase/migrations";
 const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();

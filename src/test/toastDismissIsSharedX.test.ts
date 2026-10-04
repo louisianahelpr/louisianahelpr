@@ -9,8 +9,9 @@
  * @mutate src/lib/pushPermissionNudge.ts | onDismiss: () => recordNudgeDismissal(), | cancel: { label: "Not now", onClick: () => recordNudgeDismissal() },
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = join(__dirname, "..");
 function walk(dir: string, out: string[] = []): string[] {

@@ -21,10 +21,11 @@
  * window.open) with a value from safeDocumentUrl / openableDocumentUrl.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { openableDocumentUrl } from "@/lib/storagePath";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = resolve(__dirname, "..");
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";

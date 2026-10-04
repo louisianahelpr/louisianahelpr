@@ -10,8 +10,9 @@
 // @mutate supabase/migrations/20260924174847_drop_broadcasts_feature.sql | DROP TABLE IF EXISTS public.broadcast_messages; | SELECT 1;
 // @mutate supabase/migrations/20260924174847_drop_broadcasts_feature.sql | PERFORM cron.unschedule('sweep-pending-broadcast-fan-outs'); | PERFORM 1;
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = join(__dirname, "..");
 

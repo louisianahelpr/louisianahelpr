@@ -24,13 +24,14 @@
  * @mutate scripts/audit/press-every-control.mjs |   return !(now ?? []).some((c) => c.rowText === rowText); |   return true;
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as safety from "../../scripts/audit/pressProdSafety.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as harness from "../../scripts/audit/press-every-control.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const WRITE = /\.(update|insert|delete|upsert|rpc)\(|functions\.invoke\(/;

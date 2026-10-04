@@ -24,9 +24,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const root = join(__dirname, "..", "..");
 const PREFS = join(root, "src/components/NotificationPreferences.tsx");

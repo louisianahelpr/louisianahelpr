@@ -8,10 +8,11 @@
  * @mutate scripts/audit-capture.mjs | const PROFILE_TABS = parseProfileTabKeys(TAB_TITLES_SRC); | const PROFILE_TABS = parseProfileTabKeys(TAB_TITLES_SRC).slice(1);
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { parseProfileTabKeys } from "../../scripts/lib/profileTabs.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 

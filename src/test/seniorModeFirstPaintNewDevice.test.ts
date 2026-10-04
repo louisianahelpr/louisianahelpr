@@ -19,9 +19,10 @@
  * toggle) each also write the session hint, and App.tsx mirrors it.
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 function walk(dir: string, out: string[] = []): string[] {

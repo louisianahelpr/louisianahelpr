@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * VN-48 (owner, 2026-09-14): Post a Job field labels were sentence case

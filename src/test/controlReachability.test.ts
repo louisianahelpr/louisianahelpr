@@ -83,6 +83,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SRC = path.join(ROOT, "src");
@@ -97,7 +98,7 @@ const SKIP_DIR = /^(node_modules|\.git|dist|ios|android|coverage|\.next)$/;
 
 export function walkFiles(dir: string, match: RegExp, out: string[] = []): string[] {
   if (!fs.existsSync(dir)) return out;
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) {
       if (SKIP_DIR.test(e.name)) continue;

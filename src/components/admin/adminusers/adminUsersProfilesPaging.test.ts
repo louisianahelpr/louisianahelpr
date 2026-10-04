@@ -1,6 +1,7 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, basename } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "../../../test/helpers/trackedFiles";
 
 // PostgREST caps a response at 1000 rows (max-rows, 2026-09-25) and says nothing when it truncates, so
 // `.from("profiles").select("*")` with no bound silently stops at the

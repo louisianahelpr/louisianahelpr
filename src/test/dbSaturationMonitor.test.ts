@@ -5,9 +5,10 @@
 // @mutate .github/workflows/prod-errors.yml | run: node scripts/db-saturation-check.mjs | run: echo skipped
 // @mutate scripts/db-saturation-check.mjs | if (!Number.isFinite(n)) throw | if (false) throw
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { countFromLogsBody } from "../../scripts/db-saturation-check.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q53: the database starved on 2026-09-22 (19-42 statement timeouts an hour,

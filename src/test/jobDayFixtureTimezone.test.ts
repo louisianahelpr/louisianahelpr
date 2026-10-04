@@ -38,9 +38,10 @@
  * @mutate src/components/job-card/jobStepOneRow.test.tsx | pinJobClock(); | ;
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
+import { readFileSync, statSync, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const SRC = join(ROOT, "src");

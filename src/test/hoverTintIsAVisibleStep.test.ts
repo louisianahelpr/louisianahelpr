@@ -58,8 +58,9 @@
  * @mutate src/components/ui/popupFooter.ts | bg-[hsl(var(--olivewood)/0.06)] | bg-[hsl(var(--olivewood)/0.30)]
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * A step a person can see. 8 points is what the treatment gives an untinted

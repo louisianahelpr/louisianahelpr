@@ -32,9 +32,10 @@
 // @mutate src/index.css | here to this. */\n  transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | here to this. */\n  transform: scale(0.97);
 // @mutate src/index.css | `.btn-press:active`. */\n  transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); | `.btn-press:active`. */\n  transform: scale(0.97);
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const SRC = path.join(ROOT, "src");

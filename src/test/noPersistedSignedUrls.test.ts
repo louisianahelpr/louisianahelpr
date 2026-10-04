@@ -91,8 +91,9 @@
  * lh-admin-moderation's surface; coordinate before touching it.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = join(process.cwd(), "src");
 

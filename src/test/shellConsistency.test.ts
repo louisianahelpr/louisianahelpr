@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve, relative } from "node:path";
 import ts from "typescript";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * EVERY ROUTED PAGE RENDERS THROUGH A SHARED SHELL. No exceptions without a

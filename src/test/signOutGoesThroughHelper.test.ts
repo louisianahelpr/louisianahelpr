@@ -5,8 +5,9 @@
  * every device, which is how a phone Log Out signed the web out (2026-09-12).
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const offenders = (src: string) =>
   src

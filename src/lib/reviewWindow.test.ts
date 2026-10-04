@@ -8,9 +8,10 @@
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx | (!!hasReviewed \|\| reviewWindowOpen(job)) | true
  * @mutate src/pages/jobs/AppliedJobCard.tsx | (helperReviewedJobIds.has(app.job_id) \|\| reviewWindowOpen(job)) | true
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { REVIEW_WINDOW_DAYS, reviewWindowOpen } from "./reviewWindow";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 const DAY = 86_400_000;
 const now = Date.parse("2026-09-24T12:00:00Z");

@@ -34,9 +34,10 @@
  * @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx | soloChipKey="message" | soloChipKey="report"
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { partitionJobStepRowChips, allocateJobStepRow, shouldTightenJobStepRow } from "@/components/job-card/jobStepRow";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const STEP_DIRS = [

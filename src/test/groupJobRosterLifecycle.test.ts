@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * THE CLASS: a crew member's lifecycle stamp that no gate judges.

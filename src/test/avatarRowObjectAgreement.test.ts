@@ -56,6 +56,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.env.AVATAR_AGREEMENT_ROOT ?? path.resolve(__dirname, "../..");
 const CODE_DIRS = ["src", "supabase/functions", "scripts", "e2e"];
@@ -71,7 +72,7 @@ const NEVER_REACHES_PROD: Record<string, string> = {
 function walk(dir: string, out: string[] = []): string[] {
   let entries: fs.Dirent[];
   try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
+    entries = readdirSync(dir, { withFileTypes: true });
   } catch {
     return out;
   }
@@ -479,7 +480,7 @@ function latestSqlFunctionBodies(): Map<string, { file: string; body: string }> 
   const latest = new Map<string, { file: string; body: string }>();
   let files: string[];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+    files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
   } catch {
     return latest;
   }

@@ -56,10 +56,11 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
-import { chmodSync, mkdtempSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 
@@ -107,6 +108,10 @@ const inventory = candidates.filter((f) => LIVE_MARKERS.some((rx) => rx.test(cod
  * fail-closed exit that was added for Q52, so deleting it is still caught.
  */
 const NOT_HERMETIC: Record<string, { why: string; mustContain?: string[] }> = {
+  "scripts/check-closing-keywords.mjs": {
+    why: "reads the commit messages of a git range and asks gh for each closing reference's labels; it needs a throwaway git repo with chosen messages, which src/test/closingKeywordNightlyRed.test.ts builds, running it with a failing gh, a missing gh and a nightly-red answer, each of which must exit 1 (Q1184)",
+    mustContain: ["if (blocked.length || unanswered.length) process.exit(1);"],
+  },
   "scripts/check-deploy-budget.mjs": {
     why: "advisory pre-push WARNING by contract ('exit 0 always', never blocks a push); prints 'not checked' on a failed read, and zero deploys in 24h is a true value, so no floor exists",
   },

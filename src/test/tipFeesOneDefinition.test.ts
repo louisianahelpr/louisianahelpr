@@ -29,13 +29,14 @@
  * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip }; | helperCents: tip - feeCents };
  * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipTotalHint } from "@/components/TipCostBreakdownCopy";
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import { tipChargeBreakdown, TIP_MAX_CENTS } from "../../supabase/functions/_shared/tipFees";
 import { stripeProcessingCostCents } from "../../supabase/functions/_shared/stripeFees";
 import { sumHelperTipDollars } from "@/lib/helperEarnings";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
 

@@ -27,11 +27,12 @@
  * @mutate src/lib/pinnedConversations.ts | if (isGoneReference(error)) return; | if (false) return;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
 import { walkSource, readSource } from "@/test/helpers/walkSource";
 import { balanced } from "@/test/helpers/schemaConstraints";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 

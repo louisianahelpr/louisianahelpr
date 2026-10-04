@@ -17,8 +17,9 @@
  * @mutate src/components/admin/AdminUsers.tsx | itemClassName="pb-1" | className="space-y-2"
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const SRC = join(ROOT, "src");

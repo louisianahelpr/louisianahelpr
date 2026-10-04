@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * EVERY `min-[Npx]:` / `max-[Npx]:` CLASS THE APP SHIPS IS A REAL CSS RULE.

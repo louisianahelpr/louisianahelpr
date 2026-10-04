@@ -27,11 +27,12 @@
  * @mutate supabase/functions/arrival-confirm-reminder/index.ts | createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } }) | createClient(supabaseUrl, serviceRoleKey)
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { httpCronJobs } from "@/test/helpers/cronHttpJobs";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { boundedFetch, CRON_READ_ATTEMPT_MS, CRON_READ_ATTEMPTS } from "../../supabase/functions/_shared/boundedFetch";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 

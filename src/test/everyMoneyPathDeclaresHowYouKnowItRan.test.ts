@@ -38,8 +38,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const FUNCTIONS_DIR = resolve(ROOT, "supabase", "functions");

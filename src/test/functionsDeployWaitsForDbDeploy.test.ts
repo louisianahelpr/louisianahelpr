@@ -23,9 +23,10 @@
  * Inventory: every workflow with a `supabase functions deploy` step.
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "yaml";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const WF_DIR = resolve(ROOT, ".github/workflows");

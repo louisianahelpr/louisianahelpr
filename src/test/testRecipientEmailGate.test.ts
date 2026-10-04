@@ -28,10 +28,11 @@
 // @mutate supabase/functions/_shared/testRecipient.ts |       .eq('email', addr.trim().toLowerCase())\n      .eq('is_seed', true) |       .eq('email', addr.trim().toLowerCase())\n      .eq('is_seed', false)
 // @mutate supabase/functions/_shared/testRecipient.ts |       .in('email', chunk)\n      .eq('is_seed', true) |       .in('email', chunk)\n      .eq('is_seed', false)
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { isTestAddress, isTestRecipient, isTestRecipientIn, seedAddressesAmong, SEED_LOOKUP_CHUNK } from "../../supabase/functions/_shared/testRecipient";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const FN = join(ROOT, "supabase", "functions");

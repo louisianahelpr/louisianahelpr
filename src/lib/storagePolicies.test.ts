@@ -11,10 +11,11 @@
 // the bucket and grants it a SELECT (or ALL) policy.
 
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { resolve } from "node:path";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const MIGRATIONS_DIR = resolve(ROOT, "supabase/migrations");

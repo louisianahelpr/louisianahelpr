@@ -27,9 +27,10 @@
 // @mutate e2e/journeys/time-travel.spec.ts | test("a funded job's countdown chip: | test.skip("a funded job's countdown chip:
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const root = join(__dirname, "..", "..");
 

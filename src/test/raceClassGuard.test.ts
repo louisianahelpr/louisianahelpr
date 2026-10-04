@@ -5,7 +5,8 @@ import { resolve } from "node:path";
 import * as guard from "../../scripts/check-race-class.mjs";
 import { effectiveDefs, type FnDef } from "./helpers/effectiveFunctionDefs";
 import { blankComments } from "./helpers/blankNonCode";
-import { readdirSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function walkTestFiles(dir: string): string[] {
   const out: string[] = [];

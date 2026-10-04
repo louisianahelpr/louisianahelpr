@@ -19,7 +19,7 @@
 // can fail for a missing member.
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
 import {
   MONTHLY_FREE_BOOSTS,
@@ -37,6 +37,7 @@ import {
 } from "../../supabase/functions/_shared/tierPerks";
 import { TIER_PERKS, tierDisplayName } from "./subscriptionTiers";
 import { TIER_FEE_PERCENT } from "../../supabase/functions/_shared/helperFees";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 const PERK_KEYS = Object.keys(TIER_PERK_MATRIX.free) as TierPerkKey[];
 

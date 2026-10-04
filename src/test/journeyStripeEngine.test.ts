@@ -28,9 +28,10 @@
 // @mutate e2e/journeys/stripeInChromium.ts | const browser = await chromium.launch(); | const browser = await webkit.launch();
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const root = join(__dirname, "..", "..");
 const JOURNEYS = join(root, "e2e/journeys");

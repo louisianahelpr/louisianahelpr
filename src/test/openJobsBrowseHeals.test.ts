@@ -22,9 +22,10 @@
 // @mutate supabase/migrations/20261003144349_open_jobs_browse_heals_itself.sql |        AND o.option_value::boolean |        AND o.option_value IN ('true', 'on')
 // @mutate supabase/migrations/20261003144349_open_jobs_browse_heals_itself.sql | SET search_path = pg_catalog, public, pg_temp | SET search_path = public
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const MIG_DIR = join(ROOT, "supabase", "migrations");

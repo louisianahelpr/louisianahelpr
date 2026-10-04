@@ -52,11 +52,12 @@
  * @mutate supabase/functions/_shared/alertPolicy.ts | return `admin-push:${ | return `admin-mirror:${
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { adminPushEventKey } from "../../supabase/functions/_shared/alertPolicy";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
 const MIGRATIONS = join(ROOT, "supabase", "migrations");

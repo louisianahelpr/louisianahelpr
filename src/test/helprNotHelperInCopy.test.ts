@@ -13,9 +13,10 @@
 // "saved_helpers", "helper"), so a literal must contain a space, or be the
 // capitalised label "Helper"/"Helpers", to count as copy.
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SCAN_DIRS = ["src", "supabase/functions"];

@@ -2,10 +2,11 @@
 // @mutate supabase/migrations/20260925141905_dispute_evidence_immutable_to_parties.sql | CREATE POLICY "Users can update their own proof photos"\n  ON storage.objects FOR UPDATE TO authenticated\n  USING (\n    bucket_id = 'proof-photos'\n    AND (storage.foldername(name))[2] IS DISTINCT FROM 'disputes' | CREATE POLICY "Users can update their own proof photos"\n  ON storage.objects FOR UPDATE TO authenticated\n  USING (\n    bucket_id = 'proof-photos'
 // @mutate src/components/DisputeDialog.tsx | await supabase.storage.from("proof-photos").upload(path, file, { | await supabase.storage.from("dispute-files").upload(path, file, {
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource, readSource } from "./helpers/walkSource";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Dispute evidence cannot be swapped or deleted by a party after it is filed.

@@ -11,8 +11,9 @@
 // @mutate e2e/stripeCheckoutCard.ts |  for (let i = 0; i < attempts; i++) { | for (let i = 0; i < 1; i++) {
 // @mutate e2e/prod-audit/fundedOpenJob.ts |     await openCardFields(page); |     if (!(await card.isVisible().catch(() => false))) await radio.click({ force: true });
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const HELPER = "e2e/stripeCheckoutCard.ts";

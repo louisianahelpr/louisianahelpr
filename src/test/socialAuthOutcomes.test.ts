@@ -23,9 +23,10 @@
  * @mutate src/lib/oauthRedirectError.ts | return code === "access_denied" \|\| code === "provider_email_needs_verification" \|\| code === "user_banned"; | return true;
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const SRC = join(ROOT, "src");

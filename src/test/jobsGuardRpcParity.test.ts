@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * JOBS COLUMN GUARDS ↔ THE RPCs THAT MUST PASS THROUGH THEM.

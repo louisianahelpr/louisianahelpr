@@ -8,8 +8,9 @@
  * @mutate src/hooks/useUserLocation.ts | err.PERMISSION_DENIED ? "Location access is off. Turn it on in Settings to use your location." | err.PERMISSION_DENIED ? "Location permission denied"
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = resolve(__dirname, "..");
 

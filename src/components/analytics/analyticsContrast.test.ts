@@ -13,8 +13,9 @@
  * failing shade from its neighbour.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { readdirSync } from "../../test/helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../../..");
 const css = readFileSync(resolve(ROOT, "src/index.css"), "utf8");

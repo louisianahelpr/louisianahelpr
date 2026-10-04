@@ -22,11 +22,12 @@
  * screen is a Radix <Switch>, so the floor counts <Switch in src/components/admin.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as safety from "../../scripts/audit/pressProdSafety.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const isAdminStateToggle = safety.isAdminStateToggle as (a: Record<string, unknown>) => boolean;

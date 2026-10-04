@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
 import {
@@ -10,6 +10,7 @@ import {
 } from "./referralEarnings";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
 import { blankComments } from "../test/helpers/blankNonCode";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "../..");
 

@@ -51,6 +51,7 @@ import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { roundPayoutDownCents } from "../_shared/money.ts";
+import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -434,6 +435,32 @@ serve(async (req) => {
         zero_row_match: healed.zeroRow,
       },
       500,
+    );
+  }
+
+  // ── Payout hold (Q764) ────────────────────────────────────────────────────
+  // An admin's hold lives in public.payout_holds, so it stops EVERY caller:
+  // another admin's Send Payout, Bulk Approve, and auto-release-payment's
+  // matured-payout sweep, which all arrive here. Checked after the heal above
+  // (which sends nothing) and before the onboarding-fee claim and any Stripe
+  // call, so a refusal leaves nothing to roll back. Fails closed: a hold we
+  // cannot read is a payout we do not send. `code` lets auto-release-payment
+  // tell a hold (an outcome) from a failure (which it counts and pages on).
+  const hold = await checkPayoutHold(supabaseAdmin, job.helper_id);
+  if (hold.kind === "error") {
+    console.error(`[release-payout] payout hold check failed for helper ${job.helper_id} (job ${job.id}): ${hold.message}`);
+    return jsonResponse({ error: "payout hold check failed — payout refused, retry" }, 500);
+  }
+  if (hold.kind === "held") {
+    console.warn(`[release-payout] job ${job.id} refused: helper ${job.helper_id} is on a payout hold`);
+    return jsonResponse(
+      {
+        error: "this Helpr's payouts are on hold — release the hold in the Payout Queue first. Nothing was moved.",
+        code: PAYOUT_HELD_CODE,
+        hold_reason: hold.reason,
+        denied: hold.denied,
+      },
+      409,
     );
   }
 
@@ -892,6 +919,19 @@ serve(async (req) => {
     initiatedByUserId,
     metadata: { source: "release-payout" },
   });
+  if (claim.kind === "error" && isPayoutHeldRefusal(claim.message)) {
+    // Q764: a hold landed between the check above and this claim, and the
+    // payout_transfers trigger refused it. Same answer as the check itself
+    // (409 payout_held), so auto-release-payment counts no failed attempt.
+    await rollBackOnboardingFeeClaim();
+    return jsonResponse(
+      {
+        error: "this Helpr's payouts are on hold — release the hold in the Payout Queue first. Nothing was moved.",
+        code: PAYOUT_HELD_CODE,
+      },
+      409,
+    );
+  }
   if (claim.kind === "error") {
     // Fail closed BEFORE the transfer. Roll back the onboarding-fee claim we
     // may already hold, for the same reason the transfer catch below does.

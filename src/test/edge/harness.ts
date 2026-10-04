@@ -190,6 +190,16 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
   );
 
+  // Payout hold (Q764): `_shared/payoutHold.ts` has ZERO imports (it takes the
+  // Supabase client as a parameter), so the generated file points at the REAL
+  // module. Whether a held Helpr is refused, and whether an unreadable hold
+  // fails closed, is the behaviour under test; a mock would put it outside the
+  // tests that pin it.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutHold\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutHold.ts";`,
+  );
+
   // Admin audit writer (Q76): `_shared/adminAuditLog.ts` has ZERO imports (the
   // caller passes its Slack alert function in), so the generated file points at
   // the REAL module — the audit row it writes lands in the scenario's writes

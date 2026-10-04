@@ -55,6 +55,7 @@ import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { loadPayoutHolds } from "../_shared/payoutHold.ts";
 
 /** Offending ids reported per check. A bad day must not emit a 10MB payload. */
 const MAX_IDS_PER_CHECK = 10;
@@ -737,8 +738,66 @@ serve(async (req) => {
     // whose transfer already went out, and where a payout that failed with
     // nothing recorded leaves one whose transfer never did. Neither had an
     // alarm.
+    //
+    // PAYOUT HOLDS (Q764). An admin's hold (public.payout_holds) keeps a
+    // Helpr's due jobs in payout_pending ON PURPOSE: every payout path refuses
+    // them until the hold is released. Those jobs are not stranded, so they are
+    // reported in `payout_pending_held` (body only, no page) instead of here.
+    // A crew job is held when ANY roster member is held (its release waits for
+    // every member). FAIL CLOSED: if the holds or the roster cannot be read,
+    // nothing is exempted and the run is degraded, so it keeps paging.
+    const pendingRows = jobRows.filter((j) => j.payment_status === "payout_pending");
+    const heldPayoutJobs: Array<{ job_id: string; helper_ids: string[] }> = [];
+    const heldJobIds = new Set<string>();
+    if (pendingRows.length) {
+      const membersByJob = new Map<string, string[]>();
+      for (const j of pendingRows) if (j.helper_id) membersByJob.set(j.id as string, [j.helper_id as string]);
+      const crewPending = pendingRows.filter((j) => j.is_group_job === true).map((j) => j.id as string);
+      let rosterOk = true;
+      if (crewPending.length) {
+        const pendingRoster = await scanAllIn<Record<string, unknown>>(
+          "group_job_helpers",
+          crewPending,
+          (chunk, countOpt) =>
+            admin
+              .from("group_job_helpers")
+              .select("id, job_id, helper_id", countOpt)
+              .order("id", { ascending: true })
+              .in("job_id", chunk),
+        );
+        const rosterCap = pendingRoster.error
+          ? `group_job_helpers read failed (${pendingRoster.error.message})`
+          : scanDefect("group_job_helpers", pendingRoster);
+        if (rosterCap) {
+          rosterOk = false;
+          notes.push(`payout hold exemption skipped for crew jobs: ${rosterCap}`);
+        } else {
+          for (const r of pendingRoster.rows) {
+            if (!r.helper_id) continue;
+            const list = membersByJob.get(r.job_id as string) ?? [];
+            list.push(r.helper_id as string);
+            membersByJob.set(r.job_id as string, list);
+          }
+        }
+      }
+      const holdLookup = await loadPayoutHolds(admin, [...membersByJob.values()].flat());
+      if (!holdLookup.ok) {
+        notes.push(`payout hold read failed, no held payout exempted: ${holdLookup.message}`);
+      } else {
+        for (const [jobId, members] of membersByJob) {
+          const isCrew = crewPending.includes(jobId);
+          if (isCrew && !rosterOk) continue;
+          const held = members.filter((m) => holdLookup.holds.has(m));
+          if (held.length) {
+            heldJobIds.add(jobId);
+            heldPayoutJobs.push({ job_id: jobId, helper_ids: [...new Set(held)] });
+          }
+        }
+      }
+    }
     for (const job of jobRows) {
       if (job.payment_status !== "payout_pending") continue;
+      if (heldJobIds.has(job.id as string)) continue;
       // Keyed on the SCHEDULED time, not on when the row was last touched: the
       // schedule is the promise, and `updated_at` moves for unrelated reasons.
       // A row with no schedule at all is still graded (falling back to
@@ -1664,6 +1723,9 @@ serve(async (req) => {
       },
       checks_run: Object.values(checks).map((c) => c.name),
       findings,
+      // Q764: payout_pending jobs an admin's payout hold is keeping there on
+      // purpose. Excluded from payout_pending_stranded; reported, never paged.
+      payout_pending_held: heldPayoutJobs,
       // Hits on is_seed jobs (only possible with ?include_seed=1). Reported,
       // sent to the digest, never paged and never a defect; see above.
       seed_findings: seedFindings,

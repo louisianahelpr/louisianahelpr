@@ -18,6 +18,7 @@ import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
+import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 
 
 serve(async (req) => {
@@ -855,6 +856,25 @@ serve(async (req) => {
     };
 
     for (const { job, helperId } of payoutTargets) {
+      // ── Payout hold (Q764) ──────────────────────────────────────────────
+      // Checked per member, first, so a hold placed while this run is in
+      // flight still stops the next transfer. A hold is an OUTCOME, not a
+      // defect: the job stays payout_pending (a crew job cannot release while
+      // a member is unpaid, see crewReadyToRelease) and the next run pays it
+      // once an admin releases the hold. An unreadable hold fails closed and
+      // IS a defect.
+      const hold = await checkPayoutHold(supabaseAdmin, helperId);
+      if (hold.kind === "error") {
+        console.error(`[process-scheduled-payouts] payout hold check failed for ${helperId} (job ${job.id}): ${hold.message}`);
+        results.push({ job_id: job.id, status: "payout_hold_check_error", error: hold.message });
+        jobDefect(job.id, `payout hold check ${job.id}: ${hold.message}`);
+        continue;
+      }
+      if (hold.kind === "held") {
+        console.warn(`[process-scheduled-payouts] helper ${helperId} is on a payout hold; job ${job.id} left payout_pending`);
+        results.push({ job_id: job.id, status: PAYOUT_HELD_CODE, skipped: true });
+        continue;
+      }
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       // A crew member's FROZEN share; a roster row from before the slots existed
       // falls back to the old even split.
@@ -1378,6 +1398,14 @@ serve(async (req) => {
         // idempotency key. Passing no snapshot makes claimPayout re-read the
         // same query under the claim it is about to take.
       });
+      if (claim.kind === "error" && isPayoutHeldRefusal(claim.message)) {
+        // Q764: a hold landed after the check at the top of this loop and the
+        // payout_transfers trigger refused the claim. An outcome, like the
+        // check itself: no transfer, no defect, retried after release.
+        await rollBackOnboardingFeeClaim();
+        results.push({ job_id: job.id, status: PAYOUT_HELD_CODE, skipped: true });
+        continue;
+      }
       if (claim.kind === "error") {
         console.error(`[process-scheduled-payouts] payout claim failed for job ${job.id} / helper ${helperId}: ${claim.message}`);
         await rollBackOnboardingFeeClaim();

@@ -27,6 +27,7 @@ import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -1290,6 +1291,22 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "This Helpr hasn't set up their payout account yet and cannot receive tips at this time." }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+        );
+      }
+
+      // Payout hold (Q764): a tip is a destination charge, so Stripe moves it
+      // to the Helpr the moment the poster pays. A held Helpr is sent nothing,
+      // so no tip checkout is opened for them. The poster is not told why (the
+      // hold is a staff review); an unreadable hold fails closed.
+      const tipHold = await checkPayoutHold(supabaseAdmin, helperId);
+      if (tipHold.kind === "error") {
+        console.error(`[create-payment] tip — payout hold check failed for ${helperId}: ${tipHold.message}`);
+        throw new PublicError("Could not verify the Helpr's payout account — please try again");
+      }
+      if (tipHold.kind === "held") {
+        return new Response(
+          JSON.stringify({ error: "This Helpr can't receive tips right now. Please try again later.", code: PAYOUT_HELD_CODE }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
         );
       }
 
@@ -3746,6 +3763,19 @@ async function transferToHelper(
 
   if (!helperProfile?.stripe_account_id) {
     throw new PublicError("Helpr must set up their payout account before payment can be released. Please ask the helpr to connect their payout account in their profile settings.");
+  }
+
+  // Payout hold (Q764). Thrown before `beforeTransfer` stamps the settlement
+  // claim and before any Stripe call, so no money moved and the caller hands
+  // its claim back: the dispute stays open until the hold is released. Fails
+  // closed on an unreadable hold.
+  const hold = await checkPayoutHold(supabaseAdmin, helperId);
+  if (hold.kind === "error") {
+    console.error(`[create-payment] transferToHelper — payout hold check failed for ${helperId}: ${hold.message}`);
+    throw new PublicError("Could not verify the Helpr's payout hold status — no money was moved. Try again.");
+  }
+  if (hold.kind === "held") {
+    throw new PublicError("This Helpr's payouts are on hold. Release the hold in the Payout Queue first — no money was moved.");
   }
 
   // DB-level idempotency: if a payout ledger row already exists for this job

@@ -349,6 +349,20 @@ export const RPC_ERROR_COPY = {
     not_authorized: "You don't have permission to reverse this.",
     violation_not_found: "That strike no longer exists — it may already have been reversed. Refresh the log.",
   },
+  // AdminPayoutBatches — the server-side payout hold (Q764).
+  admin_set_payout_hold: {
+    admin_only: "Only admins can hold payouts.",
+    helper_required: "Pick the Helpr whose payouts to hold.",
+    reason_required: "Add a reason for the hold. Other admins see it.",
+  },
+  admin_deny_payout_hold: {
+    admin_only: "Only admins can deny a payout.",
+    no_payout_hold: "This Helpr is no longer on hold. Another admin may have released it, so refresh the queue.",
+    reason_required: "Add a reason for the denial.",
+  },
+  admin_release_payout_hold: {
+    admin_only: "Only admins can release a payout hold.",
+  },
   // useLifecycleHandlers — the shared lifecycle sentences, unchanged.
   report_helper_no_show: {
     job_not_found: LIFECYCLE_REASONS.job_not_found,

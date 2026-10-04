@@ -95,6 +95,18 @@
     "nargs": 2
    }
   ],
+  "admin_deny_payout_hold": [
+   {
+    "anon": false,
+    "args": [
+     "p_helper_id",
+     "p_reason"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "admin_gift_card_paid_job_ids": [
    {
     "anon": false,
@@ -148,6 +160,17 @@
     "nargs": 3
    }
   ],
+  "admin_release_payout_hold": [
+   {
+    "anon": false,
+    "args": [
+     "p_helper_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "admin_reverse_violation": [
    {
     "anon": false,
@@ -159,6 +182,18 @@
     "authenticated": true,
     "nargdefaults": 1,
     "nargs": 3
+   }
+  ],
+  "admin_set_payout_hold": [
+   {
+    "anon": false,
+    "args": [
+     "p_helper_id",
+     "p_reason"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "admin_stalled_job_queue": [

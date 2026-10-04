@@ -42,6 +42,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { checkPayoutHold } from "../../_shared/payoutHold.ts";
 
 type Db = WebhookContext["supabase"];
 
@@ -564,6 +565,20 @@ export async function repayClawback(
     if (!["reversed", "repaying", "repay_failed"].includes(row.status)) continue;
     if (!row.stripe_account_id || row.reversed_cents <= 0) {
       out.failed.push({ transferId: row.original_transfer_id, error: "no destination account or amount on the clawback row" });
+      continue;
+    }
+    // Payout hold (Q764): a held Helpr is not re-paid. Checked before the row
+    // is claimed, so it stays 'reversed' and the "re-pay FAILED" page below
+    // names the hold; re-pay by hand once an admin releases it. An unreadable
+    // hold fails closed the same way.
+    const repayHold = await checkPayoutHold(supabase, row.helper_id);
+    if (repayHold.kind !== "clear") {
+      out.failed.push({
+        transferId: row.original_transfer_id,
+        error: repayHold.kind === "held"
+          ? "the Helpr's payouts are on hold (payout_holds); re-pay after the hold is released"
+          : `payout hold check failed: ${repayHold.message}`,
+      });
       continue;
     }
     const { data: claimed, error: claimErr } = await setRow(

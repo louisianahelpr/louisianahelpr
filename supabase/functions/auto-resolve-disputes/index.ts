@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
+import { loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
@@ -827,6 +828,8 @@ serve(async (req) => {
     // until a human clears it, and one deduped admin notification per day.
     const stuckSplits: Array<{ id: string; job_id: string; execution_status: string }> = [];
     let seedStuckSplitsSkipped = 0;
+    // Q764: splits an admin's payout hold is keeping unexecuted on purpose.
+    const heldStuckSplits: Array<{ id: string; job_id: string }> = [];
     {
       const stuckCutoff = Date.now() - STUCK_SPLIT_MINUTES * 60 * 1000;
       const { data: claimed, error: stuckErr } = await supabase
@@ -872,7 +875,7 @@ serve(async (req) => {
           const jobIds = [...new Set(aged.map((row) => row.job_id as string))];
           const { data: seedRows, error: seedErr } = await supabase
             .from("jobs")
-            .select("id, is_seed")
+            .select("id, is_seed, helper_id")
             .in("id", jobIds);
           if (seedErr) {
             console.error("[auto-resolve-disputes] seed-flag read failed; treating every stuck split as real:", seedErr);
@@ -883,6 +886,42 @@ serve(async (req) => {
             );
             stuck = aged.filter((row) => !seedJobIds.has(row.job_id as string));
             seedStuckSplitsSkipped = aged.length - stuck.length;
+
+            // ── Payout holds (Q764) ────────────────────────────────────────
+            // execute-dispute-split refuses a held Helpr's split BEFORE any
+            // leg moves and records PAYOUT_HOLD_SPLIT_ERROR; it waits for the
+            // hold, it is not half-moved. Only a split whose recorded error is
+            // exactly that AND whose Helpr is still held is set aside (body
+            // only, no page). Any other failure on a held Helpr's split still
+            // pages. FAIL CLOSED: an unreadable hold exempts nothing.
+            const helperByJob = new Map(
+              (seedRows ?? []).map((j) => [j.id as string, (j.helper_id as string | null) ?? null]),
+            );
+            const holdCandidates = stuck.filter((row) =>
+              typeof row.execution_error === "string" &&
+              (row.execution_error as string).startsWith(PAYOUT_HOLD_SPLIT_ERROR) &&
+              !!helperByJob.get(row.job_id as string)
+            );
+            if (holdCandidates.length) {
+              const holds = await loadPayoutHolds(
+                supabase,
+                holdCandidates.map((row) => helperByJob.get(row.job_id as string)),
+              );
+              if (!holds.ok) {
+                console.error("[auto-resolve-disputes] payout hold read failed; every stuck split stays stuck:", holds.message);
+                defects.record(`stuck split payout-hold read: ${holds.message}`);
+              } else {
+                const heldIds = new Set(
+                  holdCandidates
+                    .filter((row) => holds.holds.has(helperByJob.get(row.job_id as string) as string))
+                    .map((row) => row.id as string),
+                );
+                for (const row of stuck) {
+                  if (heldIds.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
+                }
+                stuck = stuck.filter((row) => !heldIds.has(row.id as string));
+              }
+            }
           }
         }
         const { ok: splitAdminsOk, ids: splitAdminIds } = stuck.length > 0
@@ -927,6 +966,7 @@ serve(async (req) => {
         swept_dispute_ids: sweptRecords,
         stuck_splits: stuckSplits,
         seed_stuck_splits_skipped: seedStuckSplitsSkipped,
+        held_stuck_splits: heldStuckSplits,
       },
       defects.defects,
       corsHeaders,

@@ -8,6 +8,7 @@ import { formatPayoutDollars } from "../_shared/money.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,6 +122,8 @@ serve(async (req) => {
       if (seedJobIds.has(jobId)) seedDefects.push(reason);
       else defects.record(reason);
     };
+    /** Q764: the hold read behind Phase 1's "you'll be paid" notice. */
+    const holdBeforePromise = (helperId: string | null) => checkPayoutHold(supabaseAdmin, helperId);
 
     let dueQuery = supabaseAdmin
       .from("jobs")
@@ -467,7 +470,19 @@ serve(async (req) => {
       // quote a cent the transfer won't send.
       const helperCommission = helperCommissionDollars(perHelperBudget, helperFeePercent);
       const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
-      if (job.helper_id) {
+      // Q764: a held Helpr is not promised a payout that every payout path
+      // will refuse until the hold is released. The notice is skipped; an
+      // unreadable hold skips it too (no promise on an unknown) and is a
+      // defect. The job itself still moves to payout_pending as before.
+      // (A helper of its own on purpose: src/test/payoutPathsHonourHold.test.ts
+      // counts a hold check only in the money site's own or an enclosing
+      // function, so this notice check can never stand in for Phase 2's.)
+      const promiseHold = await holdBeforePromise(job.helper_id);
+      if (promiseHold.kind === "error") {
+        console.error(`[auto-release-payment] payout hold read failed for ${job.helper_id} (job ${job.id}); payout notice skipped: ${promiseHold.message}`);
+        jobDefect(job.id, `payout hold read ${job.id}: ${promiseHold.message}`);
+      }
+      if (job.helper_id && promiseHold.kind === "clear") {
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           title: "Job auto-completed!",
@@ -635,7 +650,24 @@ serve(async (req) => {
         }
       };
 
-      for (const job of dueJobs ?? []) {
+      // ── Payout holds (Q764) ───────────────────────────────────────────────
+      // A held Helpr is not attempted at all. release-payout would refuse it
+      // too, but as a refusal: this sweep would record a failed attempt every
+      // 30 minutes, burn the give-up budget and page on an admin decision. A
+      // hold is an outcome; the job stays payout_pending and is paid on the
+      // first run after the hold is released. One batched read; if it fails,
+      // NO payout is attempted this run (fail closed) and the run is a defect.
+      const holdLookup = await loadPayoutHolds(supabaseAdmin, (dueJobs ?? []).map((j) => j.helper_id));
+      if (!holdLookup.ok) {
+        console.error("[auto-release-payment] payout hold read failed; no payouts attempted this run:", holdLookup.message);
+        defects.record(`payout hold read: ${holdLookup.message}`);
+      }
+
+      for (const job of holdLookup.ok ? dueJobs ?? [] : []) {
+        if (holdLookup.ok && job.helper_id && holdLookup.holds.has(job.helper_id)) {
+          payoutResults.push({ job_id: job.id, status: PAYOUT_HELD_CODE, detail: "Helpr is on a payout hold; not attempted" });
+          continue;
+        }
         // ── Give up rather than page 48 times a day about the same job ──────
         const priorFailures = failedAttempts.get(job.id) ?? 0;
         if (priorFailures >= GIVE_UP_AFTER_FAILED_ATTEMPTS) {
@@ -673,6 +705,10 @@ serve(async (req) => {
           if (resp.ok) {
             paid++;
             payoutResults.push({ job_id: job.id, status: "paid", detail: json.stripe_transfer_id });
+          } else if (json.code === PAYOUT_HELD_CODE) {
+            // The hold landed between the read above and release-payout's own
+            // check. Same outcome as above: not a failed attempt, no page.
+            payoutResults.push({ job_id: job.id, status: PAYOUT_HELD_CODE, detail: json.error });
           } else {
             const detail = json.error ?? `HTTP ${resp.status}`;
             // release-payout writes its own failed row only when

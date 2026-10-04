@@ -3507,6 +3507,36 @@ export type Database = {
           },
         ]
       }
+      payout_holds: {
+        Row: {
+          denied_at: string | null
+          denied_by: string | null
+          denied_reason: string | null
+          held_at: string
+          held_by: string | null
+          helper_id: string
+          reason: string
+        }
+        Insert: {
+          denied_at?: string | null
+          denied_by?: string | null
+          denied_reason?: string | null
+          held_at?: string
+          held_by?: string | null
+          helper_id: string
+          reason: string
+        }
+        Update: {
+          denied_at?: string | null
+          denied_by?: string | null
+          denied_reason?: string | null
+          held_at?: string
+          held_by?: string | null
+          helper_id?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       payout_transfers: {
         Row: {
           amount_cents: number
@@ -5836,6 +5866,24 @@ export type Database = {
         Args: { _reason: string; _review_id: string }
         Returns: undefined
       }
+      admin_deny_payout_hold: {
+        Args: { p_helper_id: string; p_reason: string }
+        Returns: {
+          denied_at: string | null
+          denied_by: string | null
+          denied_reason: string | null
+          held_at: string
+          held_by: string | null
+          helper_id: string
+          reason: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payout_holds"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_gift_card_paid_job_ids: {
         Args: never
         Returns: {
@@ -5865,6 +5913,10 @@ export type Database = {
         Args: { p_ref: Json; p_rule: string; p_since: string }
         Returns: boolean
       }
+      admin_release_payout_hold: {
+        Args: { p_helper_id: string }
+        Returns: boolean
+      }
       admin_reverse_violation: {
         Args: {
           p_reason: string
@@ -5872,6 +5924,24 @@ export type Database = {
           p_violation_id: string
         }
         Returns: Json
+      }
+      admin_set_payout_hold: {
+        Args: { p_helper_id: string; p_reason: string }
+        Returns: {
+          denied_at: string | null
+          denied_by: string | null
+          denied_reason: string | null
+          held_at: string
+          held_by: string | null
+          helper_id: string
+          reason: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payout_holds"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       admin_stalled_job_queue: {
         Args: { p_include_resolved?: boolean }

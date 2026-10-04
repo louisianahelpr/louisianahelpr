@@ -31,6 +31,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { checkPayoutHold } from "../_shared/payoutHold.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
 class AmbiguousCharge extends Error {}
@@ -97,7 +98,7 @@ serve(async (req) => {
       throw new Error(`auto_tip_candidates failed: ${candErr.message}`);
     }
 
-    const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0 };
+    const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0, held: 0 };
     // `results.failed` is NOT the page-worthy counter. It mixes real defects
     // (a read that errored) with business outcomes that recur forever by
     // design: a helper with no connected account, a poster with no saved card,
@@ -130,6 +131,26 @@ serve(async (req) => {
        * `tips` insert AFTER the card had been charged.
        */
       const tipDollars = tipCents / 100;
+
+      // ── Payout hold (Q764) ─────────────────────────────────────────────
+      // The tip is a destination charge: Stripe moves it to the Helpr the
+      // moment the card is charged. A held Helpr is sent nothing, so the tip is
+      // not claimed or charged; it stays a candidate and is charged on the
+      // first tick after the hold is released (inside the candidate window).
+      // Checked BEFORE the claim so a held Helpr leaves no tips row behind. A
+      // hold is an outcome; an unreadable hold is a defect and fails closed.
+      const tipHold = await checkPayoutHold(supabase, c.helper_id as string);
+      if (tipHold.kind === "error") {
+        log("ERROR reading payout hold — not charging", { jobId, error: tipHold.message });
+        results.failed++;
+        defects.record(`payout hold read ${jobId}: ${tipHold.message}`);
+        continue;
+      }
+      if (tipHold.kind === "held") {
+        log("Helpr on payout hold — tip not charged", { jobId });
+        results.held++;
+        continue;
+      }
 
       // Claim the job FIRST. The unique partial index on (job_id, helper_id)
       // WHERE source='auto' (tips_one_auto_per_job_member, 20260925154606: a

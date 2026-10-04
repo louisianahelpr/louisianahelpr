@@ -13,6 +13,7 @@ import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from ".
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { checkPayoutHold } from "../_shared/payoutHold.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -479,7 +480,22 @@ serve(async (req) => {
         return;
       }
 
-      // ── 5. Where does it go? ──
+      // ── 5. Payout hold (Q764). The row stays open (pending or failed) and
+      // Part E retries it every run, so the fee is sent on the first run after
+      // an admin releases the hold. A hold is an outcome, not a defect; an
+      // unreadable hold fails closed and is one.
+      const feeHold = await checkPayoutHold(supabaseAdmin, helperId);
+      if (feeHold.kind === "error") {
+        console.error(`[void-cancelled-payments] payout hold check failed for job ${job.id} (Helpr ${helperId}); not transferring: ${feeHold.message}`);
+        defects.record(`cancellation fee hold check ${job.id}: ${feeHold.message} — fee not sent`);
+        return;
+      }
+      if (feeHold.kind === "held") {
+        console.log(`[void-cancelled-payments] cancellation fee for job ${job.id} not sent: Helpr ${helperId} is on a payout hold.`);
+        return;
+      }
+
+      // ── 6. Where does it go? ──
       const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
@@ -506,7 +522,7 @@ serve(async (req) => {
         return;
       }
 
-      // ── 6. Transfer, keyed to the row; then mark it. ──
+      // ── 7. Transfer, keyed to the row; then mark it. ──
       try {
         const transferParams: Record<string, unknown> = {
           amount: roundPayoutDownCents(Math.round(helperPayout * 100)),
@@ -664,6 +680,19 @@ serve(async (req) => {
         if (existing) {
           console.log(`[void-cancelled-payments] crew fee for ${share.helper_id} on job ${job.id} already transferred (${existing}); repairing the ledger, not paying again.`);
           await markShare(share, { status: "paid", stripe_transfer_id: existing, paid_at: new Date().toISOString() }, "was already paid in Stripe");
+          continue;
+        }
+        // Payout hold (Q764): this member is sent nothing. The share stays
+        // pending/failed and Part D retries it every run; an outcome, not a
+        // defect. An unreadable hold fails closed and is one.
+        const shareHold = await checkPayoutHold(supabaseAdmin, share.helper_id);
+        if (shareHold.kind === "error") {
+          console.error(`[void-cancelled-payments] payout hold check failed for crew fee share ${share.id} (job ${job.id}): ${shareHold.message}`);
+          defects.record(`crew fee share hold check ${share.id}: ${shareHold.message} — not paid`);
+          continue;
+        }
+        if (shareHold.kind === "held") {
+          console.log(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}) not paid: member ${share.helper_id} is on a payout hold.`);
           continue;
         }
         const commissionPercent = await getHelperFeePercent(

@@ -536,6 +536,29 @@ describe("tips honour the payout hold", () => {
       expect(note?.payload).toMatchObject({ user_id: "poster-1", title: "Your automatic tip wasn't sent" });
     });
 
+    // Review of Q1224 (should-fix): a crew job has one candidate per member;
+    // the poster gets ONE notice for the job, and it names the job.
+    // @mutate supabase/functions/auto-tip-charge/index.ts |         if (agedOutNotified.has(jobId)) continue; |
+    it("a crew job with two held members: two recorded tips, ONE notice carrying job_id", async () => {
+      setEnv({
+        SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key",
+        STRIPE_SECRET_KEY: "sk_test_abc", CRON_SECRET,
+      });
+      const fn = await loadEdgeFunction("auto-tip-charge");
+      scenario.rpc.auto_tip_candidates = [
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 5 },
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-2", budget: 100, tip_amount: 5 },
+      ];
+      scenario.reads.jobs = { rows: [{ id: "job-1", completed_at: new Date(Date.now() - 13.5 * 86_400_000).toISOString() }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.reads.payout_holds = { rows: [HELD, { ...HELD, helper_id: "helper-2" }] };
+      await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
+      expect(scenario.writes.filter((w) => w.table === "tips" && w.op === "insert")).toHaveLength(2);
+      const notes = scenario.writes.filter((w) => w.table === "notifications").map((w) => w.payload as Record<string, unknown>);
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).toMatchObject({ user_id: "poster-1", job_id: "job-1" });
+    });
+
     // @mutate supabase/functions/auto-tip-charge/index.ts | const AUTO_TIP_HELD_RECORD_AFTER_MS = 13 * 24 * 60 * 60 * 1000; | const AUTO_TIP_HELD_RECORD_AFTER_MS = 0;
     it("earlier in the window: still waits for the hold, writes nothing", async () => {
       const res = await runHeldTip(2);

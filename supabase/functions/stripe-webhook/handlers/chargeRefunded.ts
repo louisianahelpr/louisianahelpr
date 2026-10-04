@@ -10,7 +10,16 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
-import { payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
+import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
+
+/**
+ * Q1208 (3): when a full refund closes a decided dispute that gave the Helpr a
+ * share, the job's gift card still comes back to the poster WHOLE (the restore
+ * below runs on 'closed'), so the person deciding whether to pay the Helpr
+ * must know the gift's share is not held either.
+ */
+const GIFT_GOES_BACK_WHOLE =
+  "Any gift card that paid part of this job is given back to the poster in full, so the Helpr's share of the gift is not held either.";
 
 /**
  * The payment states a FULL refund may move to 'refunded' (Q343): every state
@@ -192,7 +201,16 @@ export async function handleChargeRefunded(
         // out of this escrow (a person decides; review MEDIUM). Before the
         // ledger row and the notice, so a throw (Stripe redelivers) repeats
         // nothing visible; the restore is idempotent.
-        if (decided === "no_unsettled_dispute" || decided === "closed") {
+        // Q1208 (1): only when a gift is still at stake on this job; a
+        // card-only job's refund after a reversed payout paged about a gift
+        // that never was.
+        const stake = (decided === "no_unsettled_dispute" || decided === "closed")
+          ? await giftAtStake(supabase, String(refundedJob.id))
+          : { atStake: false };
+        if (stake.readError) {
+          throw new Error(`Gift read failed before the gift restore on refunded job ${refundedJob.id}: ${stake.readError}`);
+        }
+        if (stake.atStake) {
           const payout = await payoutOnJob(supabase, String(refundedJob.id));
           if (payout.readError) {
             throw new Error(`Payout read failed before the gift restore on refunded job ${refundedJob.id}: ${payout.readError}`);
@@ -525,7 +543,7 @@ async function closeDecidedDisputeOnExternalRefund(
     if (helperShare > 0) {
       await noticeAdmins(
         "Full refund on a decided dispute — decided Helpr share unpaid",
-        `The payment for "${job.title ?? "a job"}" was refunded in full, so its decided split (${split}) was closed with nothing paid to the Helpr. The decision gave the Helpr a share the platform no longer holds: decide whether to pay it.`,
+        `The payment for "${job.title ?? "a job"}" was refunded in full, so its decided split (${split}) was closed with nothing paid to the Helpr. The decision gave the Helpr a share the platform no longer holds: decide whether to pay it. ${GIFT_GOES_BACK_WHOLE}`,
       );
       if (job.helper_id) {
         // Its own insert, not the clawback's notifyPayee: that one pages a
@@ -556,7 +574,7 @@ async function closeDecidedDisputeOnExternalRefund(
       // must decide on: critical then (review LOW-7), a warning otherwise.
       severity: helperShare > 0 ? "critical" : "warning",
       title: "Full refund on a decided dispute — dispute closed, nothing left to split",
-      message: `Charge ${charge.id} was refunded in full outside the split, so the job's decided split (${split}) had not run and now never will: it is recorded as settled with the refund as the poster's share.${helperShare > 0 ? " The decision gave the Helpr a share that the platform no longer holds; decide by hand whether to pay it." : ""}`,
+      message: `Charge ${charge.id} was refunded in full outside the split, so the job's decided split (${split}) had not run and now never will: it is recorded as settled with the refund as the poster's share.${helperShare > 0 ? ` The decision gave the Helpr a share that the platform no longer holds; decide by hand whether to pay it. ${GIFT_GOES_BACK_WHOLE}` : ""}`,
       fields: { "Charge": charge.id, "Job ID": job.id, "Internal dispute": res?.dispute_id ?? "—", "Decided split": split },
     });
     return "closed";

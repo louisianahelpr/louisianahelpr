@@ -276,14 +276,53 @@ describe("money-reconciliation does not page on a payout a hold keeps back", () 
     expect(((b.defectReasons as string[] | undefined) ?? []).join(" ")).not.toContain("payout_pending_stranded");
   });
 
-  it("a crew job is held when ANY roster member is held", async () => {
+  it("a crew job is held when every UNPAID roster member is held", async () => {
     seed(scenario);
     scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_group_job: true, helpers_needed: 2, helper_id: null };
     scenario.reads.group_job_helpers = { rows: [{ id: "g1", job_id: "job-1", helper_id: "helper-2" }, { id: "g2", job_id: "job-1", helper_id: "helper-1" }] };
+    // helper-2 was paid; only the held helper-1 is still owed.
+    scenario.reads.payout_transfers = {
+      rows: [{ job_id: "job-1", helper_id: "helper-2", amount_cents: 4400, platform_fee_cents: 600, status: "paid", stripe_transfer_id: "tr_2" }],
+    };
     scenario.reads.payout_holds = { rows: [HELD] };
     const b = await json(await run());
     expect(checks(b)).not.toContain("payout_pending_stranded");
     expect(b.payout_pending_held).toEqual([{ job_id: "job-1", helper_ids: ["helper-1"] }]);
+  });
+
+  // Q1240: one held member used to exempt the WHOLE crew job, so an unheld
+  // member whose leg was stuck (no Connect account, no PaymentIntent, an
+  // orphaned claim) was silent for as long as the other's hold lasted.
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (unpaidHeld.length > 0 && unpaidHeld.length === unpaid.length) { | if (held.length) {
+  it("Q1240: a held member does not hide an UNHELD member who is still unpaid", async () => {
+    seed(scenario);
+    scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_group_job: true, helpers_needed: 2, helper_id: null };
+    scenario.reads.group_job_helpers = { rows: [{ id: "g1", job_id: "job-1", helper_id: "helper-2" }, { id: "g2", job_id: "job-1", helper_id: "helper-1" }] };
+    // helper-2 is NOT held and was never paid (a claim that moved nothing).
+    scenario.reads.payout_transfers = {
+      rows: [{ job_id: "job-1", helper_id: "helper-2", amount_cents: 4400, platform_fee_cents: 600, status: "pending", stripe_transfer_id: null }],
+    };
+    scenario.reads.payout_holds = { rows: [HELD] };
+    const b = await json(await run());
+    expect(checks(b)).toContain("payout_pending_stranded");
+    expect(b.payout_pending_held).toEqual([]);
+  });
+
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (unpaidHeld.length > 0 && unpaidHeld.length === unpaid.length) { | if (held.length && unpaidHeld.length === unpaid.length) {
+  it("Q1240: a crew whose members were ALL paid but never flipped is stranded, even with a held member", async () => {
+    seed(scenario);
+    scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_group_job: true, helpers_needed: 2, helper_id: null };
+    scenario.reads.group_job_helpers = { rows: [{ id: "g1", job_id: "job-1", helper_id: "helper-2" }, { id: "g2", job_id: "job-1", helper_id: "helper-1" }] };
+    scenario.reads.payout_transfers = {
+      rows: [
+        { job_id: "job-1", helper_id: "helper-1", amount_cents: 4400, platform_fee_cents: 600, status: "paid", stripe_transfer_id: "tr_1" },
+        { job_id: "job-1", helper_id: "helper-2", amount_cents: 4400, platform_fee_cents: 600, status: "paid", stripe_transfer_id: "tr_2" },
+      ],
+    };
+    scenario.reads.payout_holds = { rows: [HELD] };
+    const b = await json(await run());
+    expect(checks(b)).toContain("payout_pending_stranded");
+    expect(b.payout_pending_held).toEqual([]);
   });
 
   it("FAILS CLOSED: an unreadable hold exempts nothing, and the run is degraded", async () => {

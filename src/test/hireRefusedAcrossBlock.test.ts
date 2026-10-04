@@ -32,7 +32,20 @@ const HIRE_WRITE =
 
 // claim_series_dates (20260927012806, Q407 5): taking over a VACATED series
 // visit stamps it accepted and inserts an accepted application, so it hires.
-const EXPECTED = ["accept_application", "accept_group_application", "claim_series_dates", "respond_to_direct_offer"];
+// complete_direct_offer_accept (20261003214350, Q1185) holds the direct
+// offer's hiring writes that respond_to_direct_offer used to make itself.
+const EXPECTED = ["accept_application", "accept_group_application", "claim_series_dates", "complete_direct_offer_accept"];
+
+/**
+ * Hire functions no client can call (EXECUTE revoked from authenticated): the
+ * client reaches each only through its door RPCs, and each door must refuse
+ * across a block BEFORE calling it and carry the copy. Two-way with EXPECTED.
+ */
+const INTERNAL_HIRES: Record<string, string[]> = {
+  // Q1185: shared by respond_to_direct_offer's ready path and the profiles
+  // trigger that completes a pending accept (which skips blocked pairs).
+  complete_direct_offer_accept: ["respond_to_direct_offer"],
+};
 
 /**
  * Functions whose body matches HIRE_WRITE but hire nobody, with why. Two-way:
@@ -90,19 +103,39 @@ describe("Q345: every hire RPC refuses across a block", () => {
       expect(check).toBeLessThan(write);
     });
 
-    it(`${name} has copy for applicant_blocked that does not say who blocked`, () => {
-      const copy = (RPC_ERROR_COPY as Record<string, Record<string, string>>)[name]?.applicant_blocked;
-      expect(copy).toBeTruthy();
-      expect(copy).not.toMatch(/block/i);
-      expect(copy).not.toMatch(/\bhelpr\b|\bposter\b/i);
-    });
+    for (const door of INTERNAL_HIRES[name] ?? [name]) {
+      it(`${door} has copy for applicant_blocked that does not say who blocked`, () => {
+        const copy = (RPC_ERROR_COPY as Record<string, Record<string, string>>)[door]?.applicant_blocked;
+        expect(copy).toBeTruthy();
+        expect(copy).not.toMatch(/block/i);
+        expect(copy).not.toMatch(/\bhelpr\b|\bposter\b/i);
+      });
+    }
   }
+
+  for (const [internal, doors] of Object.entries(INTERNAL_HIRES)) {
+    for (const door of doors) {
+      it(`${door} refuses across a block before it reaches ${internal}`, () => {
+        const body = blankSqlComments(defs.get(door)?.stmt ?? "");
+        const check = body.search(/if\s+(public\.)?are_users_blocked\s*\([^;]*\)\s+then\s+raise\s+exception\s+'applicant_blocked'/i);
+        const call = body.indexOf(`public.${internal}(`);
+        expect(check, `${door} has no block check`).toBeGreaterThan(-1);
+        expect(call, `${door} no longer calls ${internal}`).toBeGreaterThan(-1);
+        expect(check).toBeLessThan(call);
+      });
+    }
+  }
+
+  it("every internal hire function is in the inventory (two-way)", () => {
+    for (const name of Object.keys(INTERNAL_HIRES)) expect(EXPECTED).toContain(name);
+  });
 });
 
 // Each hire RPC's check removed, one at a time.
 // @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
 // @mutate supabase/migrations/20260924023314_hire_refused_across_block.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
-// @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
+// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
+// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
 // The accept copy removed.
 // @mutate src/lib/lifecycleErrors.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

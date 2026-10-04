@@ -50,6 +50,12 @@ const EXPECTED_CALLERS = [
   // Both pass v_uid := auth.uid() (never reassigned) as one argument
   // (20260927012806): the claimer vs the poster, and the poster vs the offeree.
   "claim_series_dates",
+  // Q1185 (20261003214350): the direct offer's offeree vs its poster. Through
+  // respond_to_direct_offer the offeree IS auth.uid(); through the profiles
+  // trigger that completes a pending accept it is a server context at trigger
+  // depth, which the party rule answers for (PGlite D6).
+  "complete_direct_offer_accept",
+  "direct_accept_block_reason",
   "enforce_application_job_state",
   "enforce_block_on_message_insert",
   "get_my_saved_helpers",

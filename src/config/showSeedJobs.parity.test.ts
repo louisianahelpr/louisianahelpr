@@ -234,6 +234,11 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // Q1185: completing one direct offer's accept (its own Helpr's, its job
+    // locked); 'open' is the offer's precondition. Seed jobs are refused
+    // through direct_accept_block_reason, a registered seed-gated surface.
+    ["public.complete_direct_offer_accept", "single-job mutation; status is a precondition"],
+    ["public.complete_pending_accepts_on_setup", "the profile's own pending accepts; 'open' marks a live direct offer"],
     ["public.expire_unanswered_offers", "sweep over offers, not a browse feed"],
     ["public.helper_abort_job", "single-job mutation; status is a precondition"],
     ["public.helper_cancel_booking", "single-job mutation; status is a precondition"],

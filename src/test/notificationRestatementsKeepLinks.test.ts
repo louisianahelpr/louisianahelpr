@@ -30,7 +30,7 @@
  *
  * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | v_link := '/home?job=' \|\| v_job.id::text; | v_link := '/home';
  * @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
- * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=people&usr=' \|\| p_reviewee_id,
+ * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=fraud&user=' \|\| p_reviewee_id,
  * @mutate src/test/helpers/effectiveFunctionDefs.ts | const next = pgRegexpReplace(cur.stmt, r.pattern, r.replacement, r.flags); | const next = cur.stmt;
  */
 import { describe, it, expect } from "vitest";
@@ -83,6 +83,9 @@ const INTENDED_LINK_CHANGES = new Set([
   // Q728: dispute notices reach every crew member ('/jobs?job=<id>') and,
   // when a member files or escalates, the poster ('/posts?job=<id>'): the
   // same links as the single-Helpr notices, added beside them (nothing gone).
+  // Q1185 (re-review should-fix C): a Helpr whose direct accept was pending is
+  // told the offer lapsed, on the job itself, as expire_unanswered_offers does.
+  "20261003214350_direct_offer_accept_works_like_an_offer.sql::expire_pending_direct_offers",
   "20260927012240_group_crew_disputes.sql::open_dispute_as",
   "20260927012240_group_crew_disputes.sql::rpc_escalate_dispute",
   // Q728: a crew's day-of, start and no-show reminders: the poster on

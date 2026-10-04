@@ -6076,6 +6076,14 @@ export type Database = {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean
       }
+      complete_direct_offer_accept: {
+        Args: { p_helper: string; p_job_id: string }
+        Returns: Json
+      }
+      direct_accept_block_reason: {
+        Args: { p_helper: string; p_job_id: string }
+        Returns: string
+      }
       complete_job_accept: { Args: { p_job_id: string }; Returns: boolean }
       contact_leak_reason: { Args: { p_text: string }; Returns: string }
       credential_document_path_ok: {

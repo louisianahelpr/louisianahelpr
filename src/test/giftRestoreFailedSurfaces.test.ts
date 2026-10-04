@@ -9,7 +9,8 @@
 // @mutate src/components/admin/AdminJobs.tsx |       warnIfGiftNotReturned(data); |       void data;
 // @mutate src/components/admin/giftRestoreWarning.ts |   if ((data as { giftRestoreFailed?: boolean } \| null)?.giftRestoreFailed) { |   if (false) {
 import { describe, it, expect, vi } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 

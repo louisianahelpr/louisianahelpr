@@ -11575,14 +11575,6 @@
     },
     {
      "cmd": "SELECT",
-     "name": "Users can subscribe to own channels",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "SELECT",
      "name": "Users can view their own messages",
      "permissive": "PERMISSIVE",
      "roles": [

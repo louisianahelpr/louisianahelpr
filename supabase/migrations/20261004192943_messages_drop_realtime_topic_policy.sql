@@ -1,0 +1,22 @@
+-- Q1168 (docs/OPEN.md): public.messages carried a realtime-topic SELECT
+-- policy that ignores the row.
+--
+-- Read live 2026-10-04 (pg_policies): "Users can subscribe to own channels"
+-- (FOR SELECT TO authenticated) exists TWICE with the same qual: on
+-- realtime.messages, where private channel joins evaluate it, and on
+-- public.messages, where it was created by 20260412011520 (it moved to
+-- realtime.messages in 20260412070714 and the public copy was never dropped).
+-- The qual is realtime.topic() ~ '^(notifications|messages):<uid>' OR an admin
+-- OR a jobs:/job_tracking:/job_checkins: topic of a job the caller is on: it
+-- never reads the message row, so any session that set the realtime topic
+-- would read every message. Inert today (PostgREST never sets it; the
+-- postgres_changes path sets only the role and the JWT claims), but it is a
+-- door, not a rule.
+--
+-- Nothing depends on the public copy: private channel joins read the
+-- realtime.messages policy (left untouched), and the admin branch is the
+-- separate "Admins can view all messages" policy on public.messages (live).
+-- The users' own reads go through "Users can view their own messages".
+--
+-- Replay-safe: DROP POLICY IF EXISTS.
+DROP POLICY IF EXISTS "Users can subscribe to own channels" ON public.messages;

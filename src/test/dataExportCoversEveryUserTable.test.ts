@@ -168,7 +168,9 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // lh-authz-rls review): a table joining or leaving must be classified here.
     // 14 -> 13 (2026-10-04, Q1230): job_views is server-only, its poster
     // SELECT policy dropped (20261004185317).
-    expect(viaJob.size).toBe(13);
+    // 13 -> 12 (2026-10-04, Q1168): the row-blind realtime-topic copy on
+    // public.messages is dropped (20261004192943).
+    expect(viaJob.size).toBe(12);
     expect(viaJob.has("job_views"), "Q1230: the poster reads view counts through get_job_view_counts, never the rows").toBe(false);
     expect(viaJob.get("applications")).toBe("job_id"); // the auth.uid() IN (SELECT customer_id ...) spelling
     expect(viaJob.get("disputes")).toBe("job_id");

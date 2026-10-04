@@ -252,11 +252,13 @@ jobs:
       # Q340: authenticated held table-level INSERT on public.messages, so a
       # client could set is_system (a fake platform notice), created_at (an
       # edit window that never closes), read and the moderation flags on its
-      # own message. A client role may INSERT exactly the columns the client
-      # sends: declared in the SQL file, pinned to the client's own insert
-      # payloads by src/test/messagesInsertColumnsClientScoped.test.ts. The
-      # same query runs live in scripts/check-live-privileges.mjs.
-      - name: Smoke — a client INSERTs only the columns it sends
+      # own message. Q1166: it also held UPDATE on edited_at, so a sender could
+      # erase or forge the "edited" mark. A client role may INSERT and UPDATE
+      # exactly the columns the client sends: declared in the SQL file, pinned
+      # to the client's own insert/update payloads by
+      # src/test/messagesInsertColumnsClientScoped.test.ts. The same query runs
+      # live in scripts/check-live-privileges.mjs.
+      - name: Smoke — a client INSERTs and UPDATEs only the columns it sends
         run: |
           set -euo pipefail
           N=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_class WHERE oid = to_regclass('public.messages')")
@@ -269,10 +271,10 @@ jobs:
             echo "$OUT" | while IFS='|' read -r tbl role what; do
               echo "::error::public.$tbl: $role $what"
             done
-            echo "::error::FIX: REVOKE INSERT ON <table> FROM PUBLIC, anon, authenticated, then GRANT INSERT (<declared columns>) TO authenticated (20261003182009)."
+            echo "::error::FIX: REVOKE <INSERT|UPDATE> ON <table> FROM PUBLIC, anon, authenticated, then GRANT <INSERT|UPDATE> (<declared columns>) TO authenticated (20261003182009, 20261004001242)."
             exit 1
           fi
-          echo "✅ client INSERT on public.messages is exactly the declared send columns"
+          echo "✅ client INSERT and UPDATE on public.messages are exactly the declared columns"
 
       # Q1185 final review #1: CURRENT_DATE is the session's date, and prod
       # sessions run in UTC, a day ahead of Louisiana from 19:00 CDT. Every

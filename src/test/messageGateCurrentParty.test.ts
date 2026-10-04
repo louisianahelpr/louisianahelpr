@@ -27,7 +27,7 @@
  * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |             AND a.status IN ('pending', 'accepted')\n        ) |             AND a.status IN ('pending', 'accepted', 'rejected')\n        )
  * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |         AND EXISTS (\n          SELECT 1 FROM public.applications a | \n        OR EXISTS (\n          SELECT 1 FROM public.applications a
  * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |               OR (j.offered_to_helper_id = _sender AND j.direct_offer_status = 'pending')) |               OR j.offered_to_helper_id = _sender)
- * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |      AND NOT public.is_off_job(_job_id, _receiver)\n |      AND true\n
+ * @mutate supabase/migrations/20261004001242_messages_status_notices_and_sender_writes.sql |      AND NOT public.is_off_job(_job_id, _receiver)\n |      AND true\n
  * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |   REVOKE ALL ON FUNCTION public.can_message_in_job(uuid, uuid) FROM PUBLIC, anon, authenticated; |   REVOKE ALL ON FUNCTION public.can_message_in_job(uuid, uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |   REVOKE ALL ON FUNCTION public.is_off_job(uuid, uuid) FROM PUBLIC, anon, authenticated; |   REVOKE ALL ON FUNCTION public.is_off_job(uuid, uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20260925230845_messaging_closes_both_ways_off_job.sql |                        AND a.status IN ('pending', 'accepted')); |                        AND a.status IN ('pending', 'accepted', 'rejected'));

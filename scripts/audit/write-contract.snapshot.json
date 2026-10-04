@@ -11372,7 +11372,6 @@
      ],
      "UPDATE": [
       "content",
-      "edited_at",
       "read"
      ]
     }

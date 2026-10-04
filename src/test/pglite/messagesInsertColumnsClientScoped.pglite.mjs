@@ -158,10 +158,13 @@ await lands("L6 the sender deletes their message (DELETE unchanged)", `DELETE FR
 }
 
 // ── The class check itself ─────────────────────────────────────────────────
+// Its INSERT half: this fixture is the UPDATE grant as live before Q1166
+// (edited_at included), which the UPDATE half reports by design; that half's
+// proof is messageReadReceiptIsTheReceivers.pglite.mjs.
 {
-  const rows = (await db.query(CHECK.replace(/;\s*$/, ""))).rows;
+  const rows = (await db.query(CHECK.replace(/;\s*$/, ""))).rows.filter((r) => /\bINSERT\b/.test(r.what));
   check(
-    "C1 scripts/ci/client-insert-columns.sql is clean",
+    "C1 scripts/ci/client-insert-columns.sql is clean (INSERT)",
     rows.length === 0,
     rows.map((r) => `${r.role}: ${r.what}`).join("; ") || "0 rows",
   );

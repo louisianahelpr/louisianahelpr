@@ -104,7 +104,8 @@ CREATE TABLE public.series_date_offers (parent_job_id uuid, helper_id uuid);
 CREATE TABLE public.applications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL,
   status text DEFAULT 'pending', UNIQUE (job_id, helper_id));
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
-CREATE TABLE public.messages (job_id uuid, sender_id uuid, receiver_id uuid, created_at timestamptz DEFAULT now());
+-- is_system: can_send_message_to_in_job counts only the caller's own messages (Q1169, 20261004001242).
+CREATE TABLE public.messages (job_id uuid, sender_id uuid, receiver_id uuid, created_at timestamptz DEFAULT now(), is_system boolean NOT NULL DEFAULT false);
 CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE SCHEMA IF NOT EXISTS storage;

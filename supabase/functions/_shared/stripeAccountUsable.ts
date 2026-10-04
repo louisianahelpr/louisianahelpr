@@ -62,3 +62,14 @@ export function isTestObjectUnderLiveKey(err: unknown): boolean {
     : "";
   return /a similar object exists in test mode, but a live mode key was used/.test(message);
 }
+
+/**
+ * The one structured line every caller of `isTestObjectUnderLiveKey` writes
+ * when it SKIPS a row (or answers a 4xx) because its stored Stripe id is a
+ * test-mode object. console.log on purpose: this is a designed outcome with no
+ * real money behind it, so it must not read as an error in function_logs, page
+ * Slack, or become a defect that turns a cron run red (Q891).
+ */
+export function logTestObjectUnderLiveKey(fn: string, fields: Record<string, unknown>): void {
+  console.log(JSON.stringify({ event: "stripe_test_object_under_live_key", fn, action: "skipped", ...fields }));
+}

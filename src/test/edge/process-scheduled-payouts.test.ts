@@ -19,7 +19,7 @@
  *
  * Runs the REAL function source via the edge harness.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
@@ -29,6 +29,7 @@ import {
   type SupabaseScenario,
 } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 
 const CRON_SECRET = "cron-secret-xyz";
 
@@ -579,6 +580,87 @@ describe("process-scheduled-payouts edge function", () => {
         fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
       );
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ── Q891: a Stripe id minted under the TEST key, read under the LIVE key ──
+  //
+  // Every job funded before prod went live (2026-09-27) holds one. Stripe
+  // answers 404 resource_missing "a similar object exists in test mode". There
+  // is no real money behind it, so the row is skipped with ONE structured log
+  // line: never a 500, never a defect, never a page, never a transfer or a
+  // ledger claim. Every other error keeps failing closed (the controls below).
+  describe("Q891: a test-mode Stripe object under the live key", () => {
+    let skips: ReturnType<typeof captureTestModeSkips>;
+    beforeEach(() => {
+      skips = captureTestModeSkips();
+    });
+    afterEach(() => {
+      skips.restore();
+    });
+
+    const runCron = async () => {
+      const fn = await load();
+      return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+    };
+
+    function expectNoMoneyMoved() {
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
+      expect(profileUpdates()).toHaveLength(0);
+      expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
+      expect(slackAlerts).toHaveLength(0);
+    }
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id }); | throw e;
+    it("skips (200, no defect, no transfer, no claim) when the checkout SESSION is a test-mode object", async () => {
+      seedPayableJob(scenario, { job: { stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" } });
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+
+      const res = await runCron();
+      expect(res.status).toBe(200);
+      const body = await json(res);
+      expect(body.defects).toBe(0);
+      expect(body.defectReasons).toBeUndefined();
+      expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ job_id: "job-1", status: "skipped_test_mode_object" });
+      expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+      expectNoMoneyMoved();
+      expect(skips.lines()).toEqual([
+        expect.objectContaining({ fn: "process-scheduled-payouts", object: "checkout.session", id: "cs_test_old", job_id: "job-1" }),
+      ]);
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | throw e;
+    it("skips (200, no defect, no transfer, no claim) when the PaymentIntent to verify is a test-mode object", async () => {
+      seedPayableJob(scenario, { job: { stripe_payment_intent_id: "pi_test_old" } });
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_test_old"));
+
+      const res = await runCron();
+      expect(res.status).toBe(200);
+      const body = await json(res);
+      expect(body.defects).toBe(0);
+      expect(body.defectReasons).toBeUndefined();
+      expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ job_id: "job-1", status: "skipped_test_mode_object" });
+      expectNoMoneyMoved();
+      expect(skips.lines()).toEqual([
+        expect.objectContaining({ fn: "process-scheduled-payouts", object: "payment_intent", id: "pi_test_old", job_id: "job-1" }),
+      ]);
+    });
+
+    it("control: any OTHER PaymentIntent verify error still fails closed (500, verify_error, no transfer, no log line)", async () => {
+      seedPayableJob(scenario);
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(
+        Object.assign(new Error("Stripe is down"), { type: "StripeAPIError", statusCode: 503 }),
+      );
+
+      const res = await runCron();
+      expect(res.status).toBe(500);
+      const body = await json(res);
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("verify_error");
+      expect(String((body.defectReasons as string[])[0])).toMatch(/payment verify job-1/);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(skips.lines()).toEqual([]);
     });
   });
 

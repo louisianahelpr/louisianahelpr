@@ -129,6 +129,7 @@ import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock, type TableResult } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 
 const CRON_SECRET = "cron-secret";
 
@@ -2219,5 +2220,93 @@ describe("charge-recurring-visits edge function", () => {
     expect(reasons(b)).toContain("series of open future visit payments");
     expect(overRowsQuery()).toHaveLength(0);
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Q891: a Stripe id minted under the TEST key, read under the LIVE key
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // A series funded before prod went live (2026-09-27) holds a test-mode
+  // PaymentIntent. The live key answers "No such payment_intent: ...; a similar
+  // object exists in test mode, but a live mode key was used" with code
+  // resource_missing, the SAME code as a genuinely missing intent. No real money
+  // is behind it: never a charge, never a "no saved card" email to the poster,
+  // never a defect, never a refund. ONE structured log line, and the run stays 200.
+  // Controls (any other error still fails closed) already exist above: "Stripe
+  // not answering about the series' card is a defect ..." and "Q415 (e) review:
+  // an unreadable intent is neither refunded nor settled this run".
+  describe("Q891: a test-mode Stripe id read under the live key", () => {
+    let skips: ReturnType<typeof captureTestModeSkips>;
+    beforeEach(() => {
+      skips = captureTestModeSkips();
+    });
+    afterEach(() => {
+      skips.restore();
+    });
+
+    function expectNoMoneyNoPage(res: Response, b: Record<string, unknown>) {
+      expect(res.status).toBe(200);
+      expect(reasons(b)).toBe("");
+      expect(b.errors).toBe(0);
+      expect(slackAlerts).toHaveLength(0);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(insertedVisits()).toHaveLength(0);
+      expect(scenario.writes.filter((w) => w.table === "notifications")).toHaveLength(0);
+    }
+
+    // @mutate supabase/functions/charge-recurring-visits/index.ts | logTestObjectUnderLiveKey("charge-recurring-visits", { parent_job_id: parent.id, visit_date: visitDate, object: "payment_intent", id: card.paymentIntentId }); |
+    // @mutate supabase/functions/charge-recurring-visits/index.ts | if (isTestObjectUnderLiveKey(e)) return { kind: "test_object", paymentIntentId }; |
+    it("a series whose saved-card intent is a test-mode object: no charge, no poster email, no defect", async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      seriesPiRetrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", SERIES_PI));
+
+      const res = await runOn(fn, "2026-09-01");
+      const b = await body(res);
+
+      expectNoMoneyNoPage(res, b);
+      // Not a "no saved card" decline either: that path emails the poster.
+      expect(b.declined).toBe(0);
+      expect(b.funded).toBe(0);
+      expect(skips.lines()).toEqual([
+        expect.objectContaining({
+          event: "stripe_test_object_under_live_key",
+          fn: "charge-recurring-visits",
+          object: "payment_intent",
+          id: SERIES_PI,
+          parent_job_id: PARENT_ID,
+          visit_date: VISIT_DATE,
+        }),
+      ]);
+    });
+
+    // @mutate supabase/functions/charge-recurring-visits/index.ts | logTestObjectUnderLiveKey("charge-recurring-visits", { visit_payment_id: row.id, object: "payment_intent", id: pi }); | throw readErr;
+    it("a paid, never-booked visit whose intent is a test-mode object: no refund, no row flip, no defect", async () => {
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [] } });
+      wireVisitPayments({ sweep: { rows: [{ ...orphan, stripe_payment_intent_id: "pi_test_old" }] } });
+      otherPiRetrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_test_old"));
+
+      const res = await runOn(fn, "2026-09-01");
+      const b = await body(res);
+
+      expectNoMoneyNoPage(res, b);
+      expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+      // The row is left as it is: nothing was refunded, so it is never marked refunded.
+      expect(visitPaymentWrites("update")).toEqual([]);
+      expect(skips.lines()).toEqual([
+        expect.objectContaining({
+          event: "stripe_test_object_under_live_key",
+          fn: "charge-recurring-visits",
+          object: "payment_intent",
+          id: "pi_test_old",
+          visit_payment_id: "vp-orphan",
+        }),
+      ]);
+    });
   });
 });

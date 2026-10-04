@@ -52,6 +52,7 @@
 // see the 23505 branch, which now proves whose intent it is holding before it
 // decides.
 
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -149,12 +150,16 @@ function addDays(ymd: string, n: number): string {
  *   to keep the card, as the gift-card difference checkout does; or Stripe
  *   says the PaymentIntent does not exist). The poster is told; nothing is
  *   charged.
+ * - `test_object`: the stored PaymentIntent was minted under the Stripe TEST
+ *   key and this is the LIVE key (Q891). No card the live key can charge, and
+ *   no poster problem to email: the series is skipped with a structured log.
  * - `unknown`: Stripe did not answer. Never treated as "no card" (that would
  *   email the poster about a problem that is ours) and never as a card.
  */
 type SeriesCard =
   | { kind: "card"; customerId: string; paymentMethodId: string }
   | { kind: "none"; reason: string }
+  | { kind: "test_object"; paymentIntentId: string }
   | { kind: "unknown"; message: string };
 
 async function seriesCard(stripe: Stripe, paymentIntentId: string | null): Promise<SeriesCard> {
@@ -166,6 +171,9 @@ async function seriesCard(stripe: Stripe, paymentIntentId: string | null): Promi
     // Only Stripe's "no such PaymentIntent" is an answer about the poster's
     // card. Any other invalid request (a key-mode mismatch, a bad parameter)
     // is our error and must not email the poster a card problem.
+    // BEFORE the resource_missing test below: Stripe answers a test-mode id
+    // under the live key with that same code, and it is not a missing card.
+    if (isTestObjectUnderLiveKey(e)) return { kind: "test_object", paymentIntentId };
     const err = e as { type?: unknown; code?: unknown } | null | undefined;
     if (err?.type === "StripeInvalidRequestError" && err?.code === "resource_missing") {
       return { kind: "none", reason: `checkout payment ${paymentIntentId} not found` };
@@ -686,6 +694,10 @@ serve(async (req) => {
         try {
           piObj = await stripe.paymentIntents.retrieve(pi, { expand: ["latest_charge.balance_transaction"] });
         } catch (readErr) {
+          if (isTestObjectUnderLiveKey(readErr)) {
+            logTestObjectUnderLiveKey("charge-recurring-visits", { visit_payment_id: row.id, object: "payment_intent", id: pi });
+            continue;
+          }
           // Unread, it is unknown whether the fee is withheld: refund nothing
           // this run, and try again on the next.
           fail(`visit payment ${row.id}: could not read ${pi} (${(readErr as Error).message}); retried next run`);
@@ -1210,6 +1222,10 @@ serve(async (req) => {
             // Stripe did not answer. Not the poster's problem and not a
             // decline: tomorrow's run asks again while the window is open.
             fail(`series ${parent.id} ${visitDate}: could not read the series' saved card (${card.message})`);
+            continue;
+          }
+          if (card.kind === "test_object") {
+            logTestObjectUnderLiveKey("charge-recurring-visits", { parent_job_id: parent.id, visit_date: visitDate, object: "payment_intent", id: card.paymentIntentId });
             continue;
           }
           if (card.kind === "none") {

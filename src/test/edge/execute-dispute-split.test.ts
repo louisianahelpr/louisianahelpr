@@ -27,7 +27,8 @@
  * `_shared/stripeFees.ts` are the genuine modules (see harness.ts), so the
  * commission ladder and the 2.9%+$0.30 floor under test are production's.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
@@ -1492,6 +1493,175 @@ describe("execute-dispute-split edge function", () => {
       expect(body.error).toMatch(/job status update failed/i);
       expect(body.stripe_transfer_id).toBe("tr_1");
       expect(alerts().some((a) => /job state did not flip/i.test(a.title ?? ""))).toBe(true);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Q891: a Stripe id minted under the TEST key, read under the LIVE key.
+  // Stripe answers 404 resource_missing "a similar object exists in test mode".
+  // No real money is behind it: never a 500/502, never a page, never money
+  // recorded as moved — one structured log line, and every OTHER error still
+  // fails closed.
+  describe("a test-mode Stripe id read under the live key (Q891)", () => {
+    let cap: ReturnType<typeof captureTestModeSkips>;
+    beforeEach(() => {
+      cap = captureTestModeSkips();
+    });
+    afterEach(() => cap.restore());
+
+    const noLedgerWrites = () => {
+      expect(scenario.writes.filter((w) => w.table === "payout_transfers")).toHaveLength(0);
+      expect(scenario.writes.filter((w) => w.table === "payment_refunds")).toHaveLength(0);
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    };
+
+    // @mutate supabase/functions/execute-dispute-split/index.ts | logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "checkout.session", id: job.stripe_session_id }); | throw e;
+    it("a test-mode checkout session refuses 409: logged, nothing moved", async () => {
+      seedExecutable(scenario, { job: { stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" } });
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(409);
+      expect(body.error).toMatch(/test mode/i);
+      expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      noLedgerWrites();
+      expect(alerts()).toHaveLength(0);
+      expect(cap.lines()).toEqual([
+        expect.objectContaining({
+          event: "stripe_test_object_under_live_key",
+          fn: "execute-dispute-split",
+          object: "checkout.session",
+          id: "cs_test_old",
+          dispute_id: DISPUTE_ID,
+        }),
+      ]);
+    });
+
+    // @mutate supabase/functions/execute-dispute-split/index.ts |         return await refuse(\n          { error: "this job's checkout ran in Stripe test mode |         if (false) return await refuse(\n          { error: "this job's checkout ran in Stripe test mode
+    it("a gift-applied job whose checkout is a test-mode session refuses 409, never a gift-only split (Q891 S1)", async () => {
+      seedGiftFunded(scenario, { job: { stripe_session_id: "cs_test_old" } });
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      noLedgerWrites();
+    });
+
+    // @mutate supabase/functions/execute-dispute-split/index.ts | return await refuse({ error: "could not read the checkout session — retry" }, 502); | void 0;
+    it("a gift-applied job whose checkout session cannot be read fails closed with 502, never a gift-only split (Q891 R1)", async () => {
+      seedGiftFunded(scenario, { job: { stripe_session_id: "cs_live_1" } });
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(
+        Object.assign(new Error("An unknown error occurred"), { type: "StripeAPIError", statusCode: 500 }),
+      );
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(502);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      noLedgerWrites();
+      expect(cap.lines()).toEqual([]);
+    });
+
+    // @mutate supabase/functions/execute-dispute-split/index.ts | logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "payment_intent", id: paymentIntentId }); | throw e;
+    it("a test-mode PaymentIntent refuses the split with 409 — no 502, no transfer, no refund, no ledger row", async () => {
+      seedExecutable(scenario, { job: { stripe_payment_intent_id: "pi_test_old" } });
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_test_old"));
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(409);
+      expect(body.error).toMatch(/test mode/i);
+      expect(body.error).toMatch(/No money was moved/);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      noLedgerWrites();
+      expect(alerts()).toHaveLength(0);
+      expect(cap.lines()).toEqual([
+        expect.objectContaining({
+          event: "stripe_test_object_under_live_key",
+          fn: "execute-dispute-split",
+          object: "payment_intent",
+          id: "pi_test_old",
+          dispute_id: DISPUTE_ID,
+        }),
+      ]);
+    });
+
+    // @mutate supabase/functions/execute-dispute-split/index.ts | return await refuse({ error: "could not verify the escrow charge — retry" }, 502); | return await refuse({ error: "x" }, 409);
+    it("control: any OTHER PaymentIntent read failure still fails closed with 502 and no log line", async () => {
+      seedExecutable(scenario);
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(
+        Object.assign(new Error("An unknown error occurred"), { type: "StripeAPIError", statusCode: 500 }),
+      );
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(502);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(cap.lines()).toEqual([]);
+    });
+
+    // @mutate supabase/functions/execute-dispute-split/index.ts | return await refuse(\n            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand" },\n            409,\n          ); | void 0;
+    it("a test-mode stamped transfer on a resume refuses 409 and moves nothing: a person decides (Q891 review)", async () => {
+      // The stamp names a transfer minted under the test key. That run moved no
+      // real money, but a fresh live transfer could pay a leg already settled
+      // another way, so the function stops and says why.
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        dispute: { execution_status: "failed", execution_transfer_id: "tr_test_old" },
+      });
+      scenario.reads.payout_transfers = { rows: [] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.retrieve.mockRejectedValue(testModeUnderLiveKey("transfer", "tr_test_old"));
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(409);
+      expect(body.error).toMatch(/test mode/);
+      expect(stripeMock.transfers.retrieve).toHaveBeenCalledWith("tr_test_old");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(writesTo("disputes").some((p) => p?.execution_transfer_id === "tr_test_old")).toBe(false);
+      expect(cap.lines()).toEqual([
+        expect.objectContaining({
+          event: "stripe_test_object_under_live_key",
+          fn: "execute-dispute-split",
+          object: "transfer",
+          id: "tr_test_old",
+          dispute_id: DISPUTE_ID,
+        }),
+      ]);
+    });
+
+    // @mutate supabase/functions/execute-dispute-split/index.ts | e,\n          );\n          return await refuse({ error: "could not verify prior transfers — retry" }, 502); | e,\n          );
+    it("control: any OTHER stamped-transfer read failure still fails closed with 502 and moves nothing", async () => {
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        dispute: { execution_status: "failed", execution_transfer_id: "tr_stamped" },
+      });
+      scenario.reads.payout_transfers = { rows: [] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.retrieve.mockRejectedValue(
+        Object.assign(new Error("An unknown error occurred"), { type: "StripeAPIError", statusCode: 500 }),
+      );
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(502);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(cap.lines()).toEqual([]);
     });
   });
 });

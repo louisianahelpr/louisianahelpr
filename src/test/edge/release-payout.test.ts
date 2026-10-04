@@ -19,7 +19,8 @@
  *
  * Runs the REAL function source via the edge harness.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
@@ -845,6 +846,94 @@ describe("release-payout edge function", () => {
       expect(res.status).toBe(409);
       expect((await json(res)).error).toMatch(/cannot verify escrow capture/i);
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // ── Q891: an id minted under the TEST key, read under the LIVE key ──────
+    // Stripe answers 404 resource_missing with "a similar object exists in test
+    // mode". No real money is behind it, so the payout is refused with a 409
+    // and one structured log line — never a 502/500, never a page, never a
+    // transfer or a ledger row.
+    describe("a test-mode Stripe id read under the live key (Q891)", () => {
+      let cap: ReturnType<typeof captureTestModeSkips>;
+      beforeEach(() => {
+        cap = captureTestModeSkips();
+      });
+      afterEach(() => cap.restore());
+
+      const noMoneyNoWrites = () => {
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.filter((w) => w.table === "payout_transfers")).toHaveLength(0);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+        expect(slackAlerts).toHaveLength(0);
+      };
+
+      // @mutate supabase/functions/release-payout/index.ts | logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id }); | throw e;
+      it("a test-mode checkout session is treated as absent: 409 no payment intent, logged, nothing moved", async () => {
+        seedPayableJob(scenario, { stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" });
+        stripeMock.checkout.sessions.retrieve.mockRejectedValue(
+          testModeUnderLiveKey("checkout.session", "cs_test_old"),
+        );
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+        );
+        expect(res.status).toBe(409);
+        expect((await json(res)).error).toMatch(/no payment intent on file/i);
+        expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        noMoneyNoWrites();
+        expect(cap.lines()).toEqual([
+          expect.objectContaining({
+            event: "stripe_test_object_under_live_key",
+            fn: "release-payout",
+            object: "checkout.session",
+            id: "cs_test_old",
+            job_id: "job-1",
+          }),
+        ]);
+      });
+
+      // @mutate supabase/functions/release-payout/index.ts | logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId }); | throw e;
+      it("a test-mode PaymentIntent refuses the payout with 409 — no 502, no transfer, no ledger row", async () => {
+        seedPayableJob(scenario, { stripe_payment_intent_id: "pi_test_old" });
+        stripeMock.paymentIntents.retrieve.mockRejectedValue(
+          testModeUnderLiveKey("payment_intent", "pi_test_old"),
+        );
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+        );
+        expect(res.status).toBe(409);
+        const body = await json(res);
+        expect(body.error).toMatch(/test mode/i);
+        expect(body.error).toMatch(/No money was moved/);
+        noMoneyNoWrites();
+        expect(cap.lines()).toEqual([
+          expect.objectContaining({
+            event: "stripe_test_object_under_live_key",
+            fn: "release-payout",
+            object: "payment_intent",
+            id: "pi_test_old",
+            job_id: "job-1",
+          }),
+        ]);
+      });
+
+      // @mutate supabase/functions/release-payout/index.ts | return jsonResponse({ error: "could not verify escrow charge — retry" }, 502); | return jsonResponse({ error: "x" }, 409);
+      it("control: any OTHER PaymentIntent read failure still fails closed with 502 and no log line", async () => {
+        seedPayableJob(scenario);
+        stripeMock.paymentIntents.retrieve.mockRejectedValue(
+          Object.assign(new Error("An unknown error occurred"), { type: "StripeAPIError", statusCode: 500 }),
+        );
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+        );
+        expect(res.status).toBe(502);
+        expect((await json(res)).error).toMatch(/could not verify escrow charge/i);
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        expect(cap.lines()).toEqual([]);
+      });
     });
 
     it("pays a gift-card-funded job from platform balance WITHOUT requiring a captured charge", async () => {

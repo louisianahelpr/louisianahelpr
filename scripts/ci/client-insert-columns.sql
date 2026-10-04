@@ -24,6 +24,7 @@
 --   src/test/pglite/messageReadReceiptIsTheReceivers.pglite.mjs    PGlite red/green proof (UPDATE)
 --   src/test/pglite/applicationsInsertRpcOnly.pglite.mjs           PGlite red/green proof (applications, Q1009)
 --   src/test/pglite/jobRevisionPartyColumns.pglite.mjs             PGlite red/green proof (job_revisions, Q1231)
+--   src/test/pglite/applicationPartyColumns.pglite.mjs             PGlite red/green proof (applications UPDATE, Q1234)
 -- Keep it a single SELECT with no trailing semicolon-dependent statements.
 WITH declared(tbl, role, priv, cols) AS (
   VALUES
@@ -38,6 +39,11 @@ WITH declared(tbl, role, priv, cols) AS (
     -- skipped the minute/hour caps and the apply_rate advisory lock.
     ('applications', 'authenticated', 'INSERT', ARRAY[]::text[]),
     ('applications', 'anon', 'INSERT', ARRAY[]::text[]),
+    -- Q1234: the applicant edits message/attachment_urls, the poster declines
+    -- (status, decline_reason); which party writes which is
+    -- enforce_application_party_columns.
+    ('applications', 'authenticated', 'UPDATE', ARRAY['attachment_urls', 'decline_reason', 'message', 'status']::text[]),
+    ('applications', 'anon', 'UPDATE', ARRAY[]::text[]),
     -- Q1231: the poster files a revision request; the Helpr answers its status.
     -- Who may write which (requested_by pinned, poster-only insert, Helpr-only
     -- status) is enforce_job_revision_party_columns.

@@ -86,6 +86,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",
   end_recurring_series: "a recurring series is never a group job (20260831200113 constraint)",
   enforce_dispute_markers_server_owned: "a crew member cannot write jobs at all (no UPDATE policy match)",
+  enforce_application_party_columns: "Q1234: matches applications.helper_id (the applicant's own row), not jobs.helper_id; it decides who edits an application's note, nothing about a hire",
   enforce_helper_completion_gates: "judges the single Helpr's job-level Done; a crew completes through the roster roll-up",
   enforce_helper_jobs_column_whitelist: "the single Helpr's jobs UPDATE whitelist; a crew member matches no jobs UPDATE policy",
   give_up_series_dates: "a recurring series is never a group job (20260831200113 constraint)",

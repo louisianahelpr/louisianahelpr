@@ -66,10 +66,22 @@ describe("the hire moment is the Helpr's accept (Q706)", () => {
     expect(firstStrike).toBeGreaterThan(gate);
   });
 
-  it("CLASS: every function that strikes for cancelling 'after committing' reads an accept stamp", () => {
+  // A mere mention of helper_confirmed_at is not a gate: the pre-Q706
+  // helper_cancel_booking already named it in its reopen UPDATE (review of
+  // Q706). The class rule is a real gate: an `<…>confirmed_at IS NULL THEN`
+  // test BEFORE the function's first strike call.
+  it("CLASS: every function that strikes for cancelling 'after committing' gates on an accept stamp before its first strike", () => {
     const strikers = [...newest.entries()].filter(([, v]) => /Cancelled after committing/i.test(v.body));
     expect(strikers.length).toBeGreaterThan(0);
-    const missing = strikers.filter(([, v]) => !/helper_confirmed_at/i.test(v.body)).map(([k, v]) => `${k} (${v.file})`);
+    // Every strike call (one per branch: crew, single Helpr) needs its own
+    // gate between the previous strike (or the top) and itself.
+    const missing = strikers
+      .filter(([, v]) => {
+        const segments = v.body.split(/apply_job_denial_consequence|apply_consequence_ladder|apply_cancellation_violation_consequence/i);
+        if (segments.length < 2) return true;
+        return segments.slice(0, -1).some((seg) => !/confirmed_at\s+IS\s+NULL\s+THEN/i.test(seg));
+      })
+      .map(([k, v]) => `${k} (${v.file})`);
     expect(missing).toEqual([]);
   });
 });

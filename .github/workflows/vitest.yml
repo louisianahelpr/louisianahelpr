@@ -53,10 +53,19 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  vitest:
-    name: Vitest unit tests
+  # 2026-10-04 (owner: "how can we get stuff to get on main faster"): the suite
+  # runs in FOUR parallel shards (~1/4 of the ~11-17 min each), and the
+  # `Vitest unit tests` job below, the branch-protection check name, only
+  # reports whether every shard passed. A shard that fails, is cancelled or is
+  # skipped fails the check: it never reads as green.
+  vitest-shard:
+    name: Vitest shard ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
       - name: Checkout
@@ -78,7 +87,21 @@ jobs:
         # `--reporter=default` keeps the GitHub Actions summary readable;
         # `--passWithNoTests` would mask "I deleted every test" bugs, so
         # we deliberately do NOT pass it.
-        run: npx vitest run --reporter=default
+        run: npx vitest run --reporter=default --shard=${{ matrix.shard }}/4
+
+  vitest:
+    name: Vitest unit tests
+    needs: vitest-shard
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every shard passed
+        env:
+          SHARDS: ${{ needs.vitest-shard.result }}
+        run: |
+          echo "shards: $SHARDS"
+          test "$SHARDS" = "success"
 
   coverage:
     # Q184 (owner, 2026-09-27): a line-coverage floor for src/lib + src/hooks.

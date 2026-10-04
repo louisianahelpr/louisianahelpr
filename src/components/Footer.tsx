@@ -238,7 +238,7 @@ const Footer = () => {
           <div className="flex items-center gap-2.5">
             {/* The App Store chip is HIDDEN until the listing is live (owner,
                 2026-10-04, Q1124: it 404s); it returns as a real link with the
-                real ID from the launch checklist (Q1276). Instagram is not live
+                real ID from the launch checklist (Q1289). Instagram is not live
                 yet either: an inert "Coming soon" chip. Facebook is the only
                 real, clickable account. */}
             {APP_STORE_LISTING_LIVE && (

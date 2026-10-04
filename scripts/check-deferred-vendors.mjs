@@ -287,8 +287,8 @@ if (ROUTE_ROOTS.length < 8) {
  */
 // @two-way scripts/check-deferred-vendors.mjs:(stale entry: remove it, the baseline is exact)
 const KNOWN_ROUTE_CLOSURE_VIOLATIONS = {
-  "pages/messages/Messages": "framer-motion", // SwipeableConversationRow (Q1184)
-  "pages/post-job/PostJob": "framer-motion", // PhotoUpload's Reorder (Q1184)
+  "pages/messages/Messages": "framer-motion", // SwipeableConversationRow (Q1208)
+  "pages/post-job/PostJob": "framer-motion", // PhotoUpload's Reorder (Q1208)
 };
 
 const routeFound = [];

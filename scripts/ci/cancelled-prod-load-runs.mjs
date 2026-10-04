@@ -1,25 +1,33 @@
 /**
  * A SCHEDULED prod-load RUN THAT WAS CANCELLED IS A RED (docs/OPEN.md Q293).
  *
- * Every prod-hitting workflow shares the workflow-level concurrency group
- * `prod-load` (src/test/prodWorkflowSpacing.test.ts). GitHub keeps ONE pending
- * run per group: a third run entering it cancels the one already waiting, at
- * WORKFLOW level, so not one job runs — not even the `notify` job that files
- * the nightly-red issue. The run's only trace is conclusion `cancelled` in the
+ * Every prod-hitting workflow used to share the workflow-level concurrency group
+ * `prod-load` (src/test/prodWorkflowSpacing.test.ts); since Q1161 they wait in a
+ * FIFO queue job instead (scripts/ci/wait-prod-load.mjs), which cannot cancel a
+ * run. Under the old group GitHub kept ONE pending run: a third run entering it
+ * cancelled the one already waiting, at WORKFLOW level, so not one job ran, not
+ * even the `notify` job that files the nightly-red issue. The run's only trace is conclusion `cancelled` in the
  * run list. For the monthly privacy journey that is a missed month, and
  * schedule-heartbeat's staleness rule cannot see it (the cancelled run still
  * counts as "a scheduled run", created on time). A person cancelling a queued
  * scheduled run (a bulk "clear the runner queue") loses the check the same
  * way: expiry-monitor on 2026-10-02 and 2026-10-03, both at 00:53Z.
  *
- * For every workflow whose concurrency group can be `prod-load` (derived from
- * the files, never a hand list), list its recent schedule-triggered runs and
- * judge every one whose conclusion is `cancelled` inside WINDOW_DAYS (coverOf):
+ * For EVERY workflow with a `schedule:` trigger (derived from the files, never
+ * a hand list; Q1162 widened this from the prod-load workflows, so a hand-
+ * cancelled a11y-webkit / lighthouse / ui-sweep run is seen too), list its
+ * recent schedule-triggered runs and judge every one whose conclusion is
+ * `cancelled` inside WINDOW_DAYS (coverOf):
  *   covered     a later scheduled or FULL dispatched run completed (green or
  *               red: a red one files its own nightly-red issue);
  *   recovering  such a run is still in flight: ⏳ row, not counted, judged
  *               again by the next heartbeat;
  *   neither     STALLED.
+ * A workflow that fires more often than daily (uptime, prod-errors, main-batch,
+ * prod-deploy...) covers itself: its next run re-tests what a cancelled one
+ * skipped. A cancelled run of one is judged only once it is SUB_DAILY_GRACE_MS
+ * old, so the heartbeat never reads the newest run of a 10-minute cron as lost
+ * in the minutes before the next one starts.
  * A main-batch dispatch of e2e-real-backend is not a full run (it skips every
  * scheduled job) and covers nothing; a run the schedule would have skipped
  * anyway (NOT_DUE) is not a loss.
@@ -38,6 +46,11 @@
  *   node scripts/ci/cancelled-prod-load-runs.mjs [--redispatch [--dry-run]]
  *   (needs gh + GH_TOKEN, REPO; --redispatch needs actions: write)
  *
+ * Only the prod-load workflows are re-dispatched automatically (their dispatch
+ * is known to run what the schedule runs: cancelledScheduleIsRedispatched.test.ts).
+ * A cancelled run of any other scheduled workflow is REPORTED red, with the
+ * reason, until a later run covers it (a person's `gh workflow run` counts).
+ *
  * Prints one markdown table row per cancelled run, then `cancelled=<n>` last
  * (stalled runs only). Exits non-zero (code two) when a workflow's runs could
  * not be read: not checked is not clean.
@@ -49,6 +62,9 @@ import { pathToFileURL } from "node:url";
 
 /** Eight days: a weekly cadence plus one, so every cancelled run is reported by at least one daily heartbeat and stays red for a week. */
 export const WINDOW_DAYS = 8;
+
+/** A cancelled run of a more-than-daily workflow is judged once it is this old (its own next run usually covers it). */
+export const SUB_DAILY_GRACE_MS = 24 * 3_600_000;
 
 /** The workflow-level `concurrency.group` of a workflow file, or null. Top-level only (a job's own group is not the account lock). */
 export function workflowConcurrencyGroup(src) {
@@ -67,15 +83,48 @@ export function isProdLoadGroup(group) {
   return group === "prod-load" || /'prod-load'/.test(group);
 }
 
-/** Every workflow file whose scheduled runs share the prod-load group. */
+/** Does a scheduled run of this workflow wait in the prod-load FIFO queue (Q1161: scripts/ci/wait-prod-load.mjs)? */
+export function runsProdLoadQueue(src) {
+  return src.split("\n").some((l) => !/^\s*#/.test(l) && l.includes("node scripts/ci/wait-prod-load.mjs"));
+}
+
+/** Every workflow file whose scheduled runs are ordered by the prod-load queue (Q1161), or still share the legacy prod-load group. */
 export function prodLoadWorkflows(dir = resolve(process.cwd(), ".github/workflows")) {
   return readdirSync(dir)
     .filter((f) => /\.ya?ml$/.test(f))
     .filter((f) => {
       const src = readFileSync(resolve(dir, f), "utf8");
-      return /^\s*schedule:\s*$/m.test(src) && isProdLoadGroup(workflowConcurrencyGroup(src));
+      return /^\s*schedule:\s*$/m.test(src) && (runsProdLoadQueue(src) || isProdLoadGroup(workflowConcurrencyGroup(src)));
     })
     .sort();
+}
+
+const hasSchedule = (src) => /^\s*schedule:\s*$/m.test(src);
+
+/** Every workflow file with a `schedule:` trigger (Q1162). */
+export function scheduledWorkflows(dir = resolve(process.cwd(), ".github/workflows")) {
+  return readdirSync(dir)
+    .filter((f) => /\.ya?ml$/.test(f))
+    .filter((f) => hasSchedule(readFileSync(resolve(dir, f), "utf8")))
+    .sort();
+}
+
+/** What the scan reads: EVERY scheduled workflow (Q1162), and which of them share the prod-load group (only those are re-dispatched). */
+export function scanTargets(dir = resolve(process.cwd(), ".github/workflows")) {
+  return { files: scheduledWorkflows(dir), prodLoad: new Set(prodLoadWorkflows(dir)) };
+}
+
+/** The cron expressions of a workflow file, comments ignored. */
+export function cronsOf(src) {
+  return [...src.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n").matchAll(/-\s*cron:\s*["']([^"']+)["']/g)].map((m) => m[1].trim());
+}
+
+/** Does any cron fire more than once a day? A plain integer minute AND hour fires at most daily. */
+export function firesMoreThanDaily(src) {
+  return cronsOf(src).some((c) => {
+    const [min, hour] = c.split(/\s+/);
+    return !/^\d+$/.test(min) || !/^\d+$/.test(hour);
+  });
 }
 
 /** Events whose run re-tests what a cancelled scheduled run skipped (and reports its own red). */
@@ -129,17 +178,17 @@ export const SCHEDULE_INPUTS = {
   "vacuity.yml": { full: "true" },
 };
 
-const cancelledInWindow = (runs, now, windowDays, file) =>
-  runs.filter((r) => r.event === "schedule" && r.status === "completed" && r.conclusion === "cancelled" && Date.parse(r.created_at) >= now - windowDays * 86_400_000 && !NOT_DUE[file]?.(r));
+const cancelledInWindow = (runs, now, windowDays, file, graceMs = 0) =>
+  runs.filter((r) => r.event === "schedule" && r.status === "completed" && r.conclusion === "cancelled" && Date.parse(r.created_at) >= now - windowDays * 86_400_000 && Date.parse(r.created_at) <= now - graceMs && !NOT_DUE[file]?.(r));
 
 /** STALLED: scheduled runs (GitHub API shape) of `file` cancelled inside the window that nothing re-tested and nothing is re-testing. */
-export function cancelledScheduledRuns(runs, { now = Date.now(), windowDays = WINDOW_DAYS, file = "" } = {}) {
-  return cancelledInWindow(runs, now, windowDays, file).filter((r) => coverOf(r, runs) === null);
+export function cancelledScheduledRuns(runs, { now = Date.now(), windowDays = WINDOW_DAYS, file = "", graceMs = 0 } = {}) {
+  return cancelledInWindow(runs, now, windowDays, file, graceMs).filter((r) => coverOf(r, runs) === null);
 }
 
 /** RECOVERING: scheduled runs cancelled inside the window whose re-test is in flight. */
-export function recoveringScheduledRuns(runs, { now = Date.now(), windowDays = WINDOW_DAYS, file = "" } = {}) {
-  return cancelledInWindow(runs, now, windowDays, file).filter((r) => coverOf(r, runs) === "recovering");
+export function recoveringScheduledRuns(runs, { now = Date.now(), windowDays = WINDOW_DAYS, file = "", graceMs = 0 } = {}) {
+  return cancelledInWindow(runs, now, windowDays, file, graceMs).filter((r) => coverOf(r, runs) === "recovering");
 }
 
 /**
@@ -148,8 +197,9 @@ export function recoveringScheduledRuns(runs, { now = Date.now(), windowDays = W
  * only have been cancelled itself (a completed one would cover, an in-flight
  * one would make it recovering): that was the one try, and the run stays red.
  */
-export function redispatchPlan(file, stalled, runs) {
+export function redispatchPlan(file, stalled, runs, { prodLoad = true } = {}) {
   if (!stalled.length) return { act: false, why: "nothing stalled", inputs: {} };
+  if (!prodLoad) return { act: false, why: "outside prod-load a dispatch is not known to run what the schedule runs, so it is reported, not re-dispatched: run it by hand", inputs: {} };
   const newest = stalled.map((r) => Date.parse(r.created_at)).reduce((a, b) => Math.max(a, b));
   const tried = runs.find((o) => o.event === "workflow_dispatch" && rerunsTheSchedule(o) && Date.parse(o.created_at) > newest);
   if (tried) return { act: false, why: `its one re-dispatch (${tried.html_url ?? tried.id}) was cancelled too`, inputs: {} };
@@ -168,8 +218,8 @@ export function dispatchArgs(repo, file, inputs = {}) {
  * "The run was canceled by @x": a person (expiry-monitor 37082255950, a bulk
  * cancel of the runner queue on 2026-10-03).
  */
-export function cancelCause(jobs, annotations = []) {
-  if (!jobs?.length) return "no job ever started: it lost the prod-load group's one pending slot (or was cancelled by hand while waiting)";
+export function cancelCause(jobs, annotations = [], { prodLoad = true } = {}) {
+  if (!jobs?.length) return prodLoad ? "no job ever started: it lost the prod-load group's one pending slot (or was cancelled by hand while waiting)" : "no job ever started: it was cancelled by hand while waiting (or by its own concurrency group)";
   const by = annotations.map((a) => /The run was canceled by @([\w-]+)/.exec(String(a?.message ?? ""))?.[1]).find(Boolean);
   if (by) return `cancelled by hand (@${by}) with ${jobs.length} job(s) created`;
   if (annotations.some((a) => /higher priority waiting request/.test(String(a?.message ?? "")))) return "a job lost its concurrency group's pending slot";
@@ -191,20 +241,20 @@ function ghRuns(path) {
  * 2026-10-03 (39 of them main-batch dispatches), so one mixed page hid six of
  * the window's eight days.
  */
-export function workflowRuns(repo, file, { now = Date.now(), windowDays = WINDOW_DAYS, runs = ghRuns } = {}) {
+export function workflowRuns(repo, file, { now = Date.now(), windowDays = WINDOW_DAYS, runs = ghRuns, graceMs = 0 } = {}) {
   const sched = runs(`repos/${repo}/actions/workflows/${file}/runs?branch=main&event=schedule&per_page=100&created=${encodeURIComponent(`>=${new Date(now - windowDays * 86_400_000).toISOString()}`)}`);
-  const open = cancelledInWindow(sched, now, windowDays, file).filter((r) => coverOf(r, sched) === null);
+  const open = cancelledInWindow(sched, now, windowDays, file, graceMs).filter((r) => coverOf(r, sched) === null);
   if (!open.length) return sched;
   const since = open.map((r) => r.created_at).sort()[0];
   return [...sched, ...runs(`repos/${repo}/actions/workflows/${file}/runs?branch=main&event=workflow_dispatch&per_page=100&created=${encodeURIComponent(`>=${since}`)}`)];
 }
 
-function causeOf(repo, r) {
+function causeOf(repo, r, prodLoad) {
   try {
     const jobs = ghJson(["api", `repos/${repo}/actions/runs/${r.id}/jobs?per_page=50`, "--jq", ".jobs"]) ?? [];
     const first = jobs.find((j) => j.conclusion === "cancelled");
     const ann = first ? ghJson(["api", `repos/${repo}/check-runs/${first.id}/annotations`]) ?? [] : [];
-    return cancelCause(jobs, ann);
+    return cancelCause(jobs, ann, { prodLoad });
   } catch (e) {
     return `cause unread (${String(e.message).split("\n")[0]})`;
   }
@@ -215,26 +265,27 @@ function main() {
   if (!repo) { console.error("REPO is not set"); process.exit(2); }
   const redispatch = process.argv.includes("--redispatch");
   const dryRun = process.argv.includes("--dry-run");
-  const files = prodLoadWorkflows();
-  if (files.length < 5) { console.error(`found only ${files.length} prod-load workflows — the scan is broken`); process.exit(2); }
+  const { files, prodLoad } = scanTargets();
+  if (prodLoad.size < 5 || files.length < 20) { console.error(`found only ${prodLoad.size} prod-load / ${files.length} scheduled workflows — the scan is broken`); process.exit(2); }
   let n = 0;
   let unread = 0;
   for (const f of files) {
     let runs;
+    const graceMs = firesMoreThanDaily(readFileSync(resolve(process.cwd(), ".github/workflows", f), "utf8")) ? SUB_DAILY_GRACE_MS : 0;
     try {
-      runs = workflowRuns(repo, f);
+      runs = workflowRuns(repo, f, { graceMs });
     } catch (e) {
       unread++;
       console.error(`::error::${f}: could not list scheduled runs (${String(e.message).split("\n")[0]})`);
       continue;
     }
-    for (const r of recoveringScheduledRuns(runs, { file: f })) {
+    for (const r of recoveringScheduledRuns(runs, { file: f, graceMs })) {
       const next = runs.filter((o) => rerunsTheSchedule(o) && Date.parse(o.created_at) > Date.parse(r.created_at) && IN_FLIGHT.has(o.status))[0];
       console.log(`| \`${f}\` | cancelled, re-run in flight | ${r.created_at} | ⏳ ${r.html_url} is being re-tested by ${next?.html_url ?? "a later run"} |`);
     }
-    const stalled = cancelledScheduledRuns(runs, { file: f });
+    const stalled = cancelledScheduledRuns(runs, { file: f, graceMs });
     if (!stalled.length) continue;
-    const plan = redispatch ? redispatchPlan(f, stalled, runs) : { act: false, why: "re-dispatch not asked for", inputs: {} };
+    const plan = redispatch ? redispatchPlan(f, stalled, runs, { prodLoad: prodLoad.has(f) }) : { act: false, why: "re-dispatch not asked for", inputs: {} };
     let sent = null;
     if (plan.act) {
       const args = dispatchArgs(repo, f, plan.inputs);
@@ -246,7 +297,7 @@ function main() {
       }
     }
     for (const r of stalled) {
-      const cause = causeOf(repo, r);
+      const cause = causeOf(repo, r, prodLoad.has(f));
       if (sent) {
         console.log(`| \`${f}\` | cancelled, re-dispatched | ${r.created_at} | ⏳ ${cause}; ${sent}: ${r.html_url} |`);
         console.error(`::warning::${f}: scheduled run ${r.id} (${r.created_at}) was cancelled (${cause}); ${sent}.`);

@@ -10,9 +10,9 @@
  * job, and its own comment says why that step stays on `always()` (a crashed
  * probe is the case the job exists to catch).
  *
- * @mutate .github/workflows/nightly-webkit.yml | if: ${{ !cancelled() }} | if: always()
- * @mutate .github/workflows/e2e-real-backend.yml |       !cancelled() && github.event_name != 'pull_request' |       always() && github.event_name != 'pull_request'
- * @mutate .github/workflows/vacuity.yml | if: ${{ !cancelled() && (github | if: ${{ always() && (github
+ * @mutate .github/workflows/nightly-webkit.yml | if: ${{ !cancelled() && github.ref == 'refs/heads/main' }} | if: always()
+ * @mutate .github/workflows/e2e-real-backend.yml |       !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' |       always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+ * @mutate .github/workflows/vacuity.yml | if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github | if: ${{ always() && github.ref == 'refs/heads/main' && (github
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

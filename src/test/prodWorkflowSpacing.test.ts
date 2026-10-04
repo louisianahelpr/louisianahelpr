@@ -115,6 +115,18 @@ export const HOURLY_OWN_GROUP: Record<string, string> = {
   "core-loop-canary.yml": "core-loop-canary",
 };
 
+/**
+ * Q1161 (2026-10-04): the prod-load queue. A queued workflow's scheduled runs are
+ * ordered by a FIFO job (scripts/ci/wait-prod-load.mjs, first job
+ * `prod-load-turn`) instead of the shared workflow-level group, which GitHub's
+ * one-pending-run rule turned into a run-cancelling slot once crons arrived
+ * 127-501 min late (src/test/prodLoadQueue.test.ts). Rules 3 and 5 still space
+ * the crons: the queue only decides what happens when GitHub delivers them late.
+ */
+export function usesQueue(src: string): boolean {
+  return stripComments(src).includes("node scripts/ci/wait-prod-load.mjs");
+}
+
 const PROD_SIGNALS: RegExp[] = [
   /fncmgoasalhdgfwzhsqa/,
   // A direct PostgREST call from a workflow file — how uptime.yml reads prod.
@@ -316,10 +328,12 @@ export function violations(wfs: Wf[]): string[] {
     // run per group, so an hourly run in prod-load would cancel a heavy suite
     // that is queued behind an overrunning one. They are 30 min clear anyway.
     const literal = group === "prod-load" || (!!HOURLY_OWN_GROUP[w.file] && group === HOURLY_OWN_GROUP[w.file]);
+    // Q1161: ordered by the FIFO queue job, with a per-run group of its own.
+    const queued = usesQueue(w.src) && !!group && !/prod-load/.test(group);
     const scheduleExpr =
       !!group && /github\.event_name\s*==\s*'schedule'\s*&&\s*'prod-load'/.test(group);
-    if (!literal && !scheduleExpr) {
-      out.push(`${w.file}: workflow-level concurrency group is "${group ?? "(none)"}", not prod-load`);
+    if (!literal && !scheduleExpr && !queued) {
+      out.push(`${w.file}: workflow-level concurrency group is "${group ?? "(none)"}", not prod-load, and it does not run the prod-load queue (scripts/ci/wait-prod-load.mjs)`);
     }
     if (cancel !== "false") {
       out.push(`${w.file}: concurrency cancel-in-progress is "${cancel ?? "(unset)"}", must be false`);
@@ -412,15 +426,15 @@ type YJob = {
 };
 
 /**
- * The shared-accounts queue job (Q743, scripts/e2e/wait-shared-accounts.mjs)
- * counts as 0 minutes. It waits only while ANOTHER run is at the account lock;
- * scheduled runs are already one-at-a-time in prod-load, so on a schedule it
- * waits only for dispatched runs, which this model has never counted (before
- * Q743 the same wait happened as untimed "pending" time on the locked job).
- * Its 350-min timeout is a stop, not a run length.
+ * The queue jobs count as 0 minutes: the shared-accounts queue (Q743,
+ * scripts/e2e/wait-shared-accounts.mjs) waits only while ANOTHER run is at the
+ * account lock, and the prod-load queue (Q1161, scripts/ci/wait-prod-load.mjs)
+ * waits only while an OLDER scheduled run is in flight, which is the lateness
+ * this model exists to keep rare, not a part of the run's own length. Their
+ * 350-min timeouts are a stop, not a run length.
  */
 const isAccountQueue = (j: YJob) =>
-  (j.steps ?? []).some((st) => String(st?.run ?? "").includes("scripts/e2e/wait-shared-accounts.mjs"));
+  (j.steps ?? []).some((st) => /scripts\/e2e\/wait-shared-accounts\.mjs|scripts\/ci\/wait-prod-load\.mjs/.test(String(st?.run ?? "")));
 
 function matrixEntries(matrix: unknown): number {
   if (matrix === undefined) return 1;
@@ -468,10 +482,11 @@ export function worstCaseMinutes(src: string): number {
   return Object.keys(jobs).reduce((mx, n) => Math.max(mx, endOf(n)), 0);
 }
 
-/** Workflows whose SCHEDULED runs enter the shared prod-load group. */
+/** Workflows whose SCHEDULED runs enter the prod-load queue (Q1161) or, in a legacy fixture, the shared group. */
 function inProdLoad(w: Wf): boolean {
   const { group } = concurrencyOf(w.src);
   return (
+    usesQueue(w.src) ||
     group === SHARED_GROUP || (!!group && /github\.event_name\s*==\s*'schedule'\s*&&\s*'prod-load'/.test(group))
   );
 }
@@ -548,12 +563,10 @@ function loadWorkflows(): Wf[] {
     });
 }
 
-// Re-anchored 2026-09-22: prod-audit.yml no longer carries a literal
-// `group: prod-load`. Its group became a schedule-only expression when the
-// dispatch/schedule split landed, so the old find-string stopped matching and
-// the registration failed rather than proving anything. Breaking the STRING
-// the expression yields is the same proof against the new shape.
-// @mutate .github/workflows/prod-audit.yml | github.event_name == 'schedule' && 'prod-load' | github.event_name == 'schedule' && 'prod-audit-nightly'
+// Re-anchored 2026-10-04 (Q1161): prod-audit.yml no longer takes the shared group
+// at all; it waits in the prod-load queue and holds a per-run group. Rule 1 must
+// go red when that group is one of the shared name again (the 2026-09-21 bug).
+// @mutate .github/workflows/prod-audit.yml | group: ${{ format('prod-audit-{0}', github.run_id) }} | group: ${{ format('prod-load-{0}', github.run_id) }}
 // Rule 5 (Q318), red on the original bug: drift-detect or backup back at
 // 05:17 / 07:17, inside the 03:17 press run's two-wave worst case; and a
 // timeout raise alone (no cron moved) must widen the window and go red too.

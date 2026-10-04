@@ -44,14 +44,44 @@ on:
 permissions:
   contents: read
 
+# Q1161: no group is shared any more. A scheduled run is ordered by the
+# `prod-load-turn` job below (a FIFO queue); this group is per run, so GitHub
+# has nothing to cancel.
 concurrency:
   # Scheduled runs share prod-load; a dispatch gets its own group
   # (src/test/prodWorkflowSpacing.test.ts rule 4).
-  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('quota-monitor-{0}', github.run_id) }}
+  group: ${{ format('quota-monitor-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
+  # Q1161 (2026-10-04): THE PROD-LOAD QUEUE. A scheduled run waits here until no
+  # OLDER scheduled prod-load run is still in flight, then every other job runs
+  # (they all `needs:` this one). Replaces the shared workflow-level
+  # `prod-load` group: GitHub keeps one pending run per group and cancelled the
+  # third arrival, and crons arrive 127-501 min late, so they bunch.
+  # scripts/ci/wait-prod-load.mjs; src/test/prodLoadQueue.test.ts.
+  prod-load-turn:
+    name: Wait for the prod-load queue (first in, first served)
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/ci/wait-prod-load.mjs
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until no older scheduled prod-load run is in flight
+        run: node scripts/ci/wait-prod-load.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
   quota:
+    needs: prod-load-turn
     name: Quotas and limits (Q63)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -75,6 +105,7 @@ jobs:
         run: node scripts/check-quota-usage.mjs
 
   analytics:
+    needs: prod-load-turn
     name: Analytics freshness (Q72)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -90,6 +121,7 @@ jobs:
         run: node scripts/check-analytics-freshness.mjs
 
   stripe_balance:
+    needs: prod-load-turn
     name: Stripe TEST balance vs payouts due (Q3)
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -106,6 +138,7 @@ jobs:
         run: node scripts/check-stripe-balance.mjs
 
   db_pool_budget:
+    needs: prod-load-turn
     # Q317: PostgREST + pooler + Auth pools + other backends + a pg_cron
     # reserve must fit in max_connections minus the superuser slots, or cron
     # jobs are refused under load (14 refusals, 2026-09-23 19:00Z).
@@ -126,7 +159,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [quota, analytics, stripe_balance, db_pool_budget]
-    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

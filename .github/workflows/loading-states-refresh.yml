@@ -39,12 +39,15 @@ on:
 permissions:
   contents: read
 
+# Q1161: no group is shared any more. A scheduled run is ordered by the
+# `prod-load-turn` job below (a FIFO queue); this group is per run, so GitHub
+# has nothing to cancel.
 concurrency:
   # A SCHEDULED run joins prod-load; a dispatch gets its own group (rule 4 of
   # src/test/prodWorkflowSpacing.test.ts). The job itself holds the shared
   # test-account lock, so a dispatch never drives poster-e2e beside another
   # suite.
-  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('loading-states-refresh-{0}', github.run_id) }}
+  group: ${{ format('loading-states-refresh-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -53,7 +56,34 @@ env:
   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
 
 jobs:
+  # Q1161 (2026-10-04): THE PROD-LOAD QUEUE. A scheduled run waits here until no
+  # OLDER scheduled prod-load run is still in flight, then every other job runs
+  # (they all `needs:` this one). Replaces the shared workflow-level
+  # `prod-load` group: GitHub keeps one pending run per group and cancelled the
+  # third arrival, and crons arrive 127-501 min late, so they bunch.
+  # scripts/ci/wait-prod-load.mjs; src/test/prodLoadQueue.test.ts.
+  prod-load-turn:
+    name: Wait for the prod-load queue (first in, first served)
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/ci/wait-prod-load.mjs
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until no older scheduled prod-load run is in flight
+        run: node scripts/ci/wait-prod-load.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
   wait-accounts:
+    needs: prod-load-turn
     # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
     # per concurrency group and CANCELS it when a third arrives (press 36297157445,
     # e2e-journeys 36215839785 / 36215921402 / 36217255758). This lock-free job

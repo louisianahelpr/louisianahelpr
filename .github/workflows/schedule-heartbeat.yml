@@ -215,6 +215,9 @@ jobs:
             echo "| \`privacy-journey.yml\` | active | _not yet due_ | ⏳ before day 8 |" >> /tmp/rows.md
           fi
 
+          # Q1162: the scan covers EVERY scheduled workflow, not only the
+          # prod-load ones (a hand-cancelled lighthouse / ui-sweep /
+          # eslint run was invisible); only prod-load ones are re-dispatched.
           # Q293 (the class, not only privacy-journey): a scheduled prod-load
           # run cancelled while PENDING (a third run entered the group) runs
           # no job at all, not even its notify, so no nightly-red issue is
@@ -252,7 +255,7 @@ jobs:
             echo "**Likely causes, in order:**"
             echo "- GitHub disables \`schedule\` triggers on repos with **60 days of no activity** and does not re-enable them. Re-enable with \`gh workflow enable <file>\`."
             echo "- The workflow was disabled by hand (\`gh workflow list --all\` shows \`disabled_manually\`). This is what happened to \`test.yml\`, which everyone believed was gating commits while it had not run since 2026-04-26."
-            echo "- **cancelled** rows: a scheduled prod-load run was cancelled before it reported (the row says how: it lost the prod-load group's one pending slot, or a person cancelled it), and its one automatic re-dispatch was cancelled too or failed. Read that re-dispatch, then find what keeps cancelling it. A bulk cancel of the runner queue must skip \`schedule\` runs."
+            echo "- **cancelled** rows: a scheduled run was cancelled before it reported (the row says how: it lost the prod-load group's one pending slot, or a person cancelled it). A prod-load run's one automatic re-dispatch was cancelled too or failed; any other workflow is not re-dispatched, so run it by hand (\`gh workflow run <file>\`) and the next heartbeat clears the row. Read that re-dispatch, then find what keeps cancelling it. A bulk cancel of the runner queue must skip \`schedule\` runs."
             echo "- The \`schedule:\` block was commented out in the file but left in this workflow's \`WATCHED\` list."
             echo ""
             echo "_Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_"
@@ -364,7 +367,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [heartbeat]
-    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

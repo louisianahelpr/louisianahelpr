@@ -110,7 +110,7 @@ jobs:
       # Opens `prod-down: uptime` on the first down verdict, comments the probe
       # table on each later one, and CLOSES it on the first run that passes.
       - name: Open, update or close the prod-down issue
-        if: always()
+        if: always() && github.ref == 'refs/heads/main'
         uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: uptime

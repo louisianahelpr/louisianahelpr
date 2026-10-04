@@ -56,6 +56,9 @@ permissions:
   contents: read
   issues: write
 
+# Q1161: no group is shared any more. A scheduled run is ordered by the
+# `prod-load-turn` job below (a FIFO queue); this group is per run, so GitHub
+# has nothing to cancel.
 concurrency:
   # PROD LOAD (2026-09-14): see src/test/prodWorkflowSpacing.test.ts.
   #
@@ -67,11 +70,38 @@ concurrency:
   # other in a chain, and a workflow-level cancellation leaves a run with NO
   # jobs, so nothing reports it. See e2e-real-backend.yml, which has made this
   # split since the money loop lost a dispatch the same way.
-  group: ${{ github.event_name == 'schedule' && 'prod-load' || format('supabase-usage-{0}', github.run_id) }}
+  group: ${{ format('supabase-usage-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
+  # Q1161 (2026-10-04): THE PROD-LOAD QUEUE. A scheduled run waits here until no
+  # OLDER scheduled prod-load run is still in flight, then every other job runs
+  # (they all `needs:` this one). Replaces the shared workflow-level
+  # `prod-load` group: GitHub keeps one pending run per group and cancelled the
+  # third arrival, and crons arrive 127-501 min late, so they bunch.
+  # scripts/ci/wait-prod-load.mjs; src/test/prodLoadQueue.test.ts.
+  prod-load-turn:
+    name: Wait for the prod-load queue (first in, first served)
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/ci/wait-prod-load.mjs
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until no older scheduled prod-load run is in flight
+        run: node scripts/ci/wait-prod-load.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
   usage:
+    needs: prod-load-turn
     name: Plan headroom
     runs-on: ubuntu-latest
     # A few minutes for the headroom check + the orphan sweep's own 25-minute
@@ -221,7 +251,7 @@ jobs:
   notify:
     name: Report nightly result
     needs: [usage]
-    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

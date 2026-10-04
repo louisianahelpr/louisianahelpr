@@ -93,6 +93,9 @@ on:
         type: boolean
         default: false
 
+# Q1161: no group is shared any more. A scheduled run is ordered by the
+# `prod-load-turn` job below (a FIFO queue); this group is per run, so GitHub
+# has nothing to cancel.
 concurrency:
   # A main-batch run (inputs.batch) shares one group, so batches queue behind
   # each other (it took over the push run's group, 2026-10-02). A schedule or
@@ -109,7 +112,7 @@ concurrency:
   # PROD LOAD (2026-09-14): a SCHEDULED run joins the shared prod-load group so
   # it never overlaps another prod-hitting cron (src/test/prodWorkflowSpacing.test.ts).
   # Batch and dispatch keep the groups above.
-  group: ${{ github.event_name == 'schedule' && 'prod-load' || (inputs.batch && format('e2e-real-backend-{0}-batch', github.ref)) || format('e2e-real-backend-{0}-{1}', github.ref, github.run_id) }}
+  group: ${{ (inputs.batch && format('e2e-real-backend-{0}-batch', github.ref)) || format('e2e-real-backend-{0}-{1}', github.ref, github.run_id) }}
   # NOT `true`, unlike every other workflow in this repo. Cancelling this one
   # mid-flight can orphan a FUNDED production job: the money loop's teardown
   # runs as an `if: always()` step, and a workflow-level cancellation kills the
@@ -120,11 +123,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Q1161 (2026-10-04): THE PROD-LOAD QUEUE. A scheduled run waits here until no
+  # OLDER scheduled prod-load run is still in flight, then every other job runs
+  # (they all `needs:` this one). Replaces the shared workflow-level
+  # `prod-load` group: GitHub keeps one pending run per group and cancelled the
+  # third arrival, and crons arrive 127-501 min late, so they bunch.
+  # scripts/ci/wait-prod-load.mjs; src/test/prodLoadQueue.test.ts.
+  prod-load-turn:
+    name: Wait for the prod-load queue (first in, first served)
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/ci/wait-prod-load.mjs
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until no older scheduled prod-load run is in flight
+        run: node scripts/ci/wait-prod-load.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
   # ---------------------------------------------------------------------
   # Which legs can run at all. `secrets` is not available in a job-level
   # `if:`, so their presence is turned into an output here.
   # ---------------------------------------------------------------------
   preflight:
+    needs: prod-load-turn
     name: What can run
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -168,6 +198,7 @@ jobs:
   # caught the guest-browse 401.
   # ---------------------------------------------------------------------
   anon-surface:
+    needs: prod-load-turn
     name: Anon surface contract (real prod, read-only, no credentials)
     runs-on: ubuntu-latest
     # 15, not 5: the page leg now builds this commit instead of asking Vercel.
@@ -790,7 +821,7 @@ jobs:
     # reports (a batch run skips the money loop, so this job skips too); the
     # nightly-red issue exists for the scheduled runs nobody is watching.
     if: >-
-      !cancelled() && github.event_name != 'pull_request'
+      !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       && needs.prod-lifecycle.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 5

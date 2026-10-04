@@ -263,9 +263,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // WAS: "Open a dispute from the job detail screen." There is no
         // dispute control on the job detail screen — grep finds none in
         // JobDetailDialog or JobDetail. It lives on the Activity job card
-        // (AppliedJobCard / PostedJobActions) via `DisputeLink`, and its
+        // (the poster's Dispute chip, gated by `shouldShowDisputeLink`; the old
+        // `<DisputeLink>` component was deleted in Q904), and its
         // visibility rules were undisclosed: a poster must request a REVISION
-        // first and let that window lapse (DisputeLink.tsx:58-74). Sending
+        // first and let that window lapse (shouldShowDisputeLink). Sending
         // someone to the wrong screen to file a time-limited money claim is the
         // worst possible shape for this answer to be wrong in.
         // WAS: "It stays available for 7 days after completion." FALSE since

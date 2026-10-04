@@ -1,11 +1,11 @@
 /**
- * DisputeLink — discoverable, low-encouragement "Open a dispute" link.
+ * When the poster's "Open a dispute" path shows on a card: the predicate
+ * InProgressStep's dispute chip and the Help Center copy read.
  *
- * Issue #113: the dispute path used to be buried in primary action
- * buttons that only appear in a narrow slice of the lifecycle. This
- * link is intentionally muted (sienna underline, footer placement) so
- * it is *findable* without being *promoted* — disputes are a last
- * resort, not a CTA.
+ * Q904 (2026-10-04): the `<DisputeLink>` component that used to live here was
+ * rendered nowhere in app source (only its own test rendered it since
+ * 2026-10-01; the poster's Dispute is a JobActionChip keyed "dispute"), so it
+ * was deleted with its render tests. The predicate stays: it is live.
  *
  * Visibility rules (see `shouldShowDisputeLink` for the truth table):
  *   - Customer side: visible only on `revision_requested` once the helpr's
@@ -17,15 +17,9 @@
  *     issue-#113 7-day post-completion window. Client-only: the server
  *     dispute RPC is not changed here.
  *   - Always hidden once `status === 'disputed'` (dispute already
- *     filed — we never want to encourage double-filing) or
+ *     filed: we never want to encourage double-filing) or
  *     `disputed_at` is set.
- *
- * Mount below the action buttons inside an existing card; renders
- * `null` when the conditions don't hold so callers can place it
- * unconditionally and let this component decide.
  */
-import { AlertTriangle } from "lucide-react";
-import { hapticLight } from "@/lib/haptics";
 
 /** The minimal slice of `jobs` row this component cares about. */
 export interface DisputeLinkJob {
@@ -79,80 +73,4 @@ export function shouldShowDisputeLink(
   // post-completion window is gone: owner rule, 2026-09-14 (VN-28), no
   // report or dispute once a job is done.
   return false;
-}
-
-interface DisputeLinkProps {
-  job: DisputeLinkJob;
-  /** Which side of the job is viewing this card — drives the visibility predicate. */
-  side: DisputeLinkSide;
-  /**
-   * Click handler — caller is responsible for opening the existing
-   * dispute UI (e.g. setting the `disputeJob` state that
-   * `ActivityDialogs` reads). We don't route here so the link stays
-   * decoupled from any specific dialog wiring.
-   */
-  onOpenDispute: () => void;
-  /**
-   * FORCE the link visible for a state the 7-day-window predicate does not
-   * cover, with its own wording.
-   *
-   * Added 2026-09-11 for the one state that has no other exit. "Can't Finish"
-   * is now hidden once a job reaches Working (owner: "i dont belive they
-   * should be able to do this once thy have started the job"), which is right
-   * — and leaves a helper who is injured, on an unsafe site, or locked out
-   * with only Message. This is the escape, and it is deliberately THIS
-   * component rather than a new one: the quiet sienna underline, the
-   * stopPropagation, the never-double-file guards and the destination are all
-   * already correct here; only the visibility rule and the words differ.
-   *
-   * Owner, 2026-09-14 (VN-19): ActiveJobSection now renders Report a Problem
-   * as a danger chip in the action row, so it no longer passes `forceShow`.
-   *
-   * The two hard guards are NOT overridable — a job already in dispute still
-   * renders nothing, whatever a caller passes.
-   */
-  forceShow?: boolean;
-  /** Wording override, used with {@link forceShow}. */
-  label?: string;
-  /** Override "now" for deterministic tests. */
-  now?: Date;
-  /** Optional className for the wrapper (caller controls spacing). */
-  className?: string;
-}
-
-export function DisputeLink({
-  job,
-  side,
-  onOpenDispute,
-  forceShow = false,
-  label,
-  now,
-  className,
-}: DisputeLinkProps) {
-  // Never a double-file path, forced or not — the same two rules the
-  // predicate opens with.
-  if (job.disputed_at || job.status === "disputed") return null;
-  if (!forceShow && !shouldShowDisputeLink(job, side, now)) return null;
-
-  return (
-    <div className={`pt-2 text-center ${className ?? ""}`}>
-      <button
-        type="button"
-        onClick={(e) => {
-          // Cards above us use whole-card click handlers to toggle the
-          // expanded state — keep our click from bubbling so opening
-          // the dispute doesn't also collapse/expand the card.
-          e.stopPropagation();
-          hapticLight();
-          onOpenDispute();
-        }}
-        className="inline-flex items-center gap-1 text-ds-11 underline underline-offset-2 hover:opacity-80 active:opacity-70 transition-opacity"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
-        aria-label={label ? `${label} — open a dispute about this job` : "Open a dispute about this job"}
-      >
-        <AlertTriangle className="w-3 h-3" strokeWidth={2.25} />
-        {label ?? "Something Wrong? Open a Dispute"}
-      </button>
-    </div>
-  );
 }

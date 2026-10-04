@@ -611,7 +611,9 @@ describe("process-scheduled-payouts edge function", () => {
       expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
       expect(profileUpdates()).toHaveLength(0);
       expect(scenario.writes.some((w) => w.table === "jobs" && w.op === "update")).toBe(false);
-      expect(slackAlerts).toHaveLength(0);
+      // Q1220: a REAL job's hit pages one warning (a seed job's stays quiet,
+      // below); nothing else is posted.
+      expect((slackAlerts as Array<{ title?: string }>).map((a) => a.title)).toEqual(["Real job stuck on a Stripe test-mode object"]);
     }
 
     // @mutate supabase/functions/process-scheduled-payouts/index.ts | logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id }); | throw e;
@@ -647,6 +649,37 @@ describe("process-scheduled-payouts edge function", () => {
       expect(skips.lines()).toEqual([
         expect.objectContaining({ fn: "process-scheduled-payouts", object: "payment_intent", id: "pi_test_old", job_id: "job-1" }),
       ]);
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (job.is_seed === true) return;\n        await postSlackOpsAlert({ | await postSlackOpsAlert({
+    it("Q1220: a SEED job's test-mode PaymentIntent is skipped quietly (no page)", async () => {
+      seedPayableJob(scenario, { job: { stripe_payment_intent_id: "pi_test_old", is_seed: true } });
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_test_old"));
+      const res = await runCron();
+      expect(res.status).toBe(200);
+      expect(slackAlerts).toHaveLength(0);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | await alertRealJobOnTestObject("payment_intent", paymentIntentId); |
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | await alertRealJobOnTestObject("checkout.session", job.stripe_session_id); |
+    it("Q1220: a REAL job's test-mode object pages one warning naming the job (session and PaymentIntent)", async () => {
+      for (const which of ["session", "pi"] as const) {
+        resetSupabaseMock();
+        resetStripeMock();
+        resetSharedMocks();
+        if (which === "session") {
+          seedPayableJob(scenario, { job: { stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" } });
+          stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+        } else {
+          seedPayableJob(scenario, { job: { stripe_payment_intent_id: "pi_test_old" } });
+          stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_test_old"));
+        }
+        await runCron();
+        const alerts = slackAlerts as Array<{ title?: string; severity?: string; fields?: Record<string, unknown> }>;
+        expect(alerts, which).toHaveLength(1);
+        expect(alerts[0]).toMatchObject({ severity: "warning", fields: expect.objectContaining({ job_id: "job-1" }) });
+      }
     });
 
     it("control: any OTHER PaymentIntent verify error still fails closed (500, verify_error, no transfer, no log line)", async () => {

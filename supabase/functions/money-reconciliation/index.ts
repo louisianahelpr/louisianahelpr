@@ -439,6 +439,13 @@ serve(async (req) => {
         "warning",
         "jobs.stripe_payment_intent_id names a PaymentIntent the configured Stripe key cannot see (resource_missing). Either the id is wrong or it belongs to the other key mode (test vs live) — so this job's money cannot be reconciled at all.",
       ),
+      // Q1220: the Q891 quiet skip is right for a seed job; on a REAL job it
+      // hid a stuck payment.
+      stripeTestObjectOnRealJob: new Check(
+        "stripe_test_object_on_real_job",
+        "warning",
+        "A REAL (non-seed) job's stripe_payment_intent_id is a Stripe TEST-mode object, so the live key cannot read it and there is no real money behind it. Every money path skips the job, so it is stuck: decide by hand whether it was ever really paid, then fix its payment fields.",
+      ),
       // ── The single-Helpr cancellation-fee ledger (LOW-2) ───────────────
       // void-cancelled-payments sends a cancelled job's fee to its Helpr as a
       // Stripe transfer (metadata.type = "cancellation_fee") and records it in
@@ -1458,6 +1465,8 @@ serve(async (req) => {
             // 404 resource_missing too, and is not a missing PaymentIntent.
             if (isTestObjectUnderLiveKey(e)) {
               logTestObjectUnderLiveKey("money-reconciliation", { job_id: job.id, object: "payment_intent", id: piId });
+              // Q1220: quiet for a seed job only; a real job's hit is a finding.
+              if (job.is_seed !== true) checks.stripeTestObjectOnRealJob.add({ job_id: job.id, payment_intent: piId });
               return;
             }
             if (err?.statusCode === 404 || err?.code === "resource_missing") {

@@ -652,6 +652,8 @@ serve(async (req) => {
     // Hits are held until the end so a hit on an is_seed job outside the
     // default scan can be routed like every other seed hit (see Emit).
     const feeHits: Array<{ check: Check; hit: Record<string, unknown> }> = [];
+    /** Q1241: a held Helpr's waiting cancellation-fee rows (reported, never warned). */
+    const heldFeeRows: Array<{ job_id: string; fee_transfer_id: string; helper_id: string }> = [];
     const feeScan = await scanAll<FeeLedgerRow>("cancellation_fee_transfers", (countOpt) =>
       admin
         .from("cancellation_fee_transfers")
@@ -688,10 +690,27 @@ serve(async (req) => {
           hit: { job_id: job.id, helper_id: job.helper_id, cancellation_fee: money(job.cancellation_fee) },
         });
       }
+      // Q1241: void-cancelled-payments claims a fee row 'pending' BEFORE it
+      // checks the payout hold, so a held Helpr's fee waits there ON PURPOSE
+      // for the length of the hold (it is sent on the first run after the
+      // release). Reported in `cancellation_fee_held`, never warned. FAIL
+      // CLOSED: an unreadable hold exempts nothing and degrades the run.
+      const waitingFeeRows = feeRows.filter((r) => r.status === "pending" || r.status === "failed");
+      let feeHolds: ReadonlyMap<string, unknown> = new Map<string, unknown>();
+      if (waitingFeeRows.length) {
+        const helperIds = [...new Set(waitingFeeRows.map((r) => r.helper_id).filter((h): h is string => !!h))];
+        const feeHoldLookup = await loadPayoutHolds(admin, helperIds);
+        if (feeHoldLookup.ok) feeHolds = feeHoldLookup.holds;
+        else notes.push(`payout hold read failed, no held cancellation fee exempted: ${feeHoldLookup.message}`);
+      }
       for (const r of feeRows) {
         if (r.status !== "pending" && r.status !== "failed") continue;
         const since = latest(r.updated_at, r.created_at);
         if (since !== null && feeNowMs - since < SETTLE_WINDOW_MS) continue;
+        if (r.helper_id && feeHolds.has(r.helper_id)) {
+          heldFeeRows.push({ job_id: r.job_id, fee_transfer_id: r.id, helper_id: r.helper_id });
+          continue;
+        }
         feeHits.push({
           check: checks.feeLedgerUnpaid,
           hit: { job_id: r.job_id, fee_transfer_id: r.id, status: r.status, stripe_transfer_id: r.stripe_transfer_id, helper_amount: money(r.helper_amount) },
@@ -1758,6 +1777,8 @@ serve(async (req) => {
       // Q764: payout_pending jobs an admin's payout hold is keeping there on
       // purpose. Excluded from payout_pending_stranded; reported, never paged.
       payout_pending_held: heldPayoutJobs,
+      // Q1241: a held Helpr's cancellation fee waits on purpose; reported, never warned.
+      cancellation_fee_held: heldFeeRows,
       // Hits on is_seed jobs (only possible with ?include_seed=1). Reported,
       // sent to the digest, never paged and never a defect; see above.
       seed_findings: seedFindings,

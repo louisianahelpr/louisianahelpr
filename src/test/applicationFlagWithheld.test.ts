@@ -69,7 +69,12 @@ describe("Q1232: applications.flag_reason is withheld from clients", () => {
       for (const m of code.matchAll(/\.from\(\s*["']applications["']\s*\)\s*\.select\(\s*(?:(["'`])([^"'`]*)\1|(\w+))?/g)) {
         reads++;
         const where = `${relative(ROOT, f)}:${code.slice(0, m.index!).split("\n").length}`;
-        if (m[3]) { if (m[3] !== "APPLICATION_READABLE_COLUMNS") bad.push(`${where} selects ${m[3]}`); continue; }
+        if (m[3]) {
+          // The list itself, or readApplicationRows' `columns` (it hands the read the list, Q1206).
+          const viaHelper = m[3] === "columns" && /readApplicationRows\(\(columns\) =>\s*$/.test(code.slice(Math.max(0, m.index! - 60), m.index!).replace(/supabase\s*$/, ""));
+          if (m[3] !== "APPLICATION_READABLE_COLUMNS" && !viaHelper) bad.push(`${where} selects ${m[3]}`);
+          continue;
+        }
         const list = (m[2] ?? "").replace(/\w+(?::\w+)?!?\w*\s*\([^)]*\)/g, ""); // drop embeds
         const cols = list.split(",").map((c) => c.trim()).filter(Boolean);
         if (m[2] === undefined || cols.includes("*")) bad.push(`${where} selects *`);
@@ -83,5 +88,5 @@ describe("Q1232: applications.flag_reason is withheld from clients", () => {
 
 // @mutate supabase/migrations/20261004191007_application_flag_reason_withheld.sql | REVOKE SELECT ON public.applications FROM PUBLIC, anon, authenticated; | REVOKE SELECT ON public.applications FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261004191007_application_flag_reason_withheld.sql | decline_reason, flagged_hidden, job_latitude | decline_reason, flagged_hidden, flag_reason, job_latitude
-// @mutate src/hooks/useActivityData.ts | supabase.from("applications").select(APPLICATION_READABLE_COLUMNS).eq("helper_id", userId) | supabase.from("applications").select("*").eq("helper_id", userId)
+// @mutate src/hooks/useActivityData.ts | supabase.from("applications").select(columns).eq("helper_id", userId) | supabase.from("applications").select("*").eq("helper_id", userId)
 // @mutate src/lib/applicationColumns.ts |   "flagged_hidden",\n |   "flagged_hidden",\n  "flag_reason",\n

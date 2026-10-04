@@ -27,7 +27,12 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url).pathname, "utf8
 const LIVE = read("../../../scripts/probes/fixtures/applications.live.sql");
 const MIG = read("../../../supabase/migrations/20261004191007_application_flag_reason_withheld.sql");
 const GRANTS = [...MIG.matchAll(/^(REVOKE|GRANT)\s[^;]*ON public\.applications[^;]*;/gm)].map((m) => m[0]);
-const COLS = [...read("../../../src/lib/applicationColumns.ts").matchAll(/^ {2}"(\w+)",$/gm)].map((m) => m[1]);
+const LIB_COLS = [...read("../../../src/lib/applicationColumns.ts").matchAll(/^ {2}"(\w+)",$/gm)].map((m) => m[1]);
+// The fixture is applications as live on 2026-10-04; a column a LATER
+// migration adds (Q1206's offer_message_flagged_hidden) is granted by that
+// migration and proven in its own proof, so it is left out here.
+const LATER = new Set(["offer_message_flagged_hidden"]);
+const COLS = LIB_COLS.filter((c) => !LATER.has(c));
 const MODE = process.env.NEW_MIGRATION ?? "";
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against the LIVE (unfixed) state (expect FAILs)`);
 
@@ -36,7 +41,7 @@ const check = (name, ok, detail = "") => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? `  (${detail})` : ""}`);
   if (!ok) failures++;
 };
-check("I0 the migration's two grant statements and the client's 17 columns were read", GRANTS.length === 2 && COLS.length === 17, `${GRANTS.length} statements, ${COLS.length} columns`);
+check("I0 the migration's two grant statements and the client's 17 Q1232 columns were read", GRANTS.length === 2 && COLS.length === 17, `${GRANTS.length} statements, ${COLS.length} columns`);
 
 const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
 const HELPR = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";

@@ -108,7 +108,7 @@ describe("Applicants load: no client-side block read (Q239, Q341)", () => {
 });
 
 // The client-side block read back, ahead of the applications read.
-// @mutate src/components/job-card/activityActions/useApplicantsState.ts | const { data: appsData, error: appsError } = await supabase.from("applications") | await supabase.from("user_blocks").select("*").eq("blocker_id", jobId);\n    const { data: appsData, error: appsError } = await supabase.from("applications")
+// @mutate src/components/job-card/activityActions/useApplicantsState.ts | const { data: appsData, error: appsError } = await readApplicationRows((columns) => supabase.from("applications") | await supabase.from("user_blocks").select("*").eq("blocker_id", jobId);\n    const { data: appsData, error: appsError } = await readApplicationRows((columns) => supabase.from("applications")
 
 // The signals no longer prefetched alongside profiles.
 // @mutate src/components/job-card/activityActions/useApplicantsState.ts | prefetchApplicantSignals(queryClient, applicantSignalHelperIds(apps), jobId); | void applicantSignalHelperIds;

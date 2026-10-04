@@ -1,11 +1,12 @@
 import type { Database } from "@/integrations/supabase/types";
+import type { APPLICATION_PRIVATE_COLUMNS } from "@/lib/applicationColumns";
 import { CATEGORY_ICONS } from "@/lib/categoryIcons";
 import { JOB_CATEGORIES, JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
-// flag_reason is withheld from clients by a column grant (Q1232): see
-// src/lib/applicationColumns.ts.
-export type Application = Omit<Database["public"]["Tables"]["applications"]["Row"], "flag_reason"> & {
+// flag_reason and the withheld texts are kept from clients by a column
+// grant (Q1232, Q1206): see src/lib/applicationColumns.ts.
+export type Application = Omit<Database["public"]["Tables"]["applications"]["Row"], (typeof APPLICATION_PRIVATE_COLUMNS)[number]> & {
   /**
    * Server-set contact-leak flag, added by migration 20260907005738 and not yet
    * in the generated types (regenerating mid-launch would land a large diff for

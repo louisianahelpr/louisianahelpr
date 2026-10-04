@@ -646,7 +646,7 @@ export function ApplicantsPanel({
                             honouring it here would leave the leak on screen and
                             only LOOK fixed — the note reached this exact
                             component verbatim in the 2026-09-06 review. */}
-                        {app.message && (
+                        {(app.message || app.flagged_hidden) && (
                           app.flagged_hidden ? (
                             <p
                               className="font-sans text-ds-13 leading-snug pl-14"

@@ -209,7 +209,7 @@ describe("process-scheduled-payouts stamps the closed dispute it settles (Q153)"
     const job = {
       id: "job-1", title: "Auto-resolved haul-off", helper_id: "helper-1", customer_id: "poster-1",
       budget: 40, platform_fee_amount: 4.8, helper_fee_percent: 12, urgent_fee: 0,
-      stripe_session_id: "cs_1", stripe_payment_intent_id: "pi_1", status: "completed",
+      stripe_session_id: "cs_1", stripe_payment_intent_id: "pi_1", status: "completed", payment_status: "payout_pending",
       is_group_job: isGroup, helpers_needed: 1, sales_tax_rate: 0,
     };
     s.reads.jobs = { rows: [job] };

@@ -7,9 +7,10 @@
  *
  * @mutate src/hooks/useAuthReady.ts | recordColdLaunchPhase("auth-ready-resolved"); | void import("@/lib/sentry");
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 // @two-way src/test/sentryLoadSitesAreGated.test.ts:expect(sites).toEqual(ALLOWED);
 const ALLOWED = ["src/lib/errorLogger.ts", "src/main.tsx"];

@@ -3,8 +3,9 @@
 // @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | = v_norm\n         LIMIT v_repeat_cap + 1) x;\n    END IF;\n    IF v_repeats | IS NOT NULL\n         LIMIT v_repeat_cap + 1) x;\n    END IF;\n    IF v_repeats
 // @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | \n                   AND coalesce(p_tags ->> 'origin', '') <> 'client' THEN |  THEN
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q96 + Q97 (docs/OPEN.md), from the authz review of the Q39 path

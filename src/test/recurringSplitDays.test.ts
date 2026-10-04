@@ -34,9 +34,10 @@
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                            WHERE w.customer_id = v_uid AND w.helper_id = p_helper_id | WHERE w.helper_id = p_helper_id
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                        WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id AND a.status = 'pending') | WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id)
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const dir = "supabase/migrations";
 const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();

@@ -7,11 +7,12 @@
 // Q1166: the client starts sending a server-stamped column on edit.
 // @mutate src/pages/messages/Messages.tsx | .update({ content: trimmed }) | .update({ content: trimmed, edited_at: new Date().toISOString() })
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 // @ts-expect-error — plain .mjs script, no type declarations
 import * as contract from "../../scripts/audit/write-contract.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * A SIGNED-IN CLIENT WRITES ONLY THE COLUMNS IT SENDS (Q340 INSERT, Q1166 UPDATE).

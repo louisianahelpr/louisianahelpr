@@ -29,8 +29,9 @@
  * with a `link` column fails here until its links die with their job.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const MIG_DIR = join(ROOT, "supabase", "migrations");

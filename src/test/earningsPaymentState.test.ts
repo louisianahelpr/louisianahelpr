@@ -35,7 +35,7 @@
 // @mutate src/hooks/useProfileTabData.ts | .neq("status", "cancelled") | .eq("is_seed", false).neq("status", "cancelled")
 // @mutate src/hooks/useProfileTabData.ts | const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS).neq("status", "cancelled"); | const jobsQuery = supabase.from("jobs").select(JOB_READABLE_COLUMNS); // .neq("status", "cancelled")
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import {
@@ -45,6 +45,7 @@ import {
   isAwaitingTransfer,
   isEarnedJob,
 } from "@/components/profile/earningsTab/earningsTabHelpers";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const MIGRATIONS_DIR = join(process.cwd(), "supabase/migrations");
 

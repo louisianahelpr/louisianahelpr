@@ -20,9 +20,10 @@
  * @mutate supabase/migrations/20261002052502_cancellation_fee_transfers_ledger.sql | CHECK (status NOT IN ('paid', 'reversed') OR stripe_transfer_id IS NOT NULL), | CHECK (true),
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const MIGRATIONS = join(resolve(__dirname, "..", ".."), "supabase", "migrations");
 const T = String.raw`(?:public\.)?"?cancellation_fee_transfers"?`;

@@ -7,7 +7,7 @@
 // @mutate .github/workflows/db-drift-detect.yml | MIGRATION_PROVENANCE: ${{ steps.migration_provenance.outcome }} | MIGRATION_PROVENANCE: success
 // @mutate supabase/migrations/20260923103737_migration_deploy_ledger.sql | REVOKE ALL ON TABLE public.migration_deploy_ledger FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.migration_deploy_ledger FROM PUBLIC;
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   DEPLOY_WORKFLOW_PATH,
@@ -15,6 +15,7 @@ import {
   provenanceFindings,
   receiptInsertSql,
 } from "../../scripts/lib/migrationProvenance.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q117 (docs/OPEN.md): every prod migration must have been applied by

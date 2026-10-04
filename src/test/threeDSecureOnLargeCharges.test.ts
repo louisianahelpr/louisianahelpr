@@ -32,7 +32,7 @@
  * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS) { | if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { THREE_D_SECURE_MIN_CENTS, threeDSecureOptions } from "../../supabase/functions/_shared/threeDSecure";
@@ -45,6 +45,7 @@ import { setEnv, resetEnv } from "./edge/mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./edge/mocks/stripe";
 import { scenario, resetSupabaseMock } from "./edge/mocks/supabase";
 import { resetSharedMocks } from "./edge/mocks/shared";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const FN_DIR = join(ROOT, "supabase/functions");

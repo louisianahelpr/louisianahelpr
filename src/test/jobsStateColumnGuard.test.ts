@@ -7,7 +7,7 @@
 // Q966: the complaint's change check is disabled (the INSERT clear still names the column).
 // @mutate supabase/migrations/20261003180355_dispute_text_server_owned.sql | IF NEW.dispute_reason IS DISTINCT FROM OLD.dispute_reason THEN | IF false THEN
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   dynamicJobsWriterReasons,
@@ -18,6 +18,7 @@ import {
   parseArgs,
   sqlArrayLiteral,
 } from "../../scripts/lib/jobsWriteSurface.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * EVERY CLIENT-WRITABLE MONEY / STATE-MACHINE COLUMN ON public.jobs HAS A

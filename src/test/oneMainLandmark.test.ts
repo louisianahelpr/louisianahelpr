@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Exactly ONE `<main>` landmark in the whole app, owned by App.tsx.

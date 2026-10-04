@@ -15,9 +15,10 @@
  * @mutate src/pages/post-job/useDraftCheckoutState.ts | safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY) ? "open" : "none", | "none",
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { classifyDraftCheckout } from "@/pages/post-job/useDraftCheckoutState";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const HANDLERS = "supabase/functions/stripe-webhook/handlers";
 const NOT_POSTED = /isn['’]t posted|load your draft/i;

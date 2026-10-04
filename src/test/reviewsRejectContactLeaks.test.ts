@@ -10,8 +10,9 @@
  * @mutate supabase/migrations/20260924063123_reviews_reject_contact_leaks.sql | BEFORE INSERT OR UPDATE OF feedback, response_text ON public.reviews | BEFORE UPDATE OF feedback ON public.reviews
  * @mutate src/components/CompletionPrompts.tsx | else if (error.code === "23514" && error.message) { hapticError(); toast.error(userFacingError(error, "We couldn't submit your review — please try again.")); } // server contact-leak refusal (TS-010) | else if (false) {}
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const DIR = "supabase/migrations";
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();

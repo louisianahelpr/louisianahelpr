@@ -10,10 +10,11 @@
  * @mutate src/lib/nativeCamera.ts | copy: `${kind === "camera" ? "Camera" : "Photo"} access is off. Turn it on in Settings, then try again.`, // NB-007 denied | copy: "Couldn't open your photos. Please try again.",
  * @mutate src/components/PhotoProof.tsx | const failure = pickerFailure(err, "photos"); | const failure = { copy: "Couldn't open your photos. Please try again.", isError: true };
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { pickerFailure } from "@/lib/nativeCamera";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

@@ -29,13 +29,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { useState } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { AlertTriangle, MessageSquare } from "lucide-react";
 import { JobStepCard, MORE_ONLY_CHIP_KEYS } from "@/components/job-card/JobStepCard";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
 import { SosShareButton, SosShareSheet } from "@/components/SosShareButton";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const SRC = join(ROOT, "src");

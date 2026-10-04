@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * EVERY PUBLIC FUNCTION THE MIGRATIONS LEAVE BEHIND IS IN types.ts, BEFORE IT SHIPS.

@@ -12,9 +12,10 @@
 // @mutate src/components/profile/CredentialsTab.tsx | const ext = DOC_EXT_BY_TYPE[draft.file.type] ?? "pdf"; | const ext = draft.file.name.split(".").pop() \|\| "pdf";
 // @mutate src/components/profile/CredentialsTab.tsx |   "image/webp": "webp",\n  "application/pdf": "pdf",\n}; |   "image/webp": "webp",\n  "application/pdf": "pdf",\n  "image/gif": "gif",\n};
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q127 (docs/OPEN.md): a credential URL is the member's OWN uploaded document.

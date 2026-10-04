@@ -26,9 +26,10 @@
  * trips this guard immediately.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const SRC = join(REPO, "src");

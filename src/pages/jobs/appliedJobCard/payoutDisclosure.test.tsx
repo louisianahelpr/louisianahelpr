@@ -23,7 +23,7 @@
 // things that make the copy true: an approved-but-unpaid job must say the
 // payout is still ahead, and it must not claim the money has already moved.
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "../../../test/helpers/blankNonCode";
 import {
@@ -31,6 +31,7 @@ import {
   PAYOUT_HOLD_HOURS,
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../../supabase/functions/_shared/escrowTiming";
+import { readdirSync } from "../../../test/helpers/trackedFiles";
 
 /**
  * EVERY file of the helper's applied card, not one named file.

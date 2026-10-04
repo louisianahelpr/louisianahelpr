@@ -11,8 +11,9 @@
  * @mutate ios/App/App/Info.plist | \t\t\t<string>location</string>\n | \t\t\t<string>remote-notification</string>\n\t\t\t<string>location</string>\n
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const plist = readFileSync(resolve(ROOT, "ios/App/App/Info.plist"), "utf8");

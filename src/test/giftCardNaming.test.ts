@@ -27,8 +27,9 @@
 // would make the guard permanently red); the regex unit test above covers it.
 // @mutate src/pages/profile/GiftCard.tsx | * GiftCard — /gift-card | * GiftCard — /gift-card\nPIF was the retired name.
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, sep } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOTS = [
   "src",

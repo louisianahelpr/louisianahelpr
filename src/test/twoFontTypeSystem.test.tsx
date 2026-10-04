@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import HeroSection from "@/components/landing/HeroSection";
+import { readdirSync } from "./helpers/trackedFiles";
 
 // PROVEN ABLE TO FAIL 2026-09-20, in both directions: dropping `font-display`
 // from the LOCKED hero H1 reds the last test, and putting a real `font-serif`

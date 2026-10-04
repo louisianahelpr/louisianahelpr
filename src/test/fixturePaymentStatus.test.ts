@@ -23,8 +23,9 @@
 // defines it, since migrations are append-only and a pinned path grades a body
 // Postgres has already replaced — and every fixture is checked against it.
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");

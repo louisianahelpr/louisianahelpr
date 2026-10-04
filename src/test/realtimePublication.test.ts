@@ -15,9 +15,10 @@
  * order — the same order a from-scratch rebuild (and prod) applies them.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..");

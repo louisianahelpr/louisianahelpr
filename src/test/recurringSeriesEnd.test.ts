@@ -34,10 +34,11 @@
  * @mutate src/components/series/JobSeriesCardControls.tsx | <EndSeriesControl jobId={job.id} | <span data-x={job.id}
  * @mutate src/pages/posts/PostedJobSeriesControls.tsx | canEnd={!!job.recurring_helper_id && job.status !== "cancelled"} | canEnd={false}
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const dir = "supabase/migrations";
 const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();

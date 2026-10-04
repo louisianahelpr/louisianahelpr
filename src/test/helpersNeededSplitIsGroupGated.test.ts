@@ -23,9 +23,10 @@
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1; | const helpers = Number(confirmApplyJob.helpers_needed) > 0 ? Number(confirmApplyJob.helpers_needed) : 1;
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = resolve(__dirname, "..");
 const CANONICAL = join(SRC, "lib", "helperEarnings.ts");

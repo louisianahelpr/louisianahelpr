@@ -27,13 +27,14 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = path.resolve(__dirname, "..");
 const PANELS = new Set(["JobTracking", "JobConfirmation"]);
 const GLASS = /(^|\s)liquid-glass(\s|$)/;
 
 function walkFiles(dir: string, out: string[] = []): string[] {
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walkFiles(p, out);
     else if (/\.tsx$/.test(e.name) && !/\.test\.tsx$/.test(e.name)) out.push(p);

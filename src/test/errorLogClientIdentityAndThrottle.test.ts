@@ -20,8 +20,9 @@
 // @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | CHECK (drop_kind IN ('guest', 'guest_fp', 'account')) | CHECK (drop_kind IN ('guest', 'guest_fp'))
 // @mutate src/integrations/supabase/types.ts | backend_pid: number\n          drop_kind: string\n          dropped: number | backend_pid: number\n          kind: string\n          dropped: number
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q106 + Q98 (docs/OPEN.md): the public.error_logs CLIENT insert path.

@@ -33,12 +33,13 @@
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { ReviewsSection } from "@/pages/user/ReviewsSection";
 import { splitReviewTags } from "@/components/profile/reviewCard";
 import type { ProfileReview } from "@/pages/user/types";
+import { readdirSync } from "./helpers/trackedFiles";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 

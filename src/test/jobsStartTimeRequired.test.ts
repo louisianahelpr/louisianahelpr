@@ -1,9 +1,10 @@
 // @mutate supabase/migrations/20260924101636_jobs_start_time_required.sql |     OR start_time IS NOT NULL\n |     OR true\n
 // @mutate supabase/migrations/20260924101636_jobs_start_time_required.sql | OR (is_seed AND recurrence_days IS NULL) | OR is_seed
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * ST-008: a non-flexible job must have a start time, enforced by the server.

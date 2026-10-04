@@ -20,8 +20,9 @@
  */
 // @mutate src/components/dashboard/JobCard.tsx | const expiryText = !showExpiry \|\| !expiresAt ? null : formatTimeLeft(expiresAt, expiryNow); | const expiryText = !showExpiry \|\| !expiresAt ? null : expiresAt.getTime() <= expiryNow ? "Expired" : formatTimeLeft(expiresAt, expiryNow);
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..");
 

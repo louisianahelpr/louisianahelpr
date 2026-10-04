@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * PAGES DO NOT TYPE THEIR OWN SECTION GAP (Q191).

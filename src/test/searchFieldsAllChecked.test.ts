@@ -39,9 +39,10 @@
 // @mutate e2e/prod-audit/search-keeps-title.spec.ts | name: "jobs", file: "src/pages/jobs/JobsHeader.tsx", | name: "jobs", file: "src/pages/jobs/Jobs.tsx",
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const SRC = path.join(ROOT, "src");

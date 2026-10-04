@@ -18,9 +18,10 @@
  * as element types.
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const isFnLike = (n: ts.Node): n is ts.FunctionLikeDeclaration =>
   ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n) || ts.isArrowFunction(n) || ts.isMethodDeclaration(n);

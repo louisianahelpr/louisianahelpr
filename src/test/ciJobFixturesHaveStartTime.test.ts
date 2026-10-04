@@ -2,8 +2,9 @@
 // @mutate scripts/ci/race-runner.mjs | customer_id, helper_id, date_needed, start_time, created_at, payment_status, | customer_id, helper_id, date_needed, created_at, payment_status,
 // @mutate .github/workflows/db-smoke.yml |             customer_id, date_needed, start_time\n |             customer_id, date_needed\n
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * jobs_start_time_required (ST-008) refuses a non-flexible job with no start

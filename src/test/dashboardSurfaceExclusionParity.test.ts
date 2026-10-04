@@ -49,6 +49,7 @@ import {
   type ViewerFeedExclusions,
 } from "@/pages/home/viewerFeedExclusions";
 import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
+import { readdirSync } from "./helpers/trackedFiles";
 
 // ── A PostgREST-shaped stub that really narrows ────────────────────────────
 // The count surface is probed BEHAVIOURALLY below, not by looking for its
@@ -236,8 +237,7 @@ const EXEMPTION_STILL_HOLDS: Record<string, () => boolean> = {
   // The newest get_open_jobs_for_map still returns no customer_id column.
   "map:blockedUserIds": () => {
     const dir = path.join(REPO, "supabase/migrations");
-    const newest = fs
-      .readdirSync(dir)
+    const newest = readdirSync(dir)
       .filter((f) => f.endsWith(".sql"))
       .sort()
       .map((f) => fs.readFileSync(path.join(dir, f), "utf8"))

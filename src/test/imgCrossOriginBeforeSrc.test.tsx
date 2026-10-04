@@ -23,12 +23,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { UserAvatar } from "@/components/UserAvatar";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC_DIR = path.resolve(__dirname, "..");
 
 function tsxFiles(dir: string): string[] {
   const out: string[] = [];
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) out.push(...tsxFiles(p));
     else if (e.name.endsWith(".tsx") && !/\.test\.tsx$/.test(e.name)) out.push(p);

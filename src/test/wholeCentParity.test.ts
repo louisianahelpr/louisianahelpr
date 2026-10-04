@@ -39,8 +39,9 @@
  * Stripe cents. A new screen or function enters the check by existing.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 

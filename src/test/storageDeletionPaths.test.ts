@@ -21,12 +21,13 @@
  * file with a reason. A red proof: STORAGE_PATHS_ROOT=<checkout of 028f2e308>.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { jobMediaPrefixes as denoPrefixes, removeJobMedia } from "../../supabase/functions/_shared/jobMedia";
 import { jobMediaPrefixes as nodePrefixes, messageAttachmentPath } from "../../scripts/lib/jobMediaRest.mjs";
 import { messageAttachmentObjectPath } from "@/lib/storageCleanup";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.env.STORAGE_PATHS_ROOT ?? resolve(__dirname, "..", "..");
 

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
+import { readdirSync } from "../../test/helpers/trackedFiles";
 
 const root = resolve(__dirname, "../../..");
 const read = (rel: string) => readFileSync(resolve(root, rel), "utf8");

@@ -9,9 +9,10 @@
  * its opener-only rule.
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { disputeEvidenceChannel, REOPENED_REASON_PREFIX } from "./disputeEvidenceChannel";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 
 /**

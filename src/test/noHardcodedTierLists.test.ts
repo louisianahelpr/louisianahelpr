@@ -6,8 +6,9 @@
  * from the perk matrix (`TIER_PERK_MATRIX` / `hasPerk`), never a literal array.
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOTS = ["src", "supabase/functions"];
 const LITERAL_TIER_LIST =

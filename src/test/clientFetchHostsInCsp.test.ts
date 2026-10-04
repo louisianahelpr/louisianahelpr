@@ -10,9 +10,10 @@
  * @mutate src/lib/hibpCheck.ts | fetch(`https://api.pwnedpasswords.com | fetch(`https://api.ipify.org
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const SRC = join(ROOT, "src");

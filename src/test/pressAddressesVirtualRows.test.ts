@@ -18,9 +18,10 @@
  * @mutate scripts/audit/press-every-control.mjs |       if (unique) { parts.unshift( |       if (false) { parts.unshift(
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const src = readFileSync(resolve(ROOT, "scripts/audit/press-every-control.mjs"), "utf8");

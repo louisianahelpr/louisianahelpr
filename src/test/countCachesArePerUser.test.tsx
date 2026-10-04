@@ -24,7 +24,7 @@
  *     and an errored read for B leaves B at 0.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { renderHook, cleanup, act } from "@testing-library/react";
@@ -88,6 +88,7 @@ import {
   getNotificationSnapshot,
   bellUnreadCount,
 } from "@/components/notificationPanel/notificationStore";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 

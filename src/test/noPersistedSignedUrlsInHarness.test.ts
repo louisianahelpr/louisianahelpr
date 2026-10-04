@@ -19,8 +19,9 @@
  * @mutate scripts/e2e/settleForward.mjs |   return path; |   return void ["/object/sign/", { expiresIn: 60 * 60 * 24 * 365 }], path;
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const ROOTS = ["e2e", "scripts", "supabase/functions"];

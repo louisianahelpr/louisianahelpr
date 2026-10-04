@@ -60,7 +60,8 @@ function guardsNamed(text: string): string[] {
   return [...found];
 }
 
-import { readdirSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 function execFind(dir: string, name: string): string | null {
   const abs = join(ROOT, dir);
   const stack = [abs];

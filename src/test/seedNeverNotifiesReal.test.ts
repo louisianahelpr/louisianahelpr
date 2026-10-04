@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q137 (docs/OPEN.md): a seed subject never notifies a real person.

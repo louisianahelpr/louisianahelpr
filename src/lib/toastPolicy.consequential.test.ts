@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { toast } from "sonner";
 import { applyToastPolicy, confirmConsequential } from "./toastPolicy";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 /**
  * A CONSEQUENTIAL CONFIRMATION MUST ACTUALLY RENDER.

@@ -10,9 +10,10 @@
  * @mutate src/pages/jobs/appliedJobCard/DisputedSection.tsx | navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages") | navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx | : !!job.helper_id) && | : true) &&
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

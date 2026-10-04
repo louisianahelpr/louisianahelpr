@@ -16,9 +16,10 @@
  * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |        AND (o.helper_id = v_job.helper_id\n |        AND (false\n
  * @mutate supabase/migrations/20260927220819_helper_cancel_resets_dayof_stamps.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const dir = "supabase/migrations";
 const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * A spec that drives ONE branch of a viewport-forked control is a spec that

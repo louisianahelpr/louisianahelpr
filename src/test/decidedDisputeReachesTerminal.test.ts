@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -9,6 +9,7 @@ import {
   withDisputeSettling,
 } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q342 + Q344 class guard: a decided dispute is never stuck, and never told

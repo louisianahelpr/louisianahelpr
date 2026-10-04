@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 // @ts-expect-error — plain .mjs script, no type declarations
 import * as contract from "../../scripts/audit/write-contract.mjs";
 import { jobsTriggerSpecs } from "../../scripts/lib/jobsWriteSurface.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * DISPUTE MARKERS ARE SERVER-OWNED (20260915033734_dispute_markers_server_owned).

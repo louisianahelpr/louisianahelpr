@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -10,6 +10,7 @@ import {
   SEED_VISIBILITY_AUTHORITY,
   SEED_VISIBILITY_FLAG_KEY,
 } from "./showSeedJobs";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 /**
  * The fixture-visibility switch reached ONE of three browse surfaces for as

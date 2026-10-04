@@ -23,10 +23,11 @@
 // @mutate scripts/check-live-privileges.mjs | coalesce((SELECT json_agg(o) FROM (${CURRENT_DATE_SQL}) o), '[]'::json) AS current_date_offenders, | '[]'::json AS current_date_offenders,
 // @mutate .github/workflows/db-smoke.yml | -f scripts/ci/current-date-time-zone.sql) | -f /dev/null)
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const MIG = join(ROOT, "supabase", "migrations");

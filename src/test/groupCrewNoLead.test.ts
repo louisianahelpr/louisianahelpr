@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
@@ -9,6 +9,7 @@ import {
   CREW_COMPLETES_WHEN_HIRED_DONE,
   CREW_FEE_PAYS_UNCONFIRMED,
 } from "../../supabase/functions/_shared/crewShares";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * THE CLASS: something a crew's "lead" gets that the rest of the crew does not.

@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { PROFILE_TAB_BODY_CLASS } from "./ProfileTabBody";
+import { readdirSync } from "../../test/helpers/trackedFiles";
 
 /**
  * EVERY Profile tab renders into the SAME box — enforced on the primitive,

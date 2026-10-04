@@ -37,12 +37,13 @@
 // @mutate src/components/CompletionPrompts.tsx | else { hapticError(); toast.error("We couldn't submit your review — please try again."); } | else { recordReviewInActivityCache(jobId); hapticError(); toast.error("We couldn't submit your review — please try again."); }
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { QueryClient } from "@tanstack/react-query";
 import { blankComments } from "./helpers/blankNonCode";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 import { queryKeys } from "@/lib/queryKeys";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const root = join(__dirname, "..", "..");
 const SRC = join(root, "src");

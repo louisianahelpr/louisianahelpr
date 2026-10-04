@@ -21,9 +21,10 @@
  * few lines above it, so a new call site that forgets the gate fails here.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { isStorageObjectPath } from "@/lib/storagePath";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const SRC = join(ROOT, "src");

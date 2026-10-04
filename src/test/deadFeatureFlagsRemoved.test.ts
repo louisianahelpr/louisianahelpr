@@ -6,9 +6,10 @@
  *
  * @mutate supabase/migrations/20260924051640_drop_dead_feature_flag_keys.sql | feature_flags - ARRAY['boosts_enabled', | feature_flags - ARRAY[
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const DEAD = ["boosts_enabled", "referrals_enabled", "subscriptions_enabled", "ai_helpr_assistant"];
 const MIGRATION = "supabase/migrations/20260924051640_drop_dead_feature_flag_keys.sql";

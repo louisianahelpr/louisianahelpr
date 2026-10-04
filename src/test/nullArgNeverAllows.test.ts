@@ -12,9 +12,10 @@
 // @mutate .github/workflows/db-deploy.yml |       - "scripts/ci/null-arg-validators.sql"\n |
 // @mutate src/test/pglite/nullArgNeverAllows.pglite.mjs |   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party"]; |   "is_crew_member_of_job_folder", "is_series_party"];
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q140 (docs/OPEN.md): a NULL argument never makes an allow/validity check say

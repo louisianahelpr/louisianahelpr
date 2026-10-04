@@ -23,11 +23,12 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 
 function walk(dir: string, out: string[] = []): string[] {
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     if (e.name === "node_modules" || e.name === "dist" || e.name.startsWith(".")) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p, out);

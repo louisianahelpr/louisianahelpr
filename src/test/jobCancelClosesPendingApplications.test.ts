@@ -9,11 +9,12 @@
 // @mutate src/pages/jobs/AppliedJobCard.tsx | {app.closed_reason === "job_cancelled" | {app.closed_reason === "never"
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {app.status === "rejected" && app.closed_reason !== "job_cancelled" && ( | {app.status === "rejected" && (
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { deriveHelperWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp } from "@/components/job-card/activityConstants";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q274: cancelling a job must close its PENDING applications, and must not

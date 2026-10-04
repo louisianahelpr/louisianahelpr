@@ -39,8 +39,9 @@
 //     job_disputes, community_posts, …) and to `profiles.role`, a column prod
 //     no longer has. Those are inert: no fixture can reference a table or
 //     column that does not exist.
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readdirSync } from "./trackedFiles";
 
 const REPO = resolve(__dirname, "../../..");
 const MIGRATIONS = join(REPO, "supabase/migrations");

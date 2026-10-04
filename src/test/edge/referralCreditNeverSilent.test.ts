@@ -38,7 +38,7 @@
  * @mutate supabase/functions/complete-signup/index.ts | referralRecorded = referralOk === true; | referralRecorded = true;
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { blankComments } from "../helpers/blankNonCode";
 import { join } from "node:path";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -47,6 +47,7 @@ import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { resetStripeMock } from "./mocks/stripe";
 import { stubSignupCapRead } from "./mocks/signupCapFetch";
+import { readdirSync } from "../helpers/trackedFiles";
 
 const ROOT = process.cwd();
 const MIGRATIONS = join(ROOT, "supabase", "migrations");

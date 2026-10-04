@@ -25,7 +25,7 @@
  * that mount together now share one request (queued for a short window).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -54,6 +54,7 @@ const report = vi.fn();
 vi.mock("@/lib/errorLogger", () => ({ report: (...a: unknown[]) => report(...a) }));
 
 import { resetProofPhotoSignCache, signProofPhotoUrls } from "@/lib/proofPhotoStorage";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const J = "2eae4508-8db9-494a-b94b-3edbdf53d93a";

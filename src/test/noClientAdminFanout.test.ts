@@ -12,9 +12,10 @@
  * @mutate src/components/job-card/activityActions/useOfferHandlers.ts | import { notifyJobParty } from "@/lib/notifications"; | import { notifyJobParty, createNotification } from "@/lib/notifications";\nconst _q308 = () => supabase.from("user_roles").select("user_id").eq("role", "admin").then(() => createNotification({} as never));
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = resolve(__dirname, "..");
 const walk = (d: string): string[] =>

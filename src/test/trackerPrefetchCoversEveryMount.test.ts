@@ -22,7 +22,7 @@
  * @mutate src/pages/posts/PostedJobCard.tsx | const showsTracker = postedCardShowsTracker(job); | const showsTracker = postedCardShowsTracker(job) \|\| job.status === "cancelled";
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { Constants } from "@/integrations/supabase/types";
 import { appliedDetailInputs, postedDetailInputs } from "@/hooks/useActivityData";
@@ -30,6 +30,7 @@ import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
 import { deriveAppliedJobCardState } from "@/pages/jobs/appliedJobCard/appliedJobCardHelpers";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const STATUSES = Constants.public.Enums.job_status;

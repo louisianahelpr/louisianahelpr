@@ -19,10 +19,11 @@
  * the old read sees 1 user, admin_last_logins returns both; a non-admin gets 0.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const MIG = join(process.cwd(), "supabase/migrations");
 const def = effectiveDefs(MIG).get("admin_last_logins");

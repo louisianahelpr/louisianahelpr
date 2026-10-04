@@ -40,9 +40,10 @@
  */
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const MIGRATIONS = join(REPO, "supabase", "migrations");

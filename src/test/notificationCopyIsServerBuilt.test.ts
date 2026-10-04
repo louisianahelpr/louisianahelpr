@@ -36,10 +36,11 @@
 //   A notifications INSERT policy any signed-in user passes.
 // @mutate supabase/migrations/20260311134945_6c2ed9cc-1a8c-41e0-b63f-f26e7a726267.sql | ON public.notifications FOR INSERT\nTO authenticated\nWITH CHECK (has_role(auth.uid(), 'admin'::app_role)); | ON public.notifications FOR INSERT\nTO authenticated\nWITH CHECK (true);
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 /** `has_role(auth.uid(), 'admin')` in any spelling — the argument list nests parens. */

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * EVERY ADMIN DEEP LINK AN EDGE FUNCTION EMITS MUST RESOLVE TO A SCREEN.

@@ -8,7 +8,9 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
+import { formatExactDollars } from "../../_shared/money.ts";
 import { alertPartialGiftRefund, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
+import { payoutOnJob, restoreGiftForRefundedJob } from "./_giftCardRestore.ts";
 
 /**
  * The payment states a FULL refund may move to 'refunded' (Q343): every state
@@ -97,6 +99,9 @@ export async function handleChargeRefunded(
       // Whether the job ends this webhook 'refunded' (this flip, another
       // path's own flip, or a redelivery): the Q450 close below needs it.
       let nowRefunded = priorStatus === "refunded";
+      // Q454: one sentence for the card holder's notice when this event gave
+      // their gift card back.
+      let giftSentence = "";
       if (closable) {
         const { data: flipped, error: flipErr } = await supabase
           .from("jobs")
@@ -148,7 +153,7 @@ export async function handleChargeRefunded(
       // and stayed 'pending' forever. Closed here, before the ledger row and
       // the notice, so a throw (Stripe redelivers) repeats nothing visible.
       if (nowRefunded) {
-        await closeDecidedDisputeOnExternalRefund(
+        const decided = await closeDecidedDisputeOnExternalRefund(
           { stripe, supabase, logStep },
           charge,
           {
@@ -157,6 +162,51 @@ export async function handleChargeRefunded(
             helper_id: (refundedJob as { helper_id?: string | null }).helper_id ?? null,
           },
         );
+        // Q454: the job is refunded in full, so the gift card that paid part of
+        // it comes back whole (on a partly gift-funded job this PaymentIntent
+        // was only the shortfall). NOT while a decided dispute owns the escrow
+        // (its decision splits the gift: the close above paged a person, or the
+        // split restores its own share), and NOT when a payout already moved
+        // out of this escrow (a person decides; review MEDIUM). Before the
+        // ledger row and the notice, so a throw (Stripe redelivers) repeats
+        // nothing visible; the restore is idempotent.
+        if (decided === "no_unsettled_dispute" || decided === "closed") {
+          const payout = await payoutOnJob(supabase, String(refundedJob.id));
+          if (payout.readError) {
+            throw new Error(`Payout read failed before the gift restore on refunded job ${refundedJob.id}: ${payout.readError}`);
+          }
+          if (payout.transferId) {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Full refund on a job with a payout transfer — gift card NOT returned",
+              message: `Charge ${charge.id} refunded job ${refundedJob.id} in full, but payout transfer ${payout.transferId} already moved money out of this escrow toward a Helpr, so any gift card that paid part of the job was NOT given back automatically. Reconcile the payout against the refund, then restore the gift by hand if it is owed.`,
+              fields: { "Job ID": String(refundedJob.id), "Payment Intent": refundPiId, "Transfer": payout.transferId },
+              oncePerDayKey: `refund-gift-payout-exists:${refundedJob.id}`,
+            });
+          } else {
+            const giftBack = await restoreGiftForRefundedJob(supabase, String(refundedJob.id));
+            if (!giftBack.ok) {
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "critical",
+                title: "Full refund — the poster's gift card was NOT returned",
+                message: `Charge ${charge.id} refunded job ${refundedJob.id} in full, but the gift card that paid part of it could not be given back. Stripe will retry this webhook; if retries exhaust, restore the gift by hand (restore_gift_card_for_job for this job).`,
+                fields: { "Job ID": String(refundedJob.id), "Payment Intent": refundPiId, "Reason": giftBack.reason.slice(0, 200) },
+                oncePerDayKey: `refund-gift-restore-failed:${refundedJob.id}`,
+              });
+              throw new Error(`Gift restore failed for refunded job ${refundedJob.id}: ${giftBack.reason}`);
+            }
+            if (giftBack.outcome === "restored" || giftBack.outcome === "unreserved") {
+              logStep("Full refund returned the job's gift card", { jobId: refundedJob.id, outcome: giftBack.outcome });
+            }
+            // Announced only when THIS call minted a gift that can be spent
+            // (a revoked donation's replacement cannot).
+            if (giftBack.outcome === "restored" && giftBack.spendable && giftBack.restoreCents > 0) {
+              giftSentence = ` The $${formatExactDollars(giftBack.restoreCents / 100)} your gift card paid is back as a gift you can use on another job.`;
+            }
+          }
+        }
       }
 
       // Write payment_refunds ledger row. Refunds issued from the Stripe Dashboard
@@ -205,7 +255,7 @@ export async function handleChargeRefunded(
       const { error: notifyErr } = await supabase.from("notifications").insert({
         user_id: refundedJob.customer_id,
         title: "Refund processed",
-        message: `Your payment for "${refundedJob.title}" has been refunded.`,
+        message: `Your payment for "${refundedJob.title}" has been refunded.${giftSentence}`,
         type: "payment",
         // The refunded job, not the My Posts default bucket — a refunded job
         // is `cancelled`/`done`, never "Needs you".

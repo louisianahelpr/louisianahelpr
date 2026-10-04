@@ -17,7 +17,7 @@ import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/sa
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from "../_shared/money.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
@@ -2637,7 +2637,13 @@ serve(async (req) => {
       }).eq("id", jobId).eq("status", "disputed").select("id");
       if (!refundUpdateErr && refundUpdated && refundUpdated.length === 0) {
         const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "cancelled", "refunded");
-        if (settled) return settled;
+        if (settled) {
+          // A concurrent copy of this Quick Refund closed it first, and that
+          // copy returns the gift. Asked again here (idempotent) so one copy's
+          // failed restore is finished by the other.
+          await returnGiftAfterRefund(supabaseAdmin, job, "Quick Refund");
+          return settled;
+        }
       }
       if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
         console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr ?? "matched 0 rows");
@@ -2646,14 +2652,32 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
       }
 
+      // ── Give the gift card back (Q454) ──
+      // On a PARTLY gift-funded job the PaymentIntent refunded above is only
+      // the shortfall, so the refund returned the card part and the gift part
+      // was dropped: the recipient simply lost it. The poster won the whole
+      // dispute, so the whole gift comes back: restore_gift_card_for_job's
+      // default share (10000 bps), exactly what execute-dispute-split restores
+      // at a 0/100 split. The gift leg carries no Stripe fee (the DONOR paid it
+      // when the gift was bought), so nothing is withheld from it.
+      // AFTER the flip, while the settlement claim is still held (lh-money-
+      // escrow review of the first draft, HIGH): the job is closed as
+      // cancelled/refunded first, so no path can still pay the Helpr out of
+      // this escrow once the gift is back (a claim handed back over a
+      // still-disputed job let a withdrawn dispute walk it to a payout). A
+      // restore that fails pages critical and is finished by hand, which can
+      // no longer double-pay.
+      const disputeGift = await returnGiftAfterRefund(supabaseAdmin, job, "Quick Refund");
+
       // Same two closing writes as the release path: the formal dispute record,
-      // and the audit trail.
+      // and the audit trail. What the poster got back counts the gift, as the
+      // split's record does.
       await closeDisputeRecordForJob(supabaseAdmin, {
         jobId,
         outcome: "poster",
         decidedBy: user.id,
         decisionText: "Resolved by admin Quick Refund: the escrow was refunded to the person who posted this job, less the non-refundable Stripe processing fee.",
-        refundCents: disputeRefundCents,
+        refundCents: disputeRefundCents + disputeGift.restoredCents,
         refundId: disputeRefundId,
       });
 
@@ -2667,6 +2691,8 @@ serve(async (req) => {
           helper_id: job.helper_id,
           budget: job.budget,
           refund_cents: disputeRefundCents,
+          gift_restored_cents: disputeGift.restoredCents,
+          gift_restore_failed: disputeGift.failed,
           payment_intent_id: paymentIntentId,
           stripe_refund_id: disputeRefundId,
           dispute_resolved_at: refundResolvedAt,
@@ -2677,7 +2703,7 @@ serve(async (req) => {
       await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Dispute resolved — refund issued",
-        message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.`,
+        message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.${disputeGift.posterSentence}`,
         type: "payment", link: `/posts?job=${job.id}`,
       });
       if (job.helper_id) {
@@ -2692,7 +2718,9 @@ serve(async (req) => {
       // Settled — same tidy-up as the release path.
       await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaimHeld);
 
-      return new Response(JSON.stringify({ success: true }), {
+      // The job IS settled; a gift that could not be returned is said in the
+      // answer as well as the page, so the admin screen can show it.
+      return new Response(JSON.stringify({ success: true, ...(disputeGift.failed ? { giftRestoreFailed: true } : {}) }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }
@@ -2975,6 +3003,22 @@ serve(async (req) => {
         }
       }
 
+      // ── Give the gift card back (Q454) ── a FULL refund cancels the job, and
+      // on a PARTLY gift-funded job the refund above returned only the card
+      // shortfall: the gift part was dropped. The whole job is refunded, so
+      // the whole gift comes back (restore_gift_card_for_job's default share).
+      // AFTER the flip only (lh-money-escrow review of the first draft): this
+      // path holds no settlement claim, so the job must be closed as
+      // cancelled/refunded before the gift is back, or a payout that moved the
+      // job first could pay the Helpr over it. A flip that missed returned
+      // above, with nothing restored. A failed restore pages; charge.refunded
+      // asks again when Stripe's full-refund event arrives (it restores on
+      // every full refund), and by hand it can no longer double-pay. A partial
+      // refund leaves the job running, so its gift stays where it is.
+      const generalGift = isPartial
+        ? { restoredCents: 0, failed: false, posterSentence: "" }
+        : await returnGiftAfterRefund(supabaseAdmin, job, "Admin refund");
+
       // Q76: this row used to be a bare insert whose error was dropped — a
       // refund that moved real money could leave no trail and nobody would
       // know. logAdminMoneyAction reads the row count and alerts on a miss.
@@ -2990,6 +3034,8 @@ serve(async (req) => {
           budget: job.budget,
           partial_amount_cents: isPartial ? requestedCents : null,
           partial_amount_dollars: isPartial ? (requestedCents! / 100).toFixed(2) : null,
+          gift_restored_cents: generalGift.restoredCents,
+          gift_restore_failed: generalGift.failed,
           payment_intent_id: paymentIntentId,
         },
       });
@@ -2999,7 +3045,7 @@ serve(async (req) => {
         : `$${Number(job.budget).toFixed(2)}`;
       const customerMessage = isPartial
         ? `A partial refund of ${dollarAmount} has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`
-        : `A refund has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.`;
+        : `A refund has been issued for "${job.title}".${reason ? ` Reason: ${reason}` : ""} It should appear on your card in 5-10 business days.${generalGift.posterSentence}`;
 
       await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
@@ -3044,7 +3090,7 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ success: true, refunded: true, partial: isPartial }), {
+      return new Response(JSON.stringify({ success: true, refunded: true, partial: isPartial, ...(generalGift.failed ? { giftRestoreFailed: true } : {}) }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }
@@ -3876,7 +3922,7 @@ async function transferToHelper(
 async function restoreGiftForCancelledJob(
   supabaseAdmin: any,
   jobId: string,
-): Promise<{ ok: true; outcome: string | null } | { ok: false; reason: string }> {
+): Promise<{ ok: true; outcome: string | null; restoreCents: number; spendable: boolean } | { ok: false; reason: string }> {
   const { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", { p_job_id: jobId });
   const outcome = rpcErr ? null : ((data as { outcome?: string } | null)?.outcome ?? null);
   if (
@@ -3887,11 +3933,31 @@ async function restoreGiftForCancelledJob(
     outcome === "nothing_to_restore" ||
     outcome === "job_not_found"
   ) {
-    return { ok: true, outcome };
+    const d = (data ?? {}) as { restore_cents?: number; payment_status?: string };
+    return {
+      ok: true,
+      outcome,
+      restoreCents: Math.max(0, Math.round(Number(d.restore_cents ?? 0)) || 0),
+      // A replacement minted from a REVOKED donation inherits 'refunded' and
+      // cannot be spent; only a 'paid' one is announced as back.
+      spendable: (d.payment_status ?? "paid") === "paid",
+    };
   }
   const reason = rpcErr
     ? `${rpcErr.message}${rpcErr.code ? ` (${rpcErr.code})` : ""}`
     : `unrecognised outcome ${JSON.stringify(data)}`;
+  // Already given back (a replacement row carries this job)? The ORIGINAL row
+  // stays 'redeemed' after a restore, so without this a retry while the RPC is
+  // down read a gift that is already back as one still at stake (lh-money-
+  // escrow review of Q454, LOW).
+  const { data: restoredRows, error: restoredErr } = await supabaseAdmin
+    .from("gift_cards")
+    .select("id, restored_from_job_id")
+    .eq("restored_from_job_id", jobId)
+    .limit(1);
+  if (!restoredErr && (restoredRows ?? []).length > 0) {
+    return { ok: true, outcome: "already_restored", restoreCents: 0, spendable: false };
+  }
   // Was a gift at stake at all? If not (the ordinary card-funded job), an
   // unavailable RPC must not hold every cancellation hostage.
   const { data: giftRows, error: giftErr } = await supabaseAdmin
@@ -3900,11 +3966,85 @@ async function restoreGiftForCancelledJob(
     .eq("job_id", jobId)
     .in("status", ["redeemed", "reserved"])
     .limit(1);
-  if (!giftErr && (giftRows ?? []).length === 0) {
+  if (!restoredErr && !giftErr && (giftRows ?? []).length === 0) {
     console.warn(`[create-payment] restore_gift_card_for_job unavailable for job ${jobId}: ${reason}. No gift on this job — cancelling anyway.`);
-    return { ok: true, outcome: null };
+    return { ok: true, outcome: null, restoreCents: 0, spendable: false };
   }
-  return { ok: false, reason: giftErr ? `${reason}; gift lookup failed: ${giftErr.message}` : reason };
+  const lookupErr = restoredErr ?? giftErr;
+  return { ok: false, reason: lookupErr ? `${reason}; gift lookup failed: ${lookupErr.message}` : reason };
+}
+
+/**
+ * Q454: after an admin refund has CLOSED a job (cancelled/refunded), give back
+ * the gift card that paid the part its PaymentIntent did not: on a partly
+ * gift-funded job the refund returned only the card shortfall. Whole gift
+ * (restore_gift_card_for_job's default share): the whole job was refunded.
+ *
+ * Called only after the job's terminal flip (lh-money-escrow review, HIGH):
+ * once the job reads cancelled/refunded no NEW payout can start from it. A
+ * payout already in flight can still land (process-scheduled-payouts selects
+ * its batch once and claimPayout does not re-read the job; Q1211), so the
+ * payout ledger is read first and the whole gift comes back only when no
+ * transfer (pending, paid or reversed) moved money out of this escrow (review
+ * round 2, MEDIUM; the same rule charge.refunded applies). Never throws; a
+ * refusal or a failure pages critical and is finished by hand. Returns what
+ * came back for the dispute record, the audit row and the poster's notice,
+ * which only announces a gift this call minted and that can be spent.
+ */
+async function returnGiftAfterRefund(
+  supabaseAdmin: any,
+  job: { id: string; is_seed?: boolean | null },
+  path: "Quick Refund" | "Admin refund",
+): Promise<{ restoredCents: number; failed: boolean; posterSentence: string }> {
+  const { data: payoutRows, error: payoutErr } = await supabaseAdmin
+    .from("payout_transfers")
+    .select("id, stripe_transfer_id, status")
+    .eq("job_id", job.id)
+    .in("status", ["pending", "paid", "reversed"])
+    .limit(1);
+  const payout = ((payoutRows ?? []) as Array<{ id: string; stripe_transfer_id: string | null; status: string }>)[0];
+  if (payoutErr || payout) {
+    const why = payoutErr
+      ? `the payout ledger could not be read (${payoutErr.message})`
+      : `payout transfer ${payout.stripe_transfer_id ?? payout.id} (${payout.status}) moved money out of this escrow toward a Helpr`;
+    console.error(`CRITICAL: [create-payment] ${path} closed job ${job.id} as refunded; its gift card was NOT restored: ${why}`);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: `${path} closed the job but did not return the poster's gift card`,
+      message:
+        `${path} refunded the card part of job ${job.id} and closed it as cancelled/refunded, but any gift card that paid the rest ` +
+        `was NOT given back automatically: ${why}. Reconcile the payout against the refund, then restore the gift by hand ` +
+        "(restore_gift_card_for_job for this job) if it is owed.",
+      fields: { job_id: job.id, reason: why.slice(0, 200) },
+      seed: job.is_seed === true,
+    });
+    return { restoredCents: 0, failed: true, posterSentence: "" };
+  }
+  const back = await restoreGiftForCancelledJob(supabaseAdmin, job.id);
+  if (!back.ok) {
+    console.error(`CRITICAL: [create-payment] ${path} closed job ${job.id} as refunded but could not restore its gift card: ${back.reason}`);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: `${path} closed the job but did not return the poster's gift card`,
+      message:
+        `${path} refunded the card part of job ${job.id} and closed it as cancelled/refunded, but the gift card that paid the rest ` +
+        "could not be given back. The job is closed, so no payout can follow: restore the gift by hand (restore_gift_card_for_job " +
+        "for this job) and tell the poster.",
+      fields: { job_id: job.id, reason: back.reason.slice(0, 200) },
+      seed: job.is_seed === true,
+    });
+    return { restoredCents: 0, failed: true, posterSentence: "" };
+  }
+  const minted = back.outcome === "restored" ? back.restoreCents : 0;
+  return {
+    restoredCents: minted,
+    failed: false,
+    posterSentence: minted > 0 && back.spendable
+      ? ` The $${formatExactDollars(minted / 100)} your gift card paid is back as a gift you can use on another job.`
+      : "",
+  };
 }
 
 /**

@@ -144,13 +144,29 @@ serve(async (req) => {
       const reason = rpcErr
         ? `${rpcErr.message}${(rpcErr as { code?: string }).code ? ` (${(rpcErr as { code?: string }).code})` : ""}`
         : `unrecognised outcome ${JSON.stringify(result)}`;
+      // Already given back? The ORIGINAL row stays 'redeemed' after a restore,
+      // so without this an RPC outage after a restore read the gift as still
+      // at stake and held the job in escrow, retried every hour (lh-money-
+      // escrow review of Q454; the same check create-payment and the webhook
+      // make).
+      const { data: restoredRows, error: restoredErr } = await supabaseAdmin
+        .from("gift_cards")
+        .select("id, restored_from_job_id")
+        .eq("restored_from_job_id", job.id)
+        .limit(1);
+      if (!restoredErr && (restoredRows ?? []).length > 0) {
+        console.warn(
+          `[void-cancelled-payments] restore_gift_card_for_job unavailable for job ${job.id} (${stage}): ${reason}, but its gift was already given back; settling.`,
+        );
+        return { ok: true, outcome: "already_restored" };
+      }
       const { data: giftRows, error: giftErr } = await supabaseAdmin
         .from("gift_cards")
         .select("id")
         .eq("job_id", job.id)
         .in("status", ["redeemed", "reserved"])
         .limit(1);
-      if (!giftErr && (giftRows ?? []).length === 0) {
+      if (!restoredErr && !giftErr && (giftRows ?? []).length === 0) {
         // Not a gift-funded job, so nothing was at risk. The usual cause is
         // PGRST202 in the window between this code deploying and the
         // migration that defines the function landing — don't hold every

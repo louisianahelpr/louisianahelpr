@@ -5,6 +5,7 @@ import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
 import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
+import { purgeApiCache } from "@/lib/apiCachePurge";
 
 // "others" is deliberately absent: everything below tears down THIS device
 // (push token, remembered route, caches). Ending only the other sessions is
@@ -124,6 +125,10 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
     // the next account on this device must not be handed them (Q724). First,
     // because it cannot throw and nothing before it may skip it.
     resetProofPhotoSignCache();
+    // Cache Storage `api-cache`: signed-in Supabase responses an older service
+    // worker wrote to disk (Q1174). Never throws, and runs before the calls that
+    // can, so a failing query-cache wipe cannot skip it.
+    await purgeApiCache();
     queryClient.clear();
     await removePersistedClient();
   } catch (err) {

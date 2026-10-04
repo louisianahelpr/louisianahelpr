@@ -13,10 +13,10 @@
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | ALTER TABLE public.error_log_throttle_drops ENABLE ROW LEVEL SECURITY; | 
 // @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | ELSIF p_source = 'error-log-throttled' THEN | ELSIF p_source = 'error-log-throttled-x' THEN
 // @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | IF v_min < p_since THEN RETURN NULL; END IF; | 
-// @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | jsonb_build_object('source', 'error-log-throttled', 'area', 'observability') | jsonb_build_object('source', 'error-log-throttle', 'area', 'observability')
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | jsonb_build_object('source', 'error-log-throttled', 'area', 'observability') | jsonb_build_object('source', 'error-log-throttle', 'area', 'observability')
 // @mutate supabase/migrations/20260923100454_error_log_throttle_fingerprint_cap_and_drop_ledger.sql | PERFORM cron.schedule('error-log-throttle-check', '*/5 * * * *', | PERFORM cron.schedule('error-log-throttle-check', '0 3 * * *',
 // @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | ON CONFLICT (minute, backend_pid, drop_kind) | ON CONFLICT (minute, backend_pid, kind)
-// @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | GROUP BY d.drop_kind) k; | GROUP BY d.kind) k;
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | GROUP BY d.drop_kind) k; | GROUP BY d.kind) k;
 // @mutate supabase/migrations/20260923105333_throttle_drops_kind_rename.sql | CHECK (drop_kind IN ('guest', 'guest_fp', 'account')) | CHECK (drop_kind IN ('guest', 'guest_fp'))
 // @mutate src/integrations/supabase/types.ts | backend_pid: number\n          drop_kind: string\n          dropped: number | backend_pid: number\n          kind: string\n          dropped: number
 import { describe, expect, it } from "vitest";

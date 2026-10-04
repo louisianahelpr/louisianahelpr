@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 /**
  * The cache wipe on sign-out, tested by BEHAVIOUR.
@@ -155,6 +155,36 @@ describe("signOutWithPushCleanup", () => {
 
 // "others" keeps THIS device signed in, so nothing of this device is torn down.
 // @mutate src/lib/authSignOut.ts | const { error } = await supabase.auth.signOut({ scope: "others" }); | const { error } = await signOutWithPushCleanup();
+describe("signOutWithPushCleanup and Cache Storage (Q1174)", () => {
+  const cachesDelete = vi.fn(async (_name: string) => true);
+  beforeEach(() => {
+    vi.stubGlobal("caches", { delete: cachesDelete });
+    cachesDelete.mockClear();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("deletes the legacy api-cache, so a shared device cannot show the previous account's rows offline", async () => {
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    await signOutWithPushCleanup();
+    expect(cachesDelete).toHaveBeenCalledWith("api-cache");
+  });
+
+  it("still deletes it when the query-cache wipe throws, and when Cache Storage itself throws sign-out still finishes", async () => {
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    clear.mockImplementationOnce(() => {
+      throw new Error("boom");
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(signOutWithPushCleanup()).resolves.toBeDefined();
+    expect(cachesDelete).toHaveBeenCalledWith("api-cache");
+    cachesDelete.mockRejectedValueOnce(new Error("storage unavailable"));
+    await expect(signOutWithPushCleanup()).resolves.toBeDefined();
+    expect(removePersistedClient).toHaveBeenCalled();
+  });
+});
+
 describe("signOutOtherDevices", () => {
   it("revokes other sessions and leaves this device's push token, route and cache alone", async () => {
     const { signOutOtherDevices } = await import("./authSignOut");

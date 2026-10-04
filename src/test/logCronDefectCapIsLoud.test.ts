@@ -10,8 +10,8 @@
  * write a 'defect-cap' error_logs row (INSERT) and count later drops (UPDATE
  * ... 'dropped'), and the cap must not count its own cap row.
  *
- * @mutate supabase/migrations/20260926043528_log_cron_defect_cap_alerts.sql |     IF NOT FOUND THEN\n      INSERT INTO public.error_logs | IF false THEN\n      INSERT INTO public.error_logs
- * @mutate supabase/migrations/20260926043528_log_cron_defect_cap_alerts.sql |        AND e.tags->>'ref' IS DISTINCT FROM 'defect-cap'\n | \n
+ * @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |     IF NOT FOUND THEN\n      INSERT INTO public.error_logs | IF false THEN\n      INSERT INTO public.error_logs
+ * @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |        AND e.tags->>'ref' IS DISTINCT FROM 'defect-cap'\n | \n
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";

@@ -14,9 +14,9 @@
  * Behaviour (3x apply, 14 FAIL without the migration):
  *   src/test/pglite/opsAlertPendingWatchdog.pglite.mjs
  *
- * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | v_folded := public.ops_alert_fold_pending(); | v_folded := 0;
+ * @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | v_folded := public.ops_alert_fold_pending(); | v_folded := 0;
  * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | WHERE q.queued_at < now() - interval '2 hours'); | WHERE false);
- * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | jsonb_build_object('source', 'ops-alert-pending-stale', 'area', 'ops'), | jsonb_build_object('source', 'ops', 'area', 'ops'),
+ * @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | jsonb_build_object('source', 'ops-alert-pending-stale', 'area', 'ops'), | jsonb_build_object('source', 'ops', 'area', 'ops'),
  * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | REVOKE ALL ON FUNCTION public.check_ops_alert_pending() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.check_ops_alert_pending() FROM PUBLIC;
  * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql |   ELSIF p_source = 'push-tokens-empty' THEN |   ELSIF p_source = 'push-tokens-empty-x' THEN
  * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql | PERFORM cron.schedule('ops-alert-pending-watchdog', '37 * * * *', | PERFORM cron.schedule('ops-alert-pending-watchdog', '37 3 * * 0',

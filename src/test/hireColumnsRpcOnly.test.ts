@@ -138,7 +138,10 @@ describe("Q346 layer 2: every hire-writing function is a definer the trigger let
 
 describe("Q346 layer 3: the client never writes a hire column", () => {
   const files = walkSource([join(ROOT, "src")]).filter((f) => !/\.test\.tsx?$|\/src\/test\//.test(f));
-  const FORBIDDEN = /(?<![\w.])helper_id\s*:\s*(?!null\b)|offered_to_helper_id\s*:|status\s*:\s*["']accepted["']/;
+  // Q1196: the lookahead holds the whitespace too. With `\s*:\s*(?!null\b)` the
+  // second \s* backtracked to nothing and " null" passed the lookahead, so an
+  // unassign written with a space read as a hire write.
+  const FORBIDDEN = /(?<![\w.])helper_id\s*:(?!\s*null\b)|offered_to_helper_id\s*:|status\s*:\s*["']accepted["']/;
   let jobsWrites = 0;
   const hits: string[] = [];
   for (const f of files) {
@@ -161,6 +164,12 @@ describe("Q346 layer 3: the client never writes a hire column", () => {
       if (FORBIDDEN.test(chain)) hits.push(`${where} ${verb[1]}s a hire column on jobs`);
     }
   }
+
+  // @mutate src/test/hireColumnsRpcOnly.test.ts | helper_id\\s*:(?!\\s*null\\b) | helper_id\\s*:\\s*(?!null\\b)
+  it("an unassign is not a hire write, with or without a space (Q1196)", () => {
+    for (const unassign of ["helper_id: null", "helper_id:null", "helper_id :  null"]) expect(FORBIDDEN.test(`.update({ ${unassign} })`), unassign).toBe(false);
+    for (const hire of ["helper_id: uid", "helper_id:uid", "helper_id: nullish"]) expect(FORBIDDEN.test(`.update({ ${hire} })`), hire).toBe(true);
+  });
 
   it("the scan sees the client's jobs writes", () => {
     expect(files.length).toBeGreaterThan(800);

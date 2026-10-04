@@ -12,7 +12,7 @@
  *   - index.html carries no apple-itunes-app meta (comments ignored);
  *   - every app file that reads APP_STORE_URL also reads the switch, and no
  *     file hard-codes an apps.apple.com / itunes.apple.com URL of its own.
- * Restoring them with the real ID is the launch checklist item Q1276.
+ * Restoring them with the real ID is the launch checklist item Q1289.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

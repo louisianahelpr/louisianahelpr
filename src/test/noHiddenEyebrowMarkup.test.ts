@@ -11,7 +11,7 @@
  *
  * The one emitter left is EmptyState's `eyebrow` prop (and ErrorState, which
  * forwards a default): removing it changes the title's top gap by 0.5rem on
- * every empty/error state that passes one, which is its own decision (Q1275).
+ * every empty/error state that passes one, which is its own decision (Q1288).
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -21,7 +21,7 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "..", "..");
 const SRC = join(REPO, "src");
-/** Exact: the only file allowed to emit the class (Q1275). */
+/** Exact: the only file allowed to emit the class (Q1288). */
 // @two-way src/test/noHiddenEyebrowMarkup.test.ts:stale allowlist entry ${f} no longer emits the class
 const ALLOWED = ["src/components/ui/EmptyState.tsx"];
 
@@ -40,7 +40,7 @@ describe("Q1129: no page emits the display:none eyebrow class", () => {
       .map((f) => relative(REPO, f))
       .sort();
     for (const f of ALLOWED)
-      expect(emitters, `stale allowlist entry ${f} no longer emits the class: remove it (lower ALLOWED, Q1275)`).toContain(f);
+      expect(emitters, `stale allowlist entry ${f} no longer emits the class: remove it (lower ALLOWED, Q1288)`).toContain(f);
     expect(emitters).toEqual(ALLOWED);
   });
 

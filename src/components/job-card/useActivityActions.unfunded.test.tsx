@@ -10,13 +10,21 @@ const UNFUNDED = {
   code: "23514",
   message: "This job is not funded yet, so it cannot be assigned to a helper. The poster needs to complete checkout first.",
 };
-const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
+const { toastError, written, rpcNames } = vi.hoisted(() => ({
+  toastError: vi.fn(),
+  // Every .update()/.upsert()/.insert() payload, by table: a refusal must not write the job itself (Q1187).
+  written: [] as { table: string; payload: unknown }[],
+  rpcNames: [] as string[],
+}));
 const rpcResult = { current: { data: null as unknown, error: null as unknown } };
 
-function chain(result: unknown) {
+function chain(table: string, result: unknown) {
   const self: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "is", "or", "in", "neq", "order", "limit", "maybeSingle", "single", "update"]) {
+  for (const m of ["select", "eq", "is", "or", "in", "neq", "order", "limit", "maybeSingle", "single"]) {
     self[m] = () => self;
+  }
+  for (const m of ["update", "upsert", "insert"]) {
+    self[m] = (payload: unknown) => { written.push({ table, payload }); return self; };
   }
   self.then = (resolve: (v: unknown) => void) => resolve(result);
   return self;
@@ -25,8 +33,8 @@ function chain(result: unknown) {
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     functions: { invoke: async () => ({ data: null, error: null }) },
-    from: () => chain({ data: null, error: UNFUNDED }),
-    rpc: async () => rpcResult.current,
+    from: (table: string) => chain(table, { data: null, error: UNFUNDED }),
+    rpc: async (name: string) => { rpcNames.push(name); return rpcResult.current; },
   },
 }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: toastError, success: vi.fn() }) }));
@@ -67,7 +75,12 @@ function setup(refresh: () => Promise<void>) {
 }
 
 describe("Accept Job on an unfunded job (Q320)", () => {
-  beforeEach(() => { toastError.mockReset(); rpcResult.current = { data: null, error: null }; });
+  beforeEach(() => {
+    toastError.mockReset();
+    rpcResult.current = { data: null, error: null };
+    written.length = 0;
+    rpcNames.length = 0;
+  });
 
   it("application accept: says the job is not funded and re-reads, never 'try again'", async () => {
     // accept_job_offer (Q1180) carries the funding refusal now.
@@ -81,14 +94,20 @@ describe("Accept Job on an unfunded job (Q320)", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("pre-RPC fallback (PGRST202): the confirm's refusal gets the same answer", async () => {
+  it("no fallback (Q1187): a refused accept_job_offer never writes the confirmation itself", async () => {
+    // The retired pre-RPC path answered PGRST202 by PATCHing helper_confirmed_at
+    // and calling reject_other_applications_on_accept: a confirmation with no
+    // "accepted your offer" notice, which the database now refuses
+    // (20261004001807). Any refusal is now the RPC's answer, and nothing else
+    // is written.
     rpcResult.current = { data: null, error: { code: "PGRST202", message: "Could not find the function" } };
     const refresh = vi.fn(async () => undefined);
     const { result } = setup(refresh);
     const app = { id: "app-1", job_id: "job-1", helper_id: "user-1" } as unknown as Application;
     await act(async () => { await result.current.handleHelperResponse(app, true); });
-    expect(toastError).toHaveBeenCalledWith(UNFUNDED_AWARD_COPY);
-    expect(refresh).toHaveBeenCalled();
+    expect(rpcNames).toEqual(["accept_job_offer"]);
+    expect(written.filter((w) => w.table === "jobs")).toEqual([]);
+    expect(toastError).toHaveBeenCalledWith("Couldn't accept the job — please try again.");
   });
 
   it("direct offer accept: same refusal, same answer", async () => {
@@ -102,6 +121,6 @@ describe("Accept Job on an unfunded job (Q320)", () => {
   });
 });
 
-// @mutate src/components/job-card/activityActions/useOfferHandlers.ts | if (isUnfundedAwardRefusal(confirmError)) { | if (false) {
+// @mutate src/components/job-card/activityActions/useOfferHandlers.ts | report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } }); | await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString() }).eq("id", app.job_id); report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | if (isUnfundedAwardRefusal(acceptError)) { | if (false) {
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | if (isUnfundedAwardRefusal(error)) { | if (false) {

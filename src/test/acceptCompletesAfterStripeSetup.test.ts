@@ -11,20 +11,20 @@
  * of 2026-10-03). This guard pins the pieces that make it true as the tree
  * moves on, with one registered mutation per rule.
  */
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501'; |     RAISE NOTICE 'accept_required';
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
+// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501'; |     RAISE NOTICE 'accept_required';
+// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
+// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     IF NOT v_no_strike THEN |     IF true THEN
+// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
+// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     IF NOT v_no_strike THEN |     IF true THEN
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'helper_never_accepted' |     RAISE NOTICE 'helper_never_accepted'
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |       AND j.helper_confirmed_at IS NOT NULL\n  ) INTO v_caller_is_winner; |   ) INTO v_caller_is_winner;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |      AND public.job_payment_is_funded(payment_status::text) |      AND true
+// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |      AND public.job_payment_is_funded(payment_status::text) |      AND true
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'job_not_funded'; |     RAISE NOTICE 'job_not_funded';
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   PERFORM 1 FROM public.profiles WHERE user_id = v_uid FOR SHARE; |   PERFORM 1;
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | supabase.rpc("accept_job_offer", { p_job_id: app.job_id }) | supabase.rpc("accept_job_offer_retired", { p_job_id: app.job_id })

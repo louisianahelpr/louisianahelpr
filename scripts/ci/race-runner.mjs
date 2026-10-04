@@ -28,10 +28,15 @@
  *   race 1  apply vs cancel. A = poster_cancel_job; B = INSERT INTO
  *           applications (trigger enforce_application_job_state judges the job).
  *           BAD = a pending application on a cancelled job.
- *   race 2  confirm vs cancel. A = poster_cancel_job; B = the PRE-FIX client
+ *   race 2  confirm vs cancel. A = poster_cancel_job; B = the confirmation
  *           write: UPDATE jobs SET helper_confirmed_at WHERE id AND
  *           helper_confirmed_at IS NULL — no status predicate, deliberately, so
  *           the database guarantee (trg_confirm_on_live_job) is under test.
+ *           Since 20261004001807 (Q1187) jobs_award_gate refuses that write in
+ *           a user session unless the accept RPC made it, so B sets the flag
+ *           complete_job_accept sets (app.accept_rpc) first: it is the accept's
+ *           own UPDATE minus its status predicate. Without the flag B is
+ *           refused with accept_required whatever A does, and the CONTROL fails.
  *           BAD = a cancelled job with helper_confirmed_at stamped.
  *   race 3  Done vs cancel (cancel first). A = poster_cancel_job; B = the
  *           Helpr's Done through rpc_helper_mark_done (since 20260915073143 the
@@ -206,7 +211,13 @@ const RACES = {
   2: {
     name: "helper confirm vs cancel",
     A: CANCEL,
-    B: { as: "helper", run: (c, f) => c.query("UPDATE public.jobs SET helper_confirmed_at = now(), response_deadline = NULL WHERE id = $1 AND helper_confirmed_at IS NULL", [f.job]) },
+    B: {
+      as: "helper",
+      run: async (c, f) => {
+        await c.query("SELECT set_config('app.accept_rpc', '1', true)");
+        return c.query("UPDATE public.jobs SET helper_confirmed_at = now(), response_deadline = NULL WHERE id = $1 AND helper_confirmed_at IS NULL", [f.job]);
+      },
+    },
     refusal: /job_not_confirmable/,
     bad: (s) => s.status === "cancelled" && s.confirmed,
   },

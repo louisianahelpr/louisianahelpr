@@ -24,7 +24,8 @@
  * @mutate .github/workflows/a11y-webkit-prod.yml | run: npx playwright test --project=job-status-fixtures | run: echo skipped
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id)); | const open = openAll;
  * @mutate e2e/prod-audit/fundedOpenJob.ts |   await helperConfirmsOffer(api, helper, id, log); |   // confirm removed
- * @mutate e2e/prod-audit/fundedOpenJob.ts | data: { helper_confirmed_at: now, response_deadline: null } | data: { response_deadline: null }
+ * @mutate e2e/prod-audit/fundedOpenJob.ts | "accept_job_offer", { p_job_id: id } | "accept_job_offer_retired", { p_job_id: id }
+ * @mutate e2e/prod-audit/fundedOpenJob.ts | if (answer?.state !== "accepted") { | if (false) {
  * @mutate e2e/job-status-fixtures/accepted.spec.ts | await ensureAcceptedJob(request, browser, poster, helper); | { job: { id: "", title: "", date_needed: "2999-01-01" }, log: [] as string[] };
  */
 import { describe, expect, it } from "vitest";
@@ -153,7 +154,12 @@ describe("a11y-webkit-prod.yml mints the fixture before the sweep reads it", () 
       /\n {2}}\n[\s\S]*?\n {2}await helperConfirmsOffer\(api, helper, id, log\);/,
     );
     const confirm = /async function helperConfirmsOffer\([\s\S]*?\n}/.exec(src)?.[0] ?? "";
-    expect(confirm).toContain("helper_confirmed_at: now");
+    // Q1187 (20261004001807): the database refuses a direct PATCH of
+    // helper_confirmed_at, so the fixture accepts the way the app does, and an
+    // answer other than "accepted" (a pending setup) fails the fixture loudly.
+    expect(confirm).toContain('"accept_job_offer", { p_job_id: id }');
+    expect(confirm).toMatch(/if \(answer\?\.state !== "accepted"\) \{\s*throw new Error/);
+    expect(confirm, "the fixture must not confirm by writing the job itself").not.toMatch(/\bapi\.patch\(/);
     expect(confirm).toMatch(/if \(!confirmed\[0\]\?\.helper_confirmed_at\) \{\s*throw new Error/);
   });
   it("the project is the fixture spec's own, and the spec calls the owner", () => {

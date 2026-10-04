@@ -363,27 +363,30 @@ async function driveToHired(
 }
 
 /**
- * helper-e2e answers the offer: the same conditional UPDATE the app's Accept
- * Job button makes (useOfferHandlers.ts, `helper_confirmed_at` + clear
- * `response_deadline`, only while accepted, unconfirmed and not lapsed).
+ * helper-e2e answers the offer the way the app's Accept Job button does:
+ * accept_job_offer (Q1180). Since 20261004001807 (Q1187) the database refuses
+ * a direct PATCH of helper_confirmed_at (accept_required), which is how this
+ * used to confirm. helper-e2e is a seed profile with no Stripe account, which
+ * helper_accept_missing counts as set up, so the accept completes at once.
  * An accepted fixture left UNconfirmed is swept by expire_unanswered_offers
  * at its response_deadline, which files a job_denial violation on helper-e2e
  * (user_violations dd89291c, 2026-09-27 20:00, job 36eebad4) and turns
- * prod-audit's "Shared test accounts carry no strikes" check red. Zero rows
- * is legitimate (already confirmed on a previous run); the row read after it
- * is what proves the state.
+ * prod-audit's "Shared test accounts carry no strikes" check red. An offer
+ * already confirmed on a previous run is left alone (the RPC would answer
+ * offer_not_active); the row read after it is what proves the state.
  */
 async function helperConfirmsOffer(api: APIRequestContext, helper: Session, id: string, log: string[]): Promise<void> {
-  const now = new Date().toISOString();
-  const rows = await readJson<{ id: string }[]>(
-    await api.patch(
-      `${SUPABASE_URL}/rest/v1/jobs?select=id&id=eq.${id}&status=eq.accepted&helper_confirmed_at=is.null` +
-        `&or=(response_deadline.is.null,response_deadline.gt.${encodeURIComponent(now)})`,
-      { headers: headers(helper, { Prefer: "return=representation" }), data: { helper_confirmed_at: now, response_deadline: null } },
-    ),
-    `helper-e2e confirms the offer on ${id}`,
+  const before = await readJson<{ helper_confirmed_at: string | null }[]>(
+    await api.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=helper_confirmed_at`, { headers: headers(helper) }),
+    `read helper_confirmed_at on ${id} before accepting`,
   );
-  if (rows.length) log.push(`helper-e2e confirmed the offer on ${id}`);
+  if (!before[0]?.helper_confirmed_at) {
+    const answer = await rpc<{ state?: string; missing?: string[] } | null>(api, helper, "accept_job_offer", { p_job_id: id });
+    if (answer?.state !== "accepted") {
+      throw new Error(`accepted fixture: accept_job_offer on ${id} answered ${JSON.stringify(answer)}, not "accepted" (helper-e2e's setup is no longer complete?)`);
+    }
+    log.push(`helper-e2e accepted the offer on ${id}`);
+  }
   const confirmed = await readJson<{ helper_confirmed_at: string | null }[]>(
     await api.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${id}&select=helper_confirmed_at`, { headers: headers(helper) }),
     `read helper_confirmed_at on ${id}`,

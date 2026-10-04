@@ -384,8 +384,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
 
   // Everything an accepted offer does on the Helpr's side once the accept is
   // COMPLETE: the W-9 a business job requires, the funnel events, and the
-  // move to the Accepted bucket. Shared by accept_job_offer's 'accepted' answer
-  // and the pre-RPC fallback below (Q1180).
+  // move to the Accepted bucket. Runs on accept_job_offer's 'accepted' answer
+  // (Q1180).
   const afterAccepted = async (app: Application) => {
     if (!user) return;
   // W-9 collection — if the business poster set requires_w9 = true,
@@ -494,135 +494,31 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         await afterAccepted(app);
         return;
       }
-      if (acceptError.code !== "PGRST202") {
-        hapticError();
-        const blocked = awardBlockFromError(acceptError);
-        if (blocked) {
-          setPendingAcceptApp(app);
-          setAwardBlockReason(blocked);
-          return;
-        }
-        if (isUnfundedAwardRefusal(acceptError)) {
-          toast.error(UNFUNDED_AWARD_COPY);
-          await refresh();
-          return;
-        }
-        const guard = rpcErrorMessage("accept_job_offer", acceptError);
-        if (guard) {
-          toast.error(guard);
-          await refresh();
-          return;
-        }
-        report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
-        toast.error("Couldn't accept the job — please try again.");
-        return;
-      }
-      // PGRST202: this build is live before db-deploy has pushed the RPC. The
-      // previous path below (gate check, then the conditional confirm) still
-      // works until it lands.
-
-      // The acceptance gate: payout-ready.
-      // A blocked accept has to carry its own way out — never a refusal with
-      // nowhere to go — so the failure opens AwardGateDialog, which names the
-      // missing half and links into the right Stripe flow for it.
-      const gate = await checkHelperAwardEligibility();
-      if (gate.indeterminate) {
-        // On a dropped check `ok` is false but we know nothing. That used to
-        // read as "not set up" and trapped an already-ready helper in a
-        // dialog with no way out. Say what actually happened.
-        hapticError();
-        toast.error("Couldn't check your payout status — please try again.");
-        return;
-      }
-      if (!gate.ok && gate.reason) {
+      // Every refusal is accept_job_offer's own. There is no fallback any
+      // more (Q1187): the pre-RPC path PATCHed helper_confirmed_at itself,
+      // which confirmed the job with no "accepted your offer" notice and left
+      // the other applications pending, and the database refuses that write
+      // since 20261004001807 (jobs_award_gate: accept_required).
+      hapticError();
+      const blocked = awardBlockFromError(acceptError);
+      if (blocked) {
         setPendingAcceptApp(app);
-        setAwardBlockReason(gate.reason);
+        setAwardBlockReason(blocked);
         return;
       }
-
-      // Optimistic: move this applied job from the "Awaiting Response"
-      // bucket into "Accepted" instantly (helper_confirmed_at set, deadline
-      // cleared) so the card transitions on tap, not after the refetch.
-      const confirmedAt = new Date().toISOString();
-      const snapshot = optimisticallyPatchJob(app.job_id, {
-        helper_confirmed_at: confirmedAt,
-        response_deadline: null,
-      });
-      // Make the confirm CONDITIONAL so it can't race the expiry cron or
-      // double-fire. Previously it re-checked nothing, so a helper could
-      // confirm an offer that had already lapsed (or confirm twice).
-      //   - `helper_confirmed_at is null` → blocks a second confirm.
-      //   - deadline null OR still in the future → blocks confirming a lapsed
-      //     offer. The null branch matters: not every offer carries a deadline,
-      //     and a bare `.gt()` would silently exclude those legitimate rows.
-      //   - `status = 'accepted'` → blocks confirming a job the poster cancelled
-      //     in the same instant. Proven on prod 2026-09-13 (5 of 20 races):
-      //     without it this UPDATE queued behind poster_cancel_job's row lock,
-      //     re-checked only `helper_confirmed_at IS NULL` on the cancelled row,
-      //     and stamped it — so the cancel RPC said "$0, no fee" while the
-      //     payout cron, reading helper_confirmed_at, would have charged 25%.
-      //     The trigger trg_confirm_on_live_job is the guarantee; this
-      //     predicate turns that refusal into the zero-row "no longer
-      //     available" path below instead of an error toast.
-      // `.select("id")` lets us tell "updated nothing" from "errored".
-      const { data: confirmedRows, error: confirmError } = await supabase
-        .from("jobs")
-        .update({ helper_confirmed_at: confirmedAt, response_deadline: null })
-        .eq("id", app.job_id)
-        .eq("status", "accepted")
-        .is("helper_confirmed_at", null)
-        .or(`response_deadline.is.null,response_deadline.gt.${confirmedAt}`)
-        .select("id");
-      if (confirmError) {
-        rollbackActivity(snapshot);
-        hapticError();
-        // The server gate can still refuse here even though we checked above —
-        // the Stripe state may have moved between the check and the write, and
-        // the trigger is the authority. Show the same explained blocked state
-        // rather than a generic failure the helper can't act on.
-        const blocked = awardBlockFromError(confirmError);
-        if (blocked) {
-          setPendingAcceptApp(app);
-          setAwardBlockReason(blocked);
-          return;
-        }
-        // Unfunded escrow: a retry can never work, so say why and re-read
-        // rather than leave Accept Job sitting there to bounce again (Q320).
-        if (isUnfundedAwardRefusal(confirmError)) {
-          toast.error(UNFUNDED_AWARD_COPY);
-          await refresh();
-          return;
-        }
-        toast.error("Couldn't accept the job — please try again.");
-        return;
-      }
-      if (!confirmedRows || confirmedRows.length === 0) {
-        // Zero rows = the offer lapsed or was already confirmed elsewhere.
-        // Roll the optimistic patch back rather than leaving the card showing
-        // an acceptance that never happened.
-        rollbackActivity(snapshot);
-        hapticError();
-        toast.error("This offer is no longer available — it may have expired.");
-        // Same reasoning as the decline path below: re-read rather than leave
-        // the card offering an action that just bounced.
+      if (isUnfundedAwardRefusal(acceptError)) {
+        toast.error(UNFUNDED_AWARD_COPY);
         await refresh();
         return;
       }
-      // Helper-side reject of the losing applicants. The direct UPDATE this
-      // used to issue was RLS-filtered to zero rows (applications.UPDATE only
-      // permits the customer), so other applicants got stuck in "pending"
-      // forever. Goes through a SECURITY DEFINER RPC that re-validates the
-      // caller is the accepted helper. PGRST202 fallback covers the window
-      // between merge and the manual `supabase db push` to prod.
-      const { error: rejectErr } = await supabase.rpc("reject_other_applications_on_accept", {
-        p_job_id: app.job_id,
-        p_accepted_application_id: app.id,
-      });
-      if (rejectErr && rejectErr.code !== "PGRST202") {
-        console.warn("Failed to auto-reject other applications", rejectErr);
+      const guard = rpcErrorMessage("accept_job_offer", acceptError);
+      if (guard) {
+        toast.error(guard);
+        await refresh();
+        return;
       }
-
-      await afterAccepted(app);
+      report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
+      toast.error("Couldn't accept the job — please try again.");
     } else {
       // Decline — atomic via the decline_job_offer RPC: the violation
       // insert, ladder escalation (apply_job_denial_consequence, migration

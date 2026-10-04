@@ -119,10 +119,6 @@ const AccountBanned = () => {
   const isPermanent = banStatus === "permanently_banned";
   const isTemp = banStatus === "temp_banned";
 
-  // Eyebrow must track the actual ban state — a hardcoded "Suspended"
-  // read wrong above a "permanently banned" headline.
-  const eyebrowLabel = isPermanent ? "Banned" : isTemp ? "Suspended" : "Under review";
-
   const headline = isPermanent
     ? "Account permanently banned"
     : isTemp
@@ -185,8 +181,9 @@ const AccountBanned = () => {
         </div>
 
         <div className="space-y-2">
-          <span className="text-display-eyebrow">{eyebrowLabel}</span>
-          {/* NOT `truncate`. Measured 2026-08-31: `text-overflow: ellipsis` +
+          {/* mt-2: the space-y-2 gap the hidden eyebrow span gave it, which
+              outranked its mt-1 (Q1129), kept so nothing moves.
+              NOT `truncate`. Measured 2026-08-31: `text-overflow: ellipsis` +
               `white-space: nowrap` on this h1 clipped the single most important
               sentence on the screen at every phone width — "Account temporarily
               suspended." rendered as "Account temporarily susp…" (scrollWidth
@@ -194,7 +191,7 @@ const AccountBanned = () => {
               inside a narrow card has no reason to be single-line; `text-balance`
               wraps it evenly instead. `PageHeader`'s truncate is a different
               case — a one-line header row — and stays. */}
-          <h1 className="text-page-title leading-tight mt-1 text-balance">
+          <h1 className="text-page-title leading-tight mt-2 text-balance">
             {headline}.
           </h1>
           <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

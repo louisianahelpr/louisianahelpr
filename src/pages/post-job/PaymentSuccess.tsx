@@ -438,16 +438,15 @@ const PaymentSuccess = () => {
         </div>
 
         <div className="space-y-2">
-          <span className="text-display-eyebrow">
-            {isHeld ? "All set" : confirmState === "checking" ? "Checking" : "Heads up"}
-          </span>
-          {/* No `truncate` here. PLATFORM_CONVENTIONS exempts centred
+          {/* mt-2: the space-y-2 gap the hidden eyebrow span gave it, which
+              outranked its mt-1 (Q1129), kept so nothing moves.
+              No `truncate` here. PLATFORM_CONVENTIONS exempts centred
               full-screen outcome states from the one-line-title rule for
               exactly this reason: with it, the unconfirmed-payment heading
               cut to "We couldn't confirm your …" at 375 — the one screen
               where the user most needs the whole sentence. Wrapping is the
               lesser evil, same call as DashboardBlockedScreen. */}
-          <h1 className="text-page-title leading-tight mt-1 text-balance">{heading}</h1>
+          <h1 className="text-page-title leading-tight mt-2 text-balance">{heading}</h1>
           <p
             className="font-sans text-ds-13 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -516,8 +515,8 @@ const PaymentSuccess = () => {
             </div>
 
             <div className="space-y-3 text-left">
-              <p className="text-display-eyebrow">What happens next</p>
-              <ol className="space-y-2.5">
+              {/* mt-3: the space-y-3 gap the hidden eyebrow gave it (Q1129). */}
+              <ol className="space-y-2.5 mt-3">
                 {LIFECYCLE_STEPS.map((step, i) => {
                   const Icon = step.icon;
                   const isFirst = i === 0;

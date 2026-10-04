@@ -708,7 +708,10 @@ serve(async (req) => {
       // Q1241: void-cancelled-payments claims a fee row 'pending' BEFORE it
       // checks the payout hold, so a held Helpr's fee waits there ON PURPOSE
       // for the length of the hold (it is sent on the first run after the
-      // release). Reported in `cancellation_fee_held`, never warned. FAIL
+      // release). Reported in `cancellation_fee_held`, never warned. Only an
+      // UNSENT claim (pending, no transfer id) is exempt: a failed transfer, or
+      // money sent but never stamped, still reports for a held Helpr (review
+      // of Q1241). FAIL
       // CLOSED: an unreadable hold exempts nothing and degrades the run.
       const waitingFeeRows = feeRows.filter((r) => r.status === "pending" || r.status === "failed");
       let feeHolds: ReadonlyMap<string, unknown> = new Map<string, unknown>();
@@ -722,7 +725,7 @@ serve(async (req) => {
         if (r.status !== "pending" && r.status !== "failed") continue;
         const since = latest(r.updated_at, r.created_at);
         if (since !== null && feeNowMs - since < SETTLE_WINDOW_MS) continue;
-        if (r.helper_id && feeHolds.has(r.helper_id)) {
+        if (r.status === "pending" && !r.stripe_transfer_id && r.helper_id && feeHolds.has(r.helper_id)) {
           heldFeeRows.push({ job_id: r.job_id, fee_transfer_id: r.id, helper_id: r.helper_id });
           continue;
         }

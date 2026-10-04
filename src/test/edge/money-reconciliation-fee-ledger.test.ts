@@ -183,7 +183,7 @@ describe("money-reconciliation — cancellation-fee ledger vs Stripe (LOW-2)", (
   // Q1241: void-cancelled-payments claims the fee row as 'pending' BEFORE it
   // checks the payout hold, so a held Helpr's fee waits there on purpose for
   // the whole hold; this warning posted on every run for that time.
-  // @mutate supabase/functions/money-reconciliation/index.ts | if (r.helper_id && feeHolds.has(r.helper_id)) { | if (false) {
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (r.status === "pending" && !r.stripe_transfer_id && r.helper_id && feeHolds.has(r.helper_id)) { | if (false) {
   it("Q1241: a HELD Helpr's waiting fee row is reported in cancellation_fee_held, not warned", async () => {
     const fn = await load();
     seed({
@@ -194,6 +194,27 @@ describe("money-reconciliation — cancellation-fee ledger vs Stripe (LOW-2)", (
     const { b } = await run(fn);
     expect(finding(b, "cancellation_fee_transfer_not_paid")?.count ?? 0).toBe(0);
     expect(b.cancellation_fee_held).toEqual([{ job_id: "job-f", fee_transfer_id: "fee-1", helper_id: "helper-1" }]);
+  });
+
+  // Review of Q1241 (should-fix): only an UNSENT claim waits on purpose. A
+  // real failed transfer, or a transfer sent but never stamped paid, is still
+  // a defect for a held Helpr.
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (r.status === "pending" && !r.stripe_transfer_id && r.helper_id | if (r.helper_id
+  it("Q1241: a held Helpr's FAILED or sent-but-unstamped fee row still warns", async () => {
+    for (const row of [
+      feeRow({ status: "failed", stripe_transfer_id: null, created_at: ago(DAY), updated_at: ago(DAY) }),
+      feeRow({ status: "pending", stripe_transfer_id: "tr_sent", created_at: ago(DAY), updated_at: ago(DAY) }),
+    ]) {
+      resetSupabaseMock();
+      resetStripeMock();
+      resetSharedMocks();
+      const fn = await load();
+      seed({ rows: [row], transfers: [] });
+      scenario.reads.payout_holds = { rows: [{ helper_id: "helper-1", reason: "review", held_at: null, denied_at: null }] };
+      const { b } = await run(fn);
+      expect(finding(b, "cancellation_fee_transfer_not_paid")?.count, JSON.stringify(row)).toBe(1);
+      expect(b.cancellation_fee_held).toEqual([]);
+    }
   });
 
   // @mutate supabase/functions/money-reconciliation/index.ts | notes.push(`payout hold read failed, no held cancellation fee exempted: ${feeHoldLookup.message}`); | void 0;

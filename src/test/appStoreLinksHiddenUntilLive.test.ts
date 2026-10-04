@@ -35,7 +35,13 @@ describe("Q1124: App Store links and badges stay hidden until the listing is liv
   });
 
   it("index.html has no Smart App Banner meta while it is not live", () => {
-    const html = readFileSync(join(REPO, "index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+    // Strip HTML comments until none is left (a removal can join pieces into a new one).
+    let html = readFileSync(join(REPO, "index.html"), "utf8");
+    let prevLen: number;
+    do {
+      prevLen = html.length;
+      html = html.replace(/<!--[\s\S]*?-->/g, "");
+    } while (html.length !== prevLen);
     expect(html.length).toBeGreaterThan(1000);
     if (!APP_STORE_LISTING_LIVE) expect(html).not.toMatch(/<meta\s+name="apple-itunes-app"/);
   });

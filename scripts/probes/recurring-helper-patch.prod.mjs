@@ -17,8 +17,9 @@
 // Controls (must SUCCEED, else exit 1 — a fix that breaks series is no fix):
 //   C  poster clears recurring_helper_id (PATCH null) on a series that has one.
 //   D  the real series path: accept_application by the poster, then the
-//      helper's own confirm PATCH (helper_confirmed_at, exactly as
-//      useOfferHandlers sends it) — stamp_recurring_series_helper must stamp
+//      helper's own Accept (accept_job_offer, as useOfferHandlers sends it
+//      since Q1180; the confirm PATCH it used to send is refused since
+//      20261004001807, Q1187) — stamp_recurring_series_helper must stamp
 //      recurring_helper_id = the hired helper.
 import { rest, session, URL_, ANON } from "./lib/prodEnv.mjs";
 
@@ -108,14 +109,11 @@ try {
     method: "POST",
     body: { p_application_id: app.id, p_deadline: new Date(Date.now() + 4 * 3600e3).toISOString(), p_offer_message: null },
   });
-  const confirmedAt = new Date().toISOString();
-  const conf = await asUser(helperTok, `jobs?id=eq.${d}&status=eq.accepted&helper_confirmed_at=is.null&select=id,helper_id,recurring_helper_id`, {
-    method: "PATCH", body: { helper_confirmed_at: confirmedAt, response_deadline: null },
-  });
+  const conf = await asUser(helperTok, "rpc/accept_job_offer", { method: "POST", body: { p_job_id: d } });
   const [jd] = await rest(`jobs?id=eq.${d}&select=helper_id,recurring_helper_id,helper_confirmed_at`);
   results.D_control_accept_then_confirm = {
     accept_status: acc.status, accept_msg: acc.json?.message,
-    confirm: summarise(conf), stamped: jd.recurring_helper_id === HELPER && jd.helper_id === HELPER,
+    confirm: { ...summarise(conf), state: conf.json?.state }, stamped: jd.recurring_helper_id === HELPER && jd.helper_id === HELPER,
   };
   await drop(d);
 

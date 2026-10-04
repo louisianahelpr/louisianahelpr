@@ -163,6 +163,8 @@ describe("Q837: an edge function refuses an unconfirmed-email caller", () => {
   const all = inventory();
 
   it("the inventory is exact: every function that resolves its caller is GATED or EXEMPT (two-way)", () => {
+    // Floor: an empty read of supabase/functions would make every check below pass.
+    expect(all.length).toBeGreaterThan(30);
     expect(all.map((x) => x.fn).sort()).toEqual([...GATED, ...Object.keys(EXEMPT)].sort());
     expect(GATED.filter((fn) => EXEMPT[fn])).toEqual([]);
   });

@@ -278,6 +278,14 @@ serve(async (req) => {
         "warning",
         "A redeemed gift_cards row is payment_status='refunded' — the donation was reversed AFTER it had funded a job, so the platform absorbed that value from its own balance. Not an error (we deliberately never claw back from the Helpr), but it is a real loss and should be reconciled against Stripe.",
       ),
+      // Q1212: the refund paths return the gift AFTER the job's terminal flip;
+      // a restore that failed (or was refused) paged once and nothing
+      // re-reported it.
+      giftNotReturned: new Check(
+        "gift_not_returned_after_refund",
+        "critical",
+        `A redeemed gift card funded a job that is now cancelled/refunded (settled more than ${SETTLE_WINDOW_HOURS}h ago), and no replacement gift was minted for it (no gift_cards.restored_from_job_id), no payout to the Helpr is live, and no decided dispute is still waiting to execute: the poster is owed their gift back. Run restore_gift_card_for_job for the job (it is idempotent), or return it by hand.`,
+      ),
       cancellationFee: new Check(
         "cancellation_fee_mismatch",
         "critical",
@@ -1237,7 +1245,7 @@ serve(async (req) => {
     {
       const { data: giftRows, error: giftErr } = await admin
         .from("gift_cards")
-        .select("id, parent_credit_id, payment_status, status, amount, job_id");
+        .select("id, parent_credit_id, payment_status, status, amount, job_id, restored_from_job_id");
 
       // Never swallow this. A dropped error here reads as "no gift defects",
       // which is exactly the false all-clear this function exists to prevent.
@@ -1252,6 +1260,7 @@ serve(async (req) => {
         status: string | null;
         amount: number | null;
         job_id: string | null;
+        restored_from_job_id?: string | null;
       }>;
       const byId = new Map(gifts.map((g) => [g.id, g]));
 
@@ -1282,6 +1291,64 @@ serve(async (req) => {
             job_id: g.job_id,
             amount: money(g.amount ?? 0),
           });
+        }
+      }
+
+      // ── Q1212: a gift still owed back after its job was refunded ──────────
+      // The refund paths (create-payment's admin refunds, charge.refunded,
+      // cancel_escrow) return the gift AFTER the job's terminal flip. A restore
+      // that failed, or was refused because a payout had moved, paged once;
+      // this re-reports it every run until it is returned. Exempt: a
+      // replacement already minted for the job (restored_from_job_id), a live
+      // payout (the gift funded work that was paid), and a decided dispute
+      // whose split has not executed (the split returns the gift's share).
+      // Both exemptions need a complete read: a truncated ledger or an
+      // unreadable dispute skips the check (degraded), never guesses.
+      const nowGift = Date.now();
+      const jobById = new Map(jobRows.map((j) => [j.id as string, j]));
+      const owedCandidates = gifts.filter((g) => {
+        if (g.status !== "redeemed" || !g.job_id) return false;
+        const job = jobById.get(g.job_id);
+        if (!job || job.status !== "cancelled") return false;
+        if (job.payment_status !== "refunded" && job.payment_status !== "cancelled") return false;
+        const settledAt = latest(job.updated_at, job.cancelled_at);
+        return settledAt === null || nowGift - settledAt >= SETTLE_WINDOW_MS;
+      });
+      if (owedCandidates.length) {
+        const candidateJobIds = [...new Set(owedCandidates.map((g) => g.job_id as string))];
+        const splitScan = await scanAllIn<{ job_id: string; status: string | null; execution_status: string | null }>(
+          "disputes",
+          candidateJobIds,
+          (chunk, countOpt) =>
+            admin
+              .from("disputes")
+              .select("job_id, status, execution_status", countOpt)
+              .order("id", { ascending: true })
+              .eq("status", "decided")
+              .in("job_id", chunk),
+        );
+        const splitCap = splitScan.error
+          ? `disputes read failed (${splitScan.error.message})`
+          : scanDefect("disputes", splitScan);
+        if (transferCap || splitCap) {
+          notes.push(`gift-not-returned check skipped: ${transferCap ?? splitCap}`);
+        } else {
+          const restoredJobIds = new Set(gifts.map((g) => g.restored_from_job_id).filter((x): x is string => !!x));
+          const giftPaidJobIds = new Set(transfers.filter(isSettledTransfer).map((t) => t.job_id));
+          const undecidedSplitJobIds = new Set(
+            splitScan.rows.filter((d) => d.status === "decided" && d.execution_status !== "executed").map((d) => d.job_id),
+          );
+          for (const g of owedCandidates) {
+            if (!g.job_id) continue;
+            if (restoredJobIds.has(g.job_id)) continue;
+            if (giftPaidJobIds.has(g.job_id)) continue;
+            if (undecidedSplitJobIds.has(g.job_id)) continue;
+            checks.giftNotReturned.add({
+              gift_card_id: g.id,
+              job_id: g.job_id,
+              amount: money(g.amount ?? 0),
+            });
+          }
         }
       }
     }

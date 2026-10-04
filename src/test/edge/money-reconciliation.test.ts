@@ -448,6 +448,70 @@ describe("money-reconciliation edge function", () => {
   // unspent node must be 'refunded' too. A node still reading 'paid' under a
   // 'refunded' ancestor is spendable money conjured out of a reversal — the
   // exact class closed in migration 20260922165121, kept closed here.
+  // Q1212: since Q454 a refund returns the gift AFTER the job's terminal flip,
+  // and a restore that fails (or is refused) pages once; nothing re-reported
+  // it. A redeemed gift on a cancelled/refunded job, with no replacement row,
+  // no live payout and no unexecuted decided dispute, is a gift still owed.
+  describe("Q1212 a gift left unreturned after its job was refunded", () => {
+    const old = new Date(Date.now() - 3 * 86_400_000).toISOString();
+    function seedRefundedGiftJob() {
+      seedCleanLedger();
+      scenario.reads.jobs!.rows![0] = {
+        ...scenario.reads.jobs!.rows![0], status: "cancelled", payment_status: "refunded",
+        cancelled_at: old, updated_at: old, poster_completed_at: null, helper_completed_at: null,
+      };
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.gift_cards = {
+        rows: [{ id: "gc-1", parent_credit_id: null, payment_status: "paid", status: "redeemed", amount: 100, job_id: "job-1", restored_from_job_id: null }],
+      };
+    }
+    const names = (b: Record<string, unknown>) => (b.findings as Array<{ check: string }>).map((f) => f.check);
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | checks.giftNotReturned.add({ | void ({
+    it("flags it", async () => {
+      const fn = await loadConfigured();
+      seedRefundedGiftJob();
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).toContain("gift_not_returned_after_refund");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (restoredJobIds.has(g.job_id)) continue; |
+    it("not when a replacement gift was minted for the job", async () => {
+      const fn = await loadConfigured();
+      seedRefundedGiftJob();
+      scenario.reads.gift_cards!.rows!.push({ id: "gc-2", parent_credit_id: "gc-1", payment_status: "paid", status: "sent", amount: 100, job_id: null, restored_from_job_id: "job-1" });
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_not_returned_after_refund");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (giftPaidJobIds.has(g.job_id)) continue; |
+    it("not when a live payout went to the Helpr (that job's gift is spent, not owed)", async () => {
+      const fn = await loadConfigured();
+      seedRefundedGiftJob();
+      scenario.reads.payout_transfers = { rows: [{ job_id: "job-1", helper_id: "helper-1", amount_cents: 8800, platform_fee_cents: 1200, status: "paid", stripe_transfer_id: "tr_1" }] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_not_returned_after_refund");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (undecidedSplitJobIds.has(g.job_id)) continue; |
+    it("not while a decided dispute on the job has not executed (the split returns it)", async () => {
+      const fn = await loadConfigured();
+      seedRefundedGiftJob();
+      scenario.reads.disputes = { rows: [{ job_id: "job-1", status: "decided", execution_status: null }] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_not_returned_after_refund");
+    });
+
+    it("not inside the settle window (the restore runs right after the flip)", async () => {
+      const fn = await loadConfigured();
+      seedRefundedGiftJob();
+      const now = new Date().toISOString();
+      scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], cancelled_at: now, updated_at: now };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("gift_not_returned_after_refund");
+    });
+  });
+
   describe("gift-credit tree", () => {
     it("flags a spendable child under a refunded donation", async () => {
       const fn = await loadConfigured();

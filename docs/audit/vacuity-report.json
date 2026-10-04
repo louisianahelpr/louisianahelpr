@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-04T02:02:04.751Z",
-  "guards": 1373,
-  "registered": 1373,
+  "generated": "2026-10-04T02:32:50.582Z",
+  "guards": 1375,
+  "registered": 1375,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -22,6 +22,7 @@
     "src/test/banEvasionSurface.test.ts",
     "src/test/blockedStorageBoot.test.ts",
     "src/test/e2eNoSupabaseMocks.test.ts",
+    "src/test/edge/requireConfirmedEmail.test.ts",
     "src/test/expiryFormatterClass.test.ts",
     "src/test/jobMatchPreferenceGate.test.ts",
     "src/test/jobsStateColumnGuard.test.ts",
@@ -501,5 +502,7 @@
       ]
     }
   ],
-  "edge_classA": []
+  "edge_classA": [
+    "src/test/edge/requireConfirmedEmail.test.ts"
+  ]
 }

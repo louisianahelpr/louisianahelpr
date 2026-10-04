@@ -11,7 +11,7 @@
 // @mutate src/pages/admin/Admin.tsx | withGiftCardPaid(rows, giftCardPaidRes.ids).filter(isCapturedPayment) | withGiftCardPaid(rows, giftCardPaidRes.ids)
 // @mutate src/pages/admin/Admin.tsx | select("id, payment_status, stripe_payment_intent_id, budget, platform_fee_amount, customer_fee_amount") | select("budget, platform_fee_amount, customer_fee_amount")
 // @mutate src/components/admin/useAdminUserSummaries.ts | for (const j of withGiftCardPaid(data, giftCardPaid.ids).filter(isCapturedPayment)) { | for (const j of data) {
-// @mutate src/components/admin/AdminAnalytics.tsx | setAllJobs(withGiftCardPaid(allJobsData, giftCardPaidRes.ids)); | setAllJobs(allJobsData);
+// @mutate src/components/admin/AdminAnalytics.tsx | allJobs: withGiftCardPaid(allJobsData, giftCardPaidRes.ids), | allJobs: allJobsData,
 // @mutate supabase/migrations/20261003050100_admin_gift_card_paid_job_ids.sql |    WHERE public.has_role((SELECT auth.uid()), 'admin'::public.app_role)\n     AND g.job_id IS NOT NULL |    WHERE g.job_id IS NOT NULL
 // @mutate supabase/migrations/20261003050100_admin_gift_card_paid_job_ids.sql |      AND g.status = 'redeemed' |      AND true
 // @mutate supabase/migrations/20261003050100_admin_gift_card_paid_job_ids.sql | ON FUNCTION public.admin_gift_card_paid_job_ids() FROM PUBLIC, anon; | ON FUNCTION public.admin_gift_card_paid_job_ids() FROM PUBLIC;
@@ -173,7 +173,7 @@ describe("Q233: Payments Collected counts only charged payments", () => {
     // must stay dropped: db-smoke's rowtype-args-unreadable check is the class.
     expect(() => newestFunction("payment_captured")).toThrow(/no live definition/);
     // The Analytics page judges its loaded rows client-side, so the load marks them.
-    expect(code(`${A}AdminAnalytics.tsx`)).toContain("setAllJobs(withGiftCardPaid(allJobsData, giftCardPaidRes.ids));");
+    expect(code(`${A}AdminAnalytics.tsx`)).toContain("allJobs: withGiftCardPaid(allJobsData, giftCardPaidRes.ids),");
   });
 
   it("every admin money read of a held status carries id + PI and is judged by isCapturedPayment (Q233, Q443)", () => {

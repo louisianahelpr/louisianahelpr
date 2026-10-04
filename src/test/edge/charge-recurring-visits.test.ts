@@ -302,9 +302,9 @@ async function loadConfigured(): Promise<EdgeHarness> {
  * dynamic import with `Date.now()`, so a frozen clock there would hand every
  * load the same module URL, skip re-evaluation, and leave `serve()` uncalled.
  */
-async function runOn(fn: EdgeHarness, ymd: string, opts: { dryRun?: boolean } = {}) {
+async function runOn(fn: EdgeHarness, ymd: string, opts: { dryRun?: boolean; at?: string } = {}) {
   vi.useFakeTimers();
-  vi.setSystemTime(new Date(`${ymd}T06:00:00Z`));
+  vi.setSystemTime(new Date(opts.at ?? `${ymd}T06:00:00Z`));
   try {
     return await fn.fetch(
       fn.request({
@@ -387,6 +387,35 @@ describe("charge-recurring-visits edge function", () => {
 
     // Nothing was refunded on a clean run.
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  // Q1203: the cron's "today" was the UTC date. The schedule (06:00Z) never
+  // shows it, but a manual or retried run in a Chicago evening does: from 19:00
+  // CDT the UTC date is tomorrow's, so tomorrow's visit read as "not after today"
+  // and was never funded. A Wednesday series, run at 20:00 CDT on Tuesday.
+  it("Q1203: a run at 20:00 CDT funds TOMORROW's visit (the UTC date is already tomorrow)", async () => {
+    const fn = await loadConfigured();
+    wireJobsReads({ series: { rows: [seriesParent({ recurrence_days: [3] })] } });
+    wireHolds([{ id: "hold-wed", visit_date: "2026-09-02", helper_id: HELPER_ID }]);
+    scenario.reads.profiles = {
+      rows: [{ email: "poster@example.com", subscription_tier: null, subscription_expires_at: null }],
+    };
+    scenario.writeSelectRows.notifications = [{ id: "n1" }, { id: "n2" }];
+    scenario.rpc.are_users_blocked = false;
+    seriesPiRetrieve.mockReset();
+    seriesPiRetrieve.mockResolvedValue(seriesCheckoutIntent());
+    stripeMock.paymentIntents.retrieve.mockImplementation((id: string, ...rest: unknown[]) =>
+      id === SERIES_PI ? seriesPiRetrieve(id, ...rest) : otherPiRetrieve(id, ...rest),
+    );
+    stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_wed", status: "succeeded" });
+
+    // 2026-09-02T01:00Z is 20:00 CDT on Tuesday Sep 1.
+    const res = await runOn(fn, "2026-09-01", { at: "2026-09-02T01:00:00Z" });
+    const b = await body(res);
+
+    expect(b.funded).toBe(1);
+    expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
+    expect((insertedVisits()[0]?.payload as Record<string, unknown>).date_needed).toBe("2026-09-02");
   });
 
   // ═══════════════════════════════════════════════════════════════════════

@@ -71,6 +71,7 @@ import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/poste
 import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
 import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
+import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
@@ -127,10 +128,6 @@ const MAX_CHARGES_PER_RUN = 200;
  * the paging below is what makes it correct in the meantime.
  */
 const SERIES_LOOKBACK_DAYS = 371;
-
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function addDays(ymd: string, n: number): string {
   const d = new Date(`${ymd}T12:00:00Z`);
@@ -359,7 +356,7 @@ serve(async (req) => {
     apiVersion: "2025-08-27.basil",
   });
 
-  const today = todayUtc();
+  const today = louisianaToday();
   const horizon = addDays(today, FUND_LEAD_DAYS);
 
   const results = {

@@ -42,6 +42,7 @@
 // as `seed_findings` and go to the daily digest (postSlackOpsAlert `seed`);
 // they never page and never fail the run (docs/OPEN.md Q90).
 
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -1283,6 +1284,12 @@ serve(async (req) => {
             stripeReads++;
           } catch (e) {
             const err = e as { statusCode?: number; code?: string; message?: string };
+            // BEFORE the 404 test: a test-mode id under the live key answers
+            // 404 resource_missing too, and is not a missing PaymentIntent.
+            if (isTestObjectUnderLiveKey(e)) {
+              logTestObjectUnderLiveKey("money-reconciliation", { job_id: job.id, object: "payment_intent", id: piId });
+              return;
+            }
             if (err?.statusCode === 404 || err?.code === "resource_missing") {
               checks.stripePiMissing.add({ job_id: job.id, payment_intent: piId });
             } else {

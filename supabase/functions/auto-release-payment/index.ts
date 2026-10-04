@@ -1,3 +1,4 @@
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -373,6 +374,11 @@ serve(async (req) => {
               }).eq("id", job.id);
             }
           } catch (e) {
+            if (isTestObjectUnderLiveKey(e)) {
+              logTestObjectUnderLiveKey("auto-release-payment", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+              results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
+              continue;
+            }
             console.error(`Failed to retrieve session for job ${job.id}:`, e);
           }
         }
@@ -393,6 +399,11 @@ serve(async (req) => {
             continue;
           }
         } catch (e: any) {
+          if (isTestObjectUnderLiveKey(e)) {
+            logTestObjectUnderLiveKey("auto-release-payment", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+            results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
+            continue;
+          }
           console.error(`Failed to verify payment for job ${job.id}:`, e);
           results.push({ job_id: job.id, status: "verify_failed", error: (e as Error).message });
           continue;

@@ -33,6 +33,7 @@
 //   - DB has UNIQUE(stripe_transfer_id) on payout_transfers, so DB also
 //     rejects dup writes
 
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -545,7 +546,12 @@ serve(async (req) => {
           await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
         }
       } catch (e) {
-        console.warn(`[release-payout] could not retrieve session for job ${job.id}:`, e);
+        if (isTestObjectUnderLiveKey(e)) {
+          // Treated as absent, as create-payment does: falls to the 409 below.
+          logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+        } else {
+          console.warn(`[release-payout] could not retrieve session for job ${job.id}:`, e);
+        }
       }
     }
     if (!paymentIntentId) {
@@ -556,6 +562,13 @@ serve(async (req) => {
     try {
       pi = await stripe.paymentIntents.retrieve(paymentIntentId);
     } catch (e) {
+      if (isTestObjectUnderLiveKey(e)) {
+        logTestObjectUnderLiveKey("release-payout", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+        return jsonResponse(
+          { error: "this escrow was paid in Stripe test mode, so there is no real money behind it — payout refused. No money was moved." },
+          409,
+        );
+      }
       console.error(`[release-payout] paymentIntents.retrieve failed for ${paymentIntentId} (job ${job.id}):`, e);
       return jsonResponse({ error: "could not verify escrow charge — retry" }, 502);
     }

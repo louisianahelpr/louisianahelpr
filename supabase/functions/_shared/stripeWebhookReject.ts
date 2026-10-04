@@ -38,7 +38,8 @@ export type WebhookRejectReason =
   | "webhook_secret_not_configured"
   | "supabase_not_configured"
   | "missing_signature_header"
-  | "signature_verification_failed";
+  | "signature_verification_failed"
+  | "livemode_mismatch";
 
 const WEBHOOK_REJECT_STATUS: Readonly<Record<WebhookRejectReason, number>> = {
   stripe_key_not_configured: 500,
@@ -46,6 +47,7 @@ const WEBHOOK_REJECT_STATUS: Readonly<Record<WebhookRejectReason, number>> = {
   supabase_not_configured: 500,
   missing_signature_header: 400,
   signature_verification_failed: 400,
+  livemode_mismatch: 400,
 };
 
 /** The response for a delivery we did not verify. Never 2xx. */

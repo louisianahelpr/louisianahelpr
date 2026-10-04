@@ -50,6 +50,7 @@
 //     anywhere could recover it. Leg 3 below is that guard replaced with an
 //     answer.)
 
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -407,7 +408,12 @@ serve(async (req) => {
         }
       }
     } catch (e) {
-      console.warn(`[execute-dispute-split] could not retrieve session for job ${job.id}:`, e);
+      if (isTestObjectUnderLiveKey(e)) {
+        // Treated as absent, as create-payment does: falls to the 409 below.
+        logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "checkout.session", id: job.stripe_session_id });
+      } else {
+        console.warn(`[execute-dispute-split] could not retrieve session for job ${job.id}:`, e);
+      }
     }
   }
   if (!paymentIntentId && giftAppliedCents === 0) {
@@ -428,6 +434,13 @@ serve(async (req) => {
         expand: ["latest_charge.balance_transaction"],
       });
     } catch (e) {
+      if (isTestObjectUnderLiveKey(e)) {
+        logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "payment_intent", id: paymentIntentId });
+        return await refuse(
+          { error: "this escrow was paid in Stripe test mode, so there is no real money behind it — split refused. No money was moved." },
+          409,
+        );
+      }
       console.error(`[execute-dispute-split] paymentIntents.retrieve failed for ${paymentIntentId}:`, e);
       return await refuse({ error: "could not verify the escrow charge — retry" }, 502);
     }
@@ -719,11 +732,17 @@ serve(async (req) => {
         const stamped = await stripe.transfers.retrieve(dispute.execution_transfer_id);
         if (stamped?.id) recovered = stamped.id;
       } catch (e) {
-        console.error(
-          `[execute-dispute-split] could not verify stamped transfer ${dispute.execution_transfer_id}:`,
-          e,
-        );
-        return await refuse({ error: "could not verify prior transfers — retry" }, 502);
+        if (isTestObjectUnderLiveKey(e)) {
+          // A test-mode transfer moved no real money: not a prior payout, so
+          // `recovered` stays null, exactly as for a stamp Stripe cannot find.
+          logTestObjectUnderLiveKey("execute-dispute-split", { job_id: job.id, dispute_id: disputeId, object: "transfer", id: dispute.execution_transfer_id });
+        } else {
+          console.error(
+            `[execute-dispute-split] could not verify stamped transfer ${dispute.execution_transfer_id}:`,
+            e,
+          );
+          return await refuse({ error: "could not verify prior transfers — retry" }, 502);
+        }
       }
     }
     if (recovered) {

@@ -3918,6 +3918,29 @@ describe("create-payment: the admin refunds give the gift card back (Q454)", () 
   // Q1208 (1): a job no gift ever funded pages nothing about a gift, even
   // when a reversed payout row sits on it.
   // @mutate supabase/functions/create-payment/index.ts | if (!held \|\| replaced) return { restoredCents: 0, spendableCents: 0, failed: false, posterSentence: "" }; | if (false) return { restoredCents: 0, spendableCents: 0, failed: false, posterSentence: "" };
+  // Review of Q1208 (should-fix): no gift is no reason to stay quiet about a
+  // PAID (or pending) payout that landed during the full refund: the Q1211
+  // double-outflow race still pages. Only a reversed row is quiet.
+  // @mutate supabase/functions/create-payment/index.ts | if (payoutErr \|\| live) { | if (payoutErr) {
+  it("Q1208 review: a card-only job whose payout landed during the full refund still pages, without gift wording", async () => {
+    scenario.reads.gift_cards = { rows: [] };
+    scenario.reads.jobs = { rows: [{ ...disputedMixedJob, status: "completed", payment_status: "payout_pending" }] };
+    scenario.reads.payout_transfers = {
+      rows: [],
+      selectOverrides: [{ includes: "stripe_transfer_id", result: { rows: [{ id: "pt-1", stripe_transfer_id: "tr_batch", status: "paid" }] } }],
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_short", status: "succeeded" });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_full", amount: 4000 });
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
+    expect(res.status).toBe(200);
+    const page = slackAlerts.find((a) => (a as { title?: string }).title === "Admin refund refunded a job whose payout already moved") as
+      | { severity?: string; message?: string } | undefined;
+    expect(page?.severity).toBe("critical");
+    expect(page?.message).toMatch(/tr_batch/);
+    expect(page?.message).not.toMatch(/gift/);
+  });
+
   it("Q1208 (1): a card-only job's full general refund after a reversed payout pages nothing about a gift", async () => {
     scenario.reads.gift_cards = { rows: [] };
     scenario.reads.jobs = { rows: [{ ...disputedMixedJob, status: "completed", payment_status: "payout_pending" }] };

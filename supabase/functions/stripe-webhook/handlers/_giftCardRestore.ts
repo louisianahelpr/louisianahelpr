@@ -84,16 +84,24 @@ export async function restoreGiftForRefundedJob(supabase: Db, jobId: string): Pr
 export async function payoutOnJob(
   supabase: Db,
   jobId: string,
-): Promise<{ transferId?: string; readError?: string }> {
+): Promise<{ transferId?: string; liveTransferId?: string; readError?: string }> {
   const { data, error } = await supabase
     .from("payout_transfers")
     .select("id, stripe_transfer_id, status")
     .eq("job_id", jobId)
     .in("status", ["pending", "paid", "reversed"])
-    .limit(1);
+    .limit(50);
   if (error) return { readError: (error as { message?: string }).message ?? "payout_transfers read failed" };
-  const row = ((data ?? []) as Array<{ id: string; stripe_transfer_id: string | null }>)[0];
-  return row ? { transferId: row.stripe_transfer_id ?? row.id } : {};
+  const rows = (data ?? []) as Array<{ id: string; stripe_transfer_id: string | null; status: string }>;
+  // Review of Q1208: a pending/paid row (money out, or about to be) is the
+  // payout-during-refund signal on ANY job; a reversed one matters only to a
+  // gift (its money came back).
+  const live = rows.find((r) => r.status === "pending" || r.status === "paid");
+  const row = rows[0];
+  return {
+    ...(row ? { transferId: row.stripe_transfer_id ?? row.id } : {}),
+    ...(live ? { liveTransferId: live.stripe_transfer_id ?? live.id } : {}),
+  };
 }
 
 /**

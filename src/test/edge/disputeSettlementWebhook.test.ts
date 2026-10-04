@@ -809,6 +809,23 @@ describe("Q454: a full refund gives the job's gift card back", () => {
     expect(refundNote()).toBeDefined();
   });
 
+  // Review of Q1208 (should-fix): a card-only job whose payout is pending or
+  // paid during a full refund is the Q1211 double outflow: it still pages.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (livePayout.liveTransferId) { | if (false) {
+  it("Q1208 review: a card-only job whose payout is PAID during the full refund still pages", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q1208_paid_nogift");
+    scenario.reads.jobs = { rows: [{ ...job, payment_status: "payout_pending" }] };
+    scenario.reads.gift_cards = { rows: [] };
+    scenario.reads.payout_transfers = { rows: [{ id: "pt-1", stripe_transfer_id: "tr_paid", status: "paid" }] };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    const page = alerts().find((a) => a.title === "Full refund on a job whose payout already moved");
+    expect(page?.severity).toBe("critical");
+    expect(page?.message).toMatch(/tr_paid/);
+    expect(restoreCalls()).toHaveLength(0);
+  });
+
   // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | throw new Error(`Gift read failed before the gift restore | void new Error(`Gift read failed before the gift restore
   it("Q1208 (1): an unreadable gift ledger throws (Stripe redelivers), never reads as 'no gift'", async () => {
     const fn = await loadConfigured();

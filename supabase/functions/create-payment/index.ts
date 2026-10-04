@@ -4198,19 +4198,41 @@ async function returnGiftAfterRefund(
     .eq("restored_from_job_id", job.id)
     .limit(1);
   const stakeErr = stakeGiftErr ?? stakeReplacedErr;
-  if (!stakeErr) {
-    const held = ((stakeGifts ?? []) as unknown[]).length > 0;
-    const replaced = ((stakeReplaced ?? []) as Array<{ restored_from_job_id?: string | null }>)
-      .some((r) => r.restored_from_job_id === job.id);
-    if (!held || replaced) return { restoredCents: 0, spendableCents: 0, failed: false, posterSentence: "" };
-  }
   const { data: payoutRows, error: payoutErr } = await supabaseAdmin
     .from("payout_transfers")
     .select("id, stripe_transfer_id, status")
     .eq("job_id", job.id)
     .in("status", ["pending", "paid", "reversed"])
-    .limit(1);
-  const payout = ((payoutRows ?? []) as Array<{ id: string; stripe_transfer_id: string | null; status: string }>)[0];
+    .limit(50);
+  const payoutList = (payoutRows ?? []) as Array<{ id: string; stripe_transfer_id: string | null; status: string }>;
+  const payout = payoutList[0];
+  if (!stakeErr) {
+    const held = ((stakeGifts ?? []) as unknown[]).length > 0;
+    const replaced = ((stakeReplaced ?? []) as Array<{ restored_from_job_id?: string | null }>)
+      .some((r) => r.restored_from_job_id === job.id);
+    if (!held || replaced) {
+      // Review of Q1208: no gift is owed, but a payout that is out (or about
+      // to be) while the card was refunded in full is still the Q1211
+      // double-outflow race, and still pages. Quiet only for a reversed row
+      // (its money came back); an unreadable payout ledger pages too.
+      const live = payoutList.find((r) => r.status === "pending" || r.status === "paid");
+      if (payoutErr || live) {
+        const why = payoutErr
+          ? `the payout ledger could not be read (${payoutErr.message})`
+          : `payout transfer ${live!.stripe_transfer_id ?? live!.id} (${live!.status}) moved money out of this escrow toward a Helpr`;
+        console.error(`CRITICAL: [create-payment] ${path} refunded job ${job.id} in full: ${why}`);
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "critical",
+          title: `${path} refunded a job whose payout already moved`,
+          message: `${path} refunded job ${job.id} in full and closed it as cancelled/refunded, but ${why}: the escrow may have gone out twice. Reconcile the payout against the refund by hand.`,
+          fields: { job_id: job.id, reason: why.slice(0, 200) },
+          seed: job.is_seed === true,
+        });
+      }
+      return { restoredCents: 0, spendableCents: 0, failed: false, posterSentence: "" };
+    }
+  }
   if (stakeErr || payoutErr || payout) {
     const why = stakeErr
       ? `the gift ledger could not be read (${stakeErr.message})`

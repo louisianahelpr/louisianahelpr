@@ -9,14 +9,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
-import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
+import { prefetchRoute, prefetchRoutesWhenIdle, whenPageSettled } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
 import { UserAvatar } from "@/components/UserAvatar";
 import { GateSheet } from "@/components/mobileNav/GateSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useLongPress } from "@/hooks/useLongPress";
-import { NavQuickMenu, NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenu";
+import { NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenuItem";
+import { useDockMotion, startDockMotion } from "@/components/mobileNav/useDockMotion";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { POSTED_STATUS_FILTERS } from "@/components/job-card/activityFilters";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
@@ -28,7 +29,7 @@ import {
   noNavPages,
   tabStacks,
 } from "@/components/mobileNav/mobileNavHelpers";
-import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
+import { DockPill } from "@/components/mobileNav/DockPill";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
@@ -172,6 +173,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // decide whether to render its NavQuickMenu.
   const [quickMenuTab, setQuickMenuTab] = useState<"posts" | "messages" | null>(null);
   const closeQuickMenu = () => setQuickMenuTab(null);
+  // framer-motion for the pill's slide and the quick menu arrives after the
+  // dock has painted (useDockMotion.ts, Q1172): once the page has settled, or
+  // at once when a long press needs the menu.
+  const dockMotion = useDockMotion();
+  // Not while the dock is hidden (guests, marketing pages): a visitor who never
+  // sees the dock never downloads framer for it.
+  useEffect(() => {
+    if (dockHidden) return;
+    return whenPageSettled(startDockMotion);
+  }, [dockHidden]);
+  useEffect(() => {
+    if (quickMenuTab) startDockMotion();
+  }, [quickMenuTab]);
   // A completed long-press still ends in a `touchend`, which browsers follow
   // with a synthetic `click` a beat later — without this guard that trailing
   // click would ALSO fire the tab's normal `onTap` and navigate away right
@@ -493,7 +507,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             recognizable brand green. Was also a bark-green glass lens with a
             layered drop shadow that rivalled the FAB — that broke hierarchy.) */}
         {isActive && (
-          <SharedLayoutPill
+          <DockPill
             layoutId="mobile-nav-pill"
             // ROUND, deliberately — reversing the squircle note that used to
             // live here. That note argued `rounded-full` on a near-square box
@@ -522,7 +536,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               boxShadow: "inset 0 1px 1px 0 hsl(0 0% 100% / 0.45)",
             }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
-            aria-hidden
           />
         )}
         <div className="relative z-10">
@@ -581,7 +594,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             below the active label. Only renders for active so the
             non-active tabs stay clean. */}
         {isActive && (
-          <SharedLayoutPill
+          <DockPill
             layoutId="mobile-nav-underline"
             className="absolute bottom-0.5 w-6 h-[3px] rounded-full pointer-events-none"
             style={{
@@ -589,12 +602,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.45)",
             }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
-            aria-hidden
           />
         )}
       </TabButton>
-      {path === "/posts" && (
-        <NavQuickMenu open={quickMenuTab === "posts"} onClose={closeQuickMenu} title="Quick filter">
+      {path === "/posts" && dockMotion && (
+        <dockMotion.NavQuickMenu open={quickMenuTab === "posts"} onClose={closeQuickMenu} title="Quick filter">
           {POSTED_STATUS_FILTERS.map((f) => (
             <NavQuickMenuItem
               key={f.key}
@@ -606,10 +618,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               }}
             />
           ))}
-        </NavQuickMenu>
+        </dockMotion.NavQuickMenu>
       )}
-      {path === "/messages" && (
-        <NavQuickMenu open={quickMenuTab === "messages"} onClose={closeQuickMenu} title="Recent chats">
+      {path === "/messages" && dockMotion && (
+        <dockMotion.NavQuickMenu open={quickMenuTab === "messages"} onClose={closeQuickMenu} title="Recent chats">
           {recentConversationsLoading && recentConversations.length === 0 ? (
             <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(48 9% 47%)" }}>
               Loading…
@@ -638,7 +650,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               />
             ))
           )}
-        </NavQuickMenu>
+        </dockMotion.NavQuickMenu>
       )}
       </>
     );

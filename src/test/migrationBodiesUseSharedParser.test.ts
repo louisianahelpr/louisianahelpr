@@ -31,7 +31,6 @@ const FIXED_TAG_BODY = /\\{1,2}\$(?:\w*|\(function\)\?)\\{1,2}\$\s*\(\[\\{1,2}s\
 // @two-way src/test/migrationBodiesUseSharedParser.test.ts:stale legacy fixed-tag entry
 const LEGACY_FIXED_TAG: Record<string, string> = {
   "src/test/advancedAnalyticsTierParity.test.ts": "reads the newest *_helper_advanced_analytics.sql; fails closed on another tag",
-  "src/test/disputeClosedWithoutPaymentIsWatched.test.ts": "reads the sweep's newest definition; fails closed ('must be delimited by $fn$')",
   "src/test/jobsGuardRpcParity.test.ts": "rpc_withdraw_dispute body; fails closed ('could not delimit')",
 };
 

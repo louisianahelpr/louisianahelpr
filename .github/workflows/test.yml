@@ -309,8 +309,10 @@ jobs:
         # Functions and are NOT needed at build time.
         run: npm run build
 
-      - name: Vitest
-        run: npm test
+      # The unit suite is NOT run here (2026-10-04): vitest.yml's required
+      # `Vitest unit tests` check runs it, sharded four ways. Running it here
+      # too made this job the slowest required check (~12-16 min) for a
+      # duplicate result.
 
       - name: Dead code (knip)
         # Fails on unused files / unused + unlisted dependencies. Unused *exports*

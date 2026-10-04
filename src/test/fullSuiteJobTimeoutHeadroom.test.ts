@@ -24,7 +24,9 @@ type Job = { steps?: Step[]; "timeout-minutes"?: number };
 function runsFullSuite(run: string): boolean {
   for (const line of run.split("\n").map((l) => l.trim())) {
     if (/^npm (run )?test\s*$/.test(line)) return true;
-    const m = line.match(/^(?:npx )?vitest run((?:\s+-{1,2}[\w][\w-]*(?:=\S+)?)*)\s*$/);
+    // A `--shard=${{ matrix.shard }}/4` slice counts: each shard is a hosted job
+    // of the same suite and needs the same headroom (vitest.yml, 2026-10-04).
+    const m = line.replace(/\$\{\{[^}]*\}\}/g, "N").match(/^(?:npx )?vitest run((?:\s+-{1,2}[\w][\w-]*(?:=\S+)?)*)\s*$/);
     if (m) return true;
   }
   return false;
@@ -46,9 +48,11 @@ function fullSuiteJobs() {
 describe("full-suite vitest jobs have timeout headroom", () => {
   const jobs = fullSuiteJobs();
 
-  it("finds the full-suite jobs (floor: test.yml and vitest.yml on 2026-09-24)", () => {
+  // 2026-10-04: test.yml no longer runs the suite (vitest.yml runs it, sharded):
+  // vitest.yml#vitest-shard and vitest.yml#coverage.
+  it("finds the full-suite jobs (floor: vitest.yml's shards and coverage, 2026-10-04)", () => {
     expect(jobs.length).toBeGreaterThanOrEqual(2);
-    expect(jobs.map((j) => j.job.split("#")[0]).sort()).toEqual(expect.arrayContaining(["test.yml", "vitest.yml"]));
+    expect(jobs.map((j) => j.job)).toEqual(expect.arrayContaining(["vitest.yml#vitest-shard", "vitest.yml#coverage"]));
   });
 
   it(`every one allows at least ${MIN_MINUTES} minutes (the default 360 counts as enough)`, () => {

@@ -1276,7 +1276,7 @@
     },
     {
       "file": "src/components/admin/AdminBanReview.tsx",
-      "line": 214,
+      "line": 211,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -1296,7 +1296,7 @@
     },
     {
       "file": "src/components/admin/AdminBanReview.tsx",
-      "line": 220,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1526,7 +1526,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 193,
+      "line": 191,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -1536,7 +1536,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 194,
+      "line": 192,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1546,7 +1546,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 195,
+      "line": 193,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1556,7 +1556,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 215,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1566,7 +1566,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 219,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2012,7 +2012,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 273,
+      "line": 271,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2022,7 +2022,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 276,
+      "line": 274,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2032,7 +2032,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 291,
+      "line": 289,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2042,7 +2042,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 314,
+      "line": 312,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2052,7 +2052,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 317,
+      "line": 315,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2062,7 +2062,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 338,
+      "line": 336,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2072,7 +2072,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 394,
+      "line": 392,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3456,7 +3456,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 196,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -3466,7 +3466,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 200,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -3476,7 +3476,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 309,
+      "line": 308,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3486,7 +3486,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 330,
+      "line": 329,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3496,7 +3496,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 337,
+      "line": 336,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3506,7 +3506,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 374,
+      "line": 373,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3516,7 +3516,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 435,
+      "line": 434,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3526,7 +3526,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 446,
+      "line": 445,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -3729,7 +3729,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 266,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3739,7 +3739,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 391,
+      "line": 393,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3749,7 +3749,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 397,
+      "line": 399,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4030,7 +4030,7 @@
     },
     {
       "file": "src/components/series/SeriesDatesPanel.tsx",
-      "line": 114,
+      "line": 115,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4040,7 +4040,7 @@
     },
     {
       "file": "src/components/series/SeriesDatesPanel.tsx",
-      "line": 118,
+      "line": 119,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6036,7 +6036,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 128,
+      "line": 130,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6046,7 +6046,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 133,
+      "line": 135,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6056,7 +6056,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 159,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6066,7 +6066,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 171,
+      "line": 173,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6086,7 +6086,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 178,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6096,7 +6096,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 200,
+      "line": 202,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6106,7 +6106,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 206,
+      "line": 208,
       "kind": "toast.error",
       "title": {
         "form": "literal",

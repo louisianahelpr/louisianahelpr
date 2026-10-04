@@ -33,9 +33,14 @@ const KEYS = Object.keys(PLAN_LIMITS);
 const LIMITS = PLAN_LIMITS as Record<string, { value: number | null; unit: string; source: string }>;
 
 describe("plan limits: one definition, every consumer reads it (Q221)", () => {
-  it("the plans are the ones measured 2026-09-23: Supabase PRO, Vercel HOBBY", () => {
+  it("the plans: Supabase PRO (2026-09-23), Vercel PRO (2026-10-03, Q1152)", () => {
     expect(PLANS.supabase).toBe("Pro");
-    expect(PLANS.vercel).toBe("Hobby");
+    expect(PLANS.vercel).toBe("Pro");
+    // Pro's numbers, re-read 2026-10-04 (vercel.com/docs/limits, /plans/pro-plan),
+    // not Hobby's 100 deploys/day and 100 GB transfer.
+    expect(PLAN_LIMITS.vercel_deploys_per_day.value).toBe(6000);
+    expect(PLAN_LIMITS.vercel_fast_data_transfer_gb_month.value).toBe(1000);
+    for (const k of KEYS.filter((x) => x.startsWith("vercel_"))) expect(LIMITS[k].source, k).not.toMatch(/^Vercel Hobby/);
     expect(KEYS.length).toBeGreaterThan(10);
     for (const k of KEYS) expect(LIMITS[k].source.length, k).toBeGreaterThan(30);
   });

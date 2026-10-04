@@ -10,7 +10,7 @@
  *      email_send_log 'sent' rows (month to date, last 24h).
  *   2. Management API logs query: function_edge_logs rows in the last 24h.
  *   3. Vercel REST: deployments created in the last 24h, every project and
- *      target of the team (the Hobby cap is per account), with VERCEL_TOKEN.
+ *      target of the team (the daily cap is per account; Pro's is 6000), with VERCEL_TOKEN.
  *      Not GitHub's deployments list: that read shared the repo's GITHUB_TOKEN
  *      installation rate limit and went UNREADABLE on a 403 whenever other
  *      workflows spent it (ledger f9b0a8a7, 2026-09-28), and it never saw a

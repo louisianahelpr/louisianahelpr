@@ -4,8 +4,8 @@ name: Quota and analytics monitors
 #
 # quota     scripts/check-quota-usage.mjs: Supabase database size, connections
 #           (against the LIVE max_connections), file storage and edge-function
-#           invocations; Vercel deployments in 24h against the free (Hobby)
-#           plan's daily cap; Resend sends (month + day) from email_send_log;
+#           invocations; Vercel deployments in 24h against the Pro plan's
+#           daily cap (6000; Hobby's 100 until 2026-10-03, Q1152); Resend sends (month + day) from email_send_log;
 #           Sentry accepted errors over 30 days. Every limit, its source and
 #           its override live in scripts/lib/quotaMonitor.mjs. >= 80% of a
 #           limit -> ops alert ledger warning (>= 100% -> error). A quota that

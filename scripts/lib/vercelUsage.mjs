@@ -12,16 +12,15 @@
  * ConsumedQuantity per ServiceName and compares five metrics against the
  * included amounts of the plan the team is ACTUALLY on.
  *
- * THE PLAN IS HOBBY (FREE), measured 2026-09-23 (docs/OPEN.md Q221). This file
- * used to grade against the Pro plan's included amounts (Flat Rate CDN 1M
- * requests / 1 TB transfer, read 2026-09-14/15), which is ten times the Hobby
- * transfer allowance: a Hobby team could be at 100% and read 10%. The limits
+ * THE PLAN IS PRO since 2026-10-03 (owner; docs/OPEN.md Q1152). It was HOBBY
+ * when measured 2026-09-23 (Q221), and grading a Hobby team against Pro's
+ * allowances once under-read transfer tenfold, so the plan and its numbers live
+ * in ONE place and are re-read from the vendor when the plan changes. The limits
  * now come from the ONE definition, PLAN_LIMITS in scripts/lib/quotaMonitor.mjs,
  * shared with quota-monitor.yml and scripts/supabase-usage-check.mjs; each
- * `source` there says where the number came from and that it was not re-read
- * on 2026-09-23 (vendor pages are egress-blocked from the cloud session).
+ * `source` there says where the number came from and when it was read.
  *
- * WINDOW. Hobby allowances are MONTHLY; this check reads a trailing window
+ * WINDOW. The allowances are MONTHLY; this check reads a trailing window
  * (7 days, scripts/check-vercel-usage.mjs). The window's consumption is
  * projected to 30 days before grading (`windowDays`), the same projection
  * quota-monitor.yml makes for edge invocations. Grading 7 days of use against
@@ -55,9 +54,12 @@ export const SKIP_MESSAGE =
 
 /**
  * docs/OPEN.md Q720 (2026-09-26, measured): GET /v1/billing/charges answers
- * HTTP 404 `{"code":"not_found","message":"Plan not found."}` for this Hobby
- * team, on every run (35425157146, 36222936567) — Hobby has no billing cycle,
- * so it has no FOCUS billing export. Checked 2026-09-27: the Vercel REST API
+ * HTTP 404 `{"code":"not_found","message":"Plan not found."}` for this
+ * team, on every run (35425157146, 36222936567), while it was on Hobby (no
+ * billing cycle, so no FOCUS billing export). STILL 404 on Pro: measured
+ * 2026-10-04 through the Vercel MCP list_billing_charges for team
+ * team_UQHppAVoPIPQbyh2b43y21BG, 2026-10-01..10-04 -> 404 "Plan not found."
+ * (Q1152). Why on Pro is not known; the outcome below stays `unmeasured`. Checked 2026-09-27: the Vercel REST API
  * reference (https://vercel.com/docs/rest-api) publishes no usage/metering
  * endpoint at all — `billing/charges` and `billing/contract-commitments` are
  * the only usage-shaped reads, both billing-cycle-only. There is no
@@ -305,8 +307,8 @@ export async function runVercelUsageCheck({
         status: res.status,
         message:
           `Vercel billing/charges returned HTTP 404 "Plan not found." for team ${teamId} — ` +
-          `Hobby teams have no billing-cycle usage export (docs/OPEN.md Q720; checked against ` +
-          "https://vercel.com/docs/rest-api 2026-09-27: no Hobby-readable usage endpoint exists). " +
+          `the team has no readable billing-cycle usage export (Q720 on Hobby; still 404 on Pro, ` +
+          "measured 2026-10-04, Q1152; https://vercel.com/docs/rest-api lists no other usage endpoint). " +
           "UNMEASURED, not under quota.",
       };
     }

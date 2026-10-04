@@ -8701,7 +8701,20 @@
    "checks": [
     "CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text, 'resolved'::text])))"
    ],
-   "columnGrants": {},
+   "columnGrants": {
+    "authenticated": {
+     "INSERT": [
+      "description",
+      "job_id",
+      "photos",
+      "requested_by",
+      "status"
+     ],
+     "UPDATE": [
+      "status"
+     ]
+    }
+   },
    "columns": {
     "created_at": {
      "enum": null,
@@ -8768,19 +8781,9 @@
     }
    },
    "grants": {
-    "anon": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ],
     "authenticated": [
-     "DELETE",
-     "INSERT",
      "REFERENCES",
-     "SELECT",
-     "UPDATE"
+     "SELECT"
     ]
    },
    "kind": "table",
@@ -8798,6 +8801,7 @@
    "triggers": [
     "before:delete",
     "before:insert",
+    "before:insert|update",
     "before:insert|update|delete",
     "before:update"
    ]

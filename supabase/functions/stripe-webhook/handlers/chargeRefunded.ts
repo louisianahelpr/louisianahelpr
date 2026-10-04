@@ -210,6 +210,25 @@ export async function handleChargeRefunded(
         if (stake.readError) {
           throw new Error(`Gift read failed before the gift restore on refunded job ${refundedJob.id}: ${stake.readError}`);
         }
+        // Review of Q1208: no gift at stake is no reason to stay quiet about a
+        // payout that is out (or about to be) while the card was refunded in
+        // full: the Q1211 double-outflow race. Quiet only for a reversed row.
+        if (!stake.atStake && (decided === "no_unsettled_dispute" || decided === "closed")) {
+          const livePayout = await payoutOnJob(supabase, String(refundedJob.id));
+          if (livePayout.readError) {
+            throw new Error(`Payout read failed after the full refund of job ${refundedJob.id}: ${livePayout.readError}`);
+          }
+          if (livePayout.liveTransferId) {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Full refund on a job whose payout already moved",
+              message: `Charge ${charge.id} refunded job ${refundedJob.id} in full, but payout transfer ${livePayout.liveTransferId} (pending or paid) moved or is moving money out of this escrow toward a Helpr: the escrow went out twice. Reconcile the payout against the refund by hand.`,
+              fields: { "Job ID": String(refundedJob.id), "Payment Intent": refundPiId, "Transfer": livePayout.liveTransferId },
+              oncePerDayKey: `refund-payout-exists:${refundedJob.id}`,
+            });
+          }
+        }
         if (stake.atStake) {
           const payout = await payoutOnJob(supabase, String(refundedJob.id));
           if (payout.readError) {

@@ -21,6 +21,8 @@
  *
  * @mutate src/pages/auth/AccountBanned.tsx | : "This suspension — it applies again if you sign up with this email before it ends", | : "Your data will be removed.",
  * @mutate src/hooks/useDeleteAccount.ts | if (error) throw error; | if (error) void error;
+ * @mutate src/pages/auth/AccountBanned.tsx |     <AuthShell hideBack hideHeader hideFooter centerColumn maxWidth="md">\n      <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center"> |     <AuthShell hideBack centerColumn eyebrow="Account status" maxWidth="md">\n      <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
+ * @mutate src/pages/auth/AccountBanned.tsx |     <AuthShell hideBack hideHeader hideFooter centerColumn maxWidth="md">\n      <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center"> |     <AuthShell hideBack hideHeader centerColumn maxWidth="md">\n      <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
  */
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -88,6 +90,25 @@ const renderScreen = () =>
       </MemoryRouter>
     </QueryClientProvider>,
   );
+
+describe("/account-banned — what sits around the card (owner, 2026-10-03)", () => {
+  it("shows no Helpr · LA wordmark or 'Account status' header above it", async () => {
+    renderScreen();
+    await screen.findByRole("button", { name: /delete account/i });
+    expect(screen.queryByText(/^account status$/i)).not.toBeInTheDocument();
+    // AuthShell's display-face wordmark; the navbar's small sans logo stays.
+    const wordmark = screen.queryAllByText(/^helpr$/i).filter((e) => e.className.includes("font-display"));
+    expect(wordmark).toEqual([]);
+    // nor the marketing footer under it (owner, 2026-10-03)
+    expect(screen.queryByText(/hire a helpr or find local work/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("keeps Sign Out: a banned account stays signed in (Q281), and on a shared computer it is the only way to end the session", async () => {
+    renderScreen();
+    expect(await screen.findByRole("button", { name: /sign out/i })).toBeInTheDocument();
+  });
+});
 
 describe("/account-banned — in-app account deletion", () => {
   it("offers deletion, and it is not the promoted action", async () => {

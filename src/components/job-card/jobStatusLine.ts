@@ -3,6 +3,7 @@ import {
   appliedActivityBucket,
   jobIsOverdue,
   listingHasExpired,
+  offerHasExpired,
   postedActivityBucket,
   submissionAwaitingPoster,
   workIsBackWithHelper,
@@ -598,6 +599,7 @@ export type HelperWait =
   | "cancelled"
   | "applied"
   | "offer"
+  | "offer_expired"
   | "confirm_booking"
   | "confirmed"
   | "today"
@@ -632,6 +634,9 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   cancelled: { detail: "Cancelled" },
   applied: { detail: "They haven't replied yet" },
   offer: { detail: "Accept or decline it" },
+  /* Its answer window closed (offerClock): filed under Cancelled with the
+     card's own "This offer has expired" (owner, 2026-10-03). */
+  offer_expired: { detail: "The offer expired" },
   confirm_booking: { detail: "Confirm you'll be there" },
   confirmed: { detail: "You're confirmed" },
   today: { detail: "The job is today" },
@@ -715,7 +720,9 @@ export function deriveHelperWait(app: AppliedApp): HelperWait {
       // A pending DIRECT OFFER, or an accepted application the Helpr has not
       // said yes to: the two states where the job is being HELD for them and
       // lapses if they do nothing. `needsHelperResponse` is the bucket's own
-      // rule; this splits its two halves because the words differ.
+      // rule; this splits its two halves because the words differ. Past its
+      // window either one is over, as appliedActivityBucket files it.
+      if (offerHasExpired(app)) return "offer_expired";
       if (job.direct_offer_status === "pending" && job.offered_to_helper_id === app.helper_id) {
         return "offer";
       }

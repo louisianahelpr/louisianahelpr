@@ -19,6 +19,7 @@
 // @mutate src/components/job-card/jobStatusLine.ts | return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed"); | return null;
 // @mutate src/components/job-card/JobStatusStrip.tsx | {line.deadline && ( | {false && line.deadline && (
 // @mutate src/pages/posts/postedJobCard/steps/OpenStep.tsx | posterDeadline("offer_out", job) | null
+// @mutate src/components/job-card/offerClock.ts |   const hardDeadline = job?.response_deadline ?? job?.direct_offer_expires_at ?? null; |   const hardDeadline = job?.response_deadline ?? null;
 // @mutate src/components/job-card/jobStatusLine.ts | overdue_no_show: { detail: | overdue_no_show: { detail: "Day passed — mark it done or cancel", x:
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -198,15 +199,31 @@ const POSTER_TREE = join(SRC, "pages", "posts");
 const HELPER_TREE = join(SRC, "pages", "jobs");
 
 /**
+ * Shared readers of a deadline column: a file calling one reads the column
+ * through it. offerClock() is the offer card's clock, shared with the Activity
+ * buckets (owner, 2026-10-03); the test below proves it still reads both.
+ */
+const VIA_READERS: Partial<Record<DeadlineSource, string[]>> = {
+  response_deadline: ["offerClock("],
+  direct_offer_expires_at: ["offerClock("],
+};
+
+it("offerClock() still reads the two columns it stands in for", () => {
+  const code = blankComments(readFileSync(join(SRC, "components", "job-card", "offerClock.ts"), "utf8"));
+  expect(code).toContain("job?.response_deadline ?? job?.direct_offer_expires_at");
+});
+
+/**
  * A file shows a clock when it renders `<DeadlineCountdown` AND reads the
- * source: by column name, by `AUTO_COMPLETE_HOURS`, or through
- * posterDeadline/helperDeadline for a state the collapsed map says carries it.
+ * source: by column name, by `AUTO_COMPLETE_HOURS`, through a shared reader
+ * (VIA_READERS), or through posterDeadline/helperDeadline for a state the
+ * collapsed map says carries it.
  */
 function expandedShows(tree: string, side: Side, source: DeadlineSource): string[] {
   const viaIds = [...(collapsed[side].get(source) ?? [])].map(
     (id) => `${side === "poster" ? "posterDeadline" : "helperDeadline"}("${id}"`,
   );
-  const needles = [source === "auto_complete" ? "AUTO_COMPLETE_HOURS" : source, ...viaIds];
+  const needles = [source === "auto_complete" ? "AUTO_COMPLETE_HOURS" : source, ...(VIA_READERS[source] ?? []), ...viaIds];
   return walk(tree)
     .filter((p) => !isTest(p))
     .filter((p) => {

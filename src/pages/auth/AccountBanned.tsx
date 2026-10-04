@@ -166,14 +166,16 @@ const AccountBanned = () => {
       // card x 48–496, centre 272 against a viewport centre of 720, with ~940px
       // of dead canvas beside it. Same prop, same reason as /payment-success
       // (4a8690448) and Signup. 375 is unaffected (the column is full-width there).
-      <AuthShell hideBack centerColumn eyebrow="Account status" maxWidth="md">
+      // `hideHeader` / `hideFooter`: no Helpr · LA wordmark above the card and
+      // no marketing footer under it (owner, 2026-10-03).
+      <AuthShell hideBack hideHeader hideFooter centerColumn maxWidth="md">
         <div className="liquid-glass p-7 sm:p-8 min-h-[16rem] animate-pulse" aria-busy="true" />
       </AuthShell>
     );
   }
 
   return (
-    <AuthShell hideBack centerColumn eyebrow="Account status" maxWidth="md">
+    <AuthShell hideBack hideHeader hideFooter centerColumn maxWidth="md">
       <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"

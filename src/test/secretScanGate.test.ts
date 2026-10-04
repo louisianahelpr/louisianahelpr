@@ -104,6 +104,25 @@ describe("Q75 secret-scan gate", () => {
     for (const r of [...ALLOWED_MATCHES, ...ALLOWED_LINES]) expect(toml).toContain(`'''${r}'''`);
   });
 
+  // @mutate .gitleaks.toml | regexes = ['''^\s+[a-z_][a-z0-9_]*: "[0-9a-f]{32}",?$'''] | regexes = ['''^.*$''']
+  it("the md5(prosrc) allowlist passes only a whole fingerprint line, never a key-shaped value (main red 2026-10-04)", () => {
+    const toml = read(".gitleaks.toml");
+    const block = toml.slice(toml.indexOf('description = "md5(prosrc) fingerprint lines"'));
+    expect(block).toMatch(/^description = "md5\(prosrc\) fingerprint lines"\nregexTarget = "line"\n/);
+    const m = block.match(/regexes = \['''(.*)'''\]/);
+    expect(m).not.toBeNull();
+    const re = new RegExp(m![1]);
+    // Built at runtime so this file holds no key-shaped literal for gitleaks to flag.
+    const hex = ["b523afe7", "d9c6c8ff", "755338c6", "2018a926"].join("");
+    const noise = ["Zq8vR2mN", "4xP7tK1w", "Y9bC3dF6", "gH0jL5sA"].join("");
+    expect(re.test(`  enforce_application_credential_tier: "${hex}",`)).toBe(true);
+    for (const line of [
+      `const api_key = "${hex}";`,
+      `  api_key: "${noise}",`,
+      `  token: "${hex}", secret: "x"`,
+    ]) expect(re.test(line), line).toBe(false);
+  });
+
   it("every allowlist entry still matches something in the repo (two-way)", () => {
     const files = execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "utf8" }).split("\0").filter(Boolean);
     const texts: string[] = [];

@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { unwrap } from "@/lib/supabaseResult";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -105,12 +106,9 @@ const AdminReports = () => {
       if (filter === "resolved") query = query.eq("status", "resolved");
       if (filter === "dismissed") query = query.eq("status", "dismissed");
 
-      const { data, error } = await query;
       // Throw into React Query rather than returning a fallback: an empty
       // array here is indistinguishable from "the queue is clear".
-      if (error) throw error;
-
-      const reportRows = (data || []) as Report[];
+      const reportRows = (unwrap(await query) || []) as Report[];
       // `reported_id` IS NOT ALWAYS A USER. For reported_type 'job' it holds a
       // JOB id, and looking that up in `profiles` can only ever miss — which
       // the fallback below then renders as "Deleted user". Measured in prod

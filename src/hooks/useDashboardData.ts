@@ -162,7 +162,7 @@ async function fetchDashboardContext(
     // blocked them) back in the feed. Fail closed: the ctx query errors, and
     // the feed re-reads the block list itself (getBlockedUserIds, which
     // throws) instead of filtering with nothing.
-    if (blocksRes.error) throw blocksRes.error;
+    unwrap(blocksRes);
 
     const feeRow = Array.isArray(feeRes.data) ? (feeRes.data)[0] : null;
     // Fall back to the canonical FREE-tier rate (12%), not a magic 10 — a

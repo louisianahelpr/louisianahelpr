@@ -295,8 +295,8 @@ describe("fetchReferralData — a banned account's refused mint is not an error 
 // The duplicate-code gate: without it a user with a perfectly good code has a
 // second one written over it on every load.
 // @mutate src/hooks/useReferralData.ts | if (!referralCode) { | if (true) {
-// The error half above. Both `unwrap(codeRes)` and the explicit
-// `referralsRes.error` throw are the difference between a surfaced failure and
-// a blank referral page that silently mints a new code.
+// The error half above. Both `unwrap(codeRes)` and `unwrap(referralsRes)` (the
+// count's throw, Q1182) are the difference between a surfaced failure and a
+// blank referral page that silently mints a new code.
 // @mutate src/hooks/useReferralData.ts | const codeRow = unwrap(codeRes); | const codeRow = codeRes.data;
-// @mutate src/hooks/useReferralData.ts | if (referralsRes.error) throw referralsRes.error; | if (false) throw referralsRes.error;
+// @mutate src/hooks/useReferralData.ts |   unwrap(referralsRes); |   void referralsRes;

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { isNotDeployedYet } from "@/lib/seriesDates";
+import { unwrap } from "@/lib/supabaseResult";
 
 /**
  * "One Helpr for every visit" or "Days can be split between Helprs": the
@@ -19,15 +20,13 @@ export function SeriesTermsLine({ jobId, known }: { jobId: string; known?: boole
     enabled: typeof known !== "boolean",
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data: row, error } = await supabase
+      const result = await supabase
         .from("open_jobs_browse")
         .select("series_split_ok")
         .eq("id", jobId)
         .maybeSingle();
-      if (error) {
-        if (isNotDeployedYet(error)) return null;
-        throw error;
-      }
+      if (result.error && isNotDeployedYet(result.error)) return null;
+      const row = unwrap(result);
       return (row as { series_split_ok?: boolean | null } | null)?.series_split_ok ?? null;
     },
   });

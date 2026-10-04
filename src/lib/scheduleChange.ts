@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isNotDeployedYet } from "@/lib/seriesDates";
 
@@ -26,17 +27,14 @@ export interface ScheduleChangeRequest {
  * not returned. Not deployed yet (42P01 / PGRST205) is null.
  */
 export async function fetchPendingScheduleChange(jobId: string, now: Date = new Date()): Promise<ScheduleChangeRequest | null> {
-  const { data, error } = await supabase
+  const result = await supabase
     .from("job_schedule_change_requests")
     .select("id, job_id, requested_by, responder_id, old_date, old_start_time, new_date, new_start_time, status, expires_at")
     .eq("job_id", jobId)
     .eq("status", "pending")
     .maybeSingle();
-  if (error) {
-    if (isNotDeployedYet(error)) return null;
-    throw error;
-  }
-  const row = data as ScheduleChangeRequest | null;
+  if (isNotDeployedYet(result.error)) return null;
+  const row = unwrap(result) as ScheduleChangeRequest | null;
   if (!row || Date.parse(row.expires_at) <= now.getTime()) return null;
   return row;
 }

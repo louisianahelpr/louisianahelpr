@@ -4,6 +4,7 @@ import { ChevronDown, Heart, UserCheck } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import UserAvatar from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
@@ -53,11 +54,7 @@ export function useSavedHelpersLite() {
   const { user } = useCurrentUser();
   return useQuery({
     queryKey: queryKeys.savedHelpers.byUser(user?.id),
-    queryFn: async () => {
-      const { data, error: rpcError } = await supabase.rpc("get_my_saved_helpers");
-      if (rpcError) throw rpcError;
-      return (data ?? []) as SavedHelperLite[];
-    },
+    queryFn: async () => (unwrap(await supabase.rpc("get_my_saved_helpers")) ?? []) as SavedHelperLite[],
     // Fetched on MOUNT, not on open. Deferring it until the card was opened
     // meant the self-hiding below could only fire AFTER a tap, so a poster
     // with no saved helprs saw the card, tapped it, and watched it vanish

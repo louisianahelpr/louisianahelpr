@@ -17,6 +17,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import { checkDrift } from "@/lib/checkDrift";
 
@@ -43,12 +44,13 @@ const PROFILE_FIELDS =
  * since it caches via React Query.
  */
 export async function fetchProfile(userId: string): Promise<SharedProfile | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select(PROFILE_FIELDS)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw error;
+  const data = unwrap(
+    await supabase
+      .from("profiles")
+      .select(PROFILE_FIELDS)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  );
   // Runtime Zod check at this Supabase boundary — see validateResult.ts.
   // A schema mismatch logs to Sentry but does NOT crash the screen. Cast
   // back to the SharedProfile interface so the hook's public contract is

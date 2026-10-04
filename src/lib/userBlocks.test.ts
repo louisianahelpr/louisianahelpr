@@ -250,4 +250,4 @@ describe("unblockUser", () => {
 // back into an empty set is the original bug — a failed read reads as "nobody
 // is blocked", so every harassment block silently lifts and the blocked person
 // reappears in the inbox, the nav badge, the applicant list and the rail.
-// @mutate src/lib/userBlocks.ts | throw error; | return new Set();
+// @mutate src/lib/userBlocks.ts |   const data = unwrap(result); |   if (result.error) return new Set();\n  const data = result.data;

@@ -137,7 +137,8 @@ describe("fetchPostedActivity — My Posts core", () => {
 
   it("throws when the jobs read fails, so the screen shows an error not an empty list", async () => {
     setResponse(POSTED_JOBS_KEY, { data: null, error: { message: "boom" } });
-    await expect(fetchPostedActivity("u1")).rejects.toEqual({ message: "boom" });
+    // Thrown through unwrap() (Q1182): an Error carrying the read's message.
+    await expect(fetchPostedActivity("u1")).rejects.toThrow("boom");
   });
 
   it("degrades rather than throwing when only an enrichment read fails", async () => {
@@ -325,7 +326,7 @@ describe("fetchAppliedActivity — My Jobs core", () => {
   it("throws when the jobs-behind-the-applications read fails", async () => {
     setResponse(APPS_KEY, { data: [{ id: "a1", job_id: "j1", helper_id: "u1" }], error: null });
     setResponse(APPLIED_JOBS_KEY, { data: null, error: { message: "boom" } });
-    await expect(fetchAppliedActivity("u1")).rejects.toEqual({ message: "boom" });
+    await expect(fetchAppliedActivity("u1")).rejects.toThrow("boom");
   });
 
   it("synthesizes pending applications from direct offers", async () => {

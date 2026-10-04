@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { todayYmd } from "@/lib/jobDate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -90,10 +91,8 @@ export async function fetchSeriesDates(args: {
     supabase.from("jobs").select("date_needed, status, helper_id").eq("parent_job_id", args.jobId),
   ]);
   for (const r of [holds, releases, offers]) {
-    if (r.error) {
-      if (isNotDeployedYet(r.error)) return null;
-      throw r.error;
-    }
+    if (isNotDeployedYet(r.error)) return null;
+    unwrap(r);
   }
   // Visits the viewer cannot read are simply not listed (RLS); a failure here
   // only loses the "booked" marker on dates nobody holds, so it is not fatal.

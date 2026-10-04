@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -78,7 +79,7 @@ const ExceptionQueueInner = () => {
       // the whole compliance queue to "No open exceptions". Fetch flat and
       // hydrate the poster names in a second query. The credential_id embed is
       // a real FK, so it stays.
-      const { data, error } = await supabase
+      const result = await supabase
         .from("verification_exceptions")
         .select(`
           id, check_id, credential_id, user_id, exception_type,
@@ -88,21 +89,18 @@ const ExceptionQueueInner = () => {
         .eq("status", "open")
         .order("created_at", { ascending: true });
 
-      if (error) {
-        // PGRST202 = function/table not found — migration not yet deployed
-        if (error.code === "PGRST202" || error.message?.includes("does not exist")) {
-          return [];
-        }
-        // THROW, don't `return []`. A toast is transient; the list it leaves
-        // behind reads "No open exceptions — Nothing is waiting on a decision
-        // right now" forever, which is the opposite of the truth on a
-        // COMPLIANCE queue. Throwing flips isError so the surface says so.
-        // (The PGRST202 branch above stays a legitimate empty: the table
-        // genuinely does not exist yet during a deploy-lag window.)
-        throw error;
+      // PGRST202 = function/table not found — migration not yet deployed
+      const { error } = result;
+      if (error && (error.code === "PGRST202" || error.message?.includes("does not exist"))) {
+        return [];
       }
-
-      const baseRows = data ?? [];
+      // THROW (unwrap), don't `return []`. A toast is transient; the list it
+      // leaves behind reads "No open exceptions — Nothing is waiting on a
+      // decision right now" forever, which is the opposite of the truth on a
+      // COMPLIANCE queue. Throwing flips isError so the surface says so.
+      // (The PGRST202 branch above stays a legitimate empty: the table
+      // genuinely does not exist yet during a deploy-lag window.)
+      const baseRows = unwrap(result) ?? [];
 
       // Hydrate poster names/emails via an explicit profiles lookup keyed on
       // user_id, since there's no FK to piggyback an embed on.

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isStorageObjectPath, openableDocumentUrl } from "@/lib/storagePath";
 import { unwrapMutationRow, mutationErrorMessage } from "@/lib/mutationResult";
+import { unwrap } from "@/lib/supabaseResult";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,15 +128,13 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   const { data: fetched } = useQuery({
     queryKey: queryKeys.credentials.byUser(userId),
     queryFn: async () => {
-      const { data: row, error } = await supabase
+      const result = await supabase
         .from("profiles")
         .select(SELECT_COLS)
         .eq("user_id", userId)
         .maybeSingle();
-      if (error) {
-        toast.error("Couldn't load credentials.");
-        throw error;
-      }
+      if (result.error) toast.error("Couldn't load credentials.");
+      const row = unwrap(result);
       return (row as CredentialFields) ?? EMPTY;
     },
     staleTime: 60_000,

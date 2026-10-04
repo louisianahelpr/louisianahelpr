@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { WEEKDAY_LABELS, recurringVisitDates } from "@/lib/recurringSchedule";
 import { formatJobDate } from "@/lib/dateUtils";
 import { todayYmd } from "@/lib/jobDate";
@@ -75,12 +76,14 @@ export function SeriesStrip({
     enabled: isSeries,
     staleTime: 60_000,
     queryFn: async () => {
-      const { count, error } = await supabase
+      // A HEAD count: unwrap() checks the error and carries the HTTP status (no
+      // body, so no code either); the count is read off the result (Q1182).
+      const result = await supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
         .eq("parent_job_id", jobId);
-      if (error) throw error;
-      return count ?? 0;
+      unwrap(result);
+      return result.count ?? 0;
     },
   });
 

@@ -8,6 +8,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
 import { formatCategory, formatPrice, formatPriceFloor, wrappedSeasonLabel } from "@/lib/format";
 import { statValueSize } from "@/lib/statValueSize";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -139,9 +140,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
     reviewsReceivedRes.error,
   ].filter((e): e is NonNullable<typeof e> => !!e);
 
-  if (coreErrors.length === 4) {
-    throw new Error(coreErrors[0].message || "Couldn't load your Helpr year.");
-  }
+  if (coreErrors.length === 4) unwrap(postedRes); // all four failed: unwrap keeps the PostgREST code + HTTP status the retry policy reads (Q1182)
 
   const posted = postedRes.data ?? [];
   const completed = completedRes.data ?? [];

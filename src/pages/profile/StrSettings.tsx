@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { AddFormState, StrConnection } from "./strSettings/types";
 import { cardStyle } from "./strSettings/strSettingsHelpers";
@@ -56,13 +57,14 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
     queryKey: ["str-calendar-connections", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("str_calendar_connections")
-        .select("*")
-        .eq("user_id", user!.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      const data = unwrap(
+        await supabase
+          .from("str_calendar_connections")
+          .select("*")
+          .eq("user_id", user!.id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false }),
+      );
       return (data ?? []) as StrConnection[];
     },
   });

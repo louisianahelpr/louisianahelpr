@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 
 // True total of jobs matching the current Browse filters — NOT "how many
@@ -182,13 +183,15 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
         }
       }
 
-      // `head: true` requests return no `data` body — only `count` — so this
-      // can't go through the usual `unwrap(await …)` shape (it destructures
-      // `data`). Check `error` directly instead, per CLAUDE.md's rule that
-      // an error must never be silently dropped.
-      const { count, error } = await query;
-      if (error) throw error;
-      return count ?? 0;
+      // `head: true` requests return no `data` body — only `count` — so the
+      // count is read off the result, after unwrap() has checked its error.
+      // unwrap() is what carries the HTTP status to the retry policy: a
+      // refused HEAD has no body, so postgrest-js's error is `{ message: "" }`
+      // with no code, and a bare `throw error` had the refused count sent
+      // twice (Q1182, src/lib/queryRetry.ts).
+      const result = await query;
+      unwrap(result);
+      return result.count ?? 0;
     },
     // A guest (no userId) never reaches the header this feeds (Dashboard.tsx
     // is an authed-only route), but the RLS-safe view still answers fine

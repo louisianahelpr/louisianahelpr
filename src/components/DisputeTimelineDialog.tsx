@@ -36,6 +36,7 @@ import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@
 import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvidenceChannel";
+import { disputeCloseReason, closeMovedNothing, DISPUTE_CLOSE_COPY } from "@/components/disputeCloseReason";
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { formatDistanceToNow } from "date-fns";
@@ -316,9 +317,10 @@ export const DisputeTimelineDialog = ({
   const decidedAt = dispute?.decided_at ?? legacy?.dispute_resolved_at ?? null;
   const decisionText = dispute?.decision_text ?? null;
   const payoutSplit = dispute?.payout_split ?? null;
-  // Written by settle_dispute_by_chargeback (20260926034237).
-  const closedByChargeback =
-    dispute?.execution_status === "executed" && (dispute.execution_error ?? "").startsWith("closed by a lost card chargeback");
+  // Written by settle_dispute_by_chargeback (20260926034237) or
+  // settle_dispute_by_external_refund (20261003181427, Q1191).
+  const closeReason = disputeCloseReason(dispute);
+  const movedNothing = closeMovedNothing(closeReason);
   const isOpener = openerId === userId;
   // Who may actually attach evidence, per the ONLY UPDATE policy on
   // `disputes`: `USING (auth.uid() = opener_id AND status = 'open')`
@@ -461,12 +463,15 @@ export const DisputeTimelineDialog = ({
                 {/* Q342 (review M2): the card holder's bank took the whole
                     charge back before the split ran, so the record reads $0
                     each. Say what happened instead of "Settled: $0 · $0". */}
-                {closedByChargeback && (
+                {/* Q1191: a full refund made outside the split closes it the
+                    same way; its amounts below are true, this says why they
+                    are not the decision's split. */}
+                {closeReason && (
                   <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                    Closed by the card holder's bank: the payment went back to the card, so nothing was split here.
+                    {DISPUTE_CLOSE_COPY[closeReason]}
                   </p>
                 )}
-                {dispute?.execution_status === "executed" && !closedByChargeback &&
+                {dispute?.execution_status === "executed" && !movedNothing &&
                   (dispute.execution_helper_cents != null || dispute.execution_refund_cents != null) && (
                     <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
                       Settled: who posted it{" "}

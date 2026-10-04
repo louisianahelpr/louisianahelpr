@@ -23,9 +23,15 @@ export function changedLines(diff, sign) {
   return diff.split("\n").filter((l) => l.startsWith(sign) && !l.startsWith(sign.repeat(3) + " ")).map((l) => l.slice(1));
 }
 
-/** Removed minus added lines, not counting removed lines that `movedTo` received. */
+const ITEM_ID = /^- \[[ x~.]\] \*\*(Q\d+)\b/;
+
+/** Removed minus added lines, not counting removed lines that `movedTo` received.
+ *  An item line counts as moved when the archive received that item's line
+ *  ticked: archiving rewrites `- [~]` to `- [x]` and appends the evidence
+ *  (open-done-when --tick), so the moved line is never byte-identical. */
 export function netLoss(diff, movedTo) {
-  const removed = changedLines(diff, "-").filter((l) => !movedTo.has(l)).length;
+  const movedIds = new Set([...movedTo].map((l) => ITEM_ID.exec(l)?.[1]).filter(Boolean));
+  const removed = changedLines(diff, "-").filter((l) => !movedTo.has(l) && !movedIds.has(ITEM_ID.exec(l)?.[1])).length;
   return removed - changedLines(diff, "+").length;
 }
 if (import.meta.url === `file://${process.argv[1]}`) main();

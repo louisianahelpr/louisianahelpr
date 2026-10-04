@@ -6,7 +6,8 @@
  * items read as "net 1139 line(s) removed" and blocked the push.
  * Runs the real script against a fixture repo with a bare origin.
  */
-// @mutate scripts/check-push-no-silent-reverts.mjs |   const removed = changedLines(diff, "-").filter((l) => !movedTo.has(l)).length; |   const removed = changedLines(diff, "-").length;
+// @mutate scripts/check-push-no-silent-reverts.mjs |   const removed = changedLines(diff, "-").filter((l) => !movedTo.has(l) && !movedIds.has(ITEM_ID.exec(l)?.[1])).length; |   const removed = changedLines(diff, "-").length;
+// @mutate scripts/check-push-no-silent-reverts.mjs |  && !movedIds.has(ITEM_ID.exec(l)?.[1])).length; | ).length;
 // @mutate scripts/check-push-no-silent-reverts.mjs |   if (lost > 10) problems.push( |   if (lost > 1e9) problems.push(
 // @mutate scripts/check-push-no-silent-reverts.mjs | f === "docs/OPEN.md" ? archived : new Set() | new Set(changedLines(sh(`git diff -U0 ${base} HEAD -- docs`), "+"))
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -43,6 +44,21 @@ describe("the pre-push revert guard and the done-item archive", () => {
     writeFileSync(join(dir, "docs", "archive", "OPEN-done-2026-09.md"), "# Done\n" + items(30, "done"));
     writeFileSync(join(dir, "docs", "OPEN.md"), "# Open\n");
     commitAll("archive");
+    const r = run();
+    expect(r.stderr).toBe("");
+    expect(r.status).toBe(0);
+  });
+
+  it("passes when the archived lines were TICKED on the way (open-done-when --tick rewrites [~] to [x] and appends evidence)", () => {
+    const partly = Array.from({ length: 30 }, (_, i) => `- [~] **Q${i + 1} partly item ${i}** done-when: sql \`select 1\` => 1`).join("\n") + "\n";
+    writeFileSync(join(dir, "docs", "OPEN.md"), "# Open\n" + partly);
+    commitAll("partly done");
+    git("push", "-q", "origin", "main");
+    git("fetch", "-q", "origin");
+    const ticked = partly.replace(/^- \[~\](.*)$/gm, "- [x]$1 **DONE 2026-10-04 (auto-tick, verified live).**");
+    writeFileSync(join(dir, "docs", "archive", "OPEN-done-2026-10.md"), "# Done\n" + ticked);
+    writeFileSync(join(dir, "docs", "OPEN.md"), "# Open\n");
+    commitAll("tick and archive");
     const r = run();
     expect(r.stderr).toBe("");
     expect(r.status).toBe(0);

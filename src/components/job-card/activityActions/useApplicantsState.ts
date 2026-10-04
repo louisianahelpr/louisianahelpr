@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { APPLICATION_READABLE_COLUMNS, readableApplicationRows } from "@/lib/applicationColumns";
 import { fetchRatingStats } from "@/lib/reviewStats";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -37,8 +38,10 @@ export function useApplicantsState(user: SupaUser | null) {
     // lib/userBlocks, which alone cost a chunk round trip — Q239) and filter
     // here, while the counters did not: the panel said "Still no
     // applications" under a card saying "Applicants (1)".
-    const { data: apps, error: appsError } = await supabase.from("applications").select("*").eq("job_id", jobId);
+    // The readable columns, not "*": flag_reason is withheld from clients (Q1232).
+    const { data: appsData, error: appsError } = await supabase.from("applications").select(APPLICATION_READABLE_COLUMNS).eq("job_id", jobId);
     if (appsError) throw appsError;
+    const apps = readableApplicationRows(appsData);
     if (apps && apps.length > 0) {
       const helperIds = apps.map((a) => a.helper_id);
       // The panel's ranking signals (5 RPCs) need only the helper ids, so they

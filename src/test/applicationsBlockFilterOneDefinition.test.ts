@@ -134,4 +134,4 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
 // The block filter dropped from the poster policy.
 // @mutate supabase/migrations/20260924020956_applications_refuse_and_hide_across_block.sql | AND NOT public.are_users_blocked(applications.helper_id, (SELECT auth.uid())) | AND true
 // A client-side block filter re-added to the applicant list.
-// @mutate src/components/job-card/activityActions/useApplicantsState.ts | const { data: apps, error: appsError } = await supabase.from("applications") | await supabase.from("user_blocks").select("*");\n    const { data: apps, error: appsError } = await supabase.from("applications")
+// @mutate src/components/job-card/activityActions/useApplicantsState.ts | const { data: appsData, error: appsError } = await supabase.from("applications") | await supabase.from("user_blocks").select("*");\n    const { data: appsData, error: appsError } = await supabase.from("applications")

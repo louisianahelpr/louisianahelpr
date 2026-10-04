@@ -16,6 +16,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { APPLICATION_READABLE_COLUMN_LIST } from "@/lib/applicationColumns";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const codeOnly = (s: string) =>
@@ -72,12 +73,15 @@ describe("poster's offer message -> helper (OfferedActions)", () => {
 describe("the column actually reaches the client", () => {
   // A guard on a field the query never selected is undefined-always, i.e. no
   // guard at all — and it would look completely correct in review.
-  it("the applicants query selects every column", () => {
-    expect(APPLICANTS_QUERY).toMatch(/from\("applications"\)\s*\.select\("\*"\)/);
+  // Since Q1232 the reads name APPLICATION_READABLE_COLUMNS (flag_reason is
+  // withheld by a column grant, so "*" is refused); flagged_hidden must be in it.
+  it("the applicants query selects the readable columns, flagged_hidden included", () => {
+    expect(APPLICANTS_QUERY).toMatch(/from\("applications"\)\s*\.select\(APPLICATION_READABLE_COLUMNS\)/);
+    expect(APPLICATION_READABLE_COLUMN_LIST).toContain("flagged_hidden");
   });
 
-  it("the applied-jobs query selects every column", () => {
-    expect(ACTIVITY_QUERY).toMatch(/from\("applications"\)\.select\("\*"\)/);
+  it("the applied-jobs query selects the readable columns", () => {
+    expect(ACTIVITY_QUERY).toMatch(/from\("applications"\)\.select\(APPLICATION_READABLE_COLUMNS\)/);
   });
 
   it("the Application type carries the flag", () => {

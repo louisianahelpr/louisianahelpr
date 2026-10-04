@@ -897,13 +897,58 @@ Owner 2026-10-01: "if it's stale delete it". Reason and evidence first, then the
 
 ## Archived 2026-10-04 — from "Routine consolidation (2026-09-12)"
 
-- [x] **Q1046** LOW OWNER: delete the 8 disabled cloud routines at claude.ai/code/routines (API cannot delete) — OWNER: delete the 8 disabled cloud routines at claude.ai/code/routines (API cannot delete) (archive L5657) **DONE 2026-10-04 (owner, pop-up): the 8 disabled cloud routines are deleted.**
+- [x] **Q1046** LOW OWNER: delete the 8 disabled cloud routines at claude.ai/code/routines (API cannot delete) — OWNER: delete the 8 disabled cloud routines at claude.ai/code/routines (API cannot delete) (archive L5657) **DONE 2026-10-04 (owner, pop-up): the 8 disabled cloud routines are deleted.** NO-GUARD: an owner dashboard action, nothing in code to recur.
 
 ## Archived 2026-10-04 — from "CARRIED — the 2026-09-02 ledger (docs/audit/OPEN_ITEMS.md, retired 2026-09-23)"
 
-- [x] **Q1122 LOW OWNER-ONLY #2**: CAN-SPAM postal address empty in email footer. Code unchanged; still an empty literal awaiting owner value. **DECIDED AND CLOSED 2026-10-04 (owner, pop-up): the footer postal address stays blank. Told the owner: CAN-SPAM requires a postal address on COMMERCIAL (marketing) email; transactional email (receipts, job notices) is exempt, so the platform must not send marketing email without adding one.**
+- [x] **Q1122 LOW OWNER-ONLY #2**: CAN-SPAM postal address empty in email footer. Code unchanged; still an empty literal awaiting owner value. **DECIDED AND CLOSED 2026-10-04 (owner, pop-up): the footer postal address stays blank. Told the owner: CAN-SPAM requires a postal address on COMMERCIAL (marketing) email; transactional email (receipts, job notices) is exempt, so the platform must not send marketing email without adding one.** NO-GUARD: an owner decision (keep blank); the risk note above says what would change it.
 
 ## Archived 2026-10-04 — from "QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above"
 
-- [x] **Q1225 LOW OWNER DECISION A dispute split blocked by a payout hold also blocks the poster's refund leg (lh-money-escrow review of Q764, 2026-10-04).** execute-dispute-split (~:1263) refuses the whole split for a held Helpr, so the poster's share waits too. Choice: keep the whole split waiting (today), or let the refund leg run and hold only the Helpr's transfer. Done when the owner has chosen and the code matches, with a test. **DECIDED AND CLOSED 2026-10-04 (owner, pop-up, after a plain-language re-ask): keep today's behaviour: a hold-blocked dispute split keeps EVERYTHING waiting, the poster's refund leg included, until the hold is released. No code change.**
+- [x] **Q1225 LOW OWNER DECISION A dispute split blocked by a payout hold also blocks the poster's refund leg (lh-money-escrow review of Q764, 2026-10-04).** execute-dispute-split (~:1263) refuses the whole split for a held Helpr, so the poster's share waits too. Choice: keep the whole split waiting (today), or let the refund leg run and hold only the Helpr's transfer. Done when the owner has chosen and the code matches, with a test. **DECIDED AND CLOSED 2026-10-04 (owner, pop-up, after a plain-language re-ask): keep today's behaviour: a hold-blocked dispute split keeps EVERYTHING waiting, the poster's refund leg included, until the hold is released. No code change.** NO-GUARD: an owner decision to keep today's behaviour; no code changed.
 - [x] **Q1249 LOW OWNER DECISION Card fee on a recurring visit paid around the moment its series ends (lh-money-escrow review of Q750, 2026-10-03).** Since Q750 (4): a payment that lands AFTER the series ended (a Checkout still open) is refunded IN FULL by the webhook, because the platform left that Checkout open; a payment made BEFORE the end and refunded later withholds Stripe's card fee (Q808, owner 2026-09-27). Same payer, same visit, a few seconds apart, can differ by the fee (about $9.44 on $315). Owner: keep this split (recommended: the platform's open Checkout is the platform's cost), or withhold the fee on both. GUARD: src/test/edge/stripe-webhook.test.ts "Q750 (4): a payment for an ENDED series is refunded in full" pins the current answer. **DECIDED AND CLOSED 2026-10-04 (owner, pop-up): keep as is: a payment landing after the series ended is refunded in full (the platform left that Checkout open); one made before the end withholds the card fee (Q808). Pinned by the existing Q750 (4) webhook test.**
+
+## Archived 2026-10-04 — from "QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight"
+
+- [x] **Q10 LOW Owner-side, carried over:** (from Q242, 2026-09-24: dashboard-only cleanup — Slack #new-channel/#social and the Lovable/"Helpr Op" Slack apps; Checkr/Certificial/Browserbase keys and webhooks in their dashboards; extra Supabase API keys / auth providers; Stripe Connect settings.) release dispute 9756a585's payout; **MERGED 2026-10-04 (owner, pop-up) into Q185, which now carries it.** NO-GUARD: tracked by Q185.
+  **ANSWERED 2026-09-23:** dispute 9756a585 (seed): Claude settles it in TEST mode (work item Q148); Stripe payouts: MANUAL — DONE 2026-09-23 by Claude in the owner's Chrome (Settings > Payouts > Manual payouts, saved, re-read after reload; no test-mode banner, so the live account); sales tax: Stripe collects it (create-payment already sends automatic_tax enabled; Louisiana IS registered and collecting (checked in the Stripe dashboard 2026-09-23: Tax > Locations, 1 registration, collecting); filing is NOT set up there ('Set up filing') — OWNER: decide whether Stripe files the returns); right-panel overlap: owner asked Claude to audit it (Q151).
+  set Stripe payouts to manual; decide Louisiana sales tax; send a screenshot
+  or window width for the right-panel overlap.
+
+## Archived 2026-10-04 — from "QUEUE (cont.) — gaps measured 2026-09-23 (owner: "anything at all")"
+
+- [x] **Q19 LOW Wider product/UX gap pass.** STATUS 2026-09-26 (cloud/open-audits): NOT RUN this session (time went to measurable items); still open, no change. Run lh-suggester (core-loop friction, **CLOSED 2026-10-04 (owner, pop-up): open-ended product/UX gap pass, not a defect; audits run on demand (lh-audit) and file their findings as items.** NO-GUARD: not a defect.
+  missing product, growth) and an lh-audit pass on the screens touched tonight,
+  then queue what they find.
+
+## Archived 2026-10-04 — from "QUEUE (cont.) — added 2026-09-23 late"
+
+- [x] **Q35 LOW Exhaustive all-systems gap audit (owner, 2026-09-23: "make sure all **CLOSED 2026-10-04 (owner, pop-up): open-ended all-systems gap audit, not a defect; audits run on demand and file their findings as items.** NO-GUARD: not a defect.
+  systems are checked exhaustively for gaps").** STATUS 2026-09-26 (cloud/open-audits): fleet NOT run this session; still open. Run the launch-audit fleet
+  (39 lanes) in waves. Every finding lands in this queue with a check or a
+  tracker entry.
+
+## Archived 2026-10-04 — from "MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)"
+
+- [x] **Q74 MEDIUM App crash rate.** **STATUS 2026-09-26 (cloud/open-ops):** re-measured: Sentry (search_events, errors, 30d) has 0 events with a capacitor:// or https://localhost URL, so native crash data still does not exist; the isLocalBuildHost fix ships only in the next native build (the last ios-beta success is 2026-09-02, before the fix). No code-side step is left before that build: a crash-free-sessions row needs native sessions to measure. OWNER TO-DO: ship the next iOS build (Q152); then this item adds the Sentry release-health read to scripts/slo.mjs and a ledger alert on a crash spike. FOUND 2026-09-24 (Q296 work): the NATIVE apps never reported to Sentry. beforeSend dropped every event with hostname 'localhost' outside DEV, and iOS loads from capacitor://localhost, Android from https://localhost; Sentry had 0 error events with a capacitor:// or https://localhost URL in 90 days (search_events, helpr-4m). errorLogger.ts had the same bug fixed with isNativePlatform; Sentry had not. Fixed by isLocalBuildHost (http-only loopback) — takes effect in the next native build (Q152). Then measure crash-free sessions here. iOS/Android crash-free sessions from Sentry native **MERGED 2026-10-04 (owner, pop-up) into Q152, which now carries it.** NO-GUARD: tracked by Q152.
+  + App Store Connect, on the scoreboard with a target (e.g. >= 99.5%), and
+  a crash spike creates a ledger alert.
+- [x] **Q186 LOW Native polish (from TODO.md).** STATUS 2026-09-26: not worked this session; both remaining parts need Xcode / a Mac (owner or lead). Alternate app icon for small notification thumbnails (rasterise with scripts/generate-ios-icons.mjs, add to Xcode); Apple Sign-In native iOS rewire (re-check whether it shipped before starting); [Leaflet → Apple MapKit: done, no leaflet in package.json (Q266)] (F-PERF-02; owner roadmap picked MapKit). **MOVED 2026-10-04 (owner, pop-up) to docs/archive/deferred-past-launch-2026-10-04.md: a post-launch idea or refactor, not launch work.** NO-GUARD: not a defect.
+- [x] **Q187 LOW Post-launch product ideas (from TODO.md).** BusinessTeam seats/roles/invoicing; recurring job templates; notification cadence review of sweep-daily-job-digest. Ideas, not defects; feed them to Q19 (lh-suggester). **MOVED 2026-10-04 (owner, pop-up) to docs/archive/deferred-past-launch-2026-10-04.md: a post-launch idea or refactor, not launch work.** NO-GUARD: not a defect.
+
+## Archived 2026-10-04 — from "Unshipped branches (owner review)"
+
+- [x] **Q1047** LOW Find which session deleted ~150 local branches on 2026-09-12 without logging tip shas — Find which session deleted ~150 local branches on 2026-09-12 without logging tip shas (archive L5664) **CLOSED 2026-10-04 (owner, pop-up): forensics on a 2026-09-12 incident; the work was recovered and branch-deletion guards now prevent it.** NO-GUARD: not a defect.
+
+## Archived 2026-10-04 — from "Agent queue (2026-09-13, max 3 at once)"
+
+- [x] **Q1048** LOW Full customer/helper -> poster/Helpr internal rename, NO aliases (after gift card rename lands) — Full customer/helper -> poster/Helpr internal rename, NO aliases (after gift card rename lands) (archive L5692) **MOVED 2026-10-04 (owner, pop-up) to docs/archive/deferred-past-launch-2026-10-04.md: a post-launch idea or refactor, not launch work.** NO-GUARD: not a defect.
+
+## Archived 2026-10-04 — from "CARRIED — the 2026-09-02 ledger (docs/audit/OPEN_ITEMS.md, retired 2026-09-23)"
+
+- [x] **Q1110 LOW UNVERIFIED #1**: Entire native iOS surface never verified (WKWebView-specific bug class). Not reached — requires TestFlight/simulator pass, outside this read-only reconcile's tooling. (also: none found) **MERGED 2026-10-04 (owner, pop-up) into Q152, which now carries it.** NO-GUARD: tracked by Q152.
+- [x] **Q1111 LOW UNVERIFIED #2**: Universal-link association on a device (AASA CDN cache). Not reached — device-only settlement, unchanged. (also: none found) **MERGED 2026-10-04 (owner, pop-up) into Q152, which now carries it.** NO-GUARD: tracked by Q152.
+
+## Archived 2026-10-04 — from "QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above"
+
+- [x] **Q570** (LOW, found fixing Q371, 2026-09-26, NOT measured): on Android the hero H1's fallback is still unmatched. Android ships neither Georgia nor Liberation Serif, so both "Bodoni Moda Fallback" families resolve to nothing and the pre-font frame uses the system serif (Noto Serif). Q371's preload makes that frame rare on a warm or fast load; on a slow first load the swap can still move the hero. Not measured, because this container has no Android device or emulator. To close: measure CLS on a real Android Chrome with Bodoni throttled; if it is over 0.02, add a "Bodoni Moda Fallback Noto" family (local("Noto Serif"), metrics by the method in src/index.css's fallback comment, measured against NotoSerif-{Regular,Bold,BoldItalic}) after the Liberation one, and extend src/test/heroFontSwapDoesNotShift.test.ts to require it. **CLOSED 2026-10-04 (owner, pop-up): obsolete: the owner chose iOS only (2026-10-03); there is no Android app.** NO-GUARD: not a defect.

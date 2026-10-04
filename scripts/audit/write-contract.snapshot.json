@@ -3519,18 +3519,6 @@
     "nargs": 0
    }
   ],
-  "reject_other_applications_on_accept": [
-   {
-    "anon": false,
-    "args": [
-     "p_job_id",
-     "p_accepted_application_id"
-    ],
-    "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 2
-   }
-  ],
   "reject_self_issued_ban": [
    {
     "anon": false,

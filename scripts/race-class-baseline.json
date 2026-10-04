@@ -12,7 +12,6 @@
     "sql:public.sweep_daily_job_digest": "Daily digest notification over open jobs; informational only.",
     "sql:public.detect_suspicious_user_patterns": "Aggregate fraud-flag cron over jobs; writes only fraud_flags for admin review.",
     "sql:public.detect_stuck_payments": "Cron detector writing error_logs + admin notifications; no money movement.",
-    "sql:public.reject_other_applications_on_accept": "Ownership/membership EXISTS over applications JOIN jobs; caller must already own the job. Not yet re-audited under this class.",
     "sql:public.notify_helper_application_viewed": "Reads job title for notification copy; no decision on job state.",
     "sql:public.respond_to_direct_offer": "Main status read is FOR UPDATE (raced 0/20 on prod 2026-09-12); remaining hit is the INSERT ... SELECT FROM jobs for the decline notification after the lock is held.",
     "sql:public.sweep_dayof_confirm_reminders": "Cron reminder sweep; worst race outcome is one reminder on a job that changed in the same instant.",

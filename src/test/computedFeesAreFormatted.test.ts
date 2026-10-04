@@ -6,9 +6,10 @@
  *
  * @mutate src/components/CancellationDialog.tsx | `Cancel · pay $${formatPrice(cancellationFee)}` | `Cancel · pay $${cancellationFee}`
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

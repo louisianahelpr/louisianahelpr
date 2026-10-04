@@ -12,11 +12,12 @@
 // @mutate scripts/audit/prod-seed.mjs | document_url: await ensureSeedLicenseDocument(helperId) | document_url: PIXEL
 // @mutate e2e/prod-audit/harness.ts | license_state: "LA", document_url: docPath, | license_state: "LA", document_url: SEED_PIXEL,
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource, readSource } from "./helpers/walkSource";
 import { objectLiterals } from "./helpers/schemaConstraints";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q130 (docs/OPEN.md): helper_credentials.document_url is the member's OWN

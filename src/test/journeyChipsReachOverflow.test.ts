@@ -29,9 +29,10 @@
 // @mutate e2e/journeys/02-marketplace.spec.ts | (await findChip(pp, await card(pp, "/posts", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0, | (await card(pp, "/posts", "Done")).getByRole("button", { name: /^Reviewed\b/ }).count(),
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const root = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");

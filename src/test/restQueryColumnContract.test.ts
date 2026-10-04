@@ -31,6 +31,7 @@ import path from "node:path";
 // @ts-expect-error — plain .mjs script, no type declarations
 import * as contract from "../../scripts/audit/write-contract.mjs";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 type Snapshot = { tables: Record<string, { columns: Record<string, unknown> }> };
 
@@ -42,7 +43,7 @@ const OPS = /^(?:not\.)?(?:eq|neq|gt|gte|lt|lte|like|ilike|match|imatch|is|isdis
 function listFiles(dir: string): string[] {
   const out: string[] = [];
   if (!fs.existsSync(dir)) return out;
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     if (e.name === "node_modules" || e.name.startsWith(".")) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) out.push(...listFiles(p));

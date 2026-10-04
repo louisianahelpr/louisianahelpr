@@ -10,11 +10,12 @@
  * tabIndex={-1}.
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { render, screen, cleanup } from "@testing-library/react";
 import { DateWheelPicker } from "@/components/DateWheelPicker";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function offenders(raw: string): string[] {
   // Prose that merely names the pattern (e.g. a history comment) is not code.

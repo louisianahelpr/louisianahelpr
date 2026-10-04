@@ -8,9 +8,10 @@
 // src/test/dataExportCoversEveryUserTable.test.ts derives the user columns from
 // the schema itself (generated types + the migrations' foreign keys) and fails
 // on a column in neither list AND on an entry that no longer names one.
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankSqlComments } from "./blankNonCode";
+import { readdirSync } from "./trackedFiles";
 
 const REPO = resolve(__dirname, "../../..");
 

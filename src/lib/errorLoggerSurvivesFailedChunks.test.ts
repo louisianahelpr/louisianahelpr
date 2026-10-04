@@ -25,7 +25,7 @@
 // @mutate src/lib/errorLogger.ts | else persistStats.failed += batch.length; | else void 0;
 // @mutate src/lib/analytics.ts | await backgroundImport(() => import("@/lib/posthog"), "posthog"); | await backgroundImport(() => import("@/lib/posthog"));
 // @mutate src/lib/analytics.ts |     asUser ? batch : batch.map((r) => ({ ...r, user_id: null })), |     batch,
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -48,6 +48,7 @@ vi.mock("@/lib/sentry", () => ({ captureException: vi.fn() }));
 import { report, _persistStats, _resetBackgroundFailureReportsForTests } from "./errorLogger";
 import { track } from "./analytics";
 import { __resetChunkReloadForTests } from "./chunkReload";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 type SentRow = { message: string; user_id: unknown; tags: Record<string, unknown> };
 const sentRows = (): SentRow[] =>

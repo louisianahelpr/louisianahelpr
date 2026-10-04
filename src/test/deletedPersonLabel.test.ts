@@ -14,9 +14,10 @@
 // @mutate src/pages/messages/messagesData/loadConversations.ts | otherDeleted ? FORMER_MEMBER_LABEL : | otherDeleted ? "Deleted account" :
 // @mutate src/lib/deletedPerson.ts | = "Former member"; | = "Former Helpr";
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { ADMIN_DELETED_ACCOUNT_LABEL, FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = join(__dirname, "..");
 

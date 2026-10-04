@@ -38,6 +38,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SRC = path.join(ROOT, "src");
@@ -47,7 +48,7 @@ const STATEFUL_ROLE = /^(tab|radio|option|switch|checkbox|menuitemradio|menuitem
 const SEL_ID = /^(is)?(active|selected|current|checked)$/i;
 
 function walk(dir: string, out: string[] = []): string[] {
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p, out);
     else if (p.endsWith(".tsx") && !/\.(test|spec)\.tsx$/.test(p)) out.push(p);

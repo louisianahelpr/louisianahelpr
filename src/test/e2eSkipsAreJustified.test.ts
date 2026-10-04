@@ -22,11 +22,12 @@
 // @mutate e2e/skipSites.ts | const ALIAS = /\bconst | const ALIAS = /\bconst_never_matches
 // @mutate playwright.config.ts | ? [["list"], ["./e2e/reporters/skipReporter.ts"]] | ? [["list"]]
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { allSkipSites } from "../../e2e/skipSites";
 import { SKIP_ALLOWLIST, entriesFor } from "../../e2e/skipAllowlist";
 import SkipReporter from "../../e2e/reporters/skipReporter";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const sites = allSkipSites(ROOT);

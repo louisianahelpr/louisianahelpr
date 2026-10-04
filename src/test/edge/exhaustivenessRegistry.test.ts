@@ -61,6 +61,7 @@ import os from "node:os";
 import path from "node:path";
 import ts from "typescript";
 import { Constants } from "@/integrations/supabase/types";
+import { readdirSync } from "../helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const MIGRATIONS = path.join(ROOT, "supabase", "migrations");
@@ -69,7 +70,7 @@ const rel = (f: string) => path.relative(ROOT, f);
 const SKIP_DIR = /^(node_modules|\.git|dist|ios|android|coverage)$/;
 function walk(dir: string, match: RegExp, out: string[] = []): string[] {
   if (!fs.existsSync(dir)) return out;
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) {
       if (SKIP_DIR.test(e.name)) continue;
@@ -527,8 +528,7 @@ const D5: Dimension = {
   mode: "delegated",
   delegate: { file: "scripts/check-dead-edge-functions.mjs", wiredInto: "package.json / CI" },
   inventory: () =>
-    fs
-      .readdirSync(path.join(ROOT, "supabase", "functions"), { withFileTypes: true })
+    readdirSync(path.join(ROOT, "supabase", "functions"), { withFileTypes: true })
       .filter((e) => e.isDirectory() && fs.existsSync(path.join(ROOT, "supabase", "functions", e.name, "index.ts")))
       .map((e) => e.name)
       .sort(),

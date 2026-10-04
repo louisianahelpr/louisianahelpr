@@ -76,12 +76,13 @@
 // @mutate src/components/dashboard/JobDetailDialog.tsx | distMilesForDriving={distMilesForDriving} | distMilesForDriving={null}
 
 import { describe, it, expect, vi } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { COMMUTE_RANGE_MILES } from "@/lib/geo";
 import JobCard from "@/components/dashboard/JobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { readdirSync } from "./helpers/trackedFiles";
 
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "idle" }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn() }));

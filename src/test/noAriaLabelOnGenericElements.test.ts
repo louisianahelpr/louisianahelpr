@@ -10,8 +10,9 @@
  * alert…), or by moving the name to the control it describes.
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function offenders(src: string): string[] {
   const out: string[] = [];

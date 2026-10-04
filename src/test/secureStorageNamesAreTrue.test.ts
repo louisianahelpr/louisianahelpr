@@ -18,9 +18,10 @@
  * @mutate src/integrations/supabase/preferencesStorageAdapter.ts | export const preferencesStorageAdapter = { | export const keychainStorageAdapter = {
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankNonCode } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");

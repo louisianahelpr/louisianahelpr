@@ -29,11 +29,12 @@
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts | if (released && released.payment_status === "failed" && released.customer_id) { | if (released && released.customer_id) {
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(REPO, p), "utf8");

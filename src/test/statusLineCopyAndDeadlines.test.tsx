@@ -23,7 +23,7 @@
 // @mutate src/components/job-card/jobStatusLine.ts | overdue_no_show: { detail: | overdue_no_show: { detail: "Day passed — mark it done or cancel", x:
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
@@ -40,6 +40,7 @@ import {
 } from "@/components/job-card/jobStatusLine";
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
 import type { Job } from "@/components/job-card/activityConstants";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const SRC = join(ROOT, "src");

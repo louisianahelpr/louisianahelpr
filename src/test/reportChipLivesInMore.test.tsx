@@ -20,11 +20,12 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { AlertTriangle, MessageSquare } from "lucide-react";
 import { JobStepCard, MORE_ONLY_CHIP_KEYS } from "@/components/job-card/JobStepCard";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 

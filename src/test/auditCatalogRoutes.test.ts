@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * The audit catalog must describe the app that exists.

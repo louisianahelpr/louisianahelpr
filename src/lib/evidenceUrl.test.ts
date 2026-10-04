@@ -9,9 +9,10 @@
  * it withheld.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { isTrustedEvidenceUrl, partitionEvidenceUrls } from "./evidenceUrl";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 const BASE = "https://proj.supabase.co";
 const UID1 = "11111111-2222-3333-4444-555555555555";

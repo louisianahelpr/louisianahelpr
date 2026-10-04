@@ -9,10 +9,11 @@
  * @mutate src/components/profile/SupportInline.tsx | toast.error(reportSubmitError(error, "We couldn't send that — please try again.")); | toast.error("We couldn't send that — please try again.");
  * @mutate src/lib/reportErrors.ts | if (error?.message?.includes("report_rate_limited")) { | if (false) {
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { reportSubmitError } from "@/lib/reportErrors";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

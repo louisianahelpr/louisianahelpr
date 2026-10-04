@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * CLASS CHECK — every labelled group on the public profile wears the SAME pill.

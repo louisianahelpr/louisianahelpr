@@ -14,7 +14,7 @@
 // @mutate src/components/CancellationDialog.tsx | sharedCancellationFeePercent(hasHelper, hoursUntilJob) | sharedCancellationFeePercent(false, hoursUntilJob)
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankNonCode } from "@/test/helpers/blankNonCode";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
@@ -43,6 +43,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import { BlockUserDialog } from "./BlockUserDialog";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 // "Now" is pinned to 2026-09-27 12:00Z (07:00 Chicago). A job dated 09-26
 // started yesterday: the 50% top tier for a committed Helpr.

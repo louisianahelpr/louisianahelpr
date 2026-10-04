@@ -15,8 +15,9 @@
 //
 // @mutate src/pages/profile/GiftCard.tsx | {listsLoading ? (\n                <ReceivedListSkeleton /> | {loadingReceived ? (\n                <ReceivedListSkeleton />
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

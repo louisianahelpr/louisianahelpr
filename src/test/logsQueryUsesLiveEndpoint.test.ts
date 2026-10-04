@@ -12,9 +12,10 @@
 // @mutate scripts/db-saturation-check.mjs | "select count(*) as n from logs where source = 'postgres_logs' and | "select count(*) as n from postgres_logs where
 // @mutate scripts/db-saturation-check.mjs | const url = logsQueryUrl({ ref: REF, sql: TIMEOUT_LOG_SQL, start, end: new Date(now).toISOString() }); | const url = `https://api.supabase.com/v1/projects/${REF}/analytics/endpoints/logs.all?sql=${TIMEOUT_LOG_SQL}`;
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { logsQueryUrl } from "../../scripts/lib/supabaseLogs.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const HELPER = "scripts/lib/supabaseLogs.mjs";

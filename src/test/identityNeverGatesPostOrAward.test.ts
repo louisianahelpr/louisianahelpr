@@ -31,11 +31,12 @@
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql | CASE WHEN NOT public.identity_is_verified(p.idv_status, p.stripe_identity_verified) THEN 'stripe_id' END | NULL
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |       // Q1180 (owner, 2026-10-02/03): the server decides, in one call. |       // Q1180 (owner, 2026-10-02/03): the server decides, in one call.\n      void (user as { idv_status?: string } \| null)?.idv_status;
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { walkSource } from "./helpers/walkSource";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(process.cwd());
 const MIG = join(REPO, "supabase", "migrations");

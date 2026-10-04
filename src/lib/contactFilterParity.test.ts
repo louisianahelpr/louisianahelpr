@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { hasViolation, scanMessage } from "./messageScanner";
 import { PHONE_PATTERN, LOCATION_SHARE_PATTERN } from "./contactLeakRules";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 /**
  * CONTACT-FILTER PARITY (terminal 7, 2026-09-12).

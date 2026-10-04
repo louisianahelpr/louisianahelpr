@@ -23,8 +23,9 @@
  * @mutate src/components/ui/switch.tsx | "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood))] focus-visible:ring-offset-2 focus-visible:ring-offset-background", | "focus-visible:outline-none",
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const STRIPS_OUTLINE = /(?:^|[\s"'`:])(?:focus(?:-visible|-within)?:)?outline-none\b/;
 const PAINTS_FOCUS =

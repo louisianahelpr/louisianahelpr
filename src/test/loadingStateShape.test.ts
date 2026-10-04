@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * The CI check for the owner's 2026-09-19 report: loading states "jump and are

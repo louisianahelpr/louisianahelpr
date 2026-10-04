@@ -28,10 +28,11 @@
  * @mutate src/lib/errorLogger.ts | async function fanOutToObservability(err: unknown | void import("@sentry/react").then((m) => m.addIntegration(m.replayIntegration())); async function fanOutToObservability(err: unknown
  * @mutate src/lib/sentry.ts | void getReplay()?.stop({ flush: false }) | void Promise.resolve()
  */
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
+import { readFileSync, statSync, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "../..");
 

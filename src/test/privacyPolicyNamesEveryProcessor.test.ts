@@ -9,9 +9,10 @@
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Resend</strong> | <strong className="text-foreground">Mailer</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Google Gemini</strong> | <strong className="text-foreground">An AI model</strong>
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

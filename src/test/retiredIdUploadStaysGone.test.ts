@@ -39,9 +39,10 @@
  * @mutate src/components/ProtectedRoute.tsx | avatar_url?: string \| null; | avatar_url?: string \| null; id_document_url?: string \| null;
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const ROOTS = ["src", "supabase/functions"];

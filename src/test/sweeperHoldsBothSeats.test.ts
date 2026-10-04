@@ -42,9 +42,10 @@
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | if (CAN_SETTLE_FORWARD && oldEnough) { | if (CAN_SETTLE_FORWARD) {
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const root = join(__dirname, "..", "..");
 const WF_DIR = join(root, ".github/workflows");

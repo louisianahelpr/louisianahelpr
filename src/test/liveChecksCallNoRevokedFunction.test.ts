@@ -12,8 +12,9 @@
  * @mutate scripts/check-live-privileges.mjs | (COALESCE((SELECT array_agg(m[1]) FROM pg_proc p, | (public.profiles_locked_update_columns() \|\| COALESCE((SELECT array_agg(m[1]) FROM pg_proc p,
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 

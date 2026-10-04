@@ -3,7 +3,7 @@ import { act, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 /**
@@ -117,6 +117,7 @@ import { OpenStep } from "@/pages/posts/postedJobCard/steps/OpenStep";
 import { CompletedStep } from "@/pages/posts/postedJobCard/steps/CompletedStep";
 import { DisputedStep } from "@/pages/posts/postedJobCard/steps/DisputedStep";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { readdirSync } from "./helpers/trackedFiles";
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});

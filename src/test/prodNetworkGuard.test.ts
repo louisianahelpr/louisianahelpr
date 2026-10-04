@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import {
   LIVE_PROD_ALLOWLIST,
   isGuardedHost,
   takeRecordedLeaks,
 } from "./prodNetworkGuard";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q55(a): unit tests sent ~4,190 requests/day to PROD Supabase

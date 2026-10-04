@@ -1,8 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import { releaseSharedLayout } from "@/components/ui/SharedLayoutPill";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * THE CLASS (PD-009): a framer shared-layout element (`layoutId`) that

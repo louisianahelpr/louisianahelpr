@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 // PROVEN ABLE TO FAIL 2026-09-20. Setting --live-ink back to --live's own value
 // drops the measured ratio to 3.11:1 and this file goes red. It measures a
@@ -33,7 +34,7 @@ export function liveAsTextColour(source: string): string[] {
 }
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) sourceFiles(p, out);
     else if (/\.(tsx?|css)$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) out.push(p);

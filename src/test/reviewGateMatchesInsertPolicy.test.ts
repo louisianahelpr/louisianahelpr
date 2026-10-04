@@ -16,8 +16,9 @@
  * @mutate src/pages/jobs/AppliedJobCard.tsx | job.payment_status === "payout_pending") && !!posterId | job.payment_status === "mutated") && !!posterId
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const MIGRATIONS = join(ROOT, "supabase", "migrations");

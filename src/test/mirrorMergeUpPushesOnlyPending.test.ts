@@ -23,10 +23,11 @@
  * @mutate src/lib/pinnedConversations.ts |       if (next) setPending(userId, k, false); |       void 0;
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { planMergeUp } from "@/lib/archivedConversations";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");

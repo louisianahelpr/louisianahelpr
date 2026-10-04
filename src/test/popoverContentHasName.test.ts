@@ -11,9 +11,10 @@
  * This reads every `<PopoverContent` opening tag under src/ and fails on any
  * without a name, so the class is caught at commit time, not at 3 a.m.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 // @mutate src/components/profile/HelperStreakBadge.tsx | aria-label="5-star streak" | data-x="5-star streak"
 

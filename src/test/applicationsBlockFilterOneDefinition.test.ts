@@ -25,10 +25,11 @@
  *      reader (a new counter) is a conscious addition, seen here.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");

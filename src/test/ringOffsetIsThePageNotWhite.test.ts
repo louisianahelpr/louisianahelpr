@@ -44,9 +44,10 @@
  * @mutate src/components/ui/anchoredPanel.tsx | ctl-exit ctl-tint ring-offset-background focus-visible:outline-none | ctl-exit ctl-tint focus-visible:outline-none
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * A class string that declares a ring OFFSET of non-zero width. `ring-offset-0`

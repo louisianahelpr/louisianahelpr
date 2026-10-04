@@ -81,9 +81,10 @@
  * @mutate src/index.css | filter: brightness(1.1); | transform: translateY(-1px);
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import LEDGER from "./controlInteractionLedger.json";
+import { readdirSync } from "./helpers/trackedFiles";
 
 // ── 1. INVENTORY, derived from the world ────────────────────────────────────
 

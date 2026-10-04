@@ -24,7 +24,7 @@
  * @mutate src/components/profile/earningsTab/EarningsSummaryCard.tsx | `Approved — sent ${STANDARD_PAYOUT_PHRASE}` | `Approved — releases 24 hours after approval`
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   STANDARD_PAYOUT_DAYS_AFTER_DONE,
@@ -38,6 +38,7 @@ import { setEnv, resetEnv } from "./edge/mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./edge/mocks/stripe";
 import { scenario, resetSupabaseMock } from "./edge/mocks/supabase";
 import { resetSharedMocks } from "./edge/mocks/shared";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const FN_DIR = join(ROOT, "supabase/functions");

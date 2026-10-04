@@ -3,11 +3,12 @@
 // Q340: the client starts sending a server-owned column the grant does not cover.
 // @mutate src/pages/messages/messagesData/sendHandlers.ts |         job_id: optimistic.job_id,\n        sender_id: optimistic.sender_id, |         job_id: optimistic.job_id,\n        is_system: false,\n        sender_id: optimistic.sender_id,
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 // @ts-expect-error — plain .mjs script, no type declarations
 import * as contract from "../../scripts/audit/write-contract.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * A SIGNED-IN CLIENT INSERTS ONLY THE COLUMNS IT SENDS (Q340).

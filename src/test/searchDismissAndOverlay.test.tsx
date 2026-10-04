@@ -71,7 +71,7 @@ import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { useState } from "react";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -119,6 +119,7 @@ import { JobsHeader } from "@/pages/jobs/JobsHeader";
 import { ConversationList } from "@/components/messages/ConversationList";
 import type { Conversation } from "@/components/messages/types";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = path.resolve(__dirname, "..");
 

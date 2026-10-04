@@ -6,7 +6,7 @@
 // @mutate src/components/job-card/activityFilters.ts | if (cardPaymentProblem(j)) return "needs_you"; | if (false) return "needs_you";
 // @mutate src/components/job-card/activityFilters.ts | if (app.status !== "rejected" && cardPaymentProblem(app.job)) return "needs_you"; | if (false) return "needs_you";
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { render } from "@testing-library/react";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -28,6 +28,7 @@ import { PaymentProblemNotice } from "@/components/job-card/PaymentProblemNotice
 import { appliedActivityBucket, postedActivityBucket } from "@/components/job-card/activityFilters";
 import { Constants } from "@/integrations/supabase/types";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * CLASS GUARD (Q360, audit ME-009 remainder): every `payment_status` the

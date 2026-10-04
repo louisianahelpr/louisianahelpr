@@ -11,8 +11,9 @@
  * @mutate src/pages/user/useUserProfileData.ts |     data,\n    isError, |     data,\n    q250Planted: null,\n    isError,
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const HOOK = "src/pages/user/useUserProfileData.ts";

@@ -1,8 +1,9 @@
 // @mutate e2e/prod-lifecycle.spec.ts | const signed = await request.post(`${SUPABASE_URL}/storage/v1/object/sign/proof-photos/${path}`, { | const signed = await request.post(`${SUPABASE_URL}/storage/v1/object/public/proof-photos/${path}`, {
 // @mutate e2e/prod-lifecycle.spec.ts | expect(beforeUrl, "the row must store the before photo's storage path").toBe(beforePath); | expect(beforeUrl, "the row must store the before photo's storage path").toContain(beforePath);
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Since 65676a7ad (2026-09-22) jobs.proof_before_urls / proof_after_urls hold

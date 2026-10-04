@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { readdirSync } from "../../test/helpers/trackedFiles";
 
 /**
  * THE STATIC HALF of the one-control rule (owner, 2026-09-19, twice: "the

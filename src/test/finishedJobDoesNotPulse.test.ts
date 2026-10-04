@@ -19,10 +19,11 @@
  * @mutate src/components/JobTracking.tsx | ${railStepPulses({ isCurrent, allDone, disputed: !!disputedStep }) ? "step-current-pulse" : ""} | ${isCurrent ? "step-current-pulse" : ""}
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { railStepPulses } from "@/components/job-card/jobRailTone";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 

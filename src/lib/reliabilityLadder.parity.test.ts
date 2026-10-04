@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   RELIABILITY_LADDER_RUNGS,
   RELIABILITY_LADDER_SENTENCE,
   CANCELLATION_LADDER_RUNGS,
 } from "./reliabilityLadder";
+import { readdirSync } from "../test/helpers/trackedFiles";
 
 /**
  * Consequence-ladder ↔ copy parity.

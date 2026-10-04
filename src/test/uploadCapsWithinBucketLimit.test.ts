@@ -23,10 +23,11 @@
 // @mutate src/lib/messageAttachments.ts | const VOICE_NOTE_MAX_BYTES = 5 * 1024 * 1024; | const VOICE_NOTE_MAX_BYTES = 10 * 1024 * 1024;
 // @mutate src/lib/scopeVideo.ts | export const SCOPE_VIDEO_MAX_BYTES = 50 * 1024 * 1024; | export const SCOPE_VIDEO_MAX_BYTES = 60 * 1024 * 1024;
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { computeState } from "./storageBucketLimits.test";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 

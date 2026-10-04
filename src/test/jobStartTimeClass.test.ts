@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import ts from "typescript";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * THE CLASS: a job's start time reaching the screen without going through the

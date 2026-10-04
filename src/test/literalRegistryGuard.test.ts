@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 // Proven able to fail 2026-09-20: putting statusLabels.test.ts back on a
@@ -7,6 +7,7 @@ import { join, relative, sep } from "node:path";
 // @mutate src/lib/statusLabels.test.ts | const required = Constants.public.Enums.job_status; | const required = ["open", "accepted", "in_progress", "completed", "cancelled", "revision_requested", "disputed", "pending_approval"];
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * THE REGISTRY ANTIPATTERN, CAUGHT GENERICALLY.

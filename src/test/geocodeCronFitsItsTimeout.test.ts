@@ -15,7 +15,7 @@
  * @mutate supabase/functions/backfill-job-geocode/budget.ts |   return now - startedAt < RUN_BUDGET_MS; |   return true;
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { httpCronJobs } from "@/test/helpers/cronHttpJobs";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -25,6 +25,7 @@ import {
   RUN_BUDGET_MS,
   worstCaseRunMs,
 } from "../../supabase/functions/backfill-job-geocode/budget";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const FN_DIR = join(ROOT, "supabase", "functions", "backfill-job-geocode");

@@ -12,8 +12,9 @@
 // @mutate src/lib/errorLogger.ts | tags: isAutomatedBrowser() ? { ...(opts.tags ?? {}), automated: true } : (opts.tags ?? {}), | tags: opts.tags ?? {},
 // @mutate supabase/migrations/20260924131430_user_error_screen_skips_automated.sql |      AND coalesce(p_tags ->> 'automated', '') <> 'true' |      AND true
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const posted = vi.hoisted(() => [] as Array<{ tags: Record<string, unknown> }>);
 vi.mock("@/lib/restInsert", () => ({

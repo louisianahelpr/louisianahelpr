@@ -20,7 +20,7 @@ import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import type { PosterStepCtx } from "@/pages/posts/postedJobCard/steps/posterStepContract";
@@ -33,6 +33,7 @@ import { OpenStep } from "@/pages/posts/postedJobCard/steps/OpenStep";
 import { CompletedStep } from "@/pages/posts/postedJobCard/steps/CompletedStep";
 import { DisputedStep } from "@/pages/posts/postedJobCard/steps/DisputedStep";
 import { jobLocalDateISO } from "./helpers/jobLocalDate";
+import { readdirSync } from "./helpers/trackedFiles";
 /* THIS MODULE IMPORTS NOTHING FROM `jobStepRow` ON PURPOSE. It is the
    INVENTORY and the stated character model — the thing the allocator is
    measured AGAINST. A fixture that imported the constants it then handed to

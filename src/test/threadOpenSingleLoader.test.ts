@@ -32,13 +32,14 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SRC = path.join(ROOT, "src");
 const HOOK = path.join(SRC, "pages/messages/useMessagesData.ts");
 
 function walk(dir: string, out: string[] = []): string[] {
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p, out);
     else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) && !p.includes(`${path.sep}test${path.sep}`)) out.push(p);
@@ -115,8 +116,7 @@ describe("every way of opening a message thread goes through openConvo", () => {
   const inboxTapSites = files.flatMap(({ f, src }) =>
     /openConvo(=\{|\()/.test(src) && !f.endsWith("useMessagesData.ts") ? [path.relative(ROOT, f)] : [],
   );
-  const migrations = fs
-    .readdirSync(path.join(ROOT, "supabase/migrations"))
+  const migrations = readdirSync(path.join(ROOT, "supabase/migrations"))
     .filter((m) => /FUNCTION\s+(public\.)?notify_message_recipient/i.test(fs.readFileSync(path.join(ROOT, "supabase/migrations", m), "utf8")))
     .sort();
 

@@ -44,9 +44,10 @@
  * @mutate public/robots.txt | Disallow: /account-banned | Disallow: /account-pending
  */
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = resolve(__dirname, "..", "..");
 const ROOTS = ["src", "supabase/functions", "scripts", "e2e"];

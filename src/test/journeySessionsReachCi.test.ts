@@ -21,9 +21,10 @@
 // @mutate e2e/journeys/trailing-icon-fields.spec.ts | test.skip(!session, "PLAYWRIGHT_INCOMPLETE_EMAIL | test.skip(!session \|\| !require("node:fs").existsSync(".env"), "PLAYWRIGHT_INCOMPLETE_EMAIL
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const root = join(__dirname, "..", "..");
 const JOURNEYS = join(root, "e2e/journeys");

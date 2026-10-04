@@ -36,7 +36,7 @@
  * @mutate src/main.tsx | "/support?topic=report&from=shake" | "/help?topic=report&from=shake"
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { latestFunctionDefs } from "./helpers/rpcErrorInventory";
@@ -249,6 +249,7 @@ describe("user-report text never reaches a public log", () => {
 // @mutate .github/workflows/app-store-reviews.yml | run: node scripts/app-store-reviews.mjs | run: echo skipped
 // @ts-expect-error untyped .mjs (same as opsLedgerNightlyItemsCanClose.test.ts)
 import { reviewsToRecord as __reviewsToRecord, titleFor as __titleFor, SOURCE as __ASR_SOURCE } from "../../scripts/app-store-reviews.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 describe("store-review: App Store reviews rated <= 3 become user-report items (Q289)", () => {
   const rev = (id: string, rating: number, createdDate: string) =>
     ({ id, attributes: { rating, title: "t", body: "b", createdDate, territory: "USA" } });

@@ -38,12 +38,13 @@
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import * as shared from "../../supabase/functions/_shared/jobBudgetLimits";
 import * as client from "@/lib/moneyLimits";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * THE CLASS: a product rule starts hiding rows AT THE SOURCE, and a prod e2e

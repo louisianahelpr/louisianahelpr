@@ -23,10 +23,11 @@
 // @mutate supabase/migrations/20261002055930_series_cancel_locks_parent_first.sql |          response_deadline = NULL,\n         helper_confirmed_at = NULL, |          response_deadline = NULL,
 // @mutate supabase/functions/auto-expire-jobs/index.ts |         .is("helper_confirmed_at", null)\n        .select("id"); |         .select("id");
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const defs = effectiveDefs(join(ROOT, "supabase", "migrations"));

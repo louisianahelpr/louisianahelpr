@@ -36,7 +36,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -76,6 +76,7 @@ import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { USER_ERROR_SCREEN } from "@/lib/currentScreen";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { queryClient } from "@/lib/queryClient";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const Boom = (): never => {
   throw new Error("render boom");

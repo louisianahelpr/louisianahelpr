@@ -3,10 +3,11 @@
 // @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql | 'trade_license'::text, 'insurance'::text])); | 'trade_license'::text, 'insurance'::text, 'bond'::text]));
 // @mutate supabase/migrations/20260923130457_remove_bond_credential_type.sql |   DROP CONSTRAINT IF EXISTS helper_credentials_pending_bond_needs_document;\n |   ALTER COLUMN document_url DROP DEFAULT;\n
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { balanced } from "./helpers/schemaConstraints";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q141 (docs/OPEN.md, OWNER DECISION 2026-09-23): the unused 'bond' credential

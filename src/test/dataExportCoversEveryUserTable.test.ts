@@ -29,7 +29,7 @@
  * @mutate supabase/migrations/20261002052502_cancellation_fee_transfers_ledger.sql |       WHERE t.payer_id = v_uid OR t.helper_id = v_uid)); |       WHERE t.helper_id = v_uid));
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { anonExecuteRevoked, latestFunctionDefs } from "./helpers/rpcErrorInventory";
@@ -41,6 +41,7 @@ import {
   userKeyedColumns,
 } from "./helpers/dataExportInventory";
 import { EXPORT_SECTIONS, KNOWN_NOT_EXPORTED } from "../../scripts/lib/privacyJourney.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
 const MIGRATIONS = join(ROOT, "supabase", "migrations");

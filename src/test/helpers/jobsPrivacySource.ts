@@ -5,7 +5,8 @@
 // src/integrations/supabase/types.ts and from the repo's own source text.
 // Nothing is hand-typed twice.
 
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./trackedFiles";
 
 const MIGRATIONS_DIR = "supabase/migrations";
 

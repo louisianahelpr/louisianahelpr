@@ -13,8 +13,9 @@
  * `ref`, meaning a real button opens it with ref.current.click().
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /** Every `<input type="file" … />` tag in `src`, offender or not — the INVENTORY. */
 function fileInputs(src: string): string[] {

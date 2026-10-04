@@ -21,10 +21,11 @@
 // @mutate e2e/journeys/04-admin-safety.spec.ts | const j11 = title("no-show", "no-show", "poster-only", "approved"); | const j11 = title("no-show", "smooth", "poster-only", "approved");
 // @mutate e2e/journeys/04-money-outcomes.spec.ts | for (const [outcome, u] of Object.entries(OUTCOME_UNDRIVEN)) { | for (const [outcome, u] of Object.entries({})) {
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { OUTCOMES, OUTCOME_UNDRIVEN } from "../../e2e/journeys/scenarios";
 import { blankComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const JOURNEYS = join(ROOT, "e2e", "journeys");

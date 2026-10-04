@@ -6,11 +6,12 @@
 // @mutate src/hooks/useActivityBadgeCounts.ts | const BADGE_REFRESH_DEBOUNCE_MS = 400; | const BADGE_REFRESH_DEBOUNCE_MS = 0;
 // @mutate src/hooks/useActivityBadgeCounts.ts |       if (isHidden()) {\n        dirtyWhileHidden = true;\n        return;\n      }\n      loadCounts(); |       loadCounts();
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { renderHook, cleanup, act } from "@testing-library/react";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /*
  * Behavioural rig for the visibility-at-fire-time test below. Mirrors the

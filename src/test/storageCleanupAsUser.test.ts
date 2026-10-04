@@ -20,10 +20,11 @@
  * @mutate scripts/lib/jobMediaRest.mjs |   if (bearer.startsWith("sb_secret_")) return true; |
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { callerReadsBuckets, removePrefixes } from "../../scripts/lib/jobMediaRest.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const J = "fde2605b-1111-4111-8111-111111111111";

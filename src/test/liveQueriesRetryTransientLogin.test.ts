@@ -13,11 +13,12 @@
 // @mutate scripts/lib/supabaseDbQuery.mjs |   /failed to connect as temp role/i, |   /never-matches-anything-q1176/i,
 // @mutate scripts/audit/function-body-drift.mjs |   const raw = supabaseDbQuery(["--linked", "-o", "json", LIVE_SQL], { |   const raw = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", LIVE_SQL], {
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 // @ts-expect-error — plain .mjs module, no declaration file
 import { supabaseDbQuery, isTransient } from "../../scripts/lib/supabaseDbQuery.mjs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 const LOGIN_FAIL = 'failed to connect as temp role: failed to connect to postgres: server error (FATAL: password authentication failed for user "cli_login_postgres" (SQLSTATE 28P01))';

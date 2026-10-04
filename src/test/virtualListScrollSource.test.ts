@@ -3,8 +3,9 @@
 // see before `blankComments` below. Killing it kills the plain deletion too.
 // @mutate src/components/messages/ConversationList.tsx | scrollElementRef={containerRef} | {/* scrollElementRef={containerRef} */}
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * A `<VirtualList>` ON AN APP-SHELL ROUTE MUST VIRTUALIZE AGAINST ITS OWN

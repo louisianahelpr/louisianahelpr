@@ -7,8 +7,9 @@
  * @mutate supabase/migrations/20260924045813_job_special_requirements_contact_scan.sql | UPDATE OF title, description, special_requirements ON | UPDATE OF title, description ON
  * @mutate supabase/migrations/20260924045813_job_special_requirements_contact_scan.sql | v_reason := public.contact_leak_reason(NEW.special_requirements); | v_reason := NULL;
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "./helpers/trackedFiles";
 
 // Poster-written text shown on the public job page and browse card.
 // (location is hidden until hire and is an address, so it is not scanned.)

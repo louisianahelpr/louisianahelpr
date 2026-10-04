@@ -13,8 +13,9 @@
  * @mutate src/lib/authSignOut.ts | resetProofPhotoSignCache(); | void 0;
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const SRC = join(ROOT, "src");

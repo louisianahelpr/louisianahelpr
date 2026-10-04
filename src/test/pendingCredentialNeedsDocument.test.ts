@@ -6,8 +6,9 @@
 // @mutate supabase/migrations/20260923101130_pending_credential_requires_document.sql | FROM PUBLIC, anon; | FROM PUBLIC;
 // @mutate src/components/admin/AdminCredentialQueue.tsx | {r.license_status === "pending" && r.license_url && ( | {r.license_status === "pending" && r.license_url && r.is_licensed && (
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * Q102 (docs/OPEN.md): the admin credential queue must never list a row with

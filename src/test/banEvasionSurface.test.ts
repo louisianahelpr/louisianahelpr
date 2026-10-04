@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 
 /**
  * A refused ban-evasion attempt has to be silent to the person and loud to the

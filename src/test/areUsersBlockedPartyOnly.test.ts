@@ -58,6 +58,12 @@ const EXPECTED_CALLERS = [
   "direct_accept_block_reason",
   "enforce_application_job_state",
   "enforce_block_on_message_insert",
+  // Q739 (20261004162818): the poster's copy of an application hides a Helpr
+  // blocked with them, as the applications policy does. export_my_data is
+  // EXECUTE for service_role only (the export edge function, after it resolves
+  // the caller), so auth.uid() is NULL there and the server context gets the
+  // real answer for (helper, the exporting user).
+  "export_my_data",
   "get_my_saved_helpers",
   // Q713 (20261003183349): the AFTER UPDATE OF status trigger skips a thread
   // participant blocked with the poster. Neither is necessarily auth.uid() (the

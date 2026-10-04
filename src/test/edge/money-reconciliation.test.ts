@@ -502,6 +502,22 @@ describe("money-reconciliation edge function", () => {
       expect(names(b)).not.toContain("gift_not_returned_after_refund");
     });
 
+    // Review of Q1212 (should-fix): a short gift read (the replacement row
+    // past the page cap) must not manufacture this critical; the checks skip
+    // and the run is degraded instead.
+    // @mutate supabase/functions/money-reconciliation/index.ts | const gifts: GiftRow[] = giftCap ? [] : giftScan.rows; | const gifts: GiftRow[] = giftScan.rows;
+    it("a TRUNCATED gift ledger skips the check (degraded), never a false critical", async () => {
+      const fn = await loadConfigured();
+      seedRefundedGiftJob();
+      // The server reports 2 rows (the gift and its replacement) but hands back 1.
+      scenario.reads.gift_cards = { ...scenario.reads.gift_cards!, count: 2 };
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+      expect(names(b)).not.toContain("gift_not_returned_after_refund");
+      expect((b.notes as string[]).join(" ")).toMatch(/gift-card checks skipped/);
+      expect(b.ok).toBe(false);
+    });
+
     it("not inside the settle window (the restore runs right after the flip)", async () => {
       const fn = await loadConfigured();
       seedRefundedGiftJob();

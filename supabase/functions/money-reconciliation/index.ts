@@ -1253,17 +1253,7 @@ serve(async (req) => {
     // 'refunded' too. A node still reading 'paid' under a 'refunded' ancestor is
     // spendable money conjured out of a reversal.
     {
-      const { data: giftRows, error: giftErr } = await admin
-        .from("gift_cards")
-        .select("id, parent_credit_id, payment_status, status, amount, job_id, restored_from_job_id");
-
-      // Never swallow this. A dropped error here reads as "no gift defects",
-      // which is exactly the false all-clear this function exists to prevent.
-      if (giftErr) {
-        throw new Error(`money-reconciliation: gift_cards read failed: ${giftErr.message}`);
-      }
-
-      const gifts = (giftRows ?? []) as Array<{
+      type GiftRow = {
         id: string;
         parent_credit_id: string | null;
         payment_status: string | null;
@@ -1271,7 +1261,27 @@ serve(async (req) => {
         amount: number | null;
         job_id: string | null;
         restored_from_job_id?: string | null;
-      }>;
+      };
+      // Paged with a verified total (review of Q1212): a single read is
+      // silently capped at db-max-rows, and a short gift ledger MANUFACTURES a
+      // critical gift_not_returned_after_refund (the replacement row fell off
+      // the page), as a short payout ledger does above.
+      const giftScan = await scanAll<GiftRow>("gift_cards", (countOpt) =>
+        admin
+          .from("gift_cards")
+          .select("id, parent_credit_id, payment_status, status, amount, job_id, restored_from_job_id", countOpt)
+          .order("id", { ascending: true }),
+      );
+
+      // Never swallow this. A dropped error here reads as "no gift defects",
+      // which is exactly the false all-clear this function exists to prevent.
+      if (giftScan.error) {
+        throw new Error(`money-reconciliation: gift_cards read failed: ${giftScan.error.message}`);
+      }
+      const giftCap = scanDefect("gift_cards", giftScan);
+      if (giftCap) notes.push(`gift-card checks skipped: ${giftCap}`);
+
+      const gifts: GiftRow[] = giftCap ? [] : giftScan.rows;
       const byId = new Map(gifts.map((g) => [g.id, g]));
 
       /** Walk to the root, bounded, so a cyclic parent chain cannot hang the run. */

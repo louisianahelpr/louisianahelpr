@@ -56,6 +56,8 @@ const NOT_LANDED: Record<string, string> = {
 
 /** Workflows that use the step without running a registered generator. */
 const ALSO_LANDED: Record<string, string> = {
+  "open-auto-tick.yml":
+    "ticks docs/OPEN.md items whose done-when markers all read true on prod right after a deploy (open-done-when.mjs --tick), then refreshes the inventories; event-driven by workflow_run, not a scheduled re-measurement of a generator (owner, 2026-10-04)",
   "morning-page.yml":
     "docs/morning/<date>.md is a DATED daily record (WRITES_NOT_COMMITTED in check-generated-current.mjs), not a living inventory; Q67 is ticked when the first one lands on main through this step",
   "ios-icon-sync.yml":

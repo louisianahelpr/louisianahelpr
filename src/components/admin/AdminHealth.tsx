@@ -19,6 +19,7 @@ import { useConfigChecks, type CheckTone, type ConfigCheck } from "./adminHealth
 import { useCronHealth } from "./adminHealth/useCronHealth";
 import { useOpenAlerts } from "./adminHealth/useOpenAlerts";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
@@ -144,7 +145,13 @@ const AdminHealth = () => {
     }
   };
 
-  const { queryKey, data, isFetching } = useHealthData();
+  const { queryKey, data, isFetching, isError, dataUpdatedAt, refetch } = useHealthData();
+  // Q1194: every read behind these numbers throws through unwrap(). Never
+  // loaded, the numbers are the fallback shell's zeros, so the panels that
+  // show them are replaced by an error; loaded once, they are the last good
+  // reading and say so.
+  const healthNeverLoaded = isError && !dataUpdatedAt;
+  const healthStale = isError && !!dataUpdatedAt;
 
   const { emailStats, pushStats, fraudCount, adminPushTokenCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps } = data;
 
@@ -161,7 +168,7 @@ const AdminHealth = () => {
           push_tokens. With zero admin tokens registered, it all goes
           to in-app only and gets missed in real time. Surfacing as a
           loud red banner so it can't be ignored during launch. */}
-      {adminPushTokenCount === 0 && (
+      {!healthNeverLoaded && adminPushTokenCount === 0 && (
         <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4">
           <div className="flex items-start gap-3">
             <Activity className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
@@ -251,6 +258,19 @@ const AdminHealth = () => {
           above these three tiles with a phone-width band of nothing beside
           it; it re-reads exactly this card's data, so it is its header
           action. */}
+      {healthStale && (
+        <p className="text-ds-12 font-medium text-destructive" role="status">
+          Couldn't refresh platform health. The numbers below are from {new Date(dataUpdatedAt).toLocaleTimeString()}.
+        </p>
+      )}
+      {healthNeverLoaded ? (
+        <ErrorState
+          variant="inline"
+          title="Couldn't load platform health"
+          body="A read behind these numbers failed, so none of them is shown rather than zeros."
+          onRetry={() => void refetch()}
+        />
+      ) : (
       <AdminCard
         title="Platform Status"
         action={
@@ -296,6 +316,7 @@ const AdminHealth = () => {
           </p>
         </div>
       </AdminCard>
+      )}
 
       {/* Sentry test — admin-only sanity check */}
       <AdminCard
@@ -331,7 +352,9 @@ const AdminHealth = () => {
         </div>
       </AdminCard>
 
-      {/* Job activity (7 days) */}
+      {/* Job activity (7 days) and the marketplace pulse read the same
+          health data: hidden, not zeroed, when it never loaded (Q1194). */}
+      {!healthNeverLoaded && (<>
       <AdminCard
         title="Job Activity"
         subtitle="Last 7 days."
@@ -410,6 +433,7 @@ const AdminHealth = () => {
           </div>
         )}
       </AdminCard>
+      </>)}
 
       {/* Fill-rate metrics — hidden when RPC not yet deployed (PGRST202) */}
       {fillData?.available && (

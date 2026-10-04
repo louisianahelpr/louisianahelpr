@@ -2,7 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import type { HealthData, ParishStat } from "./types";
-import { report } from "@/lib/errorLogger";
 
 export const useHealthData = () => {
   const queryKey = ["admin-health"];
@@ -27,6 +26,8 @@ export const useHealthData = () => {
         supabase.from("email_send_log").select("id", { count: "exact", head: true }).eq("status", "dlq").gte("created_at", since),
         supabase.from("email_send_log").select("id", { count: "exact", head: true }).eq("status", "suppressed").gte("created_at", since),
       ]);
+      // Q1194: a refused count is an error screen, never a confident "0 sent".
+      for (const r of [sentRes, failedRes, suppressedRes]) unwrap(r);
       const sent = sentRes.count || 0;
       const failed = failedRes.count || 0;
       const suppressed = suppressedRes.count || 0;
@@ -46,6 +47,8 @@ export const useHealthData = () => {
         supabase.from("push_tokens").select("id", { count: "exact", head: true }).eq("platform", "android"),
         supabase.from("push_tokens").select("updated_at").order("updated_at", { ascending: false }).limit(1),
       ]);
+      for (const r of [pushTotalRes, pushIosRes, pushAndroidRes]) unwrap(r);
+      unwrap(pushLatestRes);
       const pushStats = {
         total: pushTotalRes.count || 0,
         ios: pushIosRes.count || 0,
@@ -61,22 +64,24 @@ export const useHealthData = () => {
       // Don't drop the error: this powers the "do admins have push tokens?"
       // health check. A failed read yields zero admin ids, which renders as a
       // confident "0 admins have push tokens" alert — indistinguishable from
-      // the real failure it is meant to detect.
-      const { data: adminUserIds, error: adminUserIdsError } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
-      if (adminUserIdsError) {
-        report(adminUserIdsError, { severity: "warning", tags: { source: "useHealthData.adminIds" } });
-      }
+      // the real failure it is meant to detect. Reporting and carrying on did
+      // exactly that (Q1194 review): it throws, and AdminHealth says the read
+      // failed instead of raising the banner.
+      const adminUserIds = unwrap(
+        await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin"),
+      );
       const adminIds = (adminUserIds ?? []).map((r) => r.user_id);
       let adminPushTokenCount = 0;
       if (adminIds.length > 0) {
-        const { count } = await supabase
+        const adminPushRes = await supabase
           .from("push_tokens")
           .select("id", { count: "exact", head: true })
           .in("user_id", adminIds);
-        adminPushTokenCount = count || 0;
+        unwrap(adminPushRes);
+        adminPushTokenCount = adminPushRes.count || 0;
       }
 
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -86,6 +91,7 @@ export const useHealthData = () => {
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").gte("updated_at", weekAgo),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "cancelled").gte("updated_at", weekAgo),
       ]);
+      for (const r of [openRes, compRes, dispRes, cancelRes]) unwrap(r);
       const recentJobs = {
         open: openRes.count || 0,
         completed: compRes.count || 0,
@@ -166,21 +172,21 @@ export const useHealthData = () => {
         .from("jobs")
         .select("id, created_at")
         .gte("created_at", weekAgo);
-      const jobIds = (recentJobsForApps.data || []).map((j) => j.id);
+      const jobIds = (unwrap(recentJobsForApps) || []).map((j) => j.id);
       let medianTimeToFirstAppMin: number | null = null;
       let jobsAwaitingApps = 0;
       if (jobIds.length > 0) {
         // Don't drop the error: a failed read makes every job look like it has
         // zero applications, inflating "jobs awaiting applications" and voiding
-        // the median-time-to-first-application metric with no signal.
-        const { data: appRows, error: appRowsError } = await supabase
-          .from("applications")
-          .select("job_id, created_at")
-          .in("job_id", jobIds)
-          .order("created_at", { ascending: true });
-        if (appRowsError) {
-          report(appRowsError, { severity: "warning", tags: { source: "useHealthData.applications" } });
-        }
+        // the median-time-to-first-application metric with no signal. A
+        // report alone still rendered "N jobs no apps yet" (Q1194 review).
+        const appRows = unwrap(
+          await supabase
+            .from("applications")
+            .select("job_id, created_at")
+            .in("job_id", jobIds)
+            .order("created_at", { ascending: true }),
+        );
         const firstAppByJob = new Map<string, string>();
         for (const a of (appRows || []) as { job_id: string; created_at: string }[]) {
           if (!firstAppByJob.has(a.job_id)) firstAppByJob.set(a.job_id, a.created_at);

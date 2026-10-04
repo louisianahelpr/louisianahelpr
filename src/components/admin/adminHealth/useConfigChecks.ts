@@ -1,6 +1,27 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { functionInvokeError } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
+
+/**
+ * A count, or null when the read failed (reported). A refused read used to
+ * read as `count: null` -> "0", so the check said ok about rows it never saw;
+ * a null makes the check say "unknown" instead (Q1194).
+ */
+function countOrNull(res: { count: number | null; error: unknown }, check: string): number | null {
+  if (res.error) {
+    report(res.error, { severity: "warning", tags: { source: "useConfigChecks", check } });
+    return null;
+  }
+  return res.count ?? 0;
+}
+
+const unreadable = (id: string, label: string): ConfigCheck => ({
+  id,
+  label,
+  tone: "unknown",
+  detail: "Could not read this check's data.",
+});
 
 /**
  * The checks an audit would run, run continuously instead.
@@ -88,14 +109,17 @@ export const useConfigChecks = () => {
       // ── Escrow funded but no fee recorded. The fee is written in the same
       // update as the checkout session, so a gap here means a job took money
       // without recording what the platform keeps.
-      const { count: feeGap } = await supabase
+      const feeGapRes = await supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
         .eq("payment_status", "escrow")
         .not("stripe_payment_intent_id", "is", null)
         .is("platform_fee_amount", null);
+      const feeGap = countOrNull(feeGapRes, "fee");
       checks.push(
-        feeGap && feeGap > 0
+        feeGap === null
+          ? unreadable("fee", "Escrow fee recorded")
+          : feeGap > 0
           ? { id: "fee", label: "Escrow fee recorded", tone: "danger", detail: `${feeGap} paid job(s) hold escrow with no platform fee recorded.` }
           : { id: "fee", label: "Escrow fee recorded", tone: "ok", detail: "Every paid job records its platform fee." },
       );
@@ -103,16 +127,20 @@ export const useConfigChecks = () => {
       // ── Released with no ledger row. The payout ledger is what the
       // duplicate-transfer guard reads, so a released job missing from it can
       // be paid twice.
-      const { count: releasedCount } = await supabase
+      const releasedRes = await supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
         .eq("payment_status", "released")
         .not("stripe_payment_intent_id", "is", null);
-      const { count: transferCount } = await supabase
+      const transferRes = await supabase
         .from("payout_transfers")
         .select("id", { count: "exact", head: true });
+      const releasedCount = countOrNull(releasedRes, "ledger.released");
+      const transferCount = countOrNull(transferRes, "ledger.transfers");
       checks.push(
-        (releasedCount ?? 0) > 0 && (transferCount ?? 0) === 0
+        releasedCount === null || transferCount === null
+          ? unreadable("ledger", "Payout ledger")
+          : releasedCount > 0 && transferCount === 0
           ? {
               id: "ledger",
               label: "Payout ledger",
@@ -126,13 +154,16 @@ export const useConfigChecks = () => {
       // transfer.paid, so anything still pending after a day never got its
       // webhook or never left Stripe.
       const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { count: stuck } = await supabase
+      const stuckRes = await supabase
         .from("payout_transfers")
         .select("id", { count: "exact", head: true })
         .eq("status", "pending")
         .lt("created_at", dayAgo);
+      const stuck = countOrNull(stuckRes, "stuck");
       checks.push(
-        stuck && stuck > 0
+        stuck === null
+          ? unreadable("stuck", "Transfers settling")
+          : stuck > 0
           ? { id: "stuck", label: "Transfers settling", tone: "warn", detail: `${stuck} transfer(s) pending for over 24h.` }
           : { id: "stuck", label: "Transfers settling", tone: "ok", detail: "No transfer stuck pending." },
       );
@@ -140,11 +171,16 @@ export const useConfigChecks = () => {
       // ── Leftover flag keys. A stored key nothing reads is a switch that
       // looks operational and does nothing — the exact defect this project
       // shipped for months across five flags.
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from("platform_settings")
         .select("feature_flags")
         .limit(1)
         .maybeSingle();
+      if (settingsError) {
+        report(settingsError, { severity: "warning", tags: { source: "useConfigChecks", check: "flags" } });
+        checks.push(unreadable("flags", "Feature flags"));
+        return checks;
+      }
       const stored = Object.keys(
         ((settings as { feature_flags?: Record<string, unknown> } | null)?.feature_flags) ?? {},
       );

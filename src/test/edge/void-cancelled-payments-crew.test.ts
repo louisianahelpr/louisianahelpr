@@ -19,6 +19,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 
 const CRON_SECRET = "cron-secret-void-crew";
 
@@ -273,5 +274,67 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(res.status).toBe(500);
+  });
+  // ── Q891: Part D's PaymentIntent is a TEST-mode object under the live key ──
+  /** A settled crew job with one FAILED share still owed (the Part D shape above). */
+  function seedPartDRetry() {
+    scenario.reads.jobs = {
+      selectOverrides: [
+        { includes: "cancellation_fee,", result: { rows: [] } },
+        { includes: "cancellation_fee_status", result: { rows: [{ id: "job-crew", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", cancellation_fee_status: "charged", stripe_payment_intent_id: "pi_test_old" }] } },
+      ],
+      rows: [],
+    };
+    scenario.reads.crew_cancellation_fee_shares = {
+      rows: [{ id: "share-2", job_id: "job-crew", helper_id: "member-b", committed: true, share_basis_cents: 10000, share_amount: "50.00", status: "failed", stripe_transfer_id: null }],
+    };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+  }
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "payment_intent", id: job.stripe_payment_intent_id });\n            continue;\n          }\n          defects.record(`crew share retry | throw retryErr;\n          }\n          defects.record(`crew share retry
+  it("Q891: Part D on a TEST-mode PaymentIntent pays no share, records no defect (200), pages nobody, writes one structured line", async () => {
+    const skips = captureTestModeSkips();
+    try {
+      seedPartDRetry();
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_test_old"));
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = JSON.parse(await res.text()) as Record<string, unknown>;
+      expect(res.status).toBe(200);
+      expect(body.defects).toBe(0);
+      expect(body.defectReasons).toBeUndefined();
+      expect(body.crew_shares_retried).toBe(0);
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_test_old");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(ledgerFlips()).toHaveLength(0);
+      expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
+      expect(slackAlerts).toHaveLength(0);
+      expect(skips.lines()).toEqual([
+        expect.objectContaining({ fn: "void-cancelled-payments", object: "payment_intent", id: "pi_test_old", job_id: "job-crew" }),
+      ]);
+    } finally {
+      skips.restore();
+    }
+  });
+
+  it("Q891 control: any OTHER Part D PaymentIntent error still fails closed (500, a defect, no transfer, no test-mode line)", async () => {
+    const skips = captureTestModeSkips();
+    try {
+      seedPartDRetry();
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(
+        Object.assign(new Error("Stripe is down"), { type: "StripeAPIError", statusCode: 503 }),
+      );
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = JSON.parse(await res.text()) as Record<string, unknown>;
+      expect(res.status).toBe(500);
+      expect((body.defectReasons as string[]).some((r) => r.startsWith("crew share retry job-crew"))).toBe(true);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(skips.lines()).toEqual([]);
+    } finally {
+      skips.restore();
+    }
   });
 });

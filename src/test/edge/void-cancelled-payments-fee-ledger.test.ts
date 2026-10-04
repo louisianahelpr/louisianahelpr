@@ -23,6 +23,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 
 const CRON_SECRET = "cron-secret-void-fee-ledger";
 
@@ -265,5 +266,53 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     const marks = feeWrites("update");
     expect(marks[0].payload).toMatchObject({ status: "paid", stripe_transfer_id: "tr_fee" });
     expect(marks[0].filters).toEqual(expect.arrayContaining([{ op: "eq", column: "status", value: "failed" }]));
+  });
+  // ── Q891: Part E's PaymentIntent is a TEST-mode object under the live key ──
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "payment_intent", id: job.stripe_payment_intent_id });\n            continue;\n          }\n          defects.record(`cancellation fee retry | throw retryErr;\n          }\n          defects.record(`cancellation fee retry
+  it("Q891: Part E on a TEST-mode PaymentIntent pays no fee, claims nothing, records no defect (200), pages nobody, writes one structured line", async () => {
+    const skips = captureTestModeSkips();
+    try {
+      const failed = ledgerRow({ status: "failed", created_at: OLD });
+      seed({ partA: false, existing: failed, retry: [failed] });
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_1"));
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = JSON.parse(await res.text()) as Record<string, unknown>;
+      expect(res.status).toBe(200);
+      expect(body.defects).toBe(0);
+      expect(body.defectReasons).toBeUndefined();
+      expect(body.fee_transfers_retried).toBe(0);
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(feeWrites()).toHaveLength(0);
+      expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
+      expect(slackAlerts).toHaveLength(0);
+      expect(skips.lines()).toEqual([
+        expect.objectContaining({ fn: "void-cancelled-payments", object: "payment_intent", id: "pi_1", job_id: "job-1" }),
+      ]);
+    } finally {
+      skips.restore();
+    }
+  });
+
+  it("Q891 control: any OTHER Part E PaymentIntent error still fails closed (500, a defect, no transfer, no test-mode line)", async () => {
+    const skips = captureTestModeSkips();
+    try {
+      const failed = ledgerRow({ status: "failed", created_at: OLD });
+      seed({ partA: false, existing: failed, retry: [failed] });
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(
+        Object.assign(new Error("Stripe is down"), { type: "StripeAPIError", statusCode: 503 }),
+      );
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = JSON.parse(await res.text()) as Record<string, unknown>;
+      expect(res.status).toBe(500);
+      expect((body.defectReasons as string[]).some((r) => r.startsWith("cancellation fee retry job-1"))).toBe(true);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(skips.lines()).toEqual([]);
+    } finally {
+      skips.restore();
+    }
   });
 });

@@ -37,12 +37,13 @@
 // AM-001 (proven red 2026-09-23): the two "leave it for an admin" branches must tell one.
 // @mutate supabase/functions/auto-resolve-disputes/index.ts | await remindUnsettleable(job, "no_payment_intent", "it has no Stripe payment on record"); |
 // @mutate supabase/functions/auto-resolve-disputes/index.ts | await remindUnsettleable(job, `pi_${pi.status}`, `its Stripe payment is "${pi.status}", not succeeded`); |
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock, type SupabaseScenario } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
 
 const CRON_SECRET = "cron-secret-xyz";
 const JOB_ID = "job-1";
@@ -756,6 +757,108 @@ describe("auto-resolve-disputes", () => {
   // rows, and release-payout paid the Helpr 24h later ON TOP of the refund.
   // The fix is the same claim create-payment and execute-dispute-split take
   // (claim_dispute_settlement, 20260915034822), as action 'sweep'.
+  /**
+   * Q891: a dispute on a job funded before prod went live (2026-09-27) holds
+   * Stripe ids minted under the TEST key; the LIVE key answers "No such ...; a
+   * similar object exists in test mode". No real money is behind it, so the
+   * job is skipped with ONE structured log line: no flip to payout_pending, no
+   * defect (the run stays 200), no admin reminder, no Slack page.
+   */
+  describe("Q891: a test-mode Stripe id read under the live key", () => {
+    let skips: ReturnType<typeof captureTestModeSkips>;
+    beforeEach(() => {
+      skips = captureTestModeSkips();
+    });
+    afterEach(() => {
+      skips.restore();
+    });
+
+    function expectSkippedQuietly(res: Response, body: Record<string, unknown>) {
+      expect(res.status).toBe(200);
+      expect(body.resolved).toBe(0);
+      expect((body.defectReasons as string[] | undefined) ?? []).toEqual([]);
+      expect(slackAlerts).toHaveLength(0);
+      expect(writesTo("jobs")).toHaveLength(0);
+      expect(rpcCalls("settle_dispute_record")).toHaveLength(0);
+      // No unsettleable reminder to the admins either: nothing is wrong with
+      // a test-mode job that a person needs to fix.
+      expect(writesTo("notifications", "insert")).toHaveLength(0);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+    }
+
+    const logLine = (object: string, id: string) =>
+      expect.objectContaining({
+        event: "stripe_test_object_under_live_key",
+        fn: "auto-resolve-disputes",
+        object,
+        id,
+        job_id: JOB_ID,
+      });
+
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts | logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id }); | throw e;
+    it("skips (200, no defect, no reminder) when the checkout SESSION is a test-mode object", async () => {
+      seedExpiredDispute(scenario, { stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" });
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expectSkippedQuietly(res, body);
+      expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+      expect(rpcCalls("claim_dispute_settlement")).toHaveLength(0);
+      expect(skips.lines()).toEqual([logLine("checkout.session", "cs_test_old")]);
+    });
+
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts | logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "payment_intent", id: paymentIntentId });\n          continue; | throw e;\n          continue;
+    it("skips (200, no defect, no reminder) when the PaymentIntent to verify is a test-mode object", async () => {
+      seedExpiredDispute(scenario, { stripe_payment_intent_id: "pi_test_old" });
+      stripeMock.paymentIntents.retrieve.mockRejectedValue(testModeUnderLiveKey("payment_intent", "pi_test_old"));
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expectSkippedQuietly(res, body);
+      // Skipped before the claim: nothing to hand back.
+      expect(rpcCalls("claim_dispute_settlement")).toHaveLength(0);
+      expect(skips.lines()).toEqual([logLine("payment_intent", "pi_test_old")]);
+    });
+
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts | logTestObjectUnderLiveKey("auto-resolve-disputes", { job_id: job.id, object: "payment_intent", id: paymentIntentId });\n            continue; | throw e;\n            continue;
+    it("skips (200, no defect) and releases the claim when the in-claim refund check reads a test-mode object", async () => {
+      seedExpiredDispute(scenario, { stripe_payment_intent_id: "pi_test_old" });
+      scenario.rpc.claim_dispute_settlement = { verdict: "claimed", token: "sweep-token-q891" };
+      stripeMock.paymentIntents.retrieve
+        .mockResolvedValueOnce({ id: "pi_test_old", status: "succeeded" })
+        .mockRejectedValueOnce(testModeUnderLiveKey("payment_intent", "pi_test_old"));
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expectSkippedQuietly(res, body);
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledTimes(2);
+      // The claim this run took is handed back by token, never stranded.
+      expect(rpcCalls("release_dispute_settlement_claim")).toEqual([
+        expect.objectContaining({ args: { _job_id: JOB_ID, _token: "sweep-token-q891" } }),
+      ]);
+      expect(skips.lines()).toEqual([logLine("payment_intent", "pi_test_old")]);
+    });
+
+    // Control: any OTHER session-read error still records a defect (500), as
+    // before, and is not logged as a test-mode skip. The PI-verify and
+    // in-claim controls already exist ("PI retrieve throws" in the skip-state
+    // inventory; "fails CLOSED when the in-claim Stripe check errors").
+    it("control: a plain session-read failure is still a defect (500), not a test-mode skip", async () => {
+      seedExpiredDispute(scenario, { stripe_payment_intent_id: null, stripe_session_id: "cs_1" });
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(new Error("stripe down"));
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      const body = await json(res);
+      expect(res.status).toBe(500);
+      expect((body.defectReasons as string[]).join(" ")).toMatch(/session retrieve job-1: stripe down/);
+      expect(writesTo("jobs")).toHaveLength(0);
+      expect(skips.lines()).toEqual([]);
+    });
+  });
+
   describe("settlement claim", () => {
     const claimCalls = () => rpcCalls("claim_dispute_settlement");
     const releaseCalls = () => rpcCalls("release_dispute_settlement_claim");

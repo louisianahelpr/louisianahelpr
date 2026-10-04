@@ -1,31 +1,12 @@
 /**
- * DisputeLink visibility — drives the predicate through every branch
+ * DisputeLink visibility: drives the predicate through every branch
  * (completed = never, revision window, already filed, not completed) for both
- * customer and helper sides, plus a smoke render to confirm the click
- * handler fires when the link is visible.
- *
- * Notes:
- *   - We exercise the predicate directly (`shouldShowDisputeLink`) so
- *     the rules are tested without rendering noise, then render once
- *     end-to-end to confirm the JSX wires the same predicate and the
- *     click handler actually fires.
- *   - Haptics calls Capacitor under the hood — stub it so jsdom
- *     doesn't try to load native bindings.
+ * customer and helper sides. The `<DisputeLink>` component and its render
+ * tests were deleted with Q904 (it was rendered nowhere in app source).
  */
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-
-vi.mock("@capacitor/haptics", () => ({
-  Haptics: {
-    impact: vi.fn().mockResolvedValue(undefined),
-    notification: vi.fn().mockResolvedValue(undefined),
-  },
-  ImpactStyle: { Light: "Light", Medium: "Medium", Heavy: "Heavy" },
-  NotificationType: { Success: "Success", Warning: "Warning", Error: "Error" },
-}));
+import { describe, it, expect } from "vitest";
 
 import {
-  DisputeLink,
   shouldShowDisputeLink,
   type DisputeLinkJob,
 } from "./DisputeLink";
@@ -146,41 +127,6 @@ describe("shouldShowDisputeLink", () => {
     const job = makeJob({ poster_completed_at: null, helper_completed_at: null });
     expect(shouldShowDisputeLink(job, "customer", NOW)).toBe(false);
     expect(shouldShowDisputeLink(job, "helper", NOW)).toBe(false);
-  });
-});
-
-describe("<DisputeLink />", () => {
-  it("renders the muted link and fires onOpenDispute on click", () => {
-    const onOpenDispute = vi.fn();
-    render(
-      <DisputeLink
-        job={makeJob({
-          status: "revision_requested",
-          poster_completed_at: null,
-          revision_requested_at: new Date(NOW.getTime() - HOURS(48)).toISOString(),
-          revision_deadline: new Date(NOW.getTime() - HOURS(1)).toISOString(),
-        })}
-        side="customer"
-        onOpenDispute={onOpenDispute}
-        now={NOW}
-      />,
-    );
-    const button = screen.getByRole("button", { name: /open a dispute about this job/i });
-    expect(button).toBeInTheDocument();
-    fireEvent.click(button);
-    expect(onOpenDispute).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders nothing when visibility rules don't hold", () => {
-    const { container } = render(
-      <DisputeLink
-        job={makeJob({ disputed_at: new Date().toISOString() })}
-        side="customer"
-        onOpenDispute={vi.fn()}
-        now={NOW}
-      />,
-    );
-    expect(container.firstChild).toBeNull();
   });
 });
 

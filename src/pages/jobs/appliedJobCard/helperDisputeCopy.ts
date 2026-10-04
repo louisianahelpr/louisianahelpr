@@ -3,7 +3,9 @@
  *
  * Every sentence on that panel used to assume the POSTER had filed. The helper
  * can file too — the same "Something Wrong? Open a Dispute" link sits on their
- * completed job (AppliedJobCard, via DisputeLink) — and production has one:
+ * completed job (AppliedJobCard, then via the `<DisputeLink>` component,
+ * deleted in Q904; the helper's path is now the Report a Problem chip) — and
+ * production had one:
  * job 8133a907-f36f-4278-96c4-41d4ce1d56c8 on 2026-09-06, `disputed_by` =
  * `helper_id`. On that card the panel:
  *

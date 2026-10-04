@@ -505,4 +505,42 @@ describe("tips honour the payout hold", () => {
     expect(scenario.writes.some((w) => w.table === "tips")).toBe(false);
     expect(res.status).toBe(200);
   });
+
+  // Q1224: auto_tip_candidates offers a job for 14 days; a hold longer than
+  // that dropped the tip with nobody told. On the window's last day it is
+  // recorded (a 'failed' auto row) and the poster is told; nothing is charged.
+  describe("Q1224 an auto-tip whose window closes under a hold", () => {
+    async function runHeldTip(completedDaysAgo: number) {
+      setEnv({
+        SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key",
+        STRIPE_SECRET_KEY: "sk_test_abc", CRON_SECRET,
+      });
+      const fn = await loadEdgeFunction("auto-tip-charge");
+      scenario.rpc.auto_tip_candidates = [
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+      ];
+      scenario.reads.jobs = { rows: [{ id: "job-1", completed_at: new Date(Date.now() - completedDaysAgo * 86_400_000).toISOString() }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.reads.payout_holds = { rows: [HELD] };
+      return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
+    }
+
+    // @mutate supabase/functions/auto-tip-charge/index.ts | if (!Number.isFinite(completedMs) \|\| Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) continue; | continue;
+    it("on the last day: records a 'failed' auto tip and tells the poster, charging nothing", async () => {
+      const res = await runHeldTip(13.5);
+      expect(res.status).toBe(200);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      const tip = scenario.writes.find((w) => w.table === "tips" && w.op === "insert");
+      expect(tip?.payload).toMatchObject({ job_id: "job-1", source: "auto", payment_status: "failed" });
+      const note = scenario.writes.find((w) => w.table === "notifications");
+      expect(note?.payload).toMatchObject({ user_id: "poster-1", title: "Your automatic tip wasn't sent" });
+    });
+
+    // @mutate supabase/functions/auto-tip-charge/index.ts | const AUTO_TIP_HELD_RECORD_AFTER_MS = 13 * 24 * 60 * 60 * 1000; | const AUTO_TIP_HELD_RECORD_AFTER_MS = 0;
+    it("earlier in the window: still waits for the hold, writes nothing", async () => {
+      const res = await runHeldTip(2);
+      expect(res.status).toBe(200);
+      expect(scenario.writes.some((w) => w.table === "tips" || w.table === "notifications")).toBe(false);
+    });
+  });
 });

@@ -14,7 +14,8 @@
  * (`npm run vacuity…` or `scripts/vacuity/index.mjs`), read from the parsed
  * YAML so comments cannot satisfy it.
  */
-// @mutate .github/workflows/vacuity.yml | 'SUPABASE_SERVICE_ROLE_KEY=%s | 'KEY_WRITTEN=%s
+// @mutate .github/workflows/vacuity.yml | ' "$KEY" >> .env | ' "$KEY" > /dev/null
+// @mutate .github/workflows/vacuity.yml | ' "$SERVICE_KEY" >> .env | ' "$SERVICE_KEY" > /dev/null
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

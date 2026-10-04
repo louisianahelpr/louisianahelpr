@@ -488,6 +488,38 @@ export function selectOnly(mutations, only) {
   return { scoped: mutations.filter((m) => only.includes(m.guard)), errors };
 }
 
+/**
+ * Which CI job runs a registration (Q551). A Playwright guard (a spec under
+ * e2e/) signs in as the shared prod test accounts, so vacuity.yml runs it in
+ * its own job that holds `prod-lifecycle-shared-accounts`; every other guard is
+ * plain vitest and runs in the job that holds no credentials.
+ */
+export const kindOf = (m) => (isPlaywrightGuard(m.guard) ? "e2e" : "unit");
+
+/** `kind` is "e2e", "unit" or "all" (no filter). */
+export function selectKind(mutations, kind) {
+  return kind === "all" ? mutations : mutations.filter((m) => kindOf(m) === kind);
+}
+
+/**
+ * The registrations a run mutates, before the e2e/unit split: `--only` names
+ * exact guard files, `all` is the weekly full set, and otherwise what changed
+ * (`changed` is lib.changedFiles(); null means no git/base, so the full set).
+ * ONE function, called by index.mjs (the gate) and scope.mjs (the CI job that
+ * decides whether the locked e2e job is needed at all), so they cannot disagree.
+ */
+export function scopeMutations(mutations, { all = false, only = null, report = false, changed = null } = {}) {
+  if (only) {
+    const sel = selectOnly(mutations, only);
+    return { scoped: sel.scoped, errors: sel.errors };
+  }
+  if (all || report) return { scoped: mutations, errors: [] };
+  return {
+    scoped: changed ? mutations.filter((m) => changed.has(m.guard) || changed.has(m.target)) : mutations,
+    errors: [],
+  };
+}
+
 export function collectMutations(guards = guardFiles()) {
   const mutations = [];
   const errors = [];

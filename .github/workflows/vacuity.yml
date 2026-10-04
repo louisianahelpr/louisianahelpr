@@ -87,7 +87,8 @@ on:
 
 # The SCHEDULED run joins the shared prod-load lock, because that is the run
 # that signs into prod and drives the real test accounts through every
-# registered Playwright mutation. Every other run gets a group of its OWN
+# registered Playwright mutation. On every trigger those Playwright mutations
+# also run in `vacuity-e2e`, which holds the job-level account lock (Q551). Every other run gets a group of its OWN
 # COMMIT: GitHub keeps just one PENDING run per group and cancels the older
 # pending one, so a shared per-ref group would let the third of three quick
 # merges drop the second, and that push's guards would never be proven. Each
@@ -130,46 +131,84 @@ jobs:
         run: node scripts/ci/wait-prod-load.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
-  vacuity:
+  scope:
+    # Q551: the Playwright registrations sign in as the shared prod test
+    # accounts and so run in `vacuity-e2e`, under the account lock. A job-level
+    # lock is taken before any step runs, so this lock-free job decides whether
+    # that job (and its queue) is needed at all: most pushes touch no e2e guard.
+    # It selects with the gate's own function (scripts/vacuity/scope.mjs ->
+    # run.mjs scopeMutations), and needs no `npm install`.
+    name: Do any guards need the shared accounts
     needs: prod-load-turn
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      have_e2e: ${{ steps.scope.outputs.have_e2e }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history: the per-push scope is a diff against the commit main
+          # was at before the push.
+          fetch-depth: 0
+      - id: scope
+        env:
+          ONLY: ${{ inputs.only }}
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "${ONLY}" ]; then
+            node scripts/vacuity/scope.mjs --only "${ONLY}"
+          elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
+            node scripts/vacuity/scope.mjs --all
+          else
+            node scripts/vacuity/scope.mjs
+          fi
+
+  wait-accounts:
+    # Q743: the job-level lock `vacuity-e2e` takes is NOT a queue. GitHub keeps
+    # ONE pending job per concurrency group and CANCELS it when a third arrives.
+    # This lock-free job waits its turn first and joins the group only when that
+    # bumps nobody (scripts/e2e/wait-shared-accounts.mjs;
+    # src/test/sharedAccountLockQueues.test.ts). Only when `scope` found e2e work.
+    name: Wait for the shared accounts (queue)
+    needs: scope
+    if: needs.scope.outputs.have_e2e == 'true'
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; the longest single holder is prod-audit (180).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  vacuity:
     name: Guards shown able to fail
+    needs: prod-load-turn
     runs-on: ubuntu-latest
     # The full set needs hours, not 30 minutes; a push run still finishes in
     # seconds and is unaffected by a higher ceiling. 30 min is what killed the
-    # first credentialed full sweep mid-flight, which reports as `cancelled` —
+    # first credentialed full sweep mid-flight, which reports as `cancelled` -
     # and a cancelled run is a hidden red in this repo.
     timeout-minutes: 300
 
-    # WHY THIS JOB HOLDS TEST-ACCOUNT CREDENTIALS.
+    # NO SHARED-ACCOUNT CREDENTIALS HERE (Q551). Until 2026-10-04 this job held
+    # the poster/helper secrets so a registered Playwright guard could sign in,
+    # which meant every push drove the shared prod test accounts beside whatever
+    # else was running, with no lock. The Playwright registrations now run in
+    # `vacuity-e2e` below, under `prod-lifecycle-shared-accounts`; this job runs
+    # the rest (--no-e2e).
     #
-    # Until 2026-09-22 it held none, so any push touching a guard that signs in
-    # went red for a reason that had nothing to do with the guard. That is what
-    # happened to e2e/prod-audit/activity-loading-reserve.spec.ts: its mutation
-    # is real and kills locally (placeholder row 150px -> 220px against a 151px
-    # real row, both surfaces), but in CI the spec never reached its assertions
-    # — e2e/journeys/fixtures.ts found no PLAYWRIGHT_*_EMAIL/_PASSWORD, fell
-    # through to its local service-role path, and died on `no .env`. The gate
-    # scored that `inconclusive`, which is a hard failure by design, and the red
-    # read as "this guard cannot fail" when the guard was fine.
-    #
-    # PASSWORDS ONLY, DELIBERATELY. prod-audit.yml additionally fetches a
-    # service-role key, because the incomplete-profile and admin seed accounts
-    # have no password stored anywhere. Nothing registered here needs those, so
-    # this job takes the four poster/helper secrets and stops there rather than
-    # widening the blast radius of a job whose whole purpose is to run mutated
-    # source. fixtures.ts prefers these over the service-role path, so that
-    # path is never taken here.
-    #
-    # Two existing exemptions (e2e/auth.spec.ts, e2e/payment-lifecycle.spec.ts)
-    # name exactly this as what would close them, and both note it is cheap
-    # because those specs sign in and read, leaving no funded residue.
-    env:
-      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
-      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
-      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
-      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
-      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
-      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+    # It still writes the service-role key into .env (below) because every job
+    # that runs the harness does (vacuityWorkflowsProvideServiceRole.test.ts).
 
     steps:
       - name: Checkout
@@ -249,19 +288,22 @@ jobs:
           # effectiveBase). Empty on schedule/dispatch.
           VACUITY_PUSH_BEFORE: ${{ github.event.before }}
         # Per push: ratchet + static scan + harness preflight + mutations for
-        # what changed. Weekly (schedule): every registered mutation.
+        # what changed. Weekly (schedule): every registered mutation. The
+        # Playwright registrations are NOT run here (--no-e2e): they sign in as
+        # the shared test accounts and run in `vacuity-e2e` under the account
+        # lock (Q551).
         run: |
           # The full set on the weekly schedule, or on demand. Waiting until
           # 07:17 to find out whether a change to this job's credentials or
           # scope actually works is how the e2e half stayed unproven for so
-          # long — a dispatch that cannot reproduce the weekly sweep is not a
+          # long - a dispatch that cannot reproduce the weekly sweep is not a
           # reproduction.
           if [ -n "${ONLY}" ]; then
-            npm run vacuity -- --only "${ONLY}"
+            npm run vacuity -- --no-e2e --only "${ONLY}"
           elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
-            npm run vacuity:all
+            npm run vacuity:all -- --no-e2e
           else
-            npm run vacuity
+            npm run vacuity -- --no-e2e
           fi
 
       - name: Vacuity report
@@ -275,6 +317,143 @@ jobs:
           name: vacuity-report
           path: docs/audit/vacuity-report.json
           if-no-files-found: warn
+
+      - name: Remove the service-role key from the runner
+        if: always()
+        run: rm -f .env
+
+
+  vacuity-e2e:
+    # THE PLAYWRIGHT REGISTRATIONS, UNDER THE ACCOUNT LOCK (Q551, found by Q326).
+    #
+    # WHY THIS JOB HOLDS TEST-ACCOUNT CREDENTIALS.
+    #
+    # Until 2026-09-22 the job held none, so any push touching a guard that signs
+    # in went red for a reason that had nothing to do with the guard. That is
+    # what happened to e2e/prod-audit/activity-loading-reserve.spec.ts: its
+    # mutation is real and kills locally (placeholder row 150px -> 220px against
+    # a 151px real row, both surfaces), but in CI the spec never reached its
+    # assertions - e2e/journeys/fixtures.ts found no PLAYWRIGHT_*_EMAIL/_PASSWORD,
+    # fell through to its local service-role path, and died on `no .env`. The
+    # gate scored that `inconclusive`, which is a hard failure by design, and the
+    # red read as "this guard cannot fail" when the guard was fine.
+    #
+    # PASSWORDS ONLY, DELIBERATELY. prod-audit.yml additionally fetches a
+    # service-role key, because the incomplete-profile and admin seed accounts
+    # have no password stored anywhere. Nothing registered here needs those, so
+    # this job takes the four poster/helper secrets and stops there rather than
+    # widening the blast radius of a job whose whole purpose is to run mutated
+    # source. fixtures.ts prefers these over the service-role path, so that
+    # path is never taken here.
+    #
+    # Those secrets are the shared accounts every other prod suite drives, so the
+    # job holds the one lock they all hold (Q326, sharedAccountJobsHoldOneLock
+    # .test.ts), entered through the Q743 queue. It exists only when `scope`
+    # found a Playwright registration to run: a push that changed none never
+    # waits behind a press run. 180 minutes, the longest any holder may take
+    # (the waiter's 350-minute queue plus this is the 8.8 h a real run is done
+    # inside, wait-shared-accounts.mjs STALE_RUN_MS): the weekly full set has 96
+    # Playwright registrations at ~98 s each, about 157 minutes. That is over the
+    # one-hour cap (sharedAccountLockJobsAreShort.test.ts ALLOWED); docs/OPEN.md
+    # Q1270 shards it into legs under an hour.
+    name: Playwright guards shown able to fail
+    needs: [scope, wait-accounts]
+    if: needs.scope.outputs.have_e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        # Full history: the per-push scope is a diff against origin/main, and a
+        # shallow clone has no merge base to diff against.
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        # Same reason as the vacuity job's install: the harness preflight fails
+        # when a browser is missing.
+        run: bash scripts/ci/playwright-install.sh chromium webkit
+
+      - name: Give the build the app's public Supabase config
+        # The gate rebuilds the bundle itself for Playwright guards, so it does
+        # not go through .github/actions/local-preview and needs VITE_* here.
+        # Both values are publishable — the same pair prod-audit.yml falls back
+        # to in plain text — and no secret is written by this step.
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}"
+            printf 'VITE_SUPABASE_ANON_KEY=%s\n' "${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}"
+          } > .env
+          test -s .env
+
+      - name: Give prod-backed e2e guards the service-role key
+        # e2e registrations (prod-audit, a11y-prod, journeys) mint their test
+        # sessions through scripts/test-signin-link.mjs, which needs
+        # SUPABASE_SERVICE_ROLE_KEY in .env. Without it every such guard is
+        # red BEFORE its mutation and reports INCONCLUSIVE: run 35935153284
+        # (2026-09-23, nightly-red #1731) had 5 of 11 registrations
+        # inconclusive with "ERROR: .env is missing VITE_SUPABASE_URL and/or
+        # SUPABASE_SERVICE_ROLE_KEY". Minted the same way prod-audit.yml does.
+        # Guard: src/test/vacuityWorkflowsProvideServiceRole.test.ts.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            SERVICE_KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+              | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+            echo "::add-mask::$SERVICE_KEY"
+            umask 077
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SERVICE_KEY" >> .env
+          elif [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing: prod-backed e2e guards cannot mint sessions."
+            exit 1
+          else
+            # A push run without the secret. Not a false green: an e2e
+            # registration in its changed set comes back INCONCLUSIVE, which
+            # the gate itself fails on.
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing on a $EVENT run: e2e registrations that need the service-role key will be inconclusive."
+          fi
+
+      - name: Vacuity gate (Playwright registrations)
+        env:
+          # Through env, never interpolated into the script (injection-safe).
+          ONLY: ${{ inputs.only }}
+          VACUITY_PUSH_BEFORE: ${{ github.event.before }}
+        # The same scope as the unit job, narrowed to the registrations under
+        # e2e/ (--e2e). This job exists only when `scope` found one.
+        run: |
+          if [ -n "${ONLY}" ]; then
+            npm run vacuity -- --e2e --only "${ONLY}"
+          elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.full }}" = "true" ]; then
+            npm run vacuity:all -- --e2e
+          else
+            npm run vacuity -- --e2e
+          fi
 
       - name: Remove the service-role key from the runner
         if: always()
@@ -296,7 +475,7 @@ jobs:
   # teach people to ignore it.
   notify:
     name: Report nightly result
-    needs: [vacuity]
+    needs: [scope, vacuity, vacuity-e2e]
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -308,6 +487,8 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: vacuity
-          status: ${{ needs.vacuity.result == 'success' && 'success' || 'failure' }}
+          # vacuity-e2e does not run when no Playwright registration was in scope
+          # (Q551), so it is required to succeed exactly when scope said it ran.
+          status: ${{ needs.scope.result == 'success' && needs.vacuity.result == 'success' && (needs.scope.outputs.have_e2e != 'true' || needs.vacuity-e2e.result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

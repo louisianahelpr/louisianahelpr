@@ -21,6 +21,14 @@
  * something beyond `[ -n "$X" ]` presence checks. A preflight that only tests
  * whether the secrets are set signs nothing in.
  *
+ * Q550/Q551 (2026-10-04): the two jobs that were NOT_LOCKED for want of a shape
+ * now hold it. a11y-webkit-prod's two-engine matrix became ONE `sweep` job that
+ * runs chromium then webkit; vacuity.yml's credentialed Playwright registrations
+ * moved out of the credential-free `vacuity` job into `vacuity-e2e`, which only
+ * exists when `scope` finds one. The matrix rule below keeps the first shape from
+ * coming back: a matrix of locked jobs serialises itself, and GitHub's one
+ * pending job per group cancels a leg.
+ *
  * NOT_LOCKED is exact and two-way: each entry must be a job that signs in and
  * does NOT hold the lock. When one gains it, delete the entry; this test fails
  * until you do.
@@ -28,6 +36,9 @@
 // @mutate .github/workflows/press-every-control.yml |     timeout-minutes: 57 # press leg 5\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    env:\n      BASE: |     timeout-minutes: 57 # press leg 5\n    env:\n      BASE:
 // @mutate .github/workflows/e2e-journeys.yml | needs: [preflight, wait-accounts]\n    if: needs.preflight.outputs.have_accounts == 'true'\n    runs-on: ubuntu-latest\n    # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts).\n    # Measured 2026-09-30: journeys max 30.3 min over 44 runs, journeys-webkit max\n    # 24.3 min among completed runs.\n    timeout-minutes: 60\n    # Workflow-level group is prod-load now; this job-level lock keeps the\n    # shared-account serialisation with e2e-real-backend's push-triggered\n    # prod-lifecycle job, which holds the same group.\n    concurrency:\n      group: prod-lifecycle-shared-accounts | needs: [preflight, wait-accounts]\n    if: needs.preflight.outputs.have_accounts == 'true'\n    runs-on: ubuntu-latest\n    # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts).\n    # Measured 2026-09-30: journeys max 30.3 min over 44 runs, journeys-webkit max\n    # 24.3 min among completed runs.\n    timeout-minutes: 60\n    # Workflow-level group is prod-load now; this job-level lock keeps the\n    # shared-account serialisation with e2e-real-backend's push-triggered\n    # prod-lifecycle job, which holds the same group.\n    concurrency:\n      group: e2e-journeys-own
 // @mutate .github/workflows/e2e-real-backend.yml | # holds (docs/OPEN.md Q326; src/test/sharedAccountJobsHoldOneLock.test.ts).\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    steps:\n      - uses: actions/checkout@v7\n      - uses: actions/setup-node@v7\n        with:\n          node-version: "22"\n          cache: "npm"\n      - name: Drop the Google Chrome apt source | # holds (docs/OPEN.md Q326; src/test/sharedAccountJobsHoldOneLock.test.ts).\n    #\n    steps:\n      - uses: actions/checkout@v7\n      - uses: actions/setup-node@v7\n        with:\n          node-version: "22"\n          cache: "npm"\n      - name: Drop the Google Chrome apt source
+// @mutate .github/workflows/a11y-webkit-prod.yml |     timeout-minutes: 60\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    env:\n      PLAYWRIGHT_BASE_URL |     timeout-minutes: 60\n    env:\n      PLAYWRIGHT_BASE_URL
+// @mutate .github/workflows/a11y-webkit-prod.yml |     timeout-minutes: 60\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    env:\n      PLAYWRIGHT_BASE_URL |     timeout-minutes: 60\n    strategy:\n      matrix:\n        engine: [chromium, webkit]\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false\n    env:\n      PLAYWRIGHT_BASE_URL
+// @mutate .github/workflows/vacuity.yml |     timeout-minutes: 180\n    concurrency:\n      group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false |     timeout-minutes: 180
 // @mutate .github/workflows/slow-network.yml |       group: prod-lifecycle-shared-accounts\n      cancel-in-progress: false |       group: prod-lifecycle-shared-accounts\n      cancel-in-progress: true
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -40,22 +51,19 @@ const SHARED_SECRET = /secrets\.PLAYWRIGHT_(POSTER|HELPER|ADMIN|INCOMPLETE)_(EMA
 
 /** `file:job` → why it does not hold the lock. Exact, two-way. */
 export const NOT_LOCKED: Record<string, string> = {
-  "a11y-webkit-prod.yml:sweep":
-    "a two-engine matrix (chromium + webkit side by side for the diff); its WORKFLOW group is prod-load on " +
-    "every trigger (DISPATCH_SHARES_GROUP), so it never overlaps a scheduled suite or press, but a DISPATCHED " +
-    "split suite can still overlap it. Open as docs/OPEN.md Q550: fold both engines into one locked job, as press did.",
   "core-loop-canary.yml:canary":
     "hourly; queued in the lock it would cancel a pending suite (one pending run per group), so it ASKS " +
     "instead: scripts/canary/shared-accounts-busy.mjs stands it down while any shared-account workflow runs " +
     "(src/test/coreLoopCanary.test.ts).",
-  "vacuity.yml:vacuity":
-    "runs on every push; in the lock each push's guard proof would queue behind a 5-hour press run and be " +
-    "cancelled by the next push. It signs in only when a registered e2e guard's files changed. Open as " +
-    "docs/OPEN.md Q551.",
 };
 
 type Step = { run?: string; uses?: string; env?: Record<string, unknown> };
-type Job = { concurrency?: string | { group?: string; "cancel-in-progress"?: unknown }; env?: Record<string, unknown>; steps?: Step[] };
+type Job = {
+  concurrency?: string | { group?: string; "cancel-in-progress"?: unknown };
+  env?: Record<string, unknown>;
+  steps?: Step[];
+  strategy?: { matrix?: unknown; "max-parallel"?: unknown };
+};
 type Wf = { env?: Record<string, unknown>; jobs?: Record<string, Job> };
 
 /** Runs something that can use the credentials: a program, or an action beyond checkout/setup/artifacts. */
@@ -93,6 +101,8 @@ describe("Q326: every job that drives the shared test accounts holds one lock", 
     expect(jobs.length).toBeGreaterThan(8);
     for (const n of [1, 2, 3, 4, 5, 6]) expect(jobs.map((j) => j.key)).toContain(`press-every-control.yml:press-${n}`);
     expect(jobs.map((j) => j.key)).toContain("e2e-journeys.yml:journeys");
+    // Q550/Q551: the two jobs that used to be NOT_LOCKED are in the inventory, and locked.
+    for (const k of ["a11y-webkit-prod.yml:sweep", "vacuity.yml:vacuity-e2e"]) expect(jobs.map((j) => j.key)).toContain(k);
   });
 
   it("a presence-only preflight is not counted as signing in", () => {
@@ -110,6 +120,21 @@ describe("Q326: every job that drives the shared test accounts holds one lock", 
       expect(cancel, "a cancelled run strands fixture rows").toBe(false);
     },
   );
+
+  it("no locked job is a parallel matrix: its legs would queue on one lock and GitHub cancels the pending one (Q550)", () => {
+    // max-parallel: 1 starts one leg at a time, so only one is ever queued
+    // (e2e-abuse-notifications' two projects); anything wider queues them all.
+    const matrixed = jobs
+      .filter((j) => j.job.strategy?.matrix !== undefined && lockOf(j.job).group === LOCK && j.job.strategy["max-parallel"] !== 1)
+      .map((j) => j.key);
+    expect(matrixed, "fold the legs into one locked job, as a11y-webkit-prod's sweep and press-every-control do").toEqual([]);
+  });
+
+  it("a job holding the shared-account secrets without the lock is only ever listed, never new (Q551)", () => {
+    // vacuity.yml's credential-free `vacuity` job must stay out of the inventory:
+    // the day it names a shared-account secret again it must hold the lock.
+    expect(jobs.map((j) => j.key)).not.toContain("vacuity.yml:vacuity");
+  });
 
   it("NOT_LOCKED is exact: every entry is a real shared-account job that does not hold the lock", () => {
     const byKey = new Map(jobs.map((j) => [j.key, j.job]));

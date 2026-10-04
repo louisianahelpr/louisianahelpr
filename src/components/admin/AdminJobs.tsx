@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Flag, CheckCircle2, Briefcase, Ghost } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
+import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import type { Job } from "./adminJobs/types";
 import { detectFlags, getResolvedFlags, saveResolvedFlags, isStaleOnly, isGhostJob } from "./adminJobs/adminJobsHelpers";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "./AdminViewShell";
@@ -287,6 +288,7 @@ const AdminJobs = () => {
       // sentence (a 409 guard, a 429) is in the body. See functionErrorMessage.
       if (error) throw new Error(await functionErrorMessage(error, "Couldn't issue that refund — try again"));
       if ((data as { error?: string })?.error) throw new Error((data as { error?: string }).error);
+      warnIfGiftNotReturned(data);
       if (!isPartial) {
         // Full refund cancels the job — reflect locally. Partial refund
         // leaves job state intact server-side, so don't mutate either.

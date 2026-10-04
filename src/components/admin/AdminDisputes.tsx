@@ -8,6 +8,7 @@ import { tierRank } from "@/lib/subscriptionTiers";
 import { formatPriceExact } from "@/lib/format";
 import { CheckCircle2, AlertTriangle, History, SearchX } from "lucide-react";
 import { toast } from "sonner";
+import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import { report } from "@/lib/errorLogger";
 import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -299,19 +300,18 @@ const AdminDisputes = () => {
     setResolving(job.id);
     try {
       if (action === "release") {
-        // Release payment to helpr — invoke create-payment with release action
         const { data, error } = await supabase.functions.invoke("create-payment", {
           body: { action: "admin_release_dispute", jobId: job.id },
         });
         if (error) throw await functionInvokeError(error);
         if (data?.error) throw new Error(data.error);
       } else {
-        // Refund to customer — cancel the payment intent
         const { data, error } = await supabase.functions.invoke("create-payment", {
           body: { action: "admin_refund_dispute", jobId: job.id },
         });
         if (error) throw await functionInvokeError(error);
         if (data?.error) throw new Error(data.error);
+        warnIfGiftNotReturned(data);
       }
       loadDisputes();
     } catch (err: unknown) {

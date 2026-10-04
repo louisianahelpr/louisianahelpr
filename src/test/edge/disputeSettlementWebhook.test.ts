@@ -607,3 +607,146 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     expect(stripeMock.refunds.list).not.toHaveBeenCalled();
   });
 });
+
+
+/**
+ * Q454: a FULL refund of a partly gift-funded job's PaymentIntent (only the
+ * shortfall) marked the job refunded and dropped the gift part. The webhook
+ * now gives the whole gift back after the flip, unless a decided dispute owns
+ * the escrow (its decision splits the gift; the close pages instead) or a
+ * payout already moved out of it (lh-money-escrow review, MEDIUM).
+ *
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (decided === "no_unsettled_dispute" \|\| decided === "closed") { | if (true) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | const giftBack = await restoreGiftForRefundedJob(supabase, String(refundedJob.id)); | const giftBack = { ok: true as const, outcome: null, restoreCents: 0, spendable: false };
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | throw new Error(`Gift restore failed for refunded job | void new Error(`Gift restore failed for refunded job
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (payout.transferId) { | if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (giftBack.outcome === "restored" && giftBack.spendable && giftBack.restoreCents > 0) { | if (giftBack.outcome === "restored" && giftBack.restoreCents > 0) {
+ * @mutate supabase/functions/stripe-webhook/handlers/_giftCardRestore.ts | if (!restoredErr && !giftErr && ((giftRows ?? []) as unknown[]).length === 0) { | if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/_giftCardRestore.ts | if (!restoredErr && ((restoredRows ?? []) as unknown[]).length > 0) { | if (false) {
+ */
+describe("Q454: a full refund gives the job's gift card back", () => {
+  function refundedEvent(id: string) {
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id,
+      type: "charge.refunded",
+      data: { object: { id: `ch_${id}`, payment_intent: "pi_short", amount: 4000, amount_refunded: 4000, currency: "usd", refunds: null } },
+    });
+  }
+  const job = { id: "job-g", customer_id: "p", helper_id: "h", title: "Gift job", payment_status: "escrow" };
+  const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job");
+  const refundNote = () => scenario.writes
+    .filter((w) => w.table === "notifications" && w.op === "insert")
+    .map((w) => w.payload as Record<string, unknown>)
+    .find((n) => n.title === "Refund processed");
+  // A gift redeemed on the job and not yet given back.
+  const giftAtStake = {
+    rows: [{ id: "gc-1" }],
+    selectOverrides: [{ includes: "restored_from_job_id", result: { rows: [] } }],
+  };
+
+  it("restores the whole gift (default share) after the flip, before the card holder's notice, which says so", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q454_gift");
+    scenario.reads.jobs = { rows: [job] };
+    let noticedFirst = true;
+    let flippedFirst = false;
+    scenario.rpc.restore_gift_card_for_job = () => {
+      noticedFirst = !!refundNote();
+      flippedFirst = scenario.writes.some((w) => w.table === "jobs" && w.op === "update");
+      return { outcome: "restored", credit_id: "gc-new", restore_cents: 6000, payment_status: "paid" };
+    };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(restoreCalls()).toHaveLength(1);
+    expect(restoreCalls()[0].args).toEqual({ p_job_id: "job-g" });
+    expect(flippedFirst).toBe(true);
+    expect(noticedFirst).toBe(false);
+    expect(String(refundNote()?.message)).toMatch(/\$60 your gift card paid is back as a gift/);
+    // The payout read that gates it asked for every transfer that moved money.
+    const payoutRead = (scenario.readQueries ?? []).find((q) => q.table === "payout_transfers");
+    expect(payoutRead?.filters).toContainEqual({ op: "in", column: "status", value: ["pending", "paid", "reversed"] });
+  });
+
+  it("a replacement minted from a REVOKED donation (unspendable) is not announced as back", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q454_revoked");
+    scenario.reads.jobs = { rows: [job] };
+    scenario.rpc.restore_gift_card_for_job = { outcome: "restored", credit_id: "gc-new", restore_cents: 6000, payment_status: "refunded" };
+    await post(fn);
+    expect(restoreCalls()).toHaveLength(1);
+    expect(String(refundNote()?.message)).not.toMatch(/gift card paid is back/);
+  });
+
+  it("a payout already moved out of this escrow: no restore, a critical page, and the refund still acks (review MEDIUM)", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q454_paid");
+    scenario.reads.jobs = { rows: [{ ...job, payment_status: "payout_pending" }] };
+    scenario.reads.payout_transfers = { rows: [{ id: "pt-1", stripe_transfer_id: "tr_paid", status: "paid" }] };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(restoreCalls()).toHaveLength(0);
+    const page = alerts().find((a) => /payout transfer — gift card NOT returned/.test(a.title));
+    expect(page?.severity).toBe("critical");
+    expect(page?.message).toMatch(/tr_paid/);
+    expect(refundNote()).toBeDefined();
+  });
+
+  it("leaves the gift to the decision when a decided dispute owns the escrow", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q454_decided");
+    scenario.reads.jobs = { rows: [job] };
+    scenario.reads.disputes = { rows: [{ id: "d-1" }] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_dash", amount: 4000, status: "succeeded", metadata: {} }] });
+    scenario.rpc.settle_dispute_by_external_refund = {
+      outcome: "needs_human", dispute_id: "d-1", reason: "a gift card funded part of this job",
+    };
+    await post(fn);
+    expect(restoreCalls()).toHaveLength(0);
+  });
+
+  it("a gift that cannot be returned pages and throws BEFORE the card holder's notice (Stripe redelivers)", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q454_fail");
+    scenario.reads.jobs = { rows: [job] };
+    scenario.reads.gift_cards = giftAtStake;
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "connection reset" } };
+    const res = await post(fn);
+    expect(res.status).toBeGreaterThanOrEqual(500);
+    expect(alerts().some((a) => a.severity === "critical" && /gift card was NOT returned/.test(a.title))).toBe(true);
+    expect(refundNote()).toBeUndefined();
+  });
+
+  it("an RPC outage after the gift was ALREADY given back does not throw for days (review LOW-4)", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q454_already");
+    scenario.reads.jobs = { rows: [job] };
+    scenario.reads.gift_cards = {
+      rows: [{ id: "gc-1" }],
+      selectOverrides: [{ includes: "restored_from_job_id", result: { rows: [{ id: "gc-new", restored_from_job_id: "job-g" }] } }],
+    };
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "connection reset" } };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(refundNote()).toBeDefined();
+    expect(String(refundNote()?.message)).not.toMatch(/gift card paid is back/);
+  });
+
+  it("no gift at stake: an unavailable restore does not hold the refund hostage", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q454_nogift");
+    scenario.reads.jobs = { rows: [job] };
+    scenario.reads.gift_cards = { rows: [] };
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "function does not exist", code: "PGRST202" } };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(refundNote()).toBeDefined();
+  });
+
+  it("a job the full refund could not close ('released') keeps its gift (nothing was cancelled)", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q454_released");
+    scenario.reads.jobs = { rows: [{ ...job, payment_status: "released" }] };
+    await post(fn);
+    expect(restoreCalls()).toHaveLength(0);
+  });
+});

@@ -1563,7 +1563,12 @@ describe("create-payment edge function", () => {
       };
       scenario.writeSelectRows.jobs = [{ id: "job-1" }];
       scenario.rpcErrors = { restore_gift_card_for_job: { message: "deadlock detected", code: "40P01" } };
-      scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
+      // The gift is at stake (redeemed on the job) and has NOT been given back
+      // yet (no replacement row carries this job: Q454 review LOW-4).
+      scenario.reads.gift_cards = {
+        rows: [{ id: "gift-1" }],
+        selectOverrides: [{ includes: "restored_from_job_id", result: { rows: [] } }],
+      };
       const fn = await load();
       const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
       expect(res.status).toBe(500);
@@ -3419,5 +3424,215 @@ describe("create-payment: recurring_visit (Q210b)", () => {
     const res = await pay();
     expect(res.status).not.toBe(200);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Q454: the admin refunds give a PARTLY gift-funded job's gift card back.
+ * On such a job the PaymentIntent is only the shortfall, so Quick Refund and a
+ * full general refund returned the card part and dropped the gift part. Both
+ * now restore the whole gift (restore_gift_card_for_job's default share) AFTER
+ * the job's terminal flip (lh-money-escrow review, HIGH: a gift back over a
+ * job still open to a payout path is a double payment), and a restore that
+ * fails pages critical and is finished by hand on a job no payout can reach.
+ *
+ * @mutate supabase/functions/create-payment/index.ts | const disputeGift = await returnGiftAfterRefund(supabaseAdmin, job, "Quick Refund"); | const disputeGift = { restoredCents: 0, failed: false, posterSentence: "" };
+ * @mutate supabase/functions/create-payment/index.ts | : await returnGiftAfterRefund(supabaseAdmin, job, "Admin refund"); | : { restoredCents: 0, failed: false, posterSentence: "" };
+ * @mutate supabase/functions/create-payment/index.ts | refundCents: disputeRefundCents + disputeGift.restoredCents, | refundCents: disputeRefundCents,
+ * @mutate supabase/functions/create-payment/index.ts | posterSentence: minted > 0 && back.spendable | posterSentence: minted > 0
+ * @mutate supabase/functions/create-payment/index.ts | const minted = back.outcome === "restored" ? back.restoreCents : 0; | const minted = back.restoreCents;
+ * @mutate supabase/functions/create-payment/index.ts | if (!restoredErr && (restoredRows ?? []).length > 0) { | if (false) {
+ * @mutate supabase/functions/create-payment/index.ts | if (payoutErr \|\| payout) { | if (false) {
+ * @mutate supabase/functions/create-payment/index.ts | ...(generalGift.failed ? { giftRestoreFailed: true } : {}) |
+ * @mutate supabase/functions/create-payment/index.ts | ...(disputeGift.failed ? { giftRestoreFailed: true } : {}) |
+ */
+describe("create-payment: the admin refunds give the gift card back (Q454)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+    seedAuth(scenario, ADMIN);
+    scenario.rpc.has_role = true;
+  });
+  const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job");
+  const jobFlip = () => scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+  const posterNote = () => scenario.writes
+    .filter((w) => w.table === "notifications" && w.op === "insert")
+    .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]) as Array<Record<string, unknown>>)
+    .find((n) => n.user_id === POSTER.id);
+  const disputedMixedJob = {
+    id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", payment_status: "escrow",
+    title: "Gift job", stripe_payment_intent_id: "pi_short", is_seed: false,
+  };
+  // The gift is at stake (redeemed on the job) and not yet given back.
+  const giftAtStake = {
+    rows: [{ id: "gc-1" }],
+    selectOverrides: [{ includes: "restored_from_job_id", result: { rows: [] } }],
+  };
+  const pi = { id: "pi_short", status: "succeeded", amount: 4000, amount_received: 4000 };
+
+  it("Quick Refund closes the job FIRST, then restores the whole gift while the claim is still held", async () => {
+    scenario.reads.jobs = { rows: [disputedMixedJob] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_short", amount: 3854 });
+    // Records what had already happened when the restore ran.
+    let refundedFirst = false;
+    let flippedFirst = false;
+    let releasedFirst = true;
+    scenario.rpc.restore_gift_card_for_job = () => {
+      refundedFirst = stripeMock.refunds.create.mock.calls.length === 1;
+      flippedFirst = (jobFlip()?.payload as Record<string, unknown> | undefined)?.payment_status === "refunded";
+      releasedFirst = (scenario.rpcCalls ?? []).some((c) => c.name === "release_dispute_settlement_claim");
+      return { outcome: "restored", credit_id: "gc-new", restore_cents: 6000, payment_status: "paid" };
+    };
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+    expect(res.status).toBe(200);
+    expect(restoreCalls()).toHaveLength(1);
+    // The default share: the poster won the whole dispute.
+    expect(restoreCalls()[0].args).toEqual({ p_job_id: "job-1" });
+    expect(refundedFirst).toBe(true);
+    expect(flippedFirst).toBe(true);
+    expect(releasedFirst).toBe(false);
+    // What the poster got back counts the gift (as the split's record does)...
+    const record = (scenario.rpcCalls ?? []).find((c) => c.name === "settle_dispute_record");
+    expect((record?.args as Record<string, unknown>)._refund_cents).toBe(3854 + 6000);
+    // ...and the poster is told the gift is back.
+    expect(String(posterNote()?.message)).toMatch(/\$60 your gift card paid is back as a gift/);
+  });
+
+  it("Quick Refund whose gift cannot be returned still closes the job, pages critical, and answers success", async () => {
+    scenario.reads.jobs = { rows: [disputedMixedJob] };
+    scenario.reads.gift_cards = giftAtStake;
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_short", amount: 3854 });
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "connection reset" } };
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).giftRestoreFailed).toBe(true);
+    expect(jobFlip()?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+    expect(slackAlerts.some((a) => (a as { title?: string; severity?: string }).title === "Quick Refund closed the job but did not return the poster's gift card"
+      && (a as { severity?: string }).severity === "critical")).toBe(true);
+    expect(String(posterNote()?.message)).not.toMatch(/gift card paid is back/);
+  });
+
+  it("a gift ANOTHER call already gave back is neither counted again nor announced again", async () => {
+    scenario.reads.jobs = { rows: [disputedMixedJob] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_short", amount: 3854 });
+    scenario.rpc.restore_gift_card_for_job = { outcome: "already_restored", credit_id: "gc-new", restore_cents: 6000 };
+    const fn = await load();
+    await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+    const record = (scenario.rpcCalls ?? []).find((c) => c.name === "settle_dispute_record");
+    expect((record?.args as Record<string, unknown>)._refund_cents).toBe(3854);
+    expect(String(posterNote()?.message)).not.toMatch(/gift card paid is back/);
+  });
+
+  it("a replacement minted from a REVOKED donation (unspendable) is not announced as back", async () => {
+    scenario.reads.jobs = { rows: [disputedMixedJob] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_short", amount: 3854 });
+    scenario.rpc.restore_gift_card_for_job = { outcome: "restored", credit_id: "gc-new", restore_cents: 6000, payment_status: "refunded" };
+    const fn = await load();
+    await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+    expect(String(posterNote()?.message)).not.toMatch(/gift card paid is back/);
+  });
+
+  it("an RPC outage after the gift was ALREADY given back is not a failure (review LOW-4)", async () => {
+    scenario.reads.jobs = { rows: [disputedMixedJob] };
+    scenario.reads.gift_cards = {
+      rows: [{ id: "gc-1" }],
+      selectOverrides: [{ includes: "restored_from_job_id", result: { rows: [{ id: "gc-new", restored_from_job_id: "job-1" }] } }],
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_short", amount: 3854 });
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "connection reset" } };
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }));
+    expect(res.status).toBe(200);
+    expect(slackAlerts.some((a) => /did not return the poster's gift card/.test(String((a as { title?: string }).title)))).toBe(false);
+  });
+
+  it("a full general refund cancels the job FIRST, then restores the whole gift", async () => {
+    scenario.reads.jobs = { rows: [{ ...disputedMixedJob, status: "in_progress" }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_short", status: "succeeded" });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_full", amount: 4000 });
+    let flippedFirst = false;
+    scenario.rpc.restore_gift_card_for_job = () => {
+      flippedFirst = (jobFlip()?.payload as Record<string, unknown> | undefined)?.payment_status === "refunded";
+      return { outcome: "restored", credit_id: "gc-new", restore_cents: 6000, payment_status: "paid" };
+    };
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
+    expect(res.status).toBe(200);
+    expect(restoreCalls()).toHaveLength(1);
+    expect(restoreCalls()[0].args).toEqual({ p_job_id: "job-1" });
+    expect(flippedFirst).toBe(true);
+    expect(jobFlip()?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+    expect(String(posterNote()?.message)).toMatch(/gift card paid is back/);
+  });
+
+  it("a full general refund whose gift cannot be returned still cancels the job, and pages critical", async () => {
+    scenario.reads.jobs = { rows: [{ ...disputedMixedJob, status: "in_progress" }] };
+    scenario.reads.gift_cards = giftAtStake;
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_short", status: "succeeded" });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_full", amount: 4000 });
+    scenario.rpc.restore_gift_card_for_job = { outcome: "something_new" };
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).giftRestoreFailed).toBe(true);
+    expect(jobFlip()?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+    expect(slackAlerts.some((a) => (a as { title?: string; severity?: string }).title === "Admin refund closed the job but did not return the poster's gift card"
+      && (a as { severity?: string }).severity === "critical")).toBe(true);
+  });
+
+  it("a payout that landed during the refund (a batch in flight) blocks the restore: job closed, critical page, giftRestoreFailed (review round 2)", async () => {
+    scenario.reads.jobs = { rows: [{ ...disputedMixedJob, status: "completed", payment_status: "payout_pending" }] };
+    // The pre-refund ledger check (select "id") saw nothing; the batch's
+    // transfer row is there by the time the gift would come back.
+    scenario.reads.payout_transfers = {
+      rows: [],
+      selectOverrides: [{ includes: "stripe_transfer_id", result: { rows: [{ id: "pt-1", stripe_transfer_id: "tr_batch", status: "paid" }] } }],
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_short", status: "succeeded" });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_full", amount: 4000 });
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).giftRestoreFailed).toBe(true);
+    expect(restoreCalls()).toHaveLength(0);
+    expect(jobFlip()?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
+    const page = slackAlerts.find((a) => (a as { title?: string }).title === "Admin refund closed the job but did not return the poster's gift card") as
+      | { severity?: string; message?: string } | undefined;
+    expect(page?.severity).toBe("critical");
+    expect(page?.message).toMatch(/tr_batch/);
+  });
+
+  it("a general refund whose flip MISSED (the job moved: a payout may follow) restores nothing", async () => {
+    scenario.reads.jobs = {
+      rows: [{ ...disputedMixedJob, status: "in_progress" }],
+      selectOverrides: [{ includes: "id, status, payment_status", result: { rows: [{ id: "job-1", status: "completed", payment_status: "payout_pending" }] } }],
+    };
+    scenario.writeSelectRows.jobs = [];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_short", status: "succeeded" });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_full", amount: 4000 });
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
+    expect(res.status).toBe(500);
+    expect(restoreCalls()).toHaveLength(0);
+  });
+
+  it("a PARTIAL general refund leaves the job running and its gift where it is", async () => {
+    scenario.reads.jobs = { rows: [{ ...disputedMixedJob, status: "in_progress" }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_part", amount: 1000 });
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill", amountCents: 1000 } }));
+    expect(res.status).toBe(200);
+    expect(restoreCalls()).toHaveLength(0);
+    expect(jobFlip()).toBeUndefined();
   });
 });

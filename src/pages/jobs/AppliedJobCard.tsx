@@ -1,5 +1,6 @@
 import { memo, useRef, useState } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
 import {
@@ -87,9 +88,9 @@ function AppliedJobCardInner({
      and expanded` are mutually exclusive branches, so they can never both want
      the gallery open. */
   const [photosOpen, setPhotosOpen] = useState(false);
-  // The viewing helper's own tier rate. Only consulted when the job carries no
-  // stamped helper_fee_percent — see the fee-precedence note in the helper.
+  // Viewer's tier rate (fallback when unstamped), and the one-time fee still due (Q753).
   const { profile: viewerProfile } = useCurrentUser();
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   // Q344: a decided dispute whose money has not moved is not "Paid out".
   const unsettledDisputeJobIds = useUnsettledDisputeJobIds();
   const viewerFeePercent = tierFeePercent(
@@ -153,9 +154,8 @@ function AppliedJobCardInner({
     job,
     helperReviewedJobIds,
     expandedJobIds,
-    // The viewer's own tier rate, used only when the job has no rate stamped
-    // on it yet — see the fee-precedence note in appliedJobCardHelpers.
     viewerFeePercent,
+    firstPayoutFee,
   );
 
   /** The poster, or null on a job whose poster deleted their account — deletion

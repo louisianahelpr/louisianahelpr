@@ -12,6 +12,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import type { Conversation } from "@/components/messages/types";
 
 /** Read-only notice that replaces the composer in that thread. Role-neutral. */
 export const DELETED_ACCOUNT_NOTICE =
@@ -60,4 +62,25 @@ export async function fetchCounterpartyDeleted(
     return null;
   }
   return data === true;
+}
+
+/**
+ * The open thread, turned into its deleted-account form (`otherUserId: null`,
+ * "Former member", read-only notice) when it is the one `jobId`/`otherUserId`
+ * names. Any other thread passes through untouched, so a late answer for a
+ * thread the viewer has since left cannot rewrite the one they are in. The ONE
+ * flip, shared by a refused send (Q334) and by realtime / reconnect (Q510).
+ */
+export function flipToDeletedAccountThread(
+  convo: Conversation | null,
+  jobId: string,
+  otherUserId: string,
+): Conversation | null {
+  if (!convo || convo.jobId !== jobId || convo.otherUserId !== otherUserId) return convo;
+  return {
+    ...convo,
+    otherUserId: null,
+    otherUserName: FORMER_MEMBER_LABEL,
+    otherUserAvatarUrl: null,
+  };
 }

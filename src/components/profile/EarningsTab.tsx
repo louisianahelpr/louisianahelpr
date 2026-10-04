@@ -23,11 +23,13 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
 import {
   completedWithin,
   isAwaitingTransfer,
+  firstPayoutFeeDueFrom,
   isEarnedJob,
   rangeStartMs,
 } from "@/components/profile/earningsTab/earningsTabHelpers";
@@ -101,6 +103,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // tab disagree with every other earnings surface. A populated per-job
   // column still wins (it's the fee actually charged on that payout).
   const helperFeeFallbackPct = tierFeePercent(subTier, profile?.subscription_expires_at ?? null);
+  // Q753: the one-time setup fee still due; it comes off the totals ONCE.
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   // CC-019: this was a hand-typed `basic || pro || elite` list, and the
   // instant-payout edge function held a second copy of it. Plus was missing
   // from both, so a paying Plus member saw no button and, if they reached the
@@ -135,20 +139,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const { payoutYears, exportYear, setExportYear, handleExportCSV } = usePayoutsCsvExport(stripeData?.payouts);
 
-  // EARNED, not merely "completed". `status === "completed"` was the whole
-  // test until 2026-09-06, and it counts a job whose money was refunded to the
-  // poster or charged back by the card issuer — both reachable on a completed
-  // job, both still `completed` afterwards. `isEarnedJob` adds the
-  // payment_status half: money committed (`payout_pending`) or moved
+  // EARNED, not merely "completed" (the test until 2026-09-06): a job refunded
+  // to the poster or charged back stays `completed` forever. `isEarnedJob` adds
+  // the payment_status half: money committed (`payout_pending`) or moved
   // (`released`). See the state table in earningsTabHelpers.ts.
   const completedJobs = earningsJobs.filter(isEarnedJob);
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
-  // Take-home per job comes from the one shared definition in
-  // `helperEarnings.ts`, which keeps this tab's long-standing behaviour: the
-  // budget AND the urgent fee are collected from the poster ONCE and split
-  // across a group job's roster (#114), so a group helper sees only their share
-  // — shown == transferred.
-  const totalEarnings = sumHelperTakeHomeDollars(completedJobs, helperFeeFallbackPct);
+  // Take-home per job: helperEarnings.ts (a group helper sees only their share,
+  // #114). The one-time fee comes off a total only while a payout is still to come (Q753).
+  const totalEarnings = sumHelperTakeHomeDollars(completedJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(completedJobs, firstPayoutFee));
 
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
@@ -168,7 +167,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // setup and has the most reason to ask.
   const releasingJobs = earningsJobs.filter(isAwaitingTransfer);
   const releasingCents = Math.round(
-    sumHelperTakeHomeDollars(releasingJobs, helperFeeFallbackPct) * 100,
+    sumHelperTakeHomeDollars(releasingJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(releasingJobs, firstPayoutFee)) * 100,
   );
   // Soonest scheduled arrival, for the "reaches your wallet <date>" copy.
   const releasingAt =
@@ -231,7 +230,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     rangeSince === null
       ? tips
       : tips.filter((t) => new Date(t.created_at).getTime() >= rangeSince);
-  const rangeEarnings = sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct);
+  const rangeEarnings = sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(rangeJobs, firstPayoutFee));
   // Tips land in full: the poster pays the card fee on top (ME-006).
   const rangeTips = sumHelperTipDollars(rangeTipRows);
 
@@ -436,6 +435,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
           onBrowseJobs={() => navigate("/home")}
           feeFallbackPct={helperFeeFallbackPct}
+          firstPayoutFeeDollars={firstPayoutFeeDueFrom(completedJobs, firstPayoutFee)}
         />
 
         <SectionRule />

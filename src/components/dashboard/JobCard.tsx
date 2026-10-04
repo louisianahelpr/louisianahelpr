@@ -20,6 +20,7 @@ import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { prefetchJobDialog } from "./prefetchJobDialog";
 import { JobPrice, computeNet } from "./JobPrice";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import type { EnrichedJob } from "./types";
 import {
   JOB_CARD_BADGE_ROW,
@@ -115,18 +116,16 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // math itself now lives in JobPrice (the single money component), so the
   // card and detail view can never disagree.
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   // Announce the SAME figure the visible JobPrice chip shows: net take-home by
   // default, gross budget only on guest/poster surfaces. Reusing computeNet
-  // keeps the screen-reader label from drifting to the gross budget while
-  // sighted users see the lower net number.
-  // formatPriceFloor on the net branch, matching what the chip renders —
-  // a screen-reader user must hear the same take-home a sighted user reads.
-  // This said formatPriceExact while JobPrice's visible chip floored, so the
-  // two announced different numbers for the same job ("$57.66" heard vs "$57"
-  // seen). The chip is the authority: floor both.
-  const priceAria = showBudget
-    ? `$${formatPrice(job.budget)}`
-    : `$${formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount).netEarnings)}`;
+  // keeps the label from drifting to the gross budget (and, Q753, takes off
+  // the same one-time setup fee the chip does).
+  // formatPriceFloor on the net branch, matching the chip: this said
+  // formatPriceExact while the visible chip floored, so a screen-reader user
+  // heard "$57.66" where a sighted one read "$57". The chip is the authority.
+  const netAria = formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount, firstPayoutFee).netEarnings);
+  const priceAria = showBudget ? `$${formatPrice(job.budget)}` : `$${netAria}`;
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
   // Freshness signal — ONE chip, "Just in", living on the badge rail below.

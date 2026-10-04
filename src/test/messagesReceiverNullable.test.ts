@@ -187,7 +187,10 @@ describe("a thread addressed to a deleted account becomes the deleted-account th
 
   it("a refused send asks the server and flips the open thread to otherUserId null (Q334)", () => {
     const send = blankComments(read("src/pages/messages/messagesData/sendHandlers.ts"));
-    expect(send).toMatch(/\(await fetchCounterpartyDeleted\(optimistic\.job_id, receiverId\)\) === true[\s\S]{0,600}otherUserId: null,[\s\S]{0,600}sendStatus: "refused"/);
+    expect(send).toMatch(/\(await fetchCounterpartyDeleted\(optimistic\.job_id, receiverId\)\) === true[\s\S]{0,600}flipToDeletedAccountThread\(prev, optimistic\.job_id, receiverId\)[\s\S]{0,600}sendStatus: "refused"/);
+    // The flip is the one shared function (Q510 reuses it), which does the nulling.
+    const flip = blankComments(read("src/lib/deletedCounterparty.ts"));
+    expect(flip).toMatch(/export function flipToDeletedAccountThread[\s\S]{0,900}otherUserId: null,/);
   });
 });
 

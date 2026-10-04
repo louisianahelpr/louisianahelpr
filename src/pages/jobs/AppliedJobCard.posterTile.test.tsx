@@ -37,6 +37,7 @@ import type { AppliedApp, Job } from "../../components/job-card/activityConstant
    its dots from them. A mock that dropped them made every card throw, which is
    a truthful failure: the card genuinely needs that derivation now. */
 // Q344: the cards read unsettled decided disputes through React Query; none here.
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 vi.mock("@/components/JobTracking", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/JobTracking")>()),

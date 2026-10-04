@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 
 /**
  * The one-time account setup fee, in cents, as the platform actually charges it.
@@ -26,7 +27,13 @@ export function useOnboardingFeeCents(): number | null {
       // Deliberately NOT thrown: this drives a single word inside a sentence
       // that reads fine without it, and a failed price lookup must not take
       // the whole verification prompt off the screen.
-      if (error) return null;
+      // It is reported, though (Q753): this number now also feeds every payout
+      // preview (useFirstPayoutFeeCents), and a failure here used to leave all
+      // of them quietly missing the fee with nothing in the logs.
+      if (error) {
+        report(error, { severity: "warning", tags: { source: "useOnboardingFeeCents" } });
+        return null;
+      }
       const cents = (Array.isArray(data) ? data[0] : null)?.onboarding_fee_cents;
       // A zero or negative fee means the platform is not charging one, which
       // is not a number to put in a sentence about paying.

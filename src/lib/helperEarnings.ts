@@ -46,6 +46,7 @@
 // helper (which is every non-group job).
 
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { netAfterFirstPayoutFee, sumAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
 
 /**
  * The subset of a `jobs` row needed to compute helper take-home. Kept
@@ -160,17 +161,25 @@ export function helperPlatformFeeDollars(
  * `budget/N − platform fee + net urgent bonus/N`, where N is the roster size
  * (1 for every non-group job), floored to the dollar the transfer actually
  * pays (see {@link floorPayoutDollars}).
+ *
+ * `firstPayoutFeeDollars` (Q753) is the one-time setup fee still to come out of
+ * this viewer's first payout; pass it ONLY for a payout that has not happened
+ * yet. It comes off before the floor, as the edge does.
  */
 export function helperTakeHomeDollars(
   job: HelperEarningsJob,
   feeFallbackPercent: number,
+  firstPayoutFeeDollars = 0,
 ): number {
   const shares = helperShareCount(job);
   const budget = job.budget ?? 0;
   return floorPayoutDollars(
-    budget / shares -
-      helperPlatformFeeDollars(job, feeFallbackPercent) +
-      netUrgentFeeDollars(job.urgent_fee) / shares,
+    netAfterFirstPayoutFee(
+      budget / shares -
+        helperPlatformFeeDollars(job, feeFallbackPercent) +
+        netUrgentFeeDollars(job.urgent_fee) / shares,
+      firstPayoutFeeDollars,
+    ),
   );
 }
 
@@ -191,12 +200,19 @@ export function floorPayoutDollars(dollars: number): number {
   return Math.floor(cents / 100);
 }
 
-/** Sum of {@link helperTakeHomeDollars} across a list of completed jobs. */
+/**
+ * Sum of {@link helperTakeHomeDollars} across a list of completed jobs. The
+ * one-time fee (Q753) comes off the list ONCE, not per job.
+ */
 export function sumHelperTakeHomeDollars(
   jobs: readonly HelperEarningsJob[],
   feeFallbackPercent: number,
+  firstPayoutFeeDollars = 0,
 ): number {
-  return jobs.reduce((sum, j) => sum + helperTakeHomeDollars(j, feeFallbackPercent), 0);
+  return sumAfterFirstPayoutFee(
+    jobs.map((j) => helperTakeHomeDollars(j, feeFallbackPercent)),
+    firstPayoutFeeDollars,
+  );
 }
 
 /**

@@ -22,3 +22,8 @@ export function useFirstPayoutFeeCents(): number {
   if (!profile || profile.onboarding_fee_paid === true || feeCents == null) return 0;
   return feeCents;
 }
+
+/** {@link useFirstPayoutFeeCents} in dollars, the unit every take-home surface computes in. */
+export function useFirstPayoutFeeDollars(): number {
+  return useFirstPayoutFeeCents() / 100;
+}

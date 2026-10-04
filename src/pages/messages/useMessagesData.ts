@@ -28,7 +28,7 @@ import {
   fetchConversations,
 } from "./messagesData/loadConversations";
 import { createSendHandlers } from "./messagesData/sendHandlers";
-import { threadPairFilter } from "@/lib/deletedCounterparty";
+import { fetchCounterpartyDeleted, flipToDeletedAccountThread, threadPairFilter } from "@/lib/deletedCounterparty";
 
 /** Stable empty list so a cold cache doesn't hand consumers a new array
     identity on every render (which would defeat the memoized rows). */
@@ -692,6 +692,32 @@ export function useMessagesData({
     setActiveConvo((prev) => (prev ? apply(prev) : prev));
   }, [setConversations]);
 
+  /**
+   * Q510: has the other party of the OPEN thread deleted their account? Asked of
+   * the server (a null receiver_id on my row, or a reconnect, is only a hint),
+   * and if so the thread flips to its read-only notice in place and the inbox
+   * regroups it, instead of waiting for the viewer's next send to be refused
+   * (Q334). Same flip as that refusal path (`flipToDeletedAccountThread`).
+   * Every orphaned message of a deleted thread fires its own UPDATE, so
+   * concurrent asks for one thread share a single RPC.
+   */
+  const counterpartyChecks = useRef(new Set<string>());
+  const checkCounterpartyDeleted = useCallback(
+    async (jobId: string, otherUserId: string) => {
+      const key = `${jobId}_${otherUserId}`;
+      if (counterpartyChecks.current.has(key)) return;
+      counterpartyChecks.current.add(key);
+      try {
+        if ((await fetchCounterpartyDeleted(jobId, otherUserId)) !== true) return;
+        setActiveConvo((prev) => flipToDeletedAccountThread(prev, jobId, otherUserId));
+        if (userId) void loadConversations(userId);
+      } finally {
+        counterpartyChecks.current.delete(key);
+      }
+    },
+    [userId, loadConversations],
+  );
+
   const {
     patchConversationForMessage,
     sendMessage,
@@ -736,6 +762,7 @@ export function useMessagesData({
     loadOlderMessages,
     patchConversationForMessage,
     applyJobStatusAnnouncement,
+    checkCounterpartyDeleted,
     sendMessage,
     retryMessage,
   };

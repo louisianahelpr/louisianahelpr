@@ -8,6 +8,7 @@ import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
 // wrong for the lines that justify it, where the column has to add up.
 import { formatPriceExact as formatPrice, formatPriceFloor } from "@/lib/format";
 import { floorPayoutDollars } from "@/lib/helperEarnings";
+import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home block on the apply step.
@@ -49,7 +50,7 @@ export function ApplyEarningsBreakdown({
   // process-scheduled-payouts). The take-home shown here must not read higher
   // than what lands, so it comes off the total and gets its own line.
   const firstPayoutFee = useFirstPayoutFeeCents() / 100;
-  const payout = beforeFirstPayoutFee - firstPayoutFee;
+  const payout = netAfterFirstPayoutFee(beforeFirstPayoutFee, firstPayoutFee);
   // Q236: the transfer pays WHOLE dollars, rounded DOWN (the platform keeps
   // the cents). The receipt shows the dropped cents as their own line so the
   // exact-cent rows above still add up to the take-home below.

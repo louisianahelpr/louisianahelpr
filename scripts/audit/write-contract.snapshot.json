@@ -5035,7 +5035,7 @@
   },
   "applications": {
    "checks": [
-    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text]))))",
+    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text, 'offer_expired'::text]))))",
     "CHECK ((stake_status = ANY (ARRAY['none'::text, 'staked'::text, 'returned'::text, 'forfeited'::text])))",
     "CHECK (((stake_amount IS NULL) OR (stake_amount >= (0)::numeric)))"
    ],

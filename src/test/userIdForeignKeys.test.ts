@@ -136,10 +136,11 @@ describe("every person-id column (*user_id, *_by) has a foreign key or a stated 
   // auth.users); Q392 adds job_match_queue.user_id (FK to auth.users); Q728
   // adds crew_dispute_member_outcomes.decided_by (FK in 20260927034536) and
   // Q407 adds job_schedule_change_requests.requested_by (FK to auth.users),
-  // 63 (2026-09-27). A new
+  // 63 (2026-09-27); Q764 adds payout_holds.held_by and .denied_by (FKs to
+  // auth.users in 20261004162921), 65 (2026-10-04). A new
   // person column moves this; so does a scanner that stops reading a file.
   it("scans the whole person-column inventory", () => {
-    expect(all.size).toBe(63);
+    expect(all.size).toBe(65);
   });
   it("sees the columns this class is about (parser sanity)", () => {
     for (const k of ["notification_logs.user_id", "jobs.cancelled_by", "profiles.license_reviewed_by", "payment_refunds.initiated_by_user_id", "notifications.user_id"]) {

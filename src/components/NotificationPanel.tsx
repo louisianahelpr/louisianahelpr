@@ -263,8 +263,7 @@ const NotificationPanel = () => {
     // The load itself (recency page + unread page + head count) is the bell's
     // shared feed (Q756, ./notificationPanel/notificationFeed.ts): it THROWS on
     // a failed list, which the caller turns into this panel's error card.
-    // The mount load reuses the feed's own just-finished first load (Q1183).
-    await (force ? loadNotificationFeed(session.user.id) : ensureFreshNotificationFeed(session.user.id));
+    await (force ? loadNotificationFeed(session.user.id) : ensureFreshNotificationFeed(session.user.id)); // mount reuses the feed's first load (Q1183)
     setLoadError(false);
   };
 

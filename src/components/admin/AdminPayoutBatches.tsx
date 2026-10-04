@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -35,8 +35,8 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { releaseBatchJobs } from "./adminPayoutBatches/releaseBatchJobs";
+import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -54,88 +54,14 @@ const AdminPayoutBatches = () => {
   // window.prompt offered so a one-tap deny still records a sensible note.
   const [denyDraft, setDenyDraft] = useState<{ helperId: string; reason: string } | null>(null);
 
-  // ── Payout holds live on the SERVER (Q764) ──────────────────────────────
-  // public.payout_holds: every admin reads the same rows (RLS: admins only),
-  // and every payout path refuses a held Helpr (release-payout, the scheduled
-  // crons, cash-outs, tips). They used to live in this browser's localStorage,
-  // so a second admin's Send Payout or Bulk Approve, and the crons, paid a
-  // "held" Helpr. Writes go through admin-only RPCs, which also write the
-  // admin_audit_log row themselves (so nothing here calls logAdminAction).
-  const holdsKey = ["admin-payout-holds", adminId] as const;
-  const {
-    data: holdRows,
-    isLoading: holdsLoading,
-    isError: holdsError,
-    refetch: refetchHolds,
-  } = useQuery({
-    queryKey: holdsKey,
-    enabled: !!adminId,
-    // Admin-only safety state: opt out of disk persistence like the queue.
-    meta: { persist: false },
-    queryFn: async () =>
-      unwrap(
-        await supabase
-          .from("payout_holds")
-          .select("helper_id, reason, held_at, held_by, denied_at, denied_reason"),
-      ),
-  });
-  const holds = useMemo(() => {
-    const out: Record<string, { reason: string; addedAt: string; addedBy?: string }> = {};
-    for (const h of holdRows ?? []) {
-      out[h.helper_id] = {
-        reason: h.denied_reason ? `[DENIED] ${h.denied_reason}` : h.reason,
-        addedAt: h.held_at,
-        addedBy: h.held_by ?? undefined,
-      };
-    }
-    return out;
-  }, [holdRows]);
-
-  /** One hold write: throws into a toast, and re-reads the holds on success. */
-  const runHoldWrite = async (
-    label: string,
-    write: () => Promise<boolean>,
-    copyFor: (err: unknown) => string | null,
-  ): Promise<boolean> => {
-    try {
-      if (!(await write())) throw new Error(`${label}: the server did not confirm the change`);
-      await qc.invalidateQueries({ queryKey: holdsKey });
-      return true;
-    } catch (err: unknown) {
-      report(err, { tags: { source: `AdminPayoutBatches.${label}` } });
-      toast.error(copyFor(err) ?? userFacingError(err, "Couldn't update that payout hold — try again."));
-      return false;
-    }
-  };
-
+  const { holdRows, holds, holdsLoading, holdsError, refetchHolds, addHold: addHoldRow, releaseHold, denyHold } = usePayoutHolds(adminId);
   const addHold = async (helperId: string, reason: string) => {
-    const ok = await runHoldWrite("addHold", async () => {
-      const row = unwrap(await supabase.rpc("admin_set_payout_hold", { p_helper_id: helperId, p_reason: reason }));
-      return !!row && row.helper_id === helperId;
-    }, (err) => rpcErrorMessage("admin_set_payout_hold", err));
-    if (!ok) return;
+    if (!(await addHoldRow(helperId, reason))) return;
     setSelected((prev) => {
       const n = new Set(prev);
       n.delete(helperId);
       return n;
     });
-  };
-  const releaseHold = async (helperId: string) => {
-    // The RPC answers false when there was no hold to clear (another admin
-    // released it first). The end state is the one asked for, so that is not
-    // an error; a thrown error is.
-    await runHoldWrite("releaseHold", async () => {
-      unwrap(await supabase.rpc("admin_release_payout_hold", { p_helper_id: helperId }));
-      return true;
-    }, (err) => rpcErrorMessage("admin_release_payout_hold", err));
-  };
-  const denyHold = async (helperId: string, reason: string) => {
-    // A denial is recorded ON the hold and keeps blocking every payout path.
-    // Nothing is refunded or reversed here.
-    await runHoldWrite("denyHold", async () => {
-      const row = unwrap(await supabase.rpc("admin_deny_payout_hold", { p_helper_id: helperId, p_reason: reason }));
-      return !!row && row.helper_id === helperId;
-    }, (err) => rpcErrorMessage("admin_deny_payout_hold", err));
   };
   // Admin-scoped key: two admins on the same device should not share
   // cached views, and the persister must never surface the prior admin's

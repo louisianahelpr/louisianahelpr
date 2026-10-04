@@ -39,6 +39,11 @@ export const WRITE_RPC = new Set([
   "resolve_stalled_job_flag",
   "review_credential",
   "rpc_decide_dispute",
+  // Q764 (2026-10-04): the server-side payout hold. Each writes payout_holds and
+  // admin_audit_log (migration 20261004162921, provolatile = 'v').
+  "admin_set_payout_hold",
+  "admin_release_payout_hold",
+  "admin_deny_payout_hold",
 ]);
 
 /**

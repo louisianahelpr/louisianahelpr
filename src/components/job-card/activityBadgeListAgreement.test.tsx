@@ -333,4 +333,4 @@ describe("Activity (helper) — every counted row actually renders a card", () =
 // Proof this guard can fail: restore the bare `return null` that made the Done
 // badge read 3 over a list of 2. The counted-but-blank row stops rendering.
 // @mutate src/pages/jobs/AppliedJobCard.tsx |   if (!job) { |   if (!job) return null;\n  if (!job) {
-// @mutate src/pages/jobs/AppliedJobCard.tsx |                 : app.closed_reason === "offer_expired" |                 : false
+// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | if (app.closed_reason === "offer_expired") return | if (false) return

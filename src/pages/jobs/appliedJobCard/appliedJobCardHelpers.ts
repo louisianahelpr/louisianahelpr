@@ -150,3 +150,10 @@ export function describeCancellation(
   if (job.customer_id && by === job.customer_id) return "Cancelled by the person who posted it";
   return "Cancelled by Helpr support";
 }
+
+/** Headline on a closed card whose job details are gone (Q1207: a swept offer says it expired). */
+export function closedCardLabel(app: { closed_reason?: string | null; status?: string | null }): string {
+  if (app.closed_reason === "job_cancelled") return "Job cancelled";
+  if (app.closed_reason === "offer_expired") return "Offer expired";
+  return app.status === "rejected" ? "Not selected" : "Job no longer available";
+}

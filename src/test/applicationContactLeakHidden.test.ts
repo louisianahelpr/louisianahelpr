@@ -52,20 +52,26 @@ function guardedRange(src: string, opener: string, rawRender: string, where: str
 }
 
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | app.flagged_hidden ? ( | false ? (
+// Q1206: the offer card goes back to the applicant's flag (one flag for both directions).
+// @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | {app.offer_message_flagged_hidden ? ( | {app.flagged_hidden ? (
 describe("helper's note -> poster (ApplicantsPanel)", () => {
   it("does not render the raw note when it is flagged", () => {
     expect(PANEL).toContain("app.flagged_hidden");
     // The guard must WRAP the quote, not sit somewhere else in the file.
-    const block = guardedRange(PANEL, "{app.message &&", "{app.message}", "ApplicantsPanel");
-    expect(block).toContain("app.flagged_hidden");
+    const block = guardedRange(PANEL, "{(app.message || app.flagged_hidden) &&", "{app.message}", "ApplicantsPanel");
+    // The ternary itself, not just a mention: the opener also names the flag (Q1206).
+    expect(block).toContain("app.flagged_hidden ? (");
     expect(block).toMatch(/hidden/i);
   });
 });
 
 describe("poster's offer message -> helper (OfferedActions)", () => {
   it("does not render the raw message when it is flagged", () => {
-    const block = guardedRange(OFFER, "{app.offer_message &&", "{app.offer_message}", "OfferedActions");
-    expect(block).toContain("app.flagged_hidden");
+    // Q1206: the poster's message has its OWN flag; the applicant's note flag
+    // (flagged_hidden) must not decide it.
+    const block = guardedRange(OFFER, "{(app.offer_message || app.offer_message_flagged_hidden) &&", "{app.offer_message}", "OfferedActions");
+    expect(block).toContain("app.offer_message_flagged_hidden ?");
+    expect(block).not.toMatch(/app\.flagged_hidden\b/);
     expect(block).toMatch(/hidden/i);
   });
 });
@@ -75,13 +81,13 @@ describe("the column actually reaches the client", () => {
   // guard at all — and it would look completely correct in review.
   // Since Q1232 the reads name APPLICATION_READABLE_COLUMNS (flag_reason is
   // withheld by a column grant, so "*" is refused); flagged_hidden must be in it.
-  it("the applicants query selects the readable columns, flagged_hidden included", () => {
-    expect(APPLICANTS_QUERY).toMatch(/from\("applications"\)\s*\.select\(APPLICATION_READABLE_COLUMNS\)/);
+  it("the applicants query selects the readable columns (through readApplicationRows), flagged_hidden included", () => {
+    expect(APPLICANTS_QUERY).toMatch(/readApplicationRows\(\(columns\) => supabase\.from\("applications"\)\.select\(columns\)/);
     expect(APPLICATION_READABLE_COLUMN_LIST).toContain("flagged_hidden");
   });
 
   it("the applied-jobs query selects the readable columns", () => {
-    expect(ACTIVITY_QUERY).toMatch(/from\("applications"\)\.select\(APPLICATION_READABLE_COLUMNS\)/);
+    expect(ACTIVITY_QUERY).toMatch(/readApplicationRows\(\(columns\) => supabase\.from\("applications"\)\.select\(columns\)/);
   });
 
   it("the Application type carries the flag", () => {

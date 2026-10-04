@@ -139,7 +139,10 @@ export type Database = {
           job_latitude: number | null
           job_longitude: number | null
           message: string | null
+          message_withheld: string | null
           offer_message: string | null
+          offer_message_flagged_hidden: boolean
+          offer_message_withheld: string | null
           poster_viewed_at: string | null
           stake_amount: number | null
           stake_status: string | null
@@ -159,7 +162,10 @@ export type Database = {
           job_latitude?: number | null
           job_longitude?: number | null
           message?: string | null
+          message_withheld?: string | null
           offer_message?: string | null
+          offer_message_flagged_hidden?: boolean
+          offer_message_withheld?: string | null
           poster_viewed_at?: string | null
           stake_amount?: number | null
           stake_status?: string | null
@@ -179,7 +185,10 @@ export type Database = {
           job_latitude?: number | null
           job_longitude?: number | null
           message?: string | null
+          message_withheld?: string | null
           offer_message?: string | null
+          offer_message_flagged_hidden?: boolean
+          offer_message_withheld?: string | null
           poster_viewed_at?: string | null
           stake_amount?: number | null
           stake_status?: string | null

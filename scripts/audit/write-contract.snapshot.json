@@ -5054,6 +5054,7 @@
       "job_longitude",
       "message",
       "offer_message",
+      "offer_message_flagged_hidden",
       "poster_viewed_at",
       "stake_amount",
       "stake_status",
@@ -5153,7 +5154,28 @@
      "notNull": false,
      "type": "text"
     },
+    "message_withheld": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
     "offer_message": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "offer_message_flagged_hidden": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "offer_message_withheld": {
      "enum": null,
      "generated": false,
      "hasDefault": false,

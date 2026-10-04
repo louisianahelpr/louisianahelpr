@@ -23,6 +23,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { blankComments } from "../helpers/blankNonCode";
 import {
   checkUnrecordedTransfers,
   claimPayout,
@@ -109,6 +110,105 @@ describe("claimPayout reads the ledger itself — HIGH-1", () => {
       .replace(/^\s*\/\/[^\n]*$/gm, ""); // drop comment lines (one mentions ledgerRows on purpose)
     const argObject = call.slice(0, call.indexOf("});") + 1);
     expect(argObject).not.toMatch(/ledgerRows\s*:/);
+  });
+});
+
+// Q1211: a payout batch reads its due jobs once. A full refund or cancel that
+// lands after that read flipped the job, and the batch still transferred: the
+// card refunded AND the Helpr paid. The claim now re-reads the job AFTER its
+// row exists (so the refund's own ledger check sees the claim, or this re-read
+// sees the refund's flip) and releases the unsent claim when the job moved.
+describe("claimPayout re-reads the job under the claim — Q1211", () => {
+  function jobDb(opts: {
+    ledger?: Record<string, unknown>[];
+    job?: Record<string, unknown> | null;
+    jobError?: { message: string } | null;
+    releaseRows?: unknown[];
+  }) {
+    const calls: Array<{ table: string; op: string; payload: unknown; filters: Array<[string, unknown]> }> = [];
+    return {
+      calls,
+      from(table: string) {
+        const rec = { table, op: "select", payload: null as unknown, filters: [] as Array<[string, unknown]> };
+        const b: Record<string, unknown> = {};
+        b.select = () => b;
+        b.insert = (p: unknown) => { rec.op = "insert"; rec.payload = p; return b; };
+        b.update = (p: unknown) => { rec.op = "update"; rec.payload = p; return b; };
+        b.eq = (c: string, v: unknown) => { rec.filters.push([c, v]); return b; };
+        b.is = (c: string, v: unknown) => { rec.filters.push([c, v]); return b; };
+        b.in = () => b;
+        b.then = (resolve: (v: unknown) => void) => {
+          calls.push(rec);
+          if (rec.op === "insert") return resolve({ data: [{ id: "claim-new" }], error: null });
+          if (rec.op === "update") return resolve({ data: opts.releaseRows ?? [{ id: "claim-new" }], error: null });
+          if (table === "jobs") {
+            return resolve(opts.jobError ? { data: null, error: opts.jobError } : { data: opts.job ? [opts.job] : [], error: null });
+          }
+          return resolve({ data: opts.ledger ?? [], error: null });
+        };
+        return b;
+      },
+    };
+  }
+  const args = { ...baseArgs, expectPaymentStatus: "payout_pending" };
+
+  it("proceeds when the job is still payout_pending, reading it AFTER the claim insert", async () => {
+    const db = jobDb({ job: { id: "job-1", payment_status: "payout_pending" } });
+    const res = await claimPayout(db as never, args);
+    expect(res.kind).toBe("proceed");
+    const order = db.calls.map((c) => `${c.table}:${c.op}`);
+    expect(order.indexOf("jobs:select")).toBeGreaterThan(order.indexOf("payout_transfers:insert"));
+  });
+
+  // @mutate supabase/functions/_shared/payoutClaim.ts | if (still.kind !== "ok") { | if (false) {
+  it("RED before Q1211: a job a refund flipped during the run is blocked, and the unsent claim is released", async () => {
+    const db = jobDb({ job: { id: "job-1", payment_status: "refunded" } });
+    const res = await claimPayout(db as never, args);
+    expect(res.kind).toBe("blocked");
+    if (res.kind === "blocked") expect(res.jobMoved).toBe("refunded");
+    const release = db.calls.find((c) => c.table === "payout_transfers" && c.op === "update");
+    expect(release?.payload).toMatchObject({ status: "canceled" });
+    expect(release?.filters).toEqual(expect.arrayContaining([["id", "claim-new"], ["status", "pending"], ["stripe_transfer_id", null]]));
+  });
+
+  it("fails closed (error, claim released) when the job cannot be re-read", async () => {
+    const db = jobDb({ jobError: { message: "boom" } });
+    const res = await claimPayout(db as never, args);
+    expect(res.kind).toBe("error");
+    expect(db.calls.some((c) => c.table === "payout_transfers" && c.op === "update")).toBe(true);
+  });
+
+  // @mutate supabase/functions/_shared/payoutClaim.ts | if (!released.ok) { | if (false) {
+  it("is an error, not a clean block, when the unsent claim cannot be released", async () => {
+    const db = jobDb({ job: { id: "job-1", payment_status: "cancelled" }, releaseRows: [] });
+    const res = await claimPayout(db as never, args);
+    expect(res.kind).toBe("error");
+  });
+
+  // @mutate supabase/functions/_shared/payoutClaim.ts | if (still.kind === "moved") { | if (false) {
+  it("never resumes an orphaned claim on a job that moved: error, the claim left for a person", async () => {
+    const orphan = { id: "led-orphan", stripe_transfer_id: null, status: "pending", created_at: OLD };
+    const db = jobDb({ ledger: [orphan], job: { id: "job-1", payment_status: "refunded" } });
+    const res = await claimPayout(db as never, args);
+    expect(res.kind).toBe("error");
+    expect(db.calls.some((c) => c.op === "update")).toBe(false);
+  });
+
+  it("without expectPaymentStatus it never reads the job (the other callers are unchanged)", async () => {
+    const db = jobDb({ job: { id: "job-1", payment_status: "refunded" } });
+    const res = await claimPayout(db as never, { ...baseArgs });
+    expect(res.kind).toBe("proceed");
+    expect(db.calls.some((c) => c.table === "jobs")).toBe(false);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         expectPaymentStatus: "payout_pending", |
+  // @mutate supabase/functions/release-payout/index.ts |     expectPaymentStatus: "payout_pending", |
+  it("both payout paths ask for the re-read", () => {
+    for (const f of ["supabase/functions/process-scheduled-payouts/index.ts", "supabase/functions/release-payout/index.ts"]) {
+      const src = blankComments(readFileSync(f, "utf8"));
+      const call = src.slice(src.indexOf("claimPayout(supabaseAdmin"), src.indexOf("claimPayout(supabaseAdmin") + 1400);
+      expect(call.slice(0, call.indexOf("});")), f).toMatch(/expectPaymentStatus:\s*"payout_pending"/);
+    }
   });
 });
 

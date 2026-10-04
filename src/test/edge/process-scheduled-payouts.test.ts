@@ -83,6 +83,7 @@ function seedPayableJob(s: SupabaseScenario, overrides: {
     stripe_session_id: "cs_1",
     stripe_payment_intent_id: "pi_1",
     status: "completed",
+    payment_status: "payout_pending",
     is_group_job: false,
     helpers_needed: 1,
     sales_tax_rate: 0,
@@ -737,6 +738,29 @@ describe("process-scheduled-payouts edge function", () => {
       const body = await json(res);
       expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("verify_error");
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // Q1211: a full refund (or cancel) that lands after this batch read its due
+  // jobs flips the job; the batch used to transfer anyway (card refunded AND
+  // Helpr paid). The claim re-reads the job and stands down.
+  describe("Q1211 a refund that lands during the batch", () => {
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | status: claim.jobMoved ? "job_moved_on" : "already_claimed" | status: "already_claimed"
+    it("does not transfer, releases its claim, and reports job_moved_on (no defect)", async () => {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      // The batch query returned the job as payout_pending; the re-read under
+      // the claim sees the refund's flip.
+      (scenario.reads.jobs as { selectOverrides?: unknown[] }).selectOverrides = [
+        { includes: "id, payment_status", result: { rows: [{ id: "job-1", payment_status: "refunded" }] } },
+      ];
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+      const body = await json(res);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("job_moved_on");
+      expect(body.defects).toBe(0);
+      const release = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");
+      expect(release?.payload).toMatchObject({ status: "canceled" });
     });
   });
 

@@ -50,6 +50,7 @@ function seedCrew(members: Array<[string, number, number]>, { needed = 3, paidAl
     stripe_session_id: "cs_1",
     stripe_payment_intent_id: "pi_1",
     status: "completed",
+    payment_status: "payout_pending",
     is_group_job: true,
     helpers_needed: needed,
     sales_tax_rate: 0,

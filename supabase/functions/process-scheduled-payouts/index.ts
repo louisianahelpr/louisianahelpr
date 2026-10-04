@@ -1440,6 +1440,9 @@ serve(async (req) => {
         // fired), and this run made a SECOND transfer under a different
         // idempotency key. Passing no snapshot makes claimPayout re-read the
         // same query under the claim it is about to take.
+        // Q1211: this batch read its due jobs once, at the top; a refund or
+        // cancel that landed since stops the transfer here.
+        expectPaymentStatus: "payout_pending",
       });
       if (claim.kind === "error" && isPayoutHeldRefusal(claim.message)) {
         // Q764: a hold landed after the check at the top of this loop and the
@@ -1459,7 +1462,9 @@ serve(async (req) => {
       if (claim.kind === "blocked") {
         console.log(`[process-scheduled-payouts] payout not claimed for job ${job.id} / helper ${helperId}: ${claim.reason}`);
         await rollBackOnboardingFeeClaim();
-        results.push({ job_id: job.id, status: "already_claimed", detail: claim.reason });
+        // Q1211: a refund or cancel moved the job during this run. An outcome
+        // (the refund won), not a defect and not someone else's claim.
+        results.push({ job_id: job.id, status: claim.jobMoved ? "job_moved_on" : "already_claimed", detail: claim.reason });
         continue;
       }
       const failedCount = claim.failedCount;

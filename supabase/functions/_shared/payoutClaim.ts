@@ -80,8 +80,12 @@ const LIVE_TRANSFER_STATES = ["pending", "paid", "reversed"] as const;
 export type ClaimDecision =
   /** Safe to proceed. `claimId` is the row to settle; `failedCount` salts the key. */
   | { kind: "proceed"; claimId: string; failedCount: number; resumed: boolean }
-  /** A real transfer already exists, or another run holds the claim. Skip. */
-  | { kind: "blocked"; reason: string; transferId: string | null }
+  /**
+   * A real transfer already exists, or another run holds the claim. Skip.
+   * `jobMoved` (Q1211): the job left the expected payment state (a refund or
+   * cancel landed during this run); the claim this call took was released.
+   */
+  | { kind: "blocked"; reason: string; transferId: string | null; jobMoved?: string }
   /** Could not establish the claim. Fail CLOSED — never send on an unknown state. */
   | { kind: "error"; message: string };
 
@@ -145,6 +149,16 @@ export async function claimPayout(
     metadata?: Record<string, unknown>;
     /** Pre-read ledger rows, if the caller already has them. */
     ledgerRows?: LedgerRow[];
+    /**
+     * Q1211: the payment state the job must STILL be in once the claim is held
+     * (both payout paths: 'payout_pending'). A payout batch reads its due jobs
+     * once; a full refund or cancel that lands after that read flips the job,
+     * and without this re-read the batch transferred anyway: the card refunded
+     * AND the Helpr paid. Re-read AFTER the claim row exists, so either the
+     * refund's own ledger check sees the claim (it counts pending rows) and
+     * refuses, or its flip landed first and this re-read sees it.
+     */
+    expectPaymentStatus?: string;
   },
 ): Promise<ClaimDecision> {
   let rows = args.ledgerRows;
@@ -177,6 +191,18 @@ export async function claimPayout(
   }
   if (openClaim) {
     // Orphaned claim. Resume against the SAME idempotency key — see header.
+    if (args.expectPaymentStatus) {
+      const still = await jobPaymentState(supabaseAdmin, args.jobId, args.expectPaymentStatus);
+      if (still.kind === "error") return { kind: "error", message: `job re-read failed before resuming claim ${openClaim.id}: ${still.message}` };
+      if (still.kind === "moved") {
+        // Not released: its transfer may already exist at Stripe under the
+        // same key, so a person has to look before anything else moves.
+        return {
+          kind: "error",
+          message: `open payout claim ${openClaim.id} is on a job that is no longer ${args.expectPaymentStatus} (now ${still.status}); check Stripe for its transfer before anything else moves`,
+        };
+      }
+    }
     return { kind: "proceed", claimId: openClaim.id, failedCount, resumed: true };
   }
 
@@ -210,8 +236,62 @@ export async function claimPayout(
   if (!inserted || inserted.length === 0) {
     return { kind: "error", message: "payout claim insert returned no row" };
   }
+  const claimId = inserted[0].id as string;
 
-  return { kind: "proceed", claimId: inserted[0].id as string, failedCount, resumed: false };
+  if (args.expectPaymentStatus) {
+    const still = await jobPaymentState(supabaseAdmin, args.jobId, args.expectPaymentStatus);
+    if (still.kind !== "ok") {
+      // Nothing was sent under this claim, so it is released ('canceled' is
+      // outside the live-row index and does not salt the next key).
+      const released = await releaseUnsentClaim(supabaseAdmin, claimId);
+      if (!released.ok) {
+        return { kind: "error", message: `payout claim ${claimId} could not be released after the job re-read: ${released.message}` };
+      }
+      if (still.kind === "error") return { kind: "error", message: `job re-read failed after claiming: ${still.message}` };
+      return {
+        kind: "blocked",
+        reason: `the job is no longer ${args.expectPaymentStatus} (now ${still.status}): a refund or cancel landed during this run, so nothing was sent`,
+        transferId: null,
+        jobMoved: still.status,
+      };
+    }
+  }
+
+  return { kind: "proceed", claimId, failedCount, resumed: false };
+}
+
+/** The job's payment state against the one a payout needs (Q1211). Fails closed. */
+async function jobPaymentState(
+  supabaseAdmin: { from: (t: string) => any },
+  jobId: string,
+  expected: string,
+): Promise<{ kind: "ok" } | { kind: "moved"; status: string } | { kind: "error"; message: string }> {
+  const { data, error } = await supabaseAdmin
+    .from("jobs")
+    .select("id, payment_status")
+    .eq("id", jobId);
+  if (error) return { kind: "error", message: error.message };
+  const row = ((data ?? []) as Array<{ id?: string; payment_status?: string | null }>).find((r) => r.id === jobId);
+  if (!row) return { kind: "moved", status: "missing" };
+  if (row.payment_status === expected) return { kind: "ok" };
+  return { kind: "moved", status: row.payment_status ?? "null" };
+}
+
+/** Release a claim this run took and never sent on. */
+async function releaseUnsentClaim(
+  supabaseAdmin: { from: (t: string) => any },
+  claimId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { data, error } = await supabaseAdmin
+    .from("payout_transfers")
+    .update({ status: "canceled", failure_reason: "job left payout_pending before the transfer (Q1211)" })
+    .eq("id", claimId)
+    .eq("status", "pending")
+    .is("stripe_transfer_id", null)
+    .select("id");
+  if (error) return { ok: false, message: error.message };
+  if (!data || data.length === 0) return { ok: false, message: "claim row was no longer an unsent pending claim" };
+  return { ok: true };
 }
 
 /** Settle a held claim after Stripe confirmed the transfer. */

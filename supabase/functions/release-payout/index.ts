@@ -962,6 +962,8 @@ serve(async (req) => {
     initiatedBy,
     initiatedByUserId,
     metadata: { source: "release-payout" },
+    // Q1211: a refund or cancel that landed after this job was read stops it.
+    expectPaymentStatus: "payout_pending",
   });
   if (claim.kind === "error" && isPayoutHeldRefusal(claim.message)) {
     // Q764: a hold landed between the check above and this claim, and the

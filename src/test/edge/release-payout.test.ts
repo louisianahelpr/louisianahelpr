@@ -957,6 +957,23 @@ describe("release-payout edge function", () => {
       expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
     });
 
+    // Q1211: a refund that flipped the job after this call read it stops the
+    // transfer at the claim; nothing moves and the unsent claim is released.
+    it("Q1211: a job a refund flipped after it was read is not paid (409, claim released)", async () => {
+      seedPayableJob(scenario);
+      (scenario.reads.jobs as { selectOverrides?: unknown[] }).selectOverrides = [
+        { includes: "id, payment_status", result: { rows: [{ id: "job-1", payment_status: "refunded" }] } },
+      ];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/no longer payout_pending/);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update")?.payload).toMatchObject({ status: "canceled" });
+    });
+
     // Q1210: a gift smaller than the cost reserves the gift and collects the
     // shortfall by card (create-payment's gift branch), so the escrow is the
     // gift PLUS the shortfall charge. Capping at the gift alone refused every

@@ -312,7 +312,16 @@ function stuckIgnoringDesignedLoaders(ignore: string): string | null {
   const skip = (e: Element) => e.closest("[aria-hidden='true']") || (ignore && e.closest(ignore));
   const busy = [...document.querySelectorAll('[aria-busy="true"]')].filter((e) => !skip(e)).length;
   const pulses = [...document.querySelectorAll('[class*="animate-pulse"]')].filter((e) => !skip(e)).length;
-  if (busy || pulses) return `still loading (${busy} aria-busy, ${pulses} skeleton pulses)`;
+  // Q1002: the shared <Skeleton> bone (data-skeleton) shimmers and sits in
+  // aria-hidden wrappers; counted when rendered, unless a designed loader.
+  const shown = (e: Element) => {
+    for (let n: Element | null = e; n; n = n.parentElement) {
+      if (n.hasAttribute("hidden") || getComputedStyle(n).display === "none") return false;
+    }
+    return true;
+  };
+  const bones = [...document.querySelectorAll("[data-skeleton]")].filter((e) => shown(e) && !(ignore && e.closest(ignore))).length;
+  if (busy || pulses || bones) return `still loading (${busy} aria-busy, ${pulses} skeleton pulses, ${bones} skeleton bones)`;
   return null;
 }
 

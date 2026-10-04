@@ -18,13 +18,15 @@
 import { cancellationFeePercent, hoursUntilJob } from "./cancellationFee.ts";
 
 /**
- * OWNER RULE (Q407, pending the owner's answer; the money review's default).
- * true: every HIRED crew member counts as committed for the late-cancellation
- * fee and the poster's strike, so the fee is split evenly across the hired
- * crew. false: a member counts only once they confirmed their own spot, as a
- * single Helpr does. Flip it here AND in public.crew_fee_pays_unconfirmed().
+ * OWNER RULE (Q407; decided by the owner 2026-09-27 and again 2026-10-04 for
+ * Q706: every fee and strike starts when the Helpr ACCEPTS, never at the offer).
+ * false: a crew member counts as committed for the late-cancellation fee and
+ * the poster's strike only once they confirmed their own spot, as a single
+ * Helpr does. (true, the old default, counted every hired member from the
+ * offer.) It is set here AND in public.crew_fee_pays_unconfirmed()
+ * (20261004193450_hire_moment_is_the_accept.sql).
  */
-export const CREW_FEE_PAYS_UNCONFIRMED = true;
+export const CREW_FEE_PAYS_UNCONFIRMED = false;
 
 /**
  * OWNER RULE (money review MEDIUM-4, owner being asked). true: an under-filled

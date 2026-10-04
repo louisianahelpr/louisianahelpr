@@ -291,6 +291,8 @@ export const RPC_ERROR_COPY = {
       "This booking can't be cancelled any more — the job has already moved on. Refresh to see where it stands.",
     job_not_found: JOB_GONE,
     not_authorized: "You're no longer booked on this job, so there's nothing to cancel.",
+    // Q706: an offer the Helpr has not accepted is declined, not cancelled.
+    offer_not_accepted: "You haven't accepted this offer yet, so there's no booking to cancel. Decline the offer instead.",
   },
   // ActiveJobSection — Cancel Job once work is underway.
   helper_abort_job: {

@@ -2585,12 +2585,12 @@ serve(async (req) => {
                     ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
                     : 0) ?? 0,
                 );
-                const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, refundAmount);
+                const reusedDispute = await existingRefundCovering(stripe, paymentIntentId, disputeAlreadyRefundedCents, refundAmount, "admin_refund_dispute");
                 if (reusedDispute) {
                   console.log(`[create-payment] admin_refund_dispute: charge for job ${jobId} already refunded ${disputeAlreadyRefundedCents}¢ — reusing ${reusedDispute.id}, not refunding again`);
                 }
                 refund = reusedDispute ?? await stripe.refunds.create(
-                  { payment_intent: paymentIntentId, amount: refundAmount },
+                  { payment_intent: paymentIntentId, amount: refundAmount, metadata: { source: "admin_refund_dispute", job_id: jobId } },
                   { idempotencyKey: `refund-dispute-${jobId}` },
                 );
               } catch (refundErr) {
@@ -3016,7 +3016,7 @@ serve(async (req) => {
             .filter((r) => r.status === "succeeded" || r.status === "pending")
             .reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
           const reused = !isPartial
-            ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, capturedCents, priorRefunds.data)
+            ? await existingRefundCovering(stripe, paymentIntentId, generalAlreadyRefundedCents, capturedCents, "admin_refund_general", priorRefunds.data)
             : null;
           if (reused) {
             console.log(`[create-payment] admin_refund_general: charge for job ${jobId} already refunded ${generalAlreadyRefundedCents}¢ — reusing ${reused.id}, not refunding again`);
@@ -3029,6 +3029,7 @@ serve(async (req) => {
               reason: reason || (isPartial ? "admin_partial_refund" : "admin_general_refund"),
               admin_user_id: user.id,
               partial: String(isPartial),
+              source: "admin_refund_general",
             },
           }, {
             // Full refund: deduped within Stripe's ~24h key lifetime; after
@@ -4294,20 +4295,28 @@ async function returnGiftAfterRefund(
  * window that replays, past it Stripe refuses ("charge already refunded") and
  * the job could never be finished from the button. Returns an existing live
  * (succeeded or pending) refund on this PaymentIntent when the amount already
- * refunded covers `cents`: the one of exactly that amount, else the largest.
- * Null when nothing covers it, so the caller refunds as before.
+ * refunded covers `cents` AND that THIS action wrote (review of Q1209: a
+ * refund of another flow, a Dashboard or cancel refund, is never reused or
+ * booked as this action's): metadata.source names the action, and for the
+ * general refund metadata.partial is "false". The one of exactly that amount,
+ * else the largest. Null when none qualifies, so the caller refunds as before
+ * (inside the key window that replays this action's own refund).
  */
 async function existingRefundCovering(
   stripe: Stripe,
   paymentIntentId: string,
   alreadyRefundedCents: number,
   cents: number,
+  source: "admin_refund_dispute" | "admin_refund_general",
   listed?: Stripe.Refund[],
 ): Promise<Stripe.Refund | null> {
   if (!(cents > 0) || !(alreadyRefundedCents >= cents)) return null;
   const refunds = listed ?? (await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 })).data;
-  const live = (refunds ?? []).filter((r) => r.status === "succeeded" || r.status === "pending");
-  return live.find((r) => r.amount === cents) ?? [...live].sort((a, b) => b.amount - a.amount)[0] ?? null;
+  const mine = (refunds ?? []).filter((r) =>
+    (r.status === "succeeded" || r.status === "pending") &&
+    r.metadata?.source === source &&
+    (source !== "admin_refund_general" || r.metadata?.partial === "false"));
+  return mine.find((r) => r.amount === cents) ?? [...mine].sort((a, b) => b.amount - a.amount)[0] ?? null;
 }
 
 /**

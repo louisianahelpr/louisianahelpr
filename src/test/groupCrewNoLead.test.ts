@@ -46,7 +46,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND NOT public.is_server_context()\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid' |     AND false\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid'
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents) |   UPDATE public.jobs SET helper_id = v_helper_id WHERE id = v_job_id;\n  INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents)
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |         status = (CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END)::job_status |         status = CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END
-// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql | AS $function$ SELECT true $function$;\n\n-- MEDIUM-4 | AS $function$ SELECT false $function$;\n\n-- MEDIUM-4
+// Q706: the rule's NEWEST definition is 20261004193450 (false); the twin check reads that one.
+// @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql | AS $function$ SELECT false $function$; | AS $function$ SELECT true $function$;
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     INSERT INTO public.crew_cancellation_fee_shares\n      (job_id | --\n      (job_id
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |       ADD CONSTRAINT reviews_one_per_reviewee_per_job UNIQUE (job_id, reviewer_id, reviewee_id); |       ADD CONSTRAINT reviews_one_per_reviewee_per_job UNIQUE (job_id, reviewer_id);
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND reviewer_id = NEW.reviewee_id\n |     AND true\n

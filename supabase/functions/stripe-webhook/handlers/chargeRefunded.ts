@@ -19,7 +19,7 @@ import { giftAtStake, payoutOnJob, restoreGiftForRefundedJob } from "./_giftCard
  * must know the gift's share is not held either.
  */
 const GIFT_GOES_BACK_WHOLE =
-  "Any gift card that paid part of this job is given back to the poster in full, so the Helpr's share of the gift is not held either.";
+  "Any gift card that paid part of this job is given back in full to the person who posted it, so no share of the gift is held for the person who did the work either.";
 
 /**
  * The payment states a FULL refund may move to 'refunded' (Q343): every state

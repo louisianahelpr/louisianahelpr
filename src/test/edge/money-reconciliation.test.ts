@@ -509,7 +509,7 @@ describe("money-reconciliation edge function", () => {
     it("a TRUNCATED gift ledger skips the check (degraded), never a false critical", async () => {
       const fn = await loadConfigured();
       seedRefundedGiftJob();
-      // The server reports 2 rows (the gift and its replacement) but hands back 1.
+      // The fixture's server count is two (the gift and its replacement) but it hands back one.
       scenario.reads.gift_cards = { ...scenario.reads.gift_cards!, count: 2 };
       const res = await fn.fetch(cronRequest(fn));
       const b = await body(res);

@@ -36,7 +36,7 @@
     "src/pages/auth/Signup.tsx": 691,
     "src/pages/home/Dashboard.tsx": 1021,
     "src/pages/home/DashboardGuest.tsx": 897,
-    "src/pages/info/Legal.tsx": 737,
+    "src/pages/info/Legal.tsx": 736,
     "src/pages/jobs/AppliedJobCard.tsx": 889,
     "src/pages/post-job/PaymentSuccess.tsx": 670,
     "src/pages/posts/PostedJobCard.tsx": 829,

@@ -59,9 +59,7 @@ const TAB_CONTENT: Record<TabKey, ReactNode> = {
 };
 
 /* ─────────────────────────  PAGE  ───────────────────────── */
-/** A pointer press on the magnifier this soon after the ✕ closed the field is
- *  the same gesture landing twice (Q912): it is ignored. */
-const RETAP_GUARD_MS = 500;
+const RETAP_GUARD_MS = 500; // a pointer re-press on the magnifier this soon after ✕ is the same gesture (Q912)
 
 const Legal = () => {
   const [params, setParams] = useSearchParams();
@@ -114,16 +112,10 @@ const Legal = () => {
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
   }, [searchOpen]);
-  /* THE FIELD FILLS THE PILL (owner, 2026-10-04, Q912), so its ✕ now sits
-     exactly where the magnifier comes back: the geometry the 2026-09-19 slot
-     (10f00eebc) was there to avoid, because one press closed the field and
-     the next press, landing on the magnifier under the same finger, reopened
-     it. The geometry is now allowed; the RE-PRESS is what is refused: a
-     pointer press on the magnifier within RETAP_GUARD_MS of the ✕ closing it
-     is the same gesture landing twice, not a request to search again.
-     Keyboard activation (click detail 0) is never swallowed. Measured on
-     /legal at 375 and 1440, Chromium and WebKit: ✕, then the same point 150 ms
-     later, stays closed; a press after the pause still opens it. */
+  /* THE FIELD FILLS THE PILL (owner, 2026-10-04, Q912), so its ✕ sits where the magnifier returns (the
+     2026-09-19 slot, 10f00eebc, avoided that). A pointer re-press within RETAP_GUARD_MS is refused instead;
+     keyboard (click detail 0) never is. Measured 375/1440, Chromium + WebKit: ✕ then the same point 150 ms
+     later stays closed; a press after the pause opens it. */
   const closedAtRef = useRef(0);
   const closeSearch = () => {
     closedAtRef.current = performance.now();
@@ -134,16 +126,11 @@ const Legal = () => {
     if (e.detail > 0 && performance.now() - closedAtRef.current < RETAP_GUARD_MS) return;
     setSearchOpen(true);
   };
-  /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every
-     expanding search in this app shares (PostsHeader states it in full,
-     owner 2026-09-19). Measured here at 320 / 375 / 1440 before this:
-     pressing the field's ✕ closed the field in a single press and dropped
-     `document.activeElement` on <body>, so a keyboard reader was returned to
-     the top of a very long policy document by the control whose whole job is
-     "put me back where I was". The magnifier does not exist while the field is
-     open, so the focus has to move on the render that brings it back — hence
-     an effect keyed on the flag rather than a call inside the click handler.
-     Only on a true->false transition, so it can never steal focus on load. */
+  /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every expanding search shares
+     (PostsHeader states it in full, owner 2026-09-19). Measured at 320 / 375 / 1440 before this: the ✕
+     dropped `document.activeElement` on <body>, returning a keyboard reader to the top of a very long
+     document. The magnifier does not exist while the field is open, so focus moves on the render that
+     brings it back (an effect keyed on the flag), only on true->false, so it never steals focus on load. */
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const wasSearchOpenRef = useRef(searchOpen);
   useEffect(() => {

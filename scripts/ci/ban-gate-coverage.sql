@@ -151,7 +151,6 @@ rpc_exempt(fn, why) AS (
   ('mark_applications_viewed', 'writes applications UPDATE, ban-gated'),
   ('mark_helper_arrival', 'writes jobs UPDATE, ban-gated'),
   ('poster_cancel_job', 'writes jobs UPDATE, ban-gated'),
-  ('reject_other_applications_on_accept', 'writes applications UPDATE, ban-gated'),
   ('report_helper_no_show', 'writes jobs UPDATE, ban-gated'),
   ('respond_to_review', 'writes reviews UPDATE, ban-gated'),
   ('rpc_open_dispute', 'open_dispute_as writes disputes + jobs, both ban-gated'),

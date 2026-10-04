@@ -20,7 +20,6 @@
 // @mutate supabase/migrations/20261004184021_expired_offer_says_it_expired.sql |     IF NOT v_no_strike THEN |     IF true THEN
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'helper_never_accepted' |     RAISE NOTICE 'helper_never_accepted'
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |       AND j.helper_confirmed_at IS NOT NULL\n  ) INTO v_caller_is_winner; |   ) INTO v_caller_is_winner;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
@@ -131,7 +130,11 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     const decline = body("decline_job_offer");
     expect(decline).toMatch(/SELECT j\.helper_id, j\.title, j\.customer_id, j\.status::text, j\.helper_confirmed_at[\s\S]*?FOR UPDATE;/);
     expect(decline).toMatch(/IF v_job_helper IS DISTINCT FROM auth\.uid\(\)\s+OR v_job_status IS DISTINCT FROM 'accepted'\s+OR v_job_confirmed IS NOT NULL THEN\s+RAISE EXCEPTION 'offer_not_active';/);
-    expect(body("reject_other_applications_on_accept")).toMatch(/AND j\.helper_id = v_caller\s+AND j\.helper_confirmed_at IS NOT NULL\s+\) INTO v_caller_is_winner;/);
+    // Q1216: reject_other_applications_on_accept had no caller left and is
+    // dropped (20261004193221); complete_job_accept closes the other
+    // applications itself.
+    expect(defs.has("reject_other_applications_on_accept")).toBe(false);
+    expect(body("complete_job_accept")).toMatch(/UPDATE public\.applications\s+SET status = 'rejected', updated_at = now\(\)\s+WHERE job_id = p_job_id\s+AND helper_id IS DISTINCT FROM v_job\.helper_id\s+AND status = 'pending';/);
   });
 
   it("a direct offer's Accept works like a regular offer's (Q1185, owner 2026-10-03)", () => {

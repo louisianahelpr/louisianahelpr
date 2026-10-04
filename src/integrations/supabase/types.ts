@@ -7291,10 +7291,6 @@ export type Database = {
         Args: { p_month: string; p_user_id: string }
         Returns: boolean
       }
-      reject_other_applications_on_accept: {
-        Args: { p_accepted_application_id: string; p_job_id: string }
-        Returns: undefined
-      }
       release_dispute_settlement_claim: {
         Args: { _job_id: string; _token?: string }
         Returns: boolean

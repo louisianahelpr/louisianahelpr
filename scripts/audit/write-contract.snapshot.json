@@ -5041,6 +5041,25 @@
    ],
    "columnGrants": {
     "authenticated": {
+     "SELECT": [
+      "attachment_urls",
+      "closed_reason",
+      "created_at",
+      "decline_reason",
+      "flagged_hidden",
+      "helper_id",
+      "id",
+      "job_id",
+      "job_latitude",
+      "job_longitude",
+      "message",
+      "offer_message",
+      "poster_viewed_at",
+      "stake_amount",
+      "stake_status",
+      "status",
+      "updated_at"
+     ],
      "UPDATE": [
       "attachment_urls",
       "decline_reason",
@@ -5184,13 +5203,11 @@
    "grants": {
     "anon": [
      "DELETE",
-     "REFERENCES",
-     "SELECT"
+     "REFERENCES"
     ],
     "authenticated": [
      "DELETE",
-     "REFERENCES",
-     "SELECT"
+     "REFERENCES"
     ]
    },
    "kind": "table",

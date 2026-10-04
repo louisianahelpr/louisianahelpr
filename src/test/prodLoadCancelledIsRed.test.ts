@@ -5,6 +5,10 @@
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   return COVERING_EVENTS.has(o.event) && !String(o.display_title ?? "").includes("(main batch "); |   return COVERING_EVENTS.has(o.event);
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   if (later.some((o) => IN_FLIGHT.has(o.status))) return "recovering"; |   if (false) return "recovering";
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   if (!open.length) return sched; |   return sched;
+// @mutate scripts/ci/cancelled-prod-load-runs.mjs | files: scheduledWorkflows(dir), | files: [...prodLoadWorkflows(dir)],
+// @mutate scripts/ci/cancelled-prod-load-runs.mjs | Date.parse(r.created_at) <= now - graceMs && | true &&
+// @mutate scripts/ci/cancelled-prod-load-runs.mjs |     return !/^\d+$/.test(min) \|\| !/^\d+$/.test(hour); |     return false;
+// @mutate scripts/ci/cancelled-prod-load-runs.mjs |   if (!prodLoad) return { act: false, | if (false) return { act: false,
 // @mutate .github/workflows/privacy-journey.yml | status: ${{ needs.gate.result == 'success' && needs.privacy-journey.result == 'success' && 'success' \|\| 'failure' }} | status: ${{ needs.gate.result != 'failure' && needs.privacy-journey.result != 'failure' && 'success' \|\| 'failure' }}
 /*
  * CLASS GUARD (docs/OPEN.md Q293): a scheduled prod-load run that was
@@ -33,7 +37,7 @@
  * be 'prod-load' + a schedule), never a hand list.
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "yaml";
 // @ts-expect-error - plain .mjs tool script, no types
@@ -42,11 +46,15 @@ import * as cancelled from "../../scripts/ci/cancelled-prod-load-runs.mjs";
 const ROOT = resolve(__dirname, "../..");
 type Run = Record<string, unknown>;
 const prodLoadWorkflows = cancelled.prodLoadWorkflows as (dir?: string) => string[];
-const cancelledScheduledRuns = cancelled.cancelledScheduledRuns as (runs: Run[], o?: { now?: number; windowDays?: number }) => Run[];
+const cancelledScheduledRuns = cancelled.cancelledScheduledRuns as (runs: Run[], o?: { now?: number; windowDays?: number; file?: string; graceMs?: number }) => Run[];
 const recoveringScheduledRuns = cancelled.recoveringScheduledRuns as (runs: Run[], o?: { now?: number; windowDays?: number }) => Run[];
-const cancelCause = cancelled.cancelCause as (jobs: unknown[], annotations?: { message: string }[]) => string;
+const cancelCause = cancelled.cancelCause as (jobs: unknown[], annotations?: { message: string }[], o?: { prodLoad?: boolean }) => string;
 const workflowRuns = cancelled.workflowRuns as (repo: string, file: string, o: { now: number; runs: (path: string) => Run[] }) => Run[];
 const WINDOW_DAYS = cancelled.WINDOW_DAYS as number;
+const SUB_DAILY_GRACE_MS = cancelled.SUB_DAILY_GRACE_MS as number;
+const scanTargets = cancelled.scanTargets as (dir?: string) => { files: string[]; prodLoad: Set<string> };
+const firesMoreThanDaily = cancelled.firesMoreThanDaily as (src: string) => boolean;
+const redispatchPlan = cancelled.redispatchPlan as (file: string, stalled: Run[], runs: Run[], o?: { prodLoad?: boolean }) => { act: boolean; why: string };
 const read = (f: string) => readFileSync(resolve(ROOT, f), "utf8");
 
 type Step = { uses?: string; with?: Record<string, string> };
@@ -155,5 +163,58 @@ describe("Q293: a cancelled scheduled prod-load run is red", () => {
     }
     expect(checked).toBeGreaterThan(15);
     expect(bad.join("\n"), "a cancelled prod-load run would report green or nothing").toBe("");
+  });
+});
+
+describe("Q1162: a cancelled scheduled run of a check OUTSIDE prod-load is seen too", () => {
+  const dir = resolve(ROOT, ".github/workflows");
+  const { files, prodLoad } = scanTargets(dir);
+
+  it("scans every workflow with a schedule: trigger, derived from the files", () => {
+    const scheduled = readdirSync(dir)
+      .filter((f) => /\.ya?ml$/.test(f))
+      .filter((f) => {
+        const on = (parse(read(`.github/workflows/${f}`)) as { on?: Record<string, unknown>; true?: Record<string, unknown> }).on ?? {};
+        return typeof on === "object" && "schedule" in on;
+      })
+      .sort();
+    expect(files).toEqual(scheduled);
+    expect(files.length).toBeGreaterThan(35);
+    // The three #2196 named, none of which holds the prod-load group, and a prod-load one.
+    for (const f of ["staleness-watch.yml", "lighthouse.yml", "ui-sweep.yml", "expiry-monitor.yml"]) expect(files).toContain(f);
+    for (const f of ["staleness-watch.yml", "lighthouse.yml", "ui-sweep.yml"]) expect(prodLoad.has(f), `${f} is outside prod-load`).toBe(false);
+    for (const f of prodLoad) expect(files).toContain(f);
+  });
+
+  it("a cancelled run of a daily-or-rarer check outside prod-load is stalled until a later run covers it", () => {
+    const now = Date.parse("2026-10-04T12:00:00Z");
+    const run = (o: Run) => ({ event: "schedule", status: "completed", conclusion: "cancelled", created_at: "2026-10-03T09:17:00Z", ...o });
+    expect(cancelledScheduledRuns([run({})], { now, file: "staleness-watch.yml" })).toHaveLength(1);
+    expect(cancelledScheduledRuns([run({}), run({ conclusion: "success", created_at: "2026-10-04T09:17:00Z" })], { now, file: "staleness-watch.yml" })).toHaveLength(0);
+  });
+
+  it("a more-than-daily workflow covers itself: its fresh cancelled run waits SUB_DAILY_GRACE_MS before it counts", () => {
+    const sub = (cron: string) => `on:\n  schedule:\n    - cron: "${cron}"\n`;
+    for (const cron of ["*/10 * * * *", "47 * * * *", "17 */6 * * *", "0,30 5 * * *"]) expect(firesMoreThanDaily(sub(cron)), cron).toBe(true);
+    for (const cron of ["17 9 * * 0,2,6", "17 5 * * 2,5", "0 5 * * 3", "23 11 * * *"]) expect(firesMoreThanDaily(sub(cron)), cron).toBe(false);
+    expect(firesMoreThanDaily(`on:\n  schedule:\n    # - cron: "*/5 * * * *"\n    - cron: "17 9 * * *"\n`)).toBe(false);
+    for (const f of ["uptime.yml", "core-loop-canary.yml", "prod-errors.yml", "main-batch.yml", "prod-deploy.yml", "branch-prune.yml"]) expect(firesMoreThanDaily(read(`.github/workflows/${f}`)), f).toBe(true);
+    for (const f of ["staleness-watch.yml", "lighthouse.yml", "ui-sweep.yml", "e2e-journeys.yml"]) expect(firesMoreThanDaily(read(`.github/workflows/${f}`)), f).toBe(false);
+
+    const now = Date.parse("2026-10-04T12:00:00Z");
+    const hoursAgo = (h: number) => new Date(now - h * 3_600_000).toISOString();
+    const run = (h: number) => ({ event: "schedule", status: "completed", conclusion: "cancelled", created_at: hoursAgo(h) });
+    expect(cancelledScheduledRuns([run(1)], { now, graceMs: SUB_DAILY_GRACE_MS })).toHaveLength(0);
+    expect(cancelledScheduledRuns([run(25)], { now, graceMs: SUB_DAILY_GRACE_MS })).toHaveLength(1);
+    expect(cancelledScheduledRuns([run(1)], { now })).toHaveLength(1);
+  });
+
+  it("outside prod-load a stalled run is reported, not re-dispatched; inside it still is", () => {
+    const stalled = [{ id: 1, event: "schedule", status: "completed", conclusion: "cancelled", created_at: "2026-10-03T09:17:00Z" }];
+    const outside = redispatchPlan("staleness-watch.yml", stalled, stalled, { prodLoad: false });
+    expect(outside.act).toBe(false);
+    expect(outside.why).toMatch(/reported, not re-dispatched/);
+    expect(redispatchPlan("write-contract-refresh.yml", stalled, stalled, { prodLoad: true }).act).toBe(true);
+    expect(cancelCause([], [], { prodLoad: false })).not.toMatch(/prod-load/);
   });
 });

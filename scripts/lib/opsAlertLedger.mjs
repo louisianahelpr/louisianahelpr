@@ -241,6 +241,7 @@ export function failingRunRef(env = process.env) {
 
 // Steps a self-recording workflow may run besides its checks: none can turn a
 // run red on a finding, so none needs an item of its own.
+const PROD_LOAD_QUEUE_STEP = "node scripts/ci/wait-prod-load.mjs";
 const SELF_RECORDING_USES = /^(actions\/checkout@|actions\/setup-node@|\.\/\.github\/actions\/nightly-issue-sync$)/;
 
 /**
@@ -258,7 +259,8 @@ export function selfRecordingWorkflows(files, readScript) {
   for (const { file, text } of files) {
     const base = String(file).replace(/^.*\//, "").replace(/\.ya?ml$/, "");
     const src = String(text);
-    const runs = [...src.matchAll(/^\s*(?:-\s+)?run:\s*(.*)$/gm)].map((m) => m[1].trim());
+    // The prod-load queue job (Q1161) orders a run; it is not a check, so it neither records nor disqualifies.
+    const runs = [...src.matchAll(/^\s*(?:-\s+)?run:\s*(.*)$/gm)].map((m) => m[1].trim()).filter((r) => r !== PROD_LOAD_QUEUE_STEP);
     const uses = [...src.matchAll(/^\s*(?:-\s+)?uses:\s*["']?([^"'\s#]+)/gm)].map((m) => m[1]);
     if (!runs.length || !uses.every((u) => SELF_RECORDING_USES.test(u))) continue;
     const scripts = runs.map((r) => /^node (scripts\/[\w./-]+\.mjs)$/.exec(r)?.[1] ?? null);

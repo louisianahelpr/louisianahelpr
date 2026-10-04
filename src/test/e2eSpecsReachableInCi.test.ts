@@ -19,7 +19,7 @@
 //     a GUARDED file, and this classifier is in the guard itself, so no
 //     `@mutate` can express it.
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | export const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT]"; | export const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT] ";
-// @mutate .github/workflows/e2e-real-backend.yml | \n  anon-surface:\n    name: Anon surface contract (real prod, read-only, no credentials)\n | \n  anon-surface:\n    name: Anon surface contract (real prod, read-only, no credentials)\n    if: ${{ secrets.E2E_SUPABASE_URL != '' }}\n
+// @mutate .github/workflows/e2e-real-backend.yml | \n  anon-surface:\n    needs: prod-load-turn\n    name: Anon surface contract (real prod, read-only, no credentials)\n | \n  anon-surface:\n    needs: prod-load-turn\n    name: Anon surface contract (real prod, read-only, no credentials)\n    if: ${{ secrets.E2E_SUPABASE_URL != '' }}\n
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";

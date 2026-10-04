@@ -19,6 +19,7 @@
  * @mutate scripts/check-quota-usage.mjs | sampleRef: { ...failingRunRef(), quota: r.q.id }, | sampleRef: { quota: r.q.id },
  * @mutate scripts/check-stripe-balance.mjs | sample, sampleRef: failingRunRef() }); | sample, sampleRef: {} });
  * @mutate scripts/check-analytics-freshness.mjs | sampleRef: failingRunRef(), | sampleRef: {},
+ * @mutate scripts/lib/opsAlertLedger.mjs | .filter((r) => r !== PROD_LOAD_QUEUE_STEP); | .filter((r) => r === PROD_LOAD_QUEUE_STEP);
  * @mutate scripts/lib/opsAlertLedger.mjs | return jobs.size >= failedJobs; | return jobs.size >= 0;
  * @mutate scripts/lib/opsAlertLedger.mjs | if (!ref.fails_run) continue; | if (false) continue;
  * @mutate scripts/lib/opsAlertLedger.mjs | if (scripts.some((p) => !p)) continue; | if (false) continue;
@@ -56,7 +57,7 @@ describe("self-recording workflows: one red, one ledger item", () => {
 
   it("every check quota-monitor runs records its red with failingRunRef and verifyRef quota-monitor.yml", () => {
     const yml = FILES.find((f) => f.file === "quota-monitor.yml")!.text;
-    const scripts = [...yml.matchAll(/^\s*run:\s*node (scripts\/\S+\.mjs)\s*$/gm)].map((m) => m[1]);
+    const scripts = [...yml.matchAll(/^\s*run:\s*node (scripts\/\S+\.mjs)\s*$/gm)].map((m) => m[1]).filter((p) => p !== "scripts/ci/wait-prod-load.mjs"); // the Q1161 queue job is not a check
     expect(scripts.length).toBeGreaterThan(3);
     for (const s of scripts) {
       const code = blankComments(readFileSync(join(ROOT, s), "utf8"));

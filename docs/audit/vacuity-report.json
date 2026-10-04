@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-04T01:09:01.929Z",
-  "guards": 1372,
-  "registered": 1372,
+  "generated": "2026-10-04T01:47:16.514Z",
+  "guards": 1373,
+  "registered": 1373,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -37,6 +37,12 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/prodLoadQueue.test.ts",
+      "why": [
+        "urls (literal declared in this file) is both input and oracle"
       ]
     },
     {

@@ -18,8 +18,11 @@ const sha256 = rawSha as (t: string) => string;
 const sqlCode = rawCode as (t: string) => string;
 
 const ROOT = resolve(__dirname, "../..");
-const F = "supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql";
-// The shape of 42a7962cc's edit to this file.
+// F is only the LABEL of a synthetic edit (nothing here reads it from disk). It names a migration
+// whose functions no later migration redefines, so this test is not a pin on superseded SQL
+// (guardsReadTheNewestMigration); 42a7962cc's own victim was 20260926040011_ops_alert_pending_watchdog.sql.
+const F = "supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql";
+// The shape of 42a7962cc's edit to that file.
 const BEFORE = "EXCEPTION WHEN OTHERS THEN\n  RAISE WARNING 'fold failed: %', SQLERRM;\nEND;\n";
 const AFTER = "EXCEPTION WHEN OTHERS THEN\n  -- Filed, not just warned.\n  PERFORM public.log_cron_defect('check_ops_alert_pending', 'fold', SQLERRM, '{}');\nEND;\n";
 const none = () => null;

@@ -34,12 +34,14 @@
  * read the newest file by raw `includes` — so both SURVIVED the vacuity sweep:
  * a mutation of dead SQL is an equivalent mutant. The guard now reads function
  * BODIES through latestFunctionDefs (comments blanked, any dollar tag, newest
- * CREATE wins, a later DROP removes it), and the third registration proves a
- * mention in a comment no longer counts as the definition.
+ * CREATE wins, a later DROP removes it), and the third registration breaks the high-water dedupe
+ * of the newest body. (It used to comment out the only CREATE to prove a mention in a comment
+ * is not a definition; 20261004004835 restates the function over an older copy with the same body, so
+ * that mutation can no longer fail.)
  */
-// @mutate supabase/migrations/20260923052520_seed_alerts_go_to_the_digest.sql |     jsonb_build_object('dlq', 'auth_emails_dlq', |     jsonb_build_object('dlq', 'auth_emails_dlq_unwatched',
-// @mutate supabase/migrations/20260923052520_seed_alerts_go_to_the_digest.sql | 'dlq', 'auth_emails_dlq',\n                       'severity', 'fatal', | 'dlq', 'auth_emails_dlq',\n                       'severity', 'error',
-// @mutate supabase/migrations/20260923052520_seed_alerts_go_to_the_digest.sql | CREATE OR REPLACE FUNCTION public.sweep_email_dlqs() | -- CREATE OR REPLACE FUNCTION public.sweep_email_dlqs()\nCREATE OR REPLACE FUNCTION public.sweep_email_dlqs_old()
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |     jsonb_build_object('dlq', 'auth_emails_dlq', |     jsonb_build_object('dlq', 'auth_emails_dlq_unwatched',
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | 'dlq', 'auth_emails_dlq',\n                       'severity', 'fatal', | 'dlq', 'auth_emails_dlq',\n                       'severity', 'error',
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | IF v_last_id IS NOT NULL AND v_last_id >= v_max_id THEN | IF v_last_id IS NOT NULL AND v_last_id > v_max_id THEN
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

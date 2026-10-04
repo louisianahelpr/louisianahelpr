@@ -416,14 +416,16 @@ export default defineConfig(({ mode }) => ({
               precacheFallback: { fallbackURL: "offline.html" },
             },
           },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
+          // NO rule for https://*.supabase.co/* (Q1174). It used to be
+          // NetworkFirst into `api-cache` (50 entries, 300 s), which wrote the
+          // signed-in user's rows (profile, applications, messages) to Cache
+          // Storage on every load, proxied every read through the worker, and
+          // survived sign-out, so a shared device could show the previous
+          // account's data offline. A request no rule matches goes straight to
+          // the network and is never stored. Do not add a cross-origin or API
+          // rule back: src/test/swRuntimeCachingNeverStoresApi.test.ts pins the
+          // exact rule list. Devices that already hold `api-cache` get it
+          // deleted by src/lib/apiCachePurge.ts (at load and at sign-out).
           // Hashed/fingerprinted build assets not in the precache (route
           // chunks like Dashboard / Profile / PostJob, dialog chunks, vendor
           // chunks like motion / posthog / sentry / charts, all

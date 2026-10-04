@@ -54,7 +54,7 @@ function correlatedCounts(): { readers: string[]; counts: Record<string, number>
 }
 
 // @mutate supabase/migrations/20260925155322_catch_up_candidates_one_scan.sql |            h.last_failure |            (SELECT d.status FROM cron.job_run_details d WHERE d.jobid = u.jobid LIMIT 1) AS last_failure
-// @mutate supabase/migrations/20260925140304_sweep_dead_crons_one_scan.sql |              s.last_start, |              (SELECT max(d.start_time) FROM cron.job_run_details d WHERE d.jobid = j.jobid) AS last_start,
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |              s.last_start, |              (SELECT max(d.start_time) FROM cron.job_run_details d WHERE d.jobid = j.jobid) AS last_start,
 describe("Q105(4): cron run history is scanned once, not once per job", () => {
   const { readers, counts } = correlatedCounts();
 

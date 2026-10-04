@@ -122,7 +122,7 @@ describe("a cron outage is not reported through a cron", () => {
 
 // Proof this is able to fail — 'error' is exactly the routing that left the
 // 2026-09-22 outage unreported for nine hours.
-// @mutate supabase/migrations/20260923050055_cron_fleet_failures_any_kind.sql |    AND d.status = 'failed'; |    AND d.status = 'never';
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |    AND d.status = 'failed'; |    AND d.status = 'never';
 
 // CJ-004: a job that raises its OWN error once, between successes, sat under
 // both rules above ('erroring' needs 3 in a row, the fleet sweep needs 3 in 20
@@ -149,6 +149,6 @@ describe("a single raised error pages (CJ-004)", () => {
     expect(sub).toMatch(/NOT ILIKE '%startup timeout%'/);
   });
 });
-// @mutate supabase/migrations/20260925140304_sweep_dead_crons_one_scan.sql |               WHEN l.raised_msg IS NOT NULL THEN 'raised' |               WHEN false THEN 'raised'
-// @mutate supabase/migrations/20260925140304_sweep_dead_crons_one_scan.sql |               FILTER (WHERE rk.is_raised))[1] |               FILTER (WHERE rk.is_raised))[2]
-// @mutate supabase/migrations/20260925140304_sweep_dead_crons_one_scan.sql | AND coalesce(d.return_message, '') NOT ILIKE '%startup timeout%') AS is_raised | ) AS is_raised
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |               WHEN l.raised_msg IS NOT NULL THEN 'raised' |               WHEN false THEN 'raised'
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |               FILTER (WHERE rk.is_raised))[1] |               FILTER (WHERE rk.is_raised))[2]
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | AND coalesce(d.return_message, '') NOT ILIKE '%startup timeout%') AS is_raised | ) AS is_raised

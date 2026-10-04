@@ -69,9 +69,11 @@ const sweepSql = (() => {
  * the predicate is unambiguous there.
  */
 const sweepBody = (() => {
-  const m = sweepSql.match(/AS \$fn\$([\s\S]*?)\$fn\$;/);
-  expect(m, "the sweep body must be delimited by $fn$").not.toBeNull();
-  return m![1];
+  // The file may define other functions (20261004004835 restates 15): start at THIS one's header.
+  const at = sweepSql.indexOf("FUNCTION public.sweep_disputes_closed_without_payment");
+  const m = sweepSql.slice(at).match(/AS (\$\w*\$)([\s\S]*?)\1;/);
+  expect(m, "the sweep body must be delimited by a dollar-quote tag").not.toBeNull();
+  return m![2];
 })();
 
 describe("a dispute closed without moving money is watched", () => {
@@ -197,4 +199,4 @@ describe("a dispute closed without moving money is watched", () => {
 
 // Proof this is able to fail. Each mutation breaks a different premise:
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved))") | .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved,open))")
-// @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | AND d.execution_refund_id   IS NULL | AND true
+// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql | AND d.execution_refund_id   IS NULL | AND true

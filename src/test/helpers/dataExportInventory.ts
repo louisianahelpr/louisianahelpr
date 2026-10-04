@@ -162,9 +162,6 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
 export const POSTER_SIDE_EXEMPT: Record<string, string> = {
   job_checkins: "a check-in is the Helpr's own location event, exported to them by user_id; never the poster's data",
   job_tracking: "the Helpr's live location trail, exported to them by helper_id; never the poster's data",
-  job_views:
-    "a view event is the VIEWER's data, exported to them by viewer_id; the poster's screens show only counts, " +
-    "and exporting the rows would hand the poster other people's viewing history",
   messages:
     "the poster clause is the realtime-subscription policy (realtime.topic() ~ '^jobs:<id>'), a channel join, " +
     "not a read of message rows; the poster's messages are exported by sender_id / receiver_id",

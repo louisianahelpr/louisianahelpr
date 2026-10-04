@@ -9066,41 +9066,9 @@
      "type": "uuid"
     }
    },
-   "grants": {
-    "anon": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ],
-    "authenticated": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ]
-   },
+   "grants": {},
    "kind": "table",
-   "policies": [
-    {
-     "cmd": "INSERT",
-     "name": "Helpers insert own views",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "public"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "Posters read views on own jobs",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "public"
-     ]
-    }
-   ],
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert",

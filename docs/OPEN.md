@@ -762,7 +762,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### OPEN — CI should run against a separate database from real users, not before launch (owner, 2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q935** MEDIUM CI still hits prod DB directly; owner deprioritized a separate Supabase branch until after launch — Owner-deferred, not a launch blocker. No persistent Supabase branch stood up yet; CI still hits prod directly, mitigated only by schedule spacing + the prod-load lock. (archive L1005)
+- [ ] **Q935** MEDIUM CI still hits prod DB directly; owner deprioritized a separate Supabase branch until after launch — Owner-deferred, not a launch blocker. No persistent Supabase branch stood up yet; CI still hits prod directly, mitigated only by schedule spacing + the prod-load lock. (archive L1005) **SKIPPED 2026-10-05 (lane/code-tooling-1005): owner-deferred until after launch** (a persistent Supabase branch is a new paid/plan decision).
 
 ### CLOSED — PROD WAS DOWN 2026-09-22 07:57-14:40 UTC; recovered by restart, nothing alarmed (that half fixed in uptime 079d03194)
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -829,7 +829,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### VN-33(b) bad-pin exception — follow-ups from its reviews
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q952** LOW Design notes for the owner re: near-miss job staying 'accepted' — Open (owner): design notes on near-miss/accepted-state behavior await an owner read, not code. (archive L2617)
+- [ ] **Q952** LOW Design notes for the owner re: near-miss job staying 'accepted' — Open (owner): design notes on near-miss/accepted-state behavior await an owner read, not code. (archive L2617) **SKIPPED 2026-10-05 (lane/code-tooling-1005): owner read needed,** no code task in it.
 
 ### Owner decisions 2026-09-15 morning (pop-up) — building as branches
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -880,7 +880,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Disk: git history carries 322M of dead media — REWRITE QUEUED (2026-09-13)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q977** LOW Rewrite git history to drop 322M of dead media blobs — History rewrite still not done; pack size is 377.83 MiB (grew, not shrank) — no force-push/rewrite has happened. (archive L3215)
+- [ ] **Q977** LOW Rewrite git history to drop 322M of dead media blobs — History rewrite still not done; pack size is 377.83 MiB (grew, not shrank) — no force-push/rewrite has happened. (archive L3215) **SKIPPED 2026-10-05 (lane/code-tooling-1005): needs the owner's go.** Rewriting history means a force-push to main of a PUBLIC repo (every clone, fork, open PR and worktree breaks; land.sh and branch protection with enforce_admins refuse it), so it is an owner decision with a planned quiet window, not lane work.
 
 ### 18 `wip/` branches on origin — triaged 2026-09-13, none deleted
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -896,7 +896,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Performance — audit done, NO fixes applied yet
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q979** LOW Prefetch check-pro-subscription / stripe-connect status; raise React Query gcTime past 5min; dedupe raw supabase.rpc calls — Performance fixes (prefetch, gcTime, query dedupe) for the 395-893ms Stripe-hop delays still not applied, per the heading itself. (archive L3421)
+- [ ] **Q979** LOW Prefetch check-pro-subscription / stripe-connect status; raise React Query gcTime past 5min; dedupe raw supabase.rpc calls — Performance fixes (prefetch, gcTime, query dedupe) for the 395-893ms Stripe-hop delays still not applied, per the heading itself. (archive L3421) **RE-VERIFIED 2026-10-05 (lane/code-tooling-1005), needs the browser lane:** check-pro-subscription is still fetched only on demand (src/hooks/useDashboardData.ts:549) and never prefetched; get_my_pending_direct_offers is called raw in two places (useActivityBadgeCounts.ts:178, useActivityData.ts:468). Whether those still duplicate per route can only be counted from a real page load's network log, which this lane cannot run (no browser).
 
 ### Messages screen
 Reconciled 2026-09-23; detail in the archive at the line shown.

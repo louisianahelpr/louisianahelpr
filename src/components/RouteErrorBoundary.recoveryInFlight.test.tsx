@@ -64,6 +64,35 @@ const renderRoute = () =>
     </MemoryRouter>,
   );
 
+// @mutate src/components/RouteErrorBoundary.tsx |     if (this.state.recovering) cancelPendingChunkRetry();\n  }\n\n  componentDidUpdate | }\n\n  componentDidUpdate
+describe("Q982 (2): leaving a route that waits on a scheduled retry drops the retry", () => {
+  it("unmounting the quiet boundary cancels the pending reload", async () => {
+    vi.useFakeTimers();
+    try {
+      // Attempt 1 already happened (it reloaded this page); attempt 2 is scheduled.
+      sessionStorage.setItem("helpr_chunk_reload_count", "1");
+      sessionStorage.setItem("helpr_chunk_reload_at", String(Date.now() - 1_000));
+      const ChunkFail = (): never => {
+        throw new Error("Failed to fetch dynamically imported module: https://x/assets/Page-abc.js");
+      };
+      const view = render(
+        <MemoryRouter initialEntries={["/browse"]}>
+          <Routes>
+            <Route path="/browse" element={<RouteErrorBoundary><ChunkFail /></RouteErrorBoundary>} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      expect(isRecoveryReloadInFlight()).toBe(true); // quiet state, retry scheduled
+      view.unmount(); // the visitor went somewhere else
+      expect(isRecoveryReloadInFlight()).toBe(false);
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(window.location.replace).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("RouteErrorBoundary while a recovery reload is in flight", () => {
   it("shows the quiet reloading state, not the error card, and reports nothing", () => {
     // main.tsx's vite:preloadError handler: the automatic reload starts now.

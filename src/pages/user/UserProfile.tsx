@@ -333,77 +333,44 @@ const UserProfile = () => {
     );
   }
 
-  if (offlineEmpty) {
-    return wrap(
+  // One shell for the three states with no profile to show (offline, error,
+  // not found): the same header and column as the loaded page.
+  const stateCard = (card: ReactNode) =>
+    wrap(
       <>
-        <PageHeader
-          eyebrow={headerEyebrow}
-          title={headerTitle}
-          meta={headerMeta}
-          titleActions={headerActionPlaceholder}
-        />
+        <PageHeader eyebrow={headerEyebrow} title={headerTitle} meta={headerMeta} titleActions={headerActionPlaceholder} />
         <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
-          <div className="flex">
-            <OfflineEmptyState
-              body="This profile will load here as soon as you're back online."
-              onRetry={() => void refetch()}
-            />
-          </div>
+          <div className="flex">{card}</div>
         </div>
-      </>
+      </>,
+    );
+
+  if (offlineEmpty) {
+    return stateCard(
+      <OfflineEmptyState body="This profile will load here as soon as you're back online." onRetry={() => void refetch()} />,
     );
   }
 
-  if (isError) {
-    return wrap(
-      <>
-        <PageHeader
-          eyebrow={headerEyebrow}
-          title={headerTitle}
-          meta={headerMeta}
-          titleActions={headerActionPlaceholder}
-        />
-        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
-          <div className="flex">
-            <ErrorState variant="inline" onRetry={() => refetch()} />
-          </div>
-        </div>
-      </>
-    );
-  }
+  if (isError) return stateCard(<ErrorState variant="inline" onRetry={() => refetch()} />);
 
   if (!profile) {
-    return wrap(
-      <>
-        <PageHeader
-          eyebrow={headerEyebrow}
-          title={headerTitle}
-          meta={headerMeta}
-          titleActions={headerActionPlaceholder}
-        />
-        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
-          <div className="flex">
-            <EmptyState
-              variant="inline"
-              icon={UserX}
-              title="Profile not found"
-              body="This profile may have been removed, or the link is no longer valid."
-              // Same guard as every other back affordance: a profile link
-              // shared into a messaging app opens cold, and `navigate(-1)`
-              // from there leaves the app instead of showing this person the
-              // rest of it. Browse is the honest fallback — they arrived
-              // looking for a helpr.
-              action={
-                <BarkPillButton
-                  onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/home"))}
-                >
-                  Go back
-                </BarkPillButton>
-              }
-            />
-          </div>
-        </div>
-      </>
+    return stateCard(
+      <EmptyState
+        variant="inline"
+        icon={UserX}
+        title="Profile not found"
+        body="This profile may have been removed, or the link is no longer valid."
+        // Same guard as every other back affordance: a profile link
+        // shared into a messaging app opens cold, and `navigate(-1)`
+        // from there leaves the app instead of showing this person the
+        // rest of it. Browse is the honest fallback — they arrived
+        // looking for a helpr.
+        action={
+          <BarkPillButton onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/home"))}>
+            Go back
+          </BarkPillButton>
+        }
+      />,
     );
   }
 

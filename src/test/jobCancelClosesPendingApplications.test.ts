@@ -112,7 +112,7 @@ describe("Q274: a cancelled job closes its pending applications, truthfully", ()
     expect(card).toMatch(/if \(app\.closed_reason === "job_cancelled"\) return "Job cancelled"/);
     // Q1259: the panel's badge comes from posterApplicantBadge, one entry per closed_reason.
     const panel = src("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
-    expect(panel).toMatch(/posterApplicantBadge\(app\)/);
+    expect(panel).toMatch(/<ApplicantStatusBadge app=\{app\} \/>/);
     expect(posterApplicantBadge({ status: "rejected", closed_reason: "job_cancelled" })).toBeNull();
     expect(posterApplicantBadge({ status: "rejected", closed_reason: null })?.label).toBe("Declined");
   });

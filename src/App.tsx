@@ -40,14 +40,9 @@ const DashboardRouteSkeleton = skeletonOnDemand(() => import("@/components/Dashb
 const ActivityRouteSkeleton = skeletonOnDemand(() => import("@/components/ActivityRouteSkeleton"));
 const ProfileRouteSkeleton = skeletonOnDemand(() => import("@/components/ProfileRouteSkeleton"));
 const LoginRouteSkeleton = skeletonOnDemand(() => import("@/components/LoginRouteSkeleton"));
-// OfflineBanner is a STATIC import on purpose (Q1107). It used to be lazy(),
-// to keep lucide-react off the boot path, but lucide and supabase are both in
-// main's static graph anyway (measured on the 2026-10-05 build: main's closure
-// is 13 chunks including lucide-* and supabase-*), so lazy() saved nothing and
-// added a failure: the banner's chunk had to be FETCHED at the moment it is
-// needed, and on a cold offline boot that fetch is the one thing that cannot
-// succeed. src/test/offlineSurfacesAreStatic.test.ts keeps every offline
-// surface mounted here out of lazy().
+// Static on purpose (Q1107): a lazy banner must be fetched to say the network
+// is down. lucide and supabase are in main's graph anyway (2026-10-05 build).
+// Guard: src/test/offlineSurfacesAreStatic.test.ts.
 import OfflineBanner from "@/components/OfflineBanner";
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";

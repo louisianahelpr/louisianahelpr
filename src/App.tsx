@@ -52,6 +52,7 @@ import { seniorModeMetadataPatch, sessionSeniorFlag, syncSeniorMode } from "@/li
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import RouteMemory from "@/components/RouteMemory";
+import StaleClientWatch from "@/components/StaleClientWatch";
 // Tiny + Supabase-free by design (a synchronous localStorage probe plus a
 // lazy boundary) so it can be imported eagerly here without putting the
 // auth check — and therefore Supabase — on the landing page's LCP path.
@@ -695,6 +696,9 @@ const App = () => (
               subsequent navigations, that one consumes the value once at
               mount. */}
           <RouteMemory />
+          {/* Web: a newer deploy or a raised compat floor reaches an open tab
+              (focus/visibility/42501 checks; reload at the next navigation). */}
+          <StaleClientWatch />
           <OfflineBanner />
           <Suspense fallback={null}>
             <StrikeBanner />

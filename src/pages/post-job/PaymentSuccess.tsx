@@ -7,7 +7,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { COPY_AUTO_RELEASE_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
 import {
-  ShieldCheck,
   Megaphone,
   Handshake,
   Hammer,
@@ -370,14 +369,6 @@ const PaymentSuccess = () => {
     })();
   }, [searchParams]);
 
-  const eyebrow = isHeld
-    ? "Payment authorized"
-    : confirmState === "checking"
-      ? "One moment"
-      : confirmState === "not_held"
-        ? "Payment not completed"
-        : "Payment not confirmed";
-
   const heading = isHeld
     ? "Payment authorized."
     : confirmState === "checking"
@@ -412,7 +403,9 @@ const PaymentSuccess = () => {
     // `centerColumn`: without it AuthShell snaps to `items-start` and the
     // card pins to the left edge (measured at 1440: card x 48–496, dead
     // canvas across the other ~940px). Same prop, same reason as Signup.
-    <AuthShell hideBack centerColumn eyebrow={eyebrow} maxWidth="md">
+    // hideHeader (owner, 2026-10-05): the Helpr·LA wordmark and its
+    // "PAYMENT AUTHORIZED" eyebrow repeated the card's own headline.
+    <AuthShell hideBack hideHeader centerColumn maxWidth="md">
       <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
         {/* The badge is a claim too — it only draws its checkmark when the
             payment is confirmed held. Every other state gets an honest mark
@@ -501,19 +494,6 @@ const PaymentSuccess = () => {
             render ONLY when we have confirmed we're holding it. */}
         {isHeld && (
           <>
-            <div
-              className="flex items-start justify-center gap-3 rounded-2xl p-4 text-left"
-              style={{
-                background: "hsl(var(--bark) / 0.06)",
-                border: "1px solid hsl(var(--bark) / 0.18)",
-              }}
-            >
-              <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-              <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
-                We hold it until you confirm the job's done. The Helpr is paid once both you and the Helpr mark it complete — your money stays protected the whole time.
-              </p>
-            </div>
-
             <div className="space-y-3 text-left">
               {/* mt-3: the space-y-3 gap the hidden eyebrow gave it (Q1129). */}
               <ol className="space-y-2.5 mt-3">

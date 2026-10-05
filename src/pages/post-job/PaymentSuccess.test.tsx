@@ -206,8 +206,19 @@ describe("PaymentSuccess", () => {
       const heading = await screen.findByRole("heading", { level: 1 });
       expect(heading).toHaveTextContent(/payment authorized/i);
       expect(screen.getByText("$120")).toBeInTheDocument();
-      expect(screen.getByText(/your money stays protected/i)).toBeInTheDocument();
     });
+
+    // Owner, 2026-10-05: nothing on this screen says the same thing twice. The
+    // wordmark's "PAYMENT AUTHORIZED" eyebrow repeated the h1, and a shield box
+    // repeated the "held securely until you confirm" line and the Released step.
+    it("says each thing once", async () => {
+      renderAt();
+      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      expect(screen.getAllByText(/payment authorized/i)).toHaveLength(1);
+      expect(screen.queryByText(/your money stays protected/i)).toBeNull();
+      expect(screen.getAllByText(/held securely/i)).toHaveLength(1);
+    });
+// @mutate src/pages/post-job/PaymentSuccess.tsx | <AuthShell hideBack hideHeader centerColumn | <AuthShell hideBack centerColumn eyebrow="Payment authorized"
 
     it("offers the post-payment actions", async () => {
       renderAt();

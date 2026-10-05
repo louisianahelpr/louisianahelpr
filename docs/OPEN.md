@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 284** (245 to do, 39 fixed with protection pending; 778 done). Feeds mirrored in: 14 from the alert ledger, 11 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 282** (243 to do, 39 fixed with protection pending; 780 done). Feeds mirrored in: 14 from the alert ledger, 11 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
 - **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1062 items — 778 done, 39 partly done (fixed, protection pending), 245 open.**
+**Queue: 1062 items — 780 done, 39 partly done (fixed, protection pending), 243 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -768,7 +768,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### OPEN — CI should run against a separate database from real users, not before launch (owner, 2026-09-22)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q935** MEDIUM CI still hits prod DB directly; owner deprioritized a separate Supabase branch until after launch — Owner-deferred, not a launch blocker. No persistent Supabase branch stood up yet; CI still hits prod directly, mitigated only by schedule spacing + the prod-load lock. (archive L1005)
+- [ ] **Q935** MEDIUM CI still hits prod DB directly; owner deprioritized a separate Supabase branch until after launch — Owner-deferred, not a launch blocker. No persistent Supabase branch stood up yet; CI still hits prod directly, mitigated only by schedule spacing + the prod-load lock. (archive L1005) **SKIPPED 2026-10-05 (lane/code-tooling-1005): owner-deferred until after launch** (a persistent Supabase branch is a new paid/plan decision).
 
 ### CLOSED — PROD WAS DOWN 2026-09-22 07:57-14:40 UTC; recovered by restart, nothing alarmed (that half fixed in uptime 079d03194)
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -825,7 +825,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Low-alpha AA batch — landed 8aff7b8cc, three things left open (2026-09-20)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q947** LOW TrustRow's separator never renders (dead code, single-chip call site) — Still open: TrustRow separator dead because JobPosterCard only passes one signal. (archive L2236)
 - [ ] **Q948** MEDIUM Three live AA failures found outside the lane's list (job dialog pitch, /messages banner, /posts badge) — Open, not reached: three specific AA contrast failures reported 2026-09-20, no fix commit found. (archive L2248)
 - [ ] **Q949** LOW Four changed contrast sites never photographed in their own state — Open, not reached: 4 contrast fixes still unverified by screenshot. (archive L2254)
 
@@ -835,7 +834,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### VN-33(b) bad-pin exception — follow-ups from its reviews
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q952** LOW Design notes for the owner re: near-miss job staying 'accepted' — Open (owner): design notes on near-miss/accepted-state behavior await an owner read, not code. (archive L2617)
+- [ ] **Q952** LOW Design notes for the owner re: near-miss job staying 'accepted' — Open (owner): design notes on near-miss/accepted-state behavior await an owner read, not code. (archive L2617) **SKIPPED 2026-10-05 (lane/code-tooling-1005): owner read needed,** no code task in it.
 
 ### Owner decisions 2026-09-15 morning (pop-up) — building as branches
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -886,7 +885,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Disk: git history carries 322M of dead media — REWRITE QUEUED (2026-09-13)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q977** LOW Rewrite git history to drop 322M of dead media blobs — History rewrite still not done; pack size is 377.83 MiB (grew, not shrank) — no force-push/rewrite has happened. (archive L3215)
+- [ ] **Q977** LOW Rewrite git history to drop 322M of dead media blobs — History rewrite still not done; pack size is 377.83 MiB (grew, not shrank) — no force-push/rewrite has happened. (archive L3215) **SKIPPED 2026-10-05 (lane/code-tooling-1005): needs the owner's go.** Rewriting history means a force-push to main of a PUBLIC repo (every clone, fork, open PR and worktree breaks; land.sh and branch protection with enforce_admins refuse it), so it is an owner decision with a planned quiet window, not lane work.
 
 ### 18 `wip/` branches on origin — triaged 2026-09-13, none deleted
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -902,7 +901,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Performance — audit done, NO fixes applied yet
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q979** LOW Prefetch check-pro-subscription / stripe-connect status; raise React Query gcTime past 5min; dedupe raw supabase.rpc calls — Performance fixes (prefetch, gcTime, query dedupe) for the 395-893ms Stripe-hop delays still not applied, per the heading itself. (archive L3421)
+- [ ] **Q979** LOW Prefetch check-pro-subscription / stripe-connect status; raise React Query gcTime past 5min; dedupe raw supabase.rpc calls — Performance fixes (prefetch, gcTime, query dedupe) for the 395-893ms Stripe-hop delays still not applied, per the heading itself. (archive L3421) **RE-VERIFIED 2026-10-05 (lane/code-tooling-1005), needs the browser lane:** check-pro-subscription is still fetched only on demand (src/hooks/useDashboardData.ts:549) and never prefetched; get_my_pending_direct_offers is called raw in two places (useActivityBadgeCounts.ts:178, useActivityData.ts:468). Whether those still duplicate per route can only be counted from a real page load's network log, which this lane cannot run (no browser).
 
 ### Messages screen
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -915,7 +914,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Bugs found but not fixed
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q982** MEDIUM chunkReload follow-ups: retrying state not shown/reported, pending timer not cancelled on navigate, mocked stale-deploy spec needs prod rewrite, recoverFromChunkError bail/hang risk, markChunkLoadSucceeded cleanup-only reset — 5 chunkReload silent-failure follow-ups (retrying UI state, timer cancellation, mocked spec rewrite, bail/hang risk, cleanup-only reset) remain unaddressed. (archive L3507)
 
 ### Profile badges — "Verified" rung duplicates "Stripe verified"
 Reconciled 2026-09-23; detail in the archive at the line shown.

@@ -1792,15 +1792,8 @@ serve(async (req) => {
           .eq("payment_status", "cancelling")
           .select("id");
         if (putBackErr || !putBack || putBack.length === 0) {
-          console.error(
-            `CRITICAL: [create-payment] cancel_escrow on job ${jobId}: ${why}, and the claim could not be put back (payment_status stays 'cancelling'; no money moved): ${putBackErr?.message ?? "zero rows"}`,
-          );
-          await postSlackOpsAlert({
-            kind: "money_at_risk",
-            severity: "critical",
-            title: "Job stuck in 'cancelling' — claim could not be put back",
-            message: `cancel_escrow claimed job ${jobId}, stopped before any refund (${why}), and could not restore payment_status. No money moved. Set payment_status back to '${restoreTo}' by hand.`,
-            fields: { job_id: jobId, restore_to: String(restoreTo), db_error: (putBackErr?.message ?? "zero rows").slice(0, 200) },
+          await claimPutBackMissed(supabaseAdmin, {
+            jobId, path: "cancel_escrow", why, restoreTo: restoreTo ?? null, dbError: putBackErr?.message ?? null,
           });
         }
       };
@@ -2903,13 +2896,8 @@ serve(async (req) => {
           .eq("id", jobId).eq("status", job.status).eq("payment_status", "cancelling")
           .select("id");
         if (putBackErr || !putBack || putBack.length === 0) {
-          console.error(`CRITICAL: [create-payment] admin_refund_general on job ${jobId}: ${why}, and its claim could not be put back: ${putBackErr?.message ?? "zero rows"}`);
-          await postSlackOpsAlert({
-            kind: "money_at_risk",
-            severity: "critical",
-            title: "Job stuck in 'cancelling' — admin refund claim could not be put back",
-            message: `admin_refund_general claimed job ${jobId} (payment_status -> 'cancelling'), stopped before any refund (${why}), and could not restore payment_status. No money moved. Set payment_status back to '${job.payment_status ?? "null"}' by hand.`,
-            fields: { job_id: jobId, restore_to: String(job.payment_status), db_error: (putBackErr?.message ?? "zero rows").slice(0, 200) },
+          await claimPutBackMissed(supabaseAdmin, {
+            jobId, path: "admin_refund_general", why, restoreTo: job.payment_status ?? null, dbError: putBackErr?.message ?? null,
           });
         } else {
           generalClaimHeld = false;
@@ -3942,6 +3930,60 @@ const DISPUTE_RELEASE_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "re
  * this flip records.
  */
 const DISPUTE_REFUND_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "refunded"] as const;
+
+/**
+ * Q1322: a 'cancelling' claim could not be put back (cancel_escrow's or a full
+ * admin refund's, stopped before any refund). The page used to tell a person
+ * to "set payment_status back to X by hand" whatever had happened, including
+ * when charge.refunded (a Dashboard refund) had already moved the job to
+ * 'refunded', where following it would re-open refunded money. The row is
+ * re-read first and the page is worded by its actual state:
+ *   - write ERROR, or the re-read fails: critical, state unknown, check first;
+ *   - still 'cancelling' (the status moved under the claim): critical, put it
+ *     back by hand, naming the state it was claimed from;
+ *   - 'refunded': nothing to put back (the money went back to the card) —
+ *     logged, not paged;
+ *   - anything else: the claim is already gone; a warning naming the state,
+ *     with nothing to undo.
+ */
+async function claimPutBackMissed(
+  supabaseAdmin: any,
+  args: { jobId: string; path: "cancel_escrow" | "admin_refund_general"; why: string; restoreTo: string | null; dbError: string | null },
+): Promise<void> {
+  const { jobId, path, why, restoreTo, dbError } = args;
+  let now: { status?: string | null; payment_status?: string | null } | null = null;
+  let readErr: string | null = null;
+  if (!dbError) {
+    const { data, error } = await supabaseAdmin.from("jobs").select("status, payment_status").eq("id", jobId).maybeSingle();
+    if (error) readErr = error.message;
+    else now = (data as typeof now) ?? null;
+  }
+  const fields = { job_id: jobId, restore_to: String(restoreTo), now: now ? `${now.status ?? "?"}/${now.payment_status ?? "?"}` : "unread" };
+  if (dbError || readErr || !now || now.payment_status === "cancelling") {
+    console.error(`CRITICAL: [create-payment] ${path} on job ${jobId}: ${why}, and its 'cancelling' claim could not be put back: ${dbError ?? readErr ?? "zero rows"}`);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Job stuck in 'cancelling' — refund claim could not be put back",
+      message: dbError || readErr || !now
+        ? `${path} claimed job ${jobId} (payment_status -> 'cancelling'), stopped before any refund (${why}), and could not restore payment_status (${(dbError ?? readErr ?? "row not found").slice(0, 160)}). No money moved here. Read the job's payment_status and its charge in Stripe FIRST: if it reads 'cancelling', set it back to '${restoreTo ?? "null"}'; if it reads 'refunded', leave it.`
+        : `${path} claimed job ${jobId} (payment_status -> 'cancelling'), stopped before any refund (${why}); the job's status moved to '${now.status ?? "?"}' under the claim, so it could not be put back. No money moved here. Set payment_status back to '${restoreTo ?? "null"}' by hand.`,
+      fields: { ...fields, db_error: (dbError ?? readErr ?? "zero rows").slice(0, 200) },
+    });
+    return;
+  }
+  if (now.payment_status === "refunded") {
+    console.warn(`[create-payment] ${path} on job ${jobId}: ${why}; the claim was already closed as 'refunded' (charge.refunded), nothing to put back`);
+    return;
+  }
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "warning",
+    title: "Refund claim already gone when it was put back",
+    message: `${path} stopped before any refund on job ${jobId} (${why}), and by then the job no longer read 'cancelling' (now ${fields.now}). Nothing was moved by this call and nothing needs putting back; check that the job's state matches Stripe.`,
+    fields,
+  });
+}
 
 /**
  * Zero rows matched the Quick Release / Quick Refund flip: did a chargeback

@@ -27,7 +27,7 @@ import type { PosterStepCtx } from "./posterStepContract";
  * The boost banner is a NOTICE (it states a fact and offers nothing), which is
  * why it is no longer a `mb-2` div hand-spaced above the row.
  */
-export function OpenStep({ job, onBoost, onEdit, onCancel }: PosterStepCtx) {
+export function OpenStep({ job, onBoost, onEdit, onCancel, crewBooked }: PosterStepCtx) {
   const boostExp = job.boost_expires_at ? new Date(job.boost_expires_at) : null;
   const isBoosted = !!boostExp && boostExp > new Date();
   // A pending direct offer runs on a clock; the collapsed line shows it, so
@@ -86,7 +86,12 @@ export function OpenStep({ job, onBoost, onEdit, onCancel }: PosterStepCtx) {
           disabled={isBoosted}
           onClick={() => onBoost(job.id)}
         />,
-        <JobActionChip key="edit" icon={Pencil} label="Edit" ariaLabel="Edit job" tone="edit" onClick={() => onEdit(job)} />,
+        // Q707 (owner, 2026-10-05): a crew stays open while it fills, but once a
+        // member is hired its date and details change only through a request
+        // the crew accepts (Q1254), and the server refuses a direct edit.
+        ...(crewBooked
+          ? []
+          : [<JobActionChip key="edit" icon={Pencil} label="Edit" ariaLabel="Edit job" tone="edit" onClick={() => onEdit(job)} />]),
       ]}
     />
   );

@@ -9,11 +9,11 @@
  * The helper asks for rows belonging to the poster. Anything that comes back
  * and should not have is a leak.
  */
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 const SUPABASE_URL = "https://fncmgoasalhdgfwzhsqa.supabase.co";
 const ANON = "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP";
-const mint = (who) => JSON.parse(execSync(`node scripts/test-signin-link.mjs ${who} --session --json`,
+const mint = (who) => JSON.parse(execFileSync("node", ["scripts/test-signin-link.mjs", who, "--session", "--json"],
   { cwd: "/Users/lexilombas/louisianahelpr", encoding: "utf8", maxBuffer: 1 << 24 }));
 
 const poster = mint("poster-e2e");

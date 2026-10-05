@@ -11,7 +11,7 @@
  *
  *   node scripts/changed-routes.mjs [--base origin/main] [--json]
  */
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
@@ -19,9 +19,10 @@ const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const argv = process.argv.slice(2);
 const base = argv.includes("--base") ? argv[argv.indexOf("--base") + 1] : "origin/main";
 
-const sh = (c) => { try { return execSync(c, { cwd: ROOT, encoding: "utf8" }); } catch { /* no merge base or no remote: treat as no committed diff */ return ""; } };
+// execFile with an args array: `base` comes from argv and must never reach a shell.
+const sh = (...args) => { try { return execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }); } catch { /* no merge base or no remote: treat as no committed diff */ return ""; } };
 const changed = new Set(
-  [sh(`git diff --name-only ${base}...HEAD`), sh("git diff --name-only HEAD"), sh("git ls-files --others --exclude-standard")]
+  [sh("diff", "--name-only", `${base}...HEAD`), sh("diff", "--name-only", "HEAD"), sh("ls-files", "--others", "--exclude-standard")]
     .join("\n").split("\n").map((s) => s.trim()).filter((f) => f.startsWith("src/") && !/\.test\.tsx?$/.test(f)),
 );
 

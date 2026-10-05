@@ -76,7 +76,7 @@ describe("the consequential call sites still use it", () => {
   // the confirmations the audit found silently suppressed; if one is quietly
   // reverted to `toast.success`, it goes dark again with no other test noticing.
   const SITES: Array<[string, string]> = [
-    ["src/components/profile/SecurityTab.tsx", "Reset link sent to"],
+    ["src/components/profile/PasswordResetCard.tsx", "Reset link sent to"],
     ["src/components/profile/SecurityTab.tsx", "to confirm your new address"],
     ["src/components/profile/SubscriptionTab.tsx", "Membership status refreshed."],
     ["src/pages/posts/postedJobCard/PostedJobActions.tsx", "Dispute resolved — payment released"],

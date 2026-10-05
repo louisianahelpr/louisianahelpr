@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 564,
-    "files": 143,
-    "rendering": 543,
+    "calls": 566,
+    "files": 144,
+    "rendering": 545,
     "suppressedByPolicy": 21,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 450,
+      "toast.error": 452,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
       "toast.warning": 21
     },
     "copyPiecesByForm": {
-      "literal": 308,
+      "literal": 307,
       "template": 73,
-      "dynamic": 223,
+      "dynamic": 226,
       "jsx": 0
     }
   },
@@ -3545,8 +3545,28 @@
       "renders": true
     },
     {
+      "file": "src/components/profile/PasswordResetCard.tsx",
+      "line": 56,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "captchaRefusal(error.message) ?? \"Couldn't send the reset link — try again?\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/PasswordResetCard.tsx",
+      "line": 59,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Reset link sent to ${email}."
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3571,26 +3591,6 @@
       "title": {
         "form": "template",
         "text": "Check ${trimmed} to confirm your new address."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/profile/SecurityTab.tsx",
-      "line": 377,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't send the reset link — try again?"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/profile/SecurityTab.tsx",
-      "line": 380,
-      "kind": "confirmConsequential",
-      "title": {
-        "form": "template",
-        "text": "Reset link sent to ${email}."
       },
       "renders": true
     },
@@ -4362,7 +4362,17 @@
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 65,
+      "line": 75,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "recognizedAuthError(error.message) ?? \"The security check didn't finish. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/ForgotPassword.tsx",
+      "line": 81,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4372,7 +4382,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 269,
+      "line": 239,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4382,7 +4392,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 284,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4392,7 +4402,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 305,
+      "line": 276,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4402,7 +4412,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 307,
+      "line": 278,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4412,7 +4422,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 320,
+      "line": 291,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4422,7 +4432,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 348,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4432,7 +4442,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 382,
+      "line": 353,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4452,7 +4462,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 268,
+      "line": 274,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4462,7 +4472,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 288,
+      "line": 294,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4472,7 +4482,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 289,
+      "line": 295,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4482,7 +4492,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 290,
+      "line": 296,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4492,7 +4502,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 303,
+      "line": 309,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4502,7 +4512,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 388,
+      "line": 394,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4512,7 +4522,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 396,
+      "line": 402,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4522,7 +4532,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 459,
+      "line": 450,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4532,7 +4542,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 481,
+      "line": 472,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4542,7 +4552,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 542,
+      "line": 533,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4552,7 +4562,17 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 168,
+      "line": 176,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "recognizedAuthError(error.message) ?? \"The security check didn't finish. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/SignupPending.tsx",
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "literal",

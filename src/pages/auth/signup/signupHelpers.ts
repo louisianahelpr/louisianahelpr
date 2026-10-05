@@ -300,3 +300,31 @@ export function ageFromDob(dob: string): number {
   }
   return age;
 }
+
+/** GoTrue's "this address already has an account" refusal from signUp. */
+export function isAlreadyRegistered(message: string | undefined): boolean {
+  return !!message && (message.includes("already registered") || message.includes("already been registered"));
+}
+
+/**
+ * Hand Login its one-shot neutral note for the already-registered redirect.
+ *
+ * Privacy-first: signup must never confess whether an email is registered.
+ * Cowork audit 2026-07-08 flagged the old "please log in" branch as an
+ * enumeration oracle inconsistent with ForgotPassword's generic-success
+ * pattern. Both flows now respond identically — an attacker probing signup vs
+ * reset can't tell either way whether the address exists. A real logged-out
+ * user who stumbles into this path is redirected to /login with the same
+ * generic message they'd see on ForgotPassword — set here, read-and-cleared by
+ * Login. Without it the user pressed "Create account" and silently arrived on
+ * a different screen.
+ */
+export function noteSignupRedirect(): void {
+  try {
+    sessionStorage.setItem("helpr_signup_redirect", "1");
+  } catch {
+    // Silent by design: this only hands Login the one-shot neutral note
+    // explaining the redirect. Losing it costs a line of copy — and must
+    // never cost the redirect itself, which is the enumeration defence.
+  }
+}

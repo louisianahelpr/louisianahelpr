@@ -75,9 +75,15 @@ export function useInstantQuery<T>({
      * `query.isLoading` is `isPending && isFetching` in TanStack v5, so a
      * DISABLED query reports false here — this cannot produce a permanent
      * skeleton the way a bare `isPending` can.
+     *
+     * PAUSED counts too (Q571). Offline, a query that has never answered is
+     * paused, not fetching, so isLoading is false and the empty fallback
+     * rendered as the EMPTY STATE: "Nothing to send. Every payout is settled."
+     * to an operator who is merely offline. A paused first load is still a
+     * first load; it resumes by itself when the connection returns.
      */
     isInitialLoading:
-      query.isLoading &&
+      (query.isLoading || query.fetchStatus === "paused") &&
       query.data === undefined &&
       (fallback === undefined || (Array.isArray(fallback) && fallback.length === 0)),
   };

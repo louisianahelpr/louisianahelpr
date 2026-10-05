@@ -14,6 +14,7 @@ import {
 import { Briefcase, Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
@@ -55,7 +56,7 @@ const UserProfile = () => {
   // Blocker side only — a person who blocked you still sees nothing new here.
   const queryClient = useQueryClient();
   const blockedByMeKey = ["user-profile-blocked-by-me", currentUserId, userId] as const;
-  const { data: blockedByMe, isLoading: blockLoading, isError: blockError, refetch: refetchBlock } = useQuery({
+  const { data: blockedByMe, status: blockStatus, isError: blockError, refetch: refetchBlock } = useQuery({
     queryKey: blockedByMeKey,
     enabled: !!currentUserId && !!userId && currentUserId !== userId,
     queryFn: async () => {
@@ -149,6 +150,7 @@ const UserProfile = () => {
     tierProfile,
     postedTotalCount,
     loading,
+    offlineEmpty,
   } = useUserProfileData(userId, currentUserId);
 
   const profile = (data?.profile ?? null) as Profile | null;
@@ -246,7 +248,9 @@ const UserProfile = () => {
 
   // Fail closed: while the block check loads or errors, show the loading /
   // error state rather than briefly painting the details of someone blocked.
-  const blockCheckPending = !!currentUserId && !!userId && currentUserId !== userId && (blockLoading || blockError);
+  // Q571: "pending", not isLoading. A block check paused offline has isLoading
+  // false and no answer, and reading that as "checked" painted the profile.
+  const blockCheckPending = !!currentUserId && !!userId && currentUserId !== userId && (blockStatus === "pending" || blockError);
   if (blockedByMe || (blockCheckPending && blockError)) {
     return wrap(
       <>
@@ -323,6 +327,27 @@ const UserProfile = () => {
                 160px card sat where, for most members, nothing arrives, and
                 the page shrank when the data landed. Those that have photos
                 grow below the fold instead. */}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (offlineEmpty) {
+    return wrap(
+      <>
+        <PageHeader
+          eyebrow={headerEyebrow}
+          title={headerTitle}
+          meta={headerMeta}
+          titleActions={headerActionPlaceholder}
+        />
+        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
+          <div className="flex">
+            <OfflineEmptyState
+              body="This profile will load here as soon as you're back online."
+              onRetry={() => void refetch()}
+            />
           </div>
         </div>
       </>

@@ -33,6 +33,7 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TwoFactorCard, useVerifiedFactor } from "@/components/profile/TwoFactorCard";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -130,7 +131,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   // Recent sessions, grouped by device fingerprint. login_history is
   // append-only (one row per SIGNED_IN), so we collapse to the most
   // recent N device fingerprints rather than show every login.
-  const { data: sessionGroups = [], isLoading: sessionsLoading } = useQuery<SessionGroup[]>({
+  const { data: sessionGroups = [], isLoading: sessionsLoading, status: sessionsStatus, fetchStatus: sessionsFetchStatus } = useQuery<SessionGroup[]>({
     queryKey: ["security", "sessions"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -180,6 +181,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   });
   const { isLoading: factorLoading } = useVerifiedFactor();
   const securityReady = useArrivalGate(!sessionsLoading, !factorLoading);
+  // Q571: a sessions read paused offline has isLoading false and no rows, so
+  // the list said "No recent sessions on record yet." to someone offline.
+  const sessionsOffline = useFeedPhase({ status: sessionsStatus, fetchStatus: sessionsFetchStatus }) === "offline-empty";
 
   // Global sign-out confirmation. Routed through BrandConfirmDialog
   // rather than window.confirm() — native dialogs are off-brand and
@@ -623,9 +627,11 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           </div>
         ) : sessionGroups.length === 0 ? (
           <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            {sessionsFetchFailed
-              ? "Couldn't load session history — try again?"
-              : "No recent sessions on record yet."}
+            {sessionsOffline
+              ? "You're offline. Recent sign-ins will load when you're back online."
+              : sessionsFetchFailed
+                ? "Couldn't load session history — try again?"
+                : "No recent sessions on record yet."}
           </p>
         ) : (
           <div className="space-y-2">

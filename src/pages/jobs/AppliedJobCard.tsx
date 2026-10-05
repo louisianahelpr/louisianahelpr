@@ -26,6 +26,7 @@ import { OfferedActions } from "./appliedJobCard/OfferedActions";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
+import { CrewMemberSection } from "./appliedJobCard/CrewMemberSection";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { JobStatusStrip } from "../../components/job-card/JobStatusStrip";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
@@ -137,6 +138,7 @@ function AppliedJobCardInner({
     isOffered,
     isConfirmed,
     isActive,
+    isCrewLive,
     isDisputed,
     isCompleted,
     isCancelled,
@@ -682,6 +684,11 @@ function AppliedJobCardInner({
               onOpenDispute={() => onDispute(job)}
               navigate={navigate}
             />
+          )}
+
+          {/* A crew member's live job (Q1382): their own roster row's steps. */}
+          {isCrewLive && (
+            <CrewMemberSection app={app} job={job} userId={userId} isExpanded={isExpanded} navigate={navigate} />
           )}
 
           {/* Disputed */}

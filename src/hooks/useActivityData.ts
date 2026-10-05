@@ -66,6 +66,12 @@ export interface GroupHelperLite {
   helper_confirmed_at?: string | null;
   /** This member's share of the budget in cents, frozen at hire (20260925154606). */
   share_cents?: number | null;
+  /** This member's own lifecycle stamps (Q1382): the poster's roster shows
+      where each member is and offers "Confirm Arrived" per member. */
+  helper_on_the_way_at?: string | null;
+  helper_arrived_at?: string | null;
+  poster_confirmed_arrival_at?: string | null;
+  helper_completed_at?: string | null;
   /** Nullable per the generated DB types (has a server default but the
       column accepts NULL). Forwarded as-is to the legacy GroupJobHelpers
       shape, which never read this field. */
@@ -299,7 +305,10 @@ export async function fetchPostedActivityDetail(
       : emptyResult<{ job_id: string; reviewee_id: string }>(),
     trackedIds.length ? fetchTracking(trackedIds) : emptyResult<TrackingRow>(),
     groupIds.length
-      ? supabase.from("group_job_helpers").select("id, job_id, helper_id, status, joined_at, helper_confirmed_at, share_cents").in("job_id", groupIds)
+      ? supabase
+          .from("group_job_helpers")
+          .select("id, job_id, helper_id, status, joined_at, helper_confirmed_at, share_cents, helper_on_the_way_at, helper_arrived_at, poster_confirmed_arrival_at, helper_completed_at")
+          .in("job_id", groupIds)
       : emptyResult<GroupHelperRow>(),
     completedGroupIds.length
       ? supabase.from("group_job_helpers").select("job_id, helper_id, joined_at").in("job_id", completedGroupIds)
@@ -640,6 +649,10 @@ type GroupHelperRow = {
   joined_at: string | null;
   helper_confirmed_at: string | null;
   share_cents: number | null;
+  helper_on_the_way_at: string | null;
+  helper_arrived_at: string | null;
+  poster_confirmed_arrival_at: string | null;
+  helper_completed_at: string | null;
 };
 
 type TrackingRow = {

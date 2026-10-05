@@ -14,6 +14,7 @@ import {
 } from "@/lib/messagingLockout";
 import { RECIPIENT_RESTRICTED_TOAST, fetchRecipientRestricted } from "@/lib/recipientGate";
 import { OFF_JOB_TOAST, fetchOffJobState } from "@/lib/offJobGate";
+import { classifySendRefusal } from "@/lib/messageSendRefusal";
 import {
   DELETED_ACCOUNT_NOTICE,
   DELETED_ACCOUNT_TOAST,
@@ -195,6 +196,24 @@ export function createSendHandlers({
     if (error || !data) {
       // Keep the text on screen and let the user retry it.
       hapticError();
+      // Q998: a refusal a trigger on messages explains in its own words. The
+      // send limit keeps the retry (it works once the hour rolls on) but says
+      // why; the block, ban and unconfirmed-email gates can never succeed, so
+      // the bubble is non-retryable. src/lib/messageSendRefusal.ts.
+      const refusal = classifySendRefusal(error as { code?: string; message?: string } | null);
+      if (refusal) {
+        toast.error(refusal.toast);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.clientId === optimistic.clientId
+              ? refusal.retryable
+                ? { ...m, sendStatus: "failed", failReason: refusal.kind }
+                : { ...m, sendStatus: "refused", failReason: refusal.kind }
+              : m,
+          ),
+        );
+        return;
+      }
       // Thread closed — 24h after completion, or immediately on cancellation
       // (20260919220233). RLS refuses with 42501 and no reason, so
       // ask the server when this thread closes (the local value can be stale:
@@ -452,9 +471,9 @@ export function createSendHandlers({
     const failed = messages.find((m) => m.clientId === clientId && m.sendStatus === "failed");
     if (!failed) return;
     setMessages((prev) =>
-      prev.map((m) => (m.clientId === clientId ? { ...m, sendStatus: "sending" } : m)),
+      prev.map((m) => (m.clientId === clientId ? { ...m, sendStatus: "sending", failReason: undefined } : m)),
     );
-    await dispatchMessage({ ...failed, sendStatus: "sending" });
+    await dispatchMessage({ ...failed, sendStatus: "sending", failReason: undefined });
   };
 
   return {

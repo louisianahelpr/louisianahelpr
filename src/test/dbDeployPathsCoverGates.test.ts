@@ -12,6 +12,7 @@
  * files it reads.
  */
 // @mutate .github/workflows/db-deploy.yml |       - "scripts/audit/migration-provenance.json"\n | 
+// @mutate .github/workflows/db-deploy.yml |       - "src/integrations/supabase/types.ts"\n | 
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
@@ -31,6 +32,11 @@ function depsOf(script: string): string[] {
   const out: string[] = [];
   for (const m of src.matchAll(/from\s+"(\.\/lib\/[\w.-]+\.mjs)"/g)) out.push(join(dirname(script), m[1]));
   for (const m of src.matchAll(/"(scripts\/audit\/[\w.-]+\.json)"/g)) out.push(m[1]);
+  // A repo source file the gate compares prod against (check-types-fresh reads
+  // src/integrations/supabase/types.ts). Q1307: the commit that regenerated
+  // types.ts after db-deploy run 37249653489 went red never re-ran db-deploy,
+  // so the red stayed the newest push run and its nightly-red issue stayed open.
+  for (const m of src.matchAll(/"(src\/[\w./-]+\.tsx?)"/g)) out.push(m[1]);
   return out;
 }
 
@@ -48,6 +54,7 @@ describe("db-deploy.yml re-runs when a gate it runs changes", () => {
   it("reads a real inventory", () => {
     expect(scripts.length).toBeGreaterThan(5);
     expect(paths.size).toBeGreaterThan(10);
+    expect(depsOf("scripts/check-types-fresh.mjs")).toContain("src/integrations/supabase/types.ts");
   });
 
   it("every gate script and what it reads is in the push paths filter", () => {

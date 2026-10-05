@@ -34,6 +34,7 @@ const SRC_RE = /\.(mjs|cjs|js|ts|tsx)$/;
 
 const MIN_FILES = 400; // 426 measured on 2026-10-05; a floor, adding a script is normal
 const EXECSYNC_SITES = 6; // EXACT (measured 2026-10-05): 4 literal-command calls + 2 in the gate.mjs STEPS loop
+// @two-way src/test/toolingExecIsShellFree.test.ts:stale baseline entry
 const EXECSYNC_ALLOWED = new Set(["scripts/gate.mjs"]); // `execSync(cmd, ...)` over a constant STEPS table, no external input
 
 function trackedTooling(): string[] {
@@ -46,7 +47,7 @@ function trackedTooling(): string[] {
 }
 
 function scan(read: (f: string) => string) {
-  const res = { files: 0, sites: 0, dynamic: [] as string[], shellTrue: [] as string[] };
+  const res = { files: 0, sites: 0, dynamic: [] as string[], shellTrue: [] as string[], allowedUsed: new Set<string>() };
   for (const f of trackedTooling()) {
     let raw: string;
     try {
@@ -61,6 +62,7 @@ function scan(read: (f: string) => string) {
       res.sites += 1;
       const arg = m[1];
       const literal = /^["']/.test(arg) || (arg.startsWith("`") && !arg.includes("${"));
+      if (!literal && EXECSYNC_ALLOWED.has(f)) res.allowedUsed.add(f);
       if (!literal && !EXECSYNC_ALLOWED.has(f)) res.dynamic.push(`${f}:${lineOf(m.index ?? 0)}: execSync(${arg.slice(0, 60)}`);
     }
     for (const m of text.matchAll(/\bshell\s*:\s*true\b/g)) res.shellTrue.push(`${f}:${lineOf(m.index ?? 0)}`);
@@ -76,6 +78,11 @@ describe("tooling never builds a shell command line from a variable", () => {
       result.dynamic,
       "execSync with an interpolated or variable command goes through a shell. Use execFileSync(\"node\", [script, value, ...]).",
     ).toEqual([]);
+  });
+
+  it("every allowed file still has a non-literal execSync (stale entries fail)", () => {
+    const stale = [...EXECSYNC_ALLOWED].filter((f) => !result.allowedUsed.has(f)).map((f) => `stale baseline entry ${f} — remove it (lower the baseline)`);
+    expect(stale).toEqual([]);
   });
 
   it("no call asks for a shell (shell: true)", () => {

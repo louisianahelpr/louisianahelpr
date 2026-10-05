@@ -34,3 +34,28 @@ export function apiBase(override, defaultBase) {
   }
   return override.replace(/\/+$/, "");
 }
+
+/**
+ * The project URL a script sends the Supabase service-role / access / anon key
+ * to (VITE_SUPABASE_URL and friends, read from `.env` or the CI environment).
+ * It must be https://<project>.supabase.co, or a loopback stub / local Supabase
+ * stack; anything else throws, so a tampered environment cannot redirect the
+ * key. Empty values pass through (callers already report "missing"), and the
+ * value is returned unchanged so callers keep their own slash handling.
+ */
+export function supabaseBase(value) {
+  if (value === undefined || value === null || value === "") return value;
+  let u;
+  try {
+    u = new URL(value);
+  } catch {
+    u = null;
+  }
+  const hosted = u && u.protocol === "https:" && /^[a-z0-9-]+\.supabase\.co$/.test(u.hostname) && !u.username && !u.password;
+  if (!hosted && !isLoopbackBase(value)) {
+    throw new Error(
+      `Refusing to send credentials to ${value}: the Supabase URL must be https://<project>.supabase.co (or a loopback stub).`,
+    );
+  }
+  return value;
+}

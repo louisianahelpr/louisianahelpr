@@ -29,7 +29,7 @@
  *      recorded SKIP_STRIPE_WRITE_BLOCKED. The function list is derived from
  *      supabase/functions source, two-way.
  */
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, afterAll, beforeAll } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
@@ -135,6 +135,10 @@ describe("press never writes to Stripe while Stripe is live", () => {
   // created a press job and POSTed create-payment {action:"escrow"} to read
   // cs_live_/cs_test_ off the URL. It must learn the mode without any write.
   describe("the Stripe mode probe never writes (Q895)", () => {
+    // Scripts send keys only to *.supabase.co or a loopback stub (supabaseBase); stub the project URL.
+    const savedUrl = process.env.PLAYWRIGHT_SUPABASE_URL;
+    beforeAll(() => { process.env.PLAYWRIGHT_SUPABASE_URL = "http://127.0.0.1:1"; });
+    afterAll(() => { if (savedUrl === undefined) delete process.env.PLAYWRIGHT_SUPABASE_URL; else process.env.PLAYWRIGHT_SUPABASE_URL = savedUrl; });
     afterEach(() => vi.unstubAllGlobals());
     const poster = { accessToken: "tok", userId: "00000000-0000-0000-0000-000000000001" };
     const stubFetch = (body: unknown) => {

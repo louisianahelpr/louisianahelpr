@@ -28,7 +28,7 @@ const TAGGED = /\bfinding: [a-z0-9-]+@[0-9a-f]{7,40}#\d+/i;
 
 // Open review-derived items still WITHOUT a finding tag (measured 2026-10-05).
 // Exact: lower it in the commit that closes or tags one; it never goes up.
-const UNTAGGED_REVIEW_ITEMS = 85;
+const UNTAGGED_REVIEW_ITEMS = 84;
 
 function untagged(): string[] {
   return OPEN.filter((l) => /^- \[[ ~]\] \*\*Q\d+/.test(l) && REVIEW.test(l) && !TAGGED.test(l)).map(

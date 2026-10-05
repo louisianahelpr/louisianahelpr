@@ -36,6 +36,8 @@ export const DB_ID_COLUMNS = {
     { table: "cancellation_fee_transfers", column: "stripe_transfer_id" },
     { table: "chargeback_clawbacks", column: "original_transfer_id" },
     { table: "chargeback_clawbacks", column: "repay_transfer_id" },
+    { table: "tip_hold_redrives", column: "transfer_id" },
+    { table: "tip_hold_redrives", column: "repay_transfer_id" },
   ],
   refund: [
     { table: "payment_refunds", column: "stripe_refund_id" },
@@ -55,6 +57,7 @@ export const NOT_MATCHED = {
   "payment_refunds.stripe_payment_intent_id": "the PaymentIntent a refund came from, not a record of that PaymentIntent",
   "payout_transfers.stripe_account_id": "the destination connected account, not a money movement",
   "chargeback_clawbacks.stripe_account_id": "the connected account, not a money movement",
+  "tip_hold_redrives.reversal_id": "a transfer reversal of a held tip (Q1222); NOT listed by the script (reversals live under each transfer), the same manual runbook step as chargeback_clawbacks.stripe_reversal_id",
   "chargeback_clawbacks.stripe_reversal_id": "a transfer reversal; NOT listed by the script (reversals live under each transfer) — runbook §5.1 has it as a manual step with Stripe disputes",
   "instant_payouts.stripe_payout_id": "a payout ON a connected account; listing it needs a Stripe-Account header per helper — manual step in the runbook",
   "profiles.stripe_account_id": "account linkage, not a money movement",

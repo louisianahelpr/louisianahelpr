@@ -15,8 +15,11 @@
 // @mutate scripts/lib/strandedContent.mjs |   return missing > 0 \|\| removedStill >= 5; |   return removedStill >= 5;
 // @mutate scripts/lib/strandedContent.mjs | .filter((s) => s && !onMain?.has(s) && !mainIndex.has(s)); | .filter((s) => s && !onMain?.has(s));
 // @mutate scripts/lib/strandedContent.mjs |   /^docs\/OPEN\.md$/, |
-// @mutate scripts/stranded-work.mjs |     stale: accepted.filter((a) => !itemKeys.has(key(a))), |     stale: [],
+// @mutate scripts/stranded-work.mjs |     stale: accepted.filter((a) => !itemKeys.has(key(a)) && !freshIds.has(a.id)), |     stale: [],
 // @mutate scripts/stranded-work.mjs |     if (status.some((l) => !l.startsWith("?? "))) { |     if (false) {
+// @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = false;
+// @mutate scripts/stranded-work.mjs |     unaccepted: items.filter((i) => !i.fresh && !acceptedKeys.has(key(i))), |     unaccepted: items.filter((i) => !acceptedKeys.has(key(i))),
+// @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = true;
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync, realpathSync } from "node:fs";
@@ -175,11 +178,31 @@ describe("stranded-work: every place work sits", () => {
           { number: 9, headRefOid: "z", mergedAt: null, closedAt: "2026-10-04T00:00:00Z", author: { login: "app/dependabot" }, title: "bump" },
         ]
       : [];
-    const items = remoteInventory(git, index, gh);
+    // Judged two hours after the push: past STRANDED_AFTER_HOURS.
+    const items = remoteInventory(git, index, gh, { now: Date.now() + 2 * 3_600_000 });
     expect(items.map((i: { kind: string; id: string }) => `${i.kind} ${i.id}`).sort()).toEqual([
       "closed-unmerged-pr pr:7",
       "remote-branch remote:origin/cloud-session",
     ]);
+    expect(items.some((i: { fresh?: boolean }) => i.fresh)).toBe(false);
+  });
+  it("a branch pushed under STRANDED_AFTER_HOURS ago is a lane still working: listed fresh, not judged (Q1274)", () => {
+    const index = buildMainIndex(git, "origin/main");
+    const gh = () => [];
+    const items = remoteInventory(git, index, gh);
+    const lane = items.find((i: { id: string }) => i.id === "remote:origin/cloud-session");
+    expect(lane?.fresh).toBe(true);
+    const r = judge(items, []);
+    expect(r.unaccepted.map((i: { id: string }) => i.id)).not.toContain("remote:origin/cloud-session");
+    expect(r.fresh.map((i: { id: string }) => i.id)).toContain("remote:origin/cloud-session");
+    // A park branch pushed again moves its sha: the old acceptance is not stale while the new tip is fresh.
+    const moved = judge([{ id: "remote:origin/park", sha: "new", fresh: true }], [{ id: "remote:origin/park", sha: "old" }]);
+    expect(moved.stale).toEqual([]);
+    expect(moved.unaccepted).toEqual([]);
+    // ...and once it is old, it is judged like any other.
+    const old = judge([{ id: "remote:origin/park", sha: "new" }], [{ id: "remote:origin/park", sha: "old" }]);
+    expect(old.unaccepted.map((i: { id: string }) => i.id)).toEqual(["remote:origin/park"]);
+    expect(old.stale.map((i: { id: string }) => i.id)).toEqual(["remote:origin/park"]);
   });
   it("acceptances are exact both ways: a match is excused, a stale one fails", () => {
     const items = [{ id: "pr:7", sha: "aaa" }, { id: "remote:origin/x", sha: "bbb" }];

@@ -36,11 +36,12 @@
  * Guard: src/test/openPartlyDoneItemsSayDoneWhen.test.ts.
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { greenNightlyRunAfter, ledgerWorkflowKey, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { alertLabelOf, alertWorkflowOf } from "./lib/alertIssueLabels.mjs";
+import { SNAPSHOT, queueItems, tagsOf } from "./lib/openFeeds.mjs";
 
 const PARTLY = /^- \[~\] /;
 const ITEM_START = /^(- \[|#)/;
@@ -93,6 +94,20 @@ export function rowText(rows) {
   if (vals.length !== 1) throw new Error(`sql marker must select exactly one column, got ${vals.length}`);
   const v = vals[0];
   return v === null ? "null" : Array.isArray(v) ? `{${v.join(",")}}` : typeof v === "object" ? JSON.stringify(v) : String(v);
+}
+
+/**
+ * The app functions (names in `appFns`, lower case) a sql marker's query calls.
+ * The read-only role the nightly runs as cannot execute them (#1951), so a
+ * marker that calls one can never read true. Pure, so the guard can prove it
+ * on a fixed query instead of on whichever marker docs/OPEN.md holds today
+ * (vacuity 37262748113: a mutation of a live marker went vacuous once its
+ * item stopped being [~]).
+ */
+export function appFunctionsCalled(query, appFns) {
+  return [...String(query).matchAll(/(?:public\.)?(\w+)\s*\(/gi)]
+    .map((m) => m[1].toLowerCase())
+    .filter((name) => appFns.has(name));
 }
 
 const READ_ONLY_SQL = /^\s*(select|with)\b[^;]*;?\s*$/i;
@@ -192,6 +207,35 @@ export function tickReady(md, ready, date) {
     .join("\n");
 }
 
+/**
+ * The READY items that must NOT be ticked yet: an item whose `feed:` tag names
+ * a source the committed snapshot (docs/audit/open-feeds.json) still lists as
+ * open. Ticking it would leave that source with no not-done OPEN.md line, and
+ * src/test/openFeedsMirrored.test.ts reads the snapshot, so the refresh PR
+ * goes red (bot PR #2301, 2026-10-05: Q1274 ticked on a live read while the
+ * snapshot still listed #2269 and ledger 7f88b9cc45df open). The workflow
+ * re-measures the snapshot first (open-sync-trackers), so this only holds an
+ * item when live and snapshot disagree.
+ * @param {string} md  OPEN.md
+ * @param {Iterable<string>} readyIds
+ * @param {{issues?: {open?: {number:number}[]}, ledger?: {open?: {fingerprint:string}[]}}} snapshot
+ * @returns {Map<string, string[]>} id -> the feed keys still open
+ */
+export function heldBySnapshot(md, readyIds, snapshot) {
+  const open = new Set([
+    ...(snapshot?.issues?.open ?? []).map((i) => `issue #${i.number}`),
+    ...(snapshot?.ledger?.open ?? []).map((r) => `ledger ${String(r.fingerprint).slice(0, 12)}`),
+  ]);
+  const want = new Set(readyIds);
+  const held = new Map();
+  for (const it of queueItems(md)) {
+    if (!want.has(it.id)) continue;
+    const stillOpen = tagsOf(it.text).filter((k) => open.has(k));
+    if (stillOpen.length) held.set(it.id, stillOpen);
+  }
+  return held;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const opt = (n) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : undefined; };
@@ -228,6 +272,12 @@ async function main() {
   ].filter(Boolean).join("\n\n");
   if (opt("out")) writeFileSync(opt("out"), report);
   if (argv.includes("--tick")) {
+    const md = readFileSync(file, "utf8");
+    const snapshot = existsSync(SNAPSHOT) ? JSON.parse(readFileSync(SNAPSHOT, "utf8")) : {};
+    for (const [id, keys] of heldBySnapshot(md, readyIds.keys(), snapshot)) {
+      console.log(`held   ${id}: READY, but ${SNAPSHOT} still lists ${keys.join(", ")} open; not ticked`);
+      readyIds.delete(id);
+    }
     if (readyIds.size) writeFileSync(file, tickReady(readFileSync(file, "utf8"), readyIds, new Date().toISOString().slice(0, 10)));
     console.log(`--tick: ticked ${readyIds.size} item(s) in ${file}`);
     process.exit(problems.length ? 1 : 0);

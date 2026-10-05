@@ -22,6 +22,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { latestConsentVersions } from "./lib/acceptCurrentTerms.mjs";
+import { supabaseBase } from "./lib/apiBase.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -38,7 +39,7 @@ function loadEnv() {
 }
 
 const env = loadEnv();
-const SUPABASE_URL = env.VITE_SUPABASE_URL;
+const SUPABASE_URL = supabaseBase(env.VITE_SUPABASE_URL);
 const SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   console.error("Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env");

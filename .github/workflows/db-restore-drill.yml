@@ -71,7 +71,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -103,15 +103,22 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Download the newest successful backup
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          RUN=$(gh run list -R "$GITHUB_REPOSITORY" -w db-backup.yml --status success -L 1 \
-                  --json databaseId,createdAt --jq '.[0]')
+          # NOT `--status success -L 1`: on 2026-10-05 07:00Z (run 37275273036)
+          # that filtered query answered with run 34876980245 from 2026-09-14
+          # while the daily backups of 10-02..10-04 had all succeeded (the same
+          # query from a laptop minutes later answered 37225298215, 10-04), and
+          # the drill failed "493h old". Read the newest 30 runs unfiltered and
+          # pick the newest success by createdAt ourselves.
+          RUN=$(gh run list -R "$GITHUB_REPOSITORY" -w db-backup.yml -L 30 \
+                  --json databaseId,createdAt,conclusion \
+                  --jq '[.[] | select(.conclusion == "success")] | sort_by(.createdAt) | last')
           { [ -n "$RUN" ] && [ "$RUN" != "null" ]; } || { echo "::error::no successful db-backup run exists"; exit 1; }
           ID=$(echo "$RUN" | jq -r .databaseId)
           AT=$(echo "$RUN" | jq -r .createdAt)
@@ -142,7 +149,7 @@ jobs:
           rm -f "$RUNNER_TEMP/b.tar.gz"
           ls -l "$RUNNER_TEMP/sql"
 
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 
@@ -216,7 +223,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: db-restore-drill

@@ -64,7 +64,7 @@ jobs:
         # Needed so the WATCHED list can be cross-checked against the files
         # that actually exist — a name left in the list after its workflow was
         # deleted would otherwise be a watcher watching nothing.
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history: a workflow whose schedule was added less than its
           # budget ago has had no chance to fire yet (see the never-ran branch).
@@ -267,7 +267,7 @@ jobs:
 
       - name: Open / update stalled-schedule issue
         if: steps.check.outputs.stale != '0'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const body = ${{ toJSON(steps.check.outputs.body) }};
@@ -303,7 +303,7 @@ jobs:
 
       - name: Close stalled-schedule issue when clean
         if: steps.check.outputs.stale == '0'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const { data: existing } = await github.rest.issues.listForRepo({
@@ -374,7 +374,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: schedule-heartbeat

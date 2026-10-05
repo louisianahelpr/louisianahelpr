@@ -20,6 +20,7 @@
 import { serve } from "../_shared/buildStamp.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeaders, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts';
 import { BlockedUrlError, FeedTooLargeError, fetchIcalFeed } from './safeFetch.ts';
@@ -32,6 +33,7 @@ import { lookAheadWindow, parseIcalDate } from './dates.ts';
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
+  { global: { fetch: boundedFetch() } },
 );
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { formatName } from "@/lib/utils";
 import { formatCategory } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
@@ -129,7 +130,7 @@ function enrichReviewRows(
  */
 export function useUserProfileData(userId: string | undefined, currentUserId: string | null) {
   // React Query: cached for 60s, instant on revisit, refresh in background.
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.userProfile.byId(userId),
     enabled: !!userId,
     staleTime: 60_000,
@@ -1040,6 +1041,9 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
   const postedTotalCount = data?.postedTotalCount ?? 0;
   const postedCancelledCount = data?.postedCancelledCount ?? 0;
   const loading = isLoading && !data;
+  // Q571: a profile query paused offline has isLoading false and no data;
+  // without this the page said "Profile not found" to someone offline.
+  const offlineEmpty = useFeedPhase({ status, fetchStatus }) === "offline-empty";
 
   return {
     data,
@@ -1075,5 +1079,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     postedTotalCount,
     postedCancelledCount,
     loading,
+    offlineEmpty,
   };
 }

@@ -26,7 +26,7 @@
 // @mutate scripts/audit/pressProdSafety.mjs |     const rows = before.map((r) => ({ ...r, helper_id: s.userId, specific_date: null })); |     const rows = before.map(({ id: _id, ...r }) => ({ ...r, helper_id: s.userId, specific_date: null }));
 // @mutate scripts/audit/pressProdSafety.mjs |   ["helper_availability", "helper_id", "specific_date=not.is.null"], |   ["helper_availability", "helper_id", "specific_date=is.null"],
 // @mutate scripts/audit/press-every-control.mjs |   const restoreFrom = restoreSource(plan, runSnapshot, selfSnapshot); |   const restoreFrom = selfSnapshot ?? runSnapshot;
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -104,6 +104,10 @@ const weekOf = (store: Store) =>
 const session = { userId: HELPER, accessToken: "t" };
 
 let realFetch: typeof fetch;
+// The script only sends keys to *.supabase.co or a loopback stub (supabaseBase); stub the project URL.
+const savedUrl = process.env.PLAYWRIGHT_SUPABASE_URL;
+beforeAll(() => { process.env.PLAYWRIGHT_SUPABASE_URL = "http://127.0.0.1:1"; });
+afterAll(() => { if (savedUrl === undefined) delete process.env.PLAYWRIGHT_SUPABASE_URL; else process.env.PLAYWRIGHT_SUPABASE_URL = savedUrl; });
 beforeEach(() => { realFetch = globalThis.fetch; });
 afterEach(() => { globalThis.fetch = realFetch; });
 

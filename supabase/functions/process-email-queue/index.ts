@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { verifyCronSecret } from '../_shared/cron-auth.ts'
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts'
 import { FROM_DEFAULT, htmlToPlainText, SEND_TIMEOUT_MS, sendWithResend } from '../_shared/resend.ts'
@@ -59,7 +60,7 @@ serve(async (req) => {
     )
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, { global: { fetch: boundedFetch() } })
 
   // A Resend rejection is an OUTCOME, not a defect: a bounced or malformed
   // address fails identically forever, and this cron runs every 5 minutes, so

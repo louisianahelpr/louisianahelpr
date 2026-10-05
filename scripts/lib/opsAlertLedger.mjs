@@ -13,6 +13,7 @@
  * recordOpsAlert NEVER throws: a ledger write must not turn a Slack alert or a
  * sweep into a failure. It returns false and prints a ::warning instead.
  */
+import { apiBase } from "./apiBase.mjs";
 import { supabaseDbQuery } from "./supabaseDbQuery.mjs";
 
 /** SQL string literal. standard_conforming_strings is on in Supabase. */
@@ -23,7 +24,7 @@ export async function sql(query, { readOnly = false, timeoutMs = 20000 } = {}) {
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   const ref = process.env.SUPABASE_PROJECT_REF;
   if (token && ref) {
-    const res = await fetch(`${process.env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com"}/v1/projects/${ref}/database/query`, {
+    const res = await fetch(`${apiBase(process.env.LH_SUPABASE_API_BASE, "https://api.supabase.com")}/v1/projects/${ref}/database/query`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(readOnly ? { query, read_only: true } : { query }),

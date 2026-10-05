@@ -214,7 +214,7 @@ export function useProfileLandingDerived({
         // this row with them, because it is still the row you tap to fix it.
         {
           key: "earnings",
-          label: "Earnings & Payouts",
+          label: "Money",
           icon: <TrendingUp className="w-5 h-5" />,
           desc: "Wallet, analytics, payout setup & tax exports",
           tint: SECTION_TINT.money,

@@ -38,6 +38,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseBase } from "../lib/apiBase.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 
@@ -63,7 +64,7 @@ function loadEnv() {
   return env;
 }
 const env = loadEnv();
-const URL_BASE = env.VITE_SUPABASE_URL;
+const URL_BASE = supabaseBase(env.VITE_SUPABASE_URL);
 const ANON = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 if (!URL_BASE || !ANON) throw new Error("VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY missing from .env");
 

@@ -120,7 +120,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -145,7 +145,7 @@ jobs:
     outputs:
       have_e2e: ${{ steps.scope.outputs.have_e2e }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history: the per-push scope is a diff against the commit main
           # was at before the push.
@@ -179,7 +179,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -214,12 +214,12 @@ jobs:
       - name: Checkout
         # Full history: the per-push scope is a diff against origin/main, and a
         # shallow clone has no merge base to diff against.
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -312,7 +312,7 @@ jobs:
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vacuity-report
           path: docs/audit/vacuity-report.json
@@ -360,6 +360,10 @@ jobs:
     needs: [scope, wait-accounts]
     if: needs.scope.outputs.have_e2e == 'true'
     runs-on: ubuntu-latest
+    # actions: read for the deploy wait (it lists this commit's deploy runs).
+    permissions:
+      contents: read
+      actions: read
     timeout-minutes: 180
     concurrency:
       group: prod-lifecycle-shared-accounts
@@ -376,12 +380,12 @@ jobs:
       - name: Checkout
         # Full history: the per-push scope is a diff against origin/main, and a
         # shallow clone has no merge base to diff against.
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -439,6 +443,17 @@ jobs:
             echo "::warning::SUPABASE_ACCESS_TOKEN missing on a $EVENT run: e2e registrations that need the service-role key will be inconclusive."
           fi
 
+      # Q432: a push that lands a migration or an edge function starts its
+      # deploys at the same moment as this job. Until they finish, the
+      # prod-backed registrations test the old backend and read RED before any
+      # mutation (vacuity 36215687625). Wait for this commit's db-deploy and
+      # functions-deploy runs, if it has any (bounded; never fails the job).
+      - name: Wait for this commit's prod deploys
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/wait-commit-deploys.mjs
+
       - name: Vacuity gate (Playwright registrations)
         env:
           # Through env, never interpolated into the script (injection-safe).
@@ -483,7 +498,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: vacuity

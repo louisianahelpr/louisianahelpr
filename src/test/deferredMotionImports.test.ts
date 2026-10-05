@@ -10,6 +10,14 @@
  *
  * @mutate src/components/MobileNav.tsx | import { DockPill } from "@/components/mobileNav/DockPill"; | import { DockPill } from "@/components/mobileNav/DockPill";\nimport { NavQuickMenu } from "@/components/mobileNav/NavQuickMenu";
  * @mutate src/components/dashboard/SwipeableJobCard.tsx | import JobCard from "./JobCard"; | import JobCard from "./JobCard";\nimport { motion } from "framer-motion";
+ *
+ * Q1299 (2026-10-05) adds the last two first-screen closures that carried framer: /messages
+ * through SwipeableConversationRow (now ConversationSwipeLayer, loaded on
+ * demand) and /post-job through PhotoUpload's Reorder (now PhotoReorderGrid,
+ * loaded once a photo is added). check-deferred-vendors.mjs's
+ * KNOWN_ROUTE_CLOSURE_VIOLATIONS went from 2 entries to 0 in the same commit (2026-10-05).
+ * @mutate src/components/messages/SwipeableConversationRow.tsx | import { createPortal } from "react-dom"; | import { createPortal } from "react-dom";\nimport { motion } from "framer-motion";
+ * @mutate src/components/postjob/detailsSection/PhotoUpload.tsx | import { useEffect } from "react"; | import { useEffect } from "react";\nimport { Reorder } from "framer-motion";
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -24,8 +32,10 @@ const FIRST_PAINT_FILES = [
   "src/components/mobileNav/useDockMotion.ts",
   "src/components/dashboard/SwipeableJobCard.tsx",
   "src/lib/lazyModule.ts",
+  "src/components/messages/SwipeableConversationRow.tsx",
+  "src/components/postjob/detailsSection/PhotoUpload.tsx",
 ];
-const FORBIDDEN = /(?:^|\n)\s*(?:import|export)\s+(?!type\b)(?:[^"';]*?from\s*)?["'](framer-motion|@\/components\/mobileNav\/NavQuickMenu|\.\/NavQuickMenu|@\/components\/ui\/SharedLayoutPill|\.\/SwipeMotionLayer|\.\/dockMotion)["']/g;
+const FORBIDDEN = /(?:^|\n)\s*(?:import|export)\s+(?!type\b)(?:[^"';]*?from\s*)?["'](framer-motion|@\/components\/mobileNav\/NavQuickMenu|\.\/NavQuickMenu|@\/components\/ui\/SharedLayoutPill|\.\/SwipeMotionLayer|\.\/dockMotion|\.\/ConversationSwipeLayer|\.\/PhotoReorderGrid)["']/g;
 
 describe("framer-motion stays off the dock's and /home's first paint (Q1172)", () => {
   it("scans the real files", () => {
@@ -45,5 +55,9 @@ describe("framer-motion stays off the dock's and /home's first paint (Q1172)", (
     const swipe = blankComments(readFileSync(join(ROOT, "src/components/dashboard/SwipeableJobCard.tsx"), "utf8"));
     expect(dock).toMatch(/import\("\.\/dockMotion"\)/);
     expect(swipe).toMatch(/import\("\.\/SwipeMotionLayer"\)/);
+    const row = blankComments(readFileSync(join(ROOT, "src/components/messages/SwipeableConversationRow.tsx"), "utf8"));
+    const photos = blankComments(readFileSync(join(ROOT, "src/components/postjob/detailsSection/PhotoUpload.tsx"), "utf8"));
+    expect(row).toMatch(/import\("\.\/ConversationSwipeLayer"\)/);
+    expect(photos).toMatch(/import\("\.\/PhotoReorderGrid"\)/);
   });
 });

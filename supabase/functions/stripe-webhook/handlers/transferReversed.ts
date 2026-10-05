@@ -42,9 +42,36 @@ export async function handleTransferReversed(
     return;
   }
 
+  // Q805 (3): HOW MUCH came back. transfer.reversed fires for a PARTIAL
+  // reversal too (a pro-rata clawback takes a share of each crew member's
+  // transfer, Q210(g)), and the row read just 'reversed', as if the whole
+  // payout had been taken back. The status stays 'reversed' on purpose: every
+  // payout guard (release-payout, process-scheduled-payouts,
+  // execute-dispute-split, payoutClaim, money-reconciliation) reads it as
+  // "money moved and came back, a person settles it", and a partial reversal
+  // is exactly that. What the row did not say is the amount: Stripe's
+  // cumulative amount_reversed and whether the reversal is full now go in its
+  // metadata (merged: a jsonb write replaces the whole object).
+  const amountReversedCents = Math.max(0, Math.round(Number(transfer.amount_reversed ?? transfer.amount) || 0));
+  const fullyReversed = transfer.reversed === true || amountReversedCents >= Number(transfer.amount ?? 0);
+  const { data: currentRow, error: currentErr } = await supabase
+    .from("payout_transfers")
+    .select("metadata")
+    .eq("stripe_transfer_id", transfer.id)
+    .maybeSingle();
+  if (currentErr) {
+    // Nothing changed yet: fail so Stripe redelivers.
+    throw new Error(`payout_transfers read failed for reversed transfer ${transfer.id}: ${currentErr.message}`);
+  }
+  const priorMetadata = ((currentRow as { metadata?: unknown } | null)?.metadata ?? {}) as Record<string, unknown>;
+
   const { data: reversedLedger, error: ledgerUpdateErr } = await supabase
     .from("payout_transfers")
-    .update({ status: "reversed", reversed_at: new Date().toISOString() })
+    .update({
+      status: "reversed",
+      reversed_at: new Date().toISOString(),
+      metadata: { ...priorMetadata, amount_reversed_cents: amountReversedCents, fully_reversed: fullyReversed },
+    })
     .eq("stripe_transfer_id", transfer.id)
     .select("job_id")
     .maybeSingle();

@@ -31,8 +31,15 @@ serve(async (req) => {
   // Rate limit: 20 requests per minute per IP. Internal callers are exempt —
   // the webhook fans out once per funded job and must never be throttled into
   // silently skipping a match.
+  // Keyed on the ADDRESS alone: this runs before auth.getUser(), and since
+  // Q1106 this function runs with verify_jwt = false, so the token's `sub` is
+  // not verified yet; a caller could rotate it to escape its own bucket
+  // (lh-authz-rls review, 2026-10-05). The per-job limit below runs after
+  // getUser, on a verified subject.
   if (!isInternal) {
-    const { allowed, retryAfter } = await checkRateLimit(req, {
+    const addressOnly = new Headers(req.headers);
+    addressOnly.delete("authorization");
+    const { allowed, retryAfter } = await checkRateLimit(new Request(req.url, { method: req.method, headers: addressOnly }), {
       windowMs: 60_000, maxRequests: 20, keyPrefix: "instant-job-match",
     });
     if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);

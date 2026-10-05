@@ -6,6 +6,7 @@ import {
   CHUNK_RELOAD_EPISODE_MS,
   CHUNK_RELOAD_MAX_ATTEMPTS,
   CHUNK_RELOAD_SCHEDULE_MS,
+  cancelPendingChunkRetry,
   __resetChunkReloadForTests,
   decideChunkReload,
   isRecoveryReloadInFlight,
@@ -116,6 +117,40 @@ describe("recoverFromChunkError", () => {
       __resetChunkReloadForTests();
     }
     expect(replace).toHaveBeenCalledTimes(4);
+  });
+
+  // @mutate src/lib/chunkReload.ts |   if (pendingRetry) clearTimeout(pendingRetry);\n  if (pendingOnlineRetry) window.removeEventListener("online", pendingOnlineRetry);\n  pendingRetry = null;\n  pendingOnlineRetry = null;\n  recoveryReloadInFlight = false;\n  return true; |   return true;
+  it("Q982 (2): leaving the page drops a scheduled retry: no reload of the page moved to, no attempt spent", async () => {
+    recoverFromChunkError(); // attempt 1: reloads now
+    await flush();
+    expect(replace).toHaveBeenCalledTimes(1);
+    __resetChunkReloadForTests(); // the reload replaced the page's module state
+    vi.advanceTimersByTime(1_000);
+    expect(recoverFromChunkError()).toBe(true); // attempt 2: scheduled, quiet state
+    expect(isRecoveryReloadInFlight()).toBe(true);
+    expect(cancelPendingChunkRetry()).toBe(true); // the visitor navigated away
+    expect(isRecoveryReloadInFlight()).toBe(false);
+    await vi.advanceTimersByTimeAsync(WHOLE_SCHEDULE_MS * 2);
+    expect(replace).toHaveBeenCalledTimes(1);
+    // The dropped retry spent nothing: a later failure still gets attempt 2.
+    expect(sessionStorage.getItem("helpr_chunk_reload_count")).toBe("1");
+    expect(cancelPendingChunkRetry()).toBe(false);
+  });
+
+  it("Q982 (2): a retry waiting for the network is dropped too", async () => {
+    recoverFromChunkError();
+    await flush();
+    __resetChunkReloadForTests();
+    vi.advanceTimersByTime(1_000);
+    recoverFromChunkError(); // scheduled
+    setOnline(false);
+    await vi.advanceTimersByTimeAsync(CHUNK_RELOAD_SCHEDULE_MS[1] + 1); // fires offline: waits for `online`
+    expect(cancelPendingChunkRetry()).toBe(true);
+    setOnline(true);
+    window.dispatchEvent(new Event("online"));
+    await flush();
+    await vi.advanceTimersByTimeAsync(PURGE_STEP_TIMEOUT_MS * 4);
+    expect(replace).toHaveBeenCalledTimes(1);
   });
 
   it("(b) repeated calls while a retry is pending schedule only one timer", async () => {

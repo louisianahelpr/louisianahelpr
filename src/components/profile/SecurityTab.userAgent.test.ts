@@ -7,7 +7,7 @@
  * screen people read to spot an intrusion.
  */
 import { describe, it, expect } from "vitest";
-import { parseUserAgent } from "./SecurityTab";
+import { parseUserAgent } from "./securitySessions";
 
 // A real iOS WKWebView UA with capacitor.config.ts's appendUserAgent applied.
 // Note it contains "Safari" AND "HelprApp" — that overlap is the whole point.
@@ -49,4 +49,4 @@ describe("parseUserAgent", () => {
 
 // The regression itself: with the app test unreachable, the WKWebView UA falls
 // through to the Safari branch and a user's own phone is listed as a browser.
-// @mutate src/components/profile/SecurityTab.tsx | lower.includes("helprapp") \|\| lower.includes("capacitor") | false
+// @mutate src/components/profile/securitySessions.ts | lower.includes("helprapp") \|\| lower.includes("capacitor") | false

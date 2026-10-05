@@ -83,7 +83,6 @@ test.describe("customer sees helper application", () => {
         // primary "Applicants (1)" button.
         mockTable("jobs", [POSTED_JOB]),
         mockTable("applications", [APPLICATION_ROW]),
-        mockTable("job_checkins", []),
         mockTable("tips", []),
         mockTable("reviews", []),
         mockTable("user_violations", []),

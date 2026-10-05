@@ -29,6 +29,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { buildMainIndex, unlandedContent } from "./lib/strandedContent.mjs";
+import { STRANDED_AFTER_HOURS } from "./prune-stale-branches.mjs";
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const args = process.argv.slice(2);
@@ -87,8 +88,18 @@ export function localInventory(git, mainIndex, { cwdOf = defaultCwds } = {}) {
   return out;
 }
 
-/** origin branches, PRs closed without merging since SINCE, PRs open too long. */
-export function remoteInventory(git, mainIndex, gh = defaultGh) {
+/**
+ * origin branches, PRs closed without merging since SINCE, PRs open too long.
+ *
+ * A branch whose tip was committed under STRANDED_AFTER_HOURS ago is a lane
+ * still working (agents push after every item), not stranded work: it is
+ * listed with `fresh: true` and judged only once it is that old, the same
+ * rule prune-stale-branches.mjs applies before it opens an auto-land PR.
+ * Q1274: without it, every lane push and every moved park branch turned
+ * branch-prune red on the next push to main (runs 37253753256, 37255504600,
+ * 37266968261, 37266988478, 2026-10-05) for work minutes old.
+ */
+export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now() } = {}) {
   const out = [];
   const open = gh(["pr", "list", "--state", "open", "--limit", "200", "--json", "number,headRefOid,headRefName,createdAt,title,author"]);
   // A branch an open PR carries is tracked by that PR (and by the stale-PR check below).
@@ -97,7 +108,10 @@ export function remoteInventory(git, mainIndex, gh = defaultGh) {
     if (/^origin(\/HEAD|\/main)?$/.test(name) || openHeads.has(name)) continue;
     if (Number(git(["rev-list", "--count", `${MAIN_REF()}..${name}`]).trim()) === 0) continue;
     const r = unlandedContent(git, name, MAIN_REF(), mainIndex);
-    if (r.stranded) out.push({ kind: "remote-branch", id: `remote:${name}`, sha: git(["rev-parse", name]).trim(), missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file) });
+    if (!r.stranded) continue;
+    const tipHours = (now - Number(git(["log", "-1", "--format=%ct", name]).trim()) * 1000) / 3_600_000;
+    const fresh = tipHours < STRANDED_AFTER_HOURS;
+    out.push({ kind: "remote-branch", id: `remote:${name}`, sha: git(["rev-parse", name]).trim(), missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file), ...(fresh ? { fresh: true } : {}) });
   }
   const closed = gh(["pr", "list", "--state", "closed", "--limit", "500", "--search", `closed:>=${SINCE.slice(0, 10)}`,
     "--json", "number,headRefOid,mergedAt,closedAt,author,title,headRefName"]);
@@ -116,7 +130,6 @@ export function remoteInventory(git, mainIndex, gh = defaultGh) {
     if (landedElsewhere(comments.map((c) => c.body ?? ""))) continue;
     out.push({ kind: "closed-unmerged-pr", id: `pr:${pr.number}`, sha: pr.headRefOid, missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file), note: pr.title });
   }
-  const now = Date.now();
   for (const pr of open) {
     const hours = (now - Date.parse(pr.createdAt)) / 3_600_000;
     if (hours > STALE_OPEN_PR_HOURS && !/dependabot/i.test(pr.author?.login ?? "")) {
@@ -136,9 +149,13 @@ export function judge(items, accepted) {
   const key = (x) => `${x.id}@${x.sha}`;
   const acceptedKeys = new Set(accepted.map(key));
   const itemKeys = new Set(items.map(key));
+  // A fresh branch (pushed under STRANDED_AFTER_HOURS ago) is not judged yet:
+  // neither stranded, nor the reason its own acceptance reads stale.
+  const freshIds = new Set(items.filter((i) => i.fresh).map((i) => i.id));
   return {
-    unaccepted: items.filter((i) => !acceptedKeys.has(key(i))),
-    stale: accepted.filter((a) => !itemKeys.has(key(a))),
+    unaccepted: items.filter((i) => !i.fresh && !acceptedKeys.has(key(i))),
+    stale: accepted.filter((a) => !itemKeys.has(key(a)) && !freshIds.has(a.id)),
+    fresh: items.filter((i) => i.fresh && !acceptedKeys.has(key(i))),
   };
 }
 
@@ -197,8 +214,8 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.
     const local = doLocal ? localInventory(git, index) : [];
     const remote = doRemote ? remoteInventory(git, index) : [];
     const accepted = existsSync(ACCEPTED_PATH) ? JSON.parse(readFileSync(ACCEPTED_PATH, "utf8")).accepted ?? [] : [];
-    const { unaccepted, stale } = judge(remote, accepted);
-    const report = { checkedAt: new Date().toISOString(), main: git(["rev-parse", MAIN]).trim(), local, remote: unaccepted, acceptedRemote: remote.length - unaccepted.length, staleAcceptances: stale };
+    const { unaccepted, stale, fresh } = judge(remote, accepted);
+    const report = { checkedAt: new Date().toISOString(), main: git(["rev-parse", MAIN]).trim(), local, remote: unaccepted, acceptedRemote: remote.length - unaccepted.length - fresh.length, freshRemote: fresh, staleAcceptances: stale };
     const reportPath = opt("--report", null);
     if (reportPath) { mkdirSync(dirname(reportPath), { recursive: true }); writeFileSync(reportPath, JSON.stringify(report, null, 2) + "\n"); }
     if (flag("--json")) console.log(JSON.stringify(report, null, 2));
@@ -206,7 +223,7 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.
       const idle = local.filter((i) => !i.active);
       console.log(`Stranded work (not on ${MAIN} by content):`);
       if (doLocal) console.log(`local: ${idle.length} item(s)${local.length > idle.length ? ` (+${local.length - idle.length} in a worktree something is using now)` : ""}\n${summarize(local)}`);
-      if (doRemote) console.log(`remote: ${unaccepted.length} not accepted, ${remote.length - unaccepted.length} accepted, ${stale.length} stale acceptance(s)\n${summarize(unaccepted)}${stale.length ? `\n  stale acceptances (ref gone or moved): ${stale.map((s) => s.id).join(", ")}` : ""}`);
+      if (doRemote) console.log(`remote: ${unaccepted.length} not accepted, ${remote.length - unaccepted.length - fresh.length} accepted, ${stale.length} stale acceptance(s)\n${summarize(unaccepted)}${stale.length ? `\n  stale acceptances (ref gone or moved): ${stale.map((s) => s.id).join(", ")}` : ""}${fresh.length ? `\n  pushed under ${STRANDED_AFTER_HOURS}h ago, judged once older: ${fresh.map((f) => f.id).join(", ")}` : ""}`);
     }
     if (flag("--check") && (unaccepted.length || stale.length || (doLocal && local.some((i) => !i.active)))) {
       console.log("::error title=Stranded work::work that is not on main and not landed or accepted; land it (bash scripts/land.sh), or record why in docs/audit/stranded-accepted.json with its open item");

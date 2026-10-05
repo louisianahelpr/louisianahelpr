@@ -286,10 +286,10 @@ if (ROUTE_ROOTS.length < 8) {
  * as a regression. Each entry is open work with its own Q in docs/OPEN.md.
  */
 // @two-way scripts/check-deferred-vendors.mjs:(stale entry: remove it, the baseline is exact)
-const KNOWN_ROUTE_CLOSURE_VIOLATIONS = {
-  "pages/messages/Messages": "framer-motion", // SwipeableConversationRow (Q1208)
-  "pages/post-job/PostJob": "framer-motion", // PhotoUpload's Reorder (Q1208)
-};
+// Empty since Q1299 (2026-10-05): Messages' SwipeableConversationRow and
+// PostJob's PhotoUpload Reorder now load framer-motion on demand
+// (ConversationSwipeLayer.tsx, PhotoReorderGrid.tsx).
+const KNOWN_ROUTE_CLOSURE_VIOLATIONS = {};
 
 const routeFound = [];
 for (const { label, name } of ROUTE_ROOTS) {

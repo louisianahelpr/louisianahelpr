@@ -16,5 +16,7 @@ export interface PartlyDoneItem {
 }
 /** Every `- [~]` item in an OPEN.md body with its parsed done-when markers. */
 export function partlyDoneItems(md: string): PartlyDoneItem[];
+/** The app functions (from `appFns`, lower case) a sql marker's query calls. */
+export function appFunctionsCalled(query: string, appFns: Set<string>): string[];
 /** First result row as text, columns joined with "|". */
 export function rowText(rows: unknown): string;

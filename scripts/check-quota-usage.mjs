@@ -39,17 +39,18 @@
  * per-quota LH_QUOTA_* limit overrides. Test seams: LH_SUPABASE_API_BASE,
  * LH_VERCEL_API_BASE, LH_SENTRY_API_BASE. --no-ledger skips ledger writes.
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { appendFileSync } from "node:fs";
 import { QUOTAS, alertSeverity, alertTitle, evaluateQuotas, unreadableTitle } from "./lib/quotaMonitor.mjs";
 import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
 
 const env = process.env;
-const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
-const VERCEL = env.LH_VERCEL_API_BASE ?? "https://api.vercel.com";
+const SUPA = apiBase(env.LH_SUPABASE_API_BASE, "https://api.supabase.com");
+const VERCEL = apiBase(env.LH_VERCEL_API_BASE, "https://api.vercel.com");
 // The team scripts/prod-deploy.mjs deploys into.
 const VERCEL_TEAM_ID = "team_UQHppAVoPIPQbyh2b43y21BG";
-const SENTRY = env.LH_SENTRY_API_BASE ?? "https://sentry.io";
+const SENTRY = apiBase(env.LH_SENTRY_API_BASE, "https://sentry.io");
 const REF = env.SUPABASE_PROJECT_REF;
 const TOKEN = env.SUPABASE_ACCESS_TOKEN;
 const noLedger = process.argv.includes("--no-ledger");

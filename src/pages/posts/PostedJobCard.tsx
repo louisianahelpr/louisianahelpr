@@ -97,8 +97,7 @@ function PostedJobCardInner({
   const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
-  const hasDescription =
-    job.description.trim().toLowerCase() !== job.title.trim().toLowerCase();
+  const hasDescription = job.description.trim().toLowerCase() !== job.title.trim().toLowerCase();
   const hasRequirements = !!job.special_requirements?.trim();
 
   // The tracking card carries the assigned helper's identity (see below), so
@@ -747,6 +746,7 @@ function PostedJobCardInner({
                 completedJobMeta={completedJobMeta}
                 onBoost={onBoost}
                 onEdit={onEdit}
+                crewRoster={initialGroupHelpers}
                 onCancel={onCancel}
                 onComplete={onComplete}
                 completingJobId={completingJobId}

@@ -36,7 +36,7 @@ if (!token) {
 }
 
 function out(key, value) {
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${String(value).replace(/[\r\n]+/g, " ")}\n`);
 }
 
 async function api(path, init = {}) {

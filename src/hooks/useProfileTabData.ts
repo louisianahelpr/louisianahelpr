@@ -236,7 +236,7 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
       // row made "total earned" ($349.60) disagree with the payout ledger
       // ($248.40). It was removed on 2026-09-06 because it filtered on the
       // wrong axis and broke a real screen. External QA ran a full job loop,
-      // the poster approved and released, and the helper's Earnings & Payouts
+      // the poster approved and released, and the helper's Money tab (then "Earnings & Payouts")
       // read "$0.00 · total earned · 0 jobs" and "No earnings yet" — while My
       // Jobs → Done showed the same job at $105 with its proof photos.
       // Reproduced against prod: helper 437de07d (profile `is_seed=false`, a

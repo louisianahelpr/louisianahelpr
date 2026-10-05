@@ -104,6 +104,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   payment_refunds: { by: ["customer_id"] },
   chargeback_clawbacks: { by: ["helper_id"] },
   tips: { by: ["tipper_id", "helper_id"] },
+  // Q1297: the Helpr's own tip re-pay ledger (was EXEMPT until 20261005060801).
+  tip_hold_redrives: { by: ["helper_id"] },
   gift_cards: { by: ["donor_id", "recipient_id", "recipient_email"] },
   referral_codes: { by: ["user_id"] },
   referral_credits: { by: ["user_id"] },
@@ -172,7 +174,12 @@ export const POSTER_SIDE_EXEMPT: Record<string, string> = {
  * when the policy names none, e.g. a realtime topic match). public.jobs itself
  * is left out: its poster column is its own customer_id.
  */
-export function posterReadableViaJob(tables = publicTables()): Map<string, string> {
+/**
+ * Every public-table policy as the migrations leave it: CREATE/DROP POLICY and
+ * ALTER POLICY (RENAME TO, USING) replayed in file order, comments blanked.
+ * Keyed "table:name" (a quoted name keeps its case, a bare one is folded).
+ */
+export function replayedPolicies(): Map<string, { table: string; text: string }> {
   const dir = join(REPO, "supabase/migrations");
   const live = new Map<string, { table: string; text: string }>();
   for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
@@ -213,8 +220,12 @@ export function posterReadableViaJob(tables = publicTables()): Map<string, strin
     }
     events.sort((a, b) => a.at - b.at).forEach((e) => e.apply());
   }
+  return live;
+}
+
+export function posterReadableViaJob(tables = publicTables()): Map<string, string> {
   const out = new Map<string, string>();
-  for (const { table, text } of live.values()) {
+  for (const { table, text } of replayedPolicies().values()) {
     // Only tables the schema still has (a dropped table's policies went with it).
     if (table === "jobs" || !tables.has(table)) continue;
     const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(text)?.[1] ?? "all").toLowerCase();
@@ -238,6 +249,50 @@ export function posterReadableViaJob(tables = publicTables()): Map<string, strin
   return out;
 }
 
+
+/**
+ * Q1235: the Helpr's side of posterReadableViaJob. Every table whose SELECT (or
+ * ALL) policy admits the job's HIRED HELPR as that Helpr: inside a jobs
+ * sub-select (`FROM jobs ... WHERE ... helper_id = auth.uid()`, either side of
+ * the =, or `auth.uid() IN (SELECT helper_id FROM jobs ...)`), or
+ * is_series_party(<col>). A table's OWN helper_id column compared to
+ * auth.uid() outside a jobs sub-select is not this (that is the row's own
+ * person column, exported by EXPORTED[table].by). Maps table -> the job column.
+ */
+export function helperReadableViaJob(tables = publicTables()): Map<string, string> {
+  const UID = String.raw`\(?\s*(?:select\s+)?auth\.uid\s*\(\s*\)(?:\s+AS\s+uid)?\s*\)?`;
+  const helperIsCaller = new RegExp(String.raw`(?:\b(?:\w+\.)?helper_id\s*=\s*${UID}|${UID}\s*=\s*(?:\w+\.)?helper_id\b)`, "i");
+  /** Each `FROM jobs ...` up to the paren that closes its sub-select. */
+  const jobsSubselects = (text: string) =>
+    [...text.matchAll(/\bFROM\s+(?:public\.)?jobs\b/gi)].map((m) => {
+      let depth = 0;
+      for (let i = m.index!; i < text.length; i++) {
+        if (text[i] === "(") depth++;
+        else if (text[i] === ")" && --depth < 0) return text.slice(m.index!, i);
+      }
+      return text.slice(m.index!);
+    });
+  const out = new Map<string, string>();
+  for (const { table, text } of replayedPolicies().values()) {
+    if (table === "jobs" || !tables.has(table)) continue;
+    const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(text)?.[1] ?? "all").toLowerCase();
+    if (cmd !== "select" && cmd !== "all") continue;
+    const series = /\bis_series_party\s*\(\s*(?:\w+\.)?(\w+)\s*\)/i.exec(text);
+    const viaSub = jobsSubselects(text).some((sub) => helperIsCaller.test(sub));
+    const inForm = new RegExp(String.raw`${UID}\s+IN\s*\(\s*SELECT\s+(?:(?:public\.)?\w+\.)?helper_id\s+FROM\s+(?:public\.)?jobs\b`, "i").test(text);
+    if (!series && !viaSub && !inForm) continue;
+    const col =
+      series?.[1] ??
+      /\b(?:j|jobs)\.id\s*=\s*(?:(?:public\.)?\w+\.)?(\w+)/i.exec(text)?.[1] ??
+      /(?:(?:public\.)?\w+\.)?(\w+)\s*=\s*(?:j|jobs)\.id\b/i.exec(text)?.[1] ??
+      /\bwhere\s+id\s*=\s*(?:(?:public\.)?\w+\.)?(\w+)/i.exec(text)?.[1] ??
+      /\b(\w+)\s+IN\s*\(\s*SELECT\s+(?:\w+\.)?id\s+FROM\s+(?:public\.)?jobs\b/i.exec(text)?.[1] ??
+      "?";
+    if (!out.has(table) || out.get(table) === "?") out.set(table, col.toLowerCase());
+  }
+  return out;
+}
+
 /**
  * "table.column" → why the export does not scope by it. `stripped: true` means
  * the column is also REMOVED from the rows the export does return (the guard
@@ -251,8 +306,9 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // stays out is who on staff wrote or applied them, and records that are the
   // staff's own rather than the person's.
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
-  "tip_hold_redrives.helper_id": { reason: "Q1222: the server's claim ledger for re-paying a tip a payout hold kept back; the tip itself is exported under tips. Adding this ledger to export_my_data is filed as Q1297 (2026-10-04)." },
   "pre_verification_wipes.user_id": { reason: "Q447: the server's record that a pre-verification takeover deleted what someone else typed into this account (and which stored objects to remove); it holds none of the person's own data" },
+  "job_refund_claims.claimed_by": { reason: "Q1323: names the code path holding a refund claim ('cancel_escrow' or 'admin_refund_general'), not a person" },
+  "job_refund_claims.actor_user_id": { reason: "Q1323: server lock marker naming who started an in-flight refund claim; deleted when the claim is put back, holds none of the person's own data" },
   "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
   "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
   "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },

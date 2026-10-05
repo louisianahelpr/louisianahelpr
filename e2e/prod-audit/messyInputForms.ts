@@ -783,6 +783,7 @@ export const GAPS: Record<string, string> = {
   "src/components/profile/AvatarCropDialog.tsx": "file input / zoom slider — no typed text",
   "src/components/PhotoProof.tsx": "file input only",
   "src/components/postjob/detailsSection/PhotoUpload.tsx": "file inputs only",
+  "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": "file input only (PhotoUpload's drag-to-reorder grid, Q1299)",
   "src/components/postjob/detailsSection/VideoScope.tsx": "file input only",
   "src/components/profile/profileEditForm/RecentWorkSection.tsx": "file input only",
   "src/components/NotificationPreferences.tsx": "switches only",

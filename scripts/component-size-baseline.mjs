@@ -16,7 +16,7 @@
  *   node scripts/component-size-baseline.mjs          print oversized files, biggest first
  *   node scripts/component-size-baseline.mjs --write  lower the baseline (refuses to raise or add)
  */
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -42,10 +42,11 @@ export function componentSizes(root) {
   const sizes = {};
   let scanned = 0;
   const visit = (dir) => {
-    for (const entry of readdirSync(dir)) {
+    for (const dirent of readdirSync(dir, { withFileTypes: true })) {
+      const entry = dirent.name;
       if (NOT_SOURCE_DIRS.has(entry)) continue;
       const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
+      if (dirent.isDirectory()) {
         visit(full);
         continue;
       }
@@ -113,7 +114,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // Lower-only: refuse to raise an entry or add a file, so --write can never
     // be the way a god component grows or appears past the ratchet.
     const path = join(root, BASELINE_PATH);
-    const was = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")).files : null;
+    let was = null;
+    try {
+      was = JSON.parse(readFileSync(path, "utf8")).files;
+    } catch (e) {
+      if (e?.code !== "ENOENT") throw e; // first write: no baseline yet
+    }
     const grew = was ? Object.entries(sorted).filter(([f, n]) => was[f] === undefined || n > was[f]) : [];
     if (grew.length) {
       console.error(

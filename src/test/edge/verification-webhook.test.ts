@@ -24,14 +24,24 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { slackAlerts, resetSharedMocks } from "./mocks/shared";
+import { stripeMock, resetStripeMock } from "./mocks/stripe";
+
+// Certificial's own payload status word (a VENDOR value, not a helper_credentials.status).
+const CERTIFICIAL_ACTIVE = "active";
+// verification_checks.status (its CHECK admits passed), not helper_credentials.status.
+const CHECK_PASSED = "passed";
 
 const CHECKR_SECRET = "checkr_test_secret";
+const CERTIFICIAL_SECRET = "certificial_test_secret";
 
 async function loadConfigured(): Promise<EdgeHarness> {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "service-key",
     CHECKR_WEBHOOK_SECRET: CHECKR_SECRET,
+    CERTIFICIAL_WEBHOOK_SECRET: CERTIFICIAL_SECRET,
+    STRIPE_SECRET_KEY: "sk_test_x",
+    STRIPE_IDV_WEBHOOK_SECRET: "whsec_idv_test",
   });
   return loadEdgeFunction("verification-webhook");
 }
@@ -175,6 +185,115 @@ describe("verification-webhook edge function", () => {
   });
 });
 
+/**
+ * Q1023: the other two vendor branches. Checkr was the only one tested; a
+ * Certificial or Stripe Identity callback can mark an insurance credential or
+ * an identity check "passed", so each branch's signature gate and its status
+ * mapping are pinned here against the REAL function source.
+ */
+function certificialRequest(fn: EdgeHarness, payload: unknown, secret = CERTIFICIAL_SECRET) {
+  const rawBody = JSON.stringify(payload);
+  const signature = createHmac("sha256", secret).update(rawBody).digest("hex");
+  return fn.request({
+    rawBody,
+    headers: { "x-vendor": "certificial", "x-webhook-signature": signature, "content-type": "application/json" },
+  });
+}
+const statusWrite = () =>
+  scenario.writes.find((w) => w.table === "verification_checks" && w.op === "update")?.payload as
+    | { status?: string; expires_at?: string | null; failure_reason?: string | null }
+    | undefined;
+
+describe("verification-webhook: Certificial and Stripe Identity (Q1023)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetSharedMocks();
+    resetStripeMock();
+  });
+
+  it("Certificial: a forged signature is refused before anything is written", async () => {
+    const fn = await loadConfigured();
+    const res = await fn.fetch(certificialRequest(fn, { certificate_id: "cert_1", status: CERTIFICIAL_ACTIVE }, "not-the-secret"));
+    expect(res.status).toBe(401);
+    expect(scenario.writes).toHaveLength(0);
+  });
+
+  it("Certificial: an unsigned callback is refused", async () => {
+    const fn = await loadConfigured();
+    const res = await fn.fetch(
+      fn.request({ rawBody: JSON.stringify({ certificate_id: "cert_1", status: CERTIFICIAL_ACTIVE }), headers: { "x-vendor": "certificial" } }),
+    );
+    expect(res.status).toBe(401);
+    expect(scenario.writes).toHaveLength(0);
+  });
+
+  it("Certificial: an active policy passes the check and records its expiry", async () => {
+    const fn = await loadConfigured();
+    seedKnownCheck();
+    const res = await fn.fetch(certificialRequest(fn, { id: "evt_cert_1", certificate_id: "cert_1", status: CERTIFICIAL_ACTIVE, expiration_date: "2027-01-31" }));
+    expect(res.status).toBe(200);
+    expect(statusWrite()).toMatchObject({ status: CHECK_PASSED, expires_at: "2027-01-31" });
+  });
+
+  it("Certificial: a cancelled policy expires the check; anything unknown fails it", async () => {
+    let fn = await loadConfigured();
+    seedKnownCheck();
+    await fn.fetch(certificialRequest(fn, { id: "evt_cert_2", certificate_id: "cert_1", status: "cancelled" }));
+    expect(statusWrite()?.status).toBe("expired");
+    resetSupabaseMock();
+    fn = await loadConfigured();
+    seedKnownCheck();
+    await fn.fetch(certificialRequest(fn, { id: "evt_cert_3", certificate_id: "cert_1", status: "pending_review" }));
+    expect(statusWrite()?.status).toBe("failed");
+  });
+
+  it("Stripe Identity: refused when the Stripe signature does not verify", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockRejectedValue(new Error("No signatures found matching the expected signature"));
+    const res = await fn.fetch(
+      fn.request({ rawBody: "{}", headers: { "x-vendor": "stripe_identity", "stripe-signature": "t=1,v1=bad" } }),
+    );
+    expect(res.status).toBe(401);
+    expect(scenario.writes).toHaveLength(0);
+  });
+
+  it("Stripe Identity: refused with no stripe-signature header (fail closed)", async () => {
+    const fn = await loadConfigured();
+    const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "x-vendor": "stripe_identity" } }));
+    expect(res.status).toBe(401);
+    expect(stripeMock.webhooks.constructEventAsync).not.toHaveBeenCalled();
+    expect(scenario.writes).toHaveLength(0);
+  });
+
+  it("Stripe Identity: a verified session passes the check; requires_input fails it with Stripe's reason", async () => {
+    let fn = await loadConfigured();
+    seedKnownCheck();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_idv_1", type: "identity.verification_session.verified", data: { object: { id: "vs_1", status: "verified" } },
+    });
+    let res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "x-vendor": "stripe_identity", "stripe-signature": "t=1,v1=ok" } }));
+    expect(res.status).toBe(200);
+    expect(statusWrite()?.status).toBe("passed");
+
+    resetSupabaseMock();
+    fn = await loadConfigured();
+    seedKnownCheck();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_idv_2", type: "identity.verification_session.requires_input",
+      data: { object: { id: "vs_1", status: "requires_input", last_error: { reason: "document_expired" } } },
+    });
+    res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "x-vendor": "stripe_identity", "stripe-signature": "t=1,v1=ok" } }));
+    expect(res.status).toBe(200);
+    expect(statusWrite()).toMatchObject({ status: "failed", failure_reason: "document_expired" });
+  });
+});
+
 // Proof this guard can fail (scripts/vacuity). Accepting any HMAC lets a forged
 // Checkr callback mark a background check "clear".
 // @mutate supabase/functions/verification-webhook/index.ts | !timingSafeEqual(provided, expected) | false
+// Q1023: the Certificial and Stripe Identity branches.
+// @mutate supabase/functions/verification-webhook/index.ts |     newStatus = policy.status === "active" ? "passed" |     newStatus = policy.status === "pending_review" ? "passed"
+// @mutate supabase/functions/verification-webhook/index.ts |     newStatus = verification?.status === "verified" ? "passed" |     newStatus = verification?.status === "processing" ? "passed"
+// @mutate supabase/functions/verification-webhook/index.ts |     if (!STRIPE_SECRET_KEY \|\| !STRIPE_IDV_WEBHOOK_SECRET \|\| !sig) { |     if (!STRIPE_SECRET_KEY \|\| !STRIPE_IDV_WEBHOOK_SECRET) {
+// @mutate supabase/functions/verification-webhook/index.ts |     const secret = vendor === "checkr" ? CHECKR_WEBHOOK_SECRET : CERTIFICIAL_WEBHOOK_SECRET; |     const secret = CHECKR_WEBHOOK_SECRET;

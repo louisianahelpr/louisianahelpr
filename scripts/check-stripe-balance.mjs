@@ -20,6 +20,7 @@
  * Test seams: LH_STRIPE_API_BASE, LH_SUPABASE_API_BASE. --no-ledger skips
  * ledger writes.
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { appendFileSync } from "node:fs";
 import {
   LOW_TITLE, MULTIPLIER, TOP_UP_HOW, UNREADABLE_TITLE, UPCOMING_SQL, WINDOW_HOURS,
@@ -28,8 +29,8 @@ import {
 import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 
 const env = process.env;
-const STRIPE = env.LH_STRIPE_API_BASE ?? "https://api.stripe.com";
-const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
+const STRIPE = apiBase(env.LH_STRIPE_API_BASE, "https://api.stripe.com");
+const SUPA = apiBase(env.LH_SUPABASE_API_BASE, "https://api.supabase.com");
 const noLedger = process.argv.includes("--no-ledger");
 
 async function readBalance() {

@@ -65,9 +65,12 @@ export const rateLimitState = {
 
 /** Every checkRateLimit() call's options, in order: a per-bucket limit is a behaviour. */
 export const rateLimitCalls: Array<{ windowMs?: number; maxRequests?: number; keyPrefix?: string }> = [];
+/** Per call, in order: did the Request handed to checkRateLimit carry an Authorization header? */
+export const rateLimitAuthSeen: boolean[] = [];
 
 export function resetSharedMocks() {
   rateLimitCalls.length = 0;
+  rateLimitAuthSeen.length = 0;
   rateLimitState.allowed = true;
   rateLimitState.remaining = 9;
   rateLimitState.retryAfter = 60;
@@ -80,7 +83,7 @@ export function resetSharedMocks() {
 }
 
 export async function checkRateLimit(
-  _req?: Request,
+  req?: Request,
   opts?: { windowMs?: number; maxRequests?: number; keyPrefix?: string },
 ): Promise<{
   allowed: boolean;
@@ -88,6 +91,7 @@ export async function checkRateLimit(
   retryAfter?: number;
 }> {
   rateLimitCalls.push({ ...(opts ?? {}) });
+  rateLimitAuthSeen.push(!!req?.headers?.get("authorization"));
   return {
     allowed: rateLimitState.allowed,
     remaining: rateLimitState.remaining,

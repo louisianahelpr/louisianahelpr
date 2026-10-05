@@ -13,6 +13,8 @@ import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
@@ -47,7 +49,7 @@ const JobDetail = () => {
 
   // Guests fetch the single job from the RLS-public masked view. We skip
   // the fetch entirely for authed users — they're redirected below.
-  const { data: job, isLoading, isError, refetch } = useQuery({
+  const { data: job, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<EnrichedJob | null> => {
       const data = unwrap(
@@ -77,6 +79,8 @@ const JobDetail = () => {
     enabled: !!id && !authLoading && !user,
     staleTime: 60 * 1000,
   });
+  // Q571: offline with nothing loaded is not "this job isn't available".
+  const phase = useFeedPhase({ status, fetchStatus });
 
   // Hoisted above the redirect below so the title hook can never sit after an
   // early return. See the h1 note further down for why every branch needs a
@@ -130,6 +134,11 @@ const JobDetail = () => {
             <div role="status" aria-busy="true" aria-label="Loading job">
               <JobCardSkeleton />
             </div>
+          ) : phase === "offline-empty" ? (
+            <OfflineEmptyState
+              body="This job will load here as soon as you're back online."
+              onRetry={() => { void refetch(); }}
+            />
           ) : isError ? (
             /* Retry really re-runs the fetch — the old handler navigated to
                /jobs under a "Try again" label, so the one button that

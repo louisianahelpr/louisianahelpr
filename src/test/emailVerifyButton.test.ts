@@ -26,12 +26,13 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const SRC = readFileSync(
   resolve(process.cwd(), "supabase/functions/_shared/email-templates/components.tsx"),
   "utf8",
 );
-const code = SRC.replace(/\/\*[\s\S]*?\*\//g, "");
+const code = blankComments(SRC);
 
 /**
  * The text of ONE top-level declaration, bounded at the next one.

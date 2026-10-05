@@ -145,7 +145,7 @@ async function ensureCheckoutJob(api: APIRequestContext, poster: Session, log: s
       "If you are reading this in the app, something is wrong with the test harness.",
     category: "cleaning",
     budget: 25,
-    location: "Baton Rouge, LA",
+    location: "4412 Highland Rd, Baton Rouge, LA 70808",
     date_needed: centralDatePlus(CHECKOUT_FIXTURE_DAYS),
     status: "open",
     payment_status: "unpaid",

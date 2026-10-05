@@ -83,7 +83,7 @@ test.describe("bad actors: contact smuggling", () => {
           description: `Regular job text. ${s.text}`,
           category: "cleaning",
           budget: 50,
-          location: "Baton Rouge, LA",
+          location: "4412 Highland Rd, Baton Rouge, LA 70808",
           date_needed: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10),
           status: "open",
           payment_status: "unpaid",

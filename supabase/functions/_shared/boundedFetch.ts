@@ -42,9 +42,15 @@ export function boundedFetch(opts: { attemptMs?: number; readAttempts?: number; 
       }
     }
     const url = input instanceof Request ? input.url : String(input);
-    throw new Error(
+    const stalled = new Error(
       `read stalled: ${method} ${url.split("?")[0]} got no response in ${readAttempts} attempts of ${attemptMs}ms` +
         ` (last: ${(last as Error)?.message ?? String(last)})`,
     );
+    // Named AbortError so postgrest-js does not retry it again: it retries any
+    // other rejected GET/HEAD 3 more times with 1s/2s/4s backoff, which turned
+    // 3 x 6s into about 79s and overran pg_net's 30s anyway (Q592 money review,
+    // lh-money-escrow 2026-10-05). It still comes back as an ordinary `error`.
+    stalled.name = "AbortError";
+    throw stalled;
   };
 }

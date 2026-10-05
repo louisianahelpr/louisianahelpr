@@ -2,6 +2,7 @@ import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
@@ -63,7 +64,7 @@ serve(async (req) => {
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
     const stripe = new Stripe(stripeSecretKey, {
       apiVersion: "2025-08-27.basil",

@@ -14,12 +14,13 @@
  * Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF. Test seam:
  * LH_SUPABASE_API_BASE. --no-ledger skips ledger writes.
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { appendFileSync } from "node:fs";
 import { KEY_EVENTS, alertTitle, evaluateFreshness, freshnessSql } from "./lib/analyticsFreshness.mjs";
 import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 
 const env = process.env;
-const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
+const SUPA = apiBase(env.LH_SUPABASE_API_BASE, "https://api.supabase.com");
 const noLedger = process.argv.includes("--no-ledger");
 const runUrl = env.GITHUB_RUN_ID ? `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}` : null;
 

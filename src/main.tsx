@@ -337,6 +337,13 @@ void hydrateStorage();
 
         initSentry();
         initPostHog();
+        // Q762: one real-user page-load sample per cold load, for the p95
+        // page-load SLO (scripts/slo.mjs). Its own chunk; a failure is silent.
+        void backgroundImport(() => import("./lib/pageLoadTiming"), "page-load-timing")
+          .then(({ reportPageLoadOnce }) => reportPageLoadOnce())
+          .catch(() => {
+            /* a timing sample must never break the app */
+          });
 
         // Tie analytics + error identity to Supabase auth so events attribute
         // correctly. Runs after first paint — pre-auth events still get

@@ -39,10 +39,10 @@ jobs:
       actions: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -64,7 +64,10 @@ jobs:
             docs/SCOREBOARD.md
             docs/GUARD-BURNDOWN.md
             docs/audit
-          regenerate: node scripts/open-done-when.mjs --tick --no-test && npm run -s inventories:refresh
+          # Re-measure the feeds snapshot (docs/audit/open-feeds.json) BEFORE
+          # ticking: the tick reads sources live, openFeedsMirrored reads the
+          # snapshot, and a stale snapshot turned PR #2301 red (2026-10-05).
+          regenerate: node scripts/open-sync-trackers.mjs && node scripts/open-done-when.mjs --tick --no-test && npm run -s inventories:refresh
           body: "Each ticked line carries what its done-when markers read on prod. Nothing is ticked on a skipped or failed marker."
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
           check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}

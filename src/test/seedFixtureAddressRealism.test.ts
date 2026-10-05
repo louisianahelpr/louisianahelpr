@@ -30,6 +30,7 @@
  * @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs | location: "1011 Ryan St, Lake Charles, LA 70601" | location: "Lake Charles, LA"
  * @mutate scripts/probes/lib/seedAddresses.mjs | ["1125 Jackson St, Alexandria, LA 71301", 31.305, -92.452] | ["Alexandria, LA", 31.305, -92.452]
  * @mutate scripts/probes/completion-race.prod.mjs | location: "4412 Highland Rd, Baton Rouge, LA 70808" | location: "Baton Rouge, LA"
+ * @mutate e2e/canary/core-loop.spec.ts | location: "4412 Highland Rd, Baton Rouge, LA 70808" | location: "Baton Rouge, LA"
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -60,7 +61,12 @@ function walk(dir: string, out: string[] = []): string[] {
  * mentions `is_seed` and it writes a `jobs` row.
  */
 function generatorFiles(): string[] {
-  return walk(path.join(REPO, "scripts"))
+  // Q1086 (2026-10-05): prod-writing e2e specs and harnesses seed jobs too
+  // (journeys' throwaway jobs, the canary, prod-lifecycle, privacy), and seven
+  // live is_seed jobs said "Baton Rouge, LA" because only scripts/ was read.
+  // e2e/happy-path is the mocked suite: it never writes prod, so it is left out.
+  const e2e = walk(path.join(REPO, "e2e")).filter((f) => !f.includes(`${path.sep}happy-path${path.sep}`));
+  return [...walk(path.join(REPO, "scripts")), ...e2e]
     .filter((f) => {
       const src = fs.readFileSync(f, "utf8");
       return src.includes("is_seed") && /["'`]jobs["'`]|jobs\?|rest\("jobs/.test(src);
@@ -135,6 +141,9 @@ function jobLocations(): { found: Found[]; unresolved: string[] } {
       const obj = enclosingObject(src, m.index!);
       if (!JOB_KEYS.test(obj)) continue; // a profile's location, not a job's
       const raw = m[1];
+      // A TypeScript type annotation (`location: string | null` in an e2e
+      // spec's row type), not a value written to a row.
+      if (raw === "string" || raw === "number" || raw === "unknown") continue;
       if (!/^["'`]/.test(raw) && raw.includes(".")) {
         forwarded.push(`${rel}: location: ${raw}`);
         continue;

@@ -10,7 +10,7 @@
  * with NEW_MIGRATION=skip). This file pins the shape of the NEWEST definition
  * so a later migration cannot restate open_dispute_as without the clear.
  *
- * @mutate supabase/migrations/20261004004705_refile_clears_helpr_dispute_answer.sql | dispute_helper_response = NULL, | dispute_reason = _reason,
+ * @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql | dispute_helper_response = NULL, | dispute_reason = _reason,
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -54,7 +54,11 @@ describe("a re-filed dispute starts with no Helpr answer (Q1165)", () => {
   });
 
   it("the open-dispute branch (evidence append) does not clear an answer that belongs to the still-open dispute", () => {
-    const branch = def.sql.slice(0, def.sql.indexOf("INSERT INTO public.disputes (job_id, opener_id, reason, evidence_urls)"));
+    // The still-open branch ends at its RETURN (Q1262 archives the previous
+    // dispute's answer on the NEW path, after it, by reading the column).
+    const end = def.sql.indexOf("RETURN _existing_id;");
+    expect(end).toBeGreaterThan(0);
+    const branch = def.sql.slice(0, end);
     expect(branch).not.toMatch(/dispute_helper_response/);
   });
 

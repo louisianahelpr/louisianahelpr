@@ -52,6 +52,7 @@
 
 import { serve } from "../_shared/buildStamp.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
@@ -93,7 +94,7 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "";
-  const supabase = createClient(supabaseUrl, serviceKey);
+  const supabase = createClient(supabaseUrl, serviceKey, { global: { fetch: boundedFetch() } });
   const defects = defectTracker();
 
   // send-notification-email handles user pref filtering (email_reviews).

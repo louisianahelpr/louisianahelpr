@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * VN-48 (owner, 2026-09-14): Post a Job field labels were sentence case
@@ -50,7 +51,7 @@ function collectLabels(): { file: string; text: string }[] {
   const out: { file: string; text: string }[] = [];
   for (const file of ROOTS.flatMap(walk)) {
     // Comments first: several explain <Label> behaviour in prose.
-    const src = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    const src = blankComments(readFileSync(file, "utf8"));
     const patterns = [
       /<Label\b[^>]*>([\s\S]*?)<\/Label>/g,
       /<span className="text-ds-13 font-semibold text-foreground">([^<{]+)<\/span>/g,

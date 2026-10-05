@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { jobActionChipStyle } from "@/components/job-card/JobActionRow";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * ONE MESSAGE, ONE COLOUR — enforced, not asserted.
@@ -39,8 +40,7 @@ import { jobActionChipStyle } from "@/components/job-card/JobActionRow";
 
 const ROOT = resolve(__dirname, "../..");
 
-const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const stripComments = (t: string) => blankComments(t);
 
 function sourceFiles(): string[] {
   return execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })

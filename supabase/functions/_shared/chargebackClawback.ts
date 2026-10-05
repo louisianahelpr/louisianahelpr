@@ -125,45 +125,71 @@ async function readClawbackRows(
   return { rows: (data ?? []) as ClawbackRow[] };
 }
 
+/** A WON dispute's re-payment of a clawed-back amount (repayClawback below). */
+const isRepay = (metadata: unknown) => (metadata as Record<string, string> | null)?.source === REPAY_SOURCE;
+
 /**
  * Every payout transfer for this job, from Stripe (transfer_group job_<id>)
  * and from the payout_transfers ledger (a transfer the group list does not
  * carry is retrieved by id). Oldest first. A ledger id Stripe refuses to
  * return (not a transient failure) is reported in `unreadable`, not thrown:
  * the transfers that WERE found are still clawed back.
+ *
+ * Q805 (4), the lh-money-escrow low notes on the pro-rata build:
+ *   (a) an unreadable transfer still holds its place in the pro-rata BASE
+ *       (`unreadableBase`, at its ledger amount): left out, its share fell on
+ *       the members who could be read, up to their caps. Its own share is
+ *       not reversed (it cannot be) and is paged as platform-carried;
+ *   (b) a WON dispute's re-payment (metadata.source 'chargeback-repay', in
+ *       the same transfer group and the payout ledger) is not a payout of
+ *       this job's escrow: it is neither in the base nor reversed.
  */
 async function jobTransfers(
   stripe: Stripe,
   supabase: Db,
   jobId: string,
-): Promise<{ transfers: Stripe.Transfer[]; helperByTransfer: Map<string, string | null>; unreadable: string[] }> {
+): Promise<{
+  transfers: Stripe.Transfer[];
+  helperByTransfer: Map<string, string | null>;
+  unreadable: string[];
+  unreadableBase: Array<{ id: string; amount: number; created: number }>;
+}> {
   const helperByTransfer = new Map<string, string | null>();
+  const ledgerCents = new Map<string, number>();
   const { data: ledger, error: ledgerErr } = await supabase
     .from("payout_transfers")
-    .select("stripe_transfer_id, helper_id, status")
+    .select("stripe_transfer_id, helper_id, status, amount_cents, metadata")
     .eq("job_id", jobId);
   if (ledgerErr) throw new Error(`Clawback: payout_transfers read failed for job ${jobId}: ${ledgerErr.message}`);
-  for (const r of (ledger ?? []) as Array<{ stripe_transfer_id: string | null; helper_id: string | null }>) {
-    if (r.stripe_transfer_id) helperByTransfer.set(r.stripe_transfer_id, r.helper_id ?? null);
+  for (const r of (ledger ?? []) as Array<{ stripe_transfer_id: string | null; helper_id: string | null; amount_cents?: number | null; metadata?: unknown }>) {
+    if (!r.stripe_transfer_id || isRepay(r.metadata)) continue;
+    helperByTransfer.set(r.stripe_transfer_id, r.helper_id ?? null);
+    ledgerCents.set(r.stripe_transfer_id, Math.max(0, Math.round(Number(r.amount_cents ?? 0)) || 0));
   }
 
   const byId = new Map<string, Stripe.Transfer>();
   const unreadable: string[] = [];
+  const unreadableBase: Array<{ id: string; amount: number; created: number }> = [];
   // A list failure of any kind throws: without it nothing can be reversed, and
   // the dispute page and admin notices have already gone out before this runs.
   const grouped = await stripe.transfers.list({ transfer_group: `job_${jobId}`, limit: 100 });
-  for (const t of grouped?.data ?? []) byId.set(t.id, t);
+  for (const t of grouped?.data ?? []) {
+    if (!isRepay(t.metadata)) byId.set(t.id, t);
+  }
   for (const id of helperByTransfer.keys()) {
     if (byId.has(id)) continue;
     try {
-      byId.set(id, await stripe.transfers.retrieve(id));
+      const t = await stripe.transfers.retrieve(id);
+      if (!isRepay(t?.metadata)) byId.set(id, t);
     } catch (err) {
       if (isTransientStripeError(err)) throw err;
       unreadable.push(`${id}: ${errMessage(err)}`);
+      // Newest for tie-breaks, so a readable transfer keeps any spare cent.
+      unreadableBase.push({ id, amount: ledgerCents.get(id) ?? 0, created: Number.MAX_SAFE_INTEGER });
     }
   }
   const transfers = [...byId.values()].sort((a, b) => (a.created ?? 0) - (b.created ?? 0));
-  return { transfers, helperByTransfer, unreadable };
+  return { transfers, helperByTransfer, unreadable, unreadableBase };
 }
 
 /** The payee of a connected account, or null. A read error is paged, not dropped. */
@@ -335,13 +361,16 @@ export async function clawBackReleasedPayout(
   if (existing.error) throw new Error(`chargeback_clawbacks read failed for ${dispute.id}: ${existing.error}`);
   const rowByTransfer = new Map(existing.rows.map((r) => [r.original_transfer_id, r]));
 
-  const { transfers, helperByTransfer, unreadable } = await jobTransfers(stripe, supabase, job.id);
+  const { transfers, helperByTransfer, unreadable, unreadableBase } = await jobTransfers(stripe, supabase, job.id);
 
   // Already clawed back for this dispute counts against the disputed amount.
   let remaining = Math.max(0, Number(dispute.amount) || 0);
   // Each transfer's pro-rata part of the disputed amount (Q210(g)). A resumed
   // row keeps the amount it claimed; `remaining` stays the hard ceiling.
-  const shares = proRataShares(transfers, remaining);
+  // The base counts a transfer Stripe would not return at its ledger amount,
+  // so its share is not carried by the others (Q805 (4a)).
+  const shares = proRataShares([...transfers, ...unreadableBase], remaining);
+  const unreadableShareCents = unreadableBase.reduce((n, u) => n + (shares.get(u.id) ?? 0), 0);
   for (const r of existing.rows) {
     if ((CLAWED_BACK_STATUSES as readonly string[]).includes(r.status)) {
       remaining -= r.reversed_cents;
@@ -486,7 +515,7 @@ export async function clawBackReleasedPayout(
       kind: "money_at_risk",
       severity: "critical",
       title: "Card dispute on a PAID job — clawback REFUSED by Stripe",
-      message: `Dispute ${dispute.id} (${dollars(dispute.amount)}) is on a job whose Helpr was already paid. ${result.failed.length} transfer(s) could not be reversed and ${unreadable.length} could not be read, so the platform is carrying that loss. Most often the Helpr's Stripe balance is short: recover it by hand (Stripe Dashboard → Connect → the account) and mark the chargeback_clawbacks row.`,
+      message: `Dispute ${dispute.id} (${dollars(dispute.amount)}) is on a job whose Helpr was already paid. ${result.failed.length} transfer(s) could not be reversed and ${unreadable.length} could not be read${unreadable.length > 0 ? ` (their pro-rata share, ${dollars(unreadableShareCents)}, was not taken from the other members)` : ""}, so the platform is carrying that loss. Most often the Helpr's Stripe balance is short: recover it by hand (Stripe Dashboard → Connect → the account) and mark the chargeback_clawbacks row.`,
       fields: {
         "Dispute ID": dispute.id,
         "Job ID": job.id,
@@ -513,7 +542,9 @@ export async function clawBackReleasedPayout(
       oncePerDayKey: `clawback-shortfall:${dispute.id}`,
     });
   }
-  if (opts.alertIfNoTransfer !== false && transfers.length === 0 && existing.rows.length === 0) {
+  // Not when ledger transfers exist but could not be read: the alert above
+  // names those, and "no payout_transfers row" would be false (Q805 (4a)).
+  if (opts.alertIfNoTransfer !== false && transfers.length === 0 && unreadable.length === 0 && existing.rows.length === 0) {
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "critical",
@@ -882,11 +913,22 @@ export async function repayClawback(
         { status: "repay_failed", failure_reason: message, held_repay_owed_at: null, held_repay_first_attempt_at: null },
         { status: ["repaying"] },
       );
-      if (failErr || !failed || failed.length === 0) {
+      // Q1322: zero rows is re-read before paging; a row another writer
+      // already took out of the re-drive needs nothing done.
+      let nowRow: { status?: string; held_repay_owed_at?: string | null } | null = null;
+      if (!failErr && (!failed || failed.length === 0)) {
+        const { data: again } = await supabase
+          .from("chargeback_clawbacks").select("status, held_repay_owed_at").eq("id", row.id).maybeSingle();
+        nowRow = (again as { status?: string; held_repay_owed_at?: string | null } | null) ?? null;
+      }
+      const alreadySettled = !!nowRow && nowRow.status !== "repaying" && nowRow.held_repay_owed_at == null;
+      if (alreadySettled) {
+        logStep("Refused clawback re-pay: row already out of the re-drive", { id: row.id, status: nowRow?.status });
+      } else if (failErr || !failed || failed.length === 0) {
         await recordLagPage(
           "Card dispute won — Helpr re-pay REFUSED, ledger row NOT updated",
           `Stripe refused re-paying ${dollars(row.reversed_cents)} for dispute ${dispute.id} (${message.slice(0, 200)}), and chargeback_clawbacks row ${row.id} could not be marked 'repay_failed' with its re-pay debt cleared. Until it is, process-scheduled-payouts may re-pay it automatically: set status='repay_failed', held_repay_owed_at=null BEFORE paying it by hand.`,
-          { "Dispute ID": dispute.id, "Job ID": row.job_id, "Row": row.id, "DB error": failErr?.message ?? "matched 0 rows" },
+          { "Dispute ID": dispute.id, "Job ID": row.job_id, "Row": row.id, "Row now": nowRow ? `${nowRow.status ?? "?"}, owed=${nowRow.held_repay_owed_at ?? "null"}` : "unread", "DB error": failErr?.message ?? "matched 0 rows" },
           dispute.id,
         );
       }

@@ -136,8 +136,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -248,7 +248,7 @@ jobs:
           echo "▶ Lane: $LANE"
           echo "▶ Version override: ${VERSION:-<none, keeping current>}"
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0   # full history for changelog generation
 
@@ -270,13 +270,13 @@ jobs:
           grep -nE "def configure_signing!|DEVELOPER_TEAM_ID env var is required for signing|configure_signing!" fastlane/Fastfile
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
 
       - name: Setup Ruby (with Bundler cache)
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
         with:
           ruby-version: "3.2"
           bundler-cache: true
@@ -607,7 +607,7 @@ jobs:
 
       - name: Upload IPA artifact
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: helpr-${{ steps.resolve.outputs.lane }}-v${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.build }}
           path: |
@@ -618,7 +618,7 @@ jobs:
 
       - name: Upload Fastlane logs
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: fastlane-logs-${{ github.run_number }}
           path: ~/Library/Logs/gym

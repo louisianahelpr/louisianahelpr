@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * The CI check for the owner's 2026-09-19 report: loading states "jump and are
@@ -139,7 +140,7 @@ describe("loading states: a baselined entry that was not measured is not 'fixed'
  * src/components/profile/ProfileTabFallback.test.tsx, which renders all 24.
  */
 describe("loading states: the Profile tab placeholder fills the screen", () => {
-  const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+  const strip = (s: string) => blankComments(s);
   const FALLBACK = resolve(REPO, "src/components/profile/ProfileTabFallback.tsx");
   const PROFILE = resolve(REPO, "src/pages/profile/Profile.tsx");
 

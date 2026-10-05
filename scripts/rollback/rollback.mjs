@@ -27,7 +27,7 @@
  * in a dry run.
  */
 import { spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -203,7 +203,10 @@ function fn() {
     note(`target = ${sha} (the commit BEFORE the latest change; pass --to to choose another)`);
   }
   step("read", "what prod runs now (version + updated_at)", "supabase", ["functions", "list", "--project-ref", PROJECT_REF]);
-  const tree = join(tmpdir(), `lh-rollback-${name}-${Date.now()}`);
+  // mkdtemp: an unpredictable private directory (git worktree add accepts an empty existing one).
+  // A dry run only prints the path, so it creates nothing.
+  const treeBase = join(tmpdir(), `lh-rollback-${name}-`);
+  const tree = LIVE ? mkdtempSync(treeBase) : `${treeBase}XXXXXX`;
   step("mutate", "check the previous version out beside this tree (no branch switch here)", "git", ["worktree", "add", "--detach", tree, sha]);
   step("mutate", "deploy that version to prod", "supabase", ["functions", "deploy", name, "--project-ref", PROJECT_REF, "--workdir", tree]);
   step("mutate", "remove the temporary checkout", "git", ["worktree", "remove", "--force", tree]);

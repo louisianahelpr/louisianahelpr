@@ -24,7 +24,7 @@
  * src/test/edge/money-reconciliation-cancelling.test.ts pins that the
  * comparison really selects stranded rows.
  *
- * @mutate supabase/functions/money-reconciliation/index.ts | if (job.payment_status !== "cancelling") continue; | if (job.payment_status !== "x_removed") continue;
+ * @mutate supabase/functions/money-reconciliation/index.ts | job.payment_status === "cancelling" && nowMs | job.payment_status === "x_removed" && nowMs
  */
 import { describe, it, expect } from "vitest";
 import { relative, resolve } from "node:path";

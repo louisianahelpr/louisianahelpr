@@ -840,6 +840,7 @@ export type Database = {
           execution_started_at: string | null
           execution_status: string | null
           execution_transfer_id: string | null
+          helper_response: string | null
           id: string
           job_id: string
           opener_id: string | null
@@ -861,6 +862,7 @@ export type Database = {
           execution_started_at?: string | null
           execution_status?: string | null
           execution_transfer_id?: string | null
+          helper_response?: string | null
           id?: string
           job_id: string
           opener_id?: string | null
@@ -882,6 +884,7 @@ export type Database = {
           execution_started_at?: string | null
           execution_status?: string | null
           execution_transfer_id?: string | null
+          helper_response?: string | null
           id?: string
           job_id?: string
           opener_id?: string | null
@@ -1956,6 +1959,49 @@ export type Database = {
             columns: ["pet_id"]
             isOneToOne: false
             referencedRelation: "pet_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_refund_claims: {
+        Row: {
+          actor_user_id: string | null
+          claimed_at: string
+          claimed_by: string
+          job_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          claimed_at?: string
+          claimed_by: string
+          job_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          claimed_at?: string
+          claimed_by?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_refund_claims_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_refund_claims_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_refund_claims_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
         ]

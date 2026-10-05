@@ -31,12 +31,13 @@
 // @mutate e2e/canary/core-loop.spec.ts | [poster, "messages", "content"]] | ]
 // @mutate .github/workflows/core-loop-canary.yml | - cron: "47 * * * *" | - cron: "47 5 * * *"
 // @mutate .github/workflows/core-loop-canary.yml |     timeout-minutes: 40\n | \n
+// @mutate scripts/canary/shared-accounts-busy.mjs |     return jobs.some((j) => j.name === VACUITY_E2E_JOB && j.status === "in_progress"); |     return false;
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { blankComments } from "./helpers/blankNonCode";
-import { CANARY_WORKFLOW, STALE_RUN_MS, holdsAccounts, sharedAccountWorkflows } from "../../scripts/canary/shared-accounts-busy.mjs";
+import { CANARY_WORKFLOW, STALE_RUN_MS, VACUITY_E2E_JOB, VACUITY_WORKFLOW, holdsAccounts, sharedAccountWorkflows } from "../../scripts/canary/shared-accounts-busy.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const SPEC_PATH = "e2e/canary/core-loop.spec.ts";
@@ -204,6 +205,19 @@ describe("core-loop canary: a ghost run never stands it down", () => {
   });
   it("a push run never does", () => {
     expect(holdsAccounts(run("push", 60_000), now)).toBe(false);
+  });
+  // Q1271: a vacuity.yml push run's vacuity-e2e job signs in as the accounts.
+  it("a vacuity push run does while (and only while) its vacuity-e2e job runs", () => {
+    const vac = { ...run("push", 60_000), path: `.github/workflows/${VACUITY_WORKFLOW}` };
+    const e2e = (status: string) => [{ name: VACUITY_E2E_JOB, status }, { name: "Guards shown able to fail", status: "in_progress" }];
+    expect(holdsAccounts(vac, now, e2e("in_progress"))).toBe(true);
+    expect(holdsAccounts(vac, now, e2e("completed"))).toBe(false);
+    expect(holdsAccounts(vac, now, [])).toBe(false);
+    expect(holdsAccounts({ ...vac, path: ".github/workflows/e2e-real-backend.yml" }, now, e2e("in_progress"))).toBe(false);
+    // The job name is the one vacuity.yml gives vacuity-e2e, and vacuity.yml is a shared-account workflow.
+    const wf = readFileSync(join(process.cwd(), ".github", "workflows", VACUITY_WORKFLOW), "utf8");
+    expect(wf).toMatch(new RegExp(`\\n  vacuity-e2e:[\\s\\S]*?\\n    name: ${VACUITY_E2E_JOB}\\n`));
+    expect(sharedAccountWorkflows()).toContain(VACUITY_WORKFLOW);
   });
   it("a run in progress past the 10 h a real run can last does not (36796252514, 14 h)", () => {
     expect(holdsAccounts(run("workflow_dispatch", 14 * 3_600_000), now)).toBe(false);

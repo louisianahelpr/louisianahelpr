@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T06:37Z",
+  "measured_at": "2026-10-05T07:14Z",
   "issues": {
     "readable": true,
     "open": [
@@ -40,8 +40,13 @@
         "label": "nightly-red"
       },
       {
-        "number": 2270,
-        "title": "nightly-red: main: Supabase DB Deploy",
+        "number": 2304,
+        "title": "nightly-red: branch-prune",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2306,
+        "title": "nightly-red: db-restore-drill",
         "label": "nightly-red"
       }
     ]
@@ -122,6 +127,14 @@
         "issue": null
       },
       {
+        "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: branch-prune",
+        "issue": null
+      },
+      {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
         "source_kind": "workflow",
         "source": "uptime",
@@ -174,6 +187,8 @@
     "issue #2269": "Q1274",
     "issue #2270": "Q1307",
     "issue #2273": "Q1308",
+    "issue #2304": "Q1274",
+    "issue #2306": "Q1322",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",

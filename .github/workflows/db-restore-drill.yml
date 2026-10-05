@@ -110,8 +110,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          RUN=$(gh run list -R "$GITHUB_REPOSITORY" -w db-backup.yml --status success -L 1 \
-                  --json databaseId,createdAt --jq '.[0]')
+          # NOT `--status success -L 1`: on 2026-10-05 07:00Z (run 37275273036)
+          # that filtered query answered with run 34876980245 from 2026-09-14
+          # while the daily backups of 10-02..10-04 had all succeeded (the same
+          # query from a laptop minutes later answered 37225298215, 10-04), and
+          # the drill failed "493h old". Read the newest 30 runs unfiltered and
+          # pick the newest success by createdAt ourselves.
+          RUN=$(gh run list -R "$GITHUB_REPOSITORY" -w db-backup.yml -L 30 \
+                  --json databaseId,createdAt,conclusion \
+                  --jq '[.[] | select(.conclusion == "success")] | sort_by(.createdAt) | last')
           { [ -n "$RUN" ] && [ "$RUN" != "null" ]; } || { echo "::error::no successful db-backup run exists"; exit 1; }
           ID=$(echo "$RUN" | jq -r .databaseId)
           AT=$(echo "$RUN" | jq -r .createdAt)

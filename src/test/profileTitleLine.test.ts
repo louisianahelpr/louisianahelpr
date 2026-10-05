@@ -40,6 +40,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
+import { blankComments } from "./helpers/blankNonCode";
 
 // @mutate src/components/PageHeader.tsx | <span className={`${BACK_BUTTON_BOX_CLASS} block`} /> | <span className="w-10 h-10 -ml-2 block" />
 // @mutate src/components/BackButton.tsx | export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2"; | export const BACK_BUTTON_BOX_CLASS = "w-10 h-10 -ml-2";
@@ -51,10 +52,7 @@ const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
 
 /** Source with comments blanked, so prose can never satisfy a scan. */
-const strip = (src: string) =>
-  src
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, " "));
+const strip = (src: string) => blankComments(src);
 
 const BACK_BUTTON = strip(read("src/components/BackButton.tsx"));
 const PAGE_HEADER = strip(read("src/components/PageHeader.tsx"));

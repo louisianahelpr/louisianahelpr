@@ -9,6 +9,7 @@ import {
 import { SHORT_LABEL_BELOW_PX } from "@/components/ui/UnderlineTabs";
 import { NARROW_TITLE_ASIDE_PX } from "@/components/ui/ScreenHeaderRow";
 import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * THE MY POSTS / MY JOBS HEADERS' PHONE WIDTH BUDGET — both claims on one row.
@@ -106,8 +107,7 @@ import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
 /** Comments are prose about the old geometry; only declarations count. */
-const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const stripComments = (t: string) => blankComments(t);
 
 /** Each tab's own header, keyed the way Part 1 names the two tabs. */
 const HEADERS = {
@@ -449,6 +449,15 @@ describe("the Activity search field stays typable on a phone", () => {
       }
     });
   }
+
+  // Q1020 (2026-10-05): since the field wraps under the title below
+  // NARROW_TITLE_ASIDE_PX it has room to spare at every phone width, so the
+  // arithmetic above stopped noticing a wider slot (vacuity: the 44 -> 88px
+  // mutation survived on main's version of this file too). The slot is the
+  // 44px tap target, no more: every pixel past it comes out of the field.
+  it("the held-open magnifier slot is exactly the 44px tap target", () => {
+    for (const { file, src } of HEADER_LIST) expect(slotPx(file, src), file).toBe(44);
+  });
 });
 
 // ── PART 3: THE TABS ARE NAVIGATION, SO THEY SURVIVE AN EMPTY LIST ──────────

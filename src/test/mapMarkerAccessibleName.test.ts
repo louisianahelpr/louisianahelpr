@@ -42,6 +42,7 @@ import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 
@@ -91,8 +92,7 @@ interface Offender {
 // Comments routinely quote the exact patterns this test looks for (this file
 // and TrackingMap.tsx both explain the bug in prose right next to the fix) —
 // strip them first so an explanation isn't mistaken for an offense.
-const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const stripComments = (t: string) => blankComments(t);
 
 /** Every site that hands a map marker a command role, labelled or not — the
  *  CONSTRUCT inventory, as opposed to the file list. Floored below: a file list

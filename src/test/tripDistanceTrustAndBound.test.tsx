@@ -83,6 +83,7 @@ import { COMMUTE_RANGE_MILES } from "@/lib/geo";
 import JobCard from "@/components/dashboard/JobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "idle" }));
@@ -120,10 +121,7 @@ const text = new Map(FILES.map((f) => [f, readFileSync(join(SRC, f), "utf8")]));
  * would read those explanations as the defect they warn about.
  */
 function code(file: string): string {
-  return text
-    .get(file)!
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
+  return blankComments(text.get(file)!);
 }
 const CODE = new Map(FILES.map((f) => [f, code(f)]));
 

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * ONE SEGMENTED CONTROL.
@@ -69,8 +70,7 @@ const tsxFiles = (): string[] =>
     .split("\n")
     .filter((f) => f.endsWith(".tsx") && !/\.test\./.test(f));
 
-const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const stripComments = (t: string) => blankComments(t);
 
 /**
  * A segmented TRACK: an intrinsic container (not a Radix `PopoverContent` or

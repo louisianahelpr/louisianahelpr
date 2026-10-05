@@ -23,6 +23,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..");
 
@@ -47,7 +48,7 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 export function stripComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+  return blankComments(src);
 }
 
 export function expiryRenderViolations(code: string): string[] {

@@ -6,8 +6,8 @@
  * rebased tree), commits what changed, proves check:generated, then pushes;
  * the agent brief sends every agent through it.
  *
- * @mutate scripts/land.sh |   npm run -s inventories:refresh |   true
- * @mutate scripts/land.sh |   npm run -s check:generated |   true
+ * @mutate scripts/land.sh |   node scripts/check-generated-current.mjs --fix --skip-post-merge |   true
+ * @mutate scripts/land.sh |   node scripts/check-generated-current.mjs --skip-post-merge |   true
  * @mutate scripts/land.sh |     git commit -q --no-verify -m "chore: refresh generated inventories | git commit -q --no-verify --allow-empty -m "chore: refresh generated inventories
  * @mutate scripts/land.sh |   node scripts/check-sensitive-review.mjs --range origin/main..HEAD --strict |   true
  *
@@ -56,9 +56,9 @@ describe("scripts/land.sh keeps generated files current on main", () => {
       // the rebase runs from REBASE (plain, or dropping this script's own
       // earlier refresh commits first; landingPath.test.ts pins both)
       at(/^\s*if ! "\$\{REBASE\[@\]\}"; then$/m),
-      at(/^\s*npm run -s inventories:refresh$/m),
+      at(/^\s*node scripts\/check-generated-current\.mjs --fix --skip-post-merge$/m),
       at(/^\s*git commit -q --no-verify -m "chore: refresh generated inventories$/m),
-      at(/^\s*npm run -s check:generated$/m),
+      at(/^\s*node scripts\/check-generated-current\.mjs --skip-post-merge$/m),
       at(/^\s*node scripts\/check-sensitive-review\.mjs --range origin\/main\.\.HEAD --strict$/m),
       at(/^\s*git push --no-verify --force origin "HEAD:refs\/heads\/\$BR"$/m),
     ];

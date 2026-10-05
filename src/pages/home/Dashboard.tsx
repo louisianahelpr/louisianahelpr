@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
-import type { FeedDensity } from "@/components/dashboard/feedDensity";
+import { readStoredFeedDensity, type FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { toast } from "sonner";
 import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useBoostReturn } from "./useBoostReturn";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
@@ -43,6 +44,7 @@ import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
+import { headerJobCount } from "@/pages/home/headerJobCount";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useJobRef } from "@/hooks/useJobRef";
@@ -53,6 +55,7 @@ import { useDashboardSideQueries } from "./useDashboardSideQueries";
 import { useSaveJob } from "./useSaveJob";
 import { useApplyFlow } from "./useApplyFlow";
 import { useDetailJob } from "./useDetailJob";
+import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
 
 
 const Dashboard = () => {
@@ -102,24 +105,13 @@ const Dashboard = () => {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
     helperAvailability, recommendedJobs, refresh, loadError,
     fetchNextPage, hasNextPage, isFetchingNextPage,
-    appliedJobIds, blockedUserIds,
+    appliedJobIds, blockedUserIds, jobsUpdatedAt,
   } = useDashboardData();
 
-  // Sentinel for infinite scroll — fires fetchNextPage when ~80% of the list is in view.
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const node = loadMoreRef.current;
-    if (!node || !hasNextPage || isFetchingNextPage) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) fetchNextPage();
-      },
-      // rootMargin pulls the trigger ~20% of viewport early (~80% scroll point)
-      { root: null, rootMargin: "0px 0px 20% 0px", threshold: 0 },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, allJobs.length]);
+  // Sentinel for infinite scroll (see useLoadMoreSentinel).
+  const loadMoreRef = useLoadMoreSentinel({
+    hasNextPage, isFetchingNextPage, fetchNextPage, itemCount: allJobs.length,
+  });
 
   const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
     onRefresh: refresh,
@@ -182,36 +174,21 @@ const Dashboard = () => {
     savedOnlyJobIds: exclusions.savedOnlyJobIds,
   });
 
+  // The header's "N jobs". Once every page is loaded the list IS the set, so
+  // the header prints its length — never a server total that can disagree
+  // with an empty list below it (owner, 2026-10-05). See headerJobCount.ts.
+  const headerCount = headerJobCount({
+    serverCount: filters.totalMatchingCount,
+    listedCount: filters.filteredJobs.length,
+    listComplete: !hasNextPage,
+  });
+
   // The greeting card's "stat of the day" line was removed — it added a
   // third line to the title card and pushed the job feed down. The
   // headline job count it surfaced still shows in the date eyebrow.
 
-  // Stripe sends a paid boost back to `/home?boosted=<jobId>` (and a
-  // bailed one to `?boost_cancelled=<jobId>`). Nothing consumed either param,
-  // so a poster who had just paid for a boost landed on the feed with no
-  // confirmation at all — the Boosted badge only appears later, on My Posts.
-  // The toast carries an action so it survives the suppress-plain-success
-  // policy (see lib/toastPolicy.ts): the toast IS the route to the boosted post.
-  useEffect(() => {
-    const boosted = searchParams.get("boosted");
-    const boostCancelled = searchParams.get("boost_cancelled");
-    if (!boosted && !boostCancelled) return;
-    if (boosted) {
-      // `?boosted` IS the job id, so send the tap to that job rather than to
-      // My Posts' default "Needs you" bucket — a freshly-boosted open post
-      // with nobody on it yet buckets to `waiting`, so a bare /posts landed
-      // on an empty list.
-      toast.success("Your job is boosted — it's at the top of the feed for the next 24 hours.", {
-        action: { label: "View", onClick: () => navigate(`/posts?job=${boosted}`) },
-      });
-    } else {
-      toast.error("Boost cancelled — your job is still posted, just not boosted.");
-    }
-    const next = new URLSearchParams(searchParams);
-    next.delete("boosted");
-    next.delete("boost_cancelled");
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams, navigate]);
+  // Stripe's boost return (`/home?boosted=<jobId>`): told only to the job's poster.
+  useBoostReturn({ userId: user?.id, searchParams, setSearchParams, navigate });
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   /**
@@ -280,12 +257,7 @@ const Dashboard = () => {
   // Feed density — comfortable (full cards) or compact (48px rows). Read from
   // any persisted preference; the in-toolbar toggle was removed for a cleaner
   // Browse Tasks header, so this is now read-only (defaults to comfortable).
-  const [density] = useState<FeedDensity>(() => {
-    try {
-      const stored = window.localStorage.getItem("job-feed-density");
-      return stored === "compact" || stored === "comfortable" ? stored : "comfortable";
-    } catch { return "comfortable"; }
-  });
+  const [density] = useState<FeedDensity>(readStoredFeedDensity);
 
   /**
    * Is the map column showing? Desktop website only.
@@ -668,8 +640,8 @@ const Dashboard = () => {
                             on the map). Fall back to the loaded count
                             while the true-total query is in flight so
                             the header never shows nothing. */}
-                        {filters.totalMatchingCount ?? filters.filteredJobs.length}
-                        {(filters.totalMatchingCount ?? filters.filteredJobs.length) === 1 ? " job" : " jobs"}
+                        {headerCount}
+                        {headerCount === 1 ? " job" : " jobs"}
                         {filters.hasFilters ? " match your filters" : ""}
                       </span>
                       {filters.searchOpen && (
@@ -782,6 +754,7 @@ const Dashboard = () => {
                     hoveredJobId={hoveredJobId}
                     setHoveredJobId={setHoveredJobId}
                     exclusions={exclusions}
+                    mapRefreshKey={jobsUpdatedAt}
                   />
                 </div>
                 {/* Web-desktop only: the map rides alongside the feed in its
@@ -833,6 +806,9 @@ const Dashboard = () => {
                         // and dismiss both update it, so a pin vanishes the
                         // moment the card does.
                         exclusions={exclusions}
+                        // Re-read the pins whenever the list re-reads, so the
+                        // map never shows a board older than the list beside it.
+                        refreshKey={jobsUpdatedAt}
                       />
                     </Suspense>
                   </div>

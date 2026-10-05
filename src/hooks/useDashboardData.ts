@@ -70,6 +70,8 @@ const withTimeout = <T,>(promise: PromiseLike<T>, ms: number, label: string): Pr
   ]).finally(() => clearTimeout(timer));
 };
 
+const NO_IDS: Set<string> = new Set<string>();
+
 interface JobsPage {
   jobs: EnrichedJob[];
   nextOffset: number | null;
@@ -212,6 +214,7 @@ export function useDashboardData() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    dataUpdatedAt: jobsUpdatedAt,
   } = useInfiniteQuery({
     queryKey: queryKeys.dashboard.jobs(user?.id),
     initialPageParam: 0,
@@ -359,7 +362,6 @@ export function useDashboardData() {
       // throws on a failed read, so the feed shows its error state rather
       // than jobs from people the viewer blocked.
       const blockedUserIds = ctxData?.blockedUserIds ?? (user ? await withTimeout(getBlockedUserIds(user.id), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out") : new Set<string>());
-      const appliedJobIds = ctxData?.appliedJobIds ?? new Set<string>();
 
       const { rows: rawJobs, hasMore } = splitFeedPage(
         (rawJobsRes ?? []) as any[],
@@ -435,8 +437,16 @@ export function useDashboardData() {
       // out of the feed even if its expires_at is null or still in the
       // future. Flexible-schedule and recurring jobs have no single hard
       // date, so they're exempt from the past-date cull.
+      //
+      // NO applied-to cull here (2026-10-05). It is a VIEWER cull and it lives
+      // at render, in useDashboardFilters, through isJobExcludedForViewer —
+      // the one predicate the header count and the map read from the same
+      // live set. Baked into this page it was a second, frozen (and persisted)
+      // copy of "applied" that a reload could pair with an older context: the
+      // list hid a job the count and the map still showed. The BLOCKED cull
+      // above stays here as well, deliberately: it fails closed (Q573) and the
+      // render layer re-applies it from the live set.
       const enriched: EnrichedJob[] = rawJobs
-        .filter((j) => !appliedJobIds.has(j.id))
         .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
         .filter((j) => {
           if (j.is_flexible_schedule || j.is_recurring || !j.date_needed) return true;
@@ -644,14 +654,20 @@ export function useDashboardData() {
     // can exclude exactly what the list excludes, instead of over-counting a
     // job the viewer already applied to (B1). Already computed in the ctx
     // fetch — no extra round-trip.
-    appliedJobIds: ctx?.appliedJobIds ?? new Set<string>(),
-    blockedUserIds: ctx?.blockedUserIds ?? new Set<string>(),
+    // Stable empties: a fresh Set per render would re-key every memo that
+    // reads these (the list's exclusion object, the count's query key).
+    appliedJobIds: ctx?.appliedJobIds ?? NO_IDS,
+    blockedUserIds: ctx?.blockedUserIds ?? NO_IDS,
     recommendedJobs,
     refresh,
     // True once the open-jobs feed fetch has failed (first page).
     loadError: jobsError,
     // Background-refetch indicator — stale-while-revalidate signal.
     isRefreshing,
+    // When the board was last read. The map has its own RPC; it re-reads on
+    // this, so the pins can never sit on an older board than the list
+    // (an applied/accepted job leaving the list while its pin stays).
+    jobsUpdatedAt,
     // Pagination controls consumed by the dashboard scroll sentinel
     fetchNextPage,
     hasNextPage: !!hasNextPage,

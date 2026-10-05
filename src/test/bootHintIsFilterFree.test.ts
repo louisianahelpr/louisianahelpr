@@ -58,11 +58,13 @@ describe("Q651: the boot loading hint is the H over a bar, CSS-only and filter-f
 
   it("the H keeps the artwork's ratio and comes from static public files", () => {
     const h = rule("#boot-loader .boot-h");
-    const w = Number(/width: ([\d.]+)px;/.exec(h)?.[1]);
-    const ht = Number(/height: ([\d.]+)px;/.exec(h)?.[1]);
-    expect(ht).toBeGreaterThanOrEqual(56);
-    expect(ht).toBeLessThanOrEqual(72);
-    expect(Math.abs(w / ht - 256 / 220)).toBeLessThan(0.01);
+    // Sized as the native splash's H (owner 2026-10-05, one H for the whole
+    // launch): a viewport-relative width, the artwork's own 256:220 box.
+    // The exact factor is held against the splash PNG by oneBootLoaderMark.test.ts.
+    expect(h).toMatch(/width: calc\(max\(100vw, 100vh\) \* [\d.]+\);/);
+    const ar = /aspect-ratio: ([\d.]+) \/ ([\d.]+);/.exec(h);
+    expect(ar).not.toBeNull();
+    expect(Math.abs(Number(ar![1]) / Number(ar![2]) - 256 / 220)).toBeLessThan(0.01);
     expect(h).toContain('url("/boot-h.webp") center / contain no-repeat');
     expect(rule('[data-theme="dark"] #boot-loader .boot-h')).toContain('url("/boot-h-dark.webp")');
     // The light H IS the header's H, byte for byte; the dark one exists.
@@ -78,5 +80,5 @@ describe("Q651: the boot loading hint is the H over a bar, CSS-only and filter-f
 
 // @mutate index.html |         background: url("/boot-h.webp") center / contain no-repeat;\n | background: url("/boot-h.webp") center / contain no-repeat;\n        filter: drop-shadow(0 2px 4px #0006);\n
 // @mutate index.html |         <div class="boot-stack" aria-hidden="true"><div class="boot-h"></div> |         <div class="boot-stack" aria-hidden="true"><img class="boot-h" src="/boot-h.webp" alt="">
-// @mutate index.html |         width: 74.5px;\n        height: 64px; |         width: 64px;\n        height: 64px;
-// @mutate index.html |         gap: 18px;\n        opacity: 0;\n | gap: 18px;\n
+// @mutate index.html |         aspect-ratio: 256 / 220; |         aspect-ratio: 1 / 1;
+// @mutate index.html |         position: relative;\n        opacity: 0;\n |         position: relative;\n

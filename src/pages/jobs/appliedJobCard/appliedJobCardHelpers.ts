@@ -45,9 +45,20 @@ export function deriveAppliedJobCardState(
   // offered no way to respond.
   const isDirectOffer =
     job.direct_offer_status === "pending" && job.offered_to_helper_id === app.helper_id;
-  const isOffered = isDirectOffer || (isAssigned && !job.helper_confirmed_at);
-  const isConfirmed = isAssigned && !!job.helper_confirmed_at;
-  const isActive = app.status === "accepted" && (status === "in_progress" || status === "revision_requested");
+  // A CREW MEMBER'S LIVE JOB (Q1382). A crew has no lead (Q407): this member's
+  // steps are on their own roster row, so the three single-Helpr sections
+  // below (which read and write the JOB's scalar stamps, nobody's on a crew)
+  // never render for them. CrewMemberSection owns the card instead, from
+  // hire until the job leaves the live states; disputed and completed crew
+  // jobs keep the shared sections.
+  const isCrewLive =
+    job.is_group_job === true &&
+    app.status === "accepted" &&
+    (status === "open" || status === "accepted" || status === "in_progress" || status === "revision_requested");
+  const isOffered = isDirectOffer || (!isCrewLive && isAssigned && !job.helper_confirmed_at);
+  const isConfirmed = !isCrewLive && isAssigned && !!job.helper_confirmed_at;
+  const isActive =
+    !isCrewLive && app.status === "accepted" && (status === "in_progress" || status === "revision_requested");
   const isDisputed = app.status === "accepted" && status === "disputed";
   const isCompleted = app.status === "accepted" && status === "completed";
   const isCancelled = job.status === "cancelled";
@@ -102,7 +113,7 @@ export function deriveAppliedJobCardState(
   // control and one with a blank space where a control should be — so when
   // this is false the card says why instead of rendering nothing.
   const hasActionSection =
-    isMinimalCard || isPending || isOffered || isConfirmed || isActive || isDisputed || isCompleted;
+    isMinimalCard || isPending || isOffered || isConfirmed || isActive || isCrewLive || isDisputed || isCompleted;
 
   return {
     status,
@@ -110,6 +121,7 @@ export function deriveAppliedJobCardState(
     isOffered,
     isConfirmed,
     isActive,
+    isCrewLive,
     isDisputed,
     isCompleted,
     isCancelled,

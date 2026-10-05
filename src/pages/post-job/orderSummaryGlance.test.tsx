@@ -123,3 +123,20 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
     for (const row of glanceRows()) expect(row.textContent).not.toMatch(/parish/i);
   });
 });
+
+// Q362 / CC-003: the poster pays the urgent bonus's card fee on top, as its own
+// line, so the Helpr gets the whole bonus; the quote shows the line the charge has.
+// @mutate src/pages/post-job/CheckoutStepView.tsx | urgentCardFeeAmount={form.urgentCardFeeAmount} | urgentCardFeeAmount={0}
+describe("urgent bonus card fee line (Q362)", () => {
+  it("shows the urgent bonus and its card fee as separate lines", () => {
+    const form = { ...makeForm(), isUrgent: true, urgentFeeNum: 15, urgentCardFeeAmount: 0.45, totalCharge: 47.45 };
+    render(<CheckoutStepView form={form as unknown as ReturnType<typeof usePostJobForm>} />);
+    const label = screen.getByText("Urgent Bonus Card Fee");
+    expect(label.parentElement?.textContent).toContain("$0.45");
+  });
+
+  it("shows no card fee line on a job that is not urgent", () => {
+    render(<CheckoutStepView form={makeForm()} />);
+    expect(screen.queryByText("Urgent Bonus Card Fee")).toBeNull();
+  });
+});

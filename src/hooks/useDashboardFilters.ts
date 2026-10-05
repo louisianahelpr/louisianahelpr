@@ -9,6 +9,7 @@ import { sortJobsSmart, compareJobsBySortMode } from "@/lib/smartSort";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 import type { MapJobFilterInput } from "@/components/browseMap/mapFilter";
 import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
+import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 
 // Persisted browse-feed sort key. Stored in localStorage so a helper's
 // pick survives reloads; defaults to "smart" the very first time the
@@ -87,6 +88,12 @@ interface UseDashboardFiltersOptions {
 const EMPTY_ID_SET: ReadonlySet<string> = new Set();
 
 export function useDashboardFilters({ allJobs, userId, profile, helperAvailability, effectiveFee, appliedJobIds = EMPTY_ID_SET as Set<string>, blockedUserIds = EMPTY_ID_SET as Set<string>, dismissedJobIds = EMPTY_ID_SET, savedOnlyJobIds = null }: UseDashboardFiltersOptions) {
+  // The live viewer-exclusion object the list filters with — same fields, same
+  // values the header count is keyed on and the map is handed.
+  const viewerExclusions = useMemo<ViewerFeedExclusions>(
+    () => ({ appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds }),
+    [appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds],
+  );
   // Browse state lives in the URL, not only in React state.
   //
   // It used to be plain `useState`, which made every history entry for the
@@ -280,13 +287,19 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   const filteredJobs = useMemo(() => browsableJobs
     .filter((job) => {
       if (userId && job.customer_id === userId) return false;
-      // Viewer-local culls, applied HERE rather than in BrowseTasksFeed, so
-      // that `filteredJobs` is the set actually on screen. The header count
-      // falls back to `filteredJobs.length` whenever the server count can't
-      // be trusted, and the map is measured against this list — both of which
-      // silently over-reported while these two lived one layer further down.
-      if (dismissedJobIds.has(job.id)) return false;
-      if (savedOnlyJobIds !== null && !savedOnlyJobIds.has(job.id)) return false;
+      // EVERY viewer-local cull (applied, blocked, dismissed, saved-only), at
+      // RENDER, through the ONE predicate the map also calls, from the SAME
+      // live object the header count is keyed on. See viewerFeedExclusions.ts.
+      //
+      // The applied cull used to run inside useDashboardData's queryFn, baked
+      // into the fetched (and persisted) page, while the count and the map read
+      // the live set. Two copies of "applied", taken at different moments: on
+      // prod 2026-10-05 a reload restored a page fetched under the optimistic
+      // applied set next to a context snapshot from before the apply, so the
+      // list said "Nothing today" while the header said "1 job" and the map
+      // pinned it (edge logs: the count went out with `id=not.in.(<old job>)`
+      // only). Read here, from the live set, the three cannot disagree.
+      if (isJobExcludedForViewer(job, viewerExclusions)) return false;
       // Drop stale posts whose needed date has already passed — a job
       // wanted yesterday is noise in the browse feed. date_needed is a
       // "YYYY-MM-DD" date string, so a lexicographic compare against
@@ -421,7 +434,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         }
         default: return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       }
-    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, dismissedJobIds, savedOnlyJobIds]);
+    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, viewerExclusions]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse

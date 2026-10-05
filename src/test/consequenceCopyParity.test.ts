@@ -663,8 +663,9 @@ describe("money the UI names is the money the backend moves", () => {
   });
 
   it("the boost duration the toast quotes is the constant the dialog uses", () => {
-    // JobBoostDialog imports BOOST_DURATION_HOURS. Dashboard.tsx states the same
-    // fact in a success toast as a literal "24 hours".
+    // JobBoostDialog imports BOOST_DURATION_HOURS. The boost-return success toast
+    // (src/pages/home/useBoostReturn.ts, extracted from Dashboard.tsx) states the
+    // same fact as a literal "24 hours".
     // WAS wrapped in `if (boostLine) { … }`, which is a guard that disarms
     // itself. Reword the toast to "for the next day", or move it to another
     // file, and `find` returns undefined — the body never runs, the test still
@@ -672,15 +673,15 @@ describe("money the UI names is the money the backend moves", () => {
     // BOOST_DURATION_HOURS silently stops existing. Nothing tells anyone.
     //
     // A conditional guard is only honest if the condition itself is asserted.
-    // Either Dashboard states the duration (and it must equal the constant), or
+    // Either the toast's file states the duration (and it must equal the constant), or
     // it derives it (and there is nothing left to compare) — a third state,
     // "states it in a shape this test cannot read", must fail loudly.
-    const dash = stripComments(repoFile("src/pages/home/Dashboard.tsx"));
+    const dash = stripComments(repoFile("src/pages/home/useBoostReturn.ts"));
     const boostLine = dash.split("\n").find((l) => /boost/i.test(l) && /\d+ hours/.test(l));
     const derives = /BOOST_DURATION_HOURS/.test(dash);
     expect(
       Boolean(boostLine) || derives,
-      "Dashboard.tsx no longer states the boost duration in a form this test can read: " +
+      "useBoostReturn.ts no longer states the boost duration in a form this test can read: " +
         "no `N hours` literal on a boost line, and no BOOST_DURATION_HOURS import. Either " +
         "it stopped mentioning the duration (delete this assertion) or it now phrases it " +
         "some other way (re-point the matcher) — but this guard was passing on absence.",
@@ -688,7 +689,7 @@ describe("money the UI names is the money the backend moves", () => {
     if (boostLine) {
       expect(
         Number(boostLine.match(/(\d+) hours/)![1]),
-        `Dashboard.tsx's boost toast says "${boostLine.trim().slice(0, 90)}" as a literal, ` +
+        `useBoostReturn.ts's boost toast says "${boostLine.trim().slice(0, 90)}" as a literal, ` +
           `while JobBoostDialog derives the same fact from BOOST_DURATION_HOURS ` +
           `(= ${BOOST_DURATION_HOURS}). Import the constant here too.`,
       ).toBe(BOOST_DURATION_HOURS);

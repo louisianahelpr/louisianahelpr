@@ -919,7 +919,7 @@ export async function repayClawback(
       if (!failErr && (!failed || failed.length === 0)) {
         const { data: again } = await supabase
           .from("chargeback_clawbacks").select("status, held_repay_owed_at").eq("id", row.id).maybeSingle();
-        nowRow = (again as typeof nowRow) ?? null;
+        nowRow = (again as { status?: string; held_repay_owed_at?: string | null } | null) ?? null;
       }
       const alreadySettled = !!nowRow && nowRow.status !== "repaying" && nowRow.held_repay_owed_at == null;
       if (alreadySettled) {

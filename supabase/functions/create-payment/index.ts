@@ -3956,7 +3956,7 @@ async function claimPutBackMissed(
   if (!dbError) {
     const { data, error } = await supabaseAdmin.from("jobs").select("status, payment_status").eq("id", jobId).maybeSingle();
     if (error) readErr = error.message;
-    else now = (data as typeof now) ?? null;
+    else now = (data as { status?: string | null; payment_status?: string | null } | null) ?? null;
   }
   const fields = { job_id: jobId, restore_to: String(restoreTo), now: now ? `${now.status ?? "?"}/${now.payment_status ?? "?"}` : "unread" };
   if (dbError || readErr || !now || now.payment_status === "cancelling") {

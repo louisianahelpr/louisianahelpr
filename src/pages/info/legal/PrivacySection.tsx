@@ -140,6 +140,7 @@ export const PrivacyContent = () => (
               <li><strong className="text-foreground">Resend</strong> — email delivery: your email address and the content of the emails we send you.</li>
               <li><strong className="text-foreground">PostHog</strong> — privacy-respecting product analytics.</li>
               <li><strong className="text-foreground">Sentry</strong> — crash and error monitoring.</li>
+              <li><strong className="text-foreground">Cloudflare (Turnstile)</strong> — bot protection on sign-up, sign-in and password reset; sees browser and IP signals.</li>
             </ul>
           </>
         }

@@ -158,10 +158,10 @@ export const TurnstileField = forwardRef<TurnstileHandle, { action: string; clas
                 widgetRef.current = undefined;
                 setAttempt((n) => n + 1);
               }}
-              className="inline-flex min-h-[44px] items-center gap-1 font-semibold hover:underline"
+              className="link-standard font-semibold"
               style={{ color: "hsl(var(--bark))" }}
             >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+              <RefreshCw className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true" />
               Retry
             </button>
           </p>

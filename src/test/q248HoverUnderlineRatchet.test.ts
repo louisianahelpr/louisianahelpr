@@ -15,6 +15,7 @@
  *
  * Measured 2026-09-24: `grep -rn "hover:underline" src --include="*.tsx" | wc -l` → 35 (36 on 09-23; PublicReviewWall deleted, Q364)
  * Measured 2026-09-23: `grep -rl "link-standard" src --include="*.tsx" | wc -l` → 4
+ * Measured 2026-10-05: same grep → 5 (TurnstileField Retry, Q1314)
  */
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
@@ -35,7 +36,7 @@ function tsxFiles(): string[] {
 }
 
 const HOVER_UNDERLINE_SITE_COUNT = 35;
-const LINK_STANDARD_FILE_COUNT = 4;
+const LINK_STANDARD_FILE_COUNT = 5;
 
 describe("Q248(b): hover:underline vs the shared link-standard", () => {
   const files = tsxFiles();
@@ -53,7 +54,7 @@ describe("Q248(b): hover:underline vs the shared link-standard", () => {
     expect(hits).toBe(HOVER_UNDERLINE_SITE_COUNT);
   });
 
-  it("exactly 4 files on the shared link-standard (raise or lower this baseline in the same commit as any change)", () => {
+  it("exactly 5 files on the shared link-standard (raise or lower this baseline in the same commit as any change)", () => {
     const onStandard = files.filter((f) => readFileSync(resolve(ROOT, f), "utf8").includes("link-standard"));
     expect(onStandard.length).toBe(LINK_STANDARD_FILE_COUNT);
   });

@@ -1,3 +1,5 @@
+import { recognizedAuthError } from "@/lib/authErrors";
+
 /**
  * Cloudflare Turnstile — bot protection on the email auth calls (Q1314).
  *
@@ -99,4 +101,13 @@ export function loadTurnstile(): Promise<TurnstileApi> {
 /** True for GoTrue's refusal of a missing/invalid/used captcha token. */
 export function isCaptchaError(message: string | undefined | null): boolean {
   return /captcha/i.test(message ?? "");
+}
+
+/**
+ * The words for a captcha refusal, or `null` when `message` is not one. For
+ * the screens whose other failures read as success (anti-enumeration): a
+ * refused check sent nothing, and saying so reveals nothing about the address.
+ */
+export function captchaRefusal(message: string | undefined | null): string | null {
+  return isCaptchaError(message) ? recognizedAuthError(message) : null;
 }

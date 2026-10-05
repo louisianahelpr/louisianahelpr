@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 566,
-    "files": 144,
-    "rendering": 545,
-    "suppressedByPolicy": 21,
+    "calls": 569,
+    "files": 145,
+    "rendering": 546,
+    "suppressedByPolicy": 23,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 452,
+      "toast.error": 453,
       "toast.loading": 1,
-      "toast.message": 1,
-      "toast.success": 26,
+      "toast.message": 2,
+      "toast.success": 27,
       "toast.warning": 21
     },
     "copyPiecesByForm": {
-      "literal": 307,
+      "literal": 310,
       "template": 73,
       "dynamic": 226,
       "jsx": 0
@@ -2828,7 +2828,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 504,
+      "line": 506,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4051,6 +4051,36 @@
         "text": "m.description"
       },
       "renders": true
+    },
+    {
+      "file": "src/hooks/useNotifyWhenWorkLands.ts",
+      "line": 35,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't save that. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useNotifyWhenWorkLands.ts",
+      "line": 40,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "You're set. We'll ping you when paid work lands."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/hooks/useNotifyWhenWorkLands.ts",
+      "line": 42,
+      "kind": "toast.message",
+      "title": {
+        "form": "literal",
+        "text": "Job alerts are on, but this device isn't allowed to notify you. Turn on notifications for Helpr in Settings."
+      },
+      "renders": false
     },
     {
       "file": "src/hooks/usePendingSaveConsumer.ts",

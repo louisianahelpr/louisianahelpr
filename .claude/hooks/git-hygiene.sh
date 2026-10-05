@@ -78,8 +78,8 @@ fi
 #      removed even when an ended session still holds their lock (the branch is
 #      always kept, and the weekly bundle above holds it);
 #   3. the daily morning audit notes (docs/audit/morning/*.md, written by the
-#      morning routine and never staged by land.sh) are copied to
-#      ~/.lh-backups/morning/ and git ignores the folder, so none sits unsaved;
+#      morning routine) are never read, so git ignores them and they are
+#      deleted (owner, 2026-10-04);
 #   4. lead logs in ~/.lh-tools/logs older than 14 days are deleted, and
 #      screenshots in ~/.lh-shots untouched for a day (they are temporary).
 (
@@ -98,8 +98,8 @@ fi
     git worktree unlock "$w" 2>/dev/null
     git worktree remove "$w" 2>/dev/null && echo "$(date -u +%FT%TZ) removed finished agent folder $w (branch kept)"
   done
-  mkdir -p "$HOME/.lh-backups/morning"
-  for f in docs/audit/morning/*.md; do [ -f "$f" ] && cp -n "$f" "$HOME/.lh-backups/morning/" 2>/dev/null; done
+  # Morning audit notes are never read (owner, 2026-10-04): delete them.
+  find docs/audit/morning -name '*.md' -type f -delete 2>/dev/null
   find "$HOME/.lh-tools/logs" -type f -mtime +14 -delete 2>/dev/null
   # Screenshots are temporary (owner, 2026-10-04: "I never review screenshots
   # ever"): the lead looks, records the review, sends the owner the few that

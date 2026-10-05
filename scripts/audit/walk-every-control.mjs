@@ -16,9 +16,11 @@
 import { chromium } from "@playwright/test";
 import { execSync } from "node:child_process";
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const BASE = process.env.BASE ?? "http://localhost:5183";
-const OUT = process.env.OUT ?? "/tmp/lh-audit";
+const OUT = process.env.OUT ?? join(homedir(), ".lh-shots", "lh-audit");
 const ACCOUNT = process.env.ACCOUNT ?? "poster-e2e";
 const ROUTES = (process.env.ROUTES ?? "/home").split(",");
 const WIDTHS = (process.env.WIDTHS ?? "375,1440").split(",").map(Number);

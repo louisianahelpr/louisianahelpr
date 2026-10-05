@@ -30,7 +30,7 @@
  *   # manifest only, no browser work
  *   EMIT_STATE_MATRIX=1 npx playwright test --project=happy-path state-sweep -g "emit manifest"
  *
- * Output (STATE_SWEEP_OUT, default /tmp/lh-state-sweep):
+ * Output (STATE_SWEEP_OUT, default ~/.lh-shots/lh-state-sweep):
  *   <cell-id>__<shot>.png    the frame
  *   <cell-id>__<shot>.json   the review record (cell metadata + observations)
  *   index.json               every record, plus the cells that could not be driven
@@ -63,6 +63,7 @@
  */
 import { mkdirSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { homedir } from "node:os";
 import type { Page, BrowserContext } from "@playwright/test";
 import {
   test,
@@ -91,7 +92,7 @@ import {
 } from "./stateMatrix";
 import { observe, tagRegion, type StateObservation } from "./observe";
 
-const OUT = process.env.STATE_SWEEP_OUT || "/tmp/lh-state-sweep";
+const OUT = process.env.STATE_SWEEP_OUT || resolve(homedir(), ".lh-shots", "lh-state-sweep");
 const mdCell = (value: string) => value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 // Only touch the filesystem when this spec is actually going to run. Both
 // describes below are skipped without one of these env vars, and the normal

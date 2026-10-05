@@ -15,6 +15,7 @@
 
 import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { homedir } from "node:os";
 import type { TestInfo } from "@playwright/test";
 import { expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
@@ -45,7 +46,7 @@ import {
 // processes (this describe is serial, so one process = one worker, ~100 min
 // for the whole matrix) without their a11y-report.json files overwriting each
 // other at afterAll.
-export const OUTPUT_DIR = process.env.SWEEP_OUTPUT_DIR || "/tmp/ui-review";
+export const OUTPUT_DIR = process.env.SWEEP_OUTPUT_DIR || resolve(homedir(), ".lh-shots", "ui-review");
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
 const ROUTE_PARAM_TOKEN = "__LH_ROUTE_PARAM__";

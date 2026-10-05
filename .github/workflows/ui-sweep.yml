@@ -270,9 +270,9 @@ jobs:
           # something — that pairing is what makes a red sweep triageable
           # without re-running it locally.
           path: |
-            /tmp/ui-review-empty/
-            /tmp/ui-review/
-            /tmp/ui-review-error/
+            ~/.lh-shots/ui-review-empty/
+            ~/.lh-shots/ui-review/
+            ~/.lh-shots/ui-review-error/
             playwright-report/
           if-no-files-found: ignore
           retention-days: 14

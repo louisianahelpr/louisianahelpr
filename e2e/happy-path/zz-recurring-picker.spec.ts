@@ -1,5 +1,6 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { mkdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { expect } from "@playwright/test";
@@ -23,6 +24,12 @@ import { test, installSupabaseMocks, FAKE_CUSTOMER, seedAuthedSession, desktopSc
 // @mutate src/components/postjob/RecurringSchedulePicker.tsx | disabled={weeks <= 1} | disabled={false}
 // Playwright loads specs as ES modules, so `__dirname` does not exist here.
 const HERE = dirname(fileURLToPath(import.meta.url));
+// Evidence stays under ~/.lh-shots (the repo convention), never a fixed /tmp name.
+function shotPath(name: string): string {
+  const dir = join(homedir(), ".lh-shots", "recurring-picker");
+  mkdirSync(dir, { recursive: true });
+  return join(dir, name);
+}
 const RECURRING_ENABLED = /const RECURRING_ENABLED = true/.test(
   readFileSync(resolve(HERE, "../../src/components/postjob/LogisticsSection.tsx"), "utf8"),
 );
@@ -137,7 +144,7 @@ for (const width of [375, 1440]) {
       )
       .toBe(1);
     expect(chosen, `three days chosen @ ${width}`).toHaveLength(3);
-    await page.screenshot({ path: `/tmp/recurring-picked-${width}.png`, fullPage: false });
+    await page.screenshot({ path: shotPath(`recurring-picked-${width}.png`), fullPage: false });
 
     // FIT, measured two ways, because the cheap one is blind here.
     //
@@ -192,7 +199,7 @@ for (const width of [375, 1440]) {
         `from scrollWidth, so it is measured per element):\n  ${fit.past.join("\n  ")}`,
     ).toEqual([]);
 
-    await page.screenshot({ path: `/tmp/recurring-picker-${width}.png`, fullPage: false });
+    await page.screenshot({ path: shotPath(`recurring-picker-${width}.png`), fullPage: false });
   });
  });
 }

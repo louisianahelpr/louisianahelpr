@@ -68,6 +68,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { homedir } from "node:os";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { AXE_TAGS } from "./axeTags";
@@ -90,7 +91,7 @@ import {
   type ScreenSpec,
 } from "./auditRoutes";
 
-const OUTPUT_DIR = "/tmp/ui-review-empty";
+const OUTPUT_DIR = resolve(homedir(), ".lh-shots", "ui-review-empty");
 const SCREEN_DIR = resolve(OUTPUT_DIR, "screens");
 mkdirSync(SCREEN_DIR, { recursive: true });
 

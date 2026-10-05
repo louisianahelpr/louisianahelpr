@@ -9,9 +9,11 @@ import { measureLayout, settleAnimations } from "./auditRoutes";
 import type { Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { AXE_TAGS } from "./axeTags";
 
-const SHOT_DIR = "/tmp/ui-review";
+const SHOT_DIR = join(homedir(), ".lh-shots", "ui-review");
 mkdirSync(SHOT_DIR, { recursive: true });
 
 // Home's two rows of chrome, measured.

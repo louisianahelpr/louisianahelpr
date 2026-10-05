@@ -30,7 +30,8 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 26 on 2026-10-05: the money lane's Q805 (chargeback follow-ups wait on a Stripe test-mode dispute run and the owner's webhook secret) and Q1336 (waits on the owner subscribing the live endpoint to charge.refund.updated) are fixed in part; neither wait is something a done-when marker can read.
 // 23 on 2026-10-05: Q430 got its done-when marker (issue #2213, the loading-states-refresh fixture run); its burst half was measured green.
 // 25 once both land: 26 (Q805, Q1336) minus Q430's new marker.
-const MARKERLESS_PARTLY_DONE = 25;
+// 26 on 2026-10-05 (crews lane): Q707 waits on a prod re-shot after deploy (no marker kind reads a screenshot); Q731, Q729, Q1282 carry sql markers.
+const MARKERLESS_PARTLY_DONE = 26;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

@@ -368,5 +368,5 @@ writeFileSync("supabase-usage-report.md", report + "\n");
 console.log(report);
 
 if (process.env.GITHUB_OUTPUT) {
-  appendFileSync(process.env.GITHUB_OUTPUT, `warn=${warn}\nsummary=${summary.replace(/\n/g, " ")}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `warn=${warn}\nsummary=${summary.replace(/[\r\n]+/g, " ")}\n`);
 }

@@ -79,7 +79,7 @@ async function main() {
   const repo = process.env.GITHUB_REPOSITORY;
   const token = process.env.GITHUB_TOKEN;
   const out = (k, v) => {
-    const line = `${k}=${String(v).replace(/\n/g, " ")}\n`;
+    const line = `${k}=${String(v).replace(/[\r\n]+/g, " ")}\n`;
     if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, line);
     process.stdout.write(line);
   };

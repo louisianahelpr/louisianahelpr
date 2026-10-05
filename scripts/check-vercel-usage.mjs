@@ -41,7 +41,7 @@ const from = new Date(to.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
 function writeOutputs(kv) {
   if (!process.env.GITHUB_OUTPUT) return;
   const body = Object.entries(kv)
-    .map(([k, v]) => `${k}=${String(v).replace(/\n/g, " ")}\n`)
+    .map(([k, v]) => `${k}=${String(v).replace(/[\r\n]+/g, " ")}\n`)
     .join("");
   appendFileSync(process.env.GITHUB_OUTPUT, body);
 }

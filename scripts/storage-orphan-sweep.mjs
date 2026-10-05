@@ -236,7 +236,7 @@ async function ledger(title, severity, sample) {
 }
 
 function output(key, value) {
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${redact(String(value)).replace(/\n/g, " ")}\n`);
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${redact(String(value)).replace(/[\r\n]+/g, " ")}\n`);
 }
 
 let cacheFailures = 0;

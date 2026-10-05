@@ -85,26 +85,16 @@ type Metric = "fcp" | "lcp";
  * an unchanged screen was within 4% on both.
  */
 // @two-way e2e/web-vitals/first-screens.spec.ts:KNOWN entries now inside GOOD or far under their ceiling: delete or lower them
+// 2026-10-05: 12 entries deleted (every mobile FCP, and /login and /messages LCP),
+// measured inside GOOD by prod-audit 37270491218 (FCP 1412-1452 ms, LCP 1956 and 2184 ms).
 const KNOWN: Record<string, { ceiling: number; measured: number }> = {
-  "mobile / fcp": { ceiling: 4110, measured: 3804 },
   "mobile / lcp": { ceiling: 4110, measured: 3804 },
-  "mobile /browse fcp": { ceiling: 4780, measured: 4424 },
   "mobile /browse lcp": { ceiling: 4810, measured: 4448 },
-  "mobile /login fcp": { ceiling: 4090, measured: 3780 },
-  "mobile /login lcp": { ceiling: 4090, measured: 3780 },
-  "mobile /signup fcp": { ceiling: 4400, measured: 4072 },
   "mobile /signup lcp": { ceiling: 4400, measured: 4072 },
-  "mobile /home fcp": { ceiling: 5100, measured: 4720 },
   "mobile /home lcp": { ceiling: 6630, measured: 6136 },
-  "mobile /messages fcp": { ceiling: 5100, measured: 4716 },
-  "mobile /messages lcp": { ceiling: 5100, measured: 4716 },
-  "mobile /jobs fcp": { ceiling: 4540, measured: 4200 },
   "mobile /jobs lcp": { ceiling: 5410, measured: 5008 },
-  "mobile /posts fcp": { ceiling: 4470, measured: 4132 },
   "mobile /posts lcp": { ceiling: 6100, measured: 5640 },
-  "mobile /post-job fcp": { ceiling: 4990, measured: 4620 },
   "mobile /post-job lcp": { ceiling: 5970, measured: 5520 },
-  "mobile /profile fcp": { ceiling: 5650, measured: 5224 },
   "mobile /profile lcp": { ceiling: 6510, measured: 6024 },
 };
 /** Under this fraction of its ceiling a KNOWN entry is stale (the screen got faster: lower it). */

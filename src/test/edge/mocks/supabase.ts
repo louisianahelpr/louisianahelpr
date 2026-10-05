@@ -221,6 +221,21 @@ export interface SupabaseScenario {
    */
   writeSelectRows: Record<string, Row[]>;
   /**
+   * Optional, checked FIRST: a result for the one write whose payload matches
+   * `when` (money lane, 2026-10-05). `writeErrors` / `writeSelectRows` key on
+   * the table, so a run that claims a row (update ... select) and later
+   * records the outcome on the same row (update ... select) could not fail
+   * only the second write: forcing it failed the claim and the outcome write
+   * was never reached. `rows` answers a write ending in `.select()`.
+   */
+  writeOverrides?: Array<{
+    table: string;
+    op?: "insert" | "update" | "delete";
+    when: (payload: Record<string, unknown>) => boolean;
+    rows?: Row[];
+    error?: { message: string; code?: string };
+  }>;
+  /**
    * The Storage double, backed by a REAL key set rather than recorded calls.
    *
    * "Did the object survive?" has to be answered by the same `list()` the
@@ -545,6 +560,13 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
       filters: this.filters,
       selectCols: this.writeSelectCols,
     });
+    const ov = (scenario.writeOverrides ?? []).find((o) =>
+      o.table === this.table && (!o.op || o.op === this.op) &&
+      o.when((this.payload ?? {}) as Record<string, unknown>));
+    if (ov) {
+      if (ov.error) return { data: null, error: ov.error };
+      return { data: this.endsWithSelect ? (ov.rows ?? []) : null, error: null };
+    }
     const writeErr = scenario.writeErrors[this.table];
     if (writeErr) return { data: null, error: writeErr };
     if (this.endsWithSelect) {

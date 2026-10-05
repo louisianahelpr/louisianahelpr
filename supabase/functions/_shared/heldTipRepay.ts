@@ -371,14 +371,25 @@ async function repayOne(stripe: Stripe, supabase: Db, r: RedriveRow, out: Redriv
       return false;
     }
     const why = message(err);
-    await supabase.from("tip_hold_redrives")
+    // Q1293: the 'failed' write is what stops a later run re-taking this row.
+    // Unchecked, a failed write left it 'repaying'; once stale a later run
+    // re-took it and, past Stripe's ~24h key window, could pay alongside the
+    // manual payment the page below asks for. So its result is read, and a
+    // row that is still 'repaying' says so in the page (mark it first).
+    const { data: failedRows, error: failErr } = await supabase.from("tip_hold_redrives")
       .update({ status: "failed", failure_reason: why.slice(0, 500), updated_at: nowIso() })
       .eq("tip_id", r.tip_id).eq("status", "repaying").select("tip_id");
+    const unmarked = !!failErr || !failedRows || failedRows.length === 0;
+    if (unmarked) out.defects.push(`tip ${r.tip_id} refused re-pay not marked 'failed': ${failErr?.message ?? "matched 0 rows"}`);
     await postSlackOpsAlert({
       kind: "payout_failed",
       severity: "critical",
-      title: "Held tip could not be re-paid after the hold was released",
-      message: `Tip ${r.tip_id} was held back during a payout hold; Stripe refused re-paying it to the Helpr: ${why.slice(0, 300)}. Pay it by hand and mark the tip_hold_redrives row repaid with that transfer id.`,
+      title: unmarked
+        ? "Held tip could not be re-paid, and its row was NOT marked failed"
+        : "Held tip could not be re-paid after the hold was released",
+      message: unmarked
+        ? `Tip ${r.tip_id} was held back during a payout hold; Stripe refused re-paying it to the Helpr: ${why.slice(0, 300)}. Its tip_hold_redrives row could not be marked 'failed' (${(failErr?.message ?? "matched 0 rows").slice(0, 200)}), so process-scheduled-payouts may re-try it. FIRST set that row's status to 'failed', THEN pay it by hand and mark it repaid with that transfer id.`
+        : `Tip ${r.tip_id} was held back during a payout hold; Stripe refused re-paying it to the Helpr: ${why.slice(0, 300)}. Pay it by hand and mark the tip_hold_redrives row repaid with that transfer id.`,
       fields: { tip_id: r.tip_id, helper_id: r.helper_id, amount_cents: r.amount_cents },
     });
     return false;

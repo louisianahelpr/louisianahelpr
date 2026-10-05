@@ -865,13 +865,31 @@ export async function repayClawback(
       logStep("Clawback repaid", { disputeId: dispute.id, transferId: transfer.id, amount: row.reversed_cents, adopted: !!prior });
     } catch (err) {
       const message = errMessage(err);
-      await setRow(supabase, row.id, { status: "repay_failed", failure_reason: message }, { status: ["repaying"] });
       if (isTransientStripeError(err)) {
         // held_repay_owed_at stays: the re-drive retries it.
+        await setRow(supabase, row.id, { status: "repay_failed", failure_reason: message }, { status: ["repaying"] });
         throw new Error(`Clawback repay for ${row.original_transfer_id} (dispute ${dispute.id}) failed transiently: ${message}`);
       }
       // Stripe refused: a person pays it (the page below); the re-drive stops.
-      await clearHeldRepayOwed(supabase, row.id, logStep);
+      // Q1292: ONE write takes the row out of the re-drive AND records the
+      // refusal. Two writes (status, then a best-effort clear of
+      // held_repay_owed_at) let a failed second write leave the row owed, so
+      // the sweep re-paid it after staff had paid by hand (the idempotency key
+      // is gone after ~24h).
+      const { data: failed, error: failErr } = await setRow(
+        supabase,
+        row.id,
+        { status: "repay_failed", failure_reason: message, held_repay_owed_at: null, held_repay_first_attempt_at: null },
+        { status: ["repaying"] },
+      );
+      if (failErr || !failed || failed.length === 0) {
+        await recordLagPage(
+          "Card dispute won — Helpr re-pay REFUSED, ledger row NOT updated",
+          `Stripe refused re-paying ${dollars(row.reversed_cents)} for dispute ${dispute.id} (${message.slice(0, 200)}), and chargeback_clawbacks row ${row.id} could not be marked 'repay_failed' with its re-pay debt cleared. Until it is, process-scheduled-payouts may re-pay it automatically: set status='repay_failed', held_repay_owed_at=null BEFORE paying it by hand.`,
+          { "Dispute ID": dispute.id, "Job ID": row.job_id, "Row": row.id, "DB error": failErr?.message ?? "matched 0 rows" },
+          dispute.id,
+        );
+      }
       out.failed.push({ transferId: row.original_transfer_id, error: message });
     }
   }

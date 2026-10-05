@@ -91,6 +91,25 @@ export function crewMinutesUntilDone(
   return left > 0 ? Math.ceil(left / 60_000) : 0;
 }
 
+/**
+ * The job AS THIS MEMBER LIVES IT: the job row with their own roster stamps in
+ * place of the job's scalar ones (which belong to nobody on a crew). Lets the
+ * shared single-Helpr readers (the collapsed card's status line) describe a
+ * crew member's own step without a crew copy of each of them.
+ */
+export function withCrewSlotStamps<J extends object>(job: J, slot: CrewSlot | null | undefined): J {
+  if (!slot) return job;
+  return {
+    ...job,
+    helper_confirmed_at: slot.helper_confirmed_at,
+    helper_on_the_way_at: slot.helper_on_the_way_at,
+    helper_arrived_at: slot.helper_arrived_at,
+    helper_arrival_verified_at: slot.helper_arrival_verified_at,
+    poster_confirmed_arrival_at: slot.poster_confirmed_arrival_at,
+    helper_completed_at: slot.helper_completed_at,
+  };
+}
+
 /** What one roster member is doing, for the poster's roster. */
 export function crewMemberStatusLabel(slot: StepStamps): string {
   if (slot.helper_completed_at) return "Done";

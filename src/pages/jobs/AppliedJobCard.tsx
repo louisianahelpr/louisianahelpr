@@ -26,7 +26,7 @@ import { OfferedActions } from "./appliedJobCard/OfferedActions";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
-import { CrewMemberSection } from "./appliedJobCard/CrewMemberSection";
+import { CrewMemberSection, CrewStatusStrip } from "./appliedJobCard/CrewMemberSection";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { JobStatusStrip } from "../../components/job-card/JobStatusStrip";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
@@ -885,7 +885,9 @@ function AppliedJobCardInner({
               keeps having removed. `deriveHelperWait` still answers for those
               states (`not_selected` / `cancelled` / `job_gone`); the card
               chooses not to draw a second copy. */}
-          {!isMinimalCard && !isExpanded && <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />}
+          {!isMinimalCard && !isExpanded && (isCrewLive
+            ? <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />
+            : <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />)}
         </JobCardShell>
         </div>
     </JobCardPersonContext.Provider>

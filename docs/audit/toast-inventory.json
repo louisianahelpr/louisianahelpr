@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 566,
-    "files": 144,
-    "rendering": 545,
-    "suppressedByPolicy": 21,
+    "calls": 572,
+    "files": 145,
+    "rendering": 549,
+    "suppressedByPolicy": 23,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 452,
+      "toast.error": 455,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 26,
-      "toast.warning": 21
+      "toast.success": 28,
+      "toast.warning": 22
     },
     "copyPiecesByForm": {
       "literal": 307,
-      "template": 73,
-      "dynamic": 226,
+      "template": 74,
+      "dynamic": 231,
       "jsx": 0
     }
   },
@@ -362,7 +362,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 89,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -373,6 +373,26 @@
     {
       "file": "src/components/GroupJobHelpers.tsx",
       "line": 176,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "${h.helperName || \"Your Helpr\"} is confirmed on site."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 186,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy ?? \"Couldn't confirm that arrival. Please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 233,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5025,6 +5045,76 @@
               {
                 "form": "literal",
                 "text": "Job cancelled. This counts as a reliability strike."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
+      "line": 147,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
+      "line": 158,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy ?? fallback"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
+      "line": 200,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy ?? \"We couldn't take you off this job. Please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
+      "line": 210,
+      "kind": "toast.warning",
+      "title": {
+        "form": "dynamic",
+        "text": "action === \"temp_ban\" ? \"You're off this crew. Third strike: your account is suspended for 7 days.\" : action === \"warning\" ? \"You're off this crew. Final warning: one more strike is a 7-day suspension.\" : action && action !== \"none\" ? \"You're off this crew. This counts as a reliability strike.\" : \"You're off this crew.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "You're off this crew. Third strike: your account is suspended for 7 days."
+          },
+          {
+            "form": "dynamic",
+            "text": "action === \"warning\" ? \"You're off this crew. Final warning: one more strike is a 7-day suspension.\" : action && action !== \"none\" ? \"You're off this crew. This counts as a reliability strike.\" : \"You're off this crew.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "You're off this crew. Final warning: one more strike is a 7-day suspension."
+              },
+              {
+                "form": "dynamic",
+                "text": "action && action !== \"none\" ? \"You're off this crew. This counts as a reliability strike.\" : \"You're off this crew.\"",
+                "branches": [
+                  {
+                    "form": "literal",
+                    "text": "You're off this crew. This counts as a reliability strike."
+                  },
+                  {
+                    "form": "literal",
+                    "text": "You're off this crew."
+                  }
+                ]
               }
             ]
           }

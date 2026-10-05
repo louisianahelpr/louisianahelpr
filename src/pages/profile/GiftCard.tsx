@@ -54,6 +54,8 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import type { GiftCardRow } from "./giftCards/types";
 import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./giftCards/constants";
 import { GIFT_OCCASIONS, DEFAULT_OCCASION } from "./giftCards/giftCardDesigns";
@@ -280,6 +282,8 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     isError: donatedFailed,
     isFetching: donatedFetching,
     refetch: refetchDonated,
+    status: donatedStatus,
+    fetchStatus: donatedFetchStatus,
   } = useQuery({
     queryKey: ["gift-cards-sent", user?.id],
     queryFn: async () => {
@@ -311,6 +315,8 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     isError: receivedFailed,
     isFetching: receivedFetching,
     refetch: refetchReceived,
+    status: receivedStatus,
+    fetchStatus: receivedFetchStatus,
   } = useQuery({
     queryKey: ["gift-cards-received", user?.id, myEmail],
     queryFn: async () => {
@@ -372,6 +378,11 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   // cards at 900ms — the page arriving in two waves. Both lists show their
   // placeholders until BOTH have settled, then arrive in one paint.
   const listsLoading = loadingReceived || loadingDonated;
+  // Q571: offline with nothing loaded is not "no gift cards". Telling someone
+  // offline that their unredeemed gift cards do not exist is the false empty
+  // state the isError note above guards against, by another road.
+  const receivedOffline = useFeedPhase({ status: receivedStatus, fetchStatus: receivedFetchStatus }) === "offline-empty";
+  const donatedOffline = useFeedPhase({ status: donatedStatus, fetchStatus: donatedFetchStatus }) === "offline-empty";
 
   // ── Donate mutation — launches Stripe Checkout, never writes the row ───────
   const donateMutation = useMutation({
@@ -824,6 +835,13 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               </p>
               {listsLoading ? (
                 <ReceivedListSkeleton />
+              ) : receivedOffline ? (
+                <div className="flex">
+                  <OfflineEmptyState
+                    body="Gift cards sent to you will load here as soon as you're back online."
+                    onRetry={() => void refetchReceived()}
+                  />
+                </div>
               ) : receivedFailed ? (
                 <div className="flex">
                   <ErrorState
@@ -860,6 +878,13 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               </p>
               {listsLoading ? (
                 <SentListSkeleton />
+              ) : donatedOffline ? (
+                <div className="flex">
+                  <OfflineEmptyState
+                    body="Gift cards you've sent will load here as soon as you're back online."
+                    onRetry={() => void refetchDonated()}
+                  />
+                </div>
               ) : donatedFailed ? (
                 <div className="flex">
                   <ErrorState

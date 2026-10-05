@@ -45,5 +45,5 @@ describe("Q1253: the database picks a new job's id", () => {
   });
 });
 
-// @mutate supabase/migrations/20261004191544_jobs_id_server_owned.sql |   NEW.id                          := gen_random_uuid();\n |
+// @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql |   NEW.id                          := gen_random_uuid();\n |
 // @mutate src/pages/post-job/jobSubmitHelpers.ts |     ...(department && department.trim() |     id: crypto.randomUUID(),\n    ...(department && department.trim()

@@ -14,6 +14,8 @@ import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
+import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
+import { isCaptchaError } from "@/lib/turnstile";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
@@ -80,11 +82,11 @@ function clearAttemptState(): void {
   safeStorage.removeItem(LOGIN_ATTEMPTS_KEY);
 }
 
-const signInWithTimeout = async (email: string, password: string) => {
+const signInWithTimeout = async (email: string, password: string, captchaToken: string | null) => {
   let timeoutId: number | undefined;
   try {
     return await Promise.race([
-      supabase.auth.signInWithPassword({ email, password }),
+      supabase.auth.signInWithPassword({ email, password, options: { captchaToken: captchaToken ?? undefined } }),
       new Promise<never>((_, reject) => {
         timeoutId = window.setTimeout(() => reject(
           Object.assign(new Error("Login timed out. Please check your connection and try again."), { isTransport: true }),
@@ -107,6 +109,9 @@ const isTransportFailure = (error: unknown): boolean => {
   const e = error as { isTransport?: boolean; name?: string; message?: string } | null;
   if (!e) return false;
   if (e.isTransport === true) return true;
+  // A refused/missing Turnstile token (Q1314) says nothing about the password
+  // either, so it must not spend an attempt.
+  if (isCaptchaError(e.message)) return true;
   // supabase-js wraps an unreachable/5xx auth endpoint in this retryable class.
   if (e.name === "AuthRetryableFetchError") return true;
   return /failed to fetch|networkerror|network error|load failed|timed out/i.test(e.message ?? "");
@@ -221,6 +226,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const [showPassword, setShowPassword] = useState(false);
   // Seed from durable storage so the lockout survives a force-quit.
   const [attemptState, setAttemptState] = useState<LoginAttemptState>(() =>
@@ -273,7 +279,10 @@ const Login = () => {
 
     hapticMedium();
     setLoading(true);
-    const { data, error } = await signInWithTimeout(email, password).catch((error: Error) => ({ data: { session: null }, error }));
+    const captchaToken = await turnstileRef.current?.getToken() ?? null;
+    const { data, error } = await signInWithTimeout(email, password, captchaToken).catch((error: Error) => ({ data: { session: null }, error }));
+    // Turnstile tokens are single-use: arm a fresh one for the next attempt.
+    turnstileRef.current?.reset();
     if (error) {
       setLoading(false);
       const now = Date.now();
@@ -607,6 +616,7 @@ const Login = () => {
               </Link>
             </div>
           </div>
+          <TurnstileField ref={turnstileRef} action="login" />
           <Button
             variant="primary"
             type="submit"

@@ -8,6 +8,9 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { Mail, Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
+import { isCaptchaError } from "@/lib/turnstile";
+import { recognizedAuthError } from "@/lib/authErrors";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -36,6 +39,7 @@ const ForgotPassword = () => {
   // on a one-field form, and putting the caret back in the field is the
   // shortest path to fixing it. Same move SignupStep1's handleContinue makes.
   const emailRef = useRef<HTMLInputElement>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
@@ -54,11 +58,23 @@ const ForgotPassword = () => {
   const performSend = async () => {
     hapticMedium();
     setLoading(true);
+    const captchaToken = await turnstileRef.current?.getToken() ?? null;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: getPublicResetPasswordUrl(),
+      captchaToken: captchaToken ?? undefined,
     });
+    // Turnstile tokens are single-use: arm a fresh one for the resend.
+    turnstileRef.current?.reset();
     setLoading(false);
     if (error) {
+      // A refused security check (Q1314) must NOT take the neutral "check your
+      // inbox" path below: nothing was sent, and saying so reveals nothing
+      // about whether the address has an account.
+      if (isCaptchaError(error.message)) {
+        hapticError();
+        toast.error(recognizedAuthError(error.message) ?? "The security check didn't finish. Try again.");
+        return false;
+      }
       const msg = (error.message ?? "").toLowerCase();
       if (msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
         hapticError();
@@ -302,6 +318,9 @@ const ForgotPassword = () => {
               </Button>
             </form>
         )}
+        {/* Turnstile for resetPasswordForEmail (Q1314), mounted in BOTH states
+            so the "sent" screen's resend carries a token too. */}
+        <TurnstileField ref={turnstileRef} action="password_reset" />
       </div>
     </AuthShell>
   );

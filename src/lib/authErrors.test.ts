@@ -45,6 +45,14 @@ describe("recognizedAuthError", () => {
     ).toBe("Too many attempts just now. Give it a moment and try again.");
   });
 
+  it("words a refused Turnstile check as a check to finish, not a wrong password (Q1314)", () => {
+    // GoTrue's body when security_captcha_enabled is on and the token is
+    // missing, expired or already spent.
+    expect(recognizedAuthError("captcha verification process failed")).toBe(
+      "The security check didn't finish. Give it a second and try again.",
+    );
+  });
+
   it("treats every browser's rejected fetch as the one thing it is", () => {
     // Chromium is the only one of the three any automated check here runs, and
     // it was the only one handled. WebKit is the one users are in.

@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
+import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
+import { isCaptchaError } from "@/lib/turnstile";
+import { recognizedAuthError } from "@/lib/authErrors";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
@@ -69,6 +72,7 @@ const SignupPending = () => {
     }
   });
   const [resending, setResending] = useState(false);
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const [resent, setResent] = useState(false);
   // Counts down 60s after each successful resend so the button doesn't
   // re-enable until Supabase's server-side rate limit has also rolled
@@ -153,16 +157,25 @@ const SignupPending = () => {
   const handleResend = async () => {
     if (resendCooldown > 0 || resending || !prefillEmail) return;
     setResending(true);
+    const captchaToken = await turnstileRef.current?.getToken() ?? null;
     // Same landing as Signup's first email (`emailRedirectTo` there): the link
     // opens THIS page, whose poll admits the confirmed account into the app.
     // Without it the resent link fell back to the project's Site URL.
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: prefillEmail,
-      options: { emailRedirectTo: getSignupConfirmRedirect() },
+      options: { emailRedirectTo: getSignupConfirmRedirect(), captchaToken: captchaToken ?? undefined },
     });
+    // Turnstile tokens are single-use (Q1314): arm a fresh one.
+    turnstileRef.current?.reset();
     setResending(false);
     if (error) {
+      // Nothing was sent, and a refused security check says nothing about the
+      // address, so it is named rather than shown as "sent".
+      if (isCaptchaError(error.message)) {
+        toast.error(recognizedAuthError(error.message) ?? "The security check didn't finish. Try again.");
+        return;
+      }
       const msg = (error.message ?? "").toLowerCase();
       if (msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
         toast.error("Too many requests — try again in a minute.");
@@ -338,6 +351,7 @@ const SignupPending = () => {
             </Link>
           </p>
         </div>
+        <TurnstileField ref={turnstileRef} action="signup_resend" className="mt-3" />
       </div>
     </AuthShell>
   );

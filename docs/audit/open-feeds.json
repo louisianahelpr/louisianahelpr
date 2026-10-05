@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-04T22:23Z",
+  "measured_at": "2026-10-05T04:49Z",
   "issues": {
     "readable": true,
     "open": [
@@ -17,11 +17,6 @@
       {
         "number": 2213,
         "title": "nightly-red: loading-states-refresh",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2230,
-        "title": "nightly-red: branch-prune",
         "label": "nightly-red"
       },
       {
@@ -45,13 +40,18 @@
         "label": "nightly-red"
       },
       {
-        "number": 2253,
-        "title": "🔴 Migration drift: 0 unapplied / 3 unrecorded",
-        "label": "migration-drift"
+        "number": 2269,
+        "title": "nightly-red: branch-prune",
+        "label": "nightly-red"
       },
       {
-        "number": 2254,
-        "title": "nightly-red: db-drift-detect",
+        "number": 2270,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2273,
+        "title": "nightly-red: prod-errors",
         "label": "nightly-red"
       }
     ]
@@ -84,6 +84,22 @@
         "issue": 2213
       },
       {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
+        "issue": null
+      },
+      {
+        "fingerprint": "42a784cb226e506d814a710c96d26487",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: supabase db deploy",
+        "issue": 2270
+      },
+      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -98,14 +114,6 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
-      },
-      {
-        "fingerprint": "8018e82cb1674eba274a494805d751d1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-drift-detect",
-        "issue": 2254
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -137,7 +145,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: branch-prune",
-        "issue": 2230
+        "issue": 2269
       },
       {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
@@ -154,23 +162,15 @@
         "status": "open",
         "title": "weekly codebase health — <ts>",
         "issue": 2246
-      },
-      {
-        "fingerprint": "747845433253c079b579d26e780481bc",
-        "source_kind": "nightly_red",
-        "source": "migration-drift",
-        "status": "open",
-        "title": "🔴 migration drift: # unapplied / # unrecorded",
-        "issue": 2253
       }
     ]
   },
   "mirrored": {
     "bus DR-004": "Q426",
-    "bus ME-009": "Q797",
+    "bus ME-009": "Q1311",
     "bus ME-019": "Q441",
     "bus ME-043": "Q441",
-    "bus OA-018": "Q801",
+    "bus OA-018": "Q446",
     "bus SI-033": "Q802",
     "bus TC-004": "Q226",
     "issue #1654": "Q722",
@@ -189,22 +189,22 @@
     "issue #2245": "Q785",
     "issue #2246": "Q1276",
     "issue #2247": "Q1277",
-    "issue #2253": "Q1278",
-    "issue #2254": "Q1279",
+    "issue #2269": "Q1274",
+    "issue #2270": "Q1307",
+    "issue #2273": "Q1308",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
-    "ledger 51722889b9d8": "Q1133",
+    "ledger 42a784cb226e": "Q1307",
     "ledger 54b8c187374a": "Q1277",
+    "ledger 54ef0bfdcec3": "Q1309",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
-    "ledger 747845433253": "Q1278",
     "ledger 7d595594ebaa": "Q1276",
     "ledger 7f88b9cc45df": "Q1274",
-    "ledger 8018e82cb167": "Q1279",
     "ledger 88ecf6e765df": "Q788",
     "ledger ab6fdbe8c882": "Q1275",
-    "ledger b75d265e6201": "Q794",
+    "ledger b75d265e6201": "Q1310",
     "ledger db0fb15c4ec3": "Q787"
   }
 }

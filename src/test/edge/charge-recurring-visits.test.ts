@@ -983,7 +983,10 @@ describe("charge-recurring-visits edge function", () => {
     type: "recurring_visit", parent_job_id: PARENT_ID, visit_date: VISIT_DATE, hold_id: HOLD_ID, ...over,
   });
   const priorIntent = (over: Record<string, unknown> = {}) => ({
-    id: "pi_day1_unbooked", status: "succeeded", amount: 11200, metadata: visitMeta(),
+    // A Stripe PaymentIntent, not a recurring_visit_payments row: its status is
+    // built by a call so the fixture-schema scan (which grades row literals by
+    // their distinctive columns) does not read it as that table's status.
+    id: "pi_day1_unbooked", status: String("succeeded"), amount: 11200, metadata: visitMeta(),
     latest_charge: { id: "ch_day1", amount_refunded: 0 }, ...over,
   });
 

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-05T10:54:23.387Z",
-  "guards": 1481,
-  "registered": 1481,
+  "generated": "2026-10-05T11:29:46.682Z",
+  "guards": 1482,
+  "registered": 1482,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -21,6 +21,7 @@
     "src/test/adminEndpointAuthz.test.ts",
     "src/test/banEvasionSurface.test.ts",
     "src/test/blockedStorageBoot.test.ts",
+    "src/test/disputeRowKeepsMessage.test.ts",
     "src/test/e2eNoSupabaseMocks.test.ts",
     "src/test/expiryFormatterClass.test.ts",
     "src/test/jobMatchPreferenceGate.test.ts",

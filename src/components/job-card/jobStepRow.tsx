@@ -419,6 +419,16 @@ export function partitionJobStepRowChips<T>(
   // `visible - 1` because the trail pin takes one of the visible slots.
   const lead = chips.slice(0, visible - 1);
   const overflow = chips.slice(visible - 1, chips.length - 1);
+  // A named survivor that the middle-out collapse would hide takes the last
+  // lead slot instead, so it is on screen at EVERY width, not only at one
+  // chip (owner 2026-10-05, Q1082: "Message always visible" on dispute rows).
+  const soloAt = soloIndex - (visible - 1);
+  if (soloIndex >= 0 && soloAt >= 0 && soloAt < overflow.length) {
+    const displaced = lead[lead.length - 1];
+    lead[lead.length - 1] = overflow[soloAt];
+    overflow.splice(soloAt, 1);
+    overflow.unshift(displaced);
+  }
   return { lead, overflow, trail };
 }
 

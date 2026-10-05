@@ -17,6 +17,7 @@
  * verification of the feature on prod.
  *
  * @mutate supabase/functions/instant-job-match/index.ts |       .not("customer_id", "is", null)\n |
+ * @mutate supabase/functions/instant-job-match/index.ts |     addressOnly.delete("authorization"); |     addressOnly.has("authorization");
  * @mutate supabase/functions/instant-job-match/index.ts |     if (!isInternal) {\n      const { allowed, retryAfter } = await checkRateLimit(req, {\n        windowMs: 10 * 60_000 |     if (false) {\n      const { allowed, retryAfter } = await checkRateLimit(req, {\n        windowMs: 10 * 60_000
  * @mutate supabase/functions/instant-job-match/index.ts |       if (mutedMatches.has(h.user_id)) continue; |
  * @mutate supabase/functions/instant-job-match/index.ts |         eligible: result.eligible ?? 0,\n |         eligible: result.eligible ?? 0,\n        matchedHelpers: matches.map((m) => m.user_id),\n
@@ -26,7 +27,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks, rateLimitCalls, rateLimitState } from "./mocks/shared";
+import { resetSharedMocks, rateLimitCalls, rateLimitState, rateLimitAuthSeen } from "./mocks/shared";
 
 const SERVICE = "service-key";
 const JOB = "11111111-2222-4333-8444-555555555555";
@@ -167,6 +168,16 @@ describe("instant-job-match edge function (Q392)", () => {
     expect((await call(fn, "user-jwt")).status).toBe(403);
     expect((await call(fn, "user-jwt", "not-a-uuid")).status).toBe(400);
     expect(enqueueCalls()).toEqual([]);
+  });
+
+  it("the pre-auth limit is keyed on the address only (no unverified token reaches it); the per-job one runs on the verified caller", async () => {
+    const fn = await load();
+    seed();
+    scenario.authUser = { id: POSTER };
+    const res = await call(fn, "user-jwt");
+    expect(res.status).toBe(200);
+    expect(rateLimitCalls.map((c) => c.keyPrefix)).toEqual(["instant-job-match", `instant-job-match:job:${JOB}`]);
+    expect(rateLimitAuthSeen).toEqual([false, true]);
   });
 
   it("refuses an unauthenticated caller", async () => {

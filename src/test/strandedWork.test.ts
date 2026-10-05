@@ -15,7 +15,7 @@
 // @mutate scripts/lib/strandedContent.mjs |   return missing > 0 \|\| removedStill >= 5; |   return removedStill >= 5;
 // @mutate scripts/lib/strandedContent.mjs | .filter((s) => s && !onMain?.has(s) && !mainIndex.has(s)); | .filter((s) => s && !onMain?.has(s));
 // @mutate scripts/lib/strandedContent.mjs |   /^docs\/OPEN\.md$/, |
-// @mutate scripts/stranded-work.mjs |     stale: accepted.filter((a) => !itemKeys.has(key(a))), |     stale: [],
+// @mutate scripts/stranded-work.mjs |     stale: accepted.filter((a) => !itemKeys.has(key(a)) && !freshIds.has(a.id)), |     stale: [],
 // @mutate scripts/stranded-work.mjs |     if (status.some((l) => !l.startsWith("?? "))) { |     if (false) {
 // @mutate scripts/stranded-work.mjs |     const fresh = tipHours < STRANDED_AFTER_HOURS; |     const fresh = false;
 // @mutate scripts/stranded-work.mjs |     unaccepted: items.filter((i) => !i.fresh && !acceptedKeys.has(key(i))), |     unaccepted: items.filter((i) => !acceptedKeys.has(key(i))),

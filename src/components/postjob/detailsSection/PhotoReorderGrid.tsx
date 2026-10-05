@@ -89,7 +89,7 @@ export default function PhotoReorderGrid({
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => onRemoveImage(i)}
                 aria-label="Remove photo"
-                className="absolute -top-1 -right-1 h-10 w-10 flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full"
+                className="absolute -top-1 -right-1 h-10 w-10 flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background rounded-full"
               >
                 <span
                   className="w-5 h-5 rounded-full flex items-center justify-center"

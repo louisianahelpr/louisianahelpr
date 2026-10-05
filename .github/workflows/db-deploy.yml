@@ -73,6 +73,7 @@ on:
       - ".github/workflows/db-smoke.yml"
       - ".github/workflows/migration-lint.yml"
       - "scripts/check-destructive-ddl.mjs"
+      - "scripts/lib/apiBase.mjs"
       - "scripts/ci/replay-migrations.sh"
       - "scripts/ci/client-writable-views.sql"
       - "scripts/check-updatable-views.mjs"

@@ -10,10 +10,12 @@
  * Inventory is DERIVED: every `.auth.<method>(` call in src/ (tests excluded)
  * for the captcha-gated methods, comments blanked. Each call's own argument
  * list must name `captchaToken`, and each file making one must render a
- * <TurnstileField> (where the token comes from). Social sign-in (OAuth,
+ * <TurnstileField> (where the token comes from) — or, for a helper module
+ * (src/lib/loginTransport.ts), be imported by a file that renders one. Social sign-in (OAuth,
  * id_token) is not captcha-gated and is not scanned.
  */
-// @mutate src/pages/auth/Login.tsx | supabase.auth.signInWithPassword({ email, password, options: { captchaToken: captchaToken ?? undefined } }), | supabase.auth.signInWithPassword({ email, password }),
+// @mutate src/lib/loginTransport.ts | supabase.auth.signInWithPassword({ email, password, options: { captchaToken } }), | supabase.auth.signInWithPassword({ email, password }),
+// @mutate src/pages/auth/Login.tsx | <TurnstileField ref={captcha.ref} action="login" /> | {null}
 // @mutate src/pages/auth/ForgotPassword.tsx |       captchaToken: captchaToken ?? undefined,\n    }); |     });
 // @mutate src/pages/auth/SignupPending.tsx | <TurnstileField ref={turnstileRef} action="signup_resend" className="mt-3" /> | {null}
 import { describe, it, expect } from "vitest";
@@ -72,8 +74,17 @@ describe("email-auth calls carry a Turnstile captchaToken (Q1314)", () => {
     expect(missing, "pass `captchaToken` from a <TurnstileField> (src/components/auth/TurnstileField.tsx)").toEqual([]);
   });
 
-  it("every file making one renders the TurnstileField the token comes from", () => {
-    const noWidget = [...filesWithSites].filter((f) => !/<TurnstileField\b/.test(blankComments(readSource(f) ?? "")));
+  it("every file making one renders the TurnstileField the token comes from (or is imported by one that does)", () => {
+    const rendersWidget = (src: string) => /<TurnstileField\b/.test(src);
+    const appFiles = walkSource(["src"])
+      .map((abs) => relative(process.cwd(), abs))
+      .filter((f) => !/\.test\.tsx?$|(^|\/)test\//.test(f))
+      .map((f) => ({ f, src: blankComments(readSource(f) ?? "") }));
+    const noWidget = [...filesWithSites].filter((file) => {
+      if (rendersWidget(blankComments(readSource(file) ?? ""))) return false;
+      const spec = "@/" + file.replace(/^src\//, "").replace(/\.tsx?$/, "");
+      return !appFiles.some(({ src }) => src.includes(`from "${spec}"`) && rendersWidget(src));
+    });
     expect(noWidget).toEqual([]);
   });
 });

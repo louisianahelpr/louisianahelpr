@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { signupUrlFor } from "@/lib/jobIntent";
 
 /**
  * "Notify Me When Work Lands" is PUSH ONLY (owner, 2026-10-05, Q1313): no email
@@ -10,23 +9,13 @@ import { signupUrlFor } from "@/lib/jobIntent";
  * these same two columns.
  *
  * For a signed-out visitor the button goes to quick sign-up with
- * `?reason=notify`, which the signup page words as "Sign up to get notified".
+ * `?reason=notify` (NOTIFY_SIGNUP_URL in jobIntent.ts), which the signup page
+ * words as "Sign up to get notified".
  */
 
 /** Columns written on tap. Only these two: the upsert leaves every other
  *  preference exactly as the member set it (a first row takes DB defaults). */
 export const NOTIFY_PREF_PATCH = { push_enabled: true, job_matches: true } as const;
-
-/** Signed-out destination: quick sign-up, back to the jobs feed afterwards. */
-export const NOTIFY_SIGNUP_URL = `${signupUrlFor("/jobs")}&reason=notify`;
-
-/** The one line the signup page shows when the visitor arrived from the button. */
-export const NOTIFY_SIGNUP_SUBTITLE = "Sign up to get notified when paid work lands.";
-
-/** True when a signup URL's `reason` query value came from the Notify button. */
-export function isNotifySignupReason(reason: string | null | undefined): boolean {
-  return reason === "notify";
-}
 
 /**
  * Save the preference. Throws on a Supabase error or a write that stored

@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useRequestPushPermissionOutcome } from "@/lib/nativePush";
 import { report } from "@/lib/errorLogger";
-import { NOTIFY_SIGNUP_URL, saveNotifyPreference } from "@/lib/notifyWhenWorkLands";
+import { NOTIFY_SIGNUP_URL } from "@/lib/jobIntent";
+import { saveNotifyPreference } from "@/lib/notifyWhenWorkLands";
 
 /**
  * The one handler behind every "Notify Me When Work Lands" button (guest empty

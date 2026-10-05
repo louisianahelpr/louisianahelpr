@@ -9,14 +9,13 @@ import { checkPasswordPwned } from "@/lib/hibpCheck";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
-import { isNotifySignupReason, NOTIFY_SIGNUP_SUBTITLE } from "@/lib/notifyWhenWorkLands";
 import { report } from "@/lib/errorLogger";
 import { withTimeout } from "@/pages/auth/completeProfile/constants";
 import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { isCaptchaError } from "@/lib/turnstile";
-import { rememberJobIntent, rememberSignupRedirect, postAuthDestination } from "@/lib/jobIntent";
+import { rememberJobIntent, rememberSignupRedirect, postAuthDestination, notifySignupSubtitle } from "@/lib/jobIntent";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -550,13 +549,7 @@ const Signup = () => {
   // "Pick up right where you left off." was removed. `subtitle` is optional;
   // the header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
-    step === 1
-      ? {
-          title: "Create Account",
-          // Arrived from "Notify Me When Work Lands" (Q1313): say why they are here.
-          ...(isNotifySignupReason(searchParams.get("reason")) ? { subtitle: NOTIFY_SIGNUP_SUBTITLE } : {}),
-        }
-      : { title: "About You" };
+    step === 1 ? { title: "Create Account", subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: "About You" };
 
   // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
   // 2026-08-25) was only the H emblem, and it stacked

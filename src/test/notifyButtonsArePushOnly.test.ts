@@ -20,19 +20,16 @@
  * @mutate src/pages/home/DashboardGuest.tsx | onClick: () => navigate(NOTIFY_SIGNUP_URL), | onClick: () => navigate("/signup"),
  * @mutate src/lib/notifyWhenWorkLands.ts | export const NOTIFY_PREF_PATCH = { push_enabled: true, job_matches: true } as const; | export const NOTIFY_PREF_PATCH = { push_enabled: false, job_matches: true } as const;
  * @mutate src/lib/notifyWhenWorkLands.ts | .select("user_id"); | ;
- * @mutate src/pages/auth/Signup.tsx | isNotifySignupReason(searchParams.get("reason")) ? | false ?
+ * @mutate src/pages/auth/Signup.tsx | subtitle: notifySignupSubtitle(searchParams.get("reason")) | subtitle: undefined
+ * @mutate src/lib/jobIntent.ts | return reason === "notify" ? NOTIFY_SIGNUP_SUBTITLE : undefined; | return undefined;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { trackedFiles } from "./helpers/trackedFiles";
-import {
-  NOTIFY_PREF_PATCH,
-  NOTIFY_SIGNUP_URL,
-  NOTIFY_SIGNUP_SUBTITLE,
-  isNotifySignupReason,
-} from "@/lib/notifyWhenWorkLands";
+import { NOTIFY_PREF_PATCH } from "@/lib/notifyWhenWorkLands";
+import { NOTIFY_SIGNUP_URL, NOTIFY_SIGNUP_SUBTITLE, notifySignupSubtitle } from "@/lib/jobIntent";
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -51,7 +48,9 @@ function labelFiles(): string[] {
 
 describe("Notify Me When Work Lands is push only (Q1313)", () => {
   it("inventory: the three button surfaces are found (floor, so the scan cannot go empty)", () => {
-    const files = labelFiles().map((f) => f.replace(/^.*src\//, "src/")).sort();
+    const found = labelFiles();
+    expect(found.length).toBeGreaterThan(2);
+    const files = found.map((f) => f.replace(/^.*src\//, "src/")).sort();
     expect(files).toEqual([
       "src/components/dashboard/BrowseTasksFeed.tsx",
       "src/components/dashboard/GuestEmptyStateActions.tsx",
@@ -118,12 +117,11 @@ describe("Notify Me When Work Lands is push only (Q1313)", () => {
     expect(u.pathname).toBe("/signup");
     expect(u.searchParams.get("reason")).toBe("notify");
     expect(u.searchParams.get("redirect")).toBe("/jobs");
-    expect(isNotifySignupReason(u.searchParams.get("reason"))).toBe(true);
-    expect(isNotifySignupReason(null)).toBe(false);
-    expect(isNotifySignupReason("other")).toBe(false);
+    expect(notifySignupSubtitle(u.searchParams.get("reason"))).toBe(NOTIFY_SIGNUP_SUBTITLE);
+    expect(notifySignupSubtitle(null)).toBeUndefined();
+    expect(notifySignupSubtitle("other")).toBeUndefined();
     const signup = blankComments(read("src/pages/auth/Signup.tsx"));
-    expect(signup).toMatch(/isNotifySignupReason\(searchParams\.get\("reason"\)\) \?/);
-    expect(signup).toMatch(/subtitle: NOTIFY_SIGNUP_SUBTITLE/);
+    expect(signup).toMatch(/subtitle: notifySignupSubtitle\(searchParams\.get\("reason"\)\)/);
     expect(NOTIFY_SIGNUP_SUBTITLE).toMatch(/notified/i);
   });
 });

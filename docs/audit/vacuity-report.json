@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-05T08:19:49.792Z",
-  "guards": 1477,
-  "registered": 1477,
+  "generated": "2026-10-05T08:55:16.163Z",
+  "guards": 1478,
+  "registered": 1478,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -200,6 +200,15 @@
       ],
       "parents": [
         "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/GuestBrowseSkeleton.tsx",
+      "tests": [
+        "src/test/dataAwareSkeletons.test.tsx"
+      ],
+      "parents": [
+        "src/pages/home/DashboardGuest.tsx"
       ]
     },
     {

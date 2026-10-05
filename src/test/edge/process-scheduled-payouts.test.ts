@@ -797,6 +797,344 @@ describe("process-scheduled-payouts edge function", () => {
     });
   });
 
+  // Q1222 / Q1223: money a payout hold kept back is re-driven here, every
+  // run, once the hold is released: claim rows + fixed idempotency keys.
+  describe("Q1222/Q1223 re-drive of held money after the hold is released", () => {
+    const HOLD = { helper_id: "helper-1", reason: "review", held_at: null, denied_at: null };
+    const DAY = 86_400_000;
+    const runCron = async () => {
+      const fn = await load();
+      return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+    };
+    const seedNoJobs = () => {
+      scenario.reads.jobs = { rows: [] };
+      scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.chargeback_clawbacks = { rows: [] };
+      scenario.reads.tip_hold_redrives = { rows: [] };
+      scenario.reads.payout_holds = { rows: [] };
+    };
+    const heldTip = (over: Record<string, unknown> = {}) => ({
+      tip_id: "tip-1", helper_id: "helper-1", transfer_id: "tr_tip", amount_cents: 1500, status: "reversed",
+      updated_at: new Date(Date.now() - 3600_000).toISOString(), created_at: new Date(Date.now() - DAY).toISOString(), ...over,
+    });
+    const tipUpdates = () =>
+      scenario.writes.filter((w) => w.table === "tip_hold_redrives" && w.op === "update");
+    const alerts = () => slackAlerts as Array<{ severity?: string; title: string; message: string }>;
+    const repayReady = () => {
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.reads.tips = { rows: [{ job_id: "job-1" }] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+    };
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | const tipRedrive = await redriveHeldTips(stripe, supabaseAdmin); | const tipRedrive = { repaid: 0, kept: 0, waiting: 0, defects: [] as string[] };
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |   const group = `tip_${r.tip_id}`; |   const group = `job_${tipRow?.job_id}`;
+    it("Q1222: a reversed tip is re-paid once its Helpr's hold is gone (claim, own tip_ group, fixed key, Helpr told)", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      repayReady();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      const res = await runCron();
+      expect(res.status).toBe(200);
+      // tip_<id>, never job_<id>: the original tip has no group, so a job_
+      // transfer would be an unrecorded job payout (review of Q1222).
+      expect(stripeMock.transfers.list).toHaveBeenCalledWith(expect.objectContaining({ transfer_group: "tip_tip-1" }));
+      expect(stripeMock.transfers.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 1500, destination: "acct_helper", transfer_group: "tip_tip-1", metadata: expect.objectContaining({ tip_id: "tip-1" }) }),
+        { idempotencyKey: "tip-hold-repay-tip-1" },
+      );
+      const updates = tipUpdates().map((w) => w.payload as Record<string, unknown>);
+      expect(updates[0]).toMatchObject({ status: "repaying" });
+      expect(updates[updates.length - 1]).toMatchObject({ status: "repaid", repay_transfer_id: "tr_repay" });
+      expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(true);
+      expect((await json(res)).heldRedrive).toMatchObject({ tips_repaid: 1 });
+    });
+
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |       if (held) {\n        out.waiting++; |       if (false) {\n        out.waiting++;
+    it("Q1222: a tip whose Helpr is STILL held waits: nothing moves, no page while young", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      repayReady();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "tip_hold_redrives")).toBe(false);
+      expect(alerts().some((a) => /tip/i.test(a.title))).toBe(false);
+    });
+
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |   if (!Number.isFinite(since) \|\| now - since < HELD_TIP_AGE_ALERT_MS) return; |   return;
+    it("Q1222: a held tip still owed after 14 days pages a WARNING that says not to pay it by hand", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ created_at: new Date(Date.now() - 15 * DAY).toISOString() })] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      await runCron();
+      const a = alerts().find((x) => /still owed/.test(x.title));
+      expect(a?.severity).toBe("warning");
+      expect(a?.message).toMatch(/NOT pay it by hand/);
+    });
+
+    // @mutate supabase/functions/_shared/heldTipRepay.ts | t.metadata?.type === "tip_hold_repay" && t.metadata?.tip_id === r.tip_id && !t.reversed); | false);
+    it("Q1222: a re-pay Stripe already holds (a run died after the transfer) is adopted, never sent twice", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ status: "repaying" })] };
+      repayReady();
+      stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_prev", metadata: { type: "tip_hold_repay", tip_id: "tip-1" }, reversed: false }] });
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const last = tipUpdates().pop();
+      expect(last?.payload).toMatchObject({ status: "repaid", repay_transfer_id: "tr_prev" });
+    });
+
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |       if (!claimed \|\| claimed.length === 0) continue; // another run took it |       if (false) continue;
+    it("Q1222: a claim another run took first moves nothing here", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      // Everything a re-pay would need is there: only the lost claim stops it.
+      repayReady();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      scenario.writeSelectRows["tip_hold_redrives:update"] = [];
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // review of Q1222: two runs that both read a row stale cannot both take it.
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |       if (r.status === "repaying") claimQ = claimQ.eq("updated_at", r.updated_at); |
+    it("Q1222: re-taking a stale 'repaying' claim is pinned to the updated_at it was read at", async () => {
+      seedNoJobs();
+      const at = new Date(Date.now() - 3600_000).toISOString();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ status: "repaying", updated_at: at })] };
+      repayReady();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await runCron();
+      const claim = tipUpdates()[0];
+      expect(claim.payload).toMatchObject({ status: "repaying" });
+      expect(claim.filters).toContainEqual({ op: "eq", column: "status", value: "repaying" });
+      expect(claim.filters).toContainEqual({ op: "eq", column: "updated_at", value: at });
+    });
+
+    // review of Q1222: Stripe, not the row, says whether the reversal went out.
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |           const found = await ourReversal(stripe, r.transfer_id, r.tip_id); |           const found = null;
+    it("Q1222: a stale 'owed' row whose reversal Stripe holds becomes 'reversed' (never 'kept' with the money stranded)", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ status: "owed" })] };
+      stripeMock.transfers.listReversals.mockResolvedValue({ data: [{ id: "trr_prev", metadata: { reason: "payout_hold", tip_id: "tip-1" } }] });
+      await runCron();
+      expect(stripeMock.transfers.listReversals).toHaveBeenCalledWith("tr_tip", expect.anything());
+      const ups = tipUpdates().map((w) => w.payload as Record<string, unknown>);
+      expect(ups.some((p) => p.status === "kept")).toBe(false);
+      expect(ups).toContainEqual(expect.objectContaining({ status: "reversed", reversal_id: "trr_prev" }));
+    });
+
+    it("Q1222: a stale 'owed' row with no reversal at Stripe and the hold gone is 'kept' (the Helpr keeps the tip)", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ status: "owed" })] };
+      await runCron();
+      expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+      expect(tipUpdates().map((w) => w.payload)).toContainEqual(expect.objectContaining({ status: "kept" }));
+      // Second review (S-E): nobody told the Helpr when the tip was paid.
+      expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(true);
+    });
+
+    // Second review (S-F): the sweep's refused-reversal page names the tip, not "(sweep)".
+    it("Q1222: a stale 'owed' row still held whose re-reversal Stripe refuses pages with the tip id", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ status: "owed" })] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      stripeMock.transfers.createReversal.mockRejectedValue(Object.assign(new Error("transfer already fully reversed"), { type: "StripeInvalidRequestError" }));
+      await runCron();
+      const page = alerts().find((a) => /could not be pulled back/.test(a.title));
+      expect(page?.message).toContain("tip-1");
+      expect(page?.message).not.toContain("(sweep)");
+    });
+
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |     else await ageAlert(r, now, "the Helpr has no payout account to send it to"); |     else void 0;
+    it("Q1222: a Helpr with no payout account waits (back to 'reversed') and an old one pages a warning", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ created_at: new Date(Date.now() - 15 * DAY).toISOString() })] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: null }] };
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(tipUpdates().pop()?.payload).toMatchObject({ status: "reversed" });
+      expect(alerts().some((a) => a.severity === "warning" && /no payout account/.test(a.message))).toBe(true);
+    });
+
+    // review of Q1222: a key reused with other parameters never fixes itself.
+    // @mutate supabase/functions/_shared/heldTipRepay.ts | type === "StripeRateLimitError" \|\|\n    (typeof | type === "StripeRateLimitError" \|\| type === "StripeIdempotencyError" \|\|\n    (typeof
+    it("Q1222: StripeIdempotencyError on the re-pay is final ('failed', critical page), not retried forever", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      repayReady();
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Keys for idempotent requests can only be used with the same parameters"), { type: "StripeIdempotencyError" }));
+      await runCron();
+      expect(tipUpdates().pop()?.payload).toMatchObject({ status: "failed" });
+      expect(alerts().some((a) => a.severity === "critical" && /could not be re-paid/.test(a.title))).toBe(true);
+    });
+
+    // review of Q1222: the re-pay has no source charge, so a short balance waits.
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (isBalanceShort(err)) { |     if (false) {
+    it("Q1222: balance_insufficient on the re-pay waits (back to 'reversed'), never a final 'failed'", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      repayReady();
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Insufficient funds in Stripe account"), { type: "StripeInvalidRequestError", code: "balance_insufficient" }));
+      await runCron();
+      const last = tipUpdates().pop()?.payload as Record<string, unknown>;
+      expect(last).toMatchObject({ status: "reversed" });
+      expect(tipUpdates().some((w) => (w.payload as Record<string, unknown>).status === "failed")).toBe(false);
+      expect(alerts().some((a) => a.severity === "critical")).toBe(false);
+    });
+
+    const owedRow = (over: Record<string, unknown> = {}) => ({
+      id: "cb-1", dispute_id: "dp_1", job_id: "job-1", helper_id: "helper-1", original_transfer_id: "tr_1",
+      stripe_account_id: "acct_helper", transfer_amount_cents: 9000, reversed_cents: 9000,
+      stripe_reversal_id: "trr_1", repay_transfer_id: null, status: "reversed",
+      failure_reason: "payout_hold: re-pay owed once the hold is released",
+      held_repay_owed_at: new Date(Date.now() - DAY).toISOString(),
+      updated_at: new Date(Date.now() - DAY).toISOString(), ...over,
+    });
+    const jobTitle = () => {
+      scenario.reads.jobs = { rows: [], selectOverrides: [{ includes: "id, title", result: { rows: [{ id: "job-1", title: "Fence" }] } }] };
+    };
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | const clawbackRedrive = await redriveHeldClawbackRepays({ | const clawbackRedrive = { disputes: 0, repaidCents: 0, waiting: 0, defects: [] as string[] }; void ({
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |     .not("held_repay_owed_at", "is", null)\n    .in("status", ["reversed", "repay_failed", "repaying"]) |     .in("status", ["reversed", "repay_failed", "repaying"])
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       if (res.rows > 0 && res.failed.length === 0 && res.held.length === 0 && res.holdErrors.length === 0 && res.othersOpen === 0) { |       if (false) {
+    it("Q1223: a won chargeback's held re-pay runs once the hold is gone, under the webhook's own key, and the job returns to released", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow()] };
+      jobTitle();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      const res = await runCron();
+      expect(res.status).toBe(200);
+      const read = scenario.readQueries.find((q) => q.table === "chargeback_clawbacks" && q.cols.includes("held_repay_owed_at"));
+      expect(read?.filters).toContainEqual({ op: "not", column: "held_repay_owed_at", operator: "is", value: null });
+      expect(stripeMock.transfers.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 9000, destination: "acct_helper" }),
+        { idempotencyKey: "clawback-repay-dp_1-tr_1" },
+      );
+      expect(scenario.writes.some((w) => w.table === "chargeback_clawbacks" && (w.payload as Record<string, unknown>).held_repay_owed_at === null)).toBe(true);
+      const back = scenario.writes.find((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released");
+      expect(back?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "chargeback" });
+      expect((await json(res)).heldRedrive).toMatchObject({ clawback_disputes: 1, clawback_repaid_cents: 9000 });
+    });
+
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |     if (r.helper_id && holds.holds.has(r.helper_id)) { |     if (false) {
+    it("Q1223: still held, it waits (no transfer, no page while young)", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow()] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      jobTitle();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(slackAlerts).toHaveLength(0);
+    });
+
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       if (Number.isFinite(since) && now - since >= HELD_REPAY_AGE_ALERT_MS) { |       if (false) {
+    it("Q1223: still held after 14 days pages a WARNING that says not to pay it by hand", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow({ held_repay_owed_at: new Date(Date.now() - 15 * DAY).toISOString() })] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      await runCron();
+      const a = alerts().find((x) => /still waits on a payout hold/.test(x.title));
+      expect(a?.severity).toBe("warning");
+      expect(a?.message).toMatch(/NOT pay it by hand/);
+    });
+
+    // review of Q1223: one held crew member no longer makes the dispute wait.
+    it("Q1223: per row — a clear Helpr is re-paid while a crew-mate on the same dispute stays held", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = {
+        rows: [
+          owedRow(),
+          owedRow({ id: "cb-2", helper_id: "helper-2", original_transfer_id: "tr_2", stripe_account_id: "acct_h2", reversed_cents: 4000, transfer_amount_cents: 4000 }),
+        ],
+      };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      jobTitle();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back2" });
+      await runCron();
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.transfers.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 4000, destination: "acct_h2" }),
+        { idempotencyKey: "clawback-repay-dp_1-tr_2" },
+      );
+      // One member still waits, so the job stays 'chargeback'.
+      expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+    });
+
+    // review of Q1223: a run that died after the claim is picked up again.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |     r.status !== "repaying" \|\| !r.updated_at \|\| now - Date.parse(r.updated_at) > STALE_REPAYING_MS); |     r.status !== "repaying");
+    it("Q1223: a stale 'repaying' row (the run died after the claim) is re-driven", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow({ status: "repaying" })] };
+      jobTitle();
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      expect(stripeMock.transfers.create).toHaveBeenCalledWith(expect.anything(), { idempotencyKey: "clawback-repay-dp_1-tr_1" });
+    });
+
+    it("Q1223: a FRESH 'repaying' row belongs to a live run and is not touched", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow({ status: "repaying", updated_at: new Date().toISOString() })] };
+      jobTitle();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // review of Q1223: a transient failure must not erase the debt record.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       if (isTransientStripeError(err)) {\n        // held_repay_owed_at stays: the re-drive retries it. |       await clearHeldRepayOwed(supabase, row.id, logStep);\n      if (isTransientStripeError(err)) {
+    // SECOND review of Q1223, MUST-1 (double pay): row A was held (owed), its
+    // sibling B was REFUSED by Stripe and handed to a person ("pay it by hand").
+    // When A's hold lifts the sweep must pay A only: B may already be paid.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |     if (opts.owned && (!sweepRow \|\| | if (opts.owned && (false \|\|
+    it("Q1223: the sweep re-pays ONLY the owed row; a refused sibling is never paid again and keeps the job in chargeback", async () => {
+      seedNoJobs();
+      const a = owedRow();
+      const b = owedRow({
+        id: "cb-2", helper_id: "helper-2", original_transfer_id: "tr_2", stripe_account_id: "acct_h2", reversed_cents: 4000,
+        transfer_amount_cents: 4000, status: "repay_failed", failure_reason: "account closed", held_repay_owed_at: null,
+      });
+      scenario.reads.chargeback_clawbacks = { rows: [a, b], selectOverrides: [{ includes: "held_repay_owed_at", result: { rows: [a] } }] };
+      jobTitle();
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.transfers.create).toHaveBeenCalledWith(expect.objectContaining({ destination: "acct_helper" }), expect.anything());
+      expect(stripeMock.transfers.create).not.toHaveBeenCalledWith(expect.objectContaining({ destination: "acct_h2" }), expect.anything());
+      expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+    });
+
+    // Second review (MUST-1): the sweep's claim is pinned to what it read.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |     if (row.updated_at) claimQ = claimQ.eq("updated_at", row.updated_at); |
+    it("Q1223: the sweep's claim is a compare-and-set on the status AND the updated_at it read", async () => {
+      seedNoJobs();
+      const at = new Date(Date.now() - DAY).toISOString();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow({ updated_at: at })] };
+      jobTitle();
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_back" });
+      await runCron();
+      const claim = scenario.writes.find((w) => w.table === "chargeback_clawbacks" && (w.payload as Record<string, unknown>).status === "repaying");
+      expect(claim?.filters).toContainEqual({ op: "eq", column: "status", value: "reversed" });
+      expect(claim?.filters).toContainEqual({ op: "eq", column: "updated_at", value: at });
+      // First attempt stamped: the clock money-reconciliation measures from.
+      expect((claim?.payload as Record<string, unknown>).held_repay_first_attempt_at).toEqual(expect.any(String));
+    });
+
+    it("Q1223: a TRANSIENT re-pay failure keeps the row owed for the next run", async () => {
+      seedNoJobs();
+      scenario.reads.chargeback_clawbacks = { rows: [owedRow()] };
+      jobTitle();
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+      await runCron();
+      expect(scenario.writes.some((w) => w.table === "chargeback_clawbacks" && (w.payload as Record<string, unknown>).held_repay_owed_at === null)).toBe(false);
+    });
+  });
+
   describe("group-job urgent split (#114)", () => {
     it("splits the urgent fee across the roster like the budget", async () => {
       // The poster is charged the urgent fee ONCE, bundled into escrow, so a

@@ -99,6 +99,10 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "reverses/repays only transfers found in Stripe's job_<id> transfer group, i.e. money that already left escrow; an unexecuted split has none",
   },
+  "supabase/functions/_shared/heldTipRepay.ts": {
+    kind: "not-job-escrow",
+    why: "reverses and re-pays only a TIP (its own destination charge, Q1222), never a job's escrow",
+  },
 };
 
 type Gate = "unsettled-check" | "claim-refusal" | { custom: RegExp };

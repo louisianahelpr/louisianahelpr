@@ -5433,6 +5433,20 @@
      "notNull": false,
      "type": "text"
     },
+    "held_repay_first_attempt_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "held_repay_owed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "helper_id": {
      "enum": null,
      "generated": false,

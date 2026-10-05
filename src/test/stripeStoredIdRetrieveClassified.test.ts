@@ -179,6 +179,10 @@ const EXEMPT: Record<string, string> = {
   "stripe-payouts/index.ts::stripe.accounts.retrieve(accountId)": ACCOUNT,
   "stripe-payouts/index.ts::stripe.balance.retrieve({ stripeAccount: accountId })": ACCOUNT,
   "_shared/chargebackClawback.ts::stripe.transfers.retrieve(id)": EVENT,
+  // Q1222: holdBackPaidTip runs only from checkout.session.completed; the
+  // PaymentIntent is the event session's, the transfer that charge's.
+  "_shared/heldTipRepay.ts::stripe.paymentIntents.retrieve(args.paymentIntentId)": EVENT,
+  "_shared/heldTipRepay.ts::stripe.transfers.retrieve(transferId)": EVENT,
   "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(account.id)": EVENT,
   "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(accountId)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(chargeId)": EVENT,

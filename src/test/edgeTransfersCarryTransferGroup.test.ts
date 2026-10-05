@@ -34,6 +34,12 @@ import { readFileSync } from "node:fs";
 const NOT_JOB_SCOPED: Record<string, string> = {
   "supabase/functions/cash-out-credits/index.ts": "referral-credit cash-out to the user's own account; no job",
   "supabase/functions/instant-payout/index.ts": "instant-payout fee moved from the Helpr's connected account to the platform; no job",
+  // Q1222 (lh-money-escrow review): a held tip's re-pay is NOT job money. The
+  // original tip is a destination charge with no transfer group, so a job_<id>
+  // re-pay would be read by payoutClaim's unrecorded-transfer check (refusing
+  // the Helpr's job payout) and by the chargeback clawback as a job payout.
+  // It carries its own tip_<tipId> group, which its adopt-before-create reads.
+  "supabase/functions/_shared/heldTipRepay.ts": "held-tip re-pay after a payout hold; its own tip_<tipId> group, never job money",
 };
 
 /**

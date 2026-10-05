@@ -103,6 +103,8 @@ const EPSILON = 0.005;
  * subject is the un-settled state.
  */
 const SETTLE_WINDOW_HOURS = 2;
+/** Q1222/Q1223: held money whose Helpr is clear and still unpaid this long after its last touch was dropped. */
+const HELD_REDRIVE_STUCK_HOURS = 24;
 const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
 
 /**
@@ -289,6 +291,14 @@ serve(async (req) => {
         "gift_not_returned_after_refund",
         "critical",
         `A redeemed gift card funded a job that is now cancelled/refunded (settled more than ${SETTLE_WINDOW_HOURS}h ago), and no replacement gift was minted for it (no gift_cards.restored_from_job_id), no payout to the Helpr is live, and no decided dispute is still waiting to execute: the poster is owed their gift back. Run restore_gift_card_for_job for the job (it is idempotent), or return it by hand.`,
+      ),
+      // Q1222/Q1223 (review): money a payout hold kept back is re-driven by
+      // process-scheduled-payouts. A row a person must settle, or one whose
+      // Helpr is clear but that is still not re-paid a day later, was dropped.
+      heldMoneyNotRedriven: new Check(
+        "held_money_not_redriven",
+        "critical",
+        `Money a payout hold kept back is not moving: a tip_hold_redrives row Stripe refused ('failed' re-pay or 'not_reversed'), or a held tip / won-chargeback re-pay (chargeback_clawbacks.held_repay_owed_at) whose Helpr is no longer on hold and that is still unpaid ${HELD_REDRIVE_STUCK_HOURS}h after the re-drive first tried it (an 'owed' tip: ${HELD_REDRIVE_STUCK_HOURS}h after it was paid) (no payout account, a short balance, or a dead sweep). Read the row's failure_reason; a refused row is paid by hand and marked repaid with that transfer id.`,
       ),
       cancellationFee: new Check(
         "cancellation_fee_mismatch",
@@ -1372,6 +1382,62 @@ serve(async (req) => {
               job_id: g.job_id,
               amount: money(g.amount ?? 0),
             });
+          }
+        }
+      }
+    }
+
+    // ── Held money re-drive (Q1222/Q1223) ────────────────────────────────────
+    // Before 20261004220059 is deployed the table / column does not exist:
+    // that is a note, never a crash.
+    {
+      const missing = (code?: string) => code === "42P01" || code === "PGRST205" || code === "42703";
+      const stuckBefore = Date.now() - HELD_REDRIVE_STUCK_HOURS * 3_600_000;
+      const tipRes = await admin
+        .from("tip_hold_redrives")
+        .select("tip_id, helper_id, status, amount_cents, failure_reason, created_at, first_repay_attempt_at")
+        .in("status", ["owed", "reversed", "repaying", "failed", "not_reversed"])
+        .limit(1000);
+      const clawRes = await admin
+        .from("chargeback_clawbacks")
+        .select("id, dispute_id, helper_id, status, reversed_cents, failure_reason, held_repay_owed_at, held_repay_first_attempt_at")
+        .not("held_repay_owed_at", "is", null)
+        .limit(1000);
+      for (const [name, res] of [["tip_hold_redrives", tipRes], ["chargeback_clawbacks.held_repay_owed_at", clawRes]] as const) {
+        if (res.error && !missing((res.error as { code?: string }).code)) {
+          throw new Error(`money-reconciliation: ${name} read failed: ${res.error.message}`);
+        }
+        if (res.error) notes.push(`held-money re-drive check skipped for ${name}: not deployed yet`);
+      }
+      type TipRow = { tip_id: string; helper_id: string; status: string; amount_cents: number; failure_reason: string | null; created_at: string | null; first_repay_attempt_at: string | null };
+      type ClawRow = { id: string; dispute_id: string; helper_id: string | null; status: string; reversed_cents: number; failure_reason: string | null; held_repay_first_attempt_at: string | null };
+      const tipRows = (tipRes.error ? [] : tipRes.data ?? []) as TipRow[];
+      const clawRows = (clawRes.error ? [] : clawRes.data ?? []) as ClawRow[];
+      if (tipRows.length || clawRows.length) {
+        const holdRead = await readPayoutHolds([...tipRows.map((r) => r.helper_id), ...clawRows.map((r) => r.helper_id)]);
+        if (!holdRead.ok) {
+          notes.push(`held-money re-drive check skipped: payout hold read failed (${holdRead.message})`);
+        } else {
+          // Measured from a stamp no hourly attempt moves (second review of
+          // Q1222/Q1223: updated_at is touched every run, so it never aged):
+          // an 'owed' tip from created_at (it settles in minutes), a re-pay
+          // from the re-drive's FIRST attempt with the Helpr clear. No stamp
+          // yet means no attempt yet: not stuck.
+          const stale = (at: string | null) => { const t = ts(at); return t !== null && t < stuckBefore; };
+          for (const r of tipRows) {
+            const refused = r.status === "failed" || r.status === "not_reversed";
+            const stuck = !refused && (r.status === "owed"
+              ? stale(r.created_at)
+              : !holdRead.holds.has(r.helper_id) && stale(r.first_repay_attempt_at));
+            if (refused || stuck) {
+              checks.heldMoneyNotRedriven.add({ tip_id: r.tip_id, status: r.status, amount: money(r.amount_cents / 100), reason: r.failure_reason });
+            }
+          }
+          for (const r of clawRows) {
+            if (r.status === "repaid") continue;
+            if (r.helper_id && holdRead.holds.has(r.helper_id)) continue;
+            if (!stale(r.held_repay_first_attempt_at)) continue;
+            checks.heldMoneyNotRedriven.add({ clawback_id: r.id, dispute_id: r.dispute_id, status: r.status, amount: money(r.reversed_cents / 100), reason: r.failure_reason });
           }
         }
       }

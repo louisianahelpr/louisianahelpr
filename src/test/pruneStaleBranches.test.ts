@@ -106,6 +106,8 @@ describe("prune-stale-branches stranded work", () => {
     expect(isStranded({ name: "agent/medium", hasOpenPr: true, ageHours: 5, uncovered: [{}] })).toBe(false);
     expect(isStranded({ name: "agent/medium", hasOpenPr: false, ageHours: 0.5, uncovered: [{}] })).toBe(false);
     expect(isStranded({ name: "agent/medium", hasOpenPr: false, ageHours: 5, uncovered: [] })).toBe(false);
+    // An accepted branch (content-checked into docs/audit/stranded-accepted.json) is never re-opened as an auto-land PR (2026-10-04 loop).
+    expect(isStranded({ name: "agent/medium", hasOpenPr: false, ageHours: 5, uncovered: [{}], accepted: true })).toBe(false);
     expect(isStranded({ name: "main", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(false);
   });
 

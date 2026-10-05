@@ -102,6 +102,24 @@
       "sha": "0539848f8b5303e90b37e17c9cddf81fa71a360f",
       "reason": "an older agent branch (2026-10-02): its remaining lines are generated docs, a privacyJourney comment naming a since-superseded migration, a node:fs readdirSync that main replaced with helpers/trackedFiles (Q1142), and two void-cancelled-payments section comments main renumbered.",
       "checked": "2026-10-04 (lead, line-by-line content check against origin/main fdc860cb8)"
+    },
+    {
+      "id": "remote:origin/cloud/q891-test-ids-live-key",
+      "sha": "0d1d05323349ef4c66d2a76302b12ba415885ebd",
+      "reason": "Q891 landed as 67e7a5e90 + e3a1117a7 with its lh-money-escrow review and re-review (Q891 ticked 2026-10-04); the branch's remaining lines are pre-review test wording the review's must-fix changed (a test-mode transfer on a split resume now refuses 409).",
+      "checked": "2026-10-04 (lead, line-by-line content check against origin/main)"
+    },
+    {
+      "id": "remote:origin/cloud/q1192-q1193",
+      "sha": "7a49546bc00340210635ee4aadd9f403acdace98",
+      "reason": "Q1192/Q1193 landed in batch 2 as 6e1bf43be (re-reviewed 2026-10-04, APPROVE with notes, follow-ups Q1300-Q1303); the remaining lines are a test table main rewrote.",
+      "checked": "2026-10-04 (lead, line-by-line content check against origin/main)"
+    },
+    {
+      "id": "remote:origin/cloud/la-date-and-analytics",
+      "sha": "acd5e0d10ca78f32f9796ae06988fb03cc47b720",
+      "reason": "Q1203/Q1140 landed in batch 2 as 8b0580117; the one remaining line is a node:fs readdirSync main replaced with helpers/trackedFiles (Q1142).",
+      "checked": "2026-10-04 (lead, line-by-line content check against origin/main)"
     }
   ]
 }

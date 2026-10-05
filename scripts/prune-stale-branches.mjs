@@ -46,7 +46,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { buildMainIndex, unlandedContent } from "./lib/strandedContent.mjs";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 export const PROTECTED = new Set(["main", "HEAD"]);
@@ -129,11 +129,23 @@ export function uncoveredCommits(cherryVerbose, covered) {
  * Pure: is this branch stranded work (pushed, unlanded, no PR, not new)?
  * @param {{ name: string, hasOpenPr: boolean, ageHours: number, uncovered: unknown[] }} b
  */
-export function isStranded({ name, hasOpenPr, ageHours, uncovered }) {
+export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = false }) {
   if (PROTECTED.has(name)) return false;
   if (hasOpenPr) return false;
+  // Content-checked and recorded as deliberately not landed (its work went to
+  // main another way): never re-open an auto-land PR for it (2026-10-04: the
+  // closed cloud PRs came back as #2277-#2280 every run).
+  if (accepted) return false;
   if (!(ageHours >= STRANDED_AFTER_HOURS)) return false;
   return uncovered.length > 0;
+}
+
+/** id -> sha from docs/audit/stranded-accepted.json (the stranded-work check's own record). */
+export function readAcceptedTips(file = "docs/audit/stranded-accepted.json") {
+  const out = new Map();
+  if (!existsSync(file)) return out;
+  for (const e of JSON.parse(readFileSync(file, "utf8")).accepted ?? []) out.set(e.id, e.sha);
+  return out;
 }
 
 function git(args) {
@@ -212,12 +224,14 @@ function main() {
     if (!tipOf.has(head)) continue;
     for (const s of git(["log", "--format=%s", `origin/main..origin/${head}`]).split("\n")) covered.add(s);
   }
+  const acceptedTips = readAcceptedTips();
   const stranded = [];
   for (const { name, ageHours } of branches) {
     const hasOpenPr = openHeads.has(name);
     if (PROTECTED.has(name) || hasOpenPr || !(ageHours >= STRANDED_AFTER_HOURS)) continue;
     const uncovered = uncoveredCommits(git(["cherry", "-v", "origin/main", `origin/${name}`]), covered);
-    if (isStranded({ name, hasOpenPr, ageHours, uncovered })) stranded.push({ name, ageHours, uncovered });
+    const accepted = acceptedTips.get(`remote:origin/${name}`) === tipOf.get(name);
+    if (isStranded({ name, hasOpenPr, ageHours, uncovered, accepted })) stranded.push({ name, ageHours, uncovered });
   }
   if (stranded.length) {
     console.log(`\nSTRANDED: ${stranded.length} branch(es) hold work on neither main nor an open PR (land it or delete it):`);

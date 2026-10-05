@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T09:44Z",
+  "measured_at": "2026-10-05T10:17Z",
   "issues": {
     "readable": true,
     "open": [
@@ -38,11 +38,6 @@
         "number": 2304,
         "title": "nightly-red: branch-prune",
         "label": "nightly-red"
-      },
-      {
-        "number": 2317,
-        "title": "nightly-red: main: Vitest",
-        "label": "nightly-red"
       }
     ]
   },
@@ -63,7 +58,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: vitest",
-        "issue": null
+        "issue": 2317
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -87,14 +82,6 @@
         "source": "db-deploy",
         "status": "open",
         "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
-        "fingerprint": "42a784cb226e506d814a710c96d26487",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: supabase db deploy",
         "issue": null
       },
       {
@@ -154,22 +141,6 @@
         "issue": null
       },
       {
-        "fingerprint": "79112fbf22c85121a80ec6470b33411f",
-        "source_kind": "workflow",
-        "source": "code-scanning",
-        "status": "open",
-        "title": "github code scanning: open alerts on main",
-        "issue": null
-      },
-      {
-        "fingerprint": "57b5f274d7a78c775c09cba57d0e4e1f",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-restore-drill",
-        "issue": 2306
-      },
-      {
         "fingerprint": "da3ef1e5e2eea618f50aab6e4f7a9ec6",
         "source_kind": "error_logs",
         "source": "cron-dead",
@@ -200,13 +171,10 @@
     "issue #2245": "Q785",
     "issue #2246": "Q1276",
     "issue #2247": "Q1277",
-    "issue #2248": "Q1331",
     "issue #2269": "Q1274",
     "issue #2270": "Q1307",
     "issue #2304": "Q1274",
-    "issue #2306": "Q1364",
     "issue #2317": "Q1369",
-    "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
     "ledger 30f021e059dc": "Q1370",

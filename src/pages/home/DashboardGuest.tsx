@@ -576,7 +576,7 @@ const DashboardGuest = () => {
   // Footer, not a bottom dock, so a small fixed gap stands in for it instead.
   const feedBottomClass = isNativePlatform ? "pb-safe-nav" : "pb-4";
   // Web: no screen-tall reserve (Q1312: it left a big blank gap above the
-  // footer). The Footer waits for the feed instead (`footer={feedSettled}`):
+  // footer). The Footer waits for the feed instead (the page's footer prop is feedSettled):
   // a footer first painted under settled content is a new node, not a shift.
   const emptyWrapperClass = isNativePlatform ? "flex-1 min-h-full flex" : "flex";
   // Settled = whatever replaces the loading bones is on screen: the list, the

@@ -982,6 +982,19 @@ serve(async (req) => {
         bothDone = posterDone && helperDone;
 
         if (bothDone) {
+          // Q1321: only HELD money can be scheduled out. This write never read
+          // payment_status, so it wrote payout_pending over 'cancelling' (a
+          // full admin refund whose Stripe call failed ambiguously, or
+          // cancel_escrow mid-refund), over 'refunded' (a Dashboard refund's
+          // charge.refunded), over 'chargeback' and over 'unpaid' (no intent,
+          // no check), and the payout cron paid the Helpr ~3 days later. The
+          // payment_status read here is ALSO pinned on the write below.
+          if (job.payment_status !== "escrow") {
+            console.error(`[create-payment] release REFUSED for job ${jobId}: payment_status '${job.payment_status}' is not held escrow`);
+            throw new PublicError(
+              "This job's payment isn't held right now (it is being refunded, was refunded, is under a card dispute, or was never paid), so it can't be released. Nothing was moved.",
+            );
+          }
           // Payment was already captured at checkout (immediate capture).
           // Verify the charge succeeded before scheduling payout.
           let paymentIntentId = job.stripe_payment_intent_id;
@@ -1023,6 +1036,10 @@ serve(async (req) => {
         conditional = job.helper_completed_at
           ? conditional.eq("helper_completed_at", job.helper_completed_at)
           : conditional.is("helper_completed_at", null);
+        // Q1321: the payout-scheduling write is pinned to held escrow, so a
+        // refund claim, refund or chargeback that lands after the read above
+        // is never written over.
+        if (updateFields.payment_status === "payout_pending") conditional = conditional.eq("payment_status", "escrow");
         // .select("id"): this is the write that flips status to "completed" and
         // schedules the payout. Zero rows is now EXPECTED on a lost race and is
         // answered by the re-read above — never by falling through.
@@ -3134,8 +3151,10 @@ serve(async (req) => {
         // Q1290: hand the job claim back only when no refund can exist: the
         // call stopped before the Stripe refund, or Stripe refused it outright.
         // A network fault on the refund itself may have refunded, so the job
-        // stays 'cancelling' (no payout can claim it; money-reconciliation's
-        // cancelling_stranded pages it for a person).
+        // stays 'cancelling': a payout claim expects 'payout_pending' and the
+        // release write is pinned to 'escrow' (Q1321), so nothing schedules or
+        // sends a payout over it; money-reconciliation's cancelling_stranded
+        // pages it for a person.
         const refundErrType = String((e as { type?: string } | null)?.type ?? "");
         const nothingMoved = !generalRefundSent || [
           "StripeInvalidRequestError",

@@ -310,6 +310,8 @@ export const RPC_ERROR_COPY = {
     dispute_already_decided: "An admin has already decided this dispute and its payment is being settled, so it can't be reopened. Refresh to see the decision — if that looks wrong, contact support.",
     dispute_payment_being_cancelled: "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
     dispute_evidence_invalid_url: "A photo couldn't be attached to this dispute. Remove it and try again.",
+    // rpc_open_dispute's Q1244 cooldown (20261005062746): Cancel Job files through it.
+    dispute_refile_cooldown: "You withdrew a dispute on this job a few minutes ago. Wait 10 minutes before filing again, or message the other party.",
   },
   // JobTracking — "I'm On My Way" and arrival check-in.
   helper_mark_on_the_way: {
@@ -394,6 +396,8 @@ export const RPC_ERROR_COPY = {
     dispute_already_decided: "An admin has already decided this dispute and its payment is being settled, so it can't be reopened. Refresh to see the decision — if that looks wrong, contact support.",
     dispute_payment_being_cancelled: "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
     dispute_evidence_invalid_url: "A photo couldn't be attached to this dispute. Remove it and try again.",
+    // Q1244 (20261005062746): no open/withdraw loop on one job.
+    dispute_refile_cooldown: "You withdrew a dispute on this job a few minutes ago. Wait 10 minutes before filing again, or message the other party.",
   },
   // AdminDisputes — closing a decided dispute whose job has no payment on file
   // (Q235, 20260923205812). Admin-facing.

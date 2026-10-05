@@ -1,23 +1,24 @@
 import type { Page } from "@playwright/test";
 import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } from "./fixtures";
 
-// THE EARNINGS TAB HAS A LENGTH BUDGET, AND IT IS MEASURED.
+// THE MONEY TAB'S EARNED HALF HAS A LENGTH BUDGET, AND IT IS MEASURED.
 //
 // Owner, 2026-08-28: "Earnings and payout tab is also entirely too long."
-// The tab was split into views with only the selected one mounted; on
-// 2026-10-01 the owner called that split "messy and repeat itself a lot" and
-// it became ONE page again (Q1177), with the three money lists merged into
-// one. `earnings-views.spec.ts` pins that structure; this spec pins the
-// RESULT, against a helpr who actually has money — the case the complaint was
-// about, and the one an empty mock cannot show.
+// The tab was split into views with only the selected one mounted; the
+// owner called the Earnings | Payouts split "messy and repeat itself a lot"
+// (2026-10-01) and it became Money: Earned | Spent (Q1177), with the three
+// money lists merged into one on Earned. `earnings-views.spec.ts` pins that
+// structure; this spec pins the RESULT, against a helpr who actually has
+// money — the case the complaint was about, and the one an empty mock cannot
+// show.
 //
 // Measured on this fixture at 393x852:
 //   before any split, one column:  5382px  (6.3 screens)
 //   four views — Money 1013 · History 2653 · Insights 1472 · Payouts 840
 //   two views (2026-09-11): Earnings and Payouts, each under its own budget
-//   one page (Q1177): see PAGE_BUDGET_SCREENS below
-// One page fits because nothing is listed twice any more: each transfer sits
-// inside the job it paid instead of in a second list.
+//   Earned (Q1177): see PAGE_BUDGET_SCREENS below
+// It fits because nothing is listed twice any more: each transfer sits inside
+// the job it paid instead of in a second list.
 //
 // Two traps this spec exists to avoid, both of which produced wrong answers
 // before it was written:
@@ -149,9 +150,9 @@ async function openFunded(page: Page, { honorFilters }: { honorFilters: boolean 
   await page.waitForTimeout(2_000);
 }
 
-test("the one-page earnings tab stays within its length budget", async ({ helperPage: page }) => {
+test("the Earned half stays within its length budget", async ({ helperPage: page }) => {
   await openFunded(page, { honorFilters: false });
-  await expect(page.getByRole("tab")).toHaveCount(0);
+  expect(await page.getByRole("tab").allInnerTexts()).toEqual(["Earned", "Spent"]);
 
   // The fixture really did produce a funded wallet and real take-home —
   // otherwise every assertion below would pass against an empty state.

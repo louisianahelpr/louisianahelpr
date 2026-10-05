@@ -6,7 +6,7 @@ import { TAB_TITLES } from "@/pages/profile/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /**
- * ONE skeleton for Earnings & Payouts (VN-3, owner 2026-09-15: "One skeleton.
+ * ONE skeleton for the Money tab (VN-3, owner 2026-09-15: "One skeleton.
  * Better organization").
  *
  * The page used to paint three different shapes on a cold load: the Profile
@@ -15,11 +15,11 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
  * query landed. Measured on prod with helper-e2e: 6 layout shifts, CLS 0.243 at
  * 1440 and 0.480 at 375.
  *
- * This is the finished one-page silhouette (no view switcher since Q1177) —
- * title row, the wallet or the connect card, the Earned summary card, the
+ * This is the Earned half's silhouette (Q1177) — title row, the connect card,
+ * the Earned | Spent switcher, the wallet, the Earned summary card, the
  * payouts list — so every loading frame has the layout the loaded page will
- * have. `withHeader` is false where the real ProfileTabHeader is already on
- * screen.
+ * have. `withHeader` is false where the real ProfileTabHeader and switcher are
+ * already on screen.
  */
 export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boolean }) {
   // DATA-AWARE (owner, 2026-10-03). The full-page skeleton is the route's,
@@ -42,24 +42,11 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
         </>
       )}
       {payoutSetup && <EarningsPayoutSetupSkeleton />}
+      {/* The Earned | Spent switcher's slot (its measured 50px). The in-tab
+          wait draws the REAL switcher, which needs no data. */}
+      {withHeader && <Skeleton className="h-[50px] w-full rounded-full" />}
       <section className="space-y-3">
-        {wallet && (
-          /* WalletCard's shape (Available + Pending side by side, the action
-             row): a connected Helpr's page opens on it. */
-          <div data-testid="earnings-wallet-skeleton" className="rounded-2xl liquid-glass p-card space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-7 w-24 rounded" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-7 w-24 rounded" />
-              </div>
-            </div>
-            <Skeleton className="h-9 w-full rounded-md" />
-          </div>
-        )}
+        {wallet && <EarningsWalletBones testId="earnings-wallet-skeleton" />}
         <div className="rounded-2xl liquid-glass p-card space-y-4">
           <div className="flex items-center gap-2.5">
             <Skeleton className="h-9 w-9 rounded-full" />
@@ -133,6 +120,37 @@ function GhostLine({ className, style, children }: { className?: string; style?:
  * card is gone). Whether it comes is known only from the data, so its bone
  * would be wrong for every account that has no activity.
  */
+/** WalletCard's shape (Available + Pending side by side, the action row). A
+ *  connected Helpr's Earned half opens on it; it also holds the wallet's own
+ *  slot while Stripe answers (the page itself never waits for Stripe). */
+export function EarningsWalletBones({ testId = "earnings-wallet-loading" }: { testId?: string }) {
+  return (
+    <div data-testid={testId} className="rounded-2xl liquid-glass p-card space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-20 rounded" />
+          <Skeleton className="h-7 w-24 rounded" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-20 rounded" />
+          <Skeleton className="h-7 w-24 rounded" />
+        </div>
+      </div>
+      <Skeleton className="h-9 w-full rounded-md" />
+    </div>
+  );
+}
+
+/** The "Sent to your bank" group's slot while Stripe answers. */
+export function EarningsBankPayoutBones() {
+  return (
+    <div data-testid="earnings-bank-payouts-loading" className="space-y-2 pt-2">
+      <Skeleton className="h-5 w-36 rounded" />
+      <Skeleton className="h-14 w-full rounded-ds-md" />
+    </div>
+  );
+}
+
 export function EarningsPayoutSetupSkeleton() {
   return (
     <div aria-hidden data-testid="earnings-payout-setup-skeleton" className="space-y-section">

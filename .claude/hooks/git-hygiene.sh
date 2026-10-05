@@ -30,7 +30,6 @@ if [ -f "$stranded" ] && [ -z "$(find "$report" -mmin -180 2>/dev/null)" ]; then
 fi
 # Weekly disk cleanup (owner, 2026-10-04: "make this automatic"). At most once a
 # week (stamp ~/.lh-hygiene/disk-last-run), in the background:
-#   - screenshots in ~/.lh-shots older than 7 days (recent review evidence stays);
 #   - the npm download cache (it re-downloads on demand);
 #   - worktree FOLDERS of finished work: unlocked, nothing uncommitted, last
 #     commit older than 3 days. `git worktree remove` keeps the branch, so no
@@ -40,8 +39,6 @@ disk_stamp="$HOME/.lh-hygiene/disk-last-run"
 if [ -z "$(find "$disk_stamp" -mtime -7 2>/dev/null)" ]; then
   touch "$disk_stamp"
   (
-    find "$HOME/.lh-shots" -type f -mtime +7 -delete 2>/dev/null
-    find "$HOME/.lh-shots" -type d -empty -delete 2>/dev/null
     command -v npm >/dev/null 2>&1 && npm cache clean --force >/dev/null 2>&1
     cd "$dir" && git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r w; do
       [ "$w" = "$(git rev-parse --show-toplevel)" ] && continue
@@ -83,7 +80,8 @@ fi
 #   3. the daily morning audit notes (docs/audit/morning/*.md, written by the
 #      morning routine and never staged by land.sh) are copied to
 #      ~/.lh-backups/morning/ and git ignores the folder, so none sits unsaved;
-#   4. lead logs in ~/.lh-tools/logs older than 14 days are deleted.
+#   4. lead logs in ~/.lh-tools/logs older than 14 days are deleted, and
+#      screenshots in ~/.lh-shots untouched for a day (they are temporary).
 (
   cd "$dir" || exit 0
   git fetch -q origin main 2>/dev/null
@@ -103,6 +101,11 @@ fi
   mkdir -p "$HOME/.lh-backups/morning"
   for f in docs/audit/morning/*.md; do [ -f "$f" ] && cp -n "$f" "$HOME/.lh-backups/morning/" 2>/dev/null; done
   find "$HOME/.lh-tools/logs" -type f -mtime +14 -delete 2>/dev/null
+  # Screenshots are temporary (owner, 2026-10-04: "I never review screenshots
+  # ever"): the lead looks, records the review, sends the owner the few that
+  # matter in chat. Anything in ~/.lh-shots untouched for a day goes.
+  find "$HOME/.lh-shots" -type f -mtime +0 -delete 2>/dev/null
+  find "$HOME/.lh-shots" -mindepth 1 -type d -empty -delete 2>/dev/null
 ) >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &
 # Weekly: nothing old piles up (owner, 2026-10-04: "never happen again, all this
 # old stuff piling up and/or getting lost"). Backups in ~/.lh-backups older than

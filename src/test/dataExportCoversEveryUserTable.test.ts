@@ -34,6 +34,11 @@
  * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
  * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'status', t.status, | ELSE to_jsonb(t) - 'flag_reason' \|\| jsonb_build_object('status', t.status,
  * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'slot_no', t.slot_no, 'status', t.status, | ELSE to_jsonb(t) \|\| jsonb_build_object('status', t.status,
+ * Q1233: a renamed live policy, and a read policy calling an unclassified function.
+ * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | CREATE POLICY "disputes parties select" ON public.disputes | CREATE POLICY "disputes parties read" ON public.disputes
+ * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | (lower(recipient_email) = lower(( SELECT auth.email() AS email))) | public.zz_mail_owner(recipient_email)
+ * Q1235: a Helpr-side job sub-select on the poster's refunds.
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql |       WHERE t.customer_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks' |       WHERE t.customer_id = v_uid OR t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.helper_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks'
  * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
  */
 import { describe, it, expect } from "vitest";
@@ -46,8 +51,10 @@ import {
   EXPORTED,
   POSTER_SIDE_EXEMPT,
   exportSections,
+  helperReadableViaJob,
   posterReadableViaJob,
   publicTables,
+  replayedPolicies,
   userKeyedColumns,
 } from "./helpers/dataExportInventory";
 import { EXPORT_SECTIONS, KNOWN_NOT_EXPORTED } from "../../scripts/lib/privacyJourney.mjs";
@@ -198,6 +205,69 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
       .filter((s) => !viaJob.has(s.table))
       .map((s) => s.table);
     expect(wider, "these sections give the poster rows the app's own SELECT rules never show them").toEqual([]);
+  });
+
+  it("Q1235: never wider on the Helpr's side, a job's Helpr gets a row through the job only where RLS shows it to them", () => {
+    // Derived from RLS as the poster side is: every table whose SELECT/ALL policy
+    // admits the job's hired Helpr through a jobs sub-select on helper_id (or
+    // is_series_party). A section that hands the Helpr rows through
+    // `(SELECT j.id FROM public.jobs j WHERE ... j.helper_id = v_uid ...)` must be
+    // one of those tables, else the export shows the Helpr rows (a poster's
+    // refunds, say) the app never does.
+    const viaJob = helperReadableViaJob();
+    expect(viaJob.size, "no Helpr-readable-via-job table parsed from the policies").toBeGreaterThan(3);
+    expect(viaJob.get("disputes")).toBe("job_id");
+    expect(viaJob.has("payment_refunds"), "payment_refunds is the poster's; no policy shows it to the Helpr").toBe(false);
+    const helperSide = sections.filter((s) =>
+      /\(\s*SELECT\s+j\.id\s+FROM\s+public\.jobs\s+j\s+WHERE\s+[^()]*\bj\.helper_id\s*=\s*v_uid\b[^()]*\)/i.test(s.text),
+    );
+    // EXACT (2026-10-05): the sections that use the Helpr's job sub-select today.
+    expect(helperSide.map((s) => s.table).sort()).toEqual(["disputes", "job_revisions"]);
+    const wider = helperSide.filter((s) => !viaJob.has(s.table)).map((s) => s.table);
+    expect(wider, "these sections give the Helpr rows the app's own SELECT rules never show them").toEqual([]);
+  });
+
+  it("Q1233: the policy replay equals the live policies (two-way, by table, name and command)", () => {
+    // The never-wider/never-narrower checks above derive readability from the
+    // policies the MIGRATIONS leave. That is only prod's truth while the files
+    // describe prod: 2026-10-05 four policies had been changed outside them
+    // (restated by 20261005061536). Live list: the write-contract snapshot of prod.
+    const snap = JSON.parse(read("scripts/audit/write-contract.snapshot.json")) as {
+      tables: Record<string, { policies?: { name: string; cmd: string }[] }>;
+    };
+    const live = new Set<string>();
+    for (const [t, v] of Object.entries(snap.tables)) for (const p of v.policies ?? []) live.add(`${t}: "${p.name}" ${p.cmd}`);
+    const replay = new Set<string>();
+    for (const [k, v] of replayedPolicies()) {
+      if (!snap.tables[v.table]) continue; // a dropped table, or a view/other schema the snapshot does not cover
+      const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(v.text)?.[1] ?? "all").toUpperCase();
+      replay.add(`${v.table}: "${k.slice(k.indexOf(":") + 1)}" ${cmd}`);
+    }
+    expect(live.size, "no policy in the write-contract snapshot").toBeGreaterThan(150);
+    expect([...live].filter((x) => !replay.has(x)).sort(), "live on prod but in no migration: restate it in one").toEqual([]);
+    expect([...replay].filter((x) => !live.has(x)).sort(), "in the migrations but not live: a migration must drop it, or prod lost it").toEqual([]);
+  });
+
+  it("Q1233: every function a SELECT/ALL policy calls is a known one", () => {
+    // The readability derivations read policy TEXT; a helper function hides
+    // who it admits. Each one a read policy calls is classified here (EXACT).
+    // @two-way src/test/dataExportCoversEveryUserTable.test.ts:stale KNOWN entry: no read policy calls it any more
+    const KNOWN = new Set(["are_users_blocked", "has_role", "is_series_party", "user_may_see_job_address"]);
+    const BUILTIN = new Set(["auth.uid", "auth.email", "auth.role", "lower", "now", "coalesce"]);
+    const KEYWORD = /^(?:and|or|in|not|exists|using|check|where|any|all|select|from|on|as|case|when|then|else|end|is|null)$/i;
+    const used = new Set<string>();
+    for (const v of replayedPolicies().values()) {
+      if (!tables.has(v.table)) continue;
+      const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(v.text)?.[1] ?? "all").toLowerCase();
+      if (cmd !== "select" && cmd !== "all") continue;
+      for (const m of v.text.matchAll(/\b(?:(\w+)\.)?(\w+)\s*\(/g)) {
+        if (KEYWORD.test(m[2])) continue;
+        const name = m[1] && m[1].toLowerCase() !== "public" ? `${m[1]}.${m[2]}` : m[2];
+        if (!BUILTIN.has(name.toLowerCase())) used.add(name);
+      }
+    }
+    expect([...used].filter((f) => !KNOWN.has(f)).sort(), "a read policy calls a function no check has classified").toEqual([]);
+    expect([...KNOWN].filter((f) => !used.has(f)).sort(), "stale KNOWN entry: no read policy calls it any more").toEqual([]);
   });
 
   it("Q739: a fee share's Stripe transfer id stays the crew member's", () => {

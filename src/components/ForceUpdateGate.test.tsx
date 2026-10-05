@@ -224,7 +224,7 @@ describe("ForceUpdateGate — the block screen is not a dead end", () => {
 // is hard-blocked with no remote un-stick — the worst outcome this gate can produce.
 // @mutate src/hooks/useVersionCheck.ts | installed !== null && installed < required) { | installed !== null && installed <= required) {
 // The schema lever: a bundle below client_compat_floor() must be blocked.
-// @mutate src/hooks/useVersionCheck.ts | if (floor > FLOOR_UNKNOWN && isBelowFloor(floor, CLIENT_COMPAT_EPOCH)) { | if (floor > FLOOR_UNKNOWN && isBelowFloor(floor, CLIENT_COMPAT_EPOCH + 1)) {
+// @mutate src/hooks/useVersionCheck.ts | if (evidence && floor > FLOOR_UNKNOWN && isBelowFloor(floor, CLIENT_COMPAT_EPOCH)) { | if (evidence && floor > FLOOR_UNKNOWN && isBelowFloor(floor, CLIENT_COMPAT_EPOCH + 1)) {
 
 describe("ForceUpdateGate — the schema lever (client_compat_floor, 2026-10-05 launch blocker)", () => {
   /** get_public_platform_settings says the build is fine; client_compat_floor says `floor`. */

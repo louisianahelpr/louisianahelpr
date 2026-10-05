@@ -763,10 +763,6 @@ function PostedJobCardInner({
                 confirmingWorkingJobId={confirmingWorkingJobId}
                 onActionComplete={onActionComplete}
               />
-              {/* The date-change request, LAST on the open card (owner,
-                  2026-10-05: expanded only, and never a band of its own
-                  between the meta row and the brief). Below the card's own
-                  action row it reads as the secondary move it is. */}
               <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} />
             </div>
             )}
@@ -810,29 +806,17 @@ function PostedJobCardInner({
                 cards sit in two tabs of one screen: a status line that lived
                 at the top of one and the bottom of the other would be the
                 "assembled rather than designed" defect this card keeps having
-                removed. The dispute is no less visible for it — it is still a
-                full-width tinted band on the collapsed card, unmissable
-                without a tap, which was the whole of the 2026-09-06 finding.
+                removed. The dispute stays a full-width tinted band on the
+                collapsed card, unmissable without a tap (the 2026-09-06 finding).
 
-                The rule this strip reads is NOT a new one: `posterStatusLine`
-                takes its eyebrow from `postedActivityBucket` (the same word as
-                the tab above the list) and its sentence from the confirmation
-                ladder and the bucket's own predicates. See jobStatusLine.ts. */}
-            {/* THE START CLOCK ON THE COLLAPSED CARD TOO (owner, 2026-10-05:
-                "Job starts in" and the confirm deadline must each show when the
-                card is collapsed, not only expanded). The confirm deadline rides
-                the strip below; the start clock is the same pill the expanded
-                body draws. Guard: src/test/offerCardHierarchy.test.tsx. */}
-            {!isExpanded && job.status === "accepted" && (
-              <div className="px-4 pb-2" data-collapsed-start-clock="">
-                <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
-              </div>
-            )}
+                The rule it reads is not new: see `posterStatusLine` in
+                jobStatusLine.ts. */}
             {!isExpanded && (
               <PosterStatusStrip
                 job={withDisputeSettling(job, unsettledDisputeJobIds)}
                 pendingApplicantCount={pendingApplicantCounts?.[job.id] ?? 0}
                 completedMeta={completedJobMeta[job.id]}
+                showStartClock={job.status === "accepted"}
               />
             )}
           </JobCardShell>

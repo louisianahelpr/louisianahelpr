@@ -1,5 +1,5 @@
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
-import { JobCountdown } from "@/components/job-card/JobCountdown";
+import { CollapsedStartClock } from "@/components/job-card/CollapsedStartClock";
 import { helperStatusLine, withDisputeSettling } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
 import { CrewStatusStrip } from "./CrewMemberSection";
@@ -56,11 +56,7 @@ export function HelperCollapsedStrip({
   /** No strip on an offer: OfferedActions is its statement and carries its one clock (owner, 2026-10-05). */
   hideStatus?: boolean;
 }) {
-  const clock = showStartClock ? (
-    <div className="px-4 pb-2" data-collapsed-start-clock="">
-      <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
-    </div>
-  ) : null;
+  const clock = showStartClock ? <CollapsedStartClock job={job} /> : null;
   if (hideStatus) return clock;
   const strip = isCrewLive
     ? <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />

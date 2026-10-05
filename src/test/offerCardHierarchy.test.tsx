@@ -24,10 +24,10 @@
  *      and waits while the gate is unknown.
  *
  * @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |   if (step === "scheduled" && !job.helper_confirmed_at) return null; |   if (false) return null;
- * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && job.status === "accepted" && ( | {false && (
- * @mutate src/pages/jobs/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && isConfirmed && ( | {false && (
+ * @mutate src/pages/posts/PostedJobCard.tsx | showStartClock={job.status === "accepted"} | showStartClock={false}
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | showStartClock={isConfirmed} | showStartClock={false}
  * @mutate src/components/series/JobSeriesCardControls.tsx |   if (!expanded) return null; |   if (false) return null;
- * @mutate src/pages/jobs/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && !isOffered && <JobStatusStrip | {!isMinimalCard && !isExpanded && <JobStatusStrip
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} | hideStatus={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isOffered && isExpanded && ( | {false && (
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | : setupLabel ?? (acceptPending ? "Finish Stripe Setup" : "Accept Job"); | : (acceptPending ? "Finish Stripe Setup" : "Accept Job");
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |   const setupStep = !gate.loading && (!!gate.reason \|\| acceptPending); |   const setupStep = false;

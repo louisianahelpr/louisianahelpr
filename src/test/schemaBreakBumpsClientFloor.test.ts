@@ -33,7 +33,7 @@ import { replayTablePrivileges, type Priv } from "./helpers/tablePrivilegeReplay
 
 // @mutate src/lib/clientCompat.ts | export const CLIENT_COMPAT_EPOCH = 1; | export const CLIENT_COMPAT_EPOCH = 2;
 // @mutate supabase/migrations/20261005191110_client_compat_floor.sql | AS $$ SELECT 1 $$; | AS $$ SELECT 0 $$;
-// @mutate src/test/schemaBreakBumpsClientFloor.test.ts | const FLOOR_INTRODUCED = "20261005191110_client_compat_floor.sql"; | const FLOOR_INTRODUCED = "20261004162921_payout_holds_server_side.sql";
+// @mutate src/test/schemaBreakBumpsClientFloor.test.ts | client_compat_floor.sql";\n | payout_holds_server_side.sql";\n
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");

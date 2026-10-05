@@ -20,6 +20,7 @@ import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { compareJobsBySortMode } from "@/lib/smartSort";
 import { useProfile } from "@/hooks/useProfile";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
+import { useNotifyWhenWorkLands } from "@/hooks/useNotifyWhenWorkLands";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
 import { toast } from "sonner";
@@ -308,6 +309,7 @@ export function BrowseTasksFeed({
   const userLat = fallbackLoc?.lat ?? null;
   const userLng = fallbackLoc?.lng ?? null;
   const navigate = useNavigate();
+  const notifyWhenWorkLands = useNotifyWhenWorkLands();
 
   // Stable per-card expand toggle. Previously an inline arrow was created
   // for every card on every render — that defeated SwipeableJobCard's
@@ -640,9 +642,7 @@ export function BrowseTasksFeed({
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() =>
-                    navigate(user ? "/profile?tab=notifications" : "/signup")
-                  }
+                  onClick={notifyWhenWorkLands}
                   className="rounded-ds-md font-sans font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >

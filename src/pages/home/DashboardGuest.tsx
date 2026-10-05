@@ -36,6 +36,7 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { signupUrlFor } from "@/lib/jobIntent";
+import { NOTIFY_SIGNUP_URL } from "@/lib/notifyWhenWorkLands";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -564,7 +565,7 @@ const DashboardGuest = () => {
         effectiveFee={TIER_PERKS.free.platformFeePercent}
         emptyStateCta={{
           label: "Get pinged when a job lands",
-          onClick: () => navigate("/signup"),
+          onClick: () => navigate(NOTIFY_SIGNUP_URL),
         }}
       />
     </Suspense>
@@ -673,7 +674,7 @@ const DashboardGuest = () => {
                 onWiden={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
                 onShowAllLocations={() => filters.setLocationFilter("")}
                 onClearFilters={filters.clearFilters}
-                onNotify={() => navigate("/signup")}
+                onNotify={() => navigate(NOTIFY_SIGNUP_URL)}
                 onHire={() => navigate("/signup")}
               />
             }

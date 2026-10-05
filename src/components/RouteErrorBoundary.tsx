@@ -9,6 +9,7 @@ import {
   hardReloadBypassCache,
   recoverFromChunkError,
   isRecoveryReloadInFlight,
+  cancelPendingChunkRetry,
 } from "@/lib/chunkReload";
 import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
 
@@ -122,11 +123,21 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     });
   }
 
+  componentWillUnmount() {
+    // Q982 (2): every route mounts its own boundary, so leaving a broken route
+    // unmounts this one. A retry it scheduled must not reload the page the
+    // visitor has moved to.
+    if (this.state.recovering) cancelPendingChunkRetry();
+  }
+
   componentDidUpdate(prevProps: InnerProps) {
     // Navigating away from a crashed route should clear the error so the
     // user doesn't get trapped on the fallback if they hit "Go home" or
     // any other in-app link.
     if (this.state.hasError && prevProps.pathname !== this.props.pathname) {
+      // Q982 (2): a retry scheduled for the broken route must not reload the
+      // page the visitor has since moved to.
+      if (this.state.recovering) cancelPendingChunkRetry();
       this.setState({ hasError: false, error: null, recovering: false });
     }
   }

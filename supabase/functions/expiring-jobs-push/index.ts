@@ -15,9 +15,12 @@
 // even if the cron runs twice during the same window.
 //
 // Auth: cron secret (CRON_SECRET) or service_role key. Not user-callable.
-// Schedule: once daily — recommend 9am Central (14:00 UTC).
+// Schedule: hourly through the Louisiana day, '14 13-23,0-2 * * *' (Q994,
+// 20261005060246). Once a day missed every listing posted after the run that
+// expired before the next one; src/test/expiringJobsPushCadence.test.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -46,7 +49,7 @@ serve(async (req) => {
     return new Response("Unauthorized", { status: 401, headers: corsHeaders });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
   try {
     const now = new Date();

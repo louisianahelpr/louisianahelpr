@@ -41,6 +41,7 @@
 // the common case of that race into an adoption rather than a second post.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -74,7 +75,7 @@ const FN = "marketing-publish";
  * zero-row write.
  */
 function makeDb(url: string, key: string) {
-  return createClient(url, key);
+  return createClient(url, key, { global: { fetch: boundedFetch() } });
 }
 type Db = ReturnType<typeof makeDb>;
 

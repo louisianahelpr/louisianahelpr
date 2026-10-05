@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterAll, beforeAll, describe, it, expect } from "vitest";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as safety from "../../scripts/audit/pressProdSafety.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
@@ -24,6 +24,11 @@ const base = { meta: { rowText: "" }, chainOwned: false, persona: "customer", ro
 // @mutate scripts/audit/pressProdSafety.mjs | if (ACCOUNT_DESTROY_RX.test(label)) return SKIP_DESTROY; |
 // @mutate scripts/audit/pressProdSafety.mjs | profiles?select=user_id,full_name,email&is_seed=eq.true&limit=500 | profiles?select=user_id,full_name,email&limit=500
 describe("press-every-control mutation gate (prod)", () => {
+  // The script only sends keys to *.supabase.co or a loopback stub (scripts/lib/apiBase.mjs
+  // supabaseBase); the unit env's https://unit-test.invalid is neither, so point it at a stub.
+  const savedUrl = process.env.PLAYWRIGHT_SUPABASE_URL;
+  beforeAll(() => { process.env.PLAYWRIGHT_SUPABASE_URL = "http://127.0.0.1:1"; });
+  afterAll(() => { if (savedUrl === undefined) delete process.env.PLAYWRIGHT_SUPABASE_URL; else process.env.PLAYWRIGHT_SUPABASE_URL = savedUrl; });
   it("never presses anything that would destroy the shared test account", async () => {
     expect(await gate({ ...base, label: "Delete account", routeUrl: "/profile?tab=settings" })).toBe(safety.SKIP_DESTROY);
     expect(await gate({ ...base, label: "Deactivate", routeUrl: "/profile" })).toBe(safety.SKIP_DESTROY);

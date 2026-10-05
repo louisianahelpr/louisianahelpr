@@ -313,6 +313,6 @@ describe("workflow wiring", () => {
     expect(src.match(/fetch\(/g)).toHaveLength(1);
     // The script holds no Stripe key: its one request goes to the edge function.
     expect(src).toContain("stripe-webhook-config-check");
-    expect(src).not.toMatch(/api\.stripe\.com/);
+    expect(src).not.toContain("api.stripe.com");
   });
 });

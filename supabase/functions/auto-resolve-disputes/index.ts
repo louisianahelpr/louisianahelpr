@@ -1,5 +1,6 @@
 import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -95,7 +96,8 @@ serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
+      (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!,
+      { global: { fetch: boundedFetch() } },
     );
 
     // Fail loud on a missing key rather than passing "" to the SDK, which the

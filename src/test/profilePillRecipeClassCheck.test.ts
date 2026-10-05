@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * CLASS CHECK — every labelled group on the public profile wears the SAME pill.
@@ -38,8 +39,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 const ROOT = resolve(__dirname, "../..");
 const DIR = resolve(ROOT, "src/pages/user");
 
-const stripComments = (src: string): string =>
-  src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
+const stripComments = (src: string): string => blankComments(src);
 
 const files = readdirSync(DIR)
   .filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx"))

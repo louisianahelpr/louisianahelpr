@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-05T08:00:02.619Z",
-  "guards": 1458,
-  "registered": 1458,
+  "generated": "2026-10-05T08:19:49.792Z",
+  "guards": 1477,
+  "registered": 1477,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -30,7 +30,9 @@
     "src/test/migrationRelationGrants.test.ts",
     "src/test/replyParentDeleteCascade.test.ts",
     "src/test/storageBucketLimits.test.ts",
-    "src/test/unknownZipIsNeverSilent.test.ts"
+    "src/test/strandedWork.test.ts",
+    "src/test/unknownZipIsNeverSilent.test.ts",
+    "src/test/vacuityWaitsForDeploys.test.ts"
   ],
   "classD_selfReferential": [
     {

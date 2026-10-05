@@ -44,7 +44,8 @@ describe("PR run budget", () => {
       // The dispatcher passes batch=true, and the run is titled so that
       // main-red-watch reports it and the shared-accounts lock ignores it.
       expect(on).toMatch(/^\s{2}workflow_dispatch:\n\s{4}inputs:\n(?:\s{6}.*\n|\s*#.*\n)*?\s{6}batch:\n\s{8}description: .*\n\s{8}type: boolean/m);
-      expect(src).toMatch(/^run-name: \$\{\{ inputs\.batch && format\('\{0\} \(main batch \{1\}\)', github\.workflow, github\.sha\) \|\| github\.workflow \}\}$/m);
+      // ui-sweep adds one exact middle clause: a hand dispatch names its sweep (#2198).
+      expect(src).toMatch(/^run-name: \$\{\{ inputs\.batch && format\('\{0\} \(main batch \{1\}\)', github\.workflow, github\.sha\) \|\| (?:inputs\.sweeps && format\('\{0\} \(\{1\} sweep, \{2\}\)', github\.workflow, inputs\.sweeps, inputs\.variants\) \|\| )?github\.workflow \}\}$/m);
       expect(TARGETS.map((t) => t.file)).toContain(f);
     });
   }

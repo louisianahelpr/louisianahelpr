@@ -24,6 +24,8 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 
@@ -117,7 +119,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
   const { user } = useAuthReady();
   const userId = user?.id;
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: ["home-history", userId],
     enabled: !!userId,
     staleTime: 60_000,
@@ -221,6 +223,8 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
 
   const grouped = useMemo(() => groupByYear(data ?? []), [data]);
   const loading = isLoading && !data;
+  // Q571: offline with nothing loaded is not "No finished jobs yet".
+  const offlineEmpty = useFeedPhase({ status, fetchStatus }) === "offline-empty";
   const [isSharing, setIsSharing] = useState(false);
 
   /**
@@ -307,7 +311,14 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
             the kind. See ProfileTabBodyReserve. */}
         {loading && <ProfileTabBodyReserve tab="home_history" />}
 
-        {isError && !loading && (
+        {offlineEmpty && (
+          <OfflineEmptyState
+            body="Your home's service history will load here as soon as you're back online."
+            onRetry={() => void refetch()}
+          />
+        )}
+
+        {isError && !loading && !offlineEmpty && (
           <ErrorState
             variant="inline"
             title="We couldn't load your home history"
@@ -319,7 +330,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
             (and shared card) that Browse and Messages use, instead of the
             bespoke copy of it this page used to carry. Same message, one
             fewer hand-rolled surface. */}
-        {!loading && !isError && (data ?? []).length === 0 && (
+        {!loading && !isError && !offlineEmpty && (data ?? []).length === 0 && (
           <EmptyState
             variant="inline"
             icon={Home}

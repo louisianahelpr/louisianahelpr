@@ -1,5 +1,5 @@
 // @mutate docs/OPEN.md | - [ ] **Q7 MEDIUM WebKit only | - [~] **Q7 MEDIUM WebKit only
-// @mutate docs/OPEN.md | select count(*) > 0 from tips where payment_status = 'paid' | select public.check_push_token_health() is not null from tips where payment_status = 'paid'
+// @mutate scripts/open-done-when.mjs |     .filter((name) => appFns.has(name)); |     .filter((name) => !appFns.has(name));
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }
 /*
@@ -19,7 +19,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
+import { appFunctionsCalled, partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
 import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
@@ -28,7 +28,9 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 /** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-10-02 after the LOW branch rebased: 21 (four new "FIXED 2026-10-02, protection pending" lines whose last step is a 375 screenshot, which no marker kind can express); 19 after Q73 and Q387 were ticked done (combined landing #2087); 15 after rebasing onto origin/main 2026-10-02; 18 after three stranded notes landed (Q858 waits on Q785; Complete Profile and My Posts wait on a 375 screenshot); 17 after pd-b gave one a marker; 24 on 2026-10-03 after the lead removed seven markers that held while their items' own remaining work did not (Q71, Q104, Q380, Q416, Q421, Q593, Q701; each line says why); 20 on 2026-10-03 after Q340 got its done-when marker (lane B).; 22 on 2026-10-03 after the perf lane marked Q1157 and Q1158 fixed-and-waiting: what is left of each is Vercel Speed Insights' real-user P75 after deploy, which no marker kind can read (no API) */
 // 24 on 2026-10-04: Q654 and Q1172 are fixed in part and wait on the lead's real-browser filmstrip, 375 LCP/FCP and Lighthouse, which no marker kind can express (merging the PR is not "done").
 // 26 on 2026-10-05: the money lane's Q805 (chargeback follow-ups wait on a Stripe test-mode dispute run and the owner's webhook secret) and Q1336 (waits on the owner subscribing the live endpoint to charge.refund.updated) are fixed in part; neither wait is something a done-when marker can read.
-const MARKERLESS_PARTLY_DONE = 26;
+// 23 on 2026-10-05: Q430 got its done-when marker (issue #2213, the loading-states-refresh fixture run); its burst half was measured green.
+// 25 once both land: 26 (Q805, Q1336) minus Q430's new marker.
+const MARKERLESS_PARTLY_DONE = 25;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);
@@ -60,15 +62,15 @@ describe("[~] items say when they are done", () => {
     expect(fns.size, "read no functions from supabase/migrations").toBeGreaterThan(200);
     const bad = items.flatMap((i) =>
       i.markers.flatMap((m) =>
-        m.kind !== "sql"
-          ? []
-          : [...String(m.query).matchAll(/(?:public\.)?(\w+)\s*\(/gi)]
-              .map((x) => x[1].toLowerCase())
-              .filter((name) => fns.has(name))
-              .map((name) => `${i.id}: ${name}()`),
+        m.kind !== "sql" ? [] : appFunctionsCalled(String(m.query), fns).map((name) => `${i.id}: ${name}()`),
       ),
     );
     expect(bad).toEqual([]);
+    // The check itself, on fixed queries: OPEN.md's own markers change every
+    // day, and a mutation of one went vacuous when its item left [~]
+    // (vacuity 37262748113, 2026-10-05, Q788).
+    expect(appFunctionsCalled("select public.check_push_token_health() is not null", fns)).toEqual(["check_push_token_health"]);
+    expect(appFunctionsCalled("select count(*) > 0 from tips where payment_status = 'paid'", fns)).toEqual([]);
   });
 
   it("every done-when marker in OPEN.md parses", () => {

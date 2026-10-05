@@ -147,6 +147,8 @@ const refundAttempt = (): void => {
 };
 
 let pendingRetry:ReturnType<typeof setTimeout> | null = null;
+/** A scheduled retry that found the device offline and now waits for `online`. */
+let pendingOnlineRetry: (() => void) | null = null;
 
 /**
  * Speculative route prefetches currently in flight (`src/lib/routePrefetch.ts`).
@@ -352,10 +354,34 @@ export const markChunkLoadSucceeded = (): void => {
   }
 };
 
+/**
+ * The visitor left the page that was waiting on a scheduled retry (Q982 (2)).
+ *
+ * A retry scheduled for later (attempt 2+, CHUNK_RELOAD_SCHEDULE_MS) fired
+ * whatever happened meanwhile, so someone who tapped "Go Home" or any working
+ * link off a broken route was reloaded out of the page they had moved to,
+ * ~5-40 s later, with no warning. RouteErrorBoundary calls this when the
+ * pathname changes under its quiet "updating" state. Only a PENDING retry is
+ * dropped: a reload already under way (hardReloadBypassCache) is not, and the
+ * attempt is not spent (a scheduled retry writes its attempt when it fires).
+ * Returns whether a retry was dropped.
+ */
+export const cancelPendingChunkRetry = (): boolean => {
+  if (!pendingRetry && !pendingOnlineRetry) return false;
+  if (pendingRetry) clearTimeout(pendingRetry);
+  if (pendingOnlineRetry) window.removeEventListener("online", pendingOnlineRetry);
+  pendingRetry = null;
+  pendingOnlineRetry = null;
+  recoveryReloadInFlight = false;
+  return true;
+};
+
 /** Test-only: drop any scheduled retry. */
 export const __resetChunkReloadForTests = (): void => {
   if (pendingRetry) clearTimeout(pendingRetry);
   pendingRetry = null;
+  if (pendingOnlineRetry) window.removeEventListener("online", pendingOnlineRetry);
+  pendingOnlineRetry = null;
   recoveryReloadInFlight = false;
   speculativePrefetchesInFlight = 0;
   lateBackgroundImports = 0;
@@ -521,9 +547,11 @@ export const recoverFromChunkError = (): boolean => {
     recoveryReloadInFlight = true;
     const fire = () => {
       pendingRetry = null;
+      pendingOnlineRetry = null;
       // Offline at fire time: wait for the network rather than give up, so
       // the quiet state this page is showing still ends in a reload.
       if (isOffline()) {
+        pendingOnlineRetry = fire;
         window.addEventListener("online", fire, { once: true });
         return;
       }

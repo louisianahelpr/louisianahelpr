@@ -60,7 +60,8 @@ const CATCH_UP_SAFE = [
   "daily-match-digest",
   "detect-suspicious-user-patterns",
   "engagement-automations",
-  "expiring-jobs-push",
+  // expiring-jobs-push left the list in 20261005060246 (Q994): it runs hourly
+  // through the day, so its next hour is its catch-up.
   "marketing-token-health",
   "money-reconciliation",
   "ops-daily-digest",

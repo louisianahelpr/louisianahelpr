@@ -20,6 +20,8 @@ import {
 } from "./fixtures";
 import type { Page } from "@playwright/test";
 import { writeFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 // Scratch measurement tooling for the accessibility audit lane — NOT a suite
 // contract. A full pass is ~15 minutes of navigation and per-character range
@@ -31,7 +33,7 @@ test.skip(
   "senior-mode measurement probe — set LH_SENIOR_PROBE=1 to run",
 );
 
-const OUT = "/tmp/lh-senior";
+const OUT = join(homedir(), ".lh-shots", "lh-senior");
 mkdirSync(OUT, { recursive: true });
 const TAG = process.env.LH_TAG || "run";
 

@@ -22,6 +22,7 @@
  * Exit: 0 every money object since T has its row; 1 some do not (listed);
  *       2 could not measure.
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { writeFileSync } from "node:fs";
 import { DB_ID_COLUMNS, STRIPE_LISTS, gradeKind, isStripeList, keyForMode, parseSince } from "./lib/stripeRestoreReconcile.mjs";
 
@@ -45,7 +46,7 @@ try {
   unmeasured(e.message);
 }
 const JSON_OUT = opt("json", null);
-const STRIPE_BASE = (process.env.LH_STRIPE_API_BASE || "https://api.stripe.com").replace(/\/+$/, "");
+const STRIPE_BASE = apiBase(process.env.LH_STRIPE_API_BASE, "https://api.stripe.com");
 
 const DB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DB_BASE = (

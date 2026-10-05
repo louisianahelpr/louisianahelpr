@@ -16,7 +16,7 @@
  * Test data is marked `[NIGHT-AUDIT]` and removed at the end.
  */
 import { chromium } from "@playwright/test";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 const BASE = process.env.BASE ?? "http://localhost:5183";
 const SUPABASE_URL = "https://fncmgoasalhdgfwzhsqa.supabase.co";
@@ -28,7 +28,7 @@ const step = (name, ok, detail) => {
 };
 
 const mint = (who) =>
-  JSON.parse(execSync(`node scripts/test-signin-link.mjs ${who} --session --json`, {
+  JSON.parse(execFileSync("node", ["scripts/test-signin-link.mjs", who, "--session", "--json"], {
     cwd: "/Users/lexilombas/louisianahelpr", encoding: "utf8", maxBuffer: 1 << 24,
   }));
 

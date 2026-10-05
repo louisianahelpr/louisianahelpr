@@ -46,6 +46,12 @@ export type Message = {
   clientId?: string;
   sendStatus?: "sending" | "failed" | "refused";
   /**
+   * Why the server refused the send, when a trigger on messages said so
+   * (src/lib/messageSendRefusal.ts, Q998). The bubble names it instead of a
+   * bare "Not Sent". Cleared when a retry starts.
+   */
+  failReason?: import("@/lib/messageSendRefusal").SendRefusalKind;
+  /**
    * True for DB-generated status-change notifications (sender_id is NULL).
    * These render as centered italic pills in the thread instead of chat
    * bubbles. Never set on messages created by a human sender.

@@ -73,7 +73,7 @@
  * `npm run gate`.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync, unlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { listEvidence } from "./check-staleness.mjs";
@@ -283,7 +283,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/audit/rail-overlap-probe.mjs": "test-results/rail-probe",
   "scripts/perf/measure-load.mjs": "Q178 load timings to ~/.lh-shots/q178 (evidence outside the repo); the CI budget is scripts/perf/critical-path.mjs --check",
   "scripts/perf/cwv-lab.mjs": "Q1157/Q1158 Web Vitals lab tables, filmstrips and screenshots to ~/.lh-shots/perf (evidence outside the repo) and a throwaway TLS certificate in the OS temp dir; the CI budget is e2e/web-vitals/first-screens.spec.ts",
-  "scripts/audit/walk-every-control.mjs": "/tmp/lh-audit",
+  "scripts/audit/walk-every-control.mjs": "~/.lh-shots/lh-audit",
   "scripts/audit/measurement-from-log.mjs": "a TRANSPORT, not a generator: rebuilds the loading-states EVIDENCE output (docs/audit/loading-states/measurements.json, produced by measure-loading-states.mjs) byte-for-byte from a loading-states-refresh branch run's log, sha256-checked, for a session that cannot reach the artifact host (#1773)",
   "scripts/build-og-shell.mjs": "dist/ (build output)",
   "scripts/canary/shared-accounts-busy.mjs": "GITHUB_OUTPUT only (the Q61 canary's stand-down verdict)",
@@ -310,7 +310,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/probes/mint-funded-seed-jobs.prod.mjs": "--out fixture ledger",
   "scripts/prod-errors-check.mjs": "CI report + GITHUB_OUTPUT",
   "scripts/prune-git-hygiene.mjs": "~/.lh-hygiene log",
-  "scripts/state-review.mjs": "/tmp/lh-state-review",
+  "scripts/state-review.mjs": "~/.lh-shots/lh-state-review",
   "scripts/storage-orphan-sweep.mjs": "sweep log",
   "scripts/expiry-check.mjs": "expiry-report.md (CI step summary) + GITHUB_OUTPUT",
   "scripts/supabase-usage-check.mjs": "CI report + GITHUB_OUTPUT",
@@ -441,7 +441,7 @@ export function checkGenerator(g) {
   } finally {
     for (const [o, text] of saved) {
       const p = join(REPO, o);
-      if (text === null) { if (existsSync(p)) unlinkSync(p); } else writeFileSync(p, text);
+      if (text === null) rmSync(p, { force: true }); else writeFileSync(p, text); // force: an absent file is already the wanted state
     }
   }
   const refresh = g.cmd.join(" ");

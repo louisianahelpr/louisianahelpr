@@ -123,7 +123,7 @@ function ctx(job: Job): PosterStepCtx {
     confirmingWorkingJobId: null,
     instantReleaseOn: false,
     navigate: vi.fn(),
-    onBoost: vi.fn(), onEdit: vi.fn(), onCancel: vi.fn(), onComplete: vi.fn(),
+    onBoost: vi.fn(), onEdit: vi.fn(), crewBooked: false, onCancel: vi.fn(), onComplete: vi.fn(),
     onNoShow: vi.fn(), onTip: vi.fn(), onReview: vi.fn(), onDispute: vi.fn(),
     onReport: vi.fn(), onViewDispute: vi.fn(), onConfirmArrival: vi.fn(),
     onConfirmWorking: vi.fn(), onActionComplete: vi.fn(),

@@ -61,6 +61,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * A step a person can see. 8 points is what the treatment gives an untinted
@@ -203,9 +204,7 @@ describe("a hover tint is a step a person can see", () => {
     // the same trap that bit twoFontTypeSystem, the vacuity preflight and the
     // hover cva scan today. A guard satisfied (or failed) by a comment is not
     // reading the code.
-    const src = readFileSync("src/components/ui/popupFooter.ts", "utf8")
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+    const src = blankComments(readFileSync("src/components/ui/popupFooter.ts", "utf8"));
     expect(
       src,
       "the popup dismiss must use the on-tint tone — it rests on a tint, so the plain wash moves it four units",

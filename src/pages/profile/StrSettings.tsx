@@ -23,6 +23,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,7 +55,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
   // `connections` falls back to [] and the page would otherwise render
   // "No calendars connected yet" — telling a host their calendars are gone
   // and inviting them to re-add a duplicate feed. Error must read as error.
-  const { data: connections = [], isLoading, isError, isFetching, refetch } = useQuery({
+  const { data: connections = [], isLoading, isError, isFetching, refetch, status, fetchStatus } = useQuery({
     queryKey: ["str-calendar-connections", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
@@ -214,7 +216,9 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
   // collapsible row underneath it would be the same invitation twice (and was
   // why the old empty copy had to point "below"). Show one or the other: the
   // empty card until the host asks to add, the form from then on.
-  const showEmptyState = !isLoading && !isError && connections.length === 0 && !addOpen;
+  // Q571: offline with nothing loaded is not "no calendars connected".
+  const offlineEmpty = useFeedPhase({ status, fetchStatus }) === "offline-empty";
+  const showEmptyState = !isLoading && !isError && !offlineEmpty && connections.length === 0 && !addOpen;
 
   // Factual cadence copy — verbatim in both places it renders (desktop rail /
   // mobile footnote). Only one of the two is ever on screen.
@@ -247,6 +251,13 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <HelprSpinner size={24} />
+              </div>
+            ) : offlineEmpty ? (
+              <div className="flex">
+                <OfflineEmptyState
+                  body="Your connected calendars will load here as soon as you're back online."
+                  onRetry={() => void refetch()}
+                />
               </div>
             ) : isError ? (
               <div className="flex">

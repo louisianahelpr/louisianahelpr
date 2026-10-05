@@ -5,6 +5,7 @@ import { render, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ProfileTabFallback, TAB_SHAPES } from "./ProfileTabFallback";
 import { TAB_TITLES, type Tab } from "@/pages/profile/types";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 /**
  * THE OWNER'S RULING, AS A CHECK — "skeleton fills the screen, grows below"
@@ -109,9 +110,7 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     // and three stat tiles — because the boot branch special-cased exactly one
     // tab. Read from the source, because this branch runs before any query
     // resolves and no render test reaches it.
-    const src = readFileSync(resolve(__dirname, "../../pages/profile/Profile.tsx"), "utf8")
-      .replace(/\/\*[\s\S]*?\*\//g, " ")
-      .replace(/\/\/[^\n]*/g, " ");
+    const src = blankComments(readFileSync(resolve(__dirname, "../../pages/profile/Profile.tsx"), "utf8"));
     const branch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const displayName"));
     expect(branch.length, "Profile.tsx's loading branch was not found — this guard has rotted").toBeGreaterThan(100);
     expect(branch, "the boot skeleton must render the tab's own placeholder").toContain("ProfileTabFallback");

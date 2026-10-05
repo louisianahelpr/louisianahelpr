@@ -8,7 +8,7 @@
  * `position: fixed` element, so those are what this measures.
  */
 import { chromium } from "@playwright/test";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.PROBE_BASE || "http://127.0.0.1:4173";
@@ -18,7 +18,7 @@ mkdirSync(OUT, { recursive: true });
 
 const ROUTES = (process.env.PROBE_ROUTES || "/messages,/home,/jobs,/activity,/profile,/browse,/notifications,/settings").split(",");
 
-const raw = JSON.parse(execSync(`node scripts/test-signin-link.mjs ${process.env.PROBE_ROLE || "poster-e2e"} --session --json`, { encoding: "utf8", maxBuffer: 1 << 24 }));
+const raw = JSON.parse(execFileSync("node", ["scripts/test-signin-link.mjs", process.env.PROBE_ROLE || "poster-e2e", "--session", "--json"], { encoding: "utf8", maxBuffer: 1 << 24 }));
 
 const browser = await chromium.launch();
 // Width is a PARAMETER, not a constant. The first run of this probe was

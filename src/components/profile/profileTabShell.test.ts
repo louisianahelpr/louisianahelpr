@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { PROFILE_TAB_BODY_CLASS } from "./ProfileTabBody";
 import { readdirSync } from "../../test/helpers/trackedFiles";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 /**
  * EVERY Profile tab renders into the SAME box — enforced on the primitive,
@@ -82,9 +83,7 @@ function filesRenderingATabHeader(): string[] {
 
 /** Source with line and block comments blanked, so prose can never match. */
 function stripComments(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, " "));
+  return blankComments(src);
 }
 
 /** Any Tailwind utility that moves or narrows a box HORIZONTALLY. */

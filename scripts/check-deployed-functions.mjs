@@ -21,6 +21,7 @@
  * Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF (LH_SUPABASE_API_BASE for tests).
  * Exit: 0 identical · 1 drift · 2 could not check.
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -48,7 +49,7 @@ async function listDeployed() {
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   const ref = process.env.SUPABASE_PROJECT_REF;
   if (!token || !ref) throw new Error("SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
-  const base = process.env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
+  const base = apiBase(process.env.LH_SUPABASE_API_BASE, "https://api.supabase.com");
   const res = await fetch(`${base}/v1/projects/${ref}/functions`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new Error(`Management API GET /functions ${res.status}`);
   const body = await res.json();

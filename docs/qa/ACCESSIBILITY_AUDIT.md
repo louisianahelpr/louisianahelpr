@@ -39,7 +39,7 @@ one theme, leaving dark mode above phone width swept by nothing.
 `.github/workflows/ui-sweep.yml` runs the same axe scan over the **empty-state**
 version of every screen on each push (phone-light), plus weekly seeded and
 error-state sweeps. Evidence for a red run is uploaded as
-`/tmp/ui-review/a11y-report.json` (per-screen violations with axe's own
+`~/.lh-shots/ui-review/a11y-report.json` (per-screen violations with axe's own
 measured contrast ratios) paired with the screenshot of each screen.
 
 ### What the automated job DOES cover

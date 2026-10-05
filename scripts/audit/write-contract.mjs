@@ -523,7 +523,12 @@ if (isMain) {
   const args = new Set(process.argv.slice(2));
   if (args.has("--refresh")) {
     const next = serializeSnapshot(fetchSnapshot());
-    const prev = fs.existsSync(SNAPSHOT_PATH) ? fs.readFileSync(SNAPSHOT_PATH, "utf8") : "";
+    let prev = "";
+    try {
+      prev = fs.readFileSync(SNAPSHOT_PATH, "utf8");
+    } catch (e) {
+      if (e?.code !== "ENOENT") throw e; // first snapshot
+    }
     fs.writeFileSync(SNAPSHOT_PATH, next);
     const drifted = prev !== next;
     console.log(drifted ? "write-contract: snapshot CHANGED" : "write-contract: snapshot unchanged");

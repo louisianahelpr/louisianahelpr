@@ -221,7 +221,12 @@ describe("a send refused by the receiver gate", () => {
     fromMock.mockImplementation(() => insertRefused({ code: "42501", message: "You can't message this user." }));
     const s = setup();
     await s.handlers.dispatchMessage(s.optimistic);
-    expect(s.get().messages[0].sendStatus).toBe("failed");
+    // Q998: the block is named and final (a retry can never work), and it is
+    // still not blamed on the receiver rule.
+    expect(s.get().messages[0].sendStatus).toBe("refused");
+    expect(s.get().messages[0].failReason).toBe("blocked");
+    expect(toastError).toHaveBeenCalledWith("You can't message this person.");
+    expect(toastError).not.toHaveBeenCalledWith(RECIPIENT_RESTRICTED_TOAST);
     expect(s.get().active?.recipientRestricted).toBeFalsy();
     expect(gateCalls()).toHaveLength(0);
   });

@@ -29,7 +29,7 @@
  * with a `link` column fails here until its links die with their job.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 
@@ -49,9 +49,10 @@ function migrations(): Mig[] {
 }
 
 function srcText(dir: string, acc: string[] = []): string[] {
-  for (const e of readdirSync(dir)) {
+  for (const dirent of readdirSync(dir, { withFileTypes: true })) {
+    const e = dirent.name;
     const p = join(dir, e);
-    if (statSync(p).isDirectory()) {
+    if (dirent.isDirectory()) {
       if (e === "test" || e === "node_modules" || e === "integrations") continue;
       srcText(p, acc);
     } else if (/\.(ts|tsx)$/.test(e) && !/\.(test|spec)\.(ts|tsx)$/.test(e)) {

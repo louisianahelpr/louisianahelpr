@@ -66,6 +66,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { removeJobMediaRest } from "../lib/jobMediaRest.mjs";
+import { supabaseBase } from "../lib/apiBase.mjs";
 
 /** Bracket-free: see "WHY THE TITLE FILTER HAS NO BRACKETS" above. */
 export const JOB_TITLE_MARKER = "E2E-PRODAUDIT";
@@ -164,7 +165,7 @@ export function checkCap(jobs, cap = MATCH_CAP) {
 
 async function main() {
   const env = readEnv();
-  const base = (env.SUPABASE_URL || env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const base = supabaseBase(env.SUPABASE_URL || env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
   const key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!base || !key) {
     console.error("[prod-audit-sweeper] missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY — refusing to run (no anon/poster fallback).");

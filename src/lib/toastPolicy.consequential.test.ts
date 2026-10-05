@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { toast } from "sonner";
 import { applyToastPolicy, confirmConsequential } from "./toastPolicy";
@@ -105,9 +105,10 @@ describe("the consequential call sites still use it", () => {
     // hole in the policy.
     const offenders: string[] = [];
     const walk = (dir: string) => {
-      for (const name of readdirSync(dir)) {
+      for (const dirent of readdirSync(dir, { withFileTypes: true })) {
+        const name = dirent.name;
         const full = join(dir, name);
-        if (statSync(full).isDirectory()) { walk(full); continue; }
+        if (dirent.isDirectory()) { walk(full); continue; }
         if (!/\.(ts|tsx)$/.test(name) || /\.test\./.test(name) || full.endsWith("toastPolicy.ts")) continue;
         if (/realSuccess|=\s*toast\.success\s*;/.test(readFileSync(full, "utf8"))) offenders.push(full);
       }

@@ -43,7 +43,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Gift, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { posterServiceFeeCents } from "@/lib/posterFees";
@@ -54,12 +54,14 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
-import type { GiftCardRow } from "./giftCards/types";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./giftCards/constants";
 import { GIFT_OCCASIONS, DEFAULT_OCCASION } from "./giftCards/giftCardDesigns";
 import { GiftCardPreview } from "./giftCards/GiftCardPreview";
 import { CreditCard } from "./giftCards/CreditCard";
 import { EmptyState } from "./giftCards/EmptyState";
+import { fetchReceivedGiftCards, fetchSentGiftCards } from "./giftCards/giftCardQueries";
 import { ReceivedListSkeleton, SentListSkeleton } from "./giftCards/ListSkeleton";
 import { RecipientPicker } from "./giftCards/RecipientPicker";
 import type { RecipientMatch } from "./giftCards/RecipientPicker";
@@ -280,25 +282,11 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     isError: donatedFailed,
     isFetching: donatedFetching,
     refetch: refetchDonated,
+    status: donatedStatus,
+    fetchStatus: donatedFetchStatus,
   } = useQuery({
     queryKey: ["gift-cards-sent", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      try {
-        const rows = unwrap(
-          await supabase
-            .from("gift_cards" as never)
-            .select("*")
-            .eq("donor_id", user.id)
-            .order("created_at", { ascending: false }),
-        ) as GiftCardRow[];
-        return rows;
-      } catch (e: unknown) {
-        if (e instanceof Error && e.message.includes("PGRST202")) return [];
-        report(e, { severity: "warning", tags: { source: "GiftCard.donated" } });
-        throw e;
-      }
-    },
+    queryFn: () => (user?.id ? fetchSentGiftCards(user.id) : Promise.resolve([])),
     enabled: !!user?.id,
   });
 
@@ -311,58 +299,11 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     isError: receivedFailed,
     isFetching: receivedFetching,
     refetch: refetchReceived,
+    status: receivedStatus,
+    fetchStatus: receivedFetchStatus,
   } = useQuery({
     queryKey: ["gift-cards-received", user?.id, myEmail],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      // Quote the email value so a reserved char in the local-part (`,` `.` `(`
-      // `)`) can't break the PostgREST .or() grammar. user.id is a UUID, so it
-      // needs no quoting. RLS still constrains rows regardless.
-      const orClause = myEmail
-        ? `recipient_id.eq.${user.id},recipient_email.eq."${myEmail.replace(/(["\\])/g, "\\$1")}"`
-        : `recipient_id.eq.${user.id}`;
-      try {
-        const rows = unwrap(
-          await supabase
-            .from("gift_cards" as never)
-            .select("*")
-            .or(orClause)
-            .order("created_at", { ascending: false }),
-        ) as GiftCardRow[];
-
-        // Attach the donor's display name for the "from {name}" subline. We can't
-        // embed it via PostgREST — gift_cards.donor_id FKs to auth.users (no
-        // full_name, auth schema isn't embeddable), which 400s the whole request
-        // and silently hides every gift from its recipient. So resolve names in a
-        // separate, non-load-bearing profiles lookup keyed by user_id = donor_id.
-        // A failure here leaves the cosmetic name null (CreditCard shows "A
-        // neighbor") but never drops the gifts themselves.
-        const donorIds = [...new Set(rows.map((r) => r.donor_id).filter(Boolean))];
-        if (donorIds.length > 0) {
-          try {
-            const donors = unwrap(
-              await supabase
-                .from("profiles")
-                .select("user_id, full_name")
-                .in("user_id", donorIds),
-            ) as Array<{ user_id: string; full_name: string | null }>;
-            const nameById = new Map(donors.map((d) => [d.user_id, d.full_name]));
-            return rows.map((r) => ({
-              ...r,
-              donor: { full_name: nameById.get(r.donor_id) ?? null },
-            }));
-          } catch {
-            // Name lookup is cosmetic — never let it hide the gifts.
-            return rows;
-          }
-        }
-        return rows;
-      } catch (e: unknown) {
-        if (e instanceof Error && e.message.includes("PGRST202")) return [];
-        report(e, { severity: "warning", tags: { source: "GiftCard.received" } });
-        throw e;
-      }
-    },
+    queryFn: () => (user?.id ? fetchReceivedGiftCards(user.id, myEmail) : Promise.resolve([])),
     enabled: !!user?.id,
   });
 
@@ -372,6 +313,11 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   // cards at 900ms — the page arriving in two waves. Both lists show their
   // placeholders until BOTH have settled, then arrive in one paint.
   const listsLoading = loadingReceived || loadingDonated;
+  // Q571: offline with nothing loaded is not "no gift cards". Telling someone
+  // offline that their unredeemed gift cards do not exist is the false empty
+  // state the isError note above guards against, by another road.
+  const receivedOffline = useFeedPhase({ status: receivedStatus, fetchStatus: receivedFetchStatus }) === "offline-empty";
+  const donatedOffline = useFeedPhase({ status: donatedStatus, fetchStatus: donatedFetchStatus }) === "offline-empty";
 
   // ── Donate mutation — launches Stripe Checkout, never writes the row ───────
   const donateMutation = useMutation({
@@ -824,6 +770,13 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               </p>
               {listsLoading ? (
                 <ReceivedListSkeleton />
+              ) : receivedOffline ? (
+                <div className="flex">
+                  <OfflineEmptyState
+                    body="Gift cards sent to you will load here as soon as you're back online."
+                    onRetry={() => void refetchReceived()}
+                  />
+                </div>
               ) : receivedFailed ? (
                 <div className="flex">
                   <ErrorState
@@ -860,6 +813,13 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               </p>
               {listsLoading ? (
                 <SentListSkeleton />
+              ) : donatedOffline ? (
+                <div className="flex">
+                  <OfflineEmptyState
+                    body="Gift cards you've sent will load here as soon as you're back online."
+                    onRetry={() => void refetchDonated()}
+                  />
+                </div>
               ) : donatedFailed ? (
                 <div className="flex">
                   <ErrorState

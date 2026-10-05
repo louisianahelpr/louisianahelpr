@@ -5,6 +5,7 @@ import { useLongPress } from "@/hooks/useLongPress";
 import { hapticMedium } from "@/lib/haptics";
 import type { Conversation, Message } from "./types";
 import { REVEAL_WIDTH } from "./chatView/useTimestampReveal";
+import { REFUSAL_BUBBLE_LABEL } from "@/lib/messageSendRefusal";
 
 /**
  * Message `content` is attacker-controlled free text, and both the photo and
@@ -323,11 +324,11 @@ export function MessageBubble({
             title="Retry sending"
           >
             <RotateCw className="w-2.5 h-2.5" />
-            Not Sent — Tap to Retry
+            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not Sent — Tap to Retry"}
           </button>
         ) : isRefused ? (
           <span className="text-destructive font-medium">
-            Not Sent — Conversation Closed
+            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not Sent — Conversation Closed"}
           </span>
         ) : (
           <>

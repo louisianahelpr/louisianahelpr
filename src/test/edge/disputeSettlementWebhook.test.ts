@@ -51,7 +51,7 @@
  *
  * Q1193: a webhook's minimal Charge carries no `refunds`; the handler lists them.
  *
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | charge.refunds?.data?.[0] ?? (await listChargeRefunds())[0]; | charge.refunds?.data?.[0];
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | charge.refunds?.data ?? (await listChargeRefunds()); | charge.refunds?.data ?? [];
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | throw new Error(`Could not list the refunds on charge ${charge.id}: ${String(e)}`); | return [];
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | listed ??= (async () => { | listed = (async () => {
  */
@@ -650,8 +650,8 @@ describe("Q1193: charge.refunded reads the refunds from Stripe, not from the eve
     expect(alerts().some((a) => /payment_refunds ledger/.test(a.title))).toBe(false);
   });
 
-  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |               amount_cents: latestRefund.amount,\n              currency: charge.currency,\n              is_partial: false, |               amount_cents: charge.amount_refunded,\n              currency: charge.currency,\n              is_partial: false,
-  it("a charge refunded in two steps: the row that completes it records ITS amount, not the running total (review of Q1193, must-fix 2)", async () => {
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |                 amount_cents: r.amount,\n                currency: charge.currency,\n                is_partial: r.id !== latestRefund.id, |                 amount_cents: charge.amount_refunded,\n                currency: charge.currency,\n                is_partial: r.id !== latestRefund.id,
+  it("a charge refunded in two steps: each row records ITS amount, not the running total (review of Q1193, must-fix 2)", async () => {
     const fn = await loadConfigured();
     minimalChargeEvent("evt_q1193_steps", 5000);
     scenario.reads.jobs = { rows: [job] };
@@ -661,7 +661,55 @@ describe("Q1193: charge.refunded reads the refunds from Stripe, not from the eve
       { id: "re_first", amount: 300, status: "succeeded", metadata: {} },
     ] });
     expect((await post(fn)).status).toBe(200);
-    expect(ledger()).toEqual([expect.objectContaining({ stripe_refund_id: "re_rest", amount_cents: 4700, is_partial: false })]);
+    // Q1300: the earlier refund gets its row too (an upsert that skips it when
+    // its own delivery already wrote it); only the completing one is not partial.
+    expect(ledger()).toEqual([
+      expect.objectContaining({ stripe_refund_id: "re_rest", amount_cents: 4700, is_partial: false }),
+      expect.objectContaining({ stripe_refund_id: "re_first", amount_cents: 300, is_partial: true }),
+    ]);
+  });
+
+  // Q1300: the event does not name its refund; list[0] alone dropped the
+  // earlier of two close refunds and could read an ordinary one as a correction.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       for (const r of ordinaryRefunds) {\n        const { error: partialLedgerErr } | for (const r of ordinaryRefunds.slice(0, 1)) {\n        const { error: partialLedgerErr }
+  it("Q1300: two partial Dashboard refunds close together both get a ledger row", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1300_two", 800);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      { id: "re_b", amount: 500, status: "succeeded", metadata: {} },
+      { id: "re_a", amount: 300, status: "succeeded", metadata: {} },
+    ] });
+    expect((await post(fn)).status).toBe(200);
+    expect(ledger().map((r) => [r.stripe_refund_id, r.amount_cents, r.is_partial])).toEqual([["re_b", 500, true], ["re_a", 300, true]]);
+  });
+
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   const isOnboardingFeeCorrection = liveRefunds.length > 0 && ordinaryRefunds.length === 0; |   const isOnboardingFeeCorrection = liveRefunds.length > 0 && isCorrection(liveRefunds[0]);
+  it("Q1300: an ordinary refund followed by a fee correction is still ledgered (never read as the correction)", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1300_mix", 500);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      { id: "re_fee", amount: 200, status: "succeeded", metadata: { reason: "duplicate_onboarding_fee" } },
+      { id: "re_dash", amount: 300, status: "succeeded", metadata: {} },
+    ] });
+    expect((await post(fn)).status).toBe(200);
+    // The correction's own row is written where it is made (settleOnboardingFee).
+    expect(ledger().map((r) => r.stripe_refund_id)).toEqual(["re_dash"]);
+  });
+
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | !!r?.id && r.status !== "failed" && r.status !== "canceled" | !!r?.id
+  it("Q1300: a failed or canceled refund moved no money and gets no row", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1300_failed", 300);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      { id: "re_bad", amount: 900, status: "failed", metadata: {} },
+      { id: "re_cxl", amount: 700, status: "canceled", metadata: {} },
+      { id: "re_ok", amount: 300, status: "succeeded", metadata: {} },
+    ] });
+    expect((await post(fn)).status).toBe(200);
+    expect(ledger().map((r) => r.stripe_refund_id)).toEqual(["re_ok"]);
   });
 
   it("PARTIAL Dashboard refund on a minimal Charge writes the partial ledger row (it was silent)", async () => {

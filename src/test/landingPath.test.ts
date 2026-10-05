@@ -9,6 +9,9 @@
 // @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }}\n        # Per push: ratchet | VACUITY_PUSH_BEFORE: ""\n        # Per push: ratchet
 // @mutate .github/workflows/vacuity.yml | VACUITY_PUSH_BEFORE: ${{ github.event.before }}\n        # The same scope as the unit job | VACUITY_PUSH_BEFORE: ""\n        # The same scope as the unit job
 // @mutate .claude/AGENT-BRIEF.md | requires Vitest, Test and | requires Vitest, Test, Vacuity and
+// @mutate scripts/land.sh |     if ! node scripts/perf/critical-path.mjs --check; then |     if false; then
+// @mutate scripts/land.sh | grep -qE '^(src/\|public/ | grep -qE '^(public/
+// @mutate scripts/land.sh |       exit 1\n    fi\n  else\n    echo "land: nothing the bundle |       true\n    fi\n  else\n    echo "land: nothing the bundle
 // @mutate .github/workflows/test.yml |   pull_request:\n    branches: [main]\n |   pull_request:\n    branches: [main]\n    paths-ignore:\n      - "docs/**"\n
 /*
  * Nothing reaches main without passing its checks (OPEN.md Q44).
@@ -115,6 +118,48 @@ describe("landing path (Q44)", () => {
       expect(at, `${g} missing from land.sh`).toBeGreaterThan(-1);
       expect(at, `${g} runs after the push`).toBeLessThan(pushAt);
     }
+  });
+
+  it("land.sh builds the bundle and checks the critical-path budget before pushing (Q178)", () => {
+    // 2026-10-05: batch PR #2406 took /login from 274 to 293 KB gz (budget
+    // 271, +5% allowed) and would have merged with it: CI's "Bundle Size
+    // Check" runs this budget but is not a required check.
+    const CHECK = "node scripts/perf/critical-path.mjs --check";
+    const buildAt = code.indexOf("npx vite build");
+    const checkAt = code.indexOf(CHECK);
+    const dryAt = code.indexOf('if [ "$DRY" = 1 ]');
+    const pushAt = code.indexOf("git push");
+    expect(buildAt, "land.sh never builds the bundle").toBeGreaterThan(-1);
+    expect(checkAt, "land.sh never runs the critical-path budget").toBeGreaterThan(buildAt);
+    // before the --dry-run exit (so a dry run proves it) and before the push
+    expect(checkAt).toBeLessThan(dryAt);
+    expect(dryAt).toBeLessThan(pushAt);
+    // the same command CI's bundle-size job runs
+    expect(read(".github/workflows/bundle-size.yml")).toContain(`run: ${CHECK}`);
+    // a failed build or a route over budget stops the land red
+    expect(code).toMatch(/if ! npx vite build >"\$BUILD_LOG" 2>&1; then\n(?:[^\n]*\n){2}\s*exit 1\n/);
+    expect(code).toMatch(/if ! node scripts\/perf\/critical-path\.mjs --check; then\n[^\n]*\n\s*exit 1\n/);
+    // a fresh worktree has no .env and vite.config.ts refuses to build without it
+    expect(code).toContain('ln -s "$MAIN_TREE/.env" .env');
+
+    // Skipped only when the push changes nothing the bundle is built from.
+    const gates = [...code.slice(0, buildAt).matchAll(/if grep -qE '([^']+)' <<<"\$PUSHED_FILES"; then/g)];
+    expect(gates.length, "no PUSHED_FILES gate before the build").toBeGreaterThan(0);
+    const trigger = new RegExp(gates[gates.length - 1][1], "m");
+    // every path CI's bundle-size workflow treats as a bundle input (its own
+    // file aside) must trigger the local build too
+    const yml = parse(read(".github/workflows/bundle-size.yml")) as { on: { pull_request: { paths: string[] } } };
+    const ciPaths = yml.on.pull_request.paths.filter((p) => !p.startsWith(".github/"));
+    expect(ciPaths.length).toBeGreaterThan(4);
+    const samples = [
+      ...ciPaths.map((p) => p.replace("**", "pages/auth/Login.tsx")),
+      "public/sw.js",
+      "vite.config.mts",
+      "scripts/perf/critical-path-budget.json",
+    ];
+    for (const f of samples) expect(trigger.test(f), `${f} skips the bundle budget`).toBe(true);
+    for (const f of ["docs/OPEN.md", "supabase/functions/stripe-webhook/index.ts","scripts/land.sh", "e2e/a.spec.ts"])
+      expect(trigger.test(f), `${f} triggers a needless build`).toBe(false);
   });
 
   it("CodeQL comes from code scanning default setup, so no workflow file may compete with it", () => {

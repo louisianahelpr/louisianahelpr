@@ -30,6 +30,15 @@
 # check:generated (503fd193c). The generated files depend on the REBASED tree,
 # so they are refreshed after the rebase, then proven with check:generated.
 #
+# Before the push it also builds the bundle (`npx vite build`, borrowing the
+# main checkout's .env when the worktree has none) and runs the critical-path
+# budget (`node scripts/perf/critical-path.mjs --check`, Q178); a route over
+# budget stops the land red with the route and its KB. CI's "Bundle Size
+# Check" is not a required check, so before this a regression was seen only
+# after auto-merge was on (PR #2406, 2026-10-05: /login 293 KB gz vs 271).
+# Skipped, and said so, when the push changes nothing the bundle is built
+# from (src/, public/, index.html, vite.config.*, package*.json) or the budget.
+#
 # Commits ONLY what the refresh produced: tracked files must be clean to start
 # (commit your work first; never git stash in this repo), and untracked files
 # that already existed (e.g. docs/audit/morning/*.md) are never staged.
@@ -191,6 +200,38 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   PUSHED_FILES=$(git diff --name-only origin/main..HEAD)
   if grep -qE '^(supabase/migrations/|scripts/ci/|src/integrations/supabase/types\.ts$)' <<<"$PUSHED_FILES"; then
     npx vitest run src/test/typesCoverMigrationFunctions.test.ts src/test/nullArgNeverAllows.test.ts
+  fi
+
+  # The critical-path budget (Q178: scripts/perf/critical-path-budget.json),
+  # checked on the BUILT bundle before the push. CI's "Bundle Size Check" runs
+  # the same command but is NOT a required check, so a regression showed only
+  # after auto-merge was already on: batch PR #2406 (2026-10-05) took /login
+  # from 274 to 293 KB gz against a 271 KB budget (+5% = 284.55) and would have
+  # merged with it. One build, after the vitest runs above have exited (8 GB
+  # Mac). Skipped only when the push changes nothing the bundle or the budget
+  # is made from. Guard: src/test/landingPath.test.ts.
+  if grep -qE '^(src/|public/|index\.html$|vite\.config\.[^/]+$|package(-lock)?\.json$|scripts/perf/critical-path)' <<<"$PUSHED_FILES"; then
+    # vite.config.ts refuses to build without the VITE_* boot env; a fresh
+    # worktree has no .env, so borrow the main checkout's (gitignored).
+    MAIN_TREE=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+    if [ ! -e .env ] && [ -f "$MAIN_TREE/.env" ]; then
+      ln -s "$MAIN_TREE/.env" .env
+      echo "land: linked $MAIN_TREE/.env for the build."
+    fi
+    echo "land: building the bundle for the critical-path budget (Q178)."
+    BUILD_LOG=$(mktemp "${TMPDIR:-/tmp}/land-vite-build.XXXXXX")
+    if ! npx vite build >"$BUILD_LOG" 2>&1; then
+      tail -40 "$BUILD_LOG" >&2
+      echo "land: npx vite build failed (full log: $BUILD_LOG); not pushing." >&2
+      exit 1
+    fi
+    rm -f "$BUILD_LOG"
+    if ! node scripts/perf/critical-path.mjs --check; then
+      echo "land: the critical-path budget failed (Q178; routes and KB above); not pushing. Shrink that route's critical path; if the growth is deliberate, change scripts/perf/critical-path-budget.json and say why in the commit." >&2
+      exit 1
+    fi
+  else
+    echo "land: nothing the bundle is built from changed (src/, public/, index.html, vite.config.*, package*.json, scripts/perf/critical-path*); skipping the build and the critical-path budget (Q178)."
   fi
 
   if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "$START_HEAD^{tree}")" ] &&

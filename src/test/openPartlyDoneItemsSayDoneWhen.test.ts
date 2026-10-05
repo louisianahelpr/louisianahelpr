@@ -30,7 +30,8 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 26 on 2026-10-05: the money lane's Q805 (chargeback follow-ups wait on a Stripe test-mode dispute run and the owner's webhook secret) and Q1336 (waits on the owner subscribing the live endpoint to charge.refund.updated) are fixed in part; neither wait is something a done-when marker can read.
 // 23 on 2026-10-05: Q430 got its done-when marker (issue #2213, the loading-states-refresh fixture run); its burst half was measured green.
 // 25 once both land: 26 (Q805, Q1336) minus Q430's new marker.
-const MARKERLESS_PARTLY_DONE = 25;
+// 26 on 2026-10-05 (money lane): Q362's urgent-bonus half is built; what is left is a live paid tip read in Stripe and an owner Terms call, neither of which a marker can read.
+const MARKERLESS_PARTLY_DONE = 26;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

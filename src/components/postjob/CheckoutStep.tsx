@@ -69,6 +69,8 @@ interface CheckoutStepProps {
   helprActivity: HelprActivity | null;
   customerFee: number | null;
   customerFeeAmount: number;
+  /** Q362: card fee on the urgent bonus, paid on top so the Helpr gets all of it (dollars). */
+  urgentCardFeeAmount?: number;
   /** One-time account-setup fee, in dollars — 0 once the poster has paid it. */
   onboardingFeeAmount: number;
   totalCharge: number;
@@ -130,6 +132,7 @@ export function CheckoutStep({
   helprActivity,
   customerFee,
   customerFeeAmount,
+  urgentCardFeeAmount = 0,
   onboardingFeeAmount,
   totalCharge,
   hasGift = false,
@@ -286,7 +289,8 @@ export function CheckoutStep({
                 <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
                   {/* "budget + fees" is wrong on a gift-funded post — there
-                      are no fees, and the number above is what's left after
+                      is no service fee (only the urgent bonus card fee when
+                      the card carries part of a bonus, Q362), and the number above is what's left after
                       the gift, so name the gift instead. */}
                   {hasGift
                     ? ` budget · $${formatPriceExact(giftAppliedAmount)} gift applied`
@@ -483,6 +487,13 @@ export function CheckoutStep({
             <div className="flex justify-between text-ds-13">
               <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent Bonus (Goes to Helpr)</span>
               <span className="font-medium text-foreground">${formatPriceExact(urgentFeeNum)}</span>
+            </div>
+          )}
+          {/* Q362: the bonus's card fee is the poster's, so the Helpr gets all of it. */}
+          {isUrgent && urgentCardFeeAmount > 0 && (
+            <div className="flex justify-between text-ds-13">
+              <span className="text-muted-foreground">Urgent Bonus Card Fee</span>
+              <span className="font-medium text-foreground">${formatPriceExact(urgentCardFeeAmount)}</span>
             </div>
           )}
           {onboardingFeeAmount > 0 && (

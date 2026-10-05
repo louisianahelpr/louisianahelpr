@@ -50,10 +50,10 @@ describe("payout headlines floor the take-home they are given", () => {
   //   $120 budget · 12% platform fee · group job, 2 helprs · $10 urgent bonus
   //   per-helpr budget  $60.00
   //   − commission      $ 7.20   (12% of $60)
-  //   + urgent share    $ 4.855  (($10 − 2.9%) ÷ 2)
-  //   = take-home       $57.655
+  //   + urgent share    $ 5.00   ($10 ÷ 2; Q362: the whole bonus)
+  //   = take-home       $57.80
   //
-  // formatPrice rounds that to "$58" — 34.5c the helpr never receives.
+  // formatPrice rounds that to "$58" — 20c the helpr never receives.
   const job = {
     budget: 120,
     helper_fee_percent: 12,
@@ -66,11 +66,11 @@ describe("payout headlines floor the take-home they are given", () => {
     // The raw figure the formatters were once handed. helperTakeHomeDollars
     // now floors it itself (Q236: the transfer really is a whole dollar), so
     // the formatter pin is made on the raw value.
-    const raw = 57.655;
+    const raw = 57.8;
     expect(formatPrice(raw)).toBe("58"); // the old behaviour: overstated
     expect(formatPriceFloor(raw)).toBe("57"); // never above the payout
     const takeHome = helperTakeHomeDollars(job, 12);
-    expect(takeHome).toBe(57); // Q236: $57.655 owed → $57 transferred
+    expect(takeHome).toBe(57); // Q236: $57.80 owed → $57 transferred
     expect(formatPrice(takeHome)).toBe("57");
   });
 });

@@ -110,22 +110,21 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.getByText("$50")).toBeInTheDocument();
   });
 
-  it("adds the net urgent bonus into take-home", () => {
-    // budget 100, 10% fee, +$15 urgent netted of its own 2.9% bundled Stripe
-    // cost ($15 − $0.44 = $14.56) -> 100 - 10 + 14.56 = $104.56, and the
-    // HEADLINE take-home floors to whole dollars (matching JobPrice) while
-    // the bonus line item keeps its exact cents.
+  it("adds the whole urgent bonus into take-home (Q362)", () => {
+    // budget 100, 10% fee, +$15 urgent paid in FULL (Q362: the poster pays
+    // its card fee on top) -> 100 - 10 + 15 = $105; the HEADLINE take-home
+    // floors to whole dollars (matching JobPrice).
     render(
       <ApplyConfirmDialog
         {...makeProps({ confirmApplyJob: makeJob({ urgent_fee: 15 }) })}
       />,
     );
-    expect(screen.getByText("$104")).toBeInTheDocument();
+    expect(screen.getByText("$105")).toBeInTheDocument();
     // Named in the collapsed summary line too, so the bonus is never a
     // surprise that only shows up if you go looking for the receipt.
     expect(screen.getByText(/\+ urgent bonus$/)).toBeInTheDocument();
     expandMath();
-    expect(screen.getByText("+$14.56")).toBeInTheDocument();
+    expect(screen.getByText("+$15")).toBeInTheDocument();
   });
 
   it("shows a generic prompt when no job is resolved", () => {

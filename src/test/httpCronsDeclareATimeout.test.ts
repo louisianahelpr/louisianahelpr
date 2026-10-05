@@ -29,6 +29,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { blankSqlComments } from "./helpers/blankNonCode";
 
 const DIR = join(__dirname, "..", "..", "supabase", "migrations");
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -76,7 +77,7 @@ describe("HTTP crons declare a response timeout", () => {
       "These migrations schedule an HTTP cron without `timeout_milliseconds`, so pg_net " +
         "waits pg_net's DEFAULT 5000ms — less than an edge function's cold start. The work " +
         "still happens; the OUTCOME is lost, and a slow 500 becomes indistinguishable from " +
-        "a slow success. Pass `timeout_milliseconds := 30000`:\n  " + offenders.join("\n  "),
+        "a slow success. Pass `timeout_milliseconds := 90000` (Q1373):\n  " + offenders.join("\n  "),
     ).toEqual([]);
   });
 
@@ -93,3 +94,35 @@ describe("HTTP crons declare a response timeout", () => {
 // Proof this is able to fail: drop the NOT-LIKE guard and a replay would
 // double-prepend the argument.
 // @mutate supabase/migrations/20260922222716_http_crons_wait_long_enough_to_learn_the_outcome.sql | AND command NOT LIKE '%timeout_milliseconds%' | AND true
+
+/**
+ * Q1373: 30s was not long enough either. Two platform-side stalls (2026-09-25
+ * 42.8s, 2026-10-05 60.4s, both runs answering a clean 200) were filed as
+ * timeouts. Since 20261005171624 every HTTP cron waits at least 90s, and no
+ * later migration may schedule one shorter.
+ */
+const RAISE = "20261005171624_http_crons_wait_90s_for_a_stalled_platform_call.sql";
+const MIN_MS = 90000;
+
+describe("HTTP crons wait long enough for a stalled platform call (Q1373)", () => {
+  it("the raise migration rewrites 30000 to 90000, replay-safely", () => {
+    expect(files).toContain(RAISE);
+    const sql = blankSqlComments(readFileSync(join(DIR, RAISE), "utf8"));
+    expect(sql).toMatch(/timeout_milliseconds\\s\*:=\\s\*30000\\M/);
+    expect(sql).toContain("'timeout_milliseconds := 90000'");
+    expect(sql).toContain("cron.alter_job");
+  });
+
+  it("no migration after it schedules an HTTP cron under 90s", () => {
+    const later = files.filter((f) => f > RAISE);
+    const offenders: string[] = [];
+    for (const f of later) {
+      const code = blankSqlComments(readFileSync(join(DIR, f), "utf8"));
+      for (const m of code.matchAll(/timeout_milliseconds\s*:=\s*(\d+)/g)) {
+        if (/cron\.(schedule|alter_job)\s*\(/.test(code) && code.includes("net.http_post(") && Number(m[1]) < MIN_MS) offenders.push(`${f}: ${m[1]}ms`);
+      }
+    }
+    expect(offenders, `HTTP crons must pass timeout_milliseconds >= ${MIN_MS} (Q1373)`).toEqual([]);
+  });
+});
+// @mutate supabase/migrations/20261005171624_http_crons_wait_90s_for_a_stalled_platform_call.sql | 'timeout_milliseconds := 90000' | 'timeout_milliseconds := 30000'

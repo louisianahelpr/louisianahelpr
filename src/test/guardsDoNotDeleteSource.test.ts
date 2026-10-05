@@ -44,42 +44,20 @@ import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { blankNonCode, blankComments } from "./helpers/blankNonCode";
+import { blankNonCode, blankComments, blankCssComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "..", "..");
 
 /** Guards still using the deleting idiom. MAY ONLY SHRINK. */
 // @two-way src/test/guardsDoNotDeleteSource.test.ts:const stale = GRANDFATHERED.filter
-const GRANDFATHERED: readonly string[] = [
-  "src/components/profile/ProfileTabFallback.test.tsx",
-  "src/components/profile/profileTabShell.test.ts",
-  "src/test/aasaRouteParity.test.ts",
-  "src/test/activityTabLabelsFitAPhone.test.ts",
-  "src/test/controlInteractionSameness.test.ts",
-  "src/test/emailVerifyButton.test.ts",
-  "src/test/expiryFormatterClass.test.ts",
-  "src/test/glossyPrimaryInvariant.test.ts",
-  "src/test/hoverTintIsAVisibleStep.test.ts",
-  "src/test/jobStepRowLabelsVisible.test.tsx",
-  "src/test/labelInName.test.tsx",
-  "src/test/listboxOptionsNotTabbable.test.ts",
-  "src/test/loadingStateShape.test.ts",
-  "src/test/mapMarkerAccessibleName.test.ts",
-  "src/test/messageToneInvariant.test.ts",
-  "src/test/postJobLabelsTitleCase.test.ts",
-  "src/test/profilePillRecipeClassCheck.test.ts",
-  "src/test/profileTitleLine.test.ts",
-  "src/test/railGreenMatchesPrimary.test.ts",
-  "src/test/reviewLogSurvivesTestRuns.test.ts",
-  "src/test/seedDisputeFixture.test.ts",
-  "src/test/segmentedControlInvariant.test.tsx",
-  "src/test/tripDistanceTrustAndBound.test.tsx",
-  "src/test/twoFontTypeSystem.test.tsx",
-  "src/test/virtualListScrollSource.test.ts",
-]; // ← do not add to this list
+// EMPTY since 2026-10-05 (Q1020): the last 24 were moved onto blankComments /
+// blankCssComments, and aasaRouteParity was never a comment stripper (its
+// `.replace(/\/\*$/, ...)` turns a path glob into a regex; the detector now
+// requires the block-comment body `[\s\S]*?`).
+const GRANDFATHERED: readonly string[] = []; // ← do not add to this list
 
 /** The deleting idiom: `.replace(<block-comment regex>, …)`. */
-const DELETING_IDIOM = /\.replace\(\s*\/\\\/\\\*/;
+const DELETING_IDIOM = /\.replace\(\s*\/\\\/\\\*\[\\s\\S\]\*\?/;
 
 function sourceScanningGuards(): string[] {
   return execFileSync(
@@ -222,3 +200,31 @@ describe("no guard deletes the code it inspects", () => {
 // a block-comment regex. A guard that hand-rolls the same deletion another way
 // (a split/join, an indexOf loop) is outside its inventory.
 // @mutate src/test/helpers/blankNonCode.ts | if (blankStrings) blank(i + 1, j); | if (blankStrings) blank(i + 1, j); out.splice(i, 1);
+
+// Q1020: the CSS scanner the stylesheet guards moved onto.
+// @mutate src/test/helpers/blankNonCode.ts |       const stop = end === -1 ? n : end + 2; |       const stop = i + 2;
+// @mutate src/test/helpers/blankNonCode.ts |     if (c === '"' \|\| c === "'") { |     if (false) {
+describe("blankCssComments (Q1020)", () => {
+  it("blanks CSS comments, keeps strings and unquoted urls, and keeps every byte position", () => {
+    const css = 'a{b:url(https://x/y.css)} /* {gone} */ c{content:"/* kept */"}\n/* two\nlines */d{}';
+    const out = blankCssComments(css);
+    expect(out.length).toBe(css.length);
+    expect(out.split("\n").length).toBe(css.split("\n").length);
+    expect(out).toContain("url(https://x/y.css)");
+    expect(out).toContain('"/* kept */"');
+    expect(out).not.toContain("{gone}");
+    expect(out).not.toContain("two");
+    expect(out).toContain("d{}");
+  });
+
+  it("on the real stylesheet: same length, same lines, only comment bytes changed (to spaces)", () => {
+    const raw = readFileSync(resolve(REPO, "src/index.css"), "utf8");
+    const out = blankCssComments(raw);
+    expect(raw.length).toBeGreaterThan(10_000);
+    expect(out.length).toBe(raw.length);
+    expect(out.split("\n").length).toBe(raw.split("\n").length);
+    const bad: number[] = [];
+    for (let i = 0; i < raw.length; i++) if (out[i] !== raw[i] && out[i] !== " ") bad.push(i);
+    expect(bad).toEqual([]);
+  });
+});

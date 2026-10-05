@@ -49,6 +49,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { railStepTone } from "@/components/job-card/jobRailTone";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 const CSS = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
@@ -56,7 +57,7 @@ const RULE = readFileSync(resolve(ROOT, "src/components/job-card/jobRailTone.ts"
 /** Comments stripped — the module NAMES `--success-ink` in prose, recording
  *  what the green used to be, and a guard that read prose as code would fail
  *  on its own history note. Declarations only. */
-const RULE_CODE = RULE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const RULE_CODE = blankComments(RULE);
 
 /**
  * The `H S% L%` triple a token resolves to in the LIGHT theme.

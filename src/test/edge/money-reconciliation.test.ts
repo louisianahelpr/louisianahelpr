@@ -528,6 +528,95 @@ describe("money-reconciliation edge function", () => {
     });
   });
 
+  // Review of Q1222/Q1223 (should-fix): money a payout hold kept back is
+  // re-driven by process-scheduled-payouts. A row Stripe refused, or one whose
+  // Helpr is clear but that is still unpaid a day later, has been dropped and
+  // nothing else re-reports it.
+  describe("Q1222/Q1223 held money that is not being re-driven", () => {
+    const old = new Date(Date.now() - 2 * 86_400_000).toISOString();
+    const fresh = new Date(Date.now() - 600_000).toISOString();
+    const names = (b: Record<string, unknown>) => (b.findings as Array<{ check: string }>).map((f) => f.check);
+    // updated_at is FRESH on purpose: the re-drive touches it every hourly
+    // attempt, so a check measured from it could never fire (second review).
+    const tip = (over: Record<string, unknown> = {}) => ({
+      tip_id: "tip-1", helper_id: "helper-1", status: "reversed", amount_cents: 1500, failure_reason: null,
+      created_at: old, updated_at: fresh, first_repay_attempt_at: old, ...over,
+    });
+    const HOLD = { helper_id: "helper-1", reason: "review", held_at: null, denied_at: null };
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | checks.heldMoneyNotRedriven.add({ tip_id: r.tip_id, | void ({ tip_id: r.tip_id,
+    it("flags a tip whose re-pay Stripe refused ('failed')", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.tip_hold_redrives = { rows: [tip({ status: "failed", failure_reason: "account closed" })] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).toContain("held_money_not_redriven");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | : !holdRead.holds.has(r.helper_id) && stale(r.first_repay_attempt_at)); | : stale(r.first_repay_attempt_at));
+    it("not while the Helpr is still on hold (the re-drive is waiting on purpose)", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.tip_hold_redrives = { rows: [tip()] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("held_money_not_redriven");
+    });
+
+    // Second review (S-B): fires although every hourly attempt moved updated_at.
+    // @mutate supabase/functions/money-reconciliation/index.ts | : !holdRead.holds.has(r.helper_id) && stale(r.first_repay_attempt_at)); | : !holdRead.holds.has(r.helper_id) && stale((r as { updated_at?: string \| null }).updated_at ?? null));
+    it("flags a reversed tip whose Helpr is clear and whose first re-pay attempt was a day ago", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.tip_hold_redrives = { rows: [tip()] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).toContain("held_money_not_redriven");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | return t !== null && t < stuckBefore; }; | return true; };
+    it("not when the first attempt was recent, nor before any attempt", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.tip_hold_redrives = {
+        rows: [tip({ first_repay_attempt_at: fresh }), tip({ tip_id: "tip-2", first_repay_attempt_at: null })],
+      };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("held_money_not_redriven");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | ? stale(r.created_at) | ? false
+    it("flags an 'owed' tip a day after it was paid (the webhook never finished the pull-back)", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.tip_hold_redrives = { rows: [tip({ status: "owed", first_repay_attempt_at: null })] };
+      scenario.reads.payout_holds = { rows: [HOLD] };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).toContain("held_money_not_redriven");
+    });
+
+    // @mutate supabase/functions/money-reconciliation/index.ts | checks.heldMoneyNotRedriven.add({ clawback_id: r.id, | void ({ clawback_id: r.id,
+    // @mutate supabase/functions/money-reconciliation/index.ts | if (!stale(r.held_repay_first_attempt_at)) continue; | if (!stale((r as { updated_at?: string \| null }).updated_at ?? null)) continue;
+    it("flags a won chargeback's owed re-pay whose Helpr is clear and whose first attempt was a day ago", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.chargeback_clawbacks = {
+        rows: [{ id: "cb-1", dispute_id: "dp_1", helper_id: "helper-1", status: "repay_failed", reversed_cents: 9000, failure_reason: "socket hang up", updated_at: fresh, held_repay_owed_at: old, held_repay_first_attempt_at: old }],
+      };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).toContain("held_money_not_redriven");
+    });
+
+    it("before the migration is deployed it is a note, never a crash", async () => {
+      const fn = await loadConfigured();
+      seedCleanLedger();
+      scenario.reads.tip_hold_redrives = { error: { message: "relation does not exist", code: "42P01" } };
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      expect(names(b)).not.toContain("held_money_not_redriven");
+      expect((b.notes as string[]).join(" ")).toMatch(/held-money re-drive check skipped for tip_hold_redrives/);
+    });
+  });
+
   describe("gift-credit tree", () => {
     it("flags a spendable child under a refunded donation", async () => {
       const fn = await loadConfigured();

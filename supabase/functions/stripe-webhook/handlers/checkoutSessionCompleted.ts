@@ -21,6 +21,7 @@ import {
   subscriptionLinkage,
 } from "../../_shared/subscriptionLinkage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
+import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 
 export async function handleCheckoutSessionCompleted(
@@ -263,6 +264,37 @@ export async function handleCheckoutSessionCompleted(
           },
         });
         throw new Error(`Tip status flip failed for job ${tipJobId}: ${tipError.message}`);
+      }
+      // Q1222: a tip is a destination charge, so Stripe already moved it to the
+      // Helpr. If the Helpr is on a payout hold now (the Checkout was opened
+      // before the hold), the transfer is reversed back to the platform and the
+      // tip is re-paid by process-scheduled-payouts once the hold is released.
+      // Tips are final (Q781): the poster is never refunded. Runs on EVERY
+      // delivery (idempotent), so a redelivery finishes a reversal a failed one
+      // began. An unreadable hold or a transient fault throws (Stripe redelivers).
+      let heldBack = false;
+      if (tipHelperId) {
+        const tipPi = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+        const { data: tipRows, error: tipReadErr } = await supabase
+          .from("tips")
+          .select("id")
+          .eq("stripe_session_id", session.id)
+          .limit(1);
+        if (tipReadErr) throw new Error(`Tip read failed for session ${session.id}: ${tipReadErr.message}`);
+        const tipId = (tipRows ?? [])[0]?.id as string | undefined;
+        if (tipId && tipPi) {
+          const back = await holdBackPaidTip(stripe, supabase, {
+            tipId, helperId: String(tipHelperId), paymentIntentId: tipPi, jobId: String(tipJobId),
+          });
+          // Not `back.kind === …`: the Q343 metadata guard reads any `kind ===` here as session metadata.
+          const holdBackKind: string = back.kind;
+          // "kept": the hold lifted before the pull-back; heldTipRepay told the Helpr itself.
+          heldBack = holdBackKind === "held_back" || holdBackKind === "kept";
+          if (heldBack) logStep("Tip for a Helpr on a payout hold held back", { tipId, reversal: (back as { reversalId: string }).reversalId });
+        }
+      }
+      if (heldBack) {
+        // The Helpr is told when the re-pay lands, not now.
       } else if (flippedTip && flippedTip.length > 0) {
         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
         // Notify the helper — only on the delivery that actually captured the tip.

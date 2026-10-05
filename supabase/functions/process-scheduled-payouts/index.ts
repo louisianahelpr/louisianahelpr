@@ -20,6 +20,8 @@ import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
+import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
 
 
 serve(async (req) => {
@@ -1832,6 +1834,31 @@ serve(async (req) => {
     // otherwise falls back to timestamp proximity — which guessed wrong three
     // times in four. Without this key a payout cron is invisible to both
     // watchers built to watch it.
+    // ── Held money whose payout hold has been released (Q1222, Q1223) ──────
+    // A payout hold keeps two payments back that nothing else re-drives: a
+    // WON chargeback's re-payment (charge.dispute.closed does not recur) and
+    // a tip paid while the Helpr was held (its transfer was reversed to the
+    // platform). Both re-pay here, every run, through claim rows and fixed
+    // idempotency keys, so a second run or a concurrent copy pays nothing
+    // twice; a Helpr still on hold simply waits. Faults are defects; the rows
+    // wait for the next run.
+    const clawbackRedrive = await redriveHeldClawbackRepays({
+      stripe,
+      supabase: supabaseAdmin,
+      logStep: (step, details) => console.log(`[process-scheduled-payouts] ${step}`, details ?? ""),
+    });
+    for (const d of clawbackRedrive.defects) defects.record(d);
+    const tipRedrive = await redriveHeldTips(stripe, supabaseAdmin);
+    for (const d of tipRedrive.defects) defects.record(d);
+    const heldRedrive = {
+      clawback_disputes: clawbackRedrive.disputes,
+      clawback_repaid_cents: clawbackRedrive.repaidCents,
+      clawback_waiting: clawbackRedrive.waiting,
+      tips_repaid: tipRedrive.repaid,
+      tips_kept: tipRedrive.kept,
+      tips_waiting: tipRedrive.waiting,
+    };
+
     // Seed jobs' defects: reported in the body and to the digest, never paged
     // and never counted (Q91). Only reachable on an `?include_seed=1` run.
     if (seedDefects.length) {
@@ -1847,7 +1874,7 @@ serve(async (req) => {
 
     return cronResult(
       "process-scheduled-payouts",
-      { success: true, processed, results, seedDefects },
+      { success: true, processed, results, seedDefects, heldRedrive },
       defects.defects,
       corsHeaders,
     );

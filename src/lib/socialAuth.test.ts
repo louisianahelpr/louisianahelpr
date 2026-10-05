@@ -18,6 +18,7 @@ const initializeMock = vi.fn();
 const loginMock = vi.fn();
 const signInWithIdTokenMock = vi.fn();
 const signInWithOAuthMock = vi.fn();
+const rpcMock = vi.fn();
 const isNativePlatformMock = vi.fn();
 const isPluginAvailableMock = vi.fn();
 
@@ -44,6 +45,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       signInWithIdToken: (...args: unknown[]) => signInWithIdTokenMock(...args),
       signInWithOAuth: (...args: unknown[]) => signInWithOAuthMock(...args),
     },
+    rpc: (...args: unknown[]) => rpcMock(...args),
   },
 }));
 
@@ -53,6 +55,7 @@ beforeEach(() => {
   loginMock.mockReset();
   signInWithIdTokenMock.mockReset();
   signInWithOAuthMock.mockReset();
+  rpcMock.mockReset();
   isNativePlatformMock.mockReset();
   isPluginAvailableMock.mockReset();
 });
@@ -318,5 +321,60 @@ describe("signInWithProvider — linking refusals (OA-018)", () => {
     const { signInWithProvider } = await load();
     await signInWithProvider("google", { redirectTo: "https://example.com/home" });
     expect(JSON.parse(sessionStorage.getItem("helpr_oauth_pending") ?? "{}").path).toBe("/home");
+  });
+});
+
+// Q446: a sign-in that matches no account is refused by the Before User
+// Created hook (migration 20261005182630) with `lh_account_choice:<id>`. The
+// app must ask before anything is created, and only "I'm new here" retries.
+describe("one account per person (Q446)", () => {
+  const CHOICE = "lh_account_choice:0f8c4a52-6a0e-4d55-9a53-1b2c3d4e5f60:relay";
+  beforeEach(() => {
+    isNativePlatformMock.mockReturnValue(true);
+    isPluginAvailableMock.mockReturnValue(true);
+    initializeMock.mockResolvedValue(undefined);
+    loginMock.mockResolvedValue({ result: { idToken: "apple-jwt" } });
+    reportMock.mockReset();
+  });
+
+  it("native: the refusal becomes a choice (with the token kept), never an error or a report", async () => {
+    signInWithIdTokenMock.mockResolvedValue({ error: { status: 403, code: "unknown", message: CHOICE } });
+    const { signInWithProvider } = await load();
+    const result = await signInWithProvider("apple");
+    expect(result).toEqual({
+      kind: "choose",
+      choice: { provider: "apple", choiceId: "0f8c4a52-6a0e-4d55-9a53-1b2c3d4e5f60", relay: true, idToken: "apple-jwt" },
+    });
+    expect(signInWithIdTokenMock).toHaveBeenCalledTimes(1);
+    expect(reportMock).not.toHaveBeenCalled();
+  });
+
+  it("I'm new here: marks the choice, then replays the same token", async () => {
+    rpcMock.mockResolvedValue({ data: true, error: null });
+    signInWithIdTokenMock.mockResolvedValue({ error: null });
+    const { continueAsNewAccount } = await load();
+    const result = await continueAsNewAccount({ provider: "apple", choiceId: "c-1", relay: true, idToken: "apple-jwt" });
+    expect(result).toEqual({ kind: "success" });
+    expect(rpcMock).toHaveBeenCalledWith("choose_new_social_account", { p_choice: "c-1" });
+    expect(rpcMock.mock.invocationCallOrder[0]).toBeLessThan(signInWithIdTokenMock.mock.invocationCallOrder[0]);
+    expect(signInWithIdTokenMock).toHaveBeenCalledWith({ provider: "apple", token: "apple-jwt" });
+  });
+
+  it("I'm new here: an expired choice signs nobody in", async () => {
+    rpcMock.mockResolvedValue({ data: false, error: null });
+    const { continueAsNewAccount } = await load();
+    const result = await continueAsNewAccount({ provider: "apple", choiceId: "c-1", relay: false, idToken: "apple-jwt" });
+    expect(result.kind).toBe("error");
+    expect(signInWithIdTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("web: I'm new here marks the choice, then goes back through the provider", async () => {
+    isNativePlatformMock.mockReturnValue(false);
+    isPluginAvailableMock.mockReturnValue(false);
+    rpcMock.mockResolvedValue({ data: true, error: null });
+    signInWithOAuthMock.mockResolvedValue({ error: null });
+    const { continueAsNewAccount } = await load();
+    expect(await continueAsNewAccount({ provider: "google", choiceId: "c-2", relay: false })).toEqual({ kind: "redirecting" });
+    expect(signInWithOAuthMock).toHaveBeenCalledTimes(1);
   });
 });

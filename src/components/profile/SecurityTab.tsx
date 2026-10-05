@@ -31,6 +31,7 @@ import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { PasswordResetCard } from "@/components/profile/PasswordResetCard";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TwoFactorCard, useVerifiedFactor } from "@/components/profile/TwoFactorCard";
+import { SignInMethodsCard } from "@/components/profile/SignInMethodsCard";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { parseUserAgent, useSecuritySessions } from "@/components/profile/securitySessions";
@@ -342,6 +343,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       <PasswordResetCard email={email} />
 
       <TwoFactorCard />
+
+      <SignInMethodsCard />
 
       {/* Active sessions — recent SIGNED_IN events grouped by coarse
           device fingerprint (OS + browser, scoped by IP). Read-only:

@@ -37,6 +37,8 @@ import { fileURLToPath } from "node:url";
 
 const SQL = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "sql/identity-linking-scenarios.sql"), "utf8");
 const CASES = ["A", "B", "C", "D"];
+/** Q446: the Postgres hook GoTrue must call (dashboard: Auth > Hooks > Before User Created). */
+export const ONE_ACCOUNT_HOOK_URI = "pg-functions://postgres/public/hook_one_account_per_person";
 const usePsql = process.argv.includes("--psql");
 
 function couldNot(msg) {
@@ -184,7 +186,22 @@ if (config) {
   console.log(
     `${extra.length || missing.length ? "FAIL" : "PASS"} config enabled sign-in methods = ${enabled.join(", ") || "none"} (want exactly ${EXPECTED_SIGN_IN_METHODS.join(", ")}; extra: ${extra.join(", ") || "none"}, missing: ${missing.join(", ") || "none"}; ${externalKeys.length} checked)`,
   );
-  console.log(`info config security_manual_linking_enabled = ${JSON.stringify(config.security_manual_linking_enabled)}`);
+  // Q446 one account per person. The Before User Created hook is what stops
+  // an Apple/Google sign-in that matches no account from silently creating
+  // one (supabase/migrations/20261005182630_one_account_per_person.sql), and
+  // manual linking is what lets Profile > Security connect Apple/Google to an
+  // existing account. Both are dashboard settings, so the live config is the
+  // only proof they are on.
+  const oneAccount = [
+    ["hook_before_user_created_enabled", true, "a no-match Apple/Google sign-in asks before an account is made"],
+    ["hook_before_user_created_uri", ONE_ACCOUNT_HOOK_URI, "the hook is the migration's function"],
+    ["security_manual_linking_enabled", true, "Connect Apple / Connect Google in Profile > Security"],
+  ];
+  for (const [key, value, why] of oneAccount) {
+    const ok = config[key] === value;
+    if (!ok) failed = true;
+    console.log(`${ok ? "PASS" : "FAIL"} config ${key} = ${JSON.stringify(config[key])} (want ${JSON.stringify(value)}: ${why}; Q446)`);
+  }
   // Q445a: GoTrue only returns to redirect_to when it is on site_url's host or
   // matches a uri_allow_list glob; otherwise a refused social sign-in lands on
   // the Site URL and the app's /home notice never shows. socialAuth.ts sends

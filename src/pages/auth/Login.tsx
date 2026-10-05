@@ -174,9 +174,19 @@ const Login = () => {
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
+  // Q446: a sign-in that found no account asks the one-account question in
+  // a dialog (SocialAuthButtons), not in this notice slot.
+  const accountChoice = oauthError?.choice ? { ...oauthError.choice, provider: oauthError.provider } : null;
+  // Q446: arrived from "I already have an account": log in, then connect.
+  const connectParam = searchParams.get("connect");
+  const connectName = connectParam === "apple" ? "Apple" : connectParam === "google" ? "Google" : connectParam === "any" ? "Apple or Google" : null;
   const notice =
-    oauthError
+    oauthError && !accountChoice
       ? oauthError.message
+      : accountChoice
+      ? null // the dialog says it; "That page needs an account" (the /home bounce) would not fit
+      : connectName
+      ? `Log in to the account you already have. Next you'll connect ${connectName} to it, so that button opens this same account from now on.`
       : signedOutForInactivity
       ? "You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off."
       : arrivedFromSignup
@@ -652,7 +662,7 @@ const Login = () => {
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         </div>
 
-        <SocialAuthButtons mode="signin" />
+        <SocialAuthButtons mode="signin" initialChoice={accountChoice} />
         {/* Under the providers (owner). It has been outside the card and under
             both columns; back here, closing the social column. */}
         <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

@@ -475,6 +475,8 @@ export function DisputedSection({
     <JobStepCard
       side="helper"
       step="disputed"
+      /* Q1082 (owner 2026-10-05): Message stays on screen at every width. */
+      soloChipKey="message"
       tone="alert"
       header={header}
       ask={ask}

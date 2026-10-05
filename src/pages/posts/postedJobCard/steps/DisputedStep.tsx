@@ -108,6 +108,8 @@ export function DisputedStep(ctx: PosterStepCtx) {
     <JobStepCard
       side="poster"
       step="disputed"
+      /* Q1082 (owner 2026-10-05): Message stays on screen at every width. */
+      soloChipKey="message"
       header={header}
       primary={
         /* "Mark Resolved" was a lie of omission: one tap released the ENTIRE

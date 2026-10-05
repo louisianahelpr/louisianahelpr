@@ -6252,6 +6252,11 @@ export type Database = {
       check_push_token_health: { Args: never; Returns: Json }
       check_seed_boundary_failures: { Args: never; Returns: Json }
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
+      client_compat_floor: { Args: never; Returns: number }
+      job_offer_cutoff: {
+        Args: { p_date_needed: string; p_start_time: string }
+        Returns: string
+      }
       choose_new_social_account: {
         Args: { p_choice: string }
         Returns: boolean

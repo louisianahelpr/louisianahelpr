@@ -1,4 +1,5 @@
 // Q446 — one account per person. Shown when the auth server found no account
+import { userFacingError } from "@/lib/userFacingError";
 // for an Apple/Google sign-in and, by design, created none
 // (public.hook_one_account_per_person). Before anything exists the person
 // chooses: they already have an account (log in to it, then connect this
@@ -19,7 +20,7 @@ function providerName(choice: AccountChoice): string {
 }
 
 /** Where "I already have an account" goes: log in, then Profile > Security. */
-export function connectAfterLoginHref(provider: AccountChoice["provider"]): string {
+function connectAfterLoginHref(provider: AccountChoice["provider"]): string {
   const connect = provider ?? "any";
   const back = `/profile?tab=security&connect=${connect}`;
   return `/login?connect=${connect}&redirect=${encodeURIComponent(back)}`;
@@ -73,7 +74,7 @@ export function AccountChoiceDialog({
         hapticError();
         setBusy(false);
         onDone();
-        toast.error(result.message, { id: "account-choice" });
+        toast.error(userFacingError(result.message, "We couldn't finish that sign-in. Tap Apple or Google again to retry."), { id: "account-choice" });
         return;
     }
   };

@@ -65,6 +65,10 @@ ALTER TABLE public.jobs ADD COLUMN title text, ADD COLUMN is_seed boolean DEFAUL
 ALTER TABLE public.applications ADD COLUMN closed_reason text;
 CREATE TABLE public.profiles (user_id uuid, is_seed boolean DEFAULT true);
 CREATE TABLE public.job_accept_pending (job_id uuid, helper_id uuid);
+-- The restated expire_unanswered_offers / accept_group_application also run a
+-- crew pass (Q729): an empty roster table keeps that pass a no-op here.
+ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS is_group_job boolean DEFAULT false, ADD COLUMN IF NOT EXISTS helpers_needed int DEFAULT 1;
+CREATE TABLE public.group_job_helpers (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, job_id uuid, helper_id uuid, slot_no int, share_cents int, helper_confirmed_at timestamptz, response_deadline timestamptz);
 CREATE TABLE public.notifications (user_id uuid, title text, message text, type text, link text, job_id uuid);
 CREATE TABLE public.error_logs (severity text, message text, tags jsonb, context jsonb);
 CREATE TABLE public.strikes (helper_id uuid, job_id uuid, why text);

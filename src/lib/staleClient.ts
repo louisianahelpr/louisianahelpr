@@ -37,9 +37,9 @@ import { isRecoveryReloadInFlight } from "./chunkReload";
 import { CLIENT_COMPAT_EPOCH, isBelowFloor, readClientCompatFloor } from "./clientCompat";
 import { PERMISSION_DENIED_EVENT } from "./permissionDenied";
 
-export const CHECK_THROTTLE_MS = 30_000;
+const CHECK_THROTTLE_MS = 30_000;
 /** Even a forced check (a refused read) runs at most this often. */
-export const FORCED_CHECK_THROTTLE_MS = 5_000;
+const FORCED_CHECK_THROTTLE_MS = 5_000;
 export const RELOAD_GUARD_MS = 10 * 60_000;
 const GUARD_KEY = "helpr_update_reload";
 
@@ -124,7 +124,7 @@ const writeGuard = (target: string): boolean => {
 };
 
 /** Reload for the pending update, if it is safe right now. True when a reload started. */
-export function reloadIfSafe(): boolean {
+function reloadIfSafe(): boolean {
   const p = pending;
   if (!p) return false;
   if (typeof document !== "undefined" && document.visibilityState === "hidden") return false;

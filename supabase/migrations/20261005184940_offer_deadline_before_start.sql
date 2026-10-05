@@ -128,6 +128,8 @@ GRANT EXECUTE ON FUNCTION public.accept_application(uuid, timestamp with time zo
 -- review of this migration, finding 1). Restated from the newest definition,
 -- 20261004184021, which is what prod runs (pg_get_functiondef read 2026-10-05);
 -- only the locked SELECT and v_no_strike change.
+-- Restated from 20261005172453 (crew pass, Q729) plus this migration's cap rule;
+-- an earlier draft restated the 20261004184021 body and would have dropped the crew pass.
 CREATE OR REPLACE FUNCTION public.expire_unanswered_offers()
  RETURNS integer
  LANGUAGE plpgsql
@@ -140,6 +142,10 @@ DECLARE
   v_app_id uuid;
   v_count int := 0;
   v_no_strike boolean;
+  v_crew_no_strike boolean;
+  v_slot record;
+  v_cjob record;
+  v_remaining int;
 BEGIN
   -- Scan first WITHOUT a lock, then lock each candidate individually inside the
   -- loop. A cursor that carried its own FOR UPDATE would hold every row for the
@@ -261,6 +267,106 @@ BEGIN
     END;
   END LOOP;
 
+  -- ── THE CREW PASS (Q729, owner 2026-10-05) ───────────────────────────────
+  -- A crew has no lead, so its members are found on the roster. Each member
+  -- whose own reply deadline passed unconfirmed loses the spot, exactly as a
+  -- single offer expires: same strike rule and exemptions, application closed
+  -- as offer_expired, both sides told; the spot reopens (a full crew goes back
+  -- to open). No fee: nothing was committed.
+  FOR v_slot IN
+    SELECT g.id AS slot_id, g.job_id, g.helper_id,
+           (j.is_seed IS TRUE OR hp.is_seed IS TRUE) AS seed
+      FROM public.group_job_helpers g
+      JOIN public.jobs j ON j.id = g.job_id
+      LEFT JOIN public.profiles hp ON hp.user_id = g.helper_id
+     WHERE j.is_group_job IS TRUE
+       AND j.status IN ('open', 'accepted')
+       AND g.helper_id IS NOT NULL
+       AND g.helper_confirmed_at IS NULL
+       AND g.response_deadline IS NOT NULL
+       AND g.response_deadline < now()
+  LOOP
+    BEGIN
+      SELECT j.id, j.title, j.customer_id, j.status::text AS status, j.helpers_needed
+        INTO v_cjob
+        FROM public.jobs j
+       WHERE j.id = v_slot.job_id
+         AND j.is_group_job IS TRUE
+         AND j.status IN ('open', 'accepted')
+       FOR UPDATE SKIP LOCKED;
+      IF NOT FOUND THEN
+        CONTINUE;
+      END IF;
+      -- Re-checked under the job's lock: a confirm that landed first wins.
+      PERFORM 1
+        FROM public.group_job_helpers g
+       WHERE g.id = v_slot.slot_id
+         AND g.helper_confirmed_at IS NULL
+         AND g.response_deadline IS NOT NULL
+         AND g.response_deadline < now()
+       FOR UPDATE;
+      IF NOT FOUND THEN
+        CONTINUE;
+      END IF;
+
+      v_crew_no_strike := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL
+        OR EXISTS (SELECT 1 FROM public.job_accept_pending p
+                    WHERE p.job_id = v_cjob.id AND p.helper_id = v_slot.helper_id);
+      IF NOT v_crew_no_strike THEN
+        PERFORM public.apply_job_denial_consequence(
+          v_slot.helper_id, v_cjob.id,
+          'Let a job offer expire without answering: "' || COALESCE(v_cjob.title, 'Unknown') || '"');
+      END IF;
+
+      UPDATE public.applications
+         SET status = 'rejected', closed_reason = 'offer_expired'
+       WHERE job_id = v_cjob.id AND helper_id = v_slot.helper_id AND status = 'accepted';
+
+      DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id;
+
+      SELECT count(*) INTO v_remaining FROM public.group_job_helpers g WHERE g.job_id = v_cjob.id;
+      IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
+        UPDATE public.jobs SET status = 'open' WHERE id = v_cjob.id;
+      END IF;
+
+      INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+      VALUES (
+        v_cjob.customer_id,
+        'Offer expired — spot reopened',
+        'A Helpr you picked didn''t answer in time for "' || COALESCE(v_cjob.title, 'your job')
+          || '". Their spot is open to everyone again, so you can pick somebody else.',
+        'job_updates',
+        '/posts?job=' || v_cjob.id::text,
+        v_cjob.id
+      );
+
+      INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+      VALUES (
+        v_slot.helper_id,
+        'You lost a job offer',
+        'The deadline passed on "' || COALESCE(v_cjob.title, 'a job')
+          || CASE WHEN v_crew_no_strike
+               THEN '" before your payout setup and Stripe ID were done, so your spot went back to everyone. No strike. Finish both so you can accept the next offer.'
+               ELSE '" and your spot went back to everyone. Letting an offer expire counts the same as declining it.'
+             END,
+        'expired',
+        '/jobs?job=' || v_cjob.id::text,
+        v_cjob.id
+      );
+
+      v_count := v_count + 1;
+    EXCEPTION WHEN OTHERS THEN
+      INSERT INTO public.error_logs (severity, message, tags, context)
+      VALUES (
+        CASE WHEN v_slot.seed THEN 'info' ELSE 'error' END,
+        'unanswered crew spot expiry failed',
+        jsonb_build_object('source', 'expire_unanswered_offers' || CASE WHEN v_slot.seed THEN '-seed' ELSE '' END,
+                           'seed', v_slot.seed, 'job_id', v_slot.job_id::text),
+        jsonb_build_object('job_id', v_slot.job_id, 'helper_id', v_slot.helper_id, 'err', SQLERRM, 'sqlstate', SQLSTATE)
+      );
+    END;
+  END LOOP;
+
   RETURN v_count;
 END;
 $function$;
@@ -304,3 +410,144 @@ DROP TRIGGER IF EXISTS zzzz_offer_deadline_follows_start ON public.jobs;
 CREATE TRIGGER zzzz_offer_deadline_follows_start
   BEFORE UPDATE OF date_needed, start_time ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.offer_deadline_follows_start();
+
+-- accept_group_application, restated from 20261005172453 with the same cap: a
+-- crew member's answer-by never runs past the job's start either (it was the
+-- one writer of a non-null response_deadline left unbounded).
+CREATE OR REPLACE FUNCTION public.accept_group_application(p_application_id uuid, p_deadline timestamp with time zone DEFAULT NULL::timestamp with time zone, p_offer_message text DEFAULT NULL::text)
+ RETURNS TABLE(slots_filled integer, slots_total integer, roster_complete boolean)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_cutoff        timestamptz;
+  v_crew_deadline      timestamptz;
+  v_job_id        uuid;
+  v_helper_id     uuid;
+  v_app_status    text;
+  v_job_status    text;
+  v_job_customer  uuid;
+  v_is_group      boolean;
+  v_needed        int;
+  v_current       int;
+  v_budget        numeric;
+  v_slot          int;
+BEGIN
+  SELECT a.job_id, a.helper_id, a.status
+    INTO v_job_id, v_helper_id, v_app_status
+  FROM public.applications a
+  WHERE a.id = p_application_id;
+
+  IF v_job_id IS NULL THEN
+    RAISE EXCEPTION 'application_not_found';
+  END IF;
+
+  -- Lock the job row — concurrent accepts serialize here, which is what makes
+  -- the slot count below trustworthy.
+  SELECT j.status, j.customer_id, j.is_group_job, j.helpers_needed, j.budget
+    INTO v_job_status, v_job_customer, v_is_group, v_needed, v_budget
+  FROM public.jobs j
+  WHERE j.id = v_job_id
+  FOR UPDATE;
+
+  IF v_job_customer IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'not_authorized';
+  END IF;
+
+  -- Q345: no hire across a block, in either direction (see accept_application;
+  -- are_users_blocked is symmetric, so the argument order does not matter).
+  IF public.are_users_blocked(v_job_customer, v_helper_id) THEN
+    RAISE EXCEPTION 'applicant_blocked' USING ERRCODE = '42501';
+  END IF;
+
+  IF v_is_group IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'not_a_group_job';
+  END IF;
+
+  -- Defensive: a group job with missing or invalid capacity would let the
+  -- roster grow without bound.
+  IF v_needed IS NULL OR v_needed < 1 THEN
+    RAISE EXCEPTION 'invalid_helpers_needed';
+  END IF;
+
+  IF v_job_status IS DISTINCT FROM 'open' THEN
+    RAISE EXCEPTION 'job_not_open';
+  END IF;
+
+  IF v_app_status IS DISTINCT FROM 'pending' THEN
+    RAISE EXCEPTION 'application_not_pending';
+  END IF;
+
+  SELECT COUNT(*) INTO v_current
+  FROM public.group_job_helpers g
+  WHERE g.job_id = v_job_id;
+
+  -- Capacity guard. Under contention the loser lands here rather than
+  -- overfilling the roster.
+  IF v_current >= v_needed THEN
+    RAISE EXCEPTION 'roster_full';
+  END IF;
+
+  UPDATE public.applications
+     SET status = 'accepted',
+         offer_message = COALESCE(p_offer_message, offer_message)
+   WHERE id = p_application_id;
+
+  -- The lowest free slot, and its frozen share of the budget in cents
+  -- (largest remainder; see crew_slot_share_cents). A slot a departed member
+  -- left is reused, so the N shares always add up to the budget.
+  SELECT min(s) INTO v_slot
+    FROM generate_series(0, v_needed - 1) AS s
+   WHERE NOT EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = v_job_id AND g.slot_no = s);
+  IF v_slot IS NULL THEN
+    RAISE EXCEPTION 'roster_full';
+  END IF;
+
+  -- UNIQUE (job_id, helper_id) turns a double-accept of the SAME helper into a
+  -- 23505 rather than a silently duplicated slot. group_job_helpers_award_gate
+  -- judges THIS member: award gate and, since 20260925154606, a funded job.
+  INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents)
+  VALUES (v_job_id, v_helper_id, v_slot,
+          public.crew_slot_share_cents(round(COALESCE(v_budget, 0) * 100)::bigint, v_needed, v_slot));
+
+  -- Q729 (owner 2026-10-05): the poster's reply deadline is kept for THIS
+  -- member; expire_unanswered_offers reopens the spot once it passes unanswered.
+  -- Clamped to the shortest deadline the app offers (1 hour, less 5 minutes
+  -- of clock skew): a deadline in the past would get the member struck by the
+  -- next sweep before they could answer (lh-authz-rls review #1, 2026-10-05).
+  -- The answer-by never runs past the job's start (20261005184940), and a NULL
+  -- (never expires) is bounded the same way, as accept_application now is.
+  v_cutoff := public.job_offer_cutoff(
+    (SELECT j.date_needed FROM public.jobs j WHERE j.id = v_job_id),
+    (SELECT j.start_time FROM public.jobs j WHERE j.id = v_job_id));
+  v_crew_deadline := LEAST(GREATEST(p_deadline, now() + interval '55 minutes'), v_cutoff);
+  UPDATE public.group_job_helpers
+     SET response_deadline = v_crew_deadline
+   WHERE job_id = v_job_id AND slot_no = v_slot;
+
+  v_current := v_current + 1;
+
+  -- A crew has no lead (Q407): jobs.helper_id stays NULL (trg_group_job_has_no_lead),
+  -- and the job-level response_deadline, which timed ONE Helpr's reply, is not
+  -- written. p_deadline stays in the signature for existing callers.
+  UPDATE public.jobs
+     SET
+         -- Stay 'open' while partially staffed; only the final slot closes it.
+         -- The cast is the fix for the one statement that never ran: a CASE of
+         -- two bare literals resolves to text, and Postgres will not assign
+         -- text to the job_status enum ("column "status" is of type job_status
+         -- but expression is of type text"), so every call since 20260804122000
+         -- raised here and rolled back (reproduced in PGlite, R0 in
+         -- src/test/pglite/groupCrewNoLead.pglite.mjs).
+         status = (CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END)::job_status
+   WHERE id = v_job_id;
+
+  slots_filled := v_current;
+  slots_total := v_needed;
+  roster_complete := v_current >= v_needed;
+  RETURN NEXT;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.accept_group_application(uuid, timestamp with time zone, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.accept_group_application(uuid, timestamp with time zone, text) TO authenticated, service_role;

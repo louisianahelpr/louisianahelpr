@@ -100,11 +100,11 @@ describe("the job_tracking prefetch covers every card that mounts a tracker (#15
     // appliedCardMountsTracker already prefetches; a direct offer has no
     // helper on the job yet, and <JobTracking> does not query without one.
     expect(mounts).toEqual([
-      "src/pages/jobs/AppliedJobCard.tsx",
       "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
       "src/pages/jobs/appliedJobCard/ConfirmedSection.tsx",
       "src/pages/jobs/appliedJobCard/DisputedSection.tsx",
       "src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx",
+      "src/pages/jobs/appliedJobCard/OfferStepRail.tsx",
     ]);
   });
 });

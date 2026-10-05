@@ -195,6 +195,10 @@ async function readCompatFloor(force: boolean): Promise<number> {
  * min_supported_build, still blocks on the number alone.)
  */
 let deniedSeen = false;
+/** Evidence, not a once-setup flag: a refused read happened in this run. */
+function markDeniedSeen() {
+  deniedSeen = true;
+}
 export function __resetDeniedSeenForTests() {
   deniedSeen = false;
 }
@@ -267,7 +271,7 @@ export function useVersionCheck(): VersionCheck {
     // again at once (skipping the 60 s cache) instead of leaving the user on
     // "We couldn't load this" until the next resume.
     const onDenied = () => {
-      deniedSeen = true;
+      markDeniedSeen();
       run(true);
     };
     window.addEventListener(PERMISSION_DENIED_EVENT, onDenied);

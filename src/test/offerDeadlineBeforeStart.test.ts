@@ -108,25 +108,25 @@ describe("offer answer-by never after the job's start (client mirror)", () => {
   const at = (iso: string) => new Date(iso);
 
   it("a job starting in 30 min, 24 h chosen: the deadline is the start", () => {
-    // 2026-10-05 13:20 CDT = 18:20Z; the job starts 13:50 CDT.
-    const r = offerResponseDeadline(24, { date_needed: "2026-10-05", start_time: "13:50:00" }, at("2026-10-05T18:20:00Z"));
+    // 2024-10-05 13:20 CDT = 18:20Z; the job starts 13:50 CDT.
+    const r = offerResponseDeadline(24, { date_needed: "2024-10-05", start_time: "13:50:00" }, at("2024-10-05T18:20:00Z"));
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.cappedByStart).toBe(true);
-      expect(r.deadline.toISOString()).toBe("2026-10-05T18:50:00.000Z");
+      expect(r.deadline.toISOString()).toBe("2024-10-05T18:50:00.000Z");
     }
   });
 
   it("a job starting in 4 min is refused (the owner's live case)", () => {
-    const r = offerResponseDeadline(24, { date_needed: "2026-10-05", start_time: "13:50:00" }, at("2026-10-05T18:46:00Z"));
+    const r = offerResponseDeadline(24, { date_needed: "2024-10-05", start_time: "13:50:00" }, at("2024-10-05T18:46:00Z"));
     expect(r.ok).toBe(false);
   });
 
   it("a job ten days out keeps the chosen window; a year is capped at 48 h", () => {
-    const now = at("2026-10-05T18:00:00Z");
-    const r = offerResponseDeadline(4, { date_needed: "2026-10-15", start_time: "09:00:00" }, now);
+    const now = at("2024-10-05T18:00:00Z");
+    const r = offerResponseDeadline(4, { date_needed: "2024-10-15", start_time: "09:00:00" }, now);
     expect(r.ok && r.deadline.getTime() - now.getTime()).toBe(4 * 3_600_000);
-    const y = offerResponseDeadline(24 * 365, { date_needed: "2026-12-15", start_time: "09:00:00" }, now);
+    const y = offerResponseDeadline(24 * 365, { date_needed: "2024-12-15", start_time: "09:00:00" }, now);
     expect(y.ok && y.deadline.getTime() - now.getTime()).toBe(OFFER_MAX_WINDOW_HOURS * 3_600_000);
   });
 

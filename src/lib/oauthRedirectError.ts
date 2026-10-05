@@ -62,8 +62,8 @@ export type AccountChoiceRef = { choiceId: string; relay: boolean };
  * `lh_account_choice:<uuid>` plus `:relay` for an Apple Hide My Email address.
  * src/test/oneAccountPerPerson.test.ts holds the server and this prefix equal.
  */
-export const ACCOUNT_CHOICE_PREFIX = "lh_account_choice:";
-const ACCOUNT_CHOICE_RE = /lh_account_choice:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(:relay)?/i;
+const ACCOUNT_CHOICE_PREFIX = "lh_account_choice:";
+const ACCOUNT_CHOICE_RE = new RegExp(`${ACCOUNT_CHOICE_PREFIX}([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(:relay)?`, "i");
 
 export function parseAccountChoice(text: string | null | undefined): AccountChoiceRef | null {
   const m = ACCOUNT_CHOICE_RE.exec(text ?? "");
@@ -71,7 +71,7 @@ export function parseAccountChoice(text: string | null | undefined): AccountChoi
 }
 
 /** Fallback copy when the choice cannot be shown as a dialog. */
-export const ACCOUNT_CHOICE_COPY =
+const ACCOUNT_CHOICE_COPY =
   "We couldn't find a Louisiana Helpr account for that sign-in, so we didn't make one. Choose below whether you already have an account or you're new here.";
 
 const PENDING_KEY = "helpr_oauth_pending";

@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { unwrap } from "@/lib/supabaseResult";
+import { userFacingError } from "@/lib/userFacingError";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UserIdentity } from "@supabase/supabase-js";
@@ -21,17 +24,15 @@ import { connectProvider, type SocialProvider } from "@/lib/socialAuth";
  * sign-in screen is offered here (src/test/oneAccountPerPerson.test.ts).
  * A method can be removed only while another one remains.
  */
-export const CONNECTABLE_PROVIDERS: readonly SocialProvider[] = ["apple", "google"];
+const CONNECTABLE_PROVIDERS: readonly SocialProvider[] = ["apple", "google"];
 
 const NAME: Record<SocialProvider, string> = { apple: "Apple", google: "Google" };
 
-export function useIdentities() {
+function useIdentities() {
   return useQuery<UserIdentity[]>({
     queryKey: ["security", "identities"],
     queryFn: async () => {
-      const { data, error } = await supabase.auth.getUserIdentities();
-      if (error) throw error;
-      return data?.identities ?? [];
+      return unwrap(await supabase.auth.getUserIdentities())?.identities ?? [];
     },
     staleTime: 30_000,
   });
@@ -47,7 +48,7 @@ export function SignInMethodsCard() {
   // A web connect returns here; say what happened (once).
   useEffect(() => {
     const back = takeOAuthRedirectError();
-    if (back?.message) toast.error(back.message, { id: "connect-provider" });
+    if (back?.message) toast.error(userFacingError(back.message, "That sign-in couldn't be connected. Try again."), { id: "connect-provider" });
   }, []);
 
   const asked = params.get("connect");
@@ -64,7 +65,7 @@ export function SignInMethodsCard() {
       await queryClient.invalidateQueries({ queryKey: ["security", "identities"] });
       confirmConsequential(`${NAME[provider]} connected. It now opens this account.`);
     } else if (result.kind === "error") {
-      toast.error(result.message, { id: "connect-provider" });
+      toast.error(userFacingError(result.message, "That sign-in couldn't be connected. Try again."), { id: "connect-provider" });
     }
   };
 
@@ -95,6 +96,7 @@ export function SignInMethodsCard() {
           <p className="text-ds-11 font-sans mt-0.5" style={{ color: isError ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.8)" }}>
             {isError ? "We couldn't load your sign-in methods." : "Each one opens this same account."}
           </p>
+          {isError && <ReportErrorScreen source="SignInMethodsCard.identities" title="We couldn't load your sign-in methods." />}
         </div>
       </div>
 

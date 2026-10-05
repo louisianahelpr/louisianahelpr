@@ -54,10 +54,7 @@ export async function readClientCompatFloor(opts: { force?: boolean } = {}): Pro
   if (inFlight) return inFlight;
   inFlight = (async () => {
     try {
-      // Cast: the generated types learn about this function only after the
-      // migration deploys and types are regenerated.
-      const rpc = supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
-      const { data, error } = await rpc("client_compat_floor");
+      const { data, error } = await supabase.rpc("client_compat_floor");
       if (error) throw error;
       const value = normalizeFloor(data);
       cached = { value, at: Date.now() };

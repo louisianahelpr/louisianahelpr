@@ -108,6 +108,7 @@ export async function startDeployServer(dirA: string, dirB: string): Promise<Dep
       file = path.join(file, "index.html");
       body = await readOrNull(file);
     }
+    const found = body !== null;
     if (body === null) {
       if (/^\/assets\/.+\.js$/.test(p)) missing.push(p);
       // vercel.json's catch-all rewrite: no file → index.html, 200.
@@ -117,7 +118,7 @@ export async function startDeployServer(dirA: string, dirB: string): Promise<Dep
     const type = TYPES[path.extname(file)] ?? "application/octet-stream";
     res.writeHead(200, {
       "content-type": type,
-      "cache-control": p.startsWith("/assets/") && stat ? "public, max-age=31536000, immutable" : "public, max-age=0, must-revalidate",
+      "cache-control": p.startsWith("/assets/") && found ? "public, max-age=31536000, immutable" : "public, max-age=0, must-revalidate",
     });
     res.end(body);
   });

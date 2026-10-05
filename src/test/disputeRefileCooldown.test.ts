@@ -46,7 +46,7 @@ describe("Q1244: rpc_open_dispute refuses a re-file loop", () => {
 
   it("the app says what happened on both paths that reach it", () => {
     const err = { code: "P0001", message: "dispute_refile_cooldown" };
-    for (const rpc of ["rpc_open_dispute", "helper_abort_job"]) {
+    for (const rpc of ["rpc_open_dispute", "helper_abort_job"] as const) {
       expect(rpcErrorMessage(rpc, err), rpc).toMatch(/withdrew a dispute on this job/);
     }
   });

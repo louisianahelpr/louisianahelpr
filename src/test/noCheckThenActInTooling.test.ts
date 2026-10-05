@@ -47,7 +47,7 @@ const CHECK = /\b(?:fs\.)?(?:(existsSync|accessSync)\(\s*([A-Za-z_$][\w$.]*)\s*[
 const MUTATORS = "writeFileSync|appendFileSync|unlinkSync|rmSync|rmdirSync|mkdirSync|copyFileSync|renameSync|createWriteStream";
 
 function mutates(x: string): RegExp {
-  return new RegExp(`\\b(?:fs\\.)?(?:${MUTATORS})\\(\\s*${x.replace(/[.$()]/g, "\\$&")}\\s*[,)]`);
+  return new RegExp(`\\b(?:fs\\.)?(?:${MUTATORS})\\(\\s*${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[,)]`);
 }
 
 function trackedSources(): string[] {

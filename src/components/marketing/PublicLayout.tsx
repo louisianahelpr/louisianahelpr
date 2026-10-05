@@ -32,11 +32,22 @@ interface PublicLayoutProps {
    * other page keeps the spacer so content starts below the nav.
    */
   noNavSpacer?: boolean;
+  /**
+   * Render the site Footer (default true). A page whose body is still
+   * LOADING passes false until its content has settled (Q1312, /browse):
+   * a footer painted under a loading placeholder has to be held off-screen by
+   * a screen-tall reserve, or it jumps when the content lands (CLS), and that
+   * reserve is the blank band the owner saw between a short page's content and
+   * its footer. A footer that first appears AFTER the content is a new node,
+   * not a shift, so no reserve is needed.
+   */
+  footer?: boolean;
 }
 
 const PublicLayout = ({
   children,
   noNavSpacer = false,
+  footer = true,
 }: PublicLayoutProps) => {
   const location = useLocation();
   const { user } = useAuthReady();
@@ -149,7 +160,7 @@ const PublicLayout = ({
 
       <div className="flex-1">{children}</div>
 
-      <Footer />
+      {footer && <Footer />}
     </div>
   );
 };

@@ -29,6 +29,9 @@ interface PublicHeaderPageProps {
    *  and Support, which have no title-row actions, so their headers are
    *  byte-identical to before. */
   titleActions?: ReactNode;
+  /** Forwarded to PublicLayout's `footer`: false while the body is still
+   *  loading (Q1312), so the page needs no screen-tall reserve under it. */
+  footer?: boolean;
   children: ReactNode;
 }
 
@@ -54,6 +57,7 @@ export function PublicHeaderPage({
   bottomPaddingClassName,
   headerWrapperClassName,
   titleActions,
+  footer = true,
   children,
 }: PublicHeaderPageProps) {
   const header = (
@@ -66,7 +70,7 @@ export function PublicHeaderPage({
     />
   );
   return (
-    <PublicLayout>
+    <PublicLayout footer={footer}>
       {headerWrapperClassName ? <div className={headerWrapperClassName}>{header}</div> : header}
       <div className={`px-5 sm:px-8 lg:px-12 ${bottomPaddingClassName}`}>
         {children}

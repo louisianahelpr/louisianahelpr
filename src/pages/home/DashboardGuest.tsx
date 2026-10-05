@@ -574,9 +574,16 @@ const DashboardGuest = () => {
   // original comment this replaced): on web the page ends in the real
   // Footer, not a bottom dock, so a small fixed gap stands in for it instead.
   const feedBottomClass = isNativePlatform ? "pb-safe-nav" : "pb-4";
-  // Phones keep the skeleton's `min-h-screen`, so the empty state replacing it
-  // does not pull the Footer up (CLS 0.1318 at 375 on 2026-10-01, run 36898448810).
-  const emptyWrapperClass = isNativePlatform ? "flex-1 min-h-full flex" : "min-h-screen md:min-h-[50vh] flex";
+  // Web: NO screen-tall reserve (Q1312, owner 2026-10-05: a big blank gap
+  // between "Nothing today" and the footer, the empty state floating mid-page).
+  // The reserve used to keep the Footer below the fold while the feed loaded
+  // (CLS 0.1318 at 375 on 2026-10-01, run 36898448810). The Footer now waits
+  // for the feed instead (`footer={feedSettled}` below), and a footer that
+  // first appears under settled content is a new node, not a layout shift.
+  const emptyWrapperClass = isNativePlatform ? "flex-1 min-h-full flex" : "flex";
+  // Settled = whatever replaces the loading bones is on screen: the list, the
+  // empty state, the error state or the offline notice.
+  const feedSettled = feedReady || phase === "offline-empty";
 
   const feedList = (
     <>
@@ -731,9 +738,12 @@ const DashboardGuest = () => {
         </div>
         );
       })() : (
-        // No fade-in (Q169; a 500ms fade left a blank frame). Same reserve as the skeleton:
-        // without it one card pulled the Footer up from below the fold (CLS 0.2399 at 375).
-        <div className={`${FEED_GRID_CLASS} ${feedBottomClass} ${GUEST_FEED_RESERVE_CLASS}`}>
+        // No fade-in (Q169; a 500ms fade left a blank frame). No reserve on the
+        // settled list (Q1312): one card used to pull the Footer up from below
+        // the fold (CLS 0.2399 at 375); the Footer now mounts only once the
+        // feed has settled, so there is nothing under the list to pull up, and
+        // a one-card list ends in the footer, not a screen of blank.
+        <div className={`${FEED_GRID_CLASS} ${feedBottomClass}`}>
           {/* No re-sort here: useDashboardFilters already sorts
               urgent-first (then boosted etc.), so a second
               urgent-only sort was a redundant pass that could only
@@ -878,6 +888,7 @@ const DashboardGuest = () => {
       title="Browse Jobs"
       width="public"
       bottomPaddingClassName="pb-16"
+      footer={feedSettled}
     >
       <div className="mx-auto page-measure">
         {toolbar}

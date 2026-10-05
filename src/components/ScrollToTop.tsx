@@ -45,8 +45,28 @@ const ScrollToTop = () => {
   // switcher calling setSearchParams) mints a fresh location.key but keeps the
   // pathname — those must NOT scroll the page to the top.
   const prevPathnameRef = useRef<string | null>(null);
+  // The history entry on screen NOW. A scroll listener bound to an older entry
+  // must not write its offset (Q1312, below).
+  const currentKeyRef = useRef(key);
+
+  // Q1312 (owner, 2026-10-05: Browse Jobs "opens mid-scroll", heading under
+  // the top bar). This component restores scroll itself (POP branch below), so
+  // the browser must not ALSO restore it. With the default
+  // `history.scrollRestoration = "auto"`, WebKit scrolls the page to the
+  // entry's remembered offset the moment Back/Forward fires, while the OLD
+  // route is still on screen, so the offset is clamped to the old page's
+  // height and recorded under the old entry. Measured on prod in WebKit at 375:
+  // landing scrolled to 1005 -> footer "Jobs" -> /browse (top) -> Back ->
+  // Forward reopened /browse at 505, its very bottom, the title scrolled under
+  // the nav. Chromium opened it at 0. "manual" leaves restoration to us.
+  useLayoutEffect(() => {
+    if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+  }, []);
 
   useLayoutEffect(() => {
+    currentKeyRef.current = key;
     if (hash) return; // Let the browser handle anchor scrolling
 
     const samePathname = prevPathnameRef.current === pathname;
@@ -102,6 +122,10 @@ const ScrollToTop = () => {
     scrollerRef.current = scroller;
     const readPos = () => (scroller ? scroller.scrollTop : window.scrollY);
     const onScroll = () => {
+      // A scroll that lands after the route changed (the new page's restore or
+      // reset) belongs to the NEW entry; recording it under this one is how
+      // an entry left at the top came back mid-page (Q1312).
+      if (currentKeyRef.current !== key) return;
       const pos = readPos();
       setVisible(pos > REVEAL_AFTER_PX);
       scrollPositions.set(key, pos);

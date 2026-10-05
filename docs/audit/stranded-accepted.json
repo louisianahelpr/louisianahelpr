@@ -66,6 +66,31 @@
       "sha": "782aa09e77ee1ddca66ff468b0eb2f7e31591f83",
       "reason": "parked: Notify Me mid-build at the owner's 85% usage stop; finish next session (Q1313)",
       "checked": "2026-10-05 (lead, WIP not landable; OPEN.md Q1313 holds the status and the draft launch message)"
+    },
+    {
+      "id": "pr:2319",
+      "sha": "bf39323b5caf21e45371d6bae8c38082c3a921d3",
+      "reason": "Superseded batch bundle (#2309's content): hardening + Browse Jobs landed in #2311, the WHOLE code-tooling lane (incl. PhotoReorderGrid and the main.tsx boot import) in #2318; this copy is older than main."
+    },
+    {
+      "id": "pr:2314",
+      "sha": "544eba0d343846d6ff4f64d5b9f304b417ddf683",
+      "reason": "Auto-land of park/q1177-money: the Money page landed in #2311 after three lh-money-escrow rounds; main's earnings files are NEWER than this park copy (old e2e earnings specs superseded)."
+    },
+    {
+      "id": "pr:2313",
+      "sha": "bd7992b50b56fb1f77b9301b12cadfe032c1231c",
+      "reason": "Auto-land of park/hardening-pins-csp: the SHA pins + csp-report endpoint landed in #2311 with the lh-authz-rls review fixes; this park copy predates those fixes."
+    },
+    {
+      "id": "pr:2283",
+      "sha": "9850b163eaaf4f511ea5c98d46a09d1ee2e0a44a",
+      "reason": "Auto-land of cloud/perf-first-paint (docs + an older deferred-vendor allowlist): Q1299 on main (#2318) removed both framer-motion closure violations this copy still lists, so main is newer."
+    },
+    {
+      "id": "pr:2320",
+      "sha": "7cffbc9b761ab2dac800fec1ec3e8c77c6cdb408",
+      "reason": "Auto-land of lane/code-tooling-1005: the whole lane landed in #2318 together with the cross-branch guard fixes (size extractions, picker registry, boot import); main's versions are newer than this copy."
     }
   ]
 }

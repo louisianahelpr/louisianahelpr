@@ -11,30 +11,30 @@
  * says are stripped really are, that anon cannot execute it, and that the
  * client, the edge function and the privacy journey all agree on the sections.
  *
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | jsonb_agg(to_jsonb(t) - 'flag_reason') | jsonb_agg(to_jsonb(t))
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | jsonb_agg(to_jsonb(t) - 'flag_reason') | jsonb_agg(to_jsonb(t))
  * Q1232: the applicant's own application rows keep flag_reason again.
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) - 'flag_reason' | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t)
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) - 'flag_reason' | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t)
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
  * @mutate src/test/helpers/dataExportInventory.ts |   "retained_bans.email_sha256": { reason: | "retained_banz.email_sha256": { reason:
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | to_jsonb(t) - 'created_by' | to_jsonb(t)
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | to_jsonb(t) - 'created_by' | to_jsonb(t)
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
  * @mutate scripts/lib/privacyJourney.mjs | KNOWN_NOT_EXPORTED = []; | KNOWN_NOT_EXPORTED = ["reports"];
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |       WHERE t.payer_id = v_uid OR t.helper_id = v_uid)); |       WHERE t.helper_id = v_uid));
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |       WHERE t.helper_id = v_uid OR t.parent_job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments' |       WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments'
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'stripe_transfer_id' - 'status' - 'paid_at' END | to_jsonb(t)
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'status', t.status, | ELSE to_jsonb(t) - 'flag_reason' \|\| jsonb_build_object('status', t.status,
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'slot_no', t.slot_no, 'status', t.status, | ELSE to_jsonb(t) \|\| jsonb_build_object('status', t.status,
- * @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql |       WHERE t.payer_id = v_uid OR t.helper_id = v_uid)); |       WHERE t.helper_id = v_uid));
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql |       WHERE t.helper_id = v_uid OR t.parent_job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments' |       WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments'
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'stripe_transfer_id' - 'status' - 'paid_at' END | to_jsonb(t)
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'status', t.status, | ELSE to_jsonb(t) - 'flag_reason' \|\| jsonb_build_object('status', t.status,
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'slot_no', t.slot_no, 'status', t.status, | ELSE to_jsonb(t) \|\| jsonb_build_object('status', t.status,
+ * @mutate supabase/migrations/20261005060801_export_includes_tip_hold_redrives.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

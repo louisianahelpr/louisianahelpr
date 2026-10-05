@@ -80,11 +80,12 @@ describe("stripePercentCostCents (bundled marginal cost, no flat)", () => {
   });
 });
 
-describe("netUrgentFeeDollars (helper's urgent take-home after bundled Stripe cost)", () => {
-  it("docks only the marginal 2.9% of the urgent fee, in dollars", () => {
-    expect(edgeNetUrgent(10)).toBeCloseTo(9.71, 5); // $10 − $0.29
-    expect(edgeNetUrgent(5)).toBeCloseTo(4.85, 5); // $5 − $0.15
-    expect(edgeNetUrgent(20)).toBeCloseTo(19.42, 5); // $20 − $0.58
+describe("netUrgentFeeDollars (what the Helpr receives of the urgent bonus: all of it, Q362)", () => {
+  it("passes the whole urgent bonus to the Helpr, in dollars", () => {
+    expect(edgeNetUrgent(10)).toBe(10);
+    expect(edgeNetUrgent(5)).toBe(5);
+    expect(edgeNetUrgent(20)).toBe(20);
+    expect(edgeNetUrgent(7.5)).toBe(7.5);
   });
 
   it("never subtracts the flat — a $0 urgent fee nets $0, not −$0.30", () => {

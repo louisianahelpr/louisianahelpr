@@ -396,7 +396,10 @@ export function LogisticsSection({
         )}
       </div>
 
-      <div className="space-y-3">
+      {/* Date and Start Time sit side by side from md up (owner, 2026-10-05);
+          stacked on a phone, where each needs the full width. */}
+      <div className="grid gap-5 md:grid-cols-2 md:items-start">
+      <div className="space-y-3 min-w-0">
         {/* A repeating job's date is when the series STARTS (owner,
             2026-09-14, VN-51); the same field feeds RecurringSchedulePicker's
             `startDate` above. */}
@@ -415,7 +418,7 @@ export function LogisticsSection({
           is wrong when the date is today and the time is what has gone by. */}
       <div
         id="start-time"
-        className="space-y-3"
+        className="space-y-3 min-w-0"
         role="group"
         aria-labelledby="start-time-label"
         aria-describedby={scheduleInPast ? "start-time-error" : undefined}
@@ -436,6 +439,7 @@ export function LogisticsSection({
             ? "That start time has already passed. Pick a later time, or move the job to a future date."
             : undefined}
         </FieldError>
+      </div>
       </div>
 
       {/* `items-center`, and no `mt-0.5` on the box. The label is one line at

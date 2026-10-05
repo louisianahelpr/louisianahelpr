@@ -294,7 +294,10 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
       /NEW\.helper_completed_at\s+IS\s+NULL\s+AND\s+NOT\s+public\.is_server_context\(\)\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_completed_at_not_clearable'/i,
     );
     const block = latestDefinition("block_user_and_settle");
-    expect(block.match(/helper_completed_at\s+IS\s+NULL/gi)).toHaveLength(2); // the locked SELECT and the UPDATE predicate
+    // The locked SELECT and the UPDATE predicate, plus (20261005172453, Q729)
+    // the crew pass's per-member stamp: a member who marked their part done is
+    // never taken off the crew by a block.
+    expect(block.match(/helper_completed_at\s+IS\s+NULL/gi)).toHaveLength(3);
     // 20260915044137 broadened this guard: a no-show is now refused when the
     // Helpr has arrived OR completed, raising 'helper_already_arrived'. The
     // done-stamp still blocks the report — the protection is intact/stronger.

@@ -24,6 +24,7 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 // 50 + 7 + 7 against a printed total of 63 — the poster can see it not add
 // up, on the screen where they decide whether to trust us with a card.
 import { formatPriceExact } from "@/lib/format";
+import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
 import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
 import { hasTaxableLine } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
@@ -69,6 +70,8 @@ interface CheckoutStepProps {
   helprActivity: HelprActivity | null;
   customerFee: number | null;
   customerFeeAmount: number;
+  /** Q362: card fee on the urgent bonus, paid on top so the Helpr gets all of it (dollars). */
+  urgentCardFeeAmount?: number;
   /** One-time account-setup fee, in dollars — 0 once the poster has paid it. */
   onboardingFeeAmount: number;
   totalCharge: number;
@@ -130,6 +133,7 @@ export function CheckoutStep({
   helprActivity,
   customerFee,
   customerFeeAmount,
+  urgentCardFeeAmount = 0,
   onboardingFeeAmount,
   totalCharge,
   hasGift = false,
@@ -286,7 +290,8 @@ export function CheckoutStep({
                 <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
                   {/* "budget + fees" is wrong on a gift-funded post — there
-                      are no fees, and the number above is what's left after
+                      is no service fee (only the urgent bonus card fee when
+                      the card carries part of a bonus, Q362), and the number above is what's left after
                       the gift, so name the gift instead. */}
                   {hasGift
                     ? ` budget · $${formatPriceExact(giftAppliedAmount)} gift applied`
@@ -457,10 +462,7 @@ export function CheckoutStep({
               Checking your gift card…
             </div>
           )}
-          <div className="flex justify-between text-ds-13">
-            <span className="text-muted-foreground">Job Budget</span>
-            <span className="font-medium text-foreground">${formatPriceExact(budgetNum)}</span>
-          </div>
+          <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} />
           {/* Service fee — waived outright on a gift-funded post. create-payment
               returns from the gift card branch before the tier/fee pricing runs, so
               there is no percentage to state; printing "12%  $0.00" would
@@ -480,16 +482,14 @@ export function CheckoutStep({
             )}
           </div>
           {isUrgent && urgentFeeNum > 0 && (
-            <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent Bonus (Goes to Helpr)</span>
-              <span className="font-medium text-foreground">${formatPriceExact(urgentFeeNum)}</span>
-            </div>
+            <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent Bonus (Goes to Helpr)</>} amount={formatPriceExact(urgentFeeNum)} />
+          )}
+          {/* Q362: the bonus's card fee is the poster's, so the Helpr gets all of it. */}
+          {isUrgent && urgentCardFeeAmount > 0 && (
+            <CheckoutSummaryRow label="Urgent Bonus Card Fee" amount={formatPriceExact(urgentCardFeeAmount)} />
           )}
           {onboardingFeeAmount > 0 && (
-            <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground">One-Time Account Setup <span className="text-ds-12">(First Job Only)</span></span>
-              <span className="font-medium text-foreground">${formatPriceExact(onboardingFeeAmount)}</span>
-            </div>
+            <CheckoutSummaryRow label={<>One-Time Account Setup <span className="text-ds-12">(First Job Only)</span></>} amount={formatPriceExact(onboardingFeeAmount)} />
           )}
           {/* ── Gift applied ────────────────────────────────────────────────
               The line this screen was missing. `redeem_gift_card` applies the

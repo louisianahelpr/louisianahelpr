@@ -302,7 +302,10 @@ describe("Q344: a decision is not announced as a settlement", () => {
   it("both cards attach the flag from the dispute row", () => {
     expect(read("src/pages/posts/PostedJobCard.tsx")).toMatch(/<PosterStatusStrip\s+job=\{withDisputeSettling\(job, unsettledDisputeJobIds\)\}/);
     expect(read("src/pages/posts/postedJobCard/PosterStatusStrip.tsx")).toMatch(/posterStatusLine\(job,/);
-    expect(read("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/helperStatusLine\([^)]*withDisputeSettling\(app\.job, unsettledDisputeJobIds\)/);
+    // The Helpr card's collapsed strip moved to HelperCollapsedStrip (same call); the card
+    // still owns the hook result and hands it to the strip.
+    expect(read("src/pages/jobs/appliedJobCard/HelperCollapsedStrip.tsx")).toMatch(/helperStatusLine\([^)]*withDisputeSettling\(app\.job, unsettledDisputeJobIds\)/);
+    expect(read("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/<HelperCollapsedStrip[^>]*unsettledDisputeJobIds=\{unsettledDisputeJobIds\}/);
     const hook = read("src/hooks/useUnsettledDisputeJobIds.ts");
     expect(hook).toMatch(/\.eq\("status", "decided"\)/);
     expect(hook).toMatch(/execution_status\.is\.null,execution_status\.neq\.executed/);

@@ -415,12 +415,14 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
           <img
             src="/helpr-splash-icon.png"
             alt=""
-            /* opacity-80, not 70: the project bans bare opacity below 80 as a
-               state signal because it drags text under WCAG AA. Nothing here is
-               text — this is a decorative mark on the privacy shield, alt="" —
-               but 80 sits inside the allowed range and reads identically, which
-               beats carrying a lint exception for a purely cosmetic value. */
-            className="h-20 w-20 object-contain opacity-80"
+            /* `boot-h-mark` (src/index.css): the native splash's H, same size,
+               same centre, full opacity. On a fresh start with App Lock on,
+               THIS is React's first paint, straight after the splash — and it
+               was an 80 px, 80%-opacity H, a second, different loader after
+               the splash's ~92 px one (owner, 2026-10-05: "two separate H
+               loaders… there must be exactly one"). Drawn identically, the
+               hand-off is invisible. src/test/oneBootLoaderMark.test.ts. */
+            className="boot-h-mark"
           />
         </div>
       ) : (

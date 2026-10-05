@@ -241,6 +241,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.complete_direct_offer_accept", "single-job mutation; status is a precondition"],
     ["public.complete_pending_accepts_on_setup", "the profile's own pending accepts; 'open' marks a live direct offer"],
     ["public.expire_unanswered_offers", "sweep over offers, not a browse feed"],
+    // Q729/Q1282, 20261005172453: the crew pass settles the crews the caller and
+    // the person they block share; 'open' is a crew still filling, not a feed.
+    ["public.block_user_and_settle", "the caller's own shared crews; 'open' marks a crew still filling"],
     ["public.helper_abort_job", "single-job mutation; status is a precondition"],
     ["public.helper_cancel_booking", "single-job mutation; status is a precondition"],
     // Q407 (5)/(6), 20260927012806: each reads 'open' on the VISITS of one

@@ -68,12 +68,11 @@ export function computeNet(
   const helpers = helpersNeeded > 0 ? helpersNeeded : 1;
   const perHelperBudget = budget / helpers;
   const commission = perHelperBudget * (effectiveFee / 100);
-  // The urgent bonus is charged to the poster bundled into escrow ONCE, so it
-  // passes to the helper minus only its marginal 2.9% (never the once-per-
-  // transaction 30¢ flat). On a group job it is split across the roster like
-  // the budget is — otherwise N helpers would each be paid the full urgent fee
-  // against a single urgent fee the poster paid, over-paying the platform N×.
-  // Netting then dividing keeps every term reconciling to the shown take-home.
+  // The urgent bonus is charged to the poster bundled into escrow ONCE and
+  // passes to the helper WHOLE (Q362: the poster pays its card fee on top).
+  // On a group job it is split across the roster like the budget is —
+  // otherwise N helpers would each be paid the full urgent fee against a
+  // single urgent fee the poster paid, over-paying the platform N×.
   const netUrgent = netUrgentFeeDollars(urgentFee) / helpers;
   const netEarnings = netAfterFirstPayoutFee(
     perHelperBudget - commission + netUrgent,

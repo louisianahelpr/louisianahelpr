@@ -4372,3 +4372,16 @@ html.senior-mode *::after {
 [data-job-step-row][data-tight="true"][data-has-primary="true"] > :not([data-job-step-primary]) {
   flex: 0 1 var(--job-row-chip, 44px);
 }
+
+/* The launch H, as the app draws it (AppLockGate's privacy shield, which is
+   the first thing React paints on a fresh start with App Lock on). SAME
+   factor and art ratio as index.html's #boot-loader .boot-h and the native
+   splash PNG, so splash -> boot shell -> shield is ONE mark that never moves
+   or resizes (owner, 2026-10-05: "there must be exactly one"). Guarded by
+   src/test/oneBootLoaderMark.test.ts. */
+.boot-h-mark {
+  width: calc(max(100vw, 100vh) * 0.11);
+  aspect-ratio: 256 / 220;
+  height: auto;
+  object-fit: contain;
+}

@@ -66,6 +66,12 @@ export interface GroupHelperLite {
   helper_confirmed_at?: string | null;
   /** This member's share of the budget in cents, frozen at hire (20260925154606). */
   share_cents?: number | null;
+  /** This member's own lifecycle stamps (Q1382): the poster's roster shows
+      where each member is and offers "Confirm Arrived" per member. */
+  helper_on_the_way_at?: string | null;
+  helper_arrived_at?: string | null;
+  poster_confirmed_arrival_at?: string | null;
+  helper_completed_at?: string | null;
   /** Nullable per the generated DB types (has a server default but the
       column accepts NULL). Forwarded as-is to the legacy GroupJobHelpers
       shape, which never read this field. */
@@ -264,8 +270,11 @@ export function postedDetailInputs(postedJobs: Job[]): PostedDetailInputs {
     helperIds: [...new Set(postedJobs.filter((j) => j.helper_id).map((j) => j.helper_id!))].sort(),
     completedIds: postedJobs.filter((j) => j.status === "completed").map((j) => j.id).sort(),
     trackedIds: postedJobs.filter(postedCardTrackerQueries).map((j) => j.id).sort(),
+    // Q707: an OPEN crew can already have hired members (a crew stays open
+    // while it fills), and the card decides "booked" (no Edit) from this
+    // roster, so open crews are fetched too.
     groupIds: postedJobs
-      .filter((j) => isActiveStatus(j.status) && j.is_group_job)
+      .filter((j) => (isActiveStatus(j.status) || j.status === "open") && j.is_group_job)
       .map((j) => j.id)
       .sort(),
     completedGroupIds: postedJobs
@@ -296,7 +305,10 @@ export async function fetchPostedActivityDetail(
       : emptyResult<{ job_id: string; reviewee_id: string }>(),
     trackedIds.length ? fetchTracking(trackedIds) : emptyResult<TrackingRow>(),
     groupIds.length
-      ? supabase.from("group_job_helpers").select("id, job_id, helper_id, status, joined_at, helper_confirmed_at, share_cents").in("job_id", groupIds)
+      ? supabase
+          .from("group_job_helpers")
+          .select("id, job_id, helper_id, status, joined_at, helper_confirmed_at, share_cents, helper_on_the_way_at, helper_arrived_at, poster_confirmed_arrival_at, helper_completed_at")
+          .in("job_id", groupIds)
       : emptyResult<GroupHelperRow>(),
     completedGroupIds.length
       ? supabase.from("group_job_helpers").select("job_id, helper_id, joined_at").in("job_id", completedGroupIds)
@@ -377,12 +389,13 @@ export async function fetchPostedActivityDetail(
     // one round-trip, regardless of how many group-job cards are open. Skipped
     // entirely when every member of every roster has departed, so we never
     // send `user_id=in.()`.
+    // get_safe_profiles, like every other name lookup in this file: the
+    // poster cannot read another account's `profiles` row (RLS), so that
+    // select came back EMPTY with no error and every crew member read "Helpr"
+    // (measured 2026-10-05 on prod as poster-e2e, Q1382).
     const { data: profiles, error: groupHelperProfilesError } = groupHelperIds.length
-      ? await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", groupHelperIds)
-      : { data: [], error: null };
+      ? await supabase.rpc("get_safe_profiles", { user_ids: groupHelperIds })
+      : { data: [] as SafeProfileRow[], error: null };
     if (groupHelperProfilesError) {
       report(groupHelperProfilesError, { severity: "warning", tags: { source: "useActivityData.groupHelperNames" } });
     }
@@ -637,6 +650,10 @@ type GroupHelperRow = {
   joined_at: string | null;
   helper_confirmed_at: string | null;
   share_cents: number | null;
+  helper_on_the_way_at: string | null;
+  helper_arrived_at: string | null;
+  poster_confirmed_arrival_at: string | null;
+  helper_completed_at: string | null;
 };
 
 type TrackingRow = {

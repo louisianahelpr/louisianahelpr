@@ -167,7 +167,7 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
         body:
           "Helpr pays through Stripe, so your payout account has to exist before a job can become yours. It takes about two minutes, and you only do it once.",
         ctaLabel: "Set Up Payouts",
-        collect: "currently_due",
+        collect: "eventually_due",
       };
     case "helper_identity_unverified":
       return {
@@ -175,7 +175,10 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
         body:
           "Stripe still needs to confirm your ID before you can accept a job. It's part of the same Stripe setup, and you only do it once.",
         ctaLabel: "Finish Stripe Setup",
-        collect: "currently_due",
+        // eventually_due: the ID gate reads every bucket (stripeIdentityVerified),
+        // so a currently_due link has nothing to ask and sends them straight
+        // back still blocked (seen live 2026-10-05: ssn_last_4 eventually_due).
+        collect: "eventually_due",
       };
     case "helper_unknown":
       return {
@@ -183,7 +186,7 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
         body:
           "Something's off with your account — we couldn't read the verification status this job needs. Try again in a moment, and get in touch if it keeps happening.",
         ctaLabel: "Open Payout Settings",
-        collect: "currently_due",
+        collect: "eventually_due",
       };
   }
 }
@@ -261,7 +264,9 @@ export function acceptPendingCopy(missing: readonly AcceptMissing[]): AwardBlock
     title: "Thanks for Accepting!",
     body: `To fully accept, ${todo}. As soon as ${steps.length === 2 ? "both are" : "that's"} done, your accept goes through and we let the person who posted the job know.`,
     ctaLabel: "Finish Stripe Setup",
-    collect: "currently_due",
+    // The ID step is only clearable by collecting eventually_due (see the
+    // identity case in awardBlockCopy).
+    collect: "eventually_due",
   };
 }
 

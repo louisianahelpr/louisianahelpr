@@ -6,7 +6,7 @@
  * jobs UPDATE, when is_caller_banned(). Behaviour is proven in
  * src/test/pglite/bannedBlockerKeepsBlock.pglite.mjs (red without the fix).
  *
- * @mutate supabase/migrations/20260924220318_rename_tab_addresses.sql |   IF public.is_caller_banned() THEN |   IF false THEN
+ * @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF public.is_caller_banned() THEN |   IF false THEN
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

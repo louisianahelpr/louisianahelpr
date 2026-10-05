@@ -13,8 +13,10 @@
  */
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { queueCounts, countLine, storedLine, duplicateIds, nextFreeId } from "../../scripts/queue-count.mjs";
-import { existsSync } from "node:fs";
+import { queueCounts, countLine, duplicateIds, nextFreeId } from "../../scripts/queue-count.mjs";
+// @ts-expect-error — plain .mjs script, no declaration file
+import { localRows, renderOpenBlock } from "../../scripts/scoreboard.mjs";
+import { existsSync, readFileSync } from "node:fs";
 // @ts-expect-error — plain .mjs module, no declaration file
 import { queueText } from "../../scripts/lib/openQueue.mjs";
 import { join } from "node:path";
@@ -98,23 +100,30 @@ describe("every DONE queue item names the guard that stops it recurring", () => 
   });
 });
 
-describe("the queue's count line is current", () => {
-  // The exact count is a post-merge total since 2026-10-04 (#2290): branches no
-  // longer regenerate it, staleness-watch.yml lands it on main after each push,
-  // and check-generated-current.mjs's strict main/nightly run fails if it is
-  // wrong. Here: the line exists and has the generator's own shape.
-  it("exists in the generator's shape (its exact value is checked after merge)", () => {
-    const c = queueCounts(open);
-    expect(c.total).toBeGreaterThanOrEqual(40);
-    const line = storedLine(open);
-    expect(line, "docs/OPEN.md has no queue-count line").not.toBeNull();
-    const shape = countLine({ total: 1, done: 1, partial: 1, open: 1 }).replace(/\d+/g, "N");
-    expect(String(line).replace(/\d+/g, "N")).toBe(shape);
+describe("the queue's count line is generated into SCOREBOARD, never kept in OPEN.md", () => {
+  // Owner, 2026-10-05: OPEN.md holds items only. The line used to sit in a
+  // generated block there, and every landing rewrote it and conflicted with
+  // every other landing. scripts/scoreboard.mjs renders it (from these items)
+  // into docs/SCOREBOARD.md on main; branches never write either. Judged on
+  // the generator's output for THIS tree, never on the committed SCOREBOARD
+  // (a branch leaves that stale by design).
+  it("OPEN.md carries no count line and no generated block", () => {
+    const md = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
+    expect(md.split("\n").filter((l) => /^\*\*Queue: \d+ items/.test(l))).toEqual([]);
+    expect(md).not.toContain("<!-- generated:");
   });
 
-  it("is RED when an item changes state without the line", () => {
-    const md = "<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->\n" + countLine({ total: 1, done: 0, partial: 0, open: 1 }) + "\n<!-- /generated: queue-count -->\n- [x] **Q1 DONE**\n";
-    expect(storedLine(md)).not.toBe(countLine(queueCounts(md)));
+  it("the Everything-open block the bot writes carries the exact count of these items", () => {
+    const c = queueCounts(open);
+    expect(c.total).toBeGreaterThanOrEqual(40);
+    const block = renderOpenBlock(localRows(), null, readFileSync(join(ROOT, "docs/OPEN.md"), "utf8")) as string;
+    expect(block.split("\n")).toContain(countLine(c));
+  });
+
+  it("is RED when an item changes state: the line moves with it", () => {
+    const before = "- [ ] **Q1 open**\n";
+    const after = "- [x] **Q1 DONE**\n";
+    expect(countLine(queueCounts(before))).not.toBe(countLine(queueCounts(after)));
   });
 });
 

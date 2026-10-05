@@ -167,10 +167,10 @@ describe("the CLI on a fixture repo", () => {
 });
 
 describe("wiring", () => {
-  it("land.sh refuses the push, after the rebase and refresh", () => {
+  it("land.sh refuses the push, after the rebase and the generated-file restore", () => {
     const land = readFileSync(join(ROOT, "scripts/land.sh"), "utf8");
     const at = land.indexOf("node scripts/check-fixes-update-their-items.mjs --range origin/main..HEAD --strict");
-    expect(at).toBeGreaterThan(land.indexOf("node scripts/check-generated-current.mjs --skip-post-merge"));
+    expect(at).toBeGreaterThan(land.indexOf("node scripts/check-branch-generated.mjs --base origin/main --restore"));
   });
 
   it("the required Test job runs it with --strict on every PR and push", () => {

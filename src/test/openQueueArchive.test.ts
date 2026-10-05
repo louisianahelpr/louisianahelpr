@@ -9,7 +9,7 @@
 // @mutate scripts/lib/openQueue.mjs | const DONE = /^- \[x\] /; | const DONE = /^- \[X\] /;
 // @mutate scripts/lib/openQueue.mjs |     if (!DONE.test(l)) { kept.push(l); continue; } |     if (!DONE.test(l)) { continue; }
 // @mutate scripts/archive-done.mjs |     process.exitCode = 1; |     process.exitCode = 0;
-// @mutate scripts/queue-count.mjs |   const all = queueText("."); |   const all = md;
+// @mutate scripts/queue-count.mjs |   const all = queueText("."); |   const all = queueText(".", undefined, () => []);
 // @mutate scripts/scoreboard.mjs | queueCounts(queueText(REPO, read, list)) | queueCounts(read(OPEN))
 // @mutate scripts/check-generated-current.mjs |     cmd: ["node", "scripts/archive-done.mjs", "--write"], |     cmd: ["node", "-e", ""],
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -39,10 +39,10 @@ describe("this repo: OPEN.md is live items only, and the archive is still read",
     expect(archived.length).toBeGreaterThan(200);
   });
 
-  it("OPEN.md itself carries no done item (run `npm run inventories:refresh`)", () => {
-    expect(read(OPEN).split("\n").filter((l: string) => /^- \[x\] /.test(l)).length).toBe(0);
-  });
-
+  // A ticked [x] item may sit in a BRANCH's OPEN.md: archive-done moves it on
+  // main, run by the inventories bot after the merge (owner, 2026-10-05: a
+  // branch never edits an archive). Main's own check:generated (staleness-watch)
+  // fails while one is left there; the fixture CLI test below proves the move.
   it("every archived done item still counts as done in the queue score", () => {
     const all = queueText(ROOT);
     const done = new Set(ids(all, "x"));
@@ -55,10 +55,10 @@ describe("this repo: OPEN.md is live items only, and the archive is still read",
     expect(row.pass).toBe(queueCounts(queueText(ROOT)).done);
   });
 
-  it("archive-done runs before queue-count in check-generated-current", () => {
+  it("archive-done runs before the scoreboard (which renders the queue line) in check-generated-current", () => {
     const order = GENERATED.map((g: { id: string }) => g.id);
     expect(order.indexOf("archive-done")).toBeGreaterThanOrEqual(0);
-    expect(order.indexOf("archive-done")).toBeLessThan(order.indexOf("queue-count"));
+    expect(order.indexOf("archive-done")).toBeLessThan(order.indexOf("scoreboard"));
     expect(GENERATED.find((g: { id: string }) => g.id === "archive-done").cmd).toEqual(["node", "scripts/archive-done.mjs", "--write"]);
   });
 });
@@ -107,9 +107,6 @@ describe("the CLIs on a fixture repo", () => {
     dir = realpathSync(mkdtempSync(join(tmpdir(), "lh-openq-")));
     mkdirSync(join(dir, "docs", "archive"), { recursive: true });
     writeFileSync(join(dir, "docs", "OPEN.md"), [
-      "<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->",
-      "x",
-      "<!-- /generated: queue-count -->",
       "## Q",
       "- [ ] **Q10 open**",
       "- [x] **Q11 done**",

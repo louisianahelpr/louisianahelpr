@@ -193,11 +193,11 @@ describe("Q1184: scripts/land.sh runs the check before it pushes", () => {
     .join("\n");
   const call = "node scripts/check-closing-keywords.mjs --range origin/main..HEAD";
 
-  it("calls the checker over origin/main..HEAD, after the rebase and refresh, before the first push", () => {
+  it("calls the checker over origin/main..HEAD, after the rebase and the generated-file restore, before the first push", () => {
     const at = code.indexOf(call);
     expect(at, "land.sh must call scripts/check-closing-keywords.mjs").toBeGreaterThan(-1);
     expect(code.indexOf(call, at + 1), "exactly one call").toBe(-1);
-    expect(at).toBeGreaterThan(code.indexOf("node scripts/check-generated-current.mjs --fix --skip-post-merge"));
+    expect(at).toBeGreaterThan(code.indexOf("node scripts/check-branch-generated.mjs --base origin/main --restore"));
     expect(at).toBeLessThan(code.indexOf("git push"));
   });
 

@@ -73,6 +73,6 @@ jobs:
         run: |
           set -euo pipefail
           XML=$(node scripts/generate-sitemap.mjs --stdout)
-          N=$(grep -c "<loc>" <<<"$XML" || true)
+          N=$(grep -c "<loc>" <<<"$XML" || [ $? -eq 1 ])
           echo "generated sitemap: $N URL(s)"
           [ "$N" -gt 3 ] || { echo "::error::generate-sitemap.mjs rendered $N URLs; the route parser has rotted"; exit 1; }

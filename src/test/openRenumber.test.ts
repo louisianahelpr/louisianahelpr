@@ -157,9 +157,9 @@ describe("applyFeeds never files a second item for a source several items name",
     expect(src).toContain("!res.ambiguous.length");
   });
 
-  it("land.sh renumbers right after the rebase, before the refresh", () => {
+  it("land.sh renumbers right after the rebase, before the generated-file restore", () => {
     const land = readFileSync(join(ROOT, "scripts/land.sh"), "utf8");
-    const r = land.indexOf("git rebase -q origin/main"), n = land.indexOf("node scripts/open-renumber.mjs --base origin/main"), i = land.indexOf("node scripts/check-generated-current.mjs --fix --skip-post-merge");
+    const r = land.indexOf("git rebase -q origin/main"), n = land.indexOf("node scripts/open-renumber.mjs --base origin/main"), i = land.indexOf("node scripts/check-branch-generated.mjs --base origin/main --restore");
     expect(r).toBeGreaterThan(0);
     expect(n).toBeGreaterThan(r);
     expect(i).toBeGreaterThan(n);

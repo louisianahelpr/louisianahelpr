@@ -9,27 +9,25 @@
  * deleted them; the owner's answers then had no line to land on, and five of
  * them were still undone and untracked the next morning.
  *
- * Both writers of a block in docs/OPEN.md (queue-count --write and the
- * scoreboard's Everything-open block) now refuse, exit 1, while the block holds
- * a line their generator could not have written (scripts/lib/openQueue.mjs
- * foreignLines). Red first: the replayed block below is 10 foreign lines.
+ * Since 2026-10-05 docs/OPEN.md has NO generated block at all (owner: OPEN.md
+ * holds items only; the counts moved to docs/SCOREBOARD.md, written on main by
+ * the inventories bot), so nothing regenerates any line of it. The one block
+ * left, the Everything-open block in docs/SCOREBOARD.md, keeps the rule: its
+ * writer refuses, exit 1, while the block holds a line its generator could
+ * not have written (scripts/lib/openQueue.mjs foreignLines). Red first: the
+ * replayed block below is 10 foreign lines.
  */
 // @mutate scripts/lib/openQueue.mjs |     .filter((l) => l.trim() && !isCommentLine(l) && !shapes.some((re) => re.test(l))); |     .filter(() => false);
-// @mutate scripts/queue-count.mjs |       process.exit(1);\n    } |       process.exitCode = 0;\n    }
-import { describe, it, expect, afterAll } from "vitest";
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+// @mutate scripts/scoreboard.mjs |     process.exit(1);\n  }\n  const sb = renderScoreboard(local, sbLive, renderOpenBlock( |     process.exitCode = 0;\n  }\n  const sb = renderScoreboard(local, sbLive, renderOpenBlock(
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 // @ts-expect-error — plain .mjs module, no declaration file
 import { foreignLines } from "../../scripts/lib/openQueue.mjs";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { COUNT_LINE_SHAPE, START, END } from "../../scripts/queue-count.mjs";
-// @ts-expect-error — plain .mjs script, no declaration file
-import { OPEN_BLOCK_SHAPES, EO_START, EO_END } from "../../scripts/scoreboard.mjs";
+import { OPEN_BLOCK_SHAPES, localRows, renderOpenBlock } from "../../scripts/scoreboard.mjs";
 
 const ROOT = join(__dirname, "..", "..");
-const between = (t: string, a: string, b: string) => t.slice(t.indexOf(a) + a.length, t.indexOf(b));
 const COUNT = "**Queue: 3 items — 1 done, 1 partly done (fixed, protection pending), 1 open.**";
 // The block as it stood before 8f3dae96a (first lines of each question, verbatim).
 const HELD = [
@@ -47,35 +45,26 @@ const HELD = [
   "- Replace GitHub's template SECURITY.md (placeholder version table, no contact) with a real policy.",
 ].join("\n");
 
-let dir = "";
-afterAll(() => { if (dir) rmSync(dir, { recursive: true, force: true }); });
-
-describe("generated blocks in docs/OPEN.md keep hand-written text", () => {
+describe("generated blocks keep hand-written text", () => {
   it("RED replay: the block 8f3dae96a rewrote held 10 lines no generator writes", () => {
-    expect(foreignLines(HELD, [COUNT_LINE_SHAPE])).toHaveLength(10);
+    expect(foreignLines(HELD, OPEN_BLOCK_SHAPES)).toHaveLength(10);
   });
 
-  it("today's blocks hold only generated lines", () => {
-    const open = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
-    expect(foreignLines(between(open, START, END), [COUNT_LINE_SHAPE])).toEqual([]);
-    expect(foreignLines(between(open, EO_START, EO_END), OPEN_BLOCK_SHAPES)).toEqual([]);
+  it("docs/OPEN.md has no generated block left for a refresh to rewrite", () => {
+    expect(readFileSync(join(ROOT, "docs/OPEN.md"), "utf8")).not.toMatch(/<!-- \/?generated:/);
   });
 
-  it("queue-count --write refuses, exit 1, and leaves the file as it was", () => {
-    dir = mkdtempSync(join(tmpdir(), "lh-genblock-"));
-    mkdirSync(join(dir, "docs/archive"), { recursive: true });
-    const md = ["# Open", "", START, HELD, END, "", "- [ ] **Q1 MEDIUM an item.** text", ""].join("\n");
-    writeFileSync(join(dir, "docs/OPEN.md"), md);
-    const r = spawnSync(process.execPath, [join(ROOT, "scripts/queue-count.mjs"), "--write"], { cwd: dir, encoding: "utf8" });
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain("hand-written line(s) inside the generated block");
-    expect(readFileSync(join(dir, "docs/OPEN.md"), "utf8")).toBe(md);
+  it("the block the generator writes for this tree holds only generated lines", () => {
+    const block = renderOpenBlock(localRows(), null, readFileSync(join(ROOT, "docs/OPEN.md"), "utf8")) as string;
+    expect(foreignLines(block, OPEN_BLOCK_SHAPES)).toEqual([]);
   });
 
-  it("the scoreboard refuses before it splices the Everything-open block", () => {
+  it("the scoreboard refuses, exit 1, before it writes a block holding a foreign line", () => {
     const src = readFileSync(join(ROOT, "scripts/scoreboard.mjs"), "utf8");
-    const guard = src.indexOf("foreignLines(between(openText, EO_START, EO_END)");
+    const guard = src.indexOf('foreignLines(between(sbText ?? "", EO_START, EO_END) ?? "", OPEN_BLOCK_SHAPES)');
     expect(guard).toBeGreaterThan(0);
-    expect(src.indexOf("spliceOpen(openText, renderOpenBlock(", guard)).toBeGreaterThan(guard);
+    const write = src.indexOf("writeFileSync(sbPath, sb)", guard);
+    expect(write).toBeGreaterThan(guard);
+    expect(src.slice(guard, write)).toMatch(/if \(foreign\.length\) \{[\s\S]*?process\.exit\(1\);\n {2}\}/);
   });
 });

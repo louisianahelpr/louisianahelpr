@@ -1,5 +1,5 @@
 // @mutate scripts/scoreboard.mjs | if (ageDays(last.updatedAt ?? last.createdAt, now) > MAX_RUN_AGE_DAYS) return "STALE"; | if (false) return "STALE";
-// @mutate scripts/scoreboard.mjs | p.push(...openLiveStampProblems(sb, open)); | void 0;
+// @mutate scripts/scoreboard.mjs | p.push(...openLiveStampProblems(sb)); | void 0;
 /*
  * THE SCOREBOARD NEVER SHOWS GREEN FOR SOMETHING IT DID NOT MEASURE (Q59).
  *
@@ -7,9 +7,12 @@
  * passing / failing". A scoreboard is worse than none if it can go green on a
  * fetch that failed, a run from last month, or a log with no summary: that is
  * the false green every guard in this repo exists to stop. So:
- *   - the committed docs/SCOREBOARD.md and OPEN.md's Everything-open block are
+ *   - the scoreboard the generator writes for this tree (its Everything-open
+ *     block included, which carries the queue line since 2026-10-05) is
  *     well-formed: every row has a known status and a measured-at stamp, and
- *     every UNKNOWN says why (scripts/scoreboard.mjs shapeProblems);
+ *     every UNKNOWN says why (scripts/scoreboard.mjs shapeProblems). Judged
+ *     on the generator's output, never the committed copy: only the main bot
+ *     writes that, so a branch's copy is stale by design;
  *   - an old success is STALE, a missing run is UNKNOWN, a failure is FAIL;
  *   - the log parsers read the real `gh run view --log` shapes (ESC printed as
  *     a literal "^[") and return null — never zeros — when the summary is
@@ -32,39 +35,47 @@ const run = (conclusion: string, daysAgo: number) => {
   return { id: 1, conclusion, event: "push", createdAt: t, updatedAt: t, url: "u" };
 };
 
-describe("the committed scoreboard is well-formed", () => {
-  const board = read("docs/SCOREBOARD.md");
-  const open = read("docs/OPEN.md");
+describe("the scoreboard the generator writes is well-formed", () => {
+  const AT = "2026-09-23T10:00Z";
+  const live = sb.renderLiveScoreboard({
+    at: AT,
+    rows: [{ group: "CI", signal: "workflow test.yml", status: "PASS", pass: 1, fail: 0, total: 1, at: AT, source: "s", note: "" }],
+  });
+  const openLive = sb.renderLiveOpen({ at: AT, wf: { FAIL: 0, STALE: 0, UNKNOWN: 0, PASS: 1, total: 1 }, branches: { unlanded: 0, merged: 0, total: 0, at: AT } });
+  const local = sb.localRows();
+  const board: string = sb.renderScoreboard(local, live, sb.renderOpenBlock(local, openLive, read("docs/OPEN.md")));
 
   it("has rows (cannot pass vacuously)", () => {
     const rows = board.split("\n").filter((l) => /^\| (?!group \||---)/.test(l));
-    expect(rows.length).toBeGreaterThan(20);
+    expect(rows.length).toBeGreaterThan(10);
     // one row per workflow file, derived from the repo's own inventory
     expect(sb.workflowFiles().length).toBeGreaterThan(30);
   });
 
-  it("every row has a status, a stamp, and a reason when UNKNOWN", () => {
-    expect(sb.shapeProblems(board, open)).toEqual([]);
+  it("every row has a status, a stamp, and a reason when UNKNOWN; the block carries the queue line", () => {
+    expect(sb.shapeProblems(board)).toEqual([]);
+    expect(board).toMatch(/^\*\*Queue: \d+ items — /m);
   });
 
-  it("is RED on an UNKNOWN with no reason, a bad status, or a missing stamp", () => {
-    const planted = (row: string) => board.replace(sb.LIVE_END, `${row}\n${sb.LIVE_END}`);
-    expect(sb.shapeProblems(planted("| CI | x | **UNKNOWN** | — | — | — | — | attempted 2026-09-23T00:00Z | — | — |"), open).join()).toMatch(/without a reason/);
-    expect(sb.shapeProblems(planted("| CI | x | **GREEN** | — | — | — | — | 2026-09-23T00:00Z | — | — |"), open).join()).toMatch(/not one of/);
-    expect(sb.shapeProblems(planted("| CI | x | **PASS** | — | — | — | — | — | — | — |"), open).join()).toMatch(/no measured-at/);
-    expect(sb.shapeProblems(board, open.replace(sb.EO_START, ""))).not.toEqual([]);
+  it("is RED on an UNKNOWN with no reason, a bad status, a missing stamp, or no Everything-open block", () => {
+    const planted = (row: string) => board.replace(sb.LIVE_END + "\n\n" + sb.SB_END, `${row}\n${sb.LIVE_END}\n\n${sb.SB_END}`);
+    expect(sb.shapeProblems(planted("| CI | x | **UNKNOWN** | — | — | — | — | attempted 2026-09-23T00:00Z | — | — |")).join()).toMatch(/without a reason/);
+    expect(sb.shapeProblems(planted("| CI | x | **GREEN** | — | — | — | — | 2026-09-23T00:00Z | — | — |")).join()).toMatch(/not one of/);
+    expect(sb.shapeProblems(planted("| CI | x | **PASS** | — | — | — | — | — | — | — |")).join()).toMatch(/no measured-at/);
+    expect(sb.shapeProblems(board.replace(sb.EO_START, "")).join()).toMatch(/Everything-open markers missing/);
+    expect(sb.shapeProblems(board.replace(/^\*\*Queue: .*$/m, "")).join()).toMatch(/no queue score line/);
   });
 
-  it("OPEN.md's live header lines carry the scoreboard's live stamp (none frozen behind its siblings)", () => {
-    const stamps = [...open.matchAll(/^- \*\*(Workflows on main|Remote branches):\*\*.*_\((\d{4}-\d\d-\d\dT\d\d:\d\dZ)\)_$/gm)];
+  it("the block's live lines carry the scoreboard's live stamp (none frozen behind its siblings)", () => {
+    const stamps = [...board.matchAll(/^- \*\*(Workflows on main|Remote branches):\*\*.*_\((\d{4}-\d\d-\d\dT\d\d:\d\dZ)\)_$/gm)];
     expect(stamps.length).toBe(2);
-    expect(sb.openLiveStampProblems(board, open)).toEqual([]);
-    // RED: one line frozen at an old stamp while its sibling and SCOREBOARD moved on
-    const frozen = open.replace(/(- \*\*Remote branches:\*\*.*_\()\d{4}-\d\d-\d\dT\d\d:\d\dZ(\)_)/, "$12026-09-23T06:08Z$2");
-    expect(sb.shapeProblems(board, frozen).join()).toMatch(/"Remote branches" is stamped 2026-09-23T06:08Z, older than its siblings/);
-    // RED: both OPEN lines frozen behind a newer SCOREBOARD live stamp
-    const bothOld = open.replace(/_\(\d{4}-\d\d-\d\dT\d\d:\d\dZ\)_/g, "_(2026-09-23T06:08Z)_");
-    expect(sb.openLiveStampProblems(board, bothOld)).toHaveLength(2);
+    expect(sb.openLiveStampProblems(board)).toEqual([]);
+    // RED: one line frozen at an old stamp while its sibling and the table moved on
+    const frozen = board.replace(/(- \*\*Remote branches:\*\*.*_\()\d{4}-\d\d-\d\dT\d\d:\d\dZ(\)_)/, "$12026-09-23T06:08Z$2");
+    expect(sb.shapeProblems(frozen).join()).toMatch(/"Remote branches" is stamped 2026-09-23T06:08Z, older than its siblings/);
+    // RED: both block lines frozen behind a newer table live stamp
+    const bothOld = board.replace(/_\(\d{4}-\d\d-\d\dT\d\d:\d\dZ\)_/g, "_(2026-09-23T06:08Z)_");
+    expect(sb.openLiveStampProblems(bothOld)).toHaveLength(2);
   });
 });
 

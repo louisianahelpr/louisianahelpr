@@ -1,7 +1,7 @@
 // @mutate scripts/lib/openItemMerge.mjs |     if (oi.get(q) !== bi.get(q)) return null; |     if (false) return null;
 // @mutate scripts/lib/openItemMerge.mjs |     if (m && deleted.has(m[1])) continue; |     if (false) continue;
 // @mutate scripts/lib/openItemMerge.mjs |     return null;\n  }\n  const theirsLines = new Set(T); |     continue;\n  }\n  const theirsLines = new Set(T);
-// @mutate scripts/land.sh |       if [ "$UNMERGED" = "docs/OPEN.md" ] && node scripts/lib/openItemMerge.mjs; then |       if false; then
+// @mutate scripts/land.sh |       if [ -z "$REST" ] \|\| { [ "$REST" = "docs/OPEN.md" ] && node scripts/lib/openItemMerge.mjs && git add docs/OPEN.md; }; then |       if [ -z "$REST" ]; then
 /*
  * GUARD: land.sh merges a docs/OPEN.md rebase conflict item by item, and
  * stops for a person on anything it cannot judge (scripts/lib/openItemMerge.mjs).
@@ -68,7 +68,11 @@ describe("OPEN.md rebase conflicts merge item by item (land.sh)", () => {
 
   it("land.sh runs it only when docs/OPEN.md is the one conflicted file, and stops otherwise", () => {
     const land = readFileSync(join(__dirname, "..", "..", "scripts", "land.sh"), "utf8");
-    expect(land).toMatch(/UNMERGED=\$\(git diff --name-only --diff-filter=U\)\n\s+if \[ "\$UNMERGED" = "docs\/OPEN\.md" \] && node scripts\/lib\/openItemMerge\.mjs; then\n\s+git add docs\/OPEN\.md/);
-    expect(land).toMatch(/GIT_EDITOR=true git rebase --continue[^\n]*\|\| true\n\s+continue\n\s+fi\n\s+echo "land: the rebase onto origin\/main stopped on a conflict/);
+    // Generated files are taken from main first (branchesNeverEditGenerated);
+    // what is left must be docs/OPEN.md alone, merged item by item.
+    expect(land).toMatch(/UNMERGED=\$\(git diff --name-only --diff-filter=U\)/);
+    expect(land).toMatch(/REST=\$\(grep -vxF -f <\(printf '%s\\n' \$GEN_UNMERGED\) <<<"\$UNMERGED" \|\| true\)/);
+    expect(land).toMatch(/if \[ -z "\$REST" \] \|\| \{ \[ "\$REST" = "docs\/OPEN\.md" \] && node scripts\/lib\/openItemMerge\.mjs && git add docs\/OPEN\.md; \}; then/);
+    expect(land).toMatch(/GIT_EDITOR=true git rebase --continue[^\n]*\|\| true\n\s+fi\n\s+continue\n\s+fi\n\s+echo "land: the rebase onto origin\/main stopped on a conflict/);
   });
 });

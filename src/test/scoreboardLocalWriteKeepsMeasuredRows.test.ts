@@ -1,6 +1,6 @@
 // @mutate scripts/scoreboard.mjs | return kept.get(key(c)) ?? l; | return l;
 // @mutate scripts/scoreboard.mjs | if (!at \|\| (now - new Date(at[1])) / 36e5 > MAX_LIVE_HOURS) continue; | if (!at) continue;
-// @mutate scripts/scoreboard.mjs | sbLive = carryForwardMeasured(renderLiveScoreboard(live), committedLive(sbText)); | sbLive = renderLiveScoreboard(live);
+// @mutate scripts/scoreboard.mjs | sbLive = carryForwardMeasured(renderLiveScoreboard(live), scoreboardLive(sbText)); | sbLive = renderLiveScoreboard(live);
 /**
  * Q66 follow-up (2026-09-27): a local `node scripts/scoreboard.mjs --write`
  * without CI's secrets measured the SLO rows as UNKNOWN and, in 2b93a3d83,
@@ -51,6 +51,6 @@ describe("scoreboard --write keeps measured live rows over a local UNKNOWN", () 
 
   it("--write passes the committed live section through carryForwardMeasured", () => {
     const src = readFileSync("scripts/scoreboard.mjs", "utf8");
-    expect(src).toMatch(/sbLive = carryForwardMeasured\(renderLiveScoreboard\(live\), committedLive\(sbText\)\);/);
+    expect(src).toMatch(/sbLive = carryForwardMeasured\(renderLiveScoreboard\(live\), scoreboardLive\(sbText\)\);/);
   });
 });

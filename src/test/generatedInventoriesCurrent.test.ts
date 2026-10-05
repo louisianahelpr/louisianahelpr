@@ -1,21 +1,22 @@
-// @mutate scripts/check-generated-current.mjs |   const active = GENERATED.filter((g) => !(skipPostMerge && g.postMerge)); |   const active = GENERATED;
 // @mutate scripts/check-generated-current.mjs | return after.every((text, k) => text === before[k]); | return false;
-// @mutate scripts/check-generated-current.mjs | return { ok: own.length === 0, own, inherited, other: [] }; | return { ok: true, own, inherited, other: [] };
-// @mutate scripts/check-generated-current.mjs | if (head.other.length) return | if (false) return
 // @mutate scripts/check-generated-current.mjs | problems.every((p) => p.startsWith("STALE ")) | problems.every(() => true)
-// @mutate scripts/check-generated-current.mjs | if (m) stale.add(m[1]); | if (m) other.push(line);
+// @mutate scripts/check-generated-current.mjs |     if (a !== b) { |     if (false) {
 /*
  * Every committed inventory is current (OPEN.md Q36; owner, 2026-09-23:
- * "nothing at all should ever be stale").
+ * "nothing at all should ever be stale") — ON MAIN (owner, 2026-10-05).
  *
  * scripts/check-generated-current.mjs re-runs each CI-runnable generator and
- * diffs its output against the committed copy. This guard proves the checker
- * itself can fail: the registered mutation makes the burn-down generator count
- * differently, and the real regenerate-and-diff below must go red on it. The
- * registry-coverage scans are shown red on planted gaps in both directions.
+ * diffs its output against the committed copy. Branches never commit those
+ * outputs (scripts/check-branch-generated.mjs), so the full check is main's
+ * (staleness-watch.yml, which lands the regeneration as
+ * bot/refresh/inventories); a branch is judged only on the registry scans
+ * (--coverage). This guard proves the checker itself can fail on a planted
+ * stale output (never on the committed copies, which a branch leaves stale by
+ * design), and the registry-coverage scans red on planted gaps in both
+ * directions.
  */
-import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { describe, it, expect, afterEach } from "vitest";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import {
@@ -28,17 +29,15 @@ import {
   coverageProblems,
   discoverDeclaredGenerated,
   discoverWriters,
-  attributeDrift,
   firstDiff,
   generatorFailed,
   isPureDrift,
   normalise,
-  parseCheckOutput,
   // @ts-expect-error — plain .mjs script, no declaration file
 } from "../../scripts/check-generated-current.mjs";
 
-type Gen = { id: string; outputs: string[] };
-const byId = (id: string) => (GENERATED as Gen[]).find((g) => g.id === id);
+const ROOT = join(__dirname, "..", "..");
+const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 describe("generated inventories are current", () => {
   it("the inventories are real (floors: a scan that finds nothing must fail)", () => {
@@ -52,32 +51,54 @@ describe("generated inventories are current", () => {
     expect(declared).toContain("docs/GUARD-BURNDOWN.md");
   });
 
-  // Owner, 2026-10-04: whole-tree totals are generated after merge, not in every
-  // PR (every landing touched the same lines and conflicted). Branches skip
-  // them; staleness-watch.yml regenerates main per push, and main's own check
-  // (push + nightly) is strict. Exact list, both ways.
-  it("the whole-tree totals are post-merge, exactly these, and land.sh / PR attribution skip them", () => {
-    const post = (GENERATED as (Gen & { postMerge?: boolean })[]).filter((g) => g.postMerge).map((g) => g.id).sort();
-    expect(post).toEqual(["burndown", "coverage", "queue-count", "rollup", "scoreboard", "surface", "vacuity-report"]);
-    const land = readFileSync(join(__dirname, "..", "..", "scripts", "land.sh"), "utf8");
-    expect(land).toMatch(/check-generated-current\.mjs --fix --skip-post-merge/);
-    expect(land).not.toMatch(/npm run -s inventories:refresh/);
-    const self = readFileSync(join(__dirname, "..", "..", "scripts", "check-generated-current.mjs"), "utf8");
-    expect(self).toMatch(/\["scripts\/check-generated-current\.mjs", "--skip-post-merge"\]/);
-    const watch = readFileSync(join(__dirname, "..", "..", ".github", "workflows", "staleness-watch.yml"), "utf8");
-    expect(watch).not.toMatch(/--skip-post-merge/);
+  // Owner, 2026-10-05: one writer of every generated file, the bot on main.
+  it("the full regenerate-and-diff runs on main only; a branch runs the registry scan", () => {
+    // code lines only: the header comment tells the history of the old refresh
+    const land = read("scripts/land.sh").split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    expect(land).not.toMatch(/check-generated-current\.mjs --fix|inventories:refresh|--skip-post-merge/);
+    expect(land).toMatch(/^\s*node scripts\/check-generated-current\.mjs --coverage$/m);
+    const test = read(".github/workflows/test.yml");
+    expect(test).not.toMatch(/check:generated|--attribute|--skip-post-merge/);
+    expect(test).toMatch(/node scripts\/check-generated-current\.mjs --coverage/);
+    const watch = read(".github/workflows/staleness-watch.yml");
+    expect(watch).toMatch(/npm run -s check:generated/);
+    expect(watch).toMatch(/regenerate: npm run inventories:refresh/);
+    const self = read("scripts/check-generated-current.mjs");
+    expect(self).not.toMatch(/postMerge|skip-post-merge|attributeDrift/);
   });
 
-  it("--skip-post-merge really leaves a post-merge total unchecked, and the plain check still checks it", () => {
-    const run = (args: string[]) => spawnSync(process.execPath, ["scripts/check-generated-current.mjs", ...args], { cwd: join(__dirname, "..", ".."), encoding: "utf8" });
-    const skipped = run(["--only", "burndown", "--skip-post-merge"]);
-    expect(`${skipped.stdout}${skipped.stderr}`).not.toMatch(/GUARD-BURNDOWN|burndown/);
-    const checked = run(["--only", "burndown"]);
-    expect(`${checked.stdout}${checked.stderr}`).toMatch(/GUARD-BURNDOWN|burndown/);
+  describe("the checker goes red on a stale output and leaves the tree as it was", () => {
+    const rel = `test-results/checkgen-${process.pid}.txt`;
+    const abs = join(ROOT, rel);
+    const gen = (content: string) => ({
+      id: "planted",
+      cmd: [process.execPath, "-e", `require("fs").writeFileSync(${JSON.stringify(abs)}, ${JSON.stringify(content)})`],
+      outputs: [rel],
+    });
+    afterEach(() => rmSync(abs, { force: true }));
+
+    it("STALE when the generator now produces something else; the committed bytes are restored", () => {
+      mkdirSync(join(ROOT, "test-results"), { recursive: true });
+      writeFileSync(abs, "guards: 1285\n");
+      const p = checkGenerator(gen("guards: 1286\n")) as string[];
+      expect(p).toHaveLength(1);
+      expect(p[0]).toMatch(/^STALE test-results\/checkgen-/);
+      expect(isPureDrift(p)).toBe(true);
+      expect(readFileSync(abs, "utf8")).toBe("guards: 1285\n");
+    });
+
+    it("current when it produces the committed bytes", () => {
+      mkdirSync(join(ROOT, "test-results"), { recursive: true });
+      writeFileSync(abs, "guards: 1285\n");
+      expect(checkGenerator(gen("guards: 1285\n"))).toEqual([]);
+      expect(existsSync(abs)).toBe(true);
+    });
   });
 
-  it("the committed form inventory is exactly what its generator produces now", () => {
-    expect(checkGenerator(byId("form-inventory"))).toEqual([]);
+  it("--coverage passes on this tree (a branch's registry check)", () => {
+    const r = spawnSync(process.execPath, ["scripts/check-generated-current.mjs", "--coverage"], { cwd: ROOT, encoding: "utf8" });
+    expect(`${r.stdout}${r.stderr}`).toMatch(/registries complete/);
+    expect(r.status).toBe(0);
   });
 
   it("every writer, generated file and timestamped JSON is registered — both directions", () => {
@@ -134,53 +155,10 @@ describe("a generator that crashes is a failure even when it may exit non-zero",
   });
 });
 
-/*
- * Drift attribution (2026-10-01, PR #2051). Aggregate counts merge cleanly to
- * the wrong number when two non-strict PRs each change them, so a stale merge
- * ref is not proof the PR is at fault. Fixtures are the real #2051 output:
- * its head 9173aa294 left both files stale (current at merge base d81c16a5c),
- * so it is red; a PR whose own head is current is not.
- */
-describe("drift on a PR's merge ref is attributed to whoever caused it", () => {
-  const PR2051_HEAD = [
-    "::error::STALE docs/audit/vacuity-report.json — the committed copy differs from what its generator produces now",
-    "      committed:     \"guards\": 1284,",
-    "::error::STALE docs/GUARD-BURNDOWN.md — the committed copy differs from what its generator produces now",
-  ].join("\n");
-
-  it("parses every version's ::error:: lines into stale outputs and other problems", () => {
-    const p = parseCheckOutput(`${PR2051_HEAD}\n::error::REGISTRY scripts/x.mjs writes docs/x.md but is not registered`);
-    expect(p.stale).toEqual(["docs/GUARD-BURNDOWN.md", "docs/audit/vacuity-report.json"]);
-    expect(p.other).toEqual(["REGISTRY scripts/x.mjs writes docs/x.md but is not registered"]);
-    expect(parseCheckOutput("all current\n")).toEqual({ stale: [], other: [] });
-  });
-
+describe("drift is its own exit code (staleness-watch lands it)", () => {
   it("exit 3 only when every problem is a stale output", () => {
     expect(isPureDrift(["STALE docs/a.md — differs", "STALE docs/b.json — differs"])).toBe(true);
     expect(isPureDrift(["STALE docs/a.md — differs", "docs/x.md: generator crashed"])).toBe(false);
     expect(isPureDrift([])).toBe(false);
-  });
-
-  it("#2051: stale at the PR head, current at its merge base = the PR's own, red", () => {
-    const v = attributeDrift(parseCheckOutput(PR2051_HEAD), { stale: [], other: [] });
-    expect(v.ok).toBe(false);
-    expect(v.own).toEqual(["docs/GUARD-BURNDOWN.md", "docs/audit/vacuity-report.json"]);
-  });
-
-  it("current at the PR head = drift from main's other merges, green", () => {
-    expect(attributeDrift({ stale: [], other: [] }, { stale: [], other: [] }).ok).toBe(true);
-  });
-
-  it("stale at the head only because it was stale at the base = inherited, green", () => {
-    const base = parseCheckOutput(PR2051_HEAD);
-    const v = attributeDrift(parseCheckOutput(PR2051_HEAD), base);
-    expect(v.ok).toBe(true);
-    expect(v.inherited).toEqual(["docs/GUARD-BURNDOWN.md", "docs/audit/vacuity-report.json"]);
-  });
-
-  it("a crash or registry gap at the PR head is never excused as drift", () => {
-    const v = attributeDrift({ stale: [], other: ["docs/x.md: generator crashed"] }, { stale: [], other: [] });
-    expect(v.ok).toBe(false);
-    expect(v.other).toEqual(["docs/x.md: generator crashed"]);
   });
 });

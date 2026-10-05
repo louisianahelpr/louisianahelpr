@@ -166,6 +166,7 @@ const SWALLOW_OK: Allow[] = [
   { file: ".github/workflows/expiry-monitor.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/workflows/supabase-usage.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/workflows/supabase-usage.yml", match: "Summary :: cat ", reason: "copies a report into the step summary; the usage verdict is decided by the measuring steps above" },
+  { file: ".github/workflows/staleness-watch.yml", match: "--required --json bucket --jq '[.[] | select(.bucket == \"fail\")] | length' 2>/dev/null || echo unknown", reason: "fail-safe toward work: a failed read becomes 'unknown', which is != 0, so the bot REBUILDS its refresh PR instead of skipping" },
   { file: ".github/workflows/test.yml", match: "git fetch --no-tags --depth=1 origin \"$BASE\"", reason: "a failed fetch is followed by `git cat-file -e` on the base; if it is still missing the step checks the WHOLE tree (--all) instead of the diff — failing toward more checking" },
   { file: ".github/workflows/uptime.yml", match: "Tell Slack :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/actions/nightly-issue-sync/action.yml", match: "gh label create", reason: "creates a label that already exists on every run after the first; the issue open/close that follows fails loudly on its own" },
@@ -175,7 +176,7 @@ const SWALLOW_OK: Allow[] = [
 ];
 /** `exit 0` before the end of a block. `match` is a substring of `job / step :: line`. */
 const EARLY_EXIT_OK: Allow[] = [
-  { file: ".github/workflows/test.yml", match: "Committed inventories are current (regenerate and diff) :: ", reason: "exit 0 only on the checker's own 0 (current), or on exit 3 (pure drift) during a push to main, where staleness-watch's land job regenerates and lands bot/refresh/inventories; any other code exits rc, and a PR's drift goes to --attribute, which exits non-zero when the PR left its own inventory stale" },
+  { file: ".github/workflows/staleness-watch.yml", match: "One refresh in flight at a time; never loop on the bot's own commit :: exit 0", reason: "the skip verdict, written as skip=true with a ::notice::: an open, mergeable bot/refresh/inventories PR with no failed required check, under 45 min old, is already landing the numbers, and its merge is a push that re-runs this job; every unreadable state (DIRTY, a failed or unknown check, an old PR) rebuilds instead" },
   { file: ".github/workflows/staleness-watch.yml", match: "Regenerate every CI-runnable inventory and diff :: ", reason: "exit 0 only on exit 3 (pure drift) during a push, which sets drift=true so the land job regenerates and lands it on this run; every other code, and any drift on the nightly or a dispatch, exits rc" },
   { file: ".github/workflows/dependabot-auto-merge.yml", match: "merge only if it is dependabot's :: exit 0", reason: "both exits are the no-op verdicts this workflow exists to make (no PR on the run, or a PR not authored by dependabot[bot]): nothing is merged, and the ::notice:: says why" },
   { file: ".github/workflows/privacy-journey.yml", match: "Decide whether this run is due :: exit 0", reason: "MONTHLY via a weekly cron (prodWorkflowSpacing refuses day-of-month): a scheduled run after the 7th sets run=false and nothing is due; missing secrets on a due run exit 1, and a dispatch always runs" },
@@ -214,7 +215,6 @@ const NOTIFY_NEED_OK: Allow[] = [
 const PIPE_OK: Allow[] = [];
 /** set +e blocks. `match` is the step name. */
 const SET_PLUS_E_OK: Allow[] = [
-  { file: ".github/workflows/test.yml", match: "Committed inventories are current (regenerate and diff)", reason: "captures check:generated's code and maps it: 0 passes, 3 (pure drift) is attributed (--attribute, non-zero when the PR's own) or handed to staleness-watch on push, anything else exits rc" },
   { file: ".github/workflows/staleness-watch.yml", match: "Regenerate every CI-runnable inventory and diff", reason: "captures check:generated's code: 3 on a push sets drift=true for the land job, every other code (and 3 off a push) exits rc" },
   { file: ".github/workflows/privacy-journey.yml", match: "Shared test accounts carry no strikes", reason: "captures the code and maps it: 0 passes, 1 (strike) and anything else (could not read) exit non-zero" },
   { file: ".github/workflows/a11y-webkit-prod.yml", match: "Diff WebKit against Chromium", reason: "captures the diff script's own code via PIPESTATUS[0] through `| tee` and ends with `exit \"$rc\"`" },

@@ -158,7 +158,7 @@ jobs:
           set -euo pipefail
           if [ "$EVENT" = "push" ]; then
             SUBJECTS=$(git log -2 --format=%s HEAD)
-            N_BOT=$(grep -cF "$BOT_TITLE" <<<"$SUBJECTS" || true)
+            N_BOT=$(grep -cF "$BOT_TITLE" <<<"$SUBJECTS" || [ $? -eq 1 ])
             if [ "$N_BOT" -ge 2 ]; then
               echo "::error::main still drifts after two consecutive bot refreshes ($(git rev-parse --short HEAD)): a generator does not reach a fixed point. Not opening another refresh; run npm run inventories:refresh twice locally and fix the generator whose output moves."
               exit 1

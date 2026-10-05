@@ -88,7 +88,9 @@ describe("landing path (Q44)", () => {
     expect(code).not.toMatch(/\|\s*grep -q/);
     expect(code).toMatch(/GIT_SEQUENCE_EDITOR="sed -E -i\.land-bak -e '\/\^\(pick\|p\) \[0-9a-f\]\+ \(# \)\?\$REFRESH_SUBJECT/);
     expect(code).toContain('REFRESH_SUBJECT="chore: refresh generated inventories"');
-    expect(code).toContain('-m "chore: refresh generated inventories');
+    // Since 2026-10-05 land.sh never MAKES a refresh commit (generated files are
+    // the main bot's); it still drops old ones an in-flight branch carries.
+    expect(code).not.toContain('-m "chore: refresh generated inventories');
   });
 
   it("land.sh survives a GitHub hiccup and never restarts the checks for nothing", () => {

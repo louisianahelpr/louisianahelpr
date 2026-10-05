@@ -1,14 +1,18 @@
 /**
- * Landing with `git push --no-verify` skips the hook that refreshes the
- * generated inventories. 503fd193c (2026-09-27) added one test and main went
- * red on check:generated (GUARD-BURNDOWN 650 vs 651, vacuity-report 1195 vs
- * 1196). scripts/land.sh rebases, THEN refreshes (the counts depend on the
- * rebased tree), commits what changed, proves check:generated, then pushes;
- * the agent brief sends every agent through it.
+ * scripts/land.sh is the one way onto main, and since 2026-10-05 (owner:
+ * "branches only change real things; one bot on main owns the numbers") it
+ * NEVER regenerates a generated file. Until then it refreshed the inventories
+ * after the rebase (503fd193c, 2026-09-27, reached main stale without that),
+ * and every landing then rewrote the same whole-tree lines and conflicted with
+ * every other landing. Now it rebases, puts back any generated file the branch
+ * still changes (main's copy) and commits that, proves the branch touches none
+ * (check-branch-generated.mjs, the same check the required Test job runs), runs
+ * the registry scan, then pushes. staleness-watch.yml regenerates main after
+ * the merge.
  *
- * @mutate scripts/land.sh |   node scripts/check-generated-current.mjs --fix --skip-post-merge |   true
- * @mutate scripts/land.sh |   node scripts/check-generated-current.mjs --skip-post-merge |   true
- * @mutate scripts/land.sh |     git commit -q --no-verify -m "chore: refresh generated inventories | git commit -q --no-verify --allow-empty -m "chore: refresh generated inventories
+ * @mutate scripts/land.sh |   node scripts/check-branch-generated.mjs --base origin/main --restore |   true
+ * @mutate scripts/land.sh |   node scripts/check-branch-generated.mjs --base origin/main\n  node scripts/check-generated-current.mjs --coverage |   true\n  node scripts/check-generated-current.mjs --coverage
+ * @mutate scripts/land.sh |   node scripts/check-generated-current.mjs --coverage |   true
  * @mutate scripts/land.sh |   node scripts/check-sensitive-review.mjs --range origin/main..HEAD --strict |   true
  *
  * Also refuses to push a money/authz/data-model commit with no recorded review:
@@ -50,19 +54,22 @@ const at = (re: RegExp) => {
   return m!.index;
 };
 
-describe("scripts/land.sh keeps generated files current on main", () => {
-  it("rebases, then refreshes, then commits, then checks, then pushes", () => {
+describe("scripts/land.sh lands real changes only; generated files are main's", () => {
+  it("rebases, then restores generated files to main's copy, commits that, checks, then pushes", () => {
     const order = [
       // the rebase runs from REBASE (plain, or dropping this script's own
       // earlier refresh commits first; landingPath.test.ts pins both)
       at(/^\s*if ! "\$\{REBASE\[@\]\}"; then$/m),
-      at(/^\s*node scripts\/check-generated-current\.mjs --fix --skip-post-merge$/m),
-      at(/^\s*git commit -q --no-verify -m "chore: refresh generated inventories$/m),
-      at(/^\s*node scripts\/check-generated-current\.mjs --skip-post-merge$/m),
+      at(/^\s*node scripts\/check-branch-generated\.mjs --base origin\/main --restore$/m),
+      at(/^\s*git commit -q --no-verify -m "\$DROP_SUBJECT$/m),
+      at(/^\s*node scripts\/check-branch-generated\.mjs --base origin\/main$/m),
+      at(/^\s*node scripts\/check-generated-current\.mjs --coverage$/m),
       at(/^\s*node scripts\/check-sensitive-review\.mjs --range origin\/main\.\.HEAD --strict$/m),
       at(/^\s*git push --no-verify --force origin "HEAD:refs\/heads\/\$BR"$/m),
     ];
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+    // and never regenerates anything itself
+    expect(code).not.toMatch(/inventories:refresh|check-generated-current\.mjs --fix|queue-count\.mjs --write|scoreboard\.mjs/);
   });
 
   it("lands the same checked HEAD through a PR with rebase auto-merge and waits for MERGED (Q44)", () => {

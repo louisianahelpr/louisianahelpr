@@ -99,11 +99,17 @@ describe("every DONE queue item names the guard that stops it recurring", () => 
 });
 
 describe("the queue's count line is current", () => {
-  it("matches the items (run `node scripts/queue-count.mjs --write` when you change one)", () => {
+  // The exact count is a post-merge total since 2026-10-04 (#2290): branches no
+  // longer regenerate it, staleness-watch.yml lands it on main after each push,
+  // and check-generated-current.mjs's strict main/nightly run fails if it is
+  // wrong. Here: the line exists and has the generator's own shape.
+  it("exists in the generator's shape (its exact value is checked after merge)", () => {
     const c = queueCounts(open);
     expect(c.total).toBeGreaterThanOrEqual(40);
-    expect(storedLine(open), "docs/OPEN.md has no queue-count line").not.toBeNull();
-    expect(storedLine(open)).toBe(countLine(c));
+    const line = storedLine(open);
+    expect(line, "docs/OPEN.md has no queue-count line").not.toBeNull();
+    const shape = countLine({ total: 1, done: 1, partial: 1, open: 1 }).replace(/\d+/g, "N");
+    expect(String(line).replace(/\d+/g, "N")).toBe(shape);
   });
 
   it("is RED when an item changes state without the line", () => {

@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable } from "./fixtures";
 import type { Role } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
+import { measureLayout } from "../happy-path/auditRoutes";
 
 /**
  * Journey — stat tiles in one row are one height.
@@ -99,6 +100,11 @@ test(title, async ({ browser, request, journey }) => {
           const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
           console.log(`[tiles] ${tag} overflowX=${overflow}`);
           expect(overflow, `${tag}: horizontal overflow at 375`).toBeLessThanOrEqual(0);
+          // Q1012: the page metric alone is inert here (body overflow-x:
+          // hidden stops scrollWidth growing), so also no element wider than
+          // the viewport, measured the way the sweeps do.
+          const { overflowOffenders } = await measureLayout(page);
+          expect(overflowOffenders, `${tag}: an element is wider than the viewport at 375`).toEqual([]);
         }
       }
       await ctx.close();

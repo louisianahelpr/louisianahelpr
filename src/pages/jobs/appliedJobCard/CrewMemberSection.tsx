@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CalendarX2, CheckCircle2, MapPin, MessageSquare, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import { report } from "@/lib/errorLogger";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -14,8 +13,8 @@ import { arrivalVerdictMessage } from "@/lib/arrivalGate";
 import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
+import { useCrewSlot } from "@/hooks/useCrewSlot";
 import {
-  CREW_SLOT_COLUMNS,
   CrewActionError,
   confirmCrewSpot,
   crewMemberMarkArrival,
@@ -23,8 +22,8 @@ import {
   crewMemberOnTheWay,
   crewMemberStep,
   crewMinutesUntilDone,
+  withCrewSlotStamps,
   type CrewMemberStep,
-  type CrewSlot,
 } from "@/lib/crewLifecycle";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip, JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
@@ -33,7 +32,35 @@ import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { DirectionsButton } from "./DirectionsButton";
 import { HelperPhotoAsk } from "./steps/HelperPhotoAsk";
+import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
+import { helperStatusLine, withDisputeSettling } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
+
+/**
+ * The collapsed card's one status line for a crew member (Q1382): the shared
+ * helperStatusLine, read off the job AS THIS MEMBER LIVES IT (their own roster
+ * stamps in place of the job's, which belong to nobody on a crew). Without it
+ * the strip kept saying "Confirm you'll be there" after the member confirmed.
+ * Shares CrewMemberSection's query key, so it costs no extra request.
+ */
+export function CrewStatusStrip({
+  app,
+  job,
+  userId,
+  unsettledDisputeJobIds,
+}: {
+  app: AppliedApp;
+  job: Job;
+  userId: string;
+  unsettledDisputeJobIds: Parameters<typeof withDisputeSettling>[1];
+}) {
+  const slot = useCrewSlot(app.job_id, userId, true);
+  return (
+    <JobStatusStrip
+      line={helperStatusLine({ ...app, job: withDisputeSettling(withCrewSlotStamps(job, slot.data), unsettledDisputeJobIds) })}
+    />
+  );
+}
 
 /**
  * A CREW MEMBER'S LIVE CARD (Q1382).
@@ -68,23 +95,15 @@ export function CrewMemberSection({
   const { request: requestPermission } = usePermissionRationale();
   const [busy, setBusy] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  // Re-render every 30 s so the 30-minute floor's "Available in N min" counts
+  // down and the Done button unlocks without a refresh.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
-  // Keyed under ["activity"], so every realtime refresh of the Jobs tab and
-  // every action below re-reads it.
-  const slotQuery = useQuery({
-    queryKey: [...queryKeys.activity.all, "crewSlot", app.job_id, userId] as const,
-    queryFn: async (): Promise<CrewSlot | null> => {
-      const rows = unwrap(
-        await supabase
-          .from("group_job_helpers")
-          .select(CREW_SLOT_COLUMNS)
-          .eq("job_id", app.job_id)
-          .eq("helper_id", userId)
-          .limit(1),
-      );
-      return ((rows ?? [])[0] as unknown as CrewSlot | undefined) ?? null;
-    },
-  });
+  const slotQuery = useCrewSlot(app.job_id, userId, true);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
 

@@ -389,12 +389,13 @@ export async function fetchPostedActivityDetail(
     // one round-trip, regardless of how many group-job cards are open. Skipped
     // entirely when every member of every roster has departed, so we never
     // send `user_id=in.()`.
+    // get_safe_profiles, like every other name lookup in this file: the
+    // poster cannot read another account's `profiles` row (RLS), so that
+    // select came back EMPTY with no error and every crew member read "Helpr"
+    // (measured 2026-10-05 on prod as poster-e2e, Q1382).
     const { data: profiles, error: groupHelperProfilesError } = groupHelperIds.length
-      ? await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", groupHelperIds)
-      : { data: [], error: null };
+      ? await supabase.rpc("get_safe_profiles", { user_ids: groupHelperIds })
+      : { data: [] as SafeProfileRow[], error: null };
     if (groupHelperProfilesError) {
       report(groupHelperProfilesError, { severity: "warning", tags: { source: "useActivityData.groupHelperNames" } });
     }

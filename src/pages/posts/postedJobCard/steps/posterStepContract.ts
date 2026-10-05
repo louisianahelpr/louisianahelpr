@@ -223,6 +223,13 @@ export function posterConfirmationRung(
   now: Date = new Date(),
 ): PosterConfirmRung | null {
   if (step !== "scheduled" && step !== "in_progress") return null;
+  // A CREW (Q1382): arrivals are confirmed PER MEMBER, on the roster's own
+  // "Confirm Arrived" chips (GroupJobHelpers, rpc_poster_confirm_member_arrival).
+  // This ladder reads the job's scalar stamps, which belong to nobody on a crew
+  // (Q407), so it could only ever draw a disabled "Confirm They Arrived" beside
+  // the roster's live ones. (Its stalled notice needs a confirmed job-level
+  // working stamp, which a crew never has, so nothing is lost.)
+  if (job.is_group_job === true) return null;
 
   // Near-miss stands in for an arrival on the IN-PROGRESS step only — that is
   // where the gate already accepted it. Widening it to `scheduled` would be a

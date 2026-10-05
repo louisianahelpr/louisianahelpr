@@ -110,11 +110,13 @@ export function GroupJobHelpers({
       // a PostgREST `in.(...)` list is not "match nothing", it is a malformed
       // filter, and there is no profile to find for them anyway.
       const helperIds = rows.map((h) => h.helper_id).filter((id): id is string => !!id);
+      // get_safe_profiles, not `profiles`: the poster cannot read another
+      // account's profiles row (RLS), so that select came back EMPTY with no
+      // error and every member read "Helpr" — measured 2026-10-05 on prod as
+      // poster-e2e: profiles 200 [], get_safe_profiles both names (Q1382).
+      // With a per-member "Confirm Arrived", the poster must tell them apart.
       const { data: profiles, error: profilesError } = helperIds.length
-        ? await supabase
-            .from("profiles")
-            .select("user_id, full_name")
-            .in("user_id", helperIds)
+        ? await supabase.rpc("get_safe_profiles", { user_ids: helperIds })
         : { data: [], error: null };
       if (profilesError) {
         console.error("[GroupJobHelpers] failed to load helper profiles:", profilesError);

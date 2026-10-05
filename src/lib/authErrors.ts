@@ -52,6 +52,12 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
   if (msg.includes("load failed") || msg.includes("networkerror")) {
     return "Connection trouble. Check your signal and try again.";
   }
+  // GoTrue's refusal when Turnstile is on and the token is missing, expired or
+  // already spent ("captcha verification process failed", Q1314). Not the
+  // user's fault and not a wrong password: ask them to finish the check.
+  if (msg.includes("captcha")) {
+    return "The security check didn't finish. Give it a second and try again.";
+  }
   if (msg.includes("user already registered") || msg.includes("already registered")) {
     return "An account already uses that email. Try signing in instead.";
   }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +28,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
+import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
+import { isCaptchaError } from "@/lib/turnstile";
+import { recognizedAuthError } from "@/lib/authErrors";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TwoFactorCard, useVerifiedFactor } from "@/components/profile/TwoFactorCard";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
@@ -99,6 +102,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   // Prevents double-submit on the "Reset password" button — the Supabase
   // call is async and users on slow connections can tap twice.
   const [resettingPassword, setResettingPassword] = useState(false);
+  const resetTurnstileRef = useRef<TurnstileHandle>(null);
 
   const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
@@ -370,11 +374,15 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             onClick={async () => {
               if (!email || resettingPassword) return;
               setResettingPassword(true);
+              const captchaToken = await resetTurnstileRef.current?.getToken() ?? null;
               const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: getPublicResetPasswordUrl(),
+                captchaToken: captchaToken ?? undefined,
               });
+              // Turnstile tokens are single-use (Q1314): arm a fresh one.
+              resetTurnstileRef.current?.reset();
               setResettingPassword(false);
-              if (error) toast.error("Couldn't send the reset link — try again?");
+              if (error) toast.error(isCaptchaError(error.message) ? recognizedAuthError(error.message) : "Couldn't send the reset link — try again?");
               // Say it worked — the only visible change was the button label
               // flicking back from "Sending…", which reads as nothing happened.
               else confirmConsequential(`Reset link sent to ${email}.`);
@@ -383,6 +391,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             {resettingPassword ? "Sending…" : "Reset"}
           </Button>
         </div>
+        <TurnstileField ref={resetTurnstileRef} action="password_reset" className="mt-2" />
       </div>
 
       <TwoFactorCard />

@@ -199,7 +199,8 @@ describe("Q1188: one offer that cannot expire never rolls back the sweep", () =>
   it("each offer expires in its own subtransaction, the strike inside it", () => {
     const sweep = body("expire_unanswered_offers");
     const loop = sweep.indexOf("LOOP");
-    const begin = sweep.search(/LOOP\s+BEGIN\s+SELECT j\.id, j\.title, j\.customer_id, j\.helper_id\s+INTO v_locked/);
+    // 20261005184940 widened the re-read (the start columns for the capped-window no-strike rule).
+    const begin = sweep.search(/LOOP\s+BEGIN\s+SELECT j\.id, j\.title, j\.customer_id, j\.helper_id[^;]*?\s+INTO v_locked/);
     const handler = sweep.indexOf("EXCEPTION WHEN OTHERS THEN");
     expect(loop).toBeGreaterThan(-1);
     expect(begin, "the locked re-read is no longer the first statement of a per-offer block").toBe(loop);

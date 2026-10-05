@@ -34,6 +34,8 @@ import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
+import { JobTracking } from "@/components/JobTracking";
+import { JobCountdown } from "@/components/job-card/JobCountdown";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -615,6 +617,17 @@ function AppliedJobCardInner({
           {/* Offered: accept/decline — celebratory framing since this
               is a poster reaching out directly. Gold-warm accent
               surfaces the "you were picked" moment without shouting. */}
+          {/* THE SAME STEP RAIL THE POSTER'S CARD SHOWS (owner, 2026-10-05:
+              "the live step tracker ... must also show on the Helpr's Jobs
+              card"). Posted · Offered · Accepted · ... from the job's own
+              columns; read-only here (no helper controls: the offer's one
+              move is Accept/Decline below), and behind the expand exactly as
+              on the poster's card. Guard: src/test/offerCardHierarchy.test.tsx. */}
+          {isOffered && isExpanded && (
+            <div className="px-4 pt-1 pb-2" onClick={(e) => e.stopPropagation()} data-offer-tracker="">
+              <JobTracking embedded includePostingSteps jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+            </div>
+          )}
           {isOffered && (
             <OfferedActions app={app} job={job} onHelperResponse={onHelperResponse} respondingHelperAppId={respondingHelperAppId} />
           )}
@@ -853,11 +866,12 @@ function AppliedJobCardInner({
             </div>
           )}
           {/* A booked one-time job's date/time change (Q407 8). */}
-          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" />
-          {/* What this card is waiting on: one sentence at its bottom edge
-              (HelperCollapsedStrip says why it is the same strip the poster wears). */}
+          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} />
+          {/* What this card is waiting on (HelperCollapsedStrip). Owner, 2026-10-05:
+              the start clock shows on the collapsed card too, and an offer draws
+              no strip (OfferedActions carries its one answer-by clock). */}
           {!isMinimalCard && !isExpanded && (
-            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} />
+            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} />
           )}
         </JobCardShell>
         </div>

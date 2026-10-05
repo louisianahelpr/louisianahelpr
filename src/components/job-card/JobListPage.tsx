@@ -735,6 +735,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         deadlineDialogApp={actions.deadlineDialogApp}
         setDeadlineDialogApp={actions.setDeadlineDialogApp}
         onDeadlineConfirm={actions.confirmAcceptWithDeadline}
+        deadlineJob={actions.selectedJob}
         disputeJob={actions.disputeJob}
         setDisputeJob={actions.setDisputeJob}
         viewDisputeJob={actions.viewDisputeJob}

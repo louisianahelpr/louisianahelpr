@@ -982,7 +982,7 @@
     },
     {
       "file": "src/components/ResponseDeadlineDialog.tsx",
-      "line": 87,
+      "line": 96,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3096,7 +3096,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 143,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3106,7 +3106,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 147,
+      "line": 148,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -3116,7 +3116,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 337,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3126,7 +3126,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 345,
+      "line": 354,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3136,7 +3136,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 356,
+      "line": 365,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3146,7 +3146,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 361,
+      "line": 370,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3156,7 +3156,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 510,
+      "line": 519,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3166,7 +3166,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 516,
+      "line": 525,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3176,7 +3176,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 521,
+      "line": 530,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3186,7 +3186,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 554,
+      "line": 563,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3196,7 +3196,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 558,
+      "line": 567,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3206,7 +3206,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 571,
+      "line": 580,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3216,7 +3216,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 586,
+      "line": 595,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3226,7 +3226,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 594,
+      "line": 603,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3236,7 +3236,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 618,
+      "line": 627,
       "kind": "toast",
       "title": {
         "form": "literal",

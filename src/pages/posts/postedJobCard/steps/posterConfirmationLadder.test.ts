@@ -108,8 +108,14 @@ const legacyWorkingEnabled = (j: Job) =>
 
 describe("the poster's confirmation ladder is never blank while the job is live", () => {
   it("draws a box for every shape of a scheduled or in-progress job the Helpr has not finished", () => {
+    // EXCEPT AN UNANSWERED OFFER (owner, 2026-10-05: "Confirm Arrival must
+    // NOT show at all until the Helpr has accepted"): nobody is coming yet, so
+    // there is no box at all. That carve-out has its own inventory guard
+    // (src/test/offerCardHierarchy.test.tsx); here it is excluded by name.
+    const offer = (j: Job) => stepOf(j) === "scheduled" && !j.helper_confirmed_at;
     const blank = matrix()
       .filter((j) => !j.helper_completed_at)
+      .filter((j) => !offer(j))
       .filter((j) => posterConfirmationRung(j, stepOf(j)) === null);
     // THE OWNER'S BUG, as a set: every one of these used to render an empty
     // primary slot on a card that was asking the poster for something.

@@ -1,4 +1,5 @@
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
+import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { helperStatusLine, withDisputeSettling } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
 import { CrewStatusStrip } from "./CrewMemberSection";
@@ -42,15 +43,27 @@ export function HelperCollapsedStrip({
   userId,
   isCrewLive,
   unsettledDisputeJobIds,
+  showStartClock = false,
+  hideStatus = false,
 }: {
   app: AppliedApp;
   job: Job;
   userId: string;
   isCrewLive: boolean;
   unsettledDisputeJobIds: Parameters<typeof withDisputeSettling>[1];
+  /** A confirmed booking's start clock, on the collapsed card too (owner, 2026-10-05). */
+  showStartClock?: boolean;
+  /** No strip on an offer: OfferedActions is its statement and carries its one clock (owner, 2026-10-05). */
+  hideStatus?: boolean;
 }) {
-  if (isCrewLive) {
-    return <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />;
-  }
-  return <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />;
+  const clock = showStartClock ? (
+    <div className="px-4 pb-2" data-collapsed-start-clock="">
+      <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+    </div>
+  ) : null;
+  if (hideStatus) return clock;
+  const strip = isCrewLive
+    ? <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />
+    : <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />;
+  return <>{clock}{strip}</>;
 }

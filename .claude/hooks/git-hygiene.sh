@@ -94,7 +94,9 @@ fi
     [ "$w" = "$(git rev-parse --show-toplevel)" ] && continue
     case "$w" in */.claude/worktrees/agent-*) ;; *) continue ;; esac
     [ -n "$(git -C "$w" status --porcelain 2>/dev/null)" ] && continue
-    [ -n "$(find "$w" -path "$w/node_modules" -prune -o -newermt '-24 hours' -print 2>/dev/null | head -1)" ] && continue
+    # Touched in the last 24h, or the check itself failed: keep it (fail safe).
+    recent=$(find "$w" -path "$w/node_modules" -prune -o -mtime -1 -print 2>/dev/null | head -1) || continue
+    [ -n "$recent" ] && continue
     git worktree unlock "$w" 2>/dev/null
     git worktree remove "$w" 2>/dev/null && echo "$(date -u +%FT%TZ) removed finished agent folder $w (branch kept)"
   done
@@ -102,4 +104,31 @@ fi
   for f in docs/audit/morning/*.md; do [ -f "$f" ] && cp -n "$f" "$HOME/.lh-backups/morning/" 2>/dev/null; done
   find "$HOME/.lh-tools/logs" -type f -mtime +14 -delete 2>/dev/null
 ) >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &
+# Weekly: nothing old piles up (owner, 2026-10-04: "never happen again, all this
+# old stuff piling up and/or getting lost"). Backups in ~/.lh-backups older than
+# 28 days go (the weekly branch bundle keeps its own newest 4; morning/ stays).
+# Scratch folders ~/.lh-* and ~/lh-archive untouched for 14 days go, EXCEPT the
+# folders the tools use (KEEP below, plus any the repo's scripts name) and any
+# folder holding a git checkout (a code copy is reported, never deleted).
+pile_stamp="$HOME/.lh-hygiene/pileup-last-run"
+if [ -z "$(find "$pile_stamp" -mtime -7 2>/dev/null)" ]; then
+  touch "$pile_stamp"
+  (
+    find "$HOME/.lh-backups" -maxdepth 1 -type f -mtime +28 -delete 2>/dev/null
+    KEEP=" .lh-backups .lh-shots .lh-tools .lh-wt .lh-hygiene .lh-pglite .lh-gate .lh-e2e-shared .lh-audit .lh-browse .lh-b-ws "
+    named=$(cd "$dir" && git grep -h -o -E '\.lh-[A-Za-z0-9_-]+' -- scripts .claude .github e2e package.json 2>/dev/null | sort -u | tr '\n' ' ')
+    for p in "$HOME"/.lh-* "$HOME/lh-archive"; do
+      [ -e "$p" ] || continue
+      b=$(basename "$p")
+      case "$KEEP $named " in *" $b "*) continue ;; esac
+      case "$b" in .lh-browser.lock*) continue ;; esac
+      recent=$(find "$p" -mtime -14 -print 2>/dev/null | head -1) || continue
+      [ -n "$recent" ] && continue
+      if [ -n "$(find "$p" -maxdepth 3 -name .git -print 2>/dev/null | head -1)" ]; then
+        echo "$(date -u +%FT%TZ) pile-up: $p holds a git checkout; NOT deleted, look at it"; continue
+      fi
+      rm -rf "$p" && echo "$(date -u +%FT%TZ) pile-up: removed $p (untouched 14 days)"
+    done
+  ) >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &
+fi
 exit 0

@@ -47,6 +47,7 @@
 // anchor is the end of a calendar day, so a finer cron would only buy the
 // ability to push someone at 2am.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -105,7 +106,7 @@ serve(async (req) => {
     return new Response("Unauthorized", { status: 401, headers: corsHeaders });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
   const defects = defectTracker();
   const now = new Date();
 

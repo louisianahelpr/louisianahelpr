@@ -17,6 +17,7 @@
 // then bump the cursor.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
@@ -39,7 +40,7 @@ serve(async (req) => {
     console.error("[saved-helper-availability-push] SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY is not configured");
     return new Response("Service role key not configured", { status: 503, headers: corsHeaders });
   }
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
   const defects = defectTracker();
 

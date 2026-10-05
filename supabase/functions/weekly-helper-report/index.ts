@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { sumHelperTakeHomeDollars } from "../_shared/helperEarnings.ts";
 import { feePercentForTier } from "../_shared/helperFees.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
@@ -35,7 +36,7 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
   const defects = defectTracker();
 

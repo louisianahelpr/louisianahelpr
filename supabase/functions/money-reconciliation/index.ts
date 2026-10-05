@@ -46,6 +46,7 @@ import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { computeCancellationFee, helperIsCommitted, hoursUntilJob } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee, type CrewFeeShareRow } from "../_shared/crewShares.ts";
@@ -257,7 +258,7 @@ serve(async (req) => {
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
-    const admin = createClient(supabaseUrl!, serviceRoleKey!);
+    const admin = createClient(supabaseUrl!, serviceRoleKey!, { global: { fetch: boundedFetch() } });
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
     // The ONE place this monitor reads payout holds (Q764 stranded exemption,
     // Q1241 held cancellation fees): one site, so the payoutPathsHonourHold

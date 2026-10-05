@@ -34,6 +34,7 @@
 //             for one event).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -51,7 +52,7 @@ const FN = "marketing-token-health";
  * note in `marketing-publish/index.ts`.
  */
 function makeDb(url: string, key: string) {
-  return createClient(url, key);
+  return createClient(url, key, { global: { fetch: boundedFetch() } });
 }
 type Db = ReturnType<typeof makeDb>;
 

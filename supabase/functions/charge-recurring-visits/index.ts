@@ -56,6 +56,7 @@ import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 // Separate `import type` line on purpose: src/test/edge/harness.ts rewrites
 // this exact form when it bundles the function for vitest.
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
@@ -419,6 +420,7 @@ serve(async (req) => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
+    { global: { fetch: boundedFetch() } },
   );
   const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
     apiVersion: "2025-08-27.basil",

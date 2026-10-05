@@ -234,3 +234,9 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # per-IP rate limit inside the handler, not the gateway.
   [functions.contact-support]
     verify_jwt = false
+  # CSP violation reports (vercel.json report-uri / report-to). Browsers post
+  # them with no apikey and no Authorization header, so verify_jwt MUST be
+  # false. The handler size-limits, drops extension noise, rate-limits per IP
+  # and writes one error_logs row as anon (origin 'client', never pages).
+  [functions.csp-report]
+    verify_jwt = false

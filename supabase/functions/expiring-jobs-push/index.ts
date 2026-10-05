@@ -15,7 +15,9 @@
 // even if the cron runs twice during the same window.
 //
 // Auth: cron secret (CRON_SECRET) or service_role key. Not user-callable.
-// Schedule: once daily — recommend 9am Central (14:00 UTC).
+// Schedule: hourly through the Louisiana day, '14 13-23,0-2 * * *' (Q994,
+// 20261005060246). Once a day missed every listing posted after the run that
+// expired before the next one; src/test/expiringJobsPushCadence.test.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult } from "../_shared/cron-result.ts";

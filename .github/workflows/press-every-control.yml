@@ -99,7 +99,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -125,7 +125,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -183,10 +183,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -202,7 +202,7 @@ jobs:
         run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
-        uses: supabase/setup-cli@v3
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 
@@ -332,7 +332,7 @@ jobs:
           tar -C test-results -cf test-results/press-queue-leg-1.tar press-queue
       - name: Upload the row queue (leg 1)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-queue-leg-1
           path: test-results/press-queue-leg-1.tar
@@ -341,7 +341,7 @@ jobs:
 
       - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 1)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-every-control-leg-1
           path: |
@@ -367,7 +367,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -413,10 +413,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -432,7 +432,7 @@ jobs:
         run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
-        uses: supabase/setup-cli@v3
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 
@@ -471,7 +471,7 @@ jobs:
       # again, never skipped.
       - name: Fetch the row queue the earlier legs claimed (leg 2)
         id: queue_in
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           pattern: press-queue-leg-*
@@ -585,7 +585,7 @@ jobs:
           tar -C test-results -cf test-results/press-queue-leg-2.tar press-queue
       - name: Upload the row queue (leg 2)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-queue-leg-2
           path: test-results/press-queue-leg-2.tar
@@ -594,7 +594,7 @@ jobs:
 
       - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 2)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-every-control-leg-2
           path: |
@@ -620,7 +620,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -666,10 +666,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -685,7 +685,7 @@ jobs:
         run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
-        uses: supabase/setup-cli@v3
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 
@@ -724,7 +724,7 @@ jobs:
       # again, never skipped.
       - name: Fetch the row queue the earlier legs claimed (leg 3)
         id: queue_in
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           pattern: press-queue-leg-*
@@ -838,7 +838,7 @@ jobs:
           tar -C test-results -cf test-results/press-queue-leg-3.tar press-queue
       - name: Upload the row queue (leg 3)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-queue-leg-3
           path: test-results/press-queue-leg-3.tar
@@ -847,7 +847,7 @@ jobs:
 
       - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 3)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-every-control-leg-3
           path: |
@@ -873,7 +873,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -919,10 +919,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -938,7 +938,7 @@ jobs:
         run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
-        uses: supabase/setup-cli@v3
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 
@@ -977,7 +977,7 @@ jobs:
       # again, never skipped.
       - name: Fetch the row queue the earlier legs claimed (leg 4)
         id: queue_in
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           pattern: press-queue-leg-*
@@ -1091,7 +1091,7 @@ jobs:
           tar -C test-results -cf test-results/press-queue-leg-4.tar press-queue
       - name: Upload the row queue (leg 4)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-queue-leg-4
           path: test-results/press-queue-leg-4.tar
@@ -1100,7 +1100,7 @@ jobs:
 
       - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 4)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-every-control-leg-4
           path: |
@@ -1126,7 +1126,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -1172,10 +1172,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -1191,7 +1191,7 @@ jobs:
         run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
-        uses: supabase/setup-cli@v3
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 
@@ -1230,7 +1230,7 @@ jobs:
       # again, never skipped.
       - name: Fetch the row queue the earlier legs claimed (leg 5)
         id: queue_in
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           pattern: press-queue-leg-*
@@ -1344,7 +1344,7 @@ jobs:
           tar -C test-results -cf test-results/press-queue-leg-5.tar press-queue
       - name: Upload the row queue (leg 5)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-queue-leg-5
           path: test-results/press-queue-leg-5.tar
@@ -1353,7 +1353,7 @@ jobs:
 
       - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 5)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-every-control-leg-5
           path: |
@@ -1379,7 +1379,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -1425,10 +1425,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: "npm"
@@ -1444,7 +1444,7 @@ jobs:
         run: bash scripts/ci/playwright-install.sh chromium
 
       - name: Install Supabase CLI
-        uses: supabase/setup-cli@v3
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 
@@ -1483,7 +1483,7 @@ jobs:
       # again, never skipped.
       - name: Fetch the row queue the earlier legs claimed (leg 6)
         id: queue_in
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           pattern: press-queue-leg-*
@@ -1590,7 +1590,7 @@ jobs:
 
       - name: Upload coverage reports, screenshots, snapshot, clean-up log and request meter (leg 6)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: press-every-control-leg-6
           path: |
@@ -1609,12 +1609,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
       - name: Fetch every leg's results
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: press-every-control-leg-*
           merge-multiple: true
@@ -1652,7 +1652,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: press-every-control

@@ -1,11 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
-import { Info, Sparkles, Briefcase } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Info, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Popover,
@@ -99,8 +97,6 @@ interface EarningsForecastCardProps {
 }
 
 export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: EarningsForecastCardProps) {
-  const navigate = useNavigate();
-
   const { startISO, endISO, end } = useMemo(() => currentWeekRange(), []);
 
   const { data, isLoading, isError } = useQuery<ForecastData>({
@@ -184,45 +180,11 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
   const projectedTotal = netAfterFirstPayoutFee(data.projectedTotal, firstPayoutFee);
   const earnedSoFar = netAfterFirstPayoutFee(data.earnedSoFar, data.earnedSoFar > 0 ? firstPayoutFee : 0);
 
-  // Empty state: no scheduled / in-progress jobs AND nothing earned yet
-  // this week — the helper has a clean slate, nudge them to browse.
-  if (projectedTotal <= 0) {
-    return (
-      <div className="rounded-2xl liquid-glass p-card space-y-3">
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: "hsl(var(--burnt-sienna) / 0.14)" }}
-          >
-            <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
-          </div>
-          <div className="min-w-0">
-            <h3
-              className="font-display italic font-bold leading-tight text-ds-17"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              No jobs lined up yet
-            </h3>
-          </div>
-        </div>
-        <p
-          className="font-sans text-ds-12"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          Pick up a job before Sunday and we'll project your earnings here.
-        </p>
-        <Button
-          variant="primary"
-          size="sm"
-          className="w-full gap-1.5"
-          onClick={() => navigate("/home")}
-        >
-          <Briefcase className="w-3.5 h-3.5" />
-          Browse Jobs
-        </Button>
-      </div>
-    );
-  }
+  // Nothing lined up and nothing earned this week: no card at all (Q1177). It
+  // used to render a "No jobs lined up yet" card with its own Browse Jobs
+  // button, which repeated the empty state the payouts list below already
+  // states (owner, 2026-10-01: "messy and repeat itself a lot").
+  if (projectedTotal <= 0) return null;
 
   // Populated state — show projection + caveat + progress comparison.
   const pct = projectedTotal > 0 ? Math.min(100, Math.round((earnedSoFar / projectedTotal) * 100)) : 0;

@@ -280,7 +280,6 @@ const OPACITY_STATE_LEGACY = [
   "src/components/messages/MessageBubble.tsx",
   "src/components/profile/HelperScheduleStrip.tsx",
   "src/components/profile/SkillEndorsements.tsx",
-  "src/components/profile/earningsTab/RecentTransfers.tsx",
   "src/components/profile/profileLanding/IdentityHeader.tsx",
   "src/components/ui/calendar.tsx",
   "src/components/ui/dropdown-menu.tsx",

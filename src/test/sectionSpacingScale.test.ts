@@ -51,7 +51,8 @@ function tsxUnder(dir: string, out: string[] = []): string[] {
  * The files whose layout is a PAGE's: every page, every Profile tab
  * component, and every module Profile renders a tab from (read from
  * ProfileTabPanels' own lazy imports, so a new tab is scanned the day it is
- * added). PaymentTab is the Earnings tab's body, one import further down.
+ * added). PaymentTab is the Earnings page's bank-account section, one import
+ * further down.
  */
 function pageFiles(): string[] {
   const set = new Set([...tsxUnder("src/pages"), ...tsxUnder("src/components/profile")]);

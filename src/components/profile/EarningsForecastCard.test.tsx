@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
@@ -72,20 +72,23 @@ describe("EarningsForecastCard", () => {
     expect(screen.getByTestId("earnings-forecast-skeleton")).toBeInTheDocument();
   });
 
-  it("renders the empty state with a Browse jobs CTA when there are no in-progress earnings", async () => {
+  // One-page Earnings (Q1177, owner 2026-10-01): a forecast of nothing is not
+  // a card. With no in-progress earnings the card renders NOTHING — no "no jobs
+  // lined up yet" empty state, no Browse-jobs button.
+  it("renders nothing when there are no in-progress earnings", async () => {
     mockQueryResult.data = [];
     const { wrapper: Wrapper } = makeWrapper();
-    render(
+    const { container } = render(
       <Wrapper>
         <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
       </Wrapper>,
     );
-    await waitFor(() => {
-      expect(screen.getByText(/no jobs lined up yet/i)).toBeInTheDocument();
-    });
-    expect(screen.getByRole("button", { name: /browse jobs/i })).toBeInTheDocument();
-    // The honest-framing caveat should NOT appear in the empty state.
-    expect(screen.queryByText(/estimate — assumes/i)).not.toBeInTheDocument();
+    // The skeleton must be there first (the read is in flight), then leave: an
+    // empty card asserted before the read answers would prove nothing.
+    await waitForElementToBeRemoved(() => screen.queryByTestId("earnings-forecast-skeleton"));
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText(/no jobs lined up yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /browse jobs/i })).not.toBeInTheDocument();
   });
 
   it("renders the projected total + caveat when in-progress earnings exist", async () => {
@@ -170,3 +173,4 @@ describe("EarningsForecastCard", () => {
 // only the dollars wrong, which is exactly the failure a screenshot pass
 // cannot see.
 // @mutate src/components/profile/EarningsForecastCard.tsx | earnedSoFar += net; | earnedSoFar += 0;
+// @mutate src/components/profile/EarningsForecastCard.tsx |   if (projectedTotal <= 0) return null;\n |

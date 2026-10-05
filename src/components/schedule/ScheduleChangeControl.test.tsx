@@ -11,6 +11,9 @@
  * @mutate src/components/series/JobSeriesCardControls.tsx |     <ScheduleChangeControl | <span data-x
  * @mutate src/components/schedule/ScheduleChangeControl.tsx | primaryDisabled={busy \|\| !date \|\| unchanged} | primaryDisabled={busy \|\| !date}
  * @mutate src/components/schedule/ScheduleChangeControl.tsx | const unchanged = date === dateNeeded && time === (startTime ?? "").slice(0, 5); | const unchanged = date === dateNeeded;
+ * Q1262(2): a clash at accept is said as a clash, not as "expired".
+ * @mutate src/lib/scheduleChange.ts |   if (reply.status === "declined" && reply.reason === "schedule_change_clash") return "clash"; |   if (false) return "clash";
+ * @mutate src/components/schedule/ScheduleChangeControl.tsx |                   if (s === "clash") return | if (false) return
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -27,6 +30,7 @@ vi.mock("@/integrations/supabase/client", () => {
   return { supabase: { from: () => c, rpc } };
 });
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+import { toast } from "sonner";
 
 import { ScheduleChangeControl } from "./ScheduleChangeControl";
 import { fetchPendingScheduleChange } from "@/lib/scheduleChange";
@@ -59,6 +63,15 @@ describe("ScheduleChangeControl", () => {
     renderIt(HELPR);
     fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("respond_job_schedule_change", { p_request_id: "r1", p_accept: true }));
+  });
+
+  it("Q1262(2): an accept the server declines for a clash says the Helpr is booked, not that it expired", async () => {
+    row.value = req();
+    rpc.mockResolvedValue({ data: { status: "declined", reason: "schedule_change_clash" }, error: null });
+    renderIt(HELPR);
+    fireEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/already booked at that time/)));
+    expect(toast.success).not.toHaveBeenCalledWith(expect.stringMatching(/expired/));
   });
 
   it("the asker cannot answer their own request; they see it waiting", async () => {

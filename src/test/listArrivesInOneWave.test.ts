@@ -31,12 +31,15 @@
 // @mutate src/pages/post-job/useDraftCheckoutState.ts | return { state, settled: !hasDraft \|\| answered }; | return { state, settled: true };
 // @mutate src/hooks/useDraftJob.ts |     setDraftLoaded(true);\n |
 // @mutate src/components/NotificationPreferences.tsx |   if (!loaded) return <ProfileTabBodyReserve />;\n |
-// @mutate src/components/profile/EarningsTab.tsx | {!pageReady && <EarningsPageSkeleton | {loading && <EarningsPageSkeleton
-// @mutate src/components/profile/EarningsTab.tsx | useArrivalGate(!loading && stripeSettled, streakState.settled) | useArrivalGate(!loading, streakState.settled && stripeSettled)
+// @mutate src/components/profile/EarningsTab.tsx | {view === "earned" && !pageReady && <EarningsPageSkeleton | {view === "earned" && loading && <EarningsPageSkeleton
+// @mutate src/components/profile/EarningsTab.tsx | useArrivalGate(!loading, streakState.settled && !ledgerPending) | useArrivalGate(!loading, true)
+// @mutate src/components/profile/EarningsTab.tsx | streakState.settled && !ledgerPending) | streakState.settled)
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
 // @mutate src/pages/home/Dashboard.tsx |         titleCard={isWebDesktop ? undefined : <DashboardTitleBar | titleCard={<DashboardTitleBar
 // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | invisible font-sans leading-none tabular-nums text-ds-17 | invisible h-9 w-16
 // @mutate src/pages/home/DashboardGuest.tsx | const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS; | const FEED_GRID_CLASS = "grid grid-cols-1 gap-3";
+// @mutate src/pages/home/DashboardGuest.tsx | footer={feedSettled} | footer={true}
+// @mutate src/components/marketing/PublicLayout.tsx | {footer && <Footer />} | <Footer />
 // @mutate src/components/profile/SecurityTab.tsx | useArrivalGate(!sessionsLoading, !factorLoading) | useArrivalGate(true, true)
 // @mutate src/components/SaveHelperButton.tsx | variant === "icon" ? "h-10 w-10 shrink-0 " : "" | ""
 // @mutate src/components/GuestBrowseSkeleton.tsx | 0.25rem) + var(--public-nav-h))" }} /> | 1.5rem) + 3rem)" }} />
@@ -176,10 +179,13 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   });
 
   it("the earnings page and the reviews hero wait for everything above the fold", () => {
-    expect(read("components/profile/EarningsTab.tsx")).toMatch(/\{!pageReady && <EarningsPageSkeleton withHeader=\{false\} withSwitcher \/>\}/);
-    // The Stripe-backed answer (balances, or the connect card's form) is primary:
-    // in the capped slot it opened the page on the card's bones (CLS 0.034/0.2254).
-    expect(read("components/profile/EarningsTab.tsx")).toContain("useArrivalGate(!loading && stripeSettled, streakState.settled)");
+    expect(read("components/profile/EarningsTab.tsx")).toMatch(/\{view === "earned" && !pageReady && <EarningsPageSkeleton withHeader=\{false\} \/>\}/);
+    // The page's OWN data only (owner, 2026-10-04: "Don't wait for Stripe"):
+    // the earnings rows, then (capped) the streak badge and the transfer
+    // ledger, whose rows sit inside the payouts list's job cards (Q1177).
+    // Stripe-backed parts hold their own slots with their own bones
+    // (EarningsTab.figures.test.tsx pins those).
+    expect(read("components/profile/EarningsTab.tsx")).toContain("useArrivalGate(!loading, streakState.settled && !ledgerPending)");
     expect(read("components/profile/ReviewsTab.tsx")).toMatch(/\{!loading && reviewCount > 0 && avgRating != null && \(/);
   });
 
@@ -202,14 +208,21 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     expect(read("pages/home/DashboardGuest.tsx")).toMatch(/const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS;/);
   });
 
-  it("/browse's loaded feed keeps the skeleton's reserve, so a short list never pulls the footer up", () => {
+  it("/browse holds its footer until the feed settles, so a short list or the empty state never pulls it up", () => {
     // 2026-10-01: one live job at 375 drew 439px of feed; the Footer jumped
-    // from below the fold to y=499 (CLS 0.2399, page-settle /browse).
-    // Every feed grid (loading AND loaded) wears the reserve.
+    // from below the fold to y=499 (CLS 0.2399, page-settle /browse). That was
+    // first fixed with a screen-tall reserve on every grid, which left the
+    // blank band the owner reported (Q1312, 2026-10-05). Now the Footer is not
+    // rendered until the feed has settled (a new node is not a layout shift),
+    // so only the LOADING grid keeps the reserve and the settled ones do not.
     const dg = read("pages/home/DashboardGuest.tsx");
+    expect(dg).toMatch(/<PublicHeaderPage[^>]*footer=\{feedSettled\}/);
+    expect(dg).toMatch(/const feedSettled = feedReady \|\| phase === "offline-empty";/);
     const grids = dg.match(/className=\{`\$\{FEED_GRID_CLASS\}[^`]*`\}/g) ?? [];
     expect(grids.length).toBeGreaterThanOrEqual(2);
-    for (const g of grids) expect(g).toContain("${GUEST_FEED_RESERVE_CLASS}");
+    expect(grids.filter((g) => g.includes("${GUEST_FEED_RESERVE_CLASS}"))).toHaveLength(1);
+    expect(read("components/marketing/PublicLayout.tsx")).toMatch(/\{footer && <Footer \/>\}/);
+    expect(read("components/marketing/PublicHeaderPage.tsx")).toMatch(/<PublicLayout footer=\{footer\}>/);
   });
 
   it("/browse's chunk skeleton restates the public shell's geometry VERBATIM (nav spacer, nav box, body gutter)", () => {

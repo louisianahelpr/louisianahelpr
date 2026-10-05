@@ -63,7 +63,8 @@ describe("Q356: every jobs *helper_id column is locked against client writes", (
 
   it("the UPDATE trigger refuses each one newly set from a client", () => {
     const unlocked = cols.filter(
-      (c) => !new RegExp(`if new\\.${c} is not null and new\\.${c} is distinct from old\\.${c}\\b[^;]*? then raise exception 'hire_requires_rpc`).test(hire),
+      // `is not null and` is optional: offered_to_helper_id refuses ANY change (Q1325).
+      (c) => !new RegExp(`if (?:new\\.${c} is not null and )?new\\.${c} is distinct from old\\.${c}\\b[^;]*? then raise exception 'hire_requires_rpc`).test(hire),
     );
     expect(unlocked, "jobs helper columns a client can still point at someone").toEqual([]);
   });
@@ -82,7 +83,7 @@ describe("Q356: every jobs *helper_id column is locked against client writes", (
   });
 });
 
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF NEW.recurring_helper_id IS NOT NULL | IF false AND NEW.recurring_helper_id IS NOT NULL
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | AND NEW.recurring_helper_id IS DISTINCT FROM NEW.helper_id THEN | THEN
-// @mutate supabase/migrations/20261004191544_jobs_id_server_owned.sql | NEW.recurring_helper_id      := NULL; | NULL;
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF NEW.offered_to_helper_id IS NOT NULL | IF false AND NEW.offered_to_helper_id IS NOT NULL
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | IF NEW.recurring_helper_id IS NOT NULL | IF false AND NEW.recurring_helper_id IS NOT NULL
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | AND NEW.recurring_helper_id IS DISTINCT FROM NEW.helper_id THEN | THEN
+// @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql | NEW.recurring_helper_id      := NULL; | NULL;
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | IF NEW.offered_to_helper_id IS DISTINCT FROM OLD.offered_to_helper_id THEN | IF false AND NEW.offered_to_helper_id IS DISTINCT FROM OLD.offered_to_helper_id THEN

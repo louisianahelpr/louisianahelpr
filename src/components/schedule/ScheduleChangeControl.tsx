@@ -90,7 +90,9 @@ export function ScheduleChangeControl({
               onClick={() =>
                 act(async () => {
                   const s = await respondScheduleChange(pending.id, true);
-                  return s === "accepted" ? "Accepted. The job has the new date and time." : "That request has expired, so nothing changed.";
+                  if (s === "accepted") return "Accepted. The job has the new date and time.";
+                  if (s === "clash") return "The Helpr is already booked at that time, so this change couldn't be accepted. The original date and time stay.";
+                  return "That request has expired, so nothing changed.";
                 })
               }
               className="btn-grad-primary min-h-[44px] px-4 rounded-ds-md text-ds-12 font-semibold disabled:opacity-40"

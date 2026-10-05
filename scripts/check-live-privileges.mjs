@@ -40,6 +40,16 @@
  *     refuse_unconfirmed_email_write). The migration guard cannot see a table
  *     made in the dashboard or a gate disabled outside a migration.
  *
+ *  8. scripts/ci/definer-exec-inventory.sql (Q14) — the SECURITY DEFINER
+ *     functions in public that anon / authenticated may EXECUTE are EXACTLY the
+ *     ones in scripts/ci/definer-exec-allowlist.json, each with why a client
+ *     needs it (src/test/definerExecAllowlist.test.ts checks the reasons). Six
+ *     had no client caller (four of them answered about other people for any
+ *     id) until 20261005054927 revoked them. Q1284: every one whose body never
+ *     reads the caller is listed under "unscoped" with a reason (comments are
+ *     stripped before that test; a string literal holding "auth.uid()" would
+ *     still count as reading the caller, a known limit).
+ *
  * Both queries are shared with the db-smoke replay gate; this reads PROD,
  * because prod is where a dashboard edit, an MCP apply or a failed replay can
  * leave a catalog no migration describes.
@@ -66,6 +76,8 @@ const ROWTYPE_SQL = load("./ci/rowtype-args-unreadable.sql");
 const CLIENT_INSERT_SQL = load("./ci/client-insert-columns.sql");
 const CURRENT_DATE_SQL = load("./ci/current-date-time-zone.sql");
 const EMAIL_GATE_SQL = load("./ci/unconfirmed-email-gate.sql");
+const DEFINER_EXEC_SQL = load("./ci/definer-exec-inventory.sql");
+const DEFINER_ALLOW = JSON.parse(readFileSync(new URL("./ci/definer-exec-allowlist.json", import.meta.url), "utf8"));
 
 // Q304: profiles columns only the server may write. The locked list is what
 // sync_profiles_update_grants() subtracts every 10 minutes; the two literals
@@ -94,6 +106,7 @@ SELECT (SELECT count(*) FROM pg_proc p JOIN pg_language l ON l.oid = p.prolang
        coalesce((SELECT json_agg(o) FROM (${CLIENT_INSERT_SQL}) o), '[]'::json) AS client_insert_offenders,
        coalesce((SELECT json_agg(o) FROM (${CURRENT_DATE_SQL}) o), '[]'::json) AS current_date_offenders,
        coalesce((SELECT json_agg(o) FROM (${EMAIL_GATE_SQL}) o), '[]'::json) AS email_gate_offenders,
+       coalesce((SELECT json_agg(o) FROM (${DEFINER_EXEC_SQL}) o), '[]'::json) AS definer_exec_rows,
        (SELECT count(*) FROM pg_trigger WHERE tgname = 'zz_refuse_unconfirmed_email_write' AND NOT tgisinternal)::int AS email_gates,
        (SELECT count(*) FROM pg_attribute
          WHERE attrelid = 'public.profiles'::regclass AND attname = ANY (ARRAY['ban_status', 'auto_suspended_until'])
@@ -144,8 +157,10 @@ const clientInsert = parse(row?.client_insert_offenders);
 const currentDate = parse(row?.current_date_offenders);
 const emailGate = parse(row?.email_gate_offenders);
 const emailGates = Number(row?.email_gates ?? 0);
+const definerRows = parse(row?.definer_exec_rows);
 const serverOnlyPresent = Number(row?.server_only_columns_present ?? 0);
-if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || !Array.isArray(rowtype) || !Array.isArray(clientInsert) || !Array.isArray(emailGate) || !Array.isArray(currentDate) || emailGates < 50 || serverOnlyPresent !== 2) {
+if (!fns || !acl || !Array.isArray(defaults) || !Array.isArray(nullUid) || !Array.isArray(serverOnly) || !Array.isArray(rowtype) || !Array.isArray(clientInsert) || !Array.isArray(emailGate) || !Array.isArray(currentDate) || !Array.isArray(definerRows) || definerRows.length < 50 || emailGates < 50 || serverOnlyPresent !== 2) {
+  console.error(`::error::live catalog returned ${Array.isArray(definerRows) ? definerRows.length : "no"} client-executable SECURITY DEFINER rows (Q14: ~127 live) /`);
   console.error(`::error::live catalog returned ${fns} plpgsql functions / ${acl} postgres default-ACL entries in public / ${serverOnlyPresent} of 2 server-only profiles columns (Q304: ban_status, auto_suspended_until) / ${emailGates} Q807 email gates (Q838: ~100 live) — refusing to report clean.`);
   process.exit(2);
 }
@@ -159,7 +174,26 @@ if (process.argv.includes("--self-test")) {
   clientInsert.push({ table: "messages", role: "authenticated", what: "UPDATE (edited_at)" });
   currentDate.push({ function_name: "zz_fake_date_check", config: "search_path=public" });
   emailGate.push({ table: "jobs", what: "email gate trigger not enabled (tgenabled D)" });
+  definerRows.push({ signature: "zz_fake_definer(uuid)", role: "authenticated", scoped: false });
+  // The other direction: allowlist entries the live catalog no longer has.
+  DEFINER_ALLOW.authenticated = { ...DEFINER_ALLOW.authenticated, "zz_stale_definer(uuid)": "client" };
+  DEFINER_ALLOW.unscoped = { ...DEFINER_ALLOW.unscoped, "zz_stale_unscoped()": "reviewed 2026-10-05 (Q14): self-test only" };
 }
+
+// Q14: two-way diff of the live client-executable definer set against the allowlist.
+const liveDefiner = new Set(definerRows.map((r) => `${r.role} ${r.signature}`));
+const allowedDefiner = new Set(
+  ["anon", "authenticated"].flatMap((role) => Object.keys(DEFINER_ALLOW[role] ?? {}).map((sig) => `${role} ${sig}`)),
+);
+const definerUnlisted = [...liveDefiner].filter((k) => !allowedDefiner.has(k)).sort();
+const definerStale = [...allowedDefiner].filter((k) => !liveDefiner.has(k)).sort();
+// Q1284: a client-callable definer body that never reads the caller (auth.uid(),
+// is_server_context, has_role, is_admin) answers about any id for anyone; each
+// one must be listed under "unscoped" with why that is fine. Two-way.
+const liveUnscoped = new Set(definerRows.filter((r) => r.scoped === false || r.scoped === "false").map((r) => r.signature));
+const allowedUnscoped = new Set(Object.keys(DEFINER_ALLOW.unscoped ?? {}));
+const unscopedUnlisted = [...liveUnscoped].filter((k) => !allowedUnscoped.has(k)).sort();
+const unscopedStale = [...allowedUnscoped].filter((k) => !liveUnscoped.has(k)).sort();
 
 let failed = false;
 console.log(`Checked ${acl} postgres default-ACL entries and ${fns} plpgsql functions in public.`);
@@ -227,8 +261,27 @@ if (emailGate.length) {
       "function and the SQL file, with its reason.",
   );
 }
+if (definerUnlisted.length || definerStale.length) {
+  failed = true;
+  for (const k of definerUnlisted) console.error(`::error::SECURITY DEFINER public.${k.slice(k.indexOf(" ") + 1)} is EXECUTE-able by ${k.slice(0, k.indexOf(" "))} but not in scripts/ci/definer-exec-allowlist.json (Q14)`);
+  for (const k of definerStale) console.error(`::error::scripts/ci/definer-exec-allowlist.json lists ${k} but the live catalog does not grant it (stale entry, Q14)`);
+  console.error(
+    "A definer function runs as its owner and skips RLS, so every one a client may call must say why. Fix: if no client calls it, " +
+      "REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated in a migration (see 20261005054927); otherwise add it to the allowlist " +
+      "with \"client\" (src/ calls it), \"policy\" (a policy calls it) or a reviewed reason; delete entries for revoked or dropped functions.",
+  );
+}
+if (unscopedUnlisted.length || unscopedStale.length) {
+  failed = true;
+  for (const k of unscopedUnlisted) console.error(`::error::SECURITY DEFINER public.${k} is client-callable and never reads the caller (no auth.uid(), is_server_context, has_role or is_admin), but is not under "unscoped" in scripts/ci/definer-exec-allowlist.json (Q1284)`);
+  for (const k of unscopedStale) console.error(`::error::scripts/ci/definer-exec-allowlist.json lists ${k} under "unscoped" but the live function now reads the caller or is no longer client-callable (stale entry, Q1284)`);
+  console.error(
+    "A definer function that never looks at its caller hands every signed-in account the same answer about any id (get_job_view_counts " +
+      "told anyone another poster's view counts). Fix: scope it to the caller (WHERE ... = auth.uid()), or list it under \"unscoped\" with a dated reviewed reason.",
+  );
+}
 if (!Number(row?.has_server_context_helper)) {
   console.log("note: public.is_server_context() is not deployed yet.");
 }
 if (failed) process.exit(1);
-console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read; no client INSERT or UPDATE beyond the declared columns; every function that reads the date pins America/Chicago; every public table keeps its email gate.");
+console.log("OK: no client default privileges in public; no function trusts a bare NULL uid; no client UPDATE on a server-only profiles column; no client-callable function takes a row its caller cannot read; no client INSERT or UPDATE beyond the declared columns; every function that reads the date pins America/Chicago; every public table keeps its email gate; the client-executable SECURITY DEFINER functions are exactly the allowlist.");

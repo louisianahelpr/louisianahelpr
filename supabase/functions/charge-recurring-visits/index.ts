@@ -75,6 +75,7 @@ import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 /**
  * The client type these helpers accept.
@@ -327,6 +328,73 @@ async function attemptVisitCharge(
     }
   }
   return { kind: "unknown", message: last };
+}
+
+/**
+ * Q1104: the charge key lives 24 hours and a date stays in the funding window
+ * for three daily runs, so a charge that went out on day 1 and was never
+ * booked (the run died between the charge and the visit insert, or Stripe never
+ * answered: the UNKNOWN page) was charged AGAIN on day 2 under a brand-new
+ * request. Before minting a charge the run now asks Stripe itself for a visit
+ * charge already made for this (series, date, claim): it reads the payer's
+ * PaymentIntents created inside the window (a strongly consistent list, not
+ * Search) and matches the metadata the charge carries.
+ *
+ *   succeeded, nothing refunded -> adopt it (book the visit on it, no charge);
+ *   processing                  -> still in flight: skip this run, a defect;
+ *   anything else (declined, canceled, refunded) -> charge as before.
+ *
+ * A read that fails, or a page that does not fit, charges NOTHING this run (a
+ * defect): the date is retried on the next run of its window, and a skipped
+ * day costs nothing, where a guess could charge twice.
+ */
+type PriorVisitIntent =
+  | { kind: "none" }
+  | { kind: "adopt"; intent: Stripe.PaymentIntent }
+  | { kind: "in_flight"; intentId: string }
+  | { kind: "error"; message: string };
+
+const PRIOR_VISIT_LOOKBACK_DAYS = FUND_LEAD_DAYS + 1;
+
+async function priorVisitIntent(
+  stripe: Stripe,
+  customerId: string,
+  parentId: string,
+  visitDate: string,
+  holdId: string,
+): Promise<PriorVisitIntent> {
+  let list: Stripe.ApiList<Stripe.PaymentIntent>;
+  try {
+    list = await stripe.paymentIntents.list({
+      customer: customerId,
+      created: { gte: Math.floor(Date.now() / 1000) - PRIOR_VISIT_LOOKBACK_DAYS * 86_400 },
+      limit: 100,
+      expand: ["data.latest_charge"],
+    });
+  } catch (e) {
+    return { kind: "error", message: caughtMessage(e) };
+  }
+  if (!list || !Array.isArray(list.data)) return { kind: "error", message: "PaymentIntent list gave no data" };
+  if (list.has_more) return { kind: "error", message: "more than 100 PaymentIntents for this payer inside the window" };
+  const mine = list.data.filter((pi) =>
+    pi.metadata?.type === "recurring_visit" &&
+    pi.metadata?.parent_job_id === parentId &&
+    pi.metadata?.visit_date === visitDate &&
+    pi.metadata?.hold_id === holdId
+  );
+  for (const pi of mine) {
+    if (pi.status !== "succeeded") continue;
+    const charge = pi.latest_charge as Stripe.Charge | string | null;
+    // Without the expanded charge a refund cannot be ruled out: neither adopt
+    // (it may be refunded) nor charge (it may be live).
+    if (!charge || typeof charge !== "object") {
+      return { kind: "error", message: `succeeded visit charge ${pi.id} came back without its charge` };
+    }
+    if (Number(charge.amount_refunded ?? 0) === 0) return { kind: "adopt", intent: pi };
+  }
+  const inFlight = mine.find((pi) => pi.status === "processing");
+  if (inFlight) return { kind: "in_flight", intentId: inFlight.id };
+  return { kind: "none" };
 }
 
 serve(async (req) => {
@@ -1266,6 +1334,23 @@ serve(async (req) => {
           continue;
         }
 
+        // Q1104: a charge an earlier run made for this exact claim and never
+        // booked is adopted, never charged again (see priorVisitIntent).
+        const prior: PriorVisitIntent = paidRow
+          ? { kind: "none" }
+          : await priorVisitIntent(stripe, customerId as string, String(parent.id), visitDate, String(hold.id));
+        if (prior.kind === "error") {
+          fail(`series ${parent.id} ${visitDate}: could not check Stripe for an earlier charge of this visit (${prior.message.slice(0, 160)}); nothing charged this run`);
+          continue;
+        }
+        if (prior.kind === "in_flight") {
+          fail(`series ${parent.id} ${visitDate}: an earlier charge ${prior.intentId} of this visit is still processing; nothing charged this run`);
+          continue;
+        }
+        if (prior.kind === "adopt") {
+          console.warn(`[charge-recurring-visits] ${parent.id} ${visitDate}: adopting earlier unbooked charge ${prior.intent.id} instead of charging again`);
+        }
+
         // ONE call site, but up to TWO attempts on the SAME key — see
         // `attemptVisitCharge`. A network fault here is not a decline.
         // Q210(b): a visit the payer paid on-session books on that intent.
@@ -1274,6 +1359,8 @@ serve(async (req) => {
             kind: "ok",
             intent: { id: paidRow.stripe_payment_intent_id, status: "succeeded" } as Stripe.PaymentIntent,
           }
+          : prior.kind === "adopt"
+          ? { kind: "ok", intent: prior.intent }
           : await attemptVisitCharge(
           stripe,
           {

@@ -57,12 +57,18 @@ export async function requestScheduleChange(jobId: string, date: string, startTi
   if (error) throw changeError(error, rpcErrorMessage("request_job_schedule_change", error));
 }
 
-/** Returns the request's resulting status: accepted / declined / expired. */
+/**
+ * Returns the request's resulting status: accepted / declined / expired, or
+ * "clash" when an accept found the Helpr already booked at the new time (Q1262:
+ * the server declines the request and tells whoever asked).
+ */
 export async function respondScheduleChange(requestId: string, accept: boolean): Promise<string> {
   const { data, error } = await supabase.rpc("respond_job_schedule_change", {
     p_request_id: requestId,
     p_accept: accept,
   });
   if (error) throw changeError(error, rpcErrorMessage("respond_job_schedule_change", error));
-  return String((data as { status?: string } | null)?.status ?? "");
+  const reply = (data as { status?: string; reason?: string } | null) ?? {};
+  if (reply.status === "declined" && reply.reason === "schedule_change_clash") return "clash";
+  return String(reply.status ?? "");
 }

@@ -25,9 +25,11 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * (effective) definition. Behaviour is proved in PGlite by
  * src/test/pglite/chargebackReleaseIsNotANewPayment.pglite.mjs.
  *
- * @mutate supabase/migrations/20261003184911_chargeback_release_is_not_a_new_payment.sql | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback' THEN | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow') THEN
- * @mutate supabase/migrations/20261003184911_chargeback_release_is_not_a_new_payment.sql | AND NEW.helper_id IS NOT NULL\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback' THEN | AND NEW.helper_id IS NOT NULL THEN
- * @mutate supabase/migrations/20261003184911_chargeback_release_is_not_a_new_payment.sql | AND OLD.payment_status IS DISTINCT FROM 'released'\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback' THEN\n    FOR v_member IN | AND OLD.payment_status IS DISTINCT FROM 'released' THEN\n    FOR v_member IN
+ * (The 20261003184911 predicates are restated by 20261005064123, the newest
+ * definition, so the mutations target that file.)
+ * @mutate supabase/migrations/20261005064123_refund_claim_put_back_is_not_a_new_payment.sql | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n
+ * @mutate supabase/migrations/20261005064123_refund_claim_put_back_is_not_a_new_payment.sql | AND NEW.helper_id IS NOT NULL\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND NEW.helper_id IS NOT NULL\n
+ * @mutate supabase/migrations/20261005064123_refund_claim_put_back_is_not_a_new_payment.sql | AND OLD.payment_status IS DISTINCT FROM 'released'\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND OLD.payment_status IS DISTINCT FROM 'released'\n
  */
 
 const REPO = resolve(__dirname, "../..");

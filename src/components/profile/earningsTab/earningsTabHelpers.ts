@@ -74,7 +74,8 @@ export const buildPayoutsCsv = (
 // numbers beneath it do not honour.
 //
 // These two helpers are what make the toggle honest. The bucketing rule is
-// copied deliberately from PaymentTab's poster-spend toggle (completion
+// copied deliberately from PaymentTab's poster-spend toggle (removed with
+// the one-page Earnings tab, Q1177) (completion
 // timestamp, poster's confirmation first, helper's next, `created_at` for
 // legacy rows that predate both) so the earned side and the spent side slice
 // time the same way — otherwise "This Week" would mean two different weeks on
@@ -87,7 +88,7 @@ export const rangeStartMs = (
 ): number | null => {
   if (range === "lifetime") return null;
   if (range === "week") {
-    // Week starts MONDAY, matching PaymentTab's spend toggle. Sunday
+    // Week starts MONDAY, as PaymentTab's (removed) spend toggle did. Sunday
     // (getDay() === 0) belongs to the week that began six days earlier.
     const day = now.getDay();
     const start = new Date(now);
@@ -132,7 +133,7 @@ export const earnedRangeLabel = (range: "lifetime" | "week" | "month" | "year"):
 // ─── WHAT COUNTS AS THE HELPER'S MONEY ──────────────────────────────────────
 //
 // Reported 2026-09-06 by external QA: a helper finished a job, watched the
-// poster approve it, opened Earnings & Payouts and read "$0.00 · total earned
+// poster approve it, opened the Money tab (then "Earnings & Payouts") and read "$0.00 · total earned
 // · 0 jobs" — while My Jobs → Done showed the same job at $105 with its proof
 // photos. The money was not lost; it was invisible.
 //

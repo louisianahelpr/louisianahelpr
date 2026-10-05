@@ -26,9 +26,12 @@ const CHAIN = [
   "20260927012807_job_schedule_change_requests.sql",
   "20261002060514_schedule_change_refuses_helpr_clash.sql",
   "20261004004707_schedule_change_accept_rechecks_clash.sql",
+  "20261005064336_schedule_clash_declines_with_notice.sql",
 ].map(readMigration);
 // The chain as it stood before Q925 (the OLD STATE of the accept re-check).
-const PRE_Q925 = CHAIN.slice(0, -1);
+const PRE_Q925 = CHAIN.slice(0, -2);
+// Q1262(2): the chain before the clash declined the request (prod 2026-10-05).
+const PRE_Q1262 = CHAIN.slice(0, -1);
 const { P, A, X } = USERS;
 const { check, failures, fail } = checker();
 const J = (n) => `c0000000-0000-0000-0000-0000000000${String(n).padStart(2, "0")}`;
@@ -150,7 +153,7 @@ await db.close();
 
   const old = new PGlite();
   await old.exec(baseSchema("20260927012804"));
-  for (const m of CHAIN.slice(0, -2)) await old.exec(m);
+  for (const m of CHAIN.slice(0, -3)) await old.exec(m);
   await old.exec(seed);
   const o = await ask(old, P, 9, "14:00");
   console.log(`-- Q736 OLD STATE ${o.ok ? "RED" : "NOT RED"}: a request onto the Helpr's 13:00-16:00 booking -> ${o.ok ? "accepted as a request" : o.err}`);
@@ -225,23 +228,37 @@ await db.close();
   if (!red) fail();
   await old.close();
 
+  // Q1262(2) OLD STATE (prod 2026-10-05): the clash raised, rolled back, and
+  // left the request pending with nobody told.
+  {
+    const pdb = await scenario(PRE_Q1262, 1);
+    const pid = await ask(pdb, P, 9, "14:00");
+    await pdb.exec(later);
+    const pq = await accept(pdb, A, pid);
+    const stuck = !pq.ok && /schedule_change_clash/.test(pq.err) && (await pending(pdb, pid)) === "pending";
+    console.log(`-- Q1262(2) OLD STATE ${stuck ? "RED" : "NOT RED"}: a clash at accept -> ${pq.ok ? JSON.stringify(pq.rows[0].v) : pq.err}; request ${await pending(pdb, pid)}`);
+    if (!stuck) fail();
+    await pdb.close();
+  }
   const ndb = await scenario(CHAIN, 3);
   check("Q925: the chain with the re-check applies 3x (replay-safe)", true);
   const id1 = await ask(ndb, P, 9, "14:00");
   check("Q925: the request was fine when filed (no overlap yet)", !!id1);
   await ndb.exec(later);
+  const clashed = (q) => q.ok && q.rows[0].v.status === "declined" && q.rows[0].v.reason === "schedule_change_clash";
+  const notices = async (dbx, who) => Number((await dbx.query(`select count(*)::int n from public.notifications where user_id = '${who}' and title = 'New date or time not possible'`)).rows[0].n);
   let q = await accept(ndb, A, id1);
-  check("Q925: the Helpr cannot accept onto a booking made after the request", refused(q, /schedule_change_clash/), q.err);
+  check("Q925: the Helpr cannot accept onto a booking made after the request (Q1262: declined as a clash)", clashed(q), q.ok ? JSON.stringify(q.rows[0].v) : q.err);
   let jj = await job(ndb, K);
   check("Q925: ...the job did not move", jj.t === "09:00:00" && jj.d === (await ndb.query(`select (current_date + 5)::text d`)).rows[0].d, JSON.stringify(jj));
-  check("Q925: ...the request is still pending (it can be declined)", (await pending(ndb, id1)) === "pending");
-  q = await as(ndb, "authenticated", A, `select public.respond_job_schedule_change('${id1}', false) as v`);
-  check("Q925: ...and declining it still works", q.ok && q.rows[0].v.status === "declined", q.err);
+  check("Q1262(2): ...the request is declined, not left pending", (await pending(ndb, id1)) === "declined");
+  check("Q1262(2): ...and whoever asked is told", (await notices(ndb, P)) === 1, `${await notices(ndb, P)} notice(s)`);
   // A crew seat the Helpr holds counts, and the poster accepting the Helpr's request is checked too.
   const id3 = await ask(ndb, A, 12, "10:00");
   await ndb.exec(laterCrew);
   q = await accept(ndb, P, id3);
-  check("Q925: the poster accepting the Helpr's request is refused when it overlaps a crew seat", refused(q, /schedule_change_clash/), q.err);
+  check("Q925: the poster accepting the Helpr's request is refused when it overlaps a crew seat (declined as a clash)", clashed(q), q.ok ? JSON.stringify(q.rows[0].v) : q.err);
+  check("Q1262(2): ...and the Helpr who asked is told", (await notices(ndb, A)) === 1, `${await notices(ndb, A)} notice(s)`);
   // Boundaries and exemptions, each accepted.
   for (const [label, days, time] of [
     ["a start right when the other booking ends", 9, "16:00"],

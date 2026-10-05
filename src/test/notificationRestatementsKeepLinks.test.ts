@@ -87,6 +87,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // told the offer lapsed, on the job itself, as expire_unanswered_offers does.
   "20261003214350_direct_offer_accept_works_like_an_offer.sql::expire_pending_direct_offers",
   "20260927012240_group_crew_disputes.sql::open_dispute_as",
+  // Q1262 schedule part: a clash declines the change request and notifies
+  // both parties on the job (poster '/posts?job=<id>', Helpr '/jobs?job=<id>');
+  // links only added, nothing gone.
+  "20261005064336_schedule_clash_declines_with_notice.sql::respond_job_schedule_change",
   "20260927012240_group_crew_disputes.sql::rpc_escalate_dispute",
   // Q728: a crew's day-of, start and no-show reminders: the poster on
   // '/posts?job=<id>', each member on '/jobs?job=<id>' (nothing gone).

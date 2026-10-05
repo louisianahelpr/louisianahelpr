@@ -86,11 +86,19 @@ export async function handleTransferCreated(
       // to released by a redelivered transfer.created. "released" stays in the
       // allowed set so the ordinary re-confirmation (the initiating path
       // already flipped it) is still a clean no-op rather than a warning.
+      //
+      // Q444: never a CREW job. process-scheduled-payouts keeps a group job
+      // payout_pending until every roster member's payout is settled (its
+      // allRosterPaid / crewReadyToRelease gate) and flips it itself; this
+      // backup flip had no roster test, so one member's transfer.created
+      // released the job while another member's transfer had thrown, and the
+      // cron (which selects payout_pending) never retried the unpaid member.
       const { data: updatedJob, error: jobUpdateErr } = await supabase
         .from("jobs")
         .update({ payment_status: "released" })
         .eq("id", transferJobId)
         .in("payment_status", ["payout_pending", "escrow", "released"])
+        .not("is_group_job", "is", true)
         .select("id")
         .maybeSingle();
       if (jobUpdateErr) {

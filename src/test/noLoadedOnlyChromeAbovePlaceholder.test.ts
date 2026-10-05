@@ -129,10 +129,6 @@ const KNOWN: Record<string, string> = {
   // skeleton promised (its own Q169 comment; not re-measured here).
   "src/components/profile/ReviewsTab.tsx :: !loading && reviewCount > 0 && avgRating != null":
     "ok: the skeleton draws the hero bone",
-  // A load FAILURE. The alternative is silence over a wrong "not connected"
-  // screen; an error that moves the page is the lesser harm.
-  "src/components/profile/EarningsTab.tsx :: (stripeError || ledgerError) && !stripeLoading":
-    "ok: error path only",
 };
 
 describe("nothing that exists only after a load renders in front of the placeholder's slot", () => {

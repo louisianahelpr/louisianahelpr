@@ -57,9 +57,9 @@ function ep(over: Partial<WebhookEndpoint> = {}): WebhookEndpoint {
 }
 
 describe("handler map floor", () => {
-  it("EVENT_HANDLERS declares the 15 handled event types", () => {
-    expect(handlers.length).toBe(15);
-    expect(new Set(handlers).size).toBe(15);
+  it("EVENT_HANDLERS declares the 16 handled event types", () => {
+    expect(handlers.length).toBe(16);
+    expect(new Set(handlers).size).toBe(16);
   });
 });
 
@@ -67,7 +67,7 @@ describe("gradeLiveEndpoints", () => {
   it("passes one enabled live endpoint subscribed to exactly the handled events", () => {
     const r = gradeLiveEndpoints({ data: [ep()] }, handlers, WEBHOOK_URL);
     expect(r.failures).toEqual([]);
-    expect(r.notes.join("\n")).toMatch(/exactly the 15 handled events/);
+    expect(r.notes.join("\n")).toMatch(/exactly the 16 handled events/);
   });
 
   it("ignores disabled endpoints and endpoints on other urls", () => {
@@ -174,7 +174,7 @@ describe("gradeConfigCheckResponse (the edge function's body)", () => {
   it("passes a live key with one enabled endpoint on exactly the handled events", () => {
     const r = gradeConfigCheckResponse(body(), handlers, WEBHOOK_URL);
     expect(r.failures).toEqual([]);
-    expect(r.notes.join("\n")).toMatch(/exactly the 15 handled events/);
+    expect(r.notes.join("\n")).toMatch(/exactly the 16 handled events/);
   });
 
   it("is RED when the function's key is not live", () => {

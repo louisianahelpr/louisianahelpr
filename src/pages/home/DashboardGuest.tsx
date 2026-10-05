@@ -10,6 +10,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS } from "@/components/GuestBrowseSkeleton";
+import { GuestEmptyStateActions } from "@/components/dashboard/GuestEmptyStateActions";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
@@ -574,9 +575,13 @@ const DashboardGuest = () => {
   // original comment this replaced): on web the page ends in the real
   // Footer, not a bottom dock, so a small fixed gap stands in for it instead.
   const feedBottomClass = isNativePlatform ? "pb-safe-nav" : "pb-4";
-  // Phones keep the skeleton's `min-h-screen`, so the empty state replacing it
-  // does not pull the Footer up (CLS 0.1318 at 375 on 2026-10-01, run 36898448810).
-  const emptyWrapperClass = isNativePlatform ? "flex-1 min-h-full flex" : "min-h-screen md:min-h-[50vh] flex";
+  // Web: no screen-tall reserve (Q1312: it left a big blank gap above the
+  // footer). The Footer waits for the feed instead (the page's footer prop is feedSettled):
+  // a footer first painted under settled content is a new node, not a shift.
+  const emptyWrapperClass = isNativePlatform ? "flex-1 min-h-full flex" : "flex";
+  // Settled = whatever replaces the loading bones is on screen: the list, the
+  // empty state, the error state or the offline notice.
+  const feedSettled = feedReady || phase === "offline-empty";
 
   const feedList = (
     <>
@@ -661,79 +666,25 @@ const DashboardGuest = () => {
                 : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
             }
             action={
-              filters.hasFilters ? (
-                nearbyActive ? (
-                  <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
-                    <button
-                      type="button"
-                      onClick={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
-                      className="text-ds-11 font-semibold text-primary hover:underline btn-press"
-                    >
-                      Widen to {nextMiles} mi
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => filters.setLocationFilter("")}
-                      className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
-                    >
-                      Show All Locations
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={filters.clearFilters}
-                    className="text-ds-11 font-semibold text-primary hover:underline btn-press"
-                  >
-                    Clear Filters
-                  </button>
-                )
-              ) : (
-                /* Unfiltered empty state used to pass NO action, so a
-                   visitor who landed on Browse before any jobs were
-                   posted read "check back soon" and had nowhere to go
-                   — a dead end at the exact moment they were most
-                   curious. The signed-in version of this same state
-                   offers two ways forward; the guest one offered
-                   none.
-
-                   Both routes lead to signup because both require an
-                   account, but they are named for what the visitor
-                   wants rather than for the gate: watching for work,
-                   or hiring someone. */
-                <div className="flex flex-col items-center gap-2.5">
-                  {/* `outline`, not the filled primary. This is an
-                      EMPTY state — there is nothing here to act on,
-                      so a full-weight green CTA slab was shouting
-                      about an absence. The outline keeps the way
-                      forward available without making "no jobs
-                      today" look like the most important thing on
-                      the screen. */}
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/signup")}
-                    className="rounded-ds-md h-11 px-5 font-semibold"
-                  >
-                    Notify Me When Work Lands
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/signup")}
-                    className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
-                  >
-                    Or Hire Someone for a Job
-                  </button>
-                </div>
-              )
+              <GuestEmptyStateActions
+                hasFilters={filters.hasFilters}
+                nearbyActive={nearbyActive}
+                nextMiles={nextMiles}
+                onWiden={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
+                onShowAllLocations={() => filters.setLocationFilter("")}
+                onClearFilters={filters.clearFilters}
+                onNotify={() => navigate("/signup")}
+                onHire={() => navigate("/signup")}
+              />
             }
           />
           )}
         </div>
         );
       })() : (
-        // No fade-in (Q169; a 500ms fade left a blank frame). Same reserve as the skeleton:
-        // without it one card pulled the Footer up from below the fold (CLS 0.2399 at 375).
-        <div className={`${FEED_GRID_CLASS} ${feedBottomClass} ${GUEST_FEED_RESERVE_CLASS}`}>
+        // No fade-in (Q169; a 500ms fade left a blank frame). No reserve (Q1312):
+        // the Footer mounts only once the feed has settled, so nothing is pulled up.
+        <div className={`${FEED_GRID_CLASS} ${feedBottomClass}`}>
           {/* No re-sort here: useDashboardFilters already sorts
               urgent-first (then boosted etc.), so a second
               urgent-only sort was a redundant pass that could only
@@ -878,6 +829,7 @@ const DashboardGuest = () => {
       title="Browse Jobs"
       width="public"
       bottomPaddingClassName="pb-16"
+      footer={feedSettled}
     >
       <div className="mx-auto page-measure">
         {toolbar}

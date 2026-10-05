@@ -57,6 +57,8 @@ describe("Q1206: each direction is flagged on its own, and its text withheld", (
     const live = [...state].filter(([, v]) => v !== null);
     expect(Object.fromEntries(live)).toEqual({
       applications_scan_contact_info: "before insert 'both'",
+      // Q1285 (20261005070359): the poster's decline reason, its own direction.
+      applications_scan_contact_info_decline: "before update of decline_reason 'decline'",
       applications_scan_contact_info_note: "before update of message 'note'",
       applications_scan_contact_info_offer: "before update of offer_message 'offer'",
     });
@@ -69,8 +71,8 @@ describe("Q1206: each direction is flagged on its own, and its text withheld", (
   });
 });
 
-// @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |     NEW.message          := NULL;\n |
-// @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |     NEW.offer_message                := NULL;\n |
-// @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |     NEW.offer_message_flagged_hidden := true; |     NEW.flagged_hidden := true;
+// @mutate supabase/migrations/20261005070359_decline_reason_contact_details_withheld.sql |     NEW.message          := NULL;\n |
+// @mutate supabase/migrations/20261005070359_decline_reason_contact_details_withheld.sql |     NEW.offer_message                := NULL;\n |
+// @mutate supabase/migrations/20261005070359_decline_reason_contact_details_withheld.sql |     NEW.offer_message_flagged_hidden := true; |     NEW.flagged_hidden := true;
 // @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |   BEFORE UPDATE OF message ON public.applications | BEFORE UPDATE OF message, offer_message ON public.applications
-// @mutate supabase/migrations/20261004192410_application_flags_per_direction.sql |       NEW.flagged_hidden   := false;\n      NEW.message_withheld := NULL;\n |       NEW.flagged_hidden   := false;\n
+// @mutate supabase/migrations/20261005070359_decline_reason_contact_details_withheld.sql |       NEW.flagged_hidden   := false;\n      NEW.message_withheld := NULL;\n |       NEW.flagged_hidden   := false;\n

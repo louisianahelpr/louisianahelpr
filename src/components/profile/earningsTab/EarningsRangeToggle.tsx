@@ -31,27 +31,29 @@ const RANGE_OPTIONS: SegmentedOption<EarningsRange>[] = [
  * poster-spend scope, whose options read "Lifetime / This Week / August / This
  * Year"). Two unlabelled segmented controls with different option sets and no
  * visible owner is why the screen read as though nobody could say which
- * control governed which number. Each toggle now lives in the card whose
- * figures it scopes, and both spell the month the same way.
+ * control governed which number. The toggle now lives in the card whose
+ * figures it scopes, and since Q1177 (Earned | Spent views) the Spent card
+ * uses THIS control too, with its own label, so the two cards' range rows are
+ * one shape with one option set.
  */
 export function EarningsRangeToggle({
   value,
   onChange,
+  ariaLabel = "Earnings date range",
 }: {
   value: EarningsRange;
   onChange: (v: EarningsRange) => void;
+  ariaLabel?: string;
 }) {
   return (
     <SegmentedControl
-      ariaLabel="Earnings date range"
-      /* WRAPS, never scrolls or clips. "Lifetime / This Week / This Month /
-         This Year" needs ~331px of track and the card's inner width is ~303px
-         at 375 and ~248px at 320 — so the previous `overflow-x-auto` single
-         row silently cut "This Year" in half on the most common phone width,
-         with no scroll affordance to say there was more. `layout="wrap"` puts
-         two options per row on a phone and all four on one row from ~640px up,
-         and nothing is ever hidden. */
-      layout="wrap"
+      ariaLabel={ariaLabel}
+      /* ONE ROW THAT SCROLLS SIDEWAYS (owner, 2026-10-01: "make lifetime week
+         month year scroll left and right"). The four options need ~331px and
+         the card is ~303px wide at 375, so they used to wrap 2x2. Each pill
+         keeps its full label (`min-w-fit`) and the row scrolls instead. */
+      layout="row"
+      className="overflow-x-auto scrollbar-hide"
       options={RANGE_OPTIONS}
       value={value}
       onChange={onChange}

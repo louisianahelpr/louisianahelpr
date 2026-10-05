@@ -86,12 +86,29 @@ import { TAB_TITLES, type Tab } from "@/pages/profile/types";
  * Analytics is one height either way (481px; owner, 2026-10-01: its intro and
  * its fee comparison share one five-line box in AnalyticsUpgradePanel), and
  * Saved Helprs sits between its empty state (340px) and a two-card list (348px).
+ *
+ * OWNER, 2026-10-03 (Q722): DATA-AWARE SKELETONS. Where the state is known
+ * before the data, the placeholder draws THAT state, not the populated
+ * layout. Nothing about the account is known in this frame (the profile row
+ * and every tab query are still in flight), and a warm visit never reaches it
+ * (the persisted query cache paints the real tab), so this frame is a cold
+ * visit, and these two tabs draw their ZERO state:
+ *   - reviews: the "No reviews yet" card (307px at 375, both test accounts,
+ *     2026-10-05). It drew the populated layout (an 86px rating hero over a
+ *     screenful) and collapsed 221px into the empty card. Once the review
+ *     COUNT is known, ReviewsTab's own placeholder draws the populated shape,
+ *     and only when there are reviews.
+ *   - wrapped: the "No activity yet" card (333px at 375: the real card with
+ *     its stats swapped for the zero-state markup, measured 2026-10-05). A
+ *     year with activity is taller (419px with one stats row, 510px with two)
+ *     and grows below, never collapses; it drew a screenful (744px) and
+ *     collapsed 234-325px.
  */
 type Block = { h: number | "fill"; media?: number };
 export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   availability: [{ h: 85 }, { h: 768 }],
   security: [{ h: 74, media: 1 }, { h: 74, media: 1 }, { h: 74, media: 1 }, { h: 360, media: 4 }],
-  reviews: [{ h: 86 }, { h: "fill" }],
+  reviews: [{ h: 307 }],
   subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
   support: [{ h: 469 }, { h: 43 }],
   warnings: [{ h: 243, media: 1 }],
@@ -103,6 +120,7 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   auto_tip: [{ h: 527 }],
   saved_helpers: [{ h: 344, media: 1 }],
   analytics: [{ h: 481 }],
+  wrapped: [{ h: 333 }],
 };
 
 /** Avatar circles a screenful-reserve tab draws in its first card. */

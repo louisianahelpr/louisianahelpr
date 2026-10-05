@@ -20,6 +20,7 @@ import { formatTimestamp } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -146,7 +147,15 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
           The overall rating card above is the one number. Individual reviews
           still show their own category rows further down. */}
 
-      {loading ? (
+      {loading ? (reviewCount === 0 ? (
+        // DATA-AWARE (owner, Q722): the count lands before the list. Zero, or
+        // not known yet (reads as 0), draws the zero state's silhouette: the
+        // same block the tab's chunk fallback drew, so a cold visit to an
+        // account with no reviews holds one shape from first paint to the
+        // "No reviews yet" card. The populated skeleton below is drawn only
+        // when the count says there ARE reviews.
+        <ProfileTabBodyReserve key="reviews-loading-empty" tab="reviews" />
+      ) : (
         // Content-shaped skeleton: hero summary card (matches the real
         // populated hero geometry: big rating number + star row + count
         // line) plus two review-row placeholders so the page doesn't
@@ -188,7 +197,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             </div>
           ))}
         </div>
-      ) : reviews.length === 0 ? (
+      )) : reviews.length === 0 ? (
         <EmptyState
           variant="inline"
           icon={Star}

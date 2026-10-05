@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS } from "@/components/GuestBrowseSkeleton";
+import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS, GuestFeedEmptySkeleton } from "@/components/GuestBrowseSkeleton";
 import { GuestEmptyStateActions } from "@/components/dashboard/GuestEmptyStateActions";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
@@ -602,6 +602,17 @@ const DashboardGuest = () => {
               </Button>
             }
           />
+        </div>
+      ) : !feedReady && !(jobsStatus === "success" && baseJobs.length > 0) ? (
+        /* Loading feed with NO list known yet (a cold visit; a warm one has
+           the persisted list and never shows a placeholder here): the empty
+           state's outline, in the same wrapper the real empty state uses.
+           Owner decision 2026-10-05 (Q722): before launch the public
+           marketplace is empty, and six job-card bones collapsed into
+           "Nothing today, neighbor." (27px row -> 212px at 375). */
+        <div className={emptyWrapperClass} role="status" aria-live="polite" aria-busy="true">
+          <span className="sr-only">Loading jobs…</span>
+          <GuestFeedEmptySkeleton testId="guest-feed-empty-skeleton" />
         </div>
       ) : !feedReady ? (
         /* Loading feed — shape-matched JobCardSkeletons (the same

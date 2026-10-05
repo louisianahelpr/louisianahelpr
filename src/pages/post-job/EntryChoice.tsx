@@ -25,15 +25,30 @@ import { useDraftCheckout } from "./useDraftCheckoutState";
  * Five cards, always. Owner, 2026-10-01: "Offer It to a Saved Helpr" renders
  * for everyone, including an account with no saved Helprs (it used to hide
  * itself, so the real column was 4 or 5 cards and this placeholder could match
- * only one of them — a 122px jump on arrival at 375). One count, so no jump.
+ * only one of them — a 122px jump on arrival at 375).
+ *
+ * DATA-AWARE (owner, 2026-10-03, Q722): the skeleton draws the column the
+ * KNOWN data says will land, not the populated one. Four cards always render
+ * (Start Fresh, Use a Template, Offer It to a Saved Helpr, the AI Job
+ * Builder); "Pick Up Your Draft" and "Repost" are each drawn only once their
+ * read has landed and says the card will show. While a read is in flight it
+ * counts as absent: a cold visit (nothing cached) is mostly a new account,
+ * which has neither, so its column holds 4 cards from first paint to last.
+ * The fixed 5 drew the populated column and collapsed 112px at 375 on both
+ * test accounts (2026-10-05).
  */
-const ENTRY_CARD_COUNT = 5;
+export const ENTRY_BASE_CARD_COUNT = 4;
 
-function EntryChoiceSkeleton() {
+/** Cards the column will hold, from what is known so far. */
+export function entryCardCount(known: { draftCard: boolean; repostCard: boolean }): number {
+  return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0);
+}
+
+function EntryChoiceSkeleton({ count }: { count: number }) {
   return (
     <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
       <span className="sr-only">Loading…</span>
-      {Array.from({ length: ENTRY_CARD_COUNT }).map((_, i) => (
+      {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="rounded-2xl liquid-glass p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
           <div className="flex items-center gap-4 w-full">
             <Skeleton className="w-11 h-11 rounded-full shrink-0" />
@@ -173,7 +188,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     form.draftLoaded && draftCheckoutSettled && recentPosted !== null && form.openJobCount !== null && savedHelpersSettled && giftCardsSettled,
     true,
   );
-  if (!entryReady) return <EntryChoiceSkeleton />;
+  if (!entryReady) {
+    const count = entryCardCount({
+      draftCard: form.draftLoaded && draftCheckoutSettled && form.hasDraft && draftCheckout !== "paid",
+      repostCard: !!hasRecent,
+    });
+    return <EntryChoiceSkeleton count={count} />;
+  }
 
   return (
     // Top-level cards render as a stacked column on phones and flip to a

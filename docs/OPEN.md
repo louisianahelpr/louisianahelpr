@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 281** (242 to do, 39 fixed with protection pending; 781 done). Feeds mirrored in: 14 from the alert ledger, 11 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 277** (238 to do, 39 fixed with protection pending; 786 done). Feeds mirrored in: 14 from the alert ledger, 11 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
 - **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1062 items — 781 done, 39 partly done (fixed, protection pending), 242 open.**
+**Queue: 1063 items — 786 done, 39 partly done (fixed, protection pending), 238 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -937,7 +937,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 ### Audit gaps — owner, 2026-09-12
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] **Q991** MEDIUM Admin queues (AdminExceptionQueue, AdminPayoutBatches, TwoFactorCard, W9CollectionDialog, NpsPrompt) have no seedable state, stay stated GAPS — Still open (by design): these admin queues remain unseedable and stated as GAPS in messyInputForms.ts. (archive L5022)
-- [ ] **Q993** MEDIUM No test moved the clock for auto-expire-jobs step 2, expiring-jobs-push, sweep_* server cutoffs — Partially addressed (client-side time-travel spec exists) but server cutoff sweeps (auto-expire-jobs step2, expiring-jobs-push, sweep_*) still have no clock-moving test. (archive L5045)
 - [~] **Q994** MEDIUM expiring-jobs-push runs once daily (14:14 UTC) and can never warn a short-lead listing — Still open: expiring-jobs-push remains a once-daily cron; short-lead listings posted after the run still go unwarned. (archive L5076) **FIXED IN CODE 2026-10-05 (lane/code-tooling-1005), live after db-deploy:** migration 20261005060246 moves cron job 40 from '14 14 * * *' (prod, read 2026-10-05) to hourly through the Louisiana day, '14 13-23,0-2 * * *' (8:14am-9:14pm CDT; no night pushes, like the old 9am slot); the function is idempotent per job (expiring_notif_sent), so each job is still warned once. Follows the schedule: cron_work_expectations.expected_max_gap 30h -> 12h, and its cron_catchup_policy row is removed (the catch-up only re-runs daily/weekly slots; the 26 other rows restated from 20260926041023). PGlite: applied 3x on prod-shaped stubs, ALL PASS (~/.lh-pglite/q994.mjs). Guard: src/test/expiringJobsPushCadence.test.ts (every Louisiana daytime hour covered in CDT and CST, longest gap <= 12h and shorter than the 24h look-ahead, liveness gap exact; red 3/4 without the migration). done-when: sql `SELECT schedule FROM cron.job WHERE jobname = 'expiring-jobs-push'` => `14 13-23,0-2 * * *`
 - [ ] **Q995** MEDIUM Lead: a phone clock >1h fast may sign the user out (needs device repro) — Still open — needs a real-device repro before being treated as an app defect; not established either way. (archive L5079)
 - [~] **Q996 LOW FIXED 2026-10-02 (9d3d518c5), protection pending (screenshot at 375):** useActivityFilters now counts search matches per bucket (postedSearchCounts / appliedSearchCounts, same null-safe predicates as the list filter); on a search miss ActivityEmptyState says "No matches under <bucket> — N in <Label> match(es) your search" and offers "Show <Label> (N)", which switches bucket with the query kept and lands on the matches (no treadmill: it reads the search counts, not the pre-search ones). No match anywhere keeps the generic line and Clear search. Layers read: reader/display only (activityFilters, ActivityEmptyState, JobListPage); no server or DB layer involved. GUARD: src/components/job-card/searchMissNamesOtherBuckets.test.tsx (real hook + real empty state; vacuity 4/4 mutations killed). Owed: browser-lane screenshot of /posts?q=<title of a job in another bucket> at 375. Was: My Posts search only searches the active status tab and tells the user the job doesn't exist. (archive L5086)
@@ -947,7 +946,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### `overlay-sweep` is a report generator wearing a guard's name (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1004** LOW e2e/happy-path/state-matrix/state-sweep.spec.ts (187 tests) is unopened, doubly exempted via noInventoryFloor — Still open: state-sweep.spec.ts remains on the noInventoryFloor exemption list; no evidence it was opened/reviewed. (archive L5177)
+- [ ] **Q1004** LOW e2e/happy-path/state-matrix/state-sweep.spec.ts (187 tests) is unopened, doubly exempted via noInventoryFloor — Still open: state-sweep.spec.ts remains on the noInventoryFloor exemption list; no evidence it was opened/reviewed. (archive L5177) **SKIPPED 2026-10-05 (lane/code-tooling-1005): needs a browser run.** state-sweep.spec.ts is still a MOCKED spec (src/test/e2eNoSupabaseMocks.test.ts lists it, line 69), so under the no-mock order the work is Q1035's: migrate it to prod or retire it, then drop its noInventoryFloor exemption. Opening it means running its 187 tests in Playwright, which this lane cannot do.
 
 ### `replaceState-churn` was hollow twice over (2026-09-21, FIXED)
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -967,7 +966,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### `scrollWidth <= clientWidth` cannot see overflow in THIS codebase (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1012** MEDIUM Guidance: any new fit check must implement BOTH the scrollWidth<=clientWidth clause AND the per-element 'no element wider than viewport' clause — Standing guidance, not enforced by a lint/guard yet — treat as open practice reminder for future fit checks. (archive L5375)
 
 ### Two AA contrast failures from the overlay sweep
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -975,7 +973,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Route catalog overstates coverage (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1015** LOW Sweeps structurally cannot exercise the Big 7 completeness gate (buildFakeProfile sets is_legacy_use — Sweeps structurally cannot exercise the Big 7 completeness gate (buildFakeProfile sets is_legacy_user true) (archive L5528)
 
 ### Map/list parity — owner report 2026-09-21
 Reconciled 2026-09-23; detail in the archive at the line shown.
@@ -985,11 +982,9 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 Reconciled 2026-09-23; detail in the archive at the line shown.
 - [ ] **Q1017** LOW iPad shot '0 jobs' header above 7 cards — unreproduced, recheck at capture time — iPad shot '0 jobs' header above 7 cards — unreproduced, recheck at capture time (see also 5558) (archive L5557)
 - [ ] **Q1018** MEDIUM ipad-13 browse shot is flaky — race between waitForTimeout(2500) and MapKit JS — ipad-13 browse shot is flaky — race between waitForTimeout(2500) and MapKit JS (archive L5566)
-- [ ] **Q1019** MEDIUM Guard proposal: walk MockRule pathnames to catch endpoints no src/ file calls — Guard proposal: walk MockRule pathnames to catch endpoints no src/ file calls (archive L5568)
 
 ### Guard burn-down — second front (2026-09-21)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1021** LOW Edge mock records chained filters but never matches on them (src/test/edge/mocks/supabase.ts) — Edge mock records chained filters but never matches on them (src/test/edge/mocks/supabase.ts) (archive L5573)
 - [ ] **Q1023** LOW verification-webhook has 3 vendor branches; only Checkr is tested (stripe_identity, certificial unte — verification-webhook has 3 vendor branches; only Checkr is tested (stripe_identity, certificial untested) (archive L5575)
 
 ### Found while closing the audit gaps (2026-09-12)
@@ -1340,3 +1335,4 @@ Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02
 - [ ] **Q1318 MEDIUM Finish and land the parked free hardening (owner-approved 2026-10-05): branch park/hardening-pins-csp (bd7992b50).** (1) DONE on the branch, commit 5a8768fe4: every GitHub Action pinned to a full SHA with a guard test (its placeholder number 'Q1307' is NOT main's Q1307; renumber at landing). (2) IN PROGRESS: CSP violation reports into error_logs (origin client, a severity that does not page): csp-report edge function + test, report-uri/Reporting-Endpoints in vercel.json, supabase/config.toml entry; still to run: typecheck, eslint, full vitest, vacuity --only, the edge-function inventory/write-contract guards, check-vercel-config. Then land, re-apply CodeQL query_suite=extended (it did not stick on 2026-10-05; verify by GET), delete the park branch and its docs/audit/stranded-accepted.json entry. GUARD: the branch's SHA-pin test and the csp-report edge test.
 - [ ] **Q1319 MEDIUM A poster can still rewrite jobs.stripe_session_id on their own job (split from Q707, measured 2026-10-05 by lane/code-tooling-1005, read-only on prod).** has_column_privilege('authenticated','public.jobs','stripe_session_id','UPDATE') = true; prevent_job_field_escalation hands the poster to enforce_poster_jobs_money_lock (its poster_locked_always list, which names stripe_session_id, applies only to the offered Helpr), and enforce_poster_jobs_money_lock's locked_always / locked_when_funded lists do not name it. Where it matters: void-cancelled-payments Part A resolves the PaymentIntent from stripe_session_id when a cancelled escrow job has no stripe_payment_intent_id (index.ts ~1291), and EditJobDialog / the money lock treat a non-null session id as "funded". Measured exposure today: 0 escrow jobs without a PaymentIntent (prod, 2026-10-05), so the lookup path has nothing to act on. Fix to weigh: add stripe_session_id to the poster's locked_always (no poster path writes it; create-payment writes it as the service role), with a PGlite proof and an lh-money-escrow review. Tier: MEDIUM.
 - [ ] **Q1320 LOW OWNER/DESIGN: does the page transition earn a 39 KB download on every route? (split from Q1299, 2026-10-05).** After the page settles, App.tsx loads PageTransition (and ScrollToTop renders its button with AnimatePresence), both framer-motion, on EVERY route, so even a guest on `/` downloads proxy.js (39 KB gz, ~90% unused by Chromium coverage, measured 2026-10-04 for Q1299). It is off the first paint (whenPageSettled), so it costs bytes, not first-paint time. Options: keep (status quo), drop the route transition on some routes, or replace both with CSS transitions (the scroll-to-top button's fade/scale is CSS-able; the route enter animation and edge-swipe back would need a rebuild). Needs the owner's call on whether the transitions stay; then a build-graph check like check-deferred-vendors.mjs for the post-settle fetch. Tier: LOW.
+- [ ] **Q1322 LOW The sweep_* SQL functions have no clock-moving test (split from Q993, 2026-10-05).** Prod has 18 public.sweep_* functions (pg_proc, 2026-10-05); the ones that compare against now() (sweep_cron_blackouts, sweep_cron_http_failures, sweep_cron_startup_failures, sweep_daily_job_digest, sweep_dead_crons, sweep_job_match_queue, sweep_saved_search_alert_queue, sweep_silent_cron_failures) and those using current_date or interval cutoffs need a PGlite probe per function that seeds rows either side of the cutoff at a fixed instant and asserts which ones the sweep touches, across a Central-midnight and a DST night where the cutoff is a local date. Guard to name when done: one pglite probe registered in the PGlite runner, plus a two-way inventory of sweep_* names vs probes. Tier: LOW.

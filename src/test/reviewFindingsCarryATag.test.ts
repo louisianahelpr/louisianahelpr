@@ -17,6 +17,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+// @ts-expect-error — plain .mjs module, no declaration file
 import { itemOriginKey } from "../../scripts/lib/openQueue.mjs";
 
 // @mutate scripts/lib/openQueue.mjs |   if (f) return `finding ${f[1].toLowerCase()}`; |   if (f) return null;

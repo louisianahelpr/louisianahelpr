@@ -11,7 +11,7 @@
  * is the point: the test is red on the reported bug before the fix exists, and
  * it then guards the bug's class in CI (the happy-path project runs this dir).
  */
-import { writeFileSync, existsSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1]]] : acc), []),
@@ -25,11 +25,10 @@ if (!slug || !route || !selector || !/^[a-z0-9-]+$/.test(slug)) {
 }
 if (!["anon", "customer", "helper"].includes(persona)) { console.error("persona must be anon|customer|helper"); process.exit(2); }
 const out = `e2e/happy-path/repro/${slug}.spec.ts`;
-if (existsSync(out)) { console.error(`${out} exists`); process.exit(1); }
 
 const who = persona === "helper" ? "FAKE_HELPER" : "FAKE_CUSTOMER";
 const date = new Date().toISOString().slice(0, 10);
-writeFileSync(out, `/**
+const specBody = `/**
  * Owner report, ${date}: "${note}"
  * Route: ${route}   Element: ${selector}   Persona: ${persona}
  *
@@ -55,5 +54,11 @@ ${persona === "anon"
     expect(false, "write the assertion for: ${note.replace(/"/g, "'").replace(/`/g, "'")}").toBe(true);
   });
 }
-`);
+`;
+try {
+  writeFileSync(out, specBody, { flag: "wx" }); // exclusive create: no check-then-write window
+} catch (e) {
+  if (e?.code === "EEXIST") { console.error(`${out} exists`); process.exit(1); }
+  throw e;
+}
 console.log(`wrote ${out} — make it measure the bug, see it fail, then fix.`);

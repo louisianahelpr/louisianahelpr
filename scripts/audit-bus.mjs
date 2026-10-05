@@ -21,7 +21,7 @@
  *   node scripts/audit-bus.mjs rollup
  */
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { countFindings, foldFindings } from "./lib/auditFindings.mjs";
@@ -51,8 +51,14 @@ function args(argv) {
 function die(msg) { console.error(`audit-bus: ${msg}`); process.exit(1); }
 
 function readAll() {
-  if (!existsSync(LOG)) return [];
-  return readFileSync(LOG, "utf8")
+  let raw;
+  try {
+    raw = readFileSync(LOG, "utf8");
+  } catch (e) {
+    if (e?.code === "ENOENT") return []; // no ledger yet
+    throw e;
+  }
+  return raw
     .split("\n")
     .filter((l) => l.trim())
     .map((l, i) => { try { return JSON.parse(l); } catch { die(`corrupt line ${i + 1}`); } });

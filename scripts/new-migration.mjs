@@ -17,7 +17,7 @@
  * and bumps by one second up to a small bound so two lanes running in the same
  * second still both get a file rather than one silently overwriting the other.
  */
-import { readdirSync, writeFileSync, existsSync } from "node:fs";
+import { readdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -78,11 +78,6 @@ if (!version) {
 
 const filename = `${version}_${slug}.sql`;
 const path = resolve(migrationsDir, filename);
-if (existsSync(path)) {
-  // Belt and braces: the version scan above already ruled this out.
-  console.error(`Refusing to overwrite existing migration: ${filename}`);
-  process.exit(1);
-}
 
 const summary = summaryParts.join(" ").trim();
 
@@ -100,5 +95,14 @@ const body = `-- ${summary || "TODO: say, in plain language, WHAT was broken and
 
 `;
 
-writeFileSync(path, body, "utf8");
+try {
+  // Exclusive create ("wx"): belt and braces behind the version scan above, with no check-then-write window.
+  writeFileSync(path, body, { encoding: "utf8", flag: "wx" });
+} catch (e) {
+  if (e?.code === "EEXIST") {
+    console.error(`Refusing to overwrite existing migration: ${filename}`);
+    process.exit(1);
+  }
+  throw e;
+}
 console.log(`supabase/migrations/${filename}`);

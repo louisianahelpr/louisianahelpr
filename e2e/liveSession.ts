@@ -10,7 +10,7 @@
  * deep link bounced to /login on a 40-minute-fresh cache, so signed-in specs
  * were silently testing the logged-out screen.
  */
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 export type CachedSession = { access_token: string; expires_at?: number; user?: { id: string } };
@@ -20,12 +20,11 @@ export async function readLiveCache<S extends CachedSession>(
   file: string,
   opts: { minFreshMs: number; isAlive: (s: S) => Promise<boolean> },
 ): Promise<S | null> {
-  if (!existsSync(file)) return null;
   let disk: S | null;
   try {
     disk = JSON.parse(readFileSync(file, "utf8")) as S;
   } catch {
-    // Corrupt JSON is a cache miss by design: the caller mints a fresh session.
+    // Absent (ENOENT, read directly: no exists-then-read window) or corrupt JSON is a cache miss by design: the caller mints a fresh session.
     disk = null;
   }
   if (!disk) {

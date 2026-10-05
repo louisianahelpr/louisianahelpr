@@ -73,7 +73,7 @@
  * `npm run gate`.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync, unlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { listEvidence } from "./check-staleness.mjs";
@@ -441,7 +441,7 @@ export function checkGenerator(g) {
   } finally {
     for (const [o, text] of saved) {
       const p = join(REPO, o);
-      if (text === null) { if (existsSync(p)) unlinkSync(p); } else writeFileSync(p, text);
+      if (text === null) rmSync(p, { force: true }); else writeFileSync(p, text); // force: an absent file is already the wanted state
     }
   }
   const refresh = g.cmd.join(" ");

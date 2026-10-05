@@ -28,6 +28,12 @@
 --    strike rule and exemptions, the application closed as offer_expired,
 --    both sides told.
 --
+-- 3. Review fixes (lh-authz-rls, 2026-10-05): the stored deadline is clamped to
+--    at least ~1 hour (the shortest the app offers) so a poster cannot backdate
+--    it to get a member struck; a repeated block on a started crew does not
+--    re-alert admins; rpc_group_member_mark_arrival refuses a member who never
+--    confirmed (as rpc_group_member_on_the_way already does).
+--
 -- Replay-safe: ADD COLUMN IF NOT EXISTS, CREATE OR REPLACE (owner and ACL
 -- kept; grants restated). Proof: src/test/pglite/crewBlockAndUnansweredSpot.pglite.mjs
 -- (red before). Guard: src/test/groupCrewNoLead.test.ts.
@@ -204,8 +210,12 @@ BEGIN
 
   -- Q729 (owner 2026-10-05): the poster's reply deadline is kept for THIS
   -- member; expire_unanswered_offers reopens the spot once it passes unanswered.
+  -- Clamped to the shortest deadline the app offers (1 hour, less 5 minutes
+  -- of clock skew): a deadline in the past would get the member struck by the
+  -- next sweep before they could answer (lh-authz-rls review #1, 2026-10-05).
   UPDATE public.group_job_helpers
-     SET response_deadline = p_deadline
+     SET response_deadline = CASE WHEN p_deadline IS NULL THEN NULL
+                                  ELSE GREATEST(p_deadline, now() + interval '55 minutes') END
    WHERE job_id = v_job_id AND slot_no = v_slot;
 
   v_current := v_current + 1;
@@ -493,6 +503,7 @@ DECLARE
   v_member_fee numeric;
   v_remaining int;
   v_prior int;
+  v_new_block boolean;
 BEGIN
   IF v_user IS NULL THEN
     RAISE EXCEPTION 'not_authenticated';
@@ -506,6 +517,9 @@ BEGIN
   INSERT INTO public.user_blocks (blocker_id, blocked_id, reason)
   VALUES (v_user, p_blocked, NULLIF(btrim(COALESCE(p_reason, '')), ''))
   ON CONFLICT (blocker_id, blocked_id) DO NOTHING;
+  -- A repeat call (the block already existed) must not re-alert admins below.
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  v_new_block := v_updated > 0;
 
   -- ADDED 2026-09-23 (Q301): a banned caller keeps the block and settles
   -- nothing. The settle step's jobs UPDATE is refused by enforce_ban_gate,
@@ -640,7 +654,8 @@ BEGIN
     IF v_crew.status NOT IN ('open', 'accepted')
        OR (v_starts IS NOT NULL AND now() >= v_starts) THEN
       -- Work may be under way: nothing moves automatically (a crew member
-      -- cannot leave a started job either); a person decides.
+      -- cannot leave a started job either); a person decides. Only on a NEW
+      -- block, so calling again cannot flood every admin (review #2).
       INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
       SELECT r.user_id,
              'Block on a started crew job',
@@ -650,7 +665,8 @@ BEGIN
              '/admin?view=jobs&job=' || v_crew.id::text,
              v_crew.id
         FROM public.user_roles r
-       WHERE r.role = 'admin';
+       WHERE r.role = 'admin'
+         AND v_new_block;
       v_settled := v_settled || jsonb_build_object('job_id', v_crew.id, 'title', v_crew.title,
                                                    'crew', true, 'action', 'admin_review');
       CONTINUE;
@@ -747,9 +763,14 @@ BEGIN
     -- The other side is told; neither notice says who blocked whom.
     IF v_crew.customer_id = v_user THEN
       INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+      -- lh-money-escrow review #2: a member owed a late fee is told so.
       VALUES (v_crew.member, 'You''re off this crew',
-              format('You''re no longer on the crew for "%s".', COALESCE(v_crew.title, 'a job')),
-              'warning', '/jobs?job=' || v_crew.id::text, v_crew.id);
+              CASE WHEN v_member_fee > 0 THEN
+                format('You''re no longer on the crew for "%s". Because this was close to the start, you''re owed a $%s cancellation fee; our team will send it to you.',
+                       COALESCE(v_crew.title, 'a job'), to_char(v_member_fee, 'FM999999990.00'))
+              ELSE format('You''re no longer on the crew for "%s".', COALESCE(v_crew.title, 'a job')) END,
+              CASE WHEN v_member_fee > 0 THEN 'payment' ELSE 'warning' END,
+              '/jobs?job=' || v_crew.id::text, v_crew.id);
     ELSE
       INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
       VALUES (v_crew.customer_id, 'A Helpr left your crew',
@@ -806,6 +827,146 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.rpc_group_member_mark_arrival(_job_id uuid, p_lat numeric DEFAULT NULL::numeric, p_lng numeric DEFAULT NULL::numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_slot uuid;
+  v_row record;
+  v_job record;
+  v_dist double precision;
+  v_verified boolean := false;
+  v_near_miss boolean := false;
+  v_new_window boolean := false;
+  v_basis text;
+  v_now timestamptz := now();
+  v_arrived_at timestamptz;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  v_slot := public.group_member_slot(_job_id, v_uid);
+  IF v_slot IS NULL THEN
+    RAISE EXCEPTION 'not_on_this_crew' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO v_row FROM public.group_job_helpers WHERE id = v_slot FOR UPDATE;
+  SELECT j.status::text AS status, j.latitude, j.longitude, j.title, j.customer_id
+    INTO v_job
+  FROM public.jobs j WHERE j.id = _job_id;
+
+  IF v_job.status NOT IN ('accepted', 'in_progress') THEN
+    RAISE EXCEPTION 'job_not_active' USING ERRCODE = '23514',
+      HINT = 'Arrival can only be marked on an accepted or in-progress job.';
+  END IF;
+  -- Q729 (lh-authz-rls review #5, 2026-10-05): a member who never confirmed
+  -- their spot cannot arrive, exactly as rpc_group_member_on_the_way refuses;
+  -- otherwise an unconfirmed member could flip the crew to in_progress and
+  -- step outside the unanswered-spot expiry.
+  IF v_row.helper_confirmed_at IS NULL THEN
+    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',
+      HINT = 'Confirm the job before marking arrival.';
+  END IF;
+
+  -- Already settled by the poster for this member: nothing left to establish
+  -- and nothing to re-measure. No write.
+  IF v_row.poster_confirmed_arrival_at IS NOT NULL AND v_row.helper_arrived_at IS NOT NULL THEN
+    RETURN jsonb_build_object(
+      'arrival_recorded', true,
+      'arrived_at', v_row.helper_arrived_at,
+      'verified', v_row.helper_arrival_verified_at IS NOT NULL,
+      'basis', 'already_confirmed',
+      'poster_confirmation_required', false,
+      'arrival_established', true
+    );
+  END IF;
+
+  -- Already verified: a retry must never DOWNGRADE the verification. No write.
+  IF v_row.helper_arrival_verified_at IS NOT NULL THEN
+    RETURN jsonb_build_object(
+      'arrival_recorded', true,
+      'arrived_at', COALESCE(v_row.helper_arrived_at, v_row.helper_arrival_verified_at),
+      'verified', true,
+      'basis', 'already_verified',
+      'poster_confirmation_required', true,
+      'arrival_established', false
+    );
+  END IF;
+
+  IF p_lat IS NULL OR p_lng IS NULL THEN
+    v_basis := 'no_location';
+  ELSIF p_lat NOT BETWEEN -90 AND 90 OR p_lng NOT BETWEEN -180 AND 180 THEN
+    v_basis := 'location_invalid';
+  ELSIF v_job.latitude IS NULL OR v_job.longitude IS NULL THEN
+    v_verified := true;
+    v_basis := 'no_job_coordinates';
+  ELSE
+    -- Haversine in feet (earth radius 20 902 231 ft), the same 500 ft threshold
+    -- the client shows. LEAST(1, …) keeps asin in its domain.
+    v_dist := 20902231 * 2 * asin(LEAST(1::double precision, sqrt(
+      power(sin(radians((p_lat - v_job.latitude)::double precision) / 2), 2)
+      + cos(radians(v_job.latitude::double precision))
+        * cos(radians(p_lat::double precision))
+        * power(sin(radians((p_lng - v_job.longitude)::double precision) / 2), 2)
+    )));
+    IF v_dist <= 500 THEN
+      v_verified := true;
+      v_basis := 'gps_verified';
+    ELSIF v_dist <= 5280 THEN
+      v_near_miss := true;
+      v_basis := 'near_miss';
+      v_new_window := v_row.helper_arrival_near_miss_at IS NULL
+                      OR v_row.helper_arrival_near_miss_at <= v_now - interval '12 hours';
+    ELSE
+      v_basis := 'too_far';
+    END IF;
+  END IF;
+
+  UPDATE public.group_job_helpers
+     SET helper_arrived_at = COALESCE(helper_arrived_at, v_now),
+         helper_arrival_verified_at = CASE
+           WHEN v_verified THEN COALESCE(helper_arrival_verified_at, v_now)
+           ELSE helper_arrival_verified_at END,
+         helper_arrival_near_miss_at = CASE
+           WHEN v_near_miss AND v_new_window THEN v_now
+           ELSE helper_arrival_near_miss_at END,
+         helper_arrival_near_miss_ft = CASE
+           WHEN v_near_miss THEN round(v_dist)::integer
+           ELSE helper_arrival_near_miss_ft END
+   WHERE id = v_slot
+   RETURNING helper_arrived_at INTO v_arrived_at;
+
+  UPDATE public.jobs SET status = 'in_progress' WHERE id = _job_id AND status = 'accepted';
+
+  IF v_job.customer_id IS NOT NULL THEN
+    INSERT INTO public.notifications (user_id, title, message, type, link)
+    VALUES (
+      v_job.customer_id,
+      'Is your Helpr at the door?',
+      '"' || COALESCE(v_job.title, 'Your job') || '" — a crew member marked themselves arrived'
+        || CASE WHEN v_near_miss THEN ', ' || round(v_dist)::bigint || ' ft from the map pin' ELSE '' END
+        || '. If they are there, tap Confirm They Arrived.',
+      'job_updates',
+      '/posts?job=' || _job_id
+    );
+  END IF;
+
+  RETURN jsonb_build_object(
+    'arrival_recorded', true,
+    'arrived_at', v_arrived_at,
+    'verified', v_verified,
+    'basis', v_basis,
+    'distance_ft', CASE WHEN v_dist IS NULL THEN NULL ELSE round(v_dist::numeric) END,
+    'poster_confirmation_required', true,
+    'arrival_established', false
+  );
+END;
+$function$;
+
 REVOKE ALL ON FUNCTION public.block_user_and_settle(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.block_user_and_settle(uuid, text) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.expire_unanswered_offers() FROM PUBLIC, anon, authenticated;
@@ -814,3 +975,5 @@ REVOKE ALL ON FUNCTION public.accept_group_application(uuid, timestamp with time
 GRANT EXECUTE ON FUNCTION public.accept_group_application(uuid, timestamp with time zone, text) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.enforce_group_member_lifecycle_server_owned() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.enforce_group_member_lifecycle_server_owned() TO service_role;
+REVOKE ALL ON FUNCTION public.rpc_group_member_mark_arrival(uuid, numeric, numeric) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rpc_group_member_mark_arrival(uuid, numeric, numeric) TO authenticated, service_role;

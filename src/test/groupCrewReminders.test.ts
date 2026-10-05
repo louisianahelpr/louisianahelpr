@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { blankSqlComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 /**
@@ -42,8 +42,12 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |       IF v_member_fee > 0 THEN |       IF false THEN
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
-// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |      SET response_deadline = p_deadline |      SET response_deadline = NULL
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |      SET response_deadline = CASE WHEN p_deadline IS NULL THEN NULL |      SET response_deadline = CASE WHEN true THEN NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |                                   ELSE GREATEST(p_deadline, now() + interval '55 minutes') END |                                   ELSE p_deadline END
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF v_row.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.'; |   IF false THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.';
+// @mutate supabase/functions/auto-expire-jobs/index.ts |       .not("is_group_job", "is", true)\n      .lte("date_needed", tomorrow) |       .lte("date_needed", tomorrow)
 const root = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(root, "supabase/migrations");
 const THIS = "20260927012241_group_crew_reminders_and_counts.sql";
@@ -162,12 +166,27 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     const expire = body("expire_unanswered_offers");
     expect(expire).toMatch(/AND g\.helper_confirmed_at IS NULL\s+AND g\.response_deadline IS NOT NULL\s+AND g\.response_deadline < now\(\)\s+LOOP/);
     expect(expire).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_slot\.slot_id;/);
-    expect(body("accept_group_application")).toMatch(/SET response_deadline = p_deadline\s+WHERE job_id = v_job_id AND slot_no = v_slot;/);
+    expect(body("accept_group_application")).toMatch(/SET response_deadline = CASE WHEN p_deadline IS NULL THEN NULL[\s\S]{0,120}WHERE job_id = v_job_id AND slot_no = v_slot;/);
+    // Review fixes (lh-authz-rls 2026-10-05): no backdated deadline, no admin flood, no unconfirmed arrival.
+    expect(body("accept_group_application")).toMatch(/GREATEST\(p_deadline, now\(\) \+ interval '55 minutes'\)/);
+    expect(block).toMatch(/WHERE r\.role = 'admin'\s+AND v_new_block;/);
+    expect(block).toMatch(/GET DIAGNOSTICS v_updated = ROW_COUNT;\s+v_new_block := v_updated > 0;/);
+    expect(EFFECTIVE.get("rpc_group_member_mark_arrival")?.file).toBe(CREW_BLOCK);
+    expect(body("rpc_group_member_mark_arrival")).toMatch(/IF v_row\.helper_confirmed_at IS NULL THEN\s+RAISE EXCEPTION 'helper_not_confirmed'/);
     expect(body("enforce_group_member_lifecycle_server_owned")).toMatch(/'response_deadline'\s+\];[\s\S]*NEW\.response_deadline\s+:= NULL;/);
     const proof = readFileSync(resolve(root, "src/test/pglite/crewBlockAndUnansweredSpot.pglite.mjs"), "utf8");
     expect(proof).toContain("effectiveDefs(DIR, { before: THIS })");
-    for (const c of ["B1 poster blocks a confirmed member", "B2 the member blocks the poster", "B3 a crew past its start", "E1 a crew hire keeps", "E2 an unconfirmed member", "L1 the poster cannot move", "RED as expected"]) {
+    for (const c of ["B1 poster blocks a confirmed member", "B2 the member blocks the poster", "B3 a crew past its start", "E1 a crew hire keeps", "E2 an unconfirmed member", "L1 the poster cannot move", "E1b a backdated reply deadline", "RED as expected"]) {
       expect(proof).toContain(c);
     }
+  });
+
+  it("auto-expire-jobs never reopens a crew for a job-level confirmation it can never have (Q780 review)", () => {
+    const src = blankComments(readFileSync(resolve(root, "supabase/functions/auto-expire-jobs/index.ts"), "utf8"));
+    const i = src.indexOf("const { data: acceptedCandidates");
+    expect(i).toBeGreaterThan(-1);
+    const query = src.slice(i, src.indexOf(";", i));
+    expect(query).toMatch(/\.is\("helper_confirmed_at", null\)/);
+    expect(query, "the stale-acceptance sweep selects crews again").toMatch(/\.not\("is_group_job", "is", true\)/);
   });
 });

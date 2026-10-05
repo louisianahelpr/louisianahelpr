@@ -31,7 +31,8 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 23 on 2026-10-05: Q430 got its done-when marker (issue #2213, the loading-states-refresh fixture run); its burst half was measured green.
 // 25 once both land: 26 (Q805, Q1336) minus Q430's new marker.
 // 26 on 2026-10-05 (crews lane): Q707 waits on a prod re-shot after deploy (no marker kind reads a screenshot); Q731, Q729, Q1282 carry sql markers.
-const MARKERLESS_PARTLY_DONE = 26;
+// 27 on 2026-10-05 (crews lane): Q780 reviewed; what is left waits on Q1374 (the crew member UI) and its screenshots, which no marker kind can read.
+const MARKERLESS_PARTLY_DONE = 27;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

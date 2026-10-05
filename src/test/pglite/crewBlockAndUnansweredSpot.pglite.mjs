@@ -18,8 +18,10 @@
  *      admin is alerted with the member's fee to settle by hand
  *   B2 the MEMBER blocks the poster 10h out: they leave with
  *      helper_cancel_booking's crew strike; the poster is told
- *   B3 a crew past its start: nothing moves, every admin is alerted
+ *   B3 a crew past its start: nothing moves, every admin is alerted once
+ *      (a repeat block does not re-alert: authz review #2)
  *   E1 a crew hire keeps the poster's reply deadline on the member's row
+ *   E1b a backdated deadline is clamped to about an hour (authz review #1)
  *   E2 an unconfirmed member past their deadline loses the spot (strike,
  *      application offer_expired, crew reopened, both told); a confirmed
  *      member is untouched
@@ -202,6 +204,8 @@ check("B2 the member blocks the poster: they leave with helper_cancel_booking's 
 await seed("-2 hours", { status: "in_progress" });
 await as(POSTER);
 await db.exec(`SELECT public.block_user_and_settle('${M1}', NULL)`);
+// A repeat call (the block already exists) must not re-alert (review #2).
+await db.exec(`SELECT public.block_user_and_settle('${M1}', NULL)`);
 adminAlerts = await all(`SELECT title FROM public.notifications WHERE type = 'admin_alert'`);
 r1 = await roster();
 check("B3 a crew past its start: nothing moves, every admin is alerted",
@@ -216,6 +220,12 @@ await as(POSTER);
 await db.exec(`SELECT * FROM public.accept_group_application('${appId}', now() + interval '6 hours', NULL)`);
 const dl = await one(`SELECT response_deadline FROM public.group_job_helpers WHERE helper_id = '${M2}'`);
 check("E1 a crew hire keeps the poster's reply deadline on the member's row", !!dl?.response_deadline, JSON.stringify(dl));
+// E1b: a backdated deadline is clamped to about an hour (review #1).
+await db.exec(`RESET ROLE; DELETE FROM public.group_job_helpers WHERE helper_id = '${M2}'; UPDATE public.jobs SET status = 'open' WHERE id = '${CREW}'; UPDATE public.applications SET status = 'pending' WHERE helper_id = '${M2}';`);
+await as(POSTER);
+await db.exec(`SELECT * FROM public.accept_group_application('${appId}', '2000-01-01T00:00:00Z', NULL)`);
+const dl2 = await one(`SELECT response_deadline > now() + interval '50 minutes' AS ok, response_deadline FROM public.group_job_helpers WHERE helper_id = '${M2}'`);
+check("E1b a backdated reply deadline is clamped to about an hour from now", dl2?.ok === true, JSON.stringify(dl2));
 
 // L1
 await db.exec(`SET ROLE authenticated`);
@@ -244,7 +254,7 @@ check("E2 strike, application closed offer_expired, both sides told",
 
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 if (BEFORE) {
-  const expected = 10;
+  const expected = 11;
   console.log(failures === expected ? `RED as expected (${failures}/${expected})` : `NOT RED: ${failures}/${expected} failed`);
   process.exit(failures === expected ? 0 : 1);
 }

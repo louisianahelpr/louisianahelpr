@@ -31,7 +31,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  *   5. the PGlite proof runs the effective definitions, red-before.
  */
 
-// @mutate supabase/migrations/20261004004705_refile_clears_helpr_dispute_answer.sql |   IF NOT _system\n     AND _uid IS DISTINCT FROM _customer\n     AND (_helper IS NULL OR _uid IS DISTINCT FROM _helper)\n     AND NOT _on_crew THEN |   IF NOT _system AND _uid <> _customer AND _uid <> _helper THEN
+// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |   IF NOT _system\n     AND _uid IS DISTINCT FROM _customer\n     AND (_helper IS NULL OR _uid IS DISTINCT FROM _helper)\n     AND NOT _on_crew THEN |   IF NOT _system AND _uid <> _customer AND _uid <> _helper THEN
 // @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   _on_crew := _is_group IS TRUE AND EXISTS (\n    SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = _job_id AND g.helper_id = _uid); |   _on_crew := false;
 // @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   IF _is_group IS TRUE THEN\n    RAISE EXCEPTION 'group_dispute_needs_crew_decision' |   IF false THEN\n    RAISE EXCEPTION 'group_dispute_needs_crew_decision'
 // @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, g.share_cents, |   SELECT _dispute_id, _job_id, g.helper_id, g.slot_no, (round(_job.budget * 100) / _members)::integer,

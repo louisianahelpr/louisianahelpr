@@ -8,15 +8,18 @@
  * trigger chain, OLD STATE RED, chain 3x). This file pins the shape of the
  * NEWEST definitions so a later migration cannot drop a clause silently.
  *
- * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
- * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql |   IF now() >= v_req.expires_at\n     OR v_job.status::text <> 'accepted' |   IF v_job.status::text <> 'accepted'
+ * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
+ * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |   IF now() >= v_req.expires_at\n     OR v_job.status::text <> 'accepted' |   IF v_job.status::text <> 'accepted'
  * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at) |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at + interval '30 days')
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   ON public.job_schedule_change_requests (job_id) WHERE status = 'pending'; |   ON public.job_schedule_change_requests (job_id, id) WHERE status = 'pending';
  * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |     RAISE EXCEPTION 'schedule_change_clash'; |     NULL;
  * @mutate supabase/migrations/20261002060514_schedule_change_refuses_helpr_clash.sql |        AND (o.helper_id = v_job.helper_id\n |        AND (false\n
- * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | IF FOUND THEN\n        RAISE EXCEPTION 'schedule_change_clash'; | IF false THEN\n        RAISE EXCEPTION 'schedule_change_clash';
- * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | FOR SHARE OF o; | ;
- * @mutate supabase/migrations/20261004004707_schedule_change_accept_rechecks_clash.sql | AND (o.helper_id = v_job.helper_id | AND (false
+ * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql | IF FOUND THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined' | IF false THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined'
+ * Q1262(2): the clash declines the request and tells the asker.
+ * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |         UPDATE public.job_schedule_change_requests SET status = 'declined', decided_at = now() WHERE id = v_req.id;\n        INSERT INTO public.notifications | UPDATE public.job_schedule_change_requests SET status = 'pending' WHERE false;\n        INSERT INTO public.notifications
+ * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql |           'New date or time not possible', |           NULL,
+ * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql | FOR SHARE OF o; | ;
+ * @mutate supabase/migrations/20261005064336_schedule_clash_declines_with_notice.sql | AND (o.helper_id = v_job.helper_id | AND (false
  * @mutate supabase/migrations/20261004192041_helper_only_clears_response_deadline.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
  */
 import { readFileSync } from "node:fs";
@@ -84,7 +87,8 @@ describe("a booked one-time job's date/time changes only by an accepted request 
 
   it("Q925: accepting re-checks the clash, under the job lock, before the job moves", () => {
     const lock = respond.indexOf("FOR UPDATE;");
-    const at = respond.indexOf("RAISE EXCEPTION 'schedule_change_clash'");
+    // Q1262(2): the clash now DECLINES (see the next test); its anchor is the reply.
+    const at = respond.indexOf("'reason', 'schedule_change_clash'");
     expect(lock).toBeGreaterThan(0);
     expect(at).toBeGreaterThan(lock);
     // Inside the accept branch, ahead of the write that moves the job.
@@ -95,8 +99,14 @@ describe("a booked one-time job's date/time changes only by an accepted request 
     expect(check).toMatch(/g\.helper_id = v_job\.helper_id/);
     expect(check).toMatch(/OVERLAPS/);
     expect(check).toMatch(/FOR SHARE OF o/);
-    expect(respond).toMatch(/IF FOUND THEN\s+RAISE EXCEPTION 'schedule_change_clash';/);
     expect(respond).toMatch(/j\.estimated_hours\s+INTO v_job/);
+  });
+
+  it("Q1262(2): a clash at accept declines the request and tells whoever asked (never leaves it pending, unannounced)", () => {
+    expect(respond).toMatch(
+      /IF FOUND THEN\s+UPDATE public\.job_schedule_change_requests SET status = 'declined', decided_at = now\(\) WHERE id = v_req\.id;\s+INSERT INTO public\.notifications \(user_id, job_id, title, message, type, link\)\s+VALUES \(\s+v_req\.requested_by, v_job\.id,\s+'New date or time not possible',[\s\S]*?RETURN jsonb_build_object\('status', 'declined', 'reason', 'schedule_change_clash'\);\s+END IF;/,
+    );
+    expect(respond).not.toMatch(/RAISE EXCEPTION 'schedule_change_clash'/);
   });
 
   it("the direct client write stays refused, and only the accept RPC's flag lets a Helpr's row change", () => {

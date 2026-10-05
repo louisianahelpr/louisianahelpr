@@ -417,7 +417,7 @@ serve(async (req) => {
       cancellingStranded: new Check(
         "cancelling_stranded",
         "critical",
-        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand. A job WITH a Helpr here was claimed by a full admin refund (admin_refund_general, Q1290) whose Stripe refund failed ambiguously: check Stripe for the refund, then set payment_status to 'refunded' (and status 'cancelled') if it went out, or back to what it was if not; never re-run the refund before checking.`,
+        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand. A row whose claimed_by is admin_refund_general was claimed by a full admin refund (Q1290) whose Stripe refund failed ambiguously: check Stripe for the refund, then set payment_status to 'refunded' (and status 'cancelled') if it went out, or back to what it was if not; never re-run the refund before checking. claimed_by 'unrecorded' means the holder is unknown: check Stripe first either way.`,
       ),
       // ── The DB's settled state vs Stripe's (docs/OPEN.md Q50) ──────────
       // Every check above grades the DB against itself. A job the DB says is
@@ -944,15 +944,29 @@ serve(async (req) => {
     // ── Cancels that claimed the job and never finished (Q456) ───────────────
     // Keyed on updated_at: the claim write is the last touch a stranded cancel
     // gets, and an unrelated later write only delays the alarm, never hides it.
-    for (const job of jobRows) {
-      if (job.payment_status !== "cancelling") continue;
+    // Q1323: job_refund_claims names the claim's holder (cancel_escrow or a
+    // full admin refund); the page no longer guesses it from helper_id.
+    const strandedCancelling = jobRows.filter((job) =>
+      job.payment_status === "cancelling" && nowMs - (ts(job.updated_at) ?? 0) > CANCELLING_WINDOW_MS);
+    const holderByJob = new Map<string, string>();
+    if (strandedCancelling.length > 0) {
+      const { data: claimRows, error: claimErr } = await admin
+        .from("job_refund_claims")
+        .select("job_id, claimed_by")
+        .in("job_id", strandedCancelling.map((j) => String(j.id)));
+      // Before 20261005064908 deploys the table does not exist: every holder reads "unrecorded".
+      const claimTableMissing = !!claimErr && (claimErr.code === "42P01" || claimErr.code === "PGRST205");
+      if (claimErr && !claimTableMissing) notes.push(`job_refund_claims read failed, stranded claims show holder unrecorded: ${claimErr.message}`);
+      for (const r of (claimRows ?? []) as Array<{ job_id: string; claimed_by: string }>) holderByJob.set(r.job_id, r.claimed_by);
+    }
+    for (const job of strandedCancelling) {
       const claimedAt = ts(job.updated_at) ?? 0;
-      if (nowMs - claimedAt <= CANCELLING_WINDOW_MS) continue;
       checks.cancellingStranded.add({
         job_id: job.id,
         status: job.status,
         budget: money(job.budget),
         hours_stuck: Math.round(((nowMs - claimedAt) / 3_600_000) * 100) / 100,
+        claimed_by: holderByJob.get(String(job.id)) ?? "unrecorded",
       });
     }
 

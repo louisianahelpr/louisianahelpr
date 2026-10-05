@@ -4900,6 +4900,33 @@ export type Database = {
           },
         ]
       }
+      social_signup_choices: {
+        Row: {
+          chose_new_at: string | null
+          created_at: string
+          id: string
+          provider_sub: string
+          relay: boolean
+          social_provider: string
+        }
+        Insert: {
+          chose_new_at?: string | null
+          created_at?: string
+          id?: string
+          provider_sub: string
+          relay?: boolean
+          social_provider: string
+        }
+        Update: {
+          chose_new_at?: string | null
+          created_at?: string
+          id?: string
+          provider_sub?: string
+          relay?: boolean
+          social_provider?: string
+        }
+        Relationships: []
+      }
       str_calendar_connections: {
         Row: {
           auto_create_cleaning: boolean
@@ -6225,6 +6252,15 @@ export type Database = {
       check_push_token_health: { Args: never; Returns: Json }
       check_seed_boundary_failures: { Args: never; Returns: Json }
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
+      client_compat_floor: { Args: never; Returns: number }
+      job_offer_cutoff: {
+        Args: { p_date_needed: string; p_start_time: string }
+        Returns: string
+      }
+      choose_new_social_account: {
+        Args: { p_choice: string }
+        Returns: boolean
+      }
       claim_dispute_settlement: {
         Args: { _action: string; _admin_id?: string; _job_id: string }
         Returns: Json
@@ -7087,6 +7123,7 @@ export type Database = {
         Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: string
       }
+      hook_one_account_per_person: { Args: { event: Json }; Returns: Json }
       identity_fingerprint: {
         Args: {
           p_dob: string

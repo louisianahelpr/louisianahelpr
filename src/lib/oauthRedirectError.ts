@@ -46,7 +46,33 @@ export type OAuthRedirectError = {
   code: string;
   /** Copy for the Login notice. */
   message: string;
+  /**
+   * Q446: the auth server found no account for this Apple/Google identity and
+   * created none (Before User Created hook, migration 20261005182630). The
+   * person chooses: an existing account, or a new one.
+   */
+  choice?: AccountChoiceRef;
 };
+
+/** The pending choice the server recorded (public.social_signup_choices). */
+export type AccountChoiceRef = { choiceId: string; relay: boolean };
+
+/**
+ * The refusal text public.hook_one_account_per_person returns:
+ * `lh_account_choice:<uuid>` plus `:relay` for an Apple Hide My Email address.
+ * src/test/oneAccountPerPerson.test.ts holds the server and this prefix equal.
+ */
+const ACCOUNT_CHOICE_PREFIX = "lh_account_choice:";
+const ACCOUNT_CHOICE_RE = new RegExp(`${ACCOUNT_CHOICE_PREFIX}([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(:relay)?`, "i");
+
+export function parseAccountChoice(text: string | null | undefined): AccountChoiceRef | null {
+  const m = ACCOUNT_CHOICE_RE.exec(text ?? "");
+  return m ? { choiceId: m[1].toLowerCase(), relay: Boolean(m[2]) } : null;
+}
+
+/** Fallback copy when the choice cannot be shown as a dialog. */
+const ACCOUNT_CHOICE_COPY =
+  "We couldn't find a Louisiana Helpr account for that sign-in, so we didn't make one. Choose below whether you already have an account or you're new here.";
 
 const PENDING_KEY = "helpr_oauth_pending";
 // A round trip through the provider's consent screen is seconds to a couple of
@@ -93,6 +119,7 @@ export const SOCIAL_AUTH_ERROR_CODES = [
   "flow_state_already_used",
   "identity_already_exists",
   "multiple_accounts",
+  "manual_linking_disabled",
 ] as const;
 
 /**
@@ -104,6 +131,8 @@ export const SOCIAL_AUTH_ERROR_CODES = [
  * the web path showed copy and told ops nothing).
  */
 export function isExpectedSocialRefusal(code: string | null | undefined): boolean {
+  // Q446: the no-account choice is a question for the person, not a fault.
+  if (code === "account_choice") return true;
   return code === "access_denied" || code === "provider_email_needs_verification" || code === "user_banned";
 }
 
@@ -140,6 +169,8 @@ export function socialAuthErrorCopy(
       return `${w.signIn} took too long or was interrupted. Give it another try.`;
     case "identity_already_exists":
       return `${w.account} is already connected to a different Helpr account. Sign out and ${w.continueWith} to use that one.`;
+    case "manual_linking_disabled":
+      return `Connecting ${w.withP} to an existing account isn't switched on yet. Your account is unchanged; try again later.`;
     case "multiple_accounts":
       return "More than one Helpr account uses this email, so we couldn't tell which one is yours. Contact Helpr support from the Help page and we'll sort it out.";
     // The OAuth `error` with no GoTrue code: the person declined on the
@@ -232,8 +263,12 @@ export function captureOAuthRedirectError(loc: Location = window.location, hist:
   clearPending();
   if (Date.now() - pending.at > PENDING_MAX_AGE_MS) return null;
 
-  const code = get("error_code") || get("error") || "unspecified";
   const description = get("error_description");
+  // Q446 first: GoTrue sends the hook's refusal as error=access_denied with
+  // no error_code, which the generic map below reads as "declined".
+  const choice = parseAccountChoice(description);
+  if (choice) return hold(loc, hist, query, hash, { provider: pending.provider, code: "account_choice", message: ACCOUNT_CHOICE_COPY, choice });
+  const code = get("error_code") || get("error") || "unspecified";
   const copy = socialAuthErrorCopy(pending.provider, code, description);
   const message = copy ?? `${label(pending.provider)} sign-in didn't work — give it another try?`;
   return hold(loc, hist, query, hash, { provider: pending.provider, code, message });
@@ -262,6 +297,8 @@ function captureUnmarked(
   // error on /reset-password stays that page's to read (lh-authz-rls review).
   if (!UNMARKED_RETURN_PATHS.includes(loc.pathname)) return null;
   const description = get("error_description");
+  const choice = parseAccountChoice(description);
+  if (choice) return hold(loc, hist, query, hash, { provider: null, code: "account_choice", message: ACCOUNT_CHOICE_COPY, choice });
   const multiple = (description ?? "").toLowerCase().includes("multiple accounts with the same email");
   const code = multiple ? "multiple_accounts" : get("error_code");
   if (!code || !(SOCIAL_AUTH_ERROR_CODES as readonly string[]).includes(code)) return null;

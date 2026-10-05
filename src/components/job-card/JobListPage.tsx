@@ -23,9 +23,8 @@ const AppliedJobsTab = lazy(() =>
   import("@/pages/jobs/AppliedJobsTab").then((m) => ({ default: m.AppliedJobsTab })),
 );
 
-// These dialogs are conditionally mounted (only when the user triggers an
-// action), so lazy-loading them avoids including their subtrees in the
-// initial chunk entirely.
+// Dialogs mount only on a user action, so lazy-loading keeps their subtrees
+// out of the initial chunk entirely.
 const AwardGateDialog = lazy(() =>
   import("@/components/AwardGateDialog").then((m) => ({ default: m.AwardGateDialog })),
 );
@@ -735,6 +734,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         deadlineDialogApp={actions.deadlineDialogApp}
         setDeadlineDialogApp={actions.setDeadlineDialogApp}
         onDeadlineConfirm={actions.confirmAcceptWithDeadline}
+        deadlineJob={actions.selectedJob}
         disputeJob={actions.disputeJob}
         setDisputeJob={actions.setDisputeJob}
         viewDisputeJob={actions.viewDisputeJob}

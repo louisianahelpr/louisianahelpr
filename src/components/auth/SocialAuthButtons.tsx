@@ -23,9 +23,11 @@ import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import {
   signInWithProvider,
+  type AccountChoice,
   type SocialProvider,
   type SocialSignInResult,
 } from "@/lib/socialAuth";
+import { AccountChoiceDialog } from "@/components/auth/AccountChoiceDialog";
 import { userFacingError } from "@/lib/userFacingError";
 
 type SocialAuthLabelMode = "signin" | "signup";
@@ -35,12 +37,18 @@ interface SocialAuthButtonsProps {
   mode?: SocialAuthLabelMode;
   // Where to navigate after a successful native sign-in. Defaults to /home.
   redirectTo?: string;
+  // Q446: a web sign-in that came back needing the one-account choice
+  // (Login reads it from the redirect, oauthRedirectError.ts).
+  initialChoice?: AccountChoice | null;
 }
 
 export function SocialAuthButtons({
   mode = "signin",
   redirectTo,
+  initialChoice = null,
 }: SocialAuthButtonsProps) {
+  // Q446: the one-account question, from a native refusal or the web redirect.
+  const [choice, setChoice] = useState<AccountChoice | null>(initialChoice);
   return (
     // Two marks side by side, not two stacked full-width labelled boxes
     // (owner: "I would prefer using the Apple and Google icons instead of the
@@ -75,8 +83,9 @@ export function SocialAuthButtons({
     // least as prominent as any other third-party option; identical full-width
     // rows with Apple leading satisfies that.
     <div className="flex flex-col gap-4">
-      <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
-      <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
+      <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
+      <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
+      <AccountChoiceDialog choice={choice} onDone={() => setChoice(null)} onChoice={setChoice} redirectTo={redirectTo} />
     </div>
   );
 }
@@ -85,9 +94,10 @@ interface SocialAuthButtonProps {
   provider: SocialProvider;
   mode: SocialAuthLabelMode;
   redirectTo?: string;
+  onChoose: (choice: AccountChoice) => void;
 }
 
-function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps) {
+function SocialAuthButton({ provider, mode, redirectTo, onChoose }: SocialAuthButtonProps) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -112,6 +122,11 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
       case "redirecting":
         // Browser is leaving the page — keep the spinner up so the user
         // doesn't tap twice. No setLoading(false).
+        return;
+      case "choose":
+        // Q446: no account matched and none was made. Ask before creating.
+        setLoading(false);
+        onChoose(result.choice);
         return;
       case "cancelled":
         // Per memory rule "warm copy + hapticError on secondary error

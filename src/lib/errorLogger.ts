@@ -14,6 +14,7 @@ import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
 import { isAutomatedBrowser } from "@/lib/automatedBrowser";
+import { announcePermissionDenied } from "@/lib/permissionDenied";
 
 // ── Tunables ─────────────────────────────────────────────────────────
 const MESSAGE_MAX_CHARS = 1000;
@@ -353,6 +354,9 @@ function describeUnknownError(err: unknown): string {
 }
 
 export function report(err: unknown, opts: ReportOptions = {}) {
+  // A 42501 is what an out-of-date bundle gets for a withheld column: send the
+  // user down the update path (src/lib/permissionDenied.ts), then log as usual.
+  announcePermissionDenied(err);
   const isError = err instanceof Error;
   const rawMessage = describeUnknownError(err);
   const rawStack = isError ? err.stack : null;

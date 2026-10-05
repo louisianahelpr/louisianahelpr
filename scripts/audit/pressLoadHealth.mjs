@@ -46,6 +46,75 @@
  */
 export const LOADING_SEL = '[aria-busy="true"], [class*="animate-pulse"], [class*="animate-[shimmer"]';
 
+/**
+ * A LOADING STATE THAT IS ONLY WORDS IS STILL A LOADING STATE.
+ *
+ * nightly-red #2353, press run 37296257389 shard 8, /admin?view=people (admin):
+ * three user rows "not found on a freshly loaded page". AdminUsers renders
+ * `<p>Loading users…</p>` while the profiles read is in flight: no aria-busy,
+ * no pulse, no shimmer, so LOADING_SEL saw NOTHING and settle() returned in
+ * that gap. The rows then mounted with their per-row summaries still pending,
+ * so "Audit W. … 1 completed …" re-enumerated as "Audit W. … East Baton Rouge
+ * …" and its identity no longer matched. Measured against prod 2026-10-05
+ * (read-only, 375 wide, settle exactly as the harness ran it): load 1 settled
+ * with 0 rows mounted; load 3 settled with the list still aria-busy and the
+ * "1 completed" chip missing from row 1. Twenty-odd screens use the same
+ * text-only placeholder (src/test/pressSettleSeesLoadingText.test.tsx
+ * inventories them from source).
+ *
+ * So the text itself counts: an element whose whole text is "Loading …" /
+ * "Loading..." is a loading marker.
+ */
+export const LOADING_TEXT_RX_SOURCE = "^Loading\\b[^\\n]{0,80}?(?:…|\\.\\.\\.)$";
+
+/**
+ * How many "still loading" markers the document holds: LOADING_SEL matches
+ * (outside aria-hidden, unless they are themselves aria-busy) plus every
+ * rendered element whose whole text is a "Loading …" line. Self-contained on
+ * purpose: Playwright serialises it into the page (settle()), and the guard
+ * runs it in jsdom.
+ */
+export const countLoadingMarkers = ([loadingSel, textRxSource]) => {
+  const bySel = [...document.querySelectorAll(loadingSel)].filter((e) => e.getAttribute("aria-busy") === "true" || !e.closest("[aria-hidden='true']")).length;
+  const rx = new RegExp(textRxSource);
+  const seen = new Set();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let byText = 0;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!/Loading/.test(n.nodeValue || "")) continue;
+    const el = n.parentElement;
+    if (!el || seen.has(el)) continue;
+    seen.add(el);
+    if (el.closest("[hidden]") || (typeof getComputedStyle === "function" && getComputedStyle(el).display === "none")) continue;
+    if (rx.test((el.textContent || "").replace(/\s+/g, " ").trim())) byText++;
+  }
+  return bySel + byText;
+};
+
+/**
+ * Wait until `probe` (a page-side expression counting loading markers) has
+ * read ZERO for `quietMs` in a row, bounded by `timeoutMs`. A single
+ * marker-free instant is not "loaded": a lazy route can show a bare shell for
+ * a few hundred ms between two loading stages (#2353, see LOADING_TEXT_RX_SOURCE).
+ * A probe that throws (navigation in flight) counts as still loading.
+ * @returns {Promise<{quiet: boolean, waitedMs: number}>}
+ */
+export async function awaitLoadingQuiet(page, { probe, quietMs, timeoutMs, pollMs = 50, now = () => Date.now() }) {
+  const t0 = now();
+  let quietSince = null;
+  while (now() - t0 < timeoutMs) {
+    const n = await Promise.resolve(page.evaluate(probe)).catch(() => 1);
+    if (n === 0) {
+      if (quietSince === null) quietSince = now();
+      if (now() - quietSince >= quietMs) return { quiet: true, waitedMs: now() - t0 };
+    } else {
+      quietSince = null;
+    }
+    await page.waitForTimeout(pollMs);
+  }
+  return { quiet: false, waitedMs: now() - t0 };
+}
+
 /** The app's "I am retrying, do not call me broken yet" marker (ProtectedRoute.tsx). */
 export const SELF_HEAL_SEL = '[data-auth-retrying="true"]';
 

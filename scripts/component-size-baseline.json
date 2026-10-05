@@ -30,7 +30,7 @@
     "src/components/ui/dialog.tsx": 931,
     "src/pages/admin/Admin.tsx": 659,
     "src/pages/auth/CompleteProfile.tsx": 979,
-    "src/pages/auth/Login.tsx": 689,
+    "src/pages/auth/Login.tsx": 681,
     "src/pages/auth/Signup.tsx": 686,
     "src/pages/home/Dashboard.tsx": 997,
     "src/pages/home/DashboardGuest.tsx": 849,

@@ -640,6 +640,17 @@
     "nargs": 0
    }
   ],
+  "choose_new_social_account": [
+   {
+    "anon": true,
+    "args": [
+     "p_choice"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "claim_dispute_settlement": [
    {
     "anon": false,
@@ -747,6 +758,15 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "client_compat_floor": [
+   {
+    "anon": true,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "close_pending_applications_on_job_cancel": [

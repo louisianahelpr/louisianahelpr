@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { PostedJobSeriesControls } from "@/pages/posts/PostedJobSeriesControls";
+import { ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
@@ -762,6 +763,7 @@ function PostedJobCardInner({
                 confirmingWorkingJobId={confirmingWorkingJobId}
                 onActionComplete={onActionComplete}
               />
+              <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} />
             </div>
             )}
             {/* WHAT THIS CARD IS WAITING ON — ONE STRIP AT THE CARD'S BOTTOM
@@ -804,19 +806,17 @@ function PostedJobCardInner({
                 cards sit in two tabs of one screen: a status line that lived
                 at the top of one and the bottom of the other would be the
                 "assembled rather than designed" defect this card keeps having
-                removed. The dispute is no less visible for it — it is still a
-                full-width tinted band on the collapsed card, unmissable
-                without a tap, which was the whole of the 2026-09-06 finding.
+                removed. The dispute stays a full-width tinted band on the
+                collapsed card, unmissable without a tap (the 2026-09-06 finding).
 
-                The rule this strip reads is NOT a new one: `posterStatusLine`
-                takes its eyebrow from `postedActivityBucket` (the same word as
-                the tab above the list) and its sentence from the confirmation
-                ladder and the bucket's own predicates. See jobStatusLine.ts. */}
+                The rule it reads is not new: see `posterStatusLine` in
+                jobStatusLine.ts. */}
             {!isExpanded && (
               <PosterStatusStrip
                 job={withDisputeSettling(job, unsettledDisputeJobIds)}
                 pendingApplicantCount={pendingApplicantCounts?.[job.id] ?? 0}
                 completedMeta={completedJobMeta[job.id]}
+                showStartClock={job.status === "accepted"}
               />
             )}
           </JobCardShell>

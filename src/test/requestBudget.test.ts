@@ -340,7 +340,7 @@ describe("nightly-red #1582: a sharded run is judged as ONE run", () => {
     const budget = JSON.parse(read("e2e/request-budgets.json")).budgets["press-every-control"].perTest as number;
     const dirs = [0.2, 0.25, 0.25, 0.3].map((f, i) => {
       const d = mkdtempSync(join(tmpdir(), `rb-shard-${i}-`));
-      writeFileSync(join(d, "s.json"), sample(Math.round(budget * f)));
+      writeFileSync(join(d, "s.json"), sample(Math.floor(budget * f)));
       return d;
     });
     // Each shard alone is under half the budget; summed they are the run, inside it.

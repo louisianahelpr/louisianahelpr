@@ -130,6 +130,7 @@ import {
 } from "@/components/job-card/jobStatusLine";
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
 import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
+import { deriveAppliedJobCardState } from "@/pages/jobs/appliedJobCard/appliedJobCardHelpers";
 import { PostedJobCard } from "@/pages/posts/PostedJobCard";
 import { glyphPx } from "./jobStepRowCases";
 import { Constants } from "@/integrations/supabase/types";
@@ -843,11 +844,17 @@ describe("BOTH cards mount it, collapsed only", () => {
       // The three terminal states render the MINIMAL card, which states the
       // same outcome in prose (`describeCancellation`, which also says WHO) —
       // a recorded decision, not a gap. Everything else wears a strip.
+      //
+      // An OFFER card draws no strip either (owner, 2026-10-05: the strip
+      // repeated the answer-by clock and "Confirm you'll be there" under
+      // OfferedActions, which is on the collapsed card and says both).
       const minimal = id === "not_selected" || id === "cancelled" || id === "job_gone";
-      renderApplied(HELPER_FIXTURES[id], false);
+      const app = HELPER_FIXTURES[id];
+      const offerCard = !minimal && !!app.job && deriveAppliedJobCardState(app, app.job, new Set(), new Set()).isOffered;
+      renderApplied(app, false);
       const els = document.querySelectorAll("[data-job-status-strip]");
-      expect(els, `Jobs/${id}: ${els.length} strips`).toHaveLength(minimal ? 0 : 1);
-      if (!minimal) expect((els[0] as HTMLElement).dataset.jobStatusStrip, `Jobs/${id}`).toBe(id);
+      expect(els, `Jobs/${id}: ${els.length} strips`).toHaveLength(minimal || offerCard ? 0 : 1);
+      if (!minimal && !offerCard) expect((els[0] as HTMLElement).dataset.jobStatusStrip, `Jobs/${id}`).toBe(id);
     }
   });
 

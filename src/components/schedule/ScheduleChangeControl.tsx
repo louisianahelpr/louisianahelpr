@@ -95,7 +95,12 @@ export function ScheduleChangeControl({
                   return "That request has expired, so nothing changed.";
                 })
               }
-              className="btn-grad-primary min-h-[44px] px-4 rounded-ds-md text-ds-12 font-semibold disabled:opacity-40"
+              // SECONDARY, never the gradient primary (owner, 2026-10-05): this block
+              // sits on cards whose ONE primary is the job's own next move (Accept
+              // Job on an offer), and a second gradient button beside it read as
+              // a disabled primary. Guard: src/test/offerCardHierarchy.test.tsx.
+              className="min-h-[44px] px-4 rounded-ds-md text-ds-12 font-semibold border disabled:opacity-40"
+              style={{ color: "hsl(var(--primary))", borderColor: "hsl(var(--primary) / 0.35)" }}
             >
               Accept
             </button>

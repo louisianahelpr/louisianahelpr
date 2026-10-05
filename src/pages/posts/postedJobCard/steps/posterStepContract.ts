@@ -179,14 +179,7 @@ export function recentArrivalNearMiss(job: Job): boolean {
  * copy changed with it — it used to say "waiting on your Helpr's location
  * check", which after the reversal is simply not what anyone is waiting for.
  */
-function arrivalBlockedReason(job: Job, step: PosterStepId): { reason: string; gate: boolean } {
-  if (step === "scheduled" && !job.helper_confirmed_at) {
-    return {
-      // A WAIT, not a gate: nothing is stuck, the booking simply isn't settled.
-      reason: "Your Helpr hasn't confirmed this booking yet — you'll be able to confirm they arrived once they're at the job.",
-      gate: false,
-    };
-  }
+function arrivalBlockedReason(job: Job): { reason: string; gate: boolean } {
   if (!job.helper_on_the_way_at) {
     return {
       reason: "You'll be able to confirm this once your Helpr is at the job.",
@@ -231,6 +224,14 @@ export function posterConfirmationRung(
   // working stamp, which a crew never has, so nothing is lost.)
   if (job.is_group_job === true) return null;
 
+  // AN OFFER IS NOT A BOOKING (owner, 2026-10-05: "Confirm Arrival must NOT
+  // show at all until the Helpr has accepted"). While the Helpr has not
+  // accepted, nobody is coming, so there is no arrival to confirm and no box at
+  // all: no disabled primary-looking control for an action that cannot exist
+  // yet. The card's move on an offer is the answer-by countdown and Cancel.
+  // Guard: src/test/offerCardNoArrivalControl.test.tsx.
+  if (step === "scheduled" && !job.helper_confirmed_at) return null;
+
   // Near-miss stands in for an arrival on the IN-PROGRESS step only — that is
   // where the gate already accepted it. Widening it to `scheduled` would be a
   // new enablement, which this refactor does not do.
@@ -241,7 +242,7 @@ export function posterConfirmationRung(
     // The step's own pre-existing gates, verbatim: scheduled also required the
     // booking's own `helper_confirmed_at`.
     const enabled = arrivalClaimed && (step === "in_progress" || !!job.helper_confirmed_at) && !job.helper_completed_at;
-    const blocked = enabled ? null : arrivalBlockedReason(job, step);
+    const blocked = enabled ? null : arrivalBlockedReason(job);
     rung = {
       action: "arrival",
       // The two labels differ by step and always have. Reported, not silently

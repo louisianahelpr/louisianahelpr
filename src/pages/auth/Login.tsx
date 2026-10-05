@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { loginNotice } from "./loginNotice";
 import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -174,16 +175,7 @@ const Login = () => {
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
-  const notice =
-    oauthError
-      ? oauthError.message
-      : signedOutForInactivity
-      ? "You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off."
-      : arrivedFromSignup
-        ? "If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in."
-        : bouncedFromGatedRoute
-          ? "That page needs an account. Log in and we'll take you straight back to it."
-          : null;
+  const { accountChoice, notice } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, arrivedFromSignup, bouncedFromGatedRoute });
   const queryClient = useQueryClient();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/login"]);
@@ -652,7 +644,7 @@ const Login = () => {
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         </div>
 
-        <SocialAuthButtons mode="signin" />
+        <SocialAuthButtons mode="signin" initialChoice={accountChoice} />
         {/* Under the providers (owner). It has been outside the card and under
             both columns; back here, closing the social column. */}
         <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

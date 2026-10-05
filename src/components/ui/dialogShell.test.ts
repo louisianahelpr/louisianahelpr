@@ -1060,6 +1060,11 @@ describe("Popup grammar — footer", () => {
       "No Thanks",
       "Keep It On",
       "Keep the Job",
+      // Q446 (owner, 2026-10-05): the one-account choice's other answer is a
+      // real path, not a dismissal; and removing a sign-in method's secondary
+      // names the state kept, like "Keep the Job".
+      "I already have an account",
+      "Keep it",
       // DisputedSection's withdraw confirm ("Withdraw this dispute?"). Same
       // grammar as "Keep the Job": the secondary names the state that is
       // KEPT, because "Cancel" beside "Withdraw" reads as cancelling the

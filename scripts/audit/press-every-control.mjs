@@ -66,7 +66,7 @@ import {
 } from "./pressProdSafety.mjs";
 import * as pressSafety from "./pressProdSafety.mjs";
 import { isStripeWriteRequest, SKIP_STRIPE_WRITE_BLOCKED } from "./pressProdSafety.mjs";
-import { LOADING_SEL, SELF_HEAL_MS, SELF_HEAL_SEL, awaitSelfHeal, classifyBoot, summarizeTimings } from "./pressLoadHealth.mjs";
+import { LOADING_SEL, LOADING_TEXT_RX_SOURCE, SELF_HEAL_MS, SELF_HEAL_SEL, awaitLoadingQuiet, awaitSelfHeal, classifyBoot, countLoadingMarkers, summarizeTimings } from "./pressLoadHealth.mjs";
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
   claimRow, classifyConsoleError, classifyFailedResponse, clickFailureReason, queuedRowAction, releaseRow, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
@@ -756,7 +756,10 @@ const OVERLAY_FINGERPRINT = ({ overlaySel, controlSel }) => {
 export const RELOADED_SCREEN = ({ controlSel, label }) => {
   const idx = [...document.querySelectorAll("[data-index]")].map((e) => Number(e.getAttribute("data-index"))).filter((n) => Number.isFinite(n));
   const rows = idx.length ? `${idx.length} virtual row(s) mounted, index ${Math.min(...idx)}-${Math.max(...idx)}` : "no virtual rows";
-  const text = document.body.innerText || document.body.textContent || "";
+  // Whitespace collapsed exactly as ENUMERATE collapsed `label`: a multi-line
+  // row ("AW\nAudit W.\nActive") never contained its own one-line label, so
+  // #2353 reported "label text absent" for rows that were on screen.
+  const text = (document.body.innerText || document.body.textContent || "").replace(/\s+/g, " ");
   const onScreen = label ? (text.includes(label.slice(0, 30)) ? "label text present" : "label text absent") : "no label";
   return `[reloaded screen: ${document.querySelectorAll(controlSel).length} control(s); ${rows}; scrollY=${Math.round(window.scrollY)}; ${onScreen}; url=${location.pathname}${location.search}]`;
 };
@@ -1191,12 +1194,20 @@ async function main() {
 
       // A screen that says it is retrying is NOT settled — see pressLoadHealth.mjs.
       const settle = async () => {
-        await page.waitForFunction(([loadingSel, healSel]) => {
-          const loading = [...document.querySelectorAll(loadingSel)].filter((e) => e.getAttribute("aria-busy") === "true" || !e.closest("[aria-hidden='true']")).length;
-          const retrying = document.querySelectorAll(healSel).length;
-          return loading === 0 && retrying === 0;
-        }, [LOADING_SEL, SELF_HEAL_SEL], { timeout: 8000 }).catch(() => {});
-        await page.waitForTimeout(SETTLE_MS);
+        // Every LOADING_SEL marker AND every text-only "Loading …" line
+        // (countLoadingMarkers), plus the self-heal card, must stay at ZERO
+        // for SETTLE_MS in a row (awaitLoadingQuiet). #2353: settle used to
+        // return at the first marker-free instant and then sleep SETTLE_MS
+        // blind, but /admin?view=people has two such instants on a cold load
+        // (measured 130-245ms of a bare shell between the route's "Loading…"
+        // stages, then `<p>Loading users…</p>` which carried no marker at
+        // all), so rows were read with their summaries still pending. Same
+        // 600ms floor as before, now spent watching instead of sleeping.
+        await awaitLoadingQuiet(page, {
+          probe: `(${countLoadingMarkers.toString()})(${JSON.stringify([LOADING_SEL, LOADING_TEXT_RX_SOURCE])}) + document.querySelectorAll(${JSON.stringify(SELF_HEAL_SEL)}).length`,
+          quietMs: SETTLE_MS,
+          timeoutMs: 8000 + SETTLE_MS,
+        });
       };
       // The URL the screen rests at after a clean load; any drift from it (a
       // filter param, a highlight, a navigation) means the DOM paths no longer

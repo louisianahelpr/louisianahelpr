@@ -23,7 +23,14 @@ import { recognizedAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
-import { clearOAuthPending, isExpectedSocialRefusal, markOAuthPending, socialAuthErrorCopy } from "@/lib/oauthRedirectError";
+import {
+  clearOAuthPending,
+  isExpectedSocialRefusal,
+  markOAuthPending,
+  parseAccountChoice,
+  socialAuthErrorCopy,
+  type AccountChoiceRef,
+} from "@/lib/oauthRedirectError";
 
 export type SocialProvider = "apple" | "google";
 
@@ -33,7 +40,25 @@ export type SocialSignInResult =
   // caller should keep the spinner up rather than navigate.
   | { kind: "redirecting" }
   | { kind: "cancelled" }
+  // Q446: no account matched this Apple/Google identity and the server made
+  // none. The caller must ask "I already have an account" / "I'm new here"
+  // (AccountChoiceDialog) before anything is created.
+  | { kind: "choose"; choice: AccountChoice }
   | { kind: "error"; message: string };
+
+/**
+ * A pending one-account choice. `provider` is null only when a web refusal
+ * came back without its pending marker; `idToken` is set on native, where the
+ * same token is replayed after "I'm new here" instead of reopening the sheet.
+ */
+export type AccountChoice = AccountChoiceRef & { provider: SocialProvider | null; idToken?: string };
+
+/** Thrown inside the native path; never escapes signInWithProvider. */
+class AccountChoiceRequired extends Error {
+  constructor(readonly choice: AccountChoice) {
+    super("account choice required");
+  }
+}
 
 // Initialize the native plugin once. Idempotent so dev hot-reload doesn't
 // re-init. Safe to call on web — no-ops there.
@@ -119,7 +144,7 @@ function providerLabel(provider: SocialProvider): string {
 
 // Internal: the native sign-in path. Throws on any non-cancel failure so
 // the caller's catch can run friendlyProviderError + hapticError.
-async function nativeSignIn(provider: SocialProvider): Promise<void> {
+async function nativeIdToken(provider: SocialProvider): Promise<string> {
   await initSocialLogin();
   const options =
     provider === "apple"
@@ -131,8 +156,22 @@ async function nativeSignIn(provider: SocialProvider): Promise<void> {
   >[0]);
   const idToken = (result as { idToken?: string })?.idToken;
   if (!idToken) throw new Error(`${providerLabel(provider)} sign-in returned no idToken`);
+  return idToken;
+}
+
+async function nativeSignIn(provider: SocialProvider): Promise<void> {
+  const idToken = await nativeIdToken(provider);
   const { error } = await supabase.auth.signInWithIdToken({ provider, token: idToken });
+  // Q446: the server refused to create an account nobody chose.
+  const choice = error ? accountChoiceFrom(error) : null;
+  if (choice) throw new AccountChoiceRequired({ ...choice, provider, idToken });
   if (error) throw error;
+}
+
+/** The hook's refusal, read off a GoTrue error (any shape). */
+function accountChoiceFrom(err: unknown): AccountChoiceRef | null {
+  const message = (err as { message?: unknown } | null)?.message;
+  return parseAccountChoice(typeof message === "string" ? message : null);
 }
 
 // Public: drive an Apple or Google sign-in.
@@ -161,6 +200,8 @@ export async function signInWithProvider(
       setLastAuthMethod(provider);
       return { kind: "success" };
     } catch (err) {
+      // Q446: a question for the person, not a failure — before any report.
+      if (err instanceof AccountChoiceRequired) return { kind: "choose", choice: err.choice };
       // A user backing out of the OS sheet is not a failure — it is the most
       // common outcome here, and reporting it would bury the real ones.
       if (isCancelError(err)) return { kind: "cancelled" };
@@ -231,6 +272,88 @@ export async function signInWithProvider(
     // other place it would ever show up.
     clearOAuthPending();
     report(err, { severity: "error", tags: { area: "auth", op: "webSocialSignIn", provider } });
+    return { kind: "error", message: friendlyProviderError(provider, err) };
+  }
+}
+
+/**
+ * Q446 "I'm new here": mark the server's pending choice, then run the same
+ * sign-in again, which the hook now lets create the account. Native replays
+ * the id token it already has; web goes back through the provider (it
+ * remembers consent, so this is one quick round trip). With no provider (a
+ * web refusal that lost its marker) only the mark is made, and the result
+ * says so.
+ */
+export async function continueAsNewAccount(
+  choice: AccountChoice,
+  opts: { redirectTo?: string } = {},
+): Promise<SocialSignInResult | { kind: "marked" }> {
+  const { data, error } = await supabase.rpc("choose_new_social_account", { p_choice: choice.choiceId });
+  if (error) {
+    report(error, { severity: "error", tags: { area: "auth", op: "chooseNewSocialAccount" } });
+    return { kind: "error", message: "We couldn't save that choice. Check your connection and try again." };
+  }
+  // Older than 30 minutes, or already used: the person starts over.
+  if (data !== true) {
+    return { kind: "error", message: "That took a little too long. Tap the sign-in button again and choose once more." };
+  }
+  if (!choice.provider) return { kind: "marked" };
+  const provider = choice.provider;
+  if (choice.idToken) {
+    const { error: signInError } = await supabase.auth.signInWithIdToken({ provider, token: choice.idToken });
+    if (!signInError) {
+      setLastAuthMethod(provider);
+      return { kind: "success" };
+    }
+    // An expired token or a second refusal: start the native sheet over.
+    const code = (signInError as { code?: unknown }).code;
+    report(signInError, {
+      severity: isExpectedSocialRefusal(typeof code === "string" ? code : null) ? "warning" : "error",
+      tags: { area: "auth", op: "nativeSocialSignInNew", provider },
+    });
+  }
+  return signInWithProvider(provider, opts);
+}
+
+/**
+ * Q446 Profile > Security > Sign-in methods: connect Apple or Google to the
+ * signed-in account (supabase.auth.linkIdentity). Needs manual linking on in
+ * the auth config; without it GoTrue answers manual_linking_disabled, which
+ * socialAuthErrorCopy explains. Web returns to Profile > Security, whose card
+ * reads the outcome.
+ */
+export async function connectProvider(provider: SocialProvider): Promise<SocialSignInResult> {
+  if (isSocialLoginPluginAvailable()) {
+    try {
+      const token = await nativeIdToken(provider);
+      const { error: linkError } = await supabase.auth.linkIdentity({ provider, token });
+      if (linkError) throw linkError;
+      return { kind: "success" };
+    } catch (err) {
+      if (isCancelError(err)) return { kind: "cancelled" };
+      const code = (err as { code?: unknown } | null)?.code;
+      report(err, {
+        severity: code === "identity_already_exists" ? "warning" : "error",
+        tags: { area: "auth", op: "nativeConnectProvider", provider },
+      });
+      return { kind: "error", message: friendlyProviderError(provider, err) };
+    }
+  }
+  // A native build without the plugin never falls back to a web redirect.
+  const nativeShell = Capacitor.isNativePlatform();
+  if (nativeShell) return { kind: "error", message: `${providerLabel(provider)} sign-in isn't available in this build.` };
+  try {
+    const redirectTo = `${getPublicOrigin()}/profile?tab=security`;
+    markOAuthPending(provider, "/profile");
+    const { error } = await supabase.auth.linkIdentity({ provider, options: { redirectTo } });
+    if (error) {
+      clearOAuthPending();
+      return { kind: "error", message: friendlyProviderError(provider, error) };
+    }
+    return { kind: "redirecting" };
+  } catch (err) {
+    clearOAuthPending();
+    report(err, { severity: "error", tags: { area: "auth", op: "webConnectProvider", provider } });
     return { kind: "error", message: friendlyProviderError(provider, err) };
   }
 }

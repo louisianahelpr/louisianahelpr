@@ -16,12 +16,17 @@ import { MessageSquare, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 import { userFacingError } from "@/lib/userFacingError";
+import { offerResponseDeadline, JOB_STARTS_TOO_SOON_COPY } from "@/lib/offerDeadline";
 
 type Props = {
   open: boolean;
   helperName: string;
   onConfirm: (deadlineHours: number, message?: string) => Promise<void> | void;
   onClose: () => void;
+  /** The job being hired into. The answer-by time never runs past its start
+   *  (server rule, accept_application 20261005184940), so the line under the
+   *  picker says so when the start comes first. */
+  job?: { date_needed?: string | null; start_time?: string | null } | null;
 };
 
 const deadlineOptions = [
@@ -34,7 +39,7 @@ const deadlineOptions = [
   { value: "48", label: "48 hours" },
 ];
 
-export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }: Props) => {
+export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, job }: Props) => {
   const [hours, setHours] = useState("24");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -47,6 +52,10 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   const [violations, setViolations] = useState<DetectedViolation[] | null>(null);
   const selectedLabel =
     deadlineOptions.find((o) => o.value === hours)?.label ?? `${hours} hours`;
+  const planned = job ? offerResponseDeadline(parseInt(hours), job) : null;
+  const startLabel = planned?.cutoff
+    ? planned.cutoff.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })
+    : null;
 
   // Synchronous in-flight guard: `disabled={state}` cannot stop two clicks in one frame (see useApplyFlow).
   const sendingRef = useRef(false);
@@ -131,10 +140,22 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
             {/* Says the window back to you the way JobBoostDialog says
                 "runs for 24 hours" — the choice you just made, in display type,
                 rather than a grey "in time". */}
-            <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              If they don't respond within{" "}
-              <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{selectedLabel}</span>
-              , the job will be reopened automatically.
+            <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-offer-deadline-line="">
+              {planned && !planned.ok ? (
+                JOB_STARTS_TOO_SOON_COPY
+              ) : planned?.cappedByStart && startLabel ? (
+                <>
+                  Your job starts{" "}
+                  <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{startLabel}</span>
+                  , so they have until then to respond. If they don't, the job will be reopened automatically.
+                </>
+              ) : (
+                <>
+                  If they don't respond within{" "}
+                  <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{selectedLabel}</span>
+                  , the job will be reopened automatically.
+                </>
+              )}
             </p>
           </div>
 

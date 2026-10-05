@@ -1,5 +1,5 @@
 import { SeriesStrip } from "@/pages/posts/SeriesStrip";
-import { SeriesDatesForJob, ScheduleChangeForJob, type SeriesCardJob } from "@/components/series/JobSeriesCardControls";
+import { SeriesDatesForJob, type SeriesCardJob } from "@/components/series/JobSeriesCardControls";
 
 /**
  * The poster's series and schedule controls on a PostedJobCard, in card order:
@@ -24,7 +24,6 @@ export function PostedJobSeriesControls({ job, userId }: { job: SeriesCardJob; u
         />
       )}
       <SeriesDatesForJob job={job} userId={userId} isPoster />
-      <ScheduleChangeForJob job={job} userId={userId} viewer="poster" />
     </>
   );
 }

@@ -95,11 +95,16 @@ describe("the job_tracking prefetch covers every card that mounts a tracker (#15
       .sort();
     // A new section that mounts a tracker must be added to appliedCardMountsTracker
     // (trackerMounts.ts) and to this list in the same commit.
+    // AppliedJobCard: the OFFER card's read-only rail (owner, 2026-10-05). An
+    // application offer is app.status accepted + job accepted, which
+    // appliedCardMountsTracker already prefetches; a direct offer has no
+    // helper on the job yet, and <JobTracking> does not query without one.
     expect(mounts).toEqual([
       "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
       "src/pages/jobs/appliedJobCard/ConfirmedSection.tsx",
       "src/pages/jobs/appliedJobCard/DisputedSection.tsx",
       "src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx",
+      "src/pages/jobs/appliedJobCard/OfferStepRail.tsx",
     ]);
   });
 });

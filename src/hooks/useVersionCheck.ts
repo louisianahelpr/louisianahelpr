@@ -6,6 +6,8 @@ import {
   parseBuildNumber,
   readMinSupportedBuild,
 } from "@/lib/minSupportedBuild";
+import { CLIENT_COMPAT_EPOCH, FLOOR_UNKNOWN, isBelowFloor, normalizeFloor, readClientCompatFloor } from "@/lib/clientCompat";
+import { PERMISSION_DENIED_EVENT } from "@/lib/permissionDenied";
 
 /**
  * useVersionCheck — is this binary still allowed to run?
@@ -70,6 +72,7 @@ import {
  *   ?force_update_demo=1&build=5906       → pretend the installed build is 5906
  *   ?force_update_demo=1&min=6000         → pretend the stored threshold is 6000
  *   ?force_update_demo=1&min=fail         → pretend the settings read failed
+ *   ?force_update_demo=1&compat_floor=2   → pretend client_compat_floor() is 2
  */
 function demoParams(): URLSearchParams | null {
   if (!import.meta.env.DEV) return null;
@@ -84,7 +87,19 @@ export type VersionCheck =
   /** Allowed to run: up to date, gate off, or something was unknowable. */
   | { status: "ok" }
   /** Too old. The only state that blocks. */
-  | { status: "blocked"; installedBuild: number; requiredBuild: number };
+  | {
+      status: "blocked";
+      /**
+       * "build": the binary is below min_supported_build (operator lever).
+       * "compat": the bundle inside it is below client_compat_floor(), i.e. a
+       * migration has since narrowed what it reads (src/lib/clientCompat.ts).
+       */
+      reason: "build" | "compat";
+      installedBuild: number | null;
+      requiredBuild: number;
+      /** Present for "compat": this bundle's epoch and the server's floor. */
+      compat?: { epoch: number; floor: number };
+    };
 
 /**
  * The ONE place `@capacitor/app` is imported.
@@ -159,31 +174,76 @@ async function readThreshold(): Promise<number> {
   return readMinSupportedBuild();
 }
 
+/** The compat floor, honouring the dev harness's override. */
+async function readCompatFloor(force: boolean): Promise<number> {
+  const forced = demoParams()?.get("compat_floor");
+  if (forced != null) return normalizeFloor(forced);
+  return readClientCompatFloor({ force });
+}
+
+/**
+ * Set once this process has seen a grant refusal (permission-denied event).
+ *
+ * The compat block waits for it: below the floor alone does not block.
+ * Reason (lh-authz-rls review 2026-10-05): the floor rises the moment its
+ * migration deploys, but a native binary carrying the new epoch needs a
+ * TestFlight/App Store build first. Blocking on the number alone would lock
+ * every native user out of the WHOLE app until that build exists, including
+ * people who never open the screens the migration broke. With evidence, only a
+ * user whose read was actually refused gets "Update Helpr" instead of "We
+ * couldn't load this"; everyone else keeps working. (The operator lever,
+ * min_supported_build, still blocks on the number alone.)
+ */
+let deniedSeen = false;
+/** Evidence, not a once-setup flag: a refused read happened in this run. */
+function markDeniedSeen() {
+  deniedSeen = true;
+}
+export function __resetDeniedSeenForTests() {
+  deniedSeen = false;
+}
+
 export function useVersionCheck(): VersionCheck {
   const [state, setState] = useState<VersionCheck>({ status: "checking" });
 
-  const check = useCallback(async (): Promise<VersionCheck> => {
+  const check = useCallback(async (force = false): Promise<VersionCheck> => {
     // The web short-circuit, first and cheapest. No plugin import, no RPC.
+    // (Web has its own path for both levers: src/lib/staleClient.ts reloads.)
     if (!isNativePlatform && !demoParams()) return { status: "ok" };
 
-    const [installed, required] = await Promise.all([
+    const [installed, required, floor] = await Promise.all([
       readInstalledBuild(),
       readThreshold(),
+      readCompatFloor(force),
     ]);
 
-    // Gate off (0 is the documented off value), or nothing to compare.
-    if (required <= GATE_OFF) return { status: "ok" };
-    if (installed === null) return { status: "ok" };
-    if (installed >= required) return { status: "ok" };
-
-    return { status: "blocked", installedBuild: installed, requiredBuild: required };
+    // The operator's build lever first: its numbers are the ones support asks for.
+    // Gate off (0 is the documented off value), or nothing to compare: not blocked.
+    if (required > GATE_OFF && installed !== null && installed < required) {
+      return { status: "blocked", reason: "build", installedBuild: installed, requiredBuild: required };
+    }
+    // The schema lever: this bundle reads columns the server no longer grants.
+    // Fails open like the build lever: FLOOR_UNKNOWN never blocks.
+    // The dev harness's compat_floor stands in for the evidence too, so the
+    // blocked screen can be looked at in a browser.
+    const evidence = deniedSeen || demoParams()?.has("compat_floor") === true;
+    if (evidence && floor > FLOOR_UNKNOWN && isBelowFloor(floor, CLIENT_COMPAT_EPOCH)) {
+      return {
+        status: "blocked",
+        reason: "compat",
+        installedBuild: installed,
+        requiredBuild: required,
+        compat: { epoch: CLIENT_COMPAT_EPOCH, floor },
+      };
+    }
+    return { status: "ok" };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    const run = () => {
-      void check().then((next) => {
+    const run = (force = false) => {
+      void check(force).then((next) => {
         if (!cancelled) setState(next);
       });
     };
@@ -207,11 +267,20 @@ export function useVersionCheck(): VersionCheck {
     // threshold set in error is undone by fixing it, not by an app update.
     if (!isNativePlatform) return () => { cancelled = true; };
 
+    // A 42501 is what an out-of-date bundle gets for a withheld column: ask
+    // again at once (skipping the 60 s cache) instead of leaving the user on
+    // "We couldn't load this" until the next resume.
+    const onDenied = () => {
+      markDeniedSeen();
+      run(true);
+    };
+    window.addEventListener(PERMISSION_DENIED_EVENT, onDenied);
+
     let remove: (() => void) | null = null;
     void (async () => {
       try {
         const { App } = await capacitorApp();
-        const handle = await App.addListener("resume", run);
+        const handle = await App.addListener("resume", () => run());
         if (cancelled) {
           void handle.remove();
           return;
@@ -224,6 +293,7 @@ export function useVersionCheck(): VersionCheck {
 
     return () => {
       cancelled = true;
+      window.removeEventListener(PERMISSION_DENIED_EVENT, onDenied);
       remove?.();
     };
   }, [check]);

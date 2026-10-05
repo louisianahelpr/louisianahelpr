@@ -10,8 +10,10 @@
  * openNoDuplicateItems (via scripts/lib/openQueue.mjs itemOriginKey) then
  * treats two numbers with one tag as one item and fails.
  *
- * This file: (1) an open review item filed WITHOUT a tag can only shrink the
- * count below (exact, two-way: lower it as old items close or get tagged);
+ * This file: (1) every review item filed AFTER the rule (number above
+ * LAST_UNTAGGED, the highest number when it landed) carries a tag; older items
+ * are not counted, so the auto-tick bot closing one never breaks a baseline
+ * (a 2026-10-05 exact count of 85 did exactly that on bot PR #2350);
  * (2) the tag really is the origin key.
  */
 import { readFileSync } from "node:fs";
@@ -26,21 +28,20 @@ const OPEN = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n
 const REVIEW = /\b(?:review(?:ed)?|should-fix|must-fix)\b/i;
 const TAGGED = /\bfinding: [a-z0-9-]+@[0-9a-f]{7,40}#\d+/i;
 
-// Open review-derived items still WITHOUT a finding tag (measured 2026-10-05).
-// Exact: lower it in the commit that closes or tags one; it never goes up.
-const UNTAGGED_REVIEW_ITEMS = 84;
+// The highest item number when the rule landed (2026-10-05). Items above it
+// are filed under the rule and must carry a tag.
+const LAST_UNTAGGED = 1373;
 
-function untagged(): string[] {
-  return OPEN.filter((l) => /^- \[[ ~]\] \*\*Q\d+/.test(l) && REVIEW.test(l) && !TAGGED.test(l)).map(
-    (l) => /\*\*(Q\d+)/.exec(l)![1],
-  );
+const ITEMS = OPEN.filter((l) => /^- \[[ x~]\] \*\*Q\d+/.test(l));
+const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
+function untaggedNew(): string[] {
+  return ITEMS.filter((l) => num(l) > LAST_UNTAGGED && REVIEW.test(l) && !TAGGED.test(l)).map((l) => `Q${num(l)}`);
 }
 
 describe("review findings carry one stable tag, so a finding cannot be filed twice", () => {
-  it("the untagged count is exact (lower it as items close; new review items must be tagged)", () => {
-    const now = untagged();
-    expect(now.length, `untagged review items: ${now.join(", ")}`).toBe(UNTAGGED_REVIEW_ITEMS);
-    expect(OPEN.length).toBeGreaterThan(500);
+  it("every review item filed after the rule carries a finding tag", () => {
+    expect(ITEMS.length).toBeGreaterThan(200);
+    expect(untaggedNew(), "file review findings with `finding: <reviewer>@<sha>#<n>`").toEqual([]);
   });
   it("two numbers with one finding tag share one origin key", () => {
     const a = "- [ ] **Q1 LOW A thing (x) finding: lh-money-escrow@abc1234#3**";

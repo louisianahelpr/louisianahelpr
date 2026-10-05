@@ -225,7 +225,7 @@ describe("fetchPostedActivityDetail — My Posts decoration", () => {
   });
 
   it("batches groupHelpersByJob with a single in() + one batched profiles lookup", async () => {
-    setResponse("group_job_helpers|select,in:job_id=g1&g2", {
+    setResponse("group_job_helpers|select,in:job_id=g1&g2&g3", {
       data: [
         { id: "gh1", job_id: "g1", helper_id: "helper-A", status: "accepted", joined_at: "2026-05-01" },
         { id: "gh2", job_id: "g1", helper_id: "helper-B", status: "accepted", joined_at: "2026-05-02" },
@@ -251,8 +251,10 @@ describe("fetchPostedActivityDetail — My Posts decoration", () => {
     expect(result.groupHelpersByJob["g1"]).toHaveLength(2);
     expect(result.groupHelpersByJob["g1"][0].helperName).toBe("Anna T.");
     expect(result.groupHelpersByJob["g2"][0].helperName).toBe("Anna T.");
-    // Solo + open jobs are NOT pre-fetched.
+    // Solo jobs are NOT pre-fetched. An OPEN crew is (Q707: it can already
+    // have hired members, which hide Edit); g3 simply has nobody yet.
     expect("s1" in result.groupHelpersByJob).toBe(false);
+    expect(inputs.groupIds).toEqual(["g1", "g2", "g3"]);
     expect("g3" in result.groupHelpersByJob).toBe(false);
   });
 

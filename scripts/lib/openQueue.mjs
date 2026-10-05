@@ -135,9 +135,15 @@ export function itemHeadText(line) {
     .toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+export const FINDING_TAG = /\bfinding: ([a-z0-9-]+@[0-9a-f]{7,40}#\d+)/i;
 export function itemOriginKey(line) {
   const text = itemHeadText(line);
   if (text === null) return null;
+  // A review finding carries one stable tag (reviewer@reviewed-sha#n), so the
+  // same finding filed twice under two numbers is one origin (owner 2026-10-05:
+  // "there needs to be rules that the duplicates can not be added").
+  const f = FINDING_TAG.exec(line);
+  if (f) return `finding ${f[1].toLowerCase()}`;
   const o = FEED_ORIGIN.exec(line);
   if (o) return `origin ${o[1]} ${o[2].toLowerCase()}`;
   return text.length >= 100 ? `text ${text.slice(0, 100)}` : null;

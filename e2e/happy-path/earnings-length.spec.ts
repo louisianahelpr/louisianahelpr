@@ -4,20 +4,20 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } f
 // THE EARNINGS TAB HAS A LENGTH BUDGET, AND IT IS MEASURED.
 //
 // Owner, 2026-08-28: "Earnings and payout tab is also entirely too long."
-// The tab was split into views with only the selected one mounted.
-// `earnings-views.spec.ts` pins that structure; this spec pins the RESULT,
-// against a helpr who actually has money — the case the complaint was about,
-// and the one an empty mock cannot show.
+// The tab was split into views with only the selected one mounted; on
+// 2026-10-01 the owner called that split "messy and repeat itself a lot" and
+// it became ONE page again (Q1177), with the three money lists merged into
+// one. `earnings-views.spec.ts` pins that structure; this spec pins the
+// RESULT, against a helpr who actually has money — the case the complaint was
+// about, and the one an empty mock cannot show.
 //
 // Measured on this fixture at 393x852:
 //   before any split, one column:  5382px  (6.3 screens)
 //   four views — Money 1013 · History 2653 · Insights 1472 · Payouts 840
-//   two views (2026-09-11, owner chose Earnings vs Payouts):
-//           Earnings: see BUDGET_SCREENS below
-//           Payouts:  see BUDGET_SCREENS below
-// The Earnings budget is the sum of the three halves it absorbed plus
-// headroom; the whole column is still nowhere near the 6.3 screens that
-// produced the complaint, and the two questions no longer interleave.
+//   two views (2026-09-11): Earnings and Payouts, each under its own budget
+//   one page (Q1177): see PAGE_BUDGET_SCREENS below
+// One page fits because nothing is listed twice any more: each transfer sits
+// inside the job it paid instead of in a second list.
 //
 // Two traps this spec exists to avoid, both of which produced wrong answers
 // before it was written:
@@ -75,12 +75,10 @@ const transfers = Array.from({ length: 8 }, (_, i) => ({
   created_at: new Date(Date.now() - i * 86_400_000).toISOString(),
 }));
 
-/** Per-view ceilings, in viewport-heights, with headroom over the measured
- *  values above. A view that doubles will trip this; normal drift will not. */
-const BUDGET_SCREENS: Record<string, number> = {
-  Earnings: 6.0,
-  Payouts: 4.0,
-};
+/** Ceiling for the whole page, in viewport-heights, with headroom over the
+ *  measured value. A page that grows a section's worth trips this; normal
+ *  drift will not. */
+const PAGE_BUDGET_SCREENS = 6.0;
 
 /** Measures the tallest scroll container — see trap 1 in the header note. */
 const MEASURE_SCROLLER = () => {
@@ -122,57 +120,7 @@ async function mockConnectedWallet(page: Page): Promise<void> {
   );
 }
 
-test("each earnings view stays within its length budget", async ({ helperPage: page }) => {
-  await installSupabaseMocks(page, {
-    user: { ...FAKE_HELPER },
-    rules: [
-      mockTable("jobs", jobs),
-      mockTable("payout_transfers", transfers),
-      mockRpc("get_user_credential_tier", 2),
-    ],
-  });
-  // A CONNECTED wallet with a real payout history — the state the tab is long
-  // in. The shared edge-function stub answers every function with
-  // `{success:true}`, which reads as "not connected" and hides the wallet, the
-  // payout history and the whole Payouts view.
-  await mockConnectedWallet(page);
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem("helpr_onboarding", JSON.stringify({ seen: true, completed: true }));
-    } catch { /* no-storage guard */ }
-  });
-  await page.setViewportSize({ width: 393, height: 852 });
-  await page.goto("/profile?tab=earnings");
-  await page.getByRole("tab").first().waitFor({ timeout: 20_000 });
-  await page.waitForTimeout(3_000);
-
-  // The fixture really did produce a funded wallet — otherwise every
-  // assertion below would pass against an empty state. The wallet lives on the
-  // Payouts half since 2026-09-11, so this precondition is checked there; the
-  // landing (Earnings) states take-home, not the balance.
-  await page.getByRole("tab", { name: "Payouts" }).click();
-  await expect(page.getByText(/\$245\.00/).first()).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(/\$1,632\b/).first()).toHaveCount(0);
-  await page.getByRole("tab", { name: "Earnings" }).click();
-  await expect(page.getByText(/\$1,632\b/).first()).toBeVisible({ timeout: 10_000 });
-
-  for (const [name, budget] of Object.entries(BUDGET_SCREENS)) {
-    await page.getByRole("tab", { name }).click();
-    await page.waitForTimeout(1_500);
-    const px = await page.evaluate(MEASURE_SCROLLER);
-    const screens = px / 852;
-    expect(
-      screens,
-      `"${name}" view is ${screens.toFixed(1)} screens (${px}px) — budget is ${budget}`,
-    ).toBeLessThanOrEqual(budget);
-  }
-});
-
-test("lifetime take-home is stated in exactly one place", async ({ helperPage: page }) => {
-  // It used to appear three times on one screen: the Money "Net" tile,
-  // HeroSummary in the analytics dashboard, and "Total earned" in the payout
-  // settings — two of them computed by different paths, so they could and did
-  // disagree. Each figure has one home now.
+async function openFunded(page: Page, { honorFilters }: { honorFilters: boolean }): Promise<void> {
   await installSupabaseMocks(page, {
     user: { ...FAKE_HELPER },
     rules: [
@@ -180,14 +128,15 @@ test("lifetime take-home is stated in exactly one place", async ({ helperPage: p
       // `.eq("customer_id", me)`, and a verbatim body handed it all twelve
       // helper-side jobs, so "Total spent … across 12 jobs" claimed the count
       // a second time. None of these jobs were posted by the helper.
-      mockTable("jobs", jobs, { honorFilters: true }),
+      mockTable("jobs", jobs, honorFilters ? { honorFilters: true } : undefined),
       mockTable("payout_transfers", transfers),
       mockRpc("get_user_credential_tier", 2),
     ],
   });
-  // Same connected wallet as the budget test: with the shared `{success:true}`
-  // stub the tab reads as NOT connected and renders the payout-setup block
-  // (PaymentTab) inline on EVERY view, not just Payouts.
+  // A CONNECTED wallet with a real payout history — the state the tab is long
+  // in. The shared edge-function stub answers every function with
+  // `{success:true}`, which reads as "not connected" and hides the wallet, the
+  // payout history and the bank-account section.
   await mockConnectedWallet(page);
   await page.addInitScript(() => {
     try {
@@ -196,27 +145,54 @@ test("lifetime take-home is stated in exactly one place", async ({ helperPage: p
   });
   await page.setViewportSize({ width: 393, height: 852 });
   await page.goto("/profile?tab=earnings");
-  await page.getByRole("tab").first().waitFor({ timeout: 20_000 });
-  await page.waitForTimeout(3_000);
+  await page.getByText(/Tax reporting:/i).first().waitFor({ timeout: 20_000 });
+  await page.waitForTimeout(2_000);
+}
 
-  // "N jobs" / "N completed" is the tell — the count that rode alongside the
-  // money figure in all three places. Exactly one view may claim it.
-  const claims: Record<string, number> = {};
-  for (const name of ["Earnings", "Payouts"]) {
-    await page.getByRole("tab", { name }).click();
-    await page.waitForTimeout(1_200);
-    const text = (await page.locator("body").innerText()).replace(/\s+/g, " ");
-    claims[name] = (text.match(new RegExp(`${JOB_COUNT} (jobs|completed)`, "g")) || []).length;
-  }
-  const total = Object.values(claims).reduce((a, b) => a + b, 0);
-  expect(total, `lifetime completed-jobs count claimed by: ${JSON.stringify(claims)}`).toBe(1);
-  expect(claims.Earnings, "the Earnings summary card is its one home").toBe(1);
+test("the one-page earnings tab stays within its length budget", async ({ helperPage: page }) => {
+  await openFunded(page, { honorFilters: false });
+  await expect(page.getByRole("tab")).toHaveCount(0);
+
+  // The fixture really did produce a funded wallet and real take-home —
+  // otherwise every assertion below would pass against an empty state.
+  await expect(page.getByText(/\$245\.00/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/\$1,632\b/).first()).toBeVisible({ timeout: 10_000 });
+
+  const px = await page.evaluate(MEASURE_SCROLLER);
+  const screens = px / 852;
+  expect(
+    screens,
+    `the Earnings page is ${screens.toFixed(1)} screens (${px}px) — budget is ${PAGE_BUDGET_SCREENS}`,
+  ).toBeLessThanOrEqual(PAGE_BUDGET_SCREENS);
 });
 
-// The length budget is only meaningful because ONE view is mounted at a time —
-// that split is what answered "entirely too long" (owner, 2026-08-28).
-// Dropping the `view === "earnings"` half of the gate mounts the Earnings
-// column underneath Payouts as well, which both blows the Payouts budget and
-// puts lifetime take-home ($1,632) on the Payouts view, where this spec
-// asserts it has no business being.
-// @mutate src/components/profile/EarningsTab.tsx | {view === "earnings" && pageReady && ( | {view === "earnings" && false && (
+test("lifetime take-home is stated in exactly one place", async ({ helperPage: page }) => {
+  // It used to appear three times on one screen: the Money "Net" tile,
+  // HeroSummary in the analytics dashboard, and "Total earned" in the payout
+  // settings — two of them computed by different paths, so they could and did
+  // disagree. Each figure has one home now: the Earned summary card.
+  await openFunded(page, { honorFilters: true });
+  // "N jobs" / "N completed" is the tell — the count that rode alongside the
+  // money figure in all three places.
+  const text = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+  const claims = (text.match(new RegExp(`${JOB_COUNT} (jobs|completed)`, "g")) || []).length;
+  expect(claims, "lifetime completed-jobs count is stated more than once").toBe(1);
+});
+
+// "Repeat itself a lot" (owner, 2026-10-01): every paid job was listed in
+// Earning history AND its transfer again in Recent transfers. The one list
+// shows each transfer inside the job it paid, once. The transfer line prints
+// the last 8 characters of its Stripe transfer id, so each fixture id must
+// appear exactly once on the page. Listing every ledger row on its own as well
+// as under its job — the old two-list layout, back inside one component — puts
+// each id on the page twice.
+// @mutate src/components/profile/earningsTab/EarningHistory.tsx |     if (!moneyJobIds.has(t.job_id)) {\n      orphanTransfers.push(t);\n      continue;\n    } |     orphanTransfers.push(t);
+test("each transfer is listed exactly once", async ({ helperPage: page }) => {
+  await openFunded(page, { honorFilters: true });
+  const text = await page.locator("body").innerText();
+  for (const t of transfers) {
+    const tail = t.stripe_transfer_id.slice(-8);
+    const n = text.split(tail).length - 1;
+    expect(n, `transfer ${t.stripe_transfer_id} is listed ${n} times`).toBe(1);
+  }
+});

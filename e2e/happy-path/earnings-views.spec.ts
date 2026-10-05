@@ -1,49 +1,31 @@
 import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 
-// THE EARNINGS TAB SHOWS ONE THING AT A TIME.
+// THE EARNINGS TAB IS ONE PAGE (Q1177).
 //
-// Owner, 2026-08-28: "Earnings and payout tab is also entirely too long."
-// The tab had merged three former screens into one — correctly, they are one
-// subject — but rendered all of it at once: on a connected, active helpr about
-// 25-30 cards and four charts in a single column, grouped only by four hairline
-// rules doing the work of navigation.
+// History: 2026-08-28 the tab became a four-segment control ("entirely too
+// long"); 2026-09-11 two segments, Earnings and Payouts. 2026-10-01 the owner
+// called the two-view split "messy and repeat itself a lot": the same money was
+// listed up to three times (Earning history, Payout history, Recent transfers)
+// across two views. It is now ONE page with no switcher: wallet, earned
+// summary, ONE payouts list, insights, bank account, tax note.
 //
-// The latent groups are now a segmented control. It carried FOUR segments
-// until 2026-09-11, when the owner asked for the page to be better organised
-// and chose two: Earnings (what I made — the former Money, History and
-// Insights, which were three slices of one question over the same jobs) and
-// Payouts (where the money is and how it reaches me — the wallet, both deposit
-// ledgers, and the payout ACCOUNT, which until then was a lazy PaymentTab
-// mounted in the middle of the reader's own earnings figures).
-//
-// This spec pins the two properties that matter and that a screenshot would
-// not catch:
-//
-//   1. Both views exist and are reachable.
-//   2. Only the SELECTED view is in the DOM — the others are not merely hidden.
-//      That is the whole saving: a helpr checking their balance does not pay to
-//      mount the analytics dashboard, both chart sets, or the full job ledger.
+// This spec pins what a screenshot would not:
+//   1. There is no view switcher — zero role="tab" controls on the page.
+//   2. Every section is in the DOM at once, in reading order.
+//   3. The old `?view=payouts` deep link (any bookmark that still carries it)
+//      renders the same whole page, not half of it.
 
-/** Text unique to each view, present even on an empty account. */
-const MARKERS: Record<string, RegExp> = {
-  // Was /in progress/i. That text came from the Money view's 3-up tile row
-  // ("Active · N · in progress"), which rendered unconditionally — including
-  // the "0 · in progress" tile this suite's empty helper account produced.
-  // ad315368 replaced that row with <EarningsSummaryCard />, whose equivalent
-  // band is `{!loading && inProgressCount > 0 && …}` — correct product
-  // behaviour (an empty account should not be told it has zero jobs running),
-  // and it means the old marker is absent on exactly the account this spec
-  // uses. The marker requirement above ("present even on an empty account")
-  // stopped being true of the string, not of the view.
-  //
-  // `earnedRangeLabel("lifetime")` is the replacement: EarningsTab opens on the
-  // lifetime range, the card prints the label under the figure whatever the
-  // figure is, and the phrase exists in exactly one place in src/.
-  Earnings: /total earned/i,
-  Payouts: /Tax reporting:/i,
-};
+/** Text present even on an empty account, in the order the page reads. */
+const IN_ORDER: RegExp[] = [
+  // `earnedRangeLabel("lifetime")`: the summary opens on lifetime and prints
+  // the label under the figure whatever the figure is.
+  /total earned/i,
+  /^Payouts$/,
+  /More Insights/i,
+  /Tax reporting:/i,
+];
 
-test("earnings tab renders one view at a time", async ({ helperPage: page }) => {
+async function open(page: import("@playwright/test").Page, url: string) {
   await installSupabaseMocks(page, { user: FAKE_HELPER, rules: [] });
   // The onboarding tour renders a modal that swallows taps.
   await page.addInitScript(() => {
@@ -52,86 +34,36 @@ test("earnings tab renders one view at a time", async ({ helperPage: page }) => 
     } catch { /* no-storage guard */ }
   });
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto("/profile?tab=earnings");
+  await page.goto(url);
+  await page.getByText(/Tax reporting:/i).first().waitFor({ timeout: 20_000 });
+}
 
-  const tabs = page.getByRole("tab");
-  await tabs.first().waitFor({ timeout: 20_000 });
-  await expect(tabs).toHaveCount(2);
-  expect(await tabs.allInnerTexts()).toEqual(["Earnings", "Payouts"]);
-
-  // Opens on Earnings — "how am I doing" is what a helpr comes here with.
-  await expect(page.getByRole("tab", { name: "Earnings" })).toHaveAttribute("aria-selected", "true");
-
-  // Every tab is a full 44px HIG tap target. A segmented control is often
-  // drawn at ~36px, and this one briefly was — by overriding the bare
-  // `button { min-height: 44px }` in index.css to get there. That override
-  // came out: the 2026-08-28 a11y sweep raised Legal's search buttons,
-  // ChatComposer's cancel-reply and SavedSearches' notify/delete from 24-32px
-  // to min-44px, and a brand-new control shipping under that bar the same week
-  // would just be the next thing on the list.
-  const boxes = await page.evaluate(() =>
-    [...document.querySelectorAll('[role="tab"]')].map((b) => {
-      const r = b.getBoundingClientRect();
-      return { text: (b.textContent || "").trim(), height: r.height };
-    }),
-  );
-  for (const b of boxes) {
-    expect(b.height, `"${b.text}" tap target is under the 44px minimum`).toBeGreaterThanOrEqual(44);
+async function assertWholePageInOrder(page: import("@playwright/test").Page) {
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  const tops: number[] = [];
+  for (const marker of IN_ORDER) {
+    const el = page.getByText(marker).first();
+    await expect(el, `${marker} is missing from the one-page Earnings tab`).toBeVisible({ timeout: 10_000 });
+    const box = await el.boundingBox();
+    tops.push(box?.y ?? -1);
   }
-
-  for (const name of Object.keys(MARKERS)) {
-    await page.getByRole("tab", { name }).click();
-    // The heavier views mount lazily (analytics dashboard, payout settings).
-    await expect(page.getByRole("tab", { name })).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByText(MARKERS[name]).first()).toBeVisible({ timeout: 10_000 });
-
-    // …and every OTHER view's marker is gone from the document entirely.
-    for (const other of Object.keys(MARKERS)) {
-      if (other === name) continue;
-      await expect(
-        page.getByText(MARKERS[other]),
-        `${other} content is still mounted while ${name} is selected`,
-      ).toHaveCount(0);
-    }
+  for (let i = 1; i < tops.length; i++) {
+    expect(tops[i], `${IN_ORDER[i]} renders above ${IN_ORDER[i - 1]}`).toBeGreaterThan(tops[i - 1]);
   }
+}
 
-  // The three former segments are ONE view now — the per-job ledger and the
-  // breakdown charts must be on the Earnings half, not behind a tab of their
-  // own. Asserting the absorbed content directly, because "two tabs exist" is
-  // equally true of a split that dropped a section on the floor.
-  await page.getByRole("tab", { name: "Earnings" }).click();
-  await expect(page.getByText(/Earning history/i).first()).toBeVisible({ timeout: 10_000 });
-  // The category/month breakdown collapsible. VN-3 (98635843e, 2026-09-14)
-  // renamed this section to "More Insights" when the three former segments
-  // became one Earnings view; the old marker ("more insights with …") went
-  // stale that day and reddened this smoke.
-  await expect(page.getByText(/More Insights/i).first()).toBeVisible();
+test("earnings tab is one page: no switcher, every section in order", async ({ helperPage: page }) => {
+  await open(page, "/profile?tab=earnings");
+  await assertWholePageInOrder(page);
 });
 
-// `/profile?tab=earnings` is the link every notification and email uses, and
-// the old `/earnings` redirect is gone (Q194). `?view=payouts` is the new, additive way for a
-// payout-specific one to land on the payout half — without it, a "your payout
-// arrived" push would open on the earnings summary.
-test("?view=payouts opens the payouts half, and the plain deep link still opens earnings", async ({ helperPage: page }) => {
-  await installSupabaseMocks(page, { user: FAKE_HELPER, rules: [] });
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem("helpr_onboarding", JSON.stringify({ seen: true, completed: true }));
-    } catch { /* no-storage guard */ }
-  });
-  await page.setViewportSize({ width: 375, height: 812 });
-
+// A bookmark from the two-view era may still carry `&view=payouts`. It must
+// open the same whole page — reintroducing a `view`-keyed split (the
+// 2026-09-11 design) is exactly what this catches.
+// @mutate src/components/profile/EarningsTab.tsx |         {pageReady && (\n          <> |         {pageReady && new URLSearchParams(window.location.search).get("view") !== "payouts" && (\n          <>
+test("the old ?view=payouts link still opens the whole page", async ({ helperPage: page }) => {
+  await open(page, "/profile?tab=earnings");
   await page.goto("/profile?tab=earnings&view=payouts");
-  await page.getByRole("tab").first().waitFor({ timeout: 20_000 });
-  await expect(page.getByRole("tab", { name: "Payouts" })).toHaveAttribute("aria-selected", "true");
-
-  await page.goto("/profile?tab=earnings");
-  await page.getByRole("tab").first().waitFor({ timeout: 20_000 });
-  await expect(page.getByRole("tab", { name: "Earnings" })).toHaveAttribute("aria-selected", "true");
+  await page.getByText(/total earned/i).first().waitFor({ timeout: 20_000 });
+  await assertWholePageInOrder(page);
 });
-
-// `?view=payouts` is the whole reason a payout notification can deep-link at
-// the payout half instead of the earnings summary. That is one line: the
-// mount-time read of the `view` search param. Pin it to "earnings" and the
-// tab opens on the wrong half while every other assertion here still passes.
-// @mutate src/components/profile/EarningsTab.tsx | searchParams.get("view") === "payouts" ? "payouts" : "earnings", | "earnings",

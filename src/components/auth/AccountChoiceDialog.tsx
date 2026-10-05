@@ -21,7 +21,9 @@ function providerName(choice: AccountChoice): string {
 
 /** Where "I already have an account" goes: log in, then Profile > Security. */
 function connectAfterLoginHref(provider: AccountChoice["provider"]): string {
-  const connect = provider ?? "any";
+  // A fixed literal, not the value read from the OAuth error: this ends up in
+  // storage via the login redirect (CodeQL js/clear-text-storage-of-sensitive-data).
+  const connect = provider === "apple" ? "apple" : provider === "google" ? "google" : "any";
   const back = `/profile?tab=security&connect=${connect}`;
   return `/login?connect=${connect}&redirect=${encodeURIComponent(back)}`;
 }

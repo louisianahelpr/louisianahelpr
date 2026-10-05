@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { hapticError } from "@/lib/haptics";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { unwrap } from "@/lib/supabaseResult";
 import { userFacingError } from "@/lib/userFacingError";
@@ -66,6 +67,10 @@ export function SignInMethodsCard() {
       confirmConsequential(`${NAME[provider]} connected. It now opens this account.`);
     } else if (result.kind === "error") {
       toast.error(userFacingError(result.message, "That sign-in couldn't be connected. Try again."), { id: "connect-provider" });
+    } else if (result.kind === "cancelled") {
+      // Same small signal as the main sign-in's cancel: the tap registered.
+      hapticError();
+      toast(`Connecting ${NAME[provider]} cancelled. Nothing changed.`, { id: "connect-provider" });
     }
   };
 

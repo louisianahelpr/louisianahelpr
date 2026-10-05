@@ -194,7 +194,10 @@ export function socialAuthErrorCopy(
  */
 export function markOAuthPending(provider: OAuthProvider, path: string): void {
   try {
-    sessionStorage.setItem(PENDING_KEY, JSON.stringify({ provider, path, at: Date.now() }));
+    // Fixed literals only (CodeQL js/clear-text-storage-of-sensitive-data): the
+    // provider may have been read back from an OAuth error.
+    const safeProvider: OAuthProvider = provider === "apple" ? "apple" : "google";
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify({ provider: safeProvider, path, at: Date.now() }));
   } catch {
     // Silent by design: storage blocked (private mode, site data off). The
     // sign-in still proceeds; only the failure explanation is lost, and the

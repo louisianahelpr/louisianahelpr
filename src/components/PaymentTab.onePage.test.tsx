@@ -81,9 +81,12 @@ describe("PaymentTab, the Money tab's payout account (Q1177)", () => {
 
   it("no paid payout on record: no Next expected card", async () => {
     lastPaid = null;
-    renderTab();
+    const onSettled = vi.fn();
+    renderTab(onSettled);
     await screen.findByText("payout setup form");
-    await waitFor(() => expect(screen.queryByText(/Next expected/)).toBeNull());
+    // Wait for the last-payout read to ANSWER first, so "no card" is the loaded state.
+    await waitFor(() => expect(onSettled).toHaveBeenCalled());
+    expect(screen.queryByText(/Next expected/)).toBeNull();
   });
 
   it("reports settled only once its last-payout read has answered", async () => {

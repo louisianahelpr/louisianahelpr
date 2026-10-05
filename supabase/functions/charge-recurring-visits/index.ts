@@ -75,6 +75,7 @@ import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 /**
  * The client type these helpers accept.
@@ -371,7 +372,7 @@ async function priorVisitIntent(
       expand: ["data.latest_charge"],
     });
   } catch (e) {
-    return { kind: "error", message: e instanceof Error ? e.message : String(e) };
+    return { kind: "error", message: caughtMessage(e) };
   }
   if (!list || !Array.isArray(list.data)) return { kind: "error", message: "PaymentIntent list gave no data" };
   if (list.has_more) return { kind: "error", message: "more than 100 PaymentIntents for this payer inside the window" };

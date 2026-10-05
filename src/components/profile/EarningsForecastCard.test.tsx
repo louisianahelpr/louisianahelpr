@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
@@ -83,9 +83,9 @@ describe("EarningsForecastCard", () => {
         <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
       </Wrapper>,
     );
-    await waitFor(() => {
-      expect(screen.queryByTestId("earnings-forecast-skeleton")).not.toBeInTheDocument();
-    });
+    // The skeleton must be there first (the read is in flight), then leave: an
+    // empty card asserted before the read answers would prove nothing.
+    await waitForElementToBeRemoved(() => screen.queryByTestId("earnings-forecast-skeleton"));
     expect(container).toBeEmptyDOMElement();
     expect(screen.queryByText(/no jobs lined up yet/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /browse jobs/i })).not.toBeInTheDocument();

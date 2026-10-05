@@ -271,7 +271,12 @@ function main() {
     return;
   }
 
-  const current = fs.existsSync(SITEMAP) ? fs.readFileSync(SITEMAP, "utf8") : null;
+  let current = null;
+  try {
+    current = fs.readFileSync(SITEMAP, "utf8");
+  } catch (e) {
+    if (e?.code !== "ENOENT") throw e; // no sitemap yet: nothing to compare against
+  }
 
   if (checkOnly) {
     // Compare the URL SET and their weights, NOT the raw bytes. A byte

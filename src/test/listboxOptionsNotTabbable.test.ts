@@ -10,7 +10,7 @@
  * tabIndex={-1}.
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -105,9 +105,10 @@ describe("listbox options are not tab stops", () => {
     const hits: string[] = [];
     const contractGaps: string[] = [];
     (function walk(d: string) {
-      for (const n of readdirSync(d)) {
+      for (const dirent of readdirSync(d, { withFileTypes: true })) {
+        const n = dirent.name;
         const p = join(d, n);
-        if (statSync(p).isDirectory()) walk(p);
+        if (dirent.isDirectory()) walk(p);
         else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) {
           const raw = readFileSync(p, "utf8");
           const gaps = missingComboboxContract(raw);

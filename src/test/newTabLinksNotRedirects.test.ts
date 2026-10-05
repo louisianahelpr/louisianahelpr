@@ -19,7 +19,7 @@
  * @mutate src/App.tsx | <Route path="/rules" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} /> | <Route path="/rules" element={<Navigate to="/legal?tab=rules" replace />} />
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 
@@ -66,9 +66,10 @@ describe("new-tab links never target a redirect route", () => {
     const hits: string[] = [];
     const seen: string[] = [];
     (function walk(d: string) {
-      for (const n of readdirSync(d)) {
+      for (const dirent of readdirSync(d, { withFileTypes: true })) {
+        const n = dirent.name;
         const p = join(d, n);
-        if (statSync(p).isDirectory()) walk(p);
+        if (dirent.isDirectory()) walk(p);
         else if (/\.tsx?$/.test(n) && !/\.test\./.test(n)) {
           for (const h of newTabHrefs(readFileSync(p, "utf8"))) {
             seen.push(`${p} → ${h}`);

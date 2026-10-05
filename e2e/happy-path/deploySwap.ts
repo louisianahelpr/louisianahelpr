@@ -96,18 +96,24 @@ export async function startDeployServer(dirA: string, dirB: string): Promise<Dep
       root = dirA;
     }
     if (entryBroken && p === `/assets/${entryB}`) p = "/__gone__.js";
+    // Read directly instead of stat-then-read: a directory (EISDIR) or an absent path (ENOENT/ENOTDIR) is the miss.
+    const readOrNull = (f: string) =>
+      fs.readFile(f).catch((e: NodeJS.ErrnoException) => {
+        if (e.code === "ENOENT" || e.code === "EISDIR" || e.code === "ENOTDIR") return null;
+        throw e;
+      });
     let file = path.join(root, p);
-    let stat = await fs.stat(file).catch(() => null);
-    if (stat?.isDirectory()) {
+    let body = await readOrNull(file);
+    if (body === null) {
       file = path.join(file, "index.html");
-      stat = await fs.stat(file).catch(() => null);
+      body = await readOrNull(file);
     }
-    if (!stat) {
+    if (body === null) {
       if (/^\/assets\/.+\.js$/.test(p)) missing.push(p);
       // vercel.json's catch-all rewrite: no file → index.html, 200.
       file = path.join(root, "index.html");
+      body = await fs.readFile(file);
     }
-    const body = await fs.readFile(file);
     const type = TYPES[path.extname(file)] ?? "application/octet-stream";
     res.writeHead(200, {
       "content-type": type,

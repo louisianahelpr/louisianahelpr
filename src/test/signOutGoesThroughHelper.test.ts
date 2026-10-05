@@ -5,7 +5,7 @@
  * every device, which is how a phone Log Out signed the web out (2026-09-12).
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 
@@ -23,9 +23,10 @@ describe("sign-out goes through the scoped helper", () => {
   it("no direct supabase.auth.signOut() outside authSignOut.ts", () => {
     const hits: string[] = [];
     (function walk(d: string) {
-      for (const n of readdirSync(d)) {
+      for (const dirent of readdirSync(d, { withFileTypes: true })) {
+        const n = dirent.name;
         const p = join(d, n);
-        if (statSync(p).isDirectory()) walk(p);
+        if (dirent.isDirectory()) walk(p);
         else if (/\.tsx?$/.test(n) && !/\.test\./.test(n) && p !== join("src", "lib", "authSignOut.ts"))
           for (const l of offenders(readFileSync(p, "utf8"))) hits.push(`${p}: ${l.trim()}`);
       }

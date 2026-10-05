@@ -154,18 +154,12 @@ describe("Helpr gift card naming guard", () => {
     for (const path of paths) {
       const leaf = path.split(sep).pop() ?? "";
       if (namingOffences(leaf).length) offenders.push(`${path} (path name)`);
-      let isFile: boolean;
-      try {
-        isFile = statSync(path).isFile();
-      } catch {
-        continue;
-      }
-      if (!isFile || BINARY.test(path)) continue;
+      if (BINARY.test(path)) continue;
       let text: string;
       try {
         text = readFileSync(path, "utf8");
       } catch {
-        continue;
+        continue; // a directory (EISDIR) or a file that vanished: nothing to scan
       }
       for (const hit of namingOffences(text)) offenders.push(`${path}:${hit}`);
     }

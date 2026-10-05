@@ -58,7 +58,7 @@
 // shared accounts' jobs are in.
 // @mutate src/pages/jobs/AppliedJobCard.tsx | locationPressToMap | locationPressToMap={false}
 
-import { mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
 import { getSession, type Session } from "./harness";
@@ -93,9 +93,10 @@ function metaRowConsumers(): string[] {
   const root = resolve(process.cwd(), "src");
   const out: string[] = [];
   const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
+    for (const dirent of readdirSync(dir, { withFileTypes: true })) {
+      const entry = dirent.name;
       const p = join(dir, entry);
-      if (statSync(p).isDirectory()) {
+      if (dirent.isDirectory()) {
         walk(p);
         continue;
       }

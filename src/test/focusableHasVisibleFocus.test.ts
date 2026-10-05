@@ -23,7 +23,7 @@
  * @mutate src/components/ui/switch.tsx | "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood))] focus-visible:ring-offset-2 focus-visible:ring-offset-background", | "focus-visible:outline-none",
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 
@@ -70,9 +70,10 @@ describe("a focusable that hides the outline paints its own focus", () => {
   it("no outline-stripping tag without a focus paint anywhere in src/", () => {
     const hits: string[] = [];
     (function walk(d: string) {
-      for (const n of readdirSync(d)) {
+      for (const dirent of readdirSync(d, { withFileTypes: true })) {
+        const n = dirent.name;
         const p = join(d, n);
-        if (statSync(p).isDirectory()) walk(p);
+        if (dirent.isDirectory()) walk(p);
         else if (/\.tsx$/.test(n) && !/\.test\./.test(n) && !LEGACY.has(p)) hits.push(...offenders(p, readFileSync(p, "utf8")));
       }
     })("src");
@@ -117,9 +118,10 @@ describe("a declared focus paint is not defeated by an inline style", () => {
   it("no ring-plus-inline-boxShadow (or outline-plus-inline-outline) tag anywhere in src/", () => {
     const hits: string[] = [];
     (function walk(d: string) {
-      for (const n of readdirSync(d)) {
+      for (const dirent of readdirSync(d, { withFileTypes: true })) {
+        const n = dirent.name;
         const p = join(d, n);
-        if (statSync(p).isDirectory()) walk(p);
+        if (dirent.isDirectory()) walk(p);
         else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) hits.push(...defeatedFocusPaint(p, readFileSync(p, "utf8")));
       }
     })("src");

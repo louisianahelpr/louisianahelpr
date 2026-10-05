@@ -241,6 +241,42 @@ const PaymentSuccess = () => {
     setConfirmAttempt((n) => n + 1);
   }, []);
 
+  // Funnel events for the checkout return. Fired ONCE, from the confirmation
+  // lookup, for everyone except a signed-in account the lookup proved did not
+  // post the job (Q1386b: a non-poster opening the link used to be counted as
+  // a payment). Still NOT gated on the payment being confirmed held: a failed
+  // or unreadable lookup must not drop the checkout-completed funnel step.
+  const returnEventsFired = useRef(false);
+  const fireReturnEvents = useCallback(() => {
+    if (returnEventsFired.current) return;
+    returnEventsFired.current = true;
+    const jobId = searchParams.get("job_id") || null;
+    const ppoProps = ppoTrackingProps();
+    // Funnel: customer returned from checkout — closes the customer funnel
+    // that previously stopped at job_posted with no record of payment.
+    track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
+
+    // First-payment aha — fire only when this is the user's first
+    // successful payment. Mirrors the count-query pattern from
+    // first_job_posted / first_job_application_sent.
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { count } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("customer_id", user.id)
+          .not("stripe_payment_intent_id", "is", null);
+        if ((count ?? 0) <= 1) {
+          track(AhaEvent.FirstPaymentCollected, { job_id: jobId, ...ppoProps });
+        }
+      } catch (e) {
+        report(e, { tags: { source: "PaymentSuccess.firstPaymentCount" } });
+      }
+    })();
+  }, [searchParams]);
+
   // ── The confirmation lookup ───────────────────────────────────────────
   // Read-only. Decides which claim the page is allowed to make; touches no
   // payment or escrow logic.
@@ -248,6 +284,7 @@ const PaymentSuccess = () => {
     if (!resolvedJobId) {
       setConfirmState("unknown");
       setUnknownReason("no-reference");
+      fireReturnEvents();
       return;
     }
     let cancelled = false;
@@ -288,6 +325,7 @@ const PaymentSuccess = () => {
           setConfirmState("not_yours");
           return;
         }
+        fireReturnEvents();
 
         if (typeof data.budget === "number") setEscrowAmount(data.budget);
         if (typeof data.category === "string") setCategory(data.category);
@@ -305,11 +343,12 @@ const PaymentSuccess = () => {
         // 'unpaid' / null → the webhook hasn't landed yet. Keep polling.
       }
       if (cancelled) return;
+      fireReturnEvents(); // unreadable or still pending: we cannot say it is not the poster
       setUnknownReason(sawReadError ? "unreachable" : "pending");
       setConfirmState("unknown");
     })();
     return () => { cancelled = true; };
-  }, [resolvedJobId, confirmAttempt]);
+  }, [resolvedJobId, confirmAttempt, fireReturnEvents]);
 
   // Celebrate only what we actually confirmed. The success haptic used to
   // fire on mount, i.e. also when every request behind this screen had died.
@@ -321,37 +360,6 @@ const PaymentSuccess = () => {
       dropSpentDraft(); // paid: drop the draft kept through checkout; a cancel keeps "Load Draft"
     }
   }, [isHeld]);
-
-  useEffect(() => {
-    const jobId = searchParams.get("job_id") || null;
-    const ppoProps = ppoTrackingProps();
-    // Funnel: customer returned from checkout — closes the customer funnel
-    // that previously stopped at job_posted with no record of payment. This
-    // fires on arrival (not on confirmation) deliberately: it is the
-    // checkout-completed funnel step, and gating it on the confirmation read
-    // would silently drop events whenever that read failed.
-    track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
-
-    // First-payment aha — fire only when this is the user's first
-    // successful payment. Mirrors the count-query pattern from
-    // first_job_posted / first_job_application_sent.
-    void (async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { count } = await supabase
-          .from("jobs")
-          .select("id", { count: "exact", head: true })
-          .eq("customer_id", user.id)
-          .not("stripe_payment_intent_id", "is", null);
-        if ((count ?? 0) <= 1) {
-          track(AhaEvent.FirstPaymentCollected, { job_id: jobId, ...ppoProps });
-        }
-      } catch (e) {
-        report(e, { tags: { source: "PaymentSuccess.firstPaymentCount" } });
-      }
-    })();
-  }, [searchParams]);
 
   const heading = isHeld
     ? "Payment authorized."

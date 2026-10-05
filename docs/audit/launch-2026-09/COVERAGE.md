@@ -7,7 +7,7 @@
 Generated from findings.jsonl as of its newest entry: 2026-10-05T07:00:17.530Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
-- **Findings:** 5 open (0 open launch blockers), 353 fixed, 3 wontfix, 22 obsolete, 14 retracted, 32 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
+- **Findings:** 4 open (0 open launch blockers), 354 fixed, 3 wontfix, 22 obsolete, 14 retracted, 32 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
 - **Surface:** 1055 auditable surfaces (455 navigable, 600 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -26,7 +26,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 2 | `lh-edge-functions` | REPORTED | 0 | – | 15 |
 | 2 | `lh-webkit-differ` | REPORTED | 0 | – | 1 |
 | 3 | `lh-cron-jobs` | REPORTED | 0 | – | 11 |
-| 3 | `lh-money-escrow` | REPORTED | 3 | – | 21 |
+| 3 | `lh-money-escrow` | REPORTED | 2 | – | 22 |
 | 3 | `lh-native-bridge` | REPORTED | 0 | – | 20 |
 | 4 | `lh-build-release` | REPORTED | 0 | – | 15 |
 | 4 | `lh-onboarding-auth` | REPORTED | 1 | – | 15 |

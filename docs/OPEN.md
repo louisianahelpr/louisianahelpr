@@ -867,7 +867,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Money: concurrent release / Quick Release / Quick Refund (2026-09-13)
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q975** HIGH OPEN: 2026-09-14 lifecycle-writes CAS fixes have no prod race proof yet — Eight fixed lifecycle-writes CAS guards (auto-release-payment, auto-resolve-disputes, escrow stamp, revisions, cancel_escrow, chargeback) still have zero prod concurrency proof. (archive L3201)
+- [ ] **Q975** HIGH OPEN: 2026-09-14 lifecycle-writes CAS fixes have no prod race proof yet — Eight fixed lifecycle-writes CAS guards (auto-release-payment, auto-resolve-disputes, escrow stamp, revisions, cancel_escrow, chargeback) still have zero prod concurrency proof. (archive L3201) **STATUS 2026-10-05 (security-data lane): BLOCKED, not built.** The seven probes (docs/archive/lifecycle-writes-audit-2026-09-14.md: auto-release vs dispute, auto-resolve vs escalate/withdraw, gift vs card funding, revision double-taps, cancel_escrow vs dispute, chargeback vs settled payout) need FUNDED jobs on prod, and a funded test job cannot be made without completing a live payment (forbidden; owner 2026-10-02: paid/escrow states are unseedable pre-launch). Two ways forward, a lead/owner choice: (a) prove each CAS predicate as a two-connection round in scripts/ci/race-runner.mjs (CI's throwaway Postgres, never prod), which proves the database half but not the edge function's HTTP ordering; (b) run the probes on the first real funded jobs after launch. Until one is chosen this stays open.
 
 ### Disk: git history carries 322M of dead media — REWRITE QUEUED (2026-09-13)
 Reconciled 2026-09-23; detail in the archive at the line shown.

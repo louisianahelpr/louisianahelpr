@@ -7,13 +7,14 @@
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | IF NEW.closed_reason = 'job_cancelled' THEN | IF false THEN
 // @mutate src/components/job-card/jobStatusLine.ts | if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected"; | if (app.status === "rejected") return "not_selected";
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | if (app.closed_reason === "job_cancelled") return | if (app.closed_reason === "never") return
-// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {app.status === "rejected" && app.closed_reason !== "job_cancelled" && ( | {app.status === "rejected" && (
+// @mutate src/pages/posts/postedJobs/applicantBadge.ts |   job_cancelled: null, |   job_cancelled: "Declined",
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { deriveHelperWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp } from "@/components/job-card/activityConstants";
+import { posterApplicantBadge } from "@/pages/posts/postedJobs/applicantBadge";
 import { readdirSync } from "./helpers/trackedFiles";
 
 /**
@@ -109,7 +110,10 @@ describe("Q274: a cancelled job closes its pending applications, truthfully", ()
     expect(src("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/\{closedCardLabel\(app\)\}/);
     const card = src("src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts");
     expect(card).toMatch(/if \(app\.closed_reason === "job_cancelled"\) return "Job cancelled"/);
+    // Q1259: the panel's badge comes from posterApplicantBadge, one entry per closed_reason.
     const panel = src("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
-    expect(panel).toMatch(/app\.status === "rejected" && app\.closed_reason !== "job_cancelled" && \(/);
+    expect(panel).toMatch(/posterApplicantBadge\(app\)/);
+    expect(posterApplicantBadge({ status: "rejected", closed_reason: "job_cancelled" })).toBeNull();
+    expect(posterApplicantBadge({ status: "rejected", closed_reason: null })?.label).toBe("Declined");
   });
 });

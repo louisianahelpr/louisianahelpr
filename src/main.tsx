@@ -339,7 +339,7 @@ void hydrateStorage();
         initPostHog();
         // Q762: one real-user page-load sample per cold load, for the p95
         // page-load SLO (scripts/slo.mjs). Its own chunk; a failure is silent.
-        void import("./lib/pageLoadTiming")
+        void backgroundImport(() => import("./lib/pageLoadTiming"), "page-load-timing")
           .then(({ reportPageLoadOnce }) => reportPageLoadOnce())
           .catch(() => {
             /* a timing sample must never break the app */

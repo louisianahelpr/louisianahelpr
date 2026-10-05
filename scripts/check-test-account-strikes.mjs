@@ -28,6 +28,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ACCOUNTS } from "./test-signin-link.mjs";
+import { supabaseBase } from "./lib/apiBase.mjs";
 
 export const SHARED_TEST_ACCOUNTS = [
   "helpr-e2e-poster-0902@mailinator.com",
@@ -86,7 +87,7 @@ export function findPinnedIdDrift(accounts, profiles) {
 
 async function main() {
   const env = readEnv();
-  const base = (env.SUPABASE_URL || env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const base = supabaseBase(env.SUPABASE_URL || env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
   const key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!base || !key) {
     console.error("[test-account-strikes] missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");

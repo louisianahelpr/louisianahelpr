@@ -29,6 +29,7 @@ import { resolve } from "node:path";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
 import { fitJobTitle, runTag } from "../lib/jobTextBounds.mjs";
+import { supabaseBase } from "../lib/apiBase.mjs";
 
 export const PRESS_MARKER = "[PRESS DO NOT ACCEPT]";
 
@@ -126,7 +127,7 @@ function env(name) {
   } catch { return undefined; }
 }
 
-export function supabaseUrl() { return (env("PLAYWRIGHT_SUPABASE_URL") ?? env("VITE_SUPABASE_URL") ?? "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, ""); }
+export function supabaseUrl() { return supabaseBase(env("PLAYWRIGHT_SUPABASE_URL") ?? env("VITE_SUPABASE_URL") ?? "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, ""); }
 function anonKey() { return env("PLAYWRIGHT_SUPABASE_ANON_KEY") ?? env("VITE_SUPABASE_PUBLISHABLE_KEY") ?? env("VITE_SUPABASE_ANON_KEY") ?? "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP"; }
 
 function headers(s, extra = {}) {

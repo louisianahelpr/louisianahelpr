@@ -53,6 +53,7 @@ import { acceptCurrentTerms } from "./lib/acceptCurrentTerms.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { supabaseBase } from "./lib/apiBase.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -250,7 +251,7 @@ async function main() {
   const target = resolveTarget(args.find((a) => !a.startsWith("-")) ?? "");
 
   const env = readEnv();
-  const supabaseUrl = env.VITE_SUPABASE_URL;
+  const supabaseUrl = supabaseBase(env.VITE_SUPABASE_URL);
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey) {
     console.error(

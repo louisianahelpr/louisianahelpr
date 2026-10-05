@@ -48,6 +48,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseProfileTabKeys } from './lib/profileTabs.mjs';
+import { supabaseBase } from './lib/apiBase.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
@@ -580,7 +581,7 @@ async function runPool(items, worker, poolSize) {
 
 async function main() {
   const env = readEnv();
-  const supabaseUrl = env.VITE_SUPABASE_URL;
+  const supabaseUrl = supabaseBase(env.VITE_SUPABASE_URL);
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
   const restEnv = { supabaseUrl, serviceKey };
 

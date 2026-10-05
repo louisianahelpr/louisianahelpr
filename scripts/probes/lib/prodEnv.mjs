@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
+import { supabaseBase } from "../../lib/apiBase.mjs";
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -16,7 +17,7 @@ export function readEnv() {
 }
 
 const env = readEnv();
-export const URL_ = env.VITE_SUPABASE_URL;
+export const URL_ = supabaseBase(env.VITE_SUPABASE_URL);
 export const ANON = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const SR = env.SUPABASE_SERVICE_ROLE_KEY;
 if (!URL_?.includes("fncmgoasalhdgfwzhsqa")) throw new Error(`unexpected project ${URL_}`);

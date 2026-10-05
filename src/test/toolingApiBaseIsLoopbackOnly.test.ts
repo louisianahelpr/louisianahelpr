@@ -17,23 +17,31 @@
  *      floor: adding a seam means raising it, removing one lowers it),
  *   3. the helper refuses what it must refuse (unit),
  *   4. state-review.mjs gates REVIEW_API_BASE through isLoopbackBase.
+ * The Supabase project URL those scripts read from `.env` (VITE_SUPABASE_URL and
+ * friends) is the other place a service-role / access / anon key is sent. The
+ * wrapped scripts read it through `supabaseBase()`, which accepts only
+ * https://<project>.supabase.co or a loopback stub: exactly SUPABASEBASE_CALL_SITES
+ * calls outside the helper (exact floor), and the helper is unit-tested.
  * check-stripe-webhook-events.mjs keeps its own older loopback-or-supabase.co
  * refusal for LH_SUPABASE_FUNCTIONS_BASE and is not an API_BASE seam.
  */
 // @mutate scripts/check-quota-usage.mjs | const VERCEL = apiBase(env.LH_VERCEL_API_BASE, "https://api.vercel.com"); | const VERCEL = env.LH_VERCEL_API_BASE ?? "https://api.vercel.com";
 // @mutate scripts/lib/apiBase.mjs | if (!isLoopbackBase(override)) { | if (false) {
 // @mutate scripts/state-review.mjs | !isLoopbackBase(base)) { | false) {
+// @mutate scripts/lib/apiBase.mjs | if (!hosted && !isLoopbackBase(value)) { | if (false) {
+// @mutate scripts/launch-go.mjs | const SUPABASE_URL = supabaseBase(env.VITE_SUPABASE_URL); | const SUPABASE_URL = env.VITE_SUPABASE_URL;
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { apiBase, isLoopbackBase } from "../../scripts/lib/apiBase.mjs";
+import { apiBase, isLoopbackBase, supabaseBase } from "../../scripts/lib/apiBase.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "../..");
 const APIBASE_CALL_SITES = 21; // measured 2026-10-05: 14 single-seam scripts + quota 3 + stripe-balance 2 + opsAlertLedger 1 + stripe-test-topup 1
+const SUPABASEBASE_CALL_SITES = 11; // measured 2026-10-05: pressProdSafety, prod-seed, check-test-account-strikes, prod-audit-sweeper, create-app-review-demo-account, launch-go, load-test, probes/lib/prodEnv, test-signin-link, audit-capture, probe-state-matrix
 const MIN_FILES = 250; // measured 2026-10-05: 290 git-tracked scripts/ sources (a scan that finds far fewer is broken, not clean)
 
 function scriptSources(): string[] {
@@ -95,5 +103,34 @@ describe("credential-bearing scripts only send to loopback overrides", () => {
   it("state-review gates REVIEW_API_BASE through isLoopbackBase (https or loopback only)", () => {
     const s = sources.find((x) => x.f === "scripts/state-review.mjs")?.text ?? "";
     expect(s).toMatch(/REVIEW_API_BASE[\s\S]{0,300}!\/\^https:[\s\S]{0,40}&& !isLoopbackBase\(base\)\) \{/);
+  });
+
+  it("the exact number of supabaseBase call sites (floor, both directions)", () => {
+    let n = 0;
+    for (const { f, text } of sources) {
+      if (f === "scripts/lib/apiBase.mjs") continue;
+      n += (text.match(/\bsupabaseBase\(/g) ?? []).length;
+    }
+    expect(n).toBe(SUPABASEBASE_CALL_SITES);
+  });
+
+  it("supabaseBase passes empty, accepts a hosted project or loopback, refuses everything else", () => {
+    expect(supabaseBase(undefined)).toBeUndefined();
+    expect(supabaseBase("")).toBe("");
+    expect(supabaseBase("https://fncmgoasalhdgfwzhsqa.supabase.co")).toBe("https://fncmgoasalhdgfwzhsqa.supabase.co");
+    expect(supabaseBase("https://abc-1.supabase.co/")).toBe("https://abc-1.supabase.co/");
+    expect(supabaseBase("http://127.0.0.1:54321")).toBe("http://127.0.0.1:54321");
+    for (const bad of [
+      "https://evil.example",
+      "https://x.supabase.co.evil.example",
+      "https://supabase.co",
+      "http://x.supabase.co",
+      "https://user:pw@x.supabase.co",
+      "https://evil.example/x.supabase.co",
+      "ftp://x.supabase.co",
+      "not a url",
+    ]) {
+      expect(() => supabaseBase(bad), bad).toThrow(/Refusing to send credentials/);
+    }
   });
 });

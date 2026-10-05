@@ -174,7 +174,12 @@ export const POSTER_SIDE_EXEMPT: Record<string, string> = {
  * when the policy names none, e.g. a realtime topic match). public.jobs itself
  * is left out: its poster column is its own customer_id.
  */
-export function posterReadableViaJob(tables = publicTables()): Map<string, string> {
+/**
+ * Every public-table policy as the migrations leave it: CREATE/DROP POLICY and
+ * ALTER POLICY (RENAME TO, USING) replayed in file order, comments blanked.
+ * Keyed "table:name" (a quoted name keeps its case, a bare one is folded).
+ */
+export function replayedPolicies(): Map<string, { table: string; text: string }> {
   const dir = join(REPO, "supabase/migrations");
   const live = new Map<string, { table: string; text: string }>();
   for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
@@ -215,8 +220,12 @@ export function posterReadableViaJob(tables = publicTables()): Map<string, strin
     }
     events.sort((a, b) => a.at - b.at).forEach((e) => e.apply());
   }
+  return live;
+}
+
+export function posterReadableViaJob(tables = publicTables()): Map<string, string> {
   const out = new Map<string, string>();
-  for (const { table, text } of live.values()) {
+  for (const { table, text } of replayedPolicies().values()) {
     // Only tables the schema still has (a dropped table's policies went with it).
     if (table === "jobs" || !tables.has(table)) continue;
     const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(text)?.[1] ?? "all").toLowerCase();
@@ -234,6 +243,50 @@ export function posterReadableViaJob(tables = publicTables()): Map<string, strin
       /\b(?:j|jobs)\.id\s*=\s*(?:(?:public\.)?\w+\.)?(\w+)/i.exec(text)?.[1] ??
       /(?:(?:public\.)?\w+\.)?(\w+)\s*=\s*(?:j|jobs)\.id\b/i.exec(text)?.[1] ??
       /\bwhere\s+id\s*=\s*(?:(?:public\.)?\w+\.)?(\w+)/i.exec(text)?.[1] ??
+      "?";
+    if (!out.has(table) || out.get(table) === "?") out.set(table, col.toLowerCase());
+  }
+  return out;
+}
+
+
+/**
+ * Q1235: the Helpr's side of posterReadableViaJob. Every table whose SELECT (or
+ * ALL) policy admits the job's HIRED HELPR as that Helpr: inside a jobs
+ * sub-select (`FROM jobs ... WHERE ... helper_id = auth.uid()`, either side of
+ * the =, or `auth.uid() IN (SELECT helper_id FROM jobs ...)`), or
+ * is_series_party(<col>). A table's OWN helper_id column compared to
+ * auth.uid() outside a jobs sub-select is not this (that is the row's own
+ * person column, exported by EXPORTED[table].by). Maps table -> the job column.
+ */
+export function helperReadableViaJob(tables = publicTables()): Map<string, string> {
+  const UID = String.raw`\(?\s*(?:select\s+)?auth\.uid\s*\(\s*\)(?:\s+AS\s+uid)?\s*\)?`;
+  const helperIsCaller = new RegExp(String.raw`(?:\b(?:\w+\.)?helper_id\s*=\s*${UID}|${UID}\s*=\s*(?:\w+\.)?helper_id\b)`, "i");
+  /** Each `FROM jobs ...` up to the paren that closes its sub-select. */
+  const jobsSubselects = (text: string) =>
+    [...text.matchAll(/\bFROM\s+(?:public\.)?jobs\b/gi)].map((m) => {
+      let depth = 0;
+      for (let i = m.index!; i < text.length; i++) {
+        if (text[i] === "(") depth++;
+        else if (text[i] === ")" && --depth < 0) return text.slice(m.index!, i);
+      }
+      return text.slice(m.index!);
+    });
+  const out = new Map<string, string>();
+  for (const { table, text } of replayedPolicies().values()) {
+    if (table === "jobs" || !tables.has(table)) continue;
+    const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(text)?.[1] ?? "all").toLowerCase();
+    if (cmd !== "select" && cmd !== "all") continue;
+    const series = /\bis_series_party\s*\(\s*(?:\w+\.)?(\w+)\s*\)/i.exec(text);
+    const viaSub = jobsSubselects(text).some((sub) => helperIsCaller.test(sub));
+    const inForm = new RegExp(String.raw`${UID}\s+IN\s*\(\s*SELECT\s+(?:(?:public\.)?\w+\.)?helper_id\s+FROM\s+(?:public\.)?jobs\b`, "i").test(text);
+    if (!series && !viaSub && !inForm) continue;
+    const col =
+      series?.[1] ??
+      /\b(?:j|jobs)\.id\s*=\s*(?:(?:public\.)?\w+\.)?(\w+)/i.exec(text)?.[1] ??
+      /(?:(?:public\.)?\w+\.)?(\w+)\s*=\s*(?:j|jobs)\.id\b/i.exec(text)?.[1] ??
+      /\bwhere\s+id\s*=\s*(?:(?:public\.)?\w+\.)?(\w+)/i.exec(text)?.[1] ??
+      /\b(\w+)\s+IN\s*\(\s*SELECT\s+(?:\w+\.)?id\s+FROM\s+(?:public\.)?jobs\b/i.exec(text)?.[1] ??
       "?";
     if (!out.has(table) || out.get(table) === "?") out.set(table, col.toLowerCase());
   }

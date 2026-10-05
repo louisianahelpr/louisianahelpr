@@ -655,23 +655,41 @@
          The whole stack fades in only after 600 ms, so a normal load still
          shows nothing but the background. Olive = --bark (#5E6544 light,
          72 22% 52% dark). Reduced motion: no slide, a still half-width bar. */
+      /* ONE H FOR THE WHOLE LAUNCH (owner, 2026-10-05: "two separate H
+         loaders show one after another; there must be exactly one").
+         The native splash (ios LaunchScreen.storyboard: the Splash image,
+         scaleAspectFill, window-sized; Capacitor's SplashScreen reuses that
+         storyboard) draws the H at 10.98% of the window's LONGER side, dead
+         centre. This H used to be a fixed 74.5 x 64 px box lifted 10.5 px
+         above centre by the bar under it, so on a 393 x 852 iPhone the
+         launch read as a 92 px H, then a different 73 px H 10.5 px higher
+         (measured, WebKit, ~/.lh-shots/home-bugs/before-*). It now draws the
+         SAME H at the SAME size and place — the box below is sized so its ink
+         matches the splash's — and the bar hangs below it without moving it,
+         so the hand-off is one mark, not two. The factor lives in three
+         places that must agree (here, .boot-h-mark in src/index.css, the
+         splash PNG itself): src/test/oneBootLoaderMark.test.ts measures the
+         PNG and fails if any of them drifts. */
       #boot-loader .boot-stack {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 18px;
+        position: relative;
         opacity: 0;
         animation: boot-progress-in 240ms ease-out 600ms forwards;
       }
       #boot-loader .boot-h {
-        width: 74.5px;
-        height: 64px;
+        width: calc(max(100vw, 100vh) * 0.11);
+        aspect-ratio: 256 / 220;
         background: url("/boot-h.webp") center / contain no-repeat;
       }
       [data-theme="dark"] #boot-loader .boot-h {
         background-image: url("/boot-h-dark.webp");
       }
       #boot-loader .boot-progress {
+        /* Hangs 18 px under the H, out of flow, so the H alone is centred
+           exactly where the native splash put it. */
+        position: absolute;
+        top: calc(100% + 18px);
+        left: 50%;
+        margin-left: -56px;
         width: 112px;
         height: 3px;
         border-radius: 999px;

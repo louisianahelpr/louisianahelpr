@@ -320,6 +320,18 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     },
     onSuccess: async (_data, vars) => {
       outcomeUnknownJobIds.current.delete(vars.jobId);
+      // The apply LANDED, so this id is now a server fact, not a guess: write
+      // it into the context set the list, the header count and the map all
+      // read (viewerFeedExclusions.ts). Without this the only copy was the
+      // optimistic one, and anything that replaced the context before the
+      // onSettled re-read landed (a rollback-shaped restore, a refetch that
+      // raced the commit, a reload restoring an older persisted snapshot)
+      // put the job back on two surfaces while the third had already dropped
+      // it — owner, 2026-10-05: "1 job" + a map pin over "Nothing today".
+      queryClient.setQueryData<DashboardContextSlice>(queryKeys.dashboard.context(vars.helperId), (prev) => {
+        if (!prev || prev.appliedJobIds?.has(vars.jobId)) return prev;
+        return { ...prev, appliedJobIds: new Set<string>([...(prev.appliedJobIds ?? []), vars.jobId]) };
+      });
       hapticSuccess();
       // First job action recorded — gates the deferred notification
       // permission prompt (`useNotificationPermissionPrompt`). The

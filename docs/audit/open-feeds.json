@@ -1,22 +1,12 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T12:36Z",
+  "measured_at": "2026-10-05T18:30Z",
   "issues": {
     "readable": true,
     "open": [
       {
-        "number": 2183,
-        "title": "nightly-red: vacuity",
-        "label": "nightly-red"
-      },
-      {
         "number": 2198,
         "title": "nightly-red: staleness-watch",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2213,
-        "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red"
       },
       {
@@ -30,8 +20,8 @@
         "label": "nightly-red"
       },
       {
-        "number": 2304,
-        "title": "nightly-red: branch-prune",
+        "number": 2353,
+        "title": "nightly-red: press-every-control",
         "label": "nightly-red"
       }
     ]
@@ -39,14 +29,6 @@
   "ledger": {
     "readable": true,
     "open": [
-      {
-        "fingerprint": "aa5ca08c879601e26d29a62f667098b4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http timeout: arrival-confirm-reminder returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
-        "issue": null
-      },
       {
         "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
         "source_kind": "nightly_red",
@@ -64,36 +46,12 @@
         "issue": 2198
       },
       {
-        "fingerprint": "6389f98a9f666200913c7cf501dc289d",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: loading-states-refresh",
-        "issue": 2213
-      },
-      {
-        "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: vacuity",
-        "issue": 2183
-      },
-      {
         "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
-      },
-      {
-        "fingerprint": "30f021e059dca18398edd0fa1a3b8759",
-        "source_kind": "sql_slack",
-        "source": "slack-ops-alert:custom",
-        "status": "open",
-        "title": "# cron(s) need attention",
-        "issue": null
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -104,27 +62,11 @@
         "issue": null
       },
       {
-        "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: branch-prune",
-        "issue": 2304
-      },
-      {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
         "source_kind": "workflow",
         "source": "uptime",
         "status": "open",
         "title": "guest marketplace is empty: no funded jobs (pre-launch)",
-        "issue": null
-      },
-      {
-        "fingerprint": "da3ef1e5e2eea618f50aab6e4f7a9ec6",
-        "source_kind": "error_logs",
-        "source": "cron-dead",
-        "status": "open",
-        "title": "dead cron: expiring-jobs-push has not fired since <ts> (tolerance #)",
         "issue": null
       }
     ]
@@ -134,33 +76,19 @@
     "bus ME-043": "Q441",
     "bus OA-018": "Q446",
     "bus TC-004": "Q226",
-    "issue #1654": "Q722",
     "issue #1754": "Q785",
     "issue #1794": "Q593",
     "issue #1909": "Q787",
-    "issue #1921": "Q788",
-    "issue #1983": "Q788",
-    "issue #2054": "Q788",
     "issue #2121": "Q787",
-    "issue #2183": "Q788",
     "issue #2198": "Q787",
-    "issue #2213": "Q722",
-    "issue #2230": "Q1274",
     "issue #2244": "Q1275",
     "issue #2245": "Q785",
-    "issue #2269": "Q1274",
-    "issue #2304": "Q1274",
+    "issue #2353": "Q1374",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
-    "ledger 30f021e059dc": "Q1370",
     "ledger 6205197429d4": "Q593",
-    "ledger 6389f98a9f66": "Q722",
-    "ledger 7f88b9cc45df": "Q1274",
-    "ledger 88ecf6e765df": "Q788",
-    "ledger aa5ca08c8796": "Q1373",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger b75d265e6201": "Q1310",
-    "ledger da3ef1e5e2ee": "Q1372",
     "ledger db0fb15c4ec3": "Q787"
   }
 }

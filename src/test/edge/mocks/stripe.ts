@@ -49,6 +49,8 @@ export interface StripeMock {
     cancel: ReturnType<typeof vi.fn>;
     /** Q415 (e): charge-recurring-visits tags an intent whose refund withholds the fee. */
     update: ReturnType<typeof vi.fn>;
+    /** Q1104: charge-recurring-visits asks for a prior visit charge before minting one. Defaults to none. */
+    list: ReturnType<typeof vi.fn>;
   };
   /** Saved-card lookup — what makes an off-session auto-tip possible at all. */
   paymentMethods: {
@@ -154,6 +156,7 @@ export const stripeMock: StripeMock = {
     create: vi.fn(),
     cancel: vi.fn(),
     update: vi.fn(),
+    list: vi.fn(),
   },
   paymentMethods: {
     list: vi.fn(),
@@ -267,6 +270,8 @@ export function resetStripeMock() {
   // it creates the replacement session; a reset mock resolves to undefined,
   // which is harmless, but a real Session shape keeps the double honest.
   stripeMock.checkout.sessions.expire.mockResolvedValue({ status: "expired" });
+  // Q1104: no prior visit charge for this customer unless a test seeds one.
+  stripeMock.paymentIntents.list.mockResolvedValue({ data: [], has_more: false });
 }
 
 /**

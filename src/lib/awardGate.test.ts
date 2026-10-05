@@ -97,3 +97,42 @@ describe("awardBlockFromError reads the codes the trigger actually raises", () =
 // The display verdict accepts EITHER source; the award gate is payout-only.
 // @mutate src/lib/awardGate.ts | return source.connectIdentityVerified === true \|\| source.idvStatus === "verified"; | return source.connectIdentityVerified === true;
 // @mutate src/lib/awardGate.ts | if (!status.connected \|\| !status.details_submitted \|\| status.payouts_enabled !== true) { | if (false) {
+
+// Seen live 2026-10-05: payouts on, Stripe ID needing only an eventually_due
+// ssn_last_4. The button asked Stripe for currently_due (nothing), Stripe said
+// done, and the Helpr came back still blocked. The ID step must collect
+// eventually_due, the only bucket that can clear it.
+describe("the ID step's button can actually clear the ID gate", () => {
+  it("the blocked ID dialog collects eventually_due", async () => {
+    const { awardBlockCopy } = await import("./awardGate");
+    expect(awardBlockCopy("helper_identity_unverified").collect).toBe("eventually_due");
+  });
+  it("the pending-accept dialog collects eventually_due whenever the ID step is missing", async () => {
+    const { acceptPendingCopy } = await import("./awardGate");
+    expect(acceptPendingCopy(["stripe_id"]).collect).toBe("eventually_due");
+    expect(acceptPendingCopy(["payout_setup", "stripe_id"]).collect).toBe("eventually_due");
+    expect(acceptPendingCopy(["payout_setup"]).collect).toBe("eventually_due");
+  });
+});
+
+// Owner, 2026-10-05: Stripe setup collects everything up front (SSN last 4
+// included), on every link the server builds.
+describe("every Stripe setup link collects everything up front", () => {
+  it("stripe-connect's only collection option is eventually_due with future requirements", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { blankComments } = await import("@/test/helpers/blankNonCode");
+    const src = blankComments(readFileSync("supabase/functions/stripe-connect/index.ts", "utf8"));
+    expect(src.match(/accountLinks\.create\(/g)?.length ?? 0).toBeGreaterThan(2);
+    expect(src).not.toMatch(/fields:\s*"currently_due"/);
+    const links = src.split("accountLinks.create(").slice(1).map((b) => b.slice(0, 400));
+    for (const b of links) expect(b).toMatch(/collection_options:\s*collectionOptions\(/);
+    expect(src).toMatch(/fields: "eventually_due" as const, future_requirements: "include" as const/);
+  });
+  it("every client copy asks for eventually_due", async () => {
+    const { awardBlockCopy } = await import("./awardGate");
+    for (const r of ["helper_payout_setup_incomplete", "helper_identity_unverified", "helper_unknown"] as const) {
+      expect(awardBlockCopy(r).collect).toBe("eventually_due");
+    }
+  });
+});
+// @mutate supabase/functions/stripe-connect/index.ts | ({ fields: "eventually_due" as const, future_requirements: "include" as const }) | ({ fields: "currently_due" as const, future_requirements: "omit" as const })

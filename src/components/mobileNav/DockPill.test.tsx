@@ -1,3 +1,4 @@
+// @mutate src/components/mobileNav/DockPill.tsx |   if (!motion) return <span className={className} style={style} aria-hidden />; |   if (!motion) return <span className={className} aria-hidden />;
 import { describe, it, expect, vi } from "vitest";
 import { render, renderHook, waitFor } from "@testing-library/react";
 

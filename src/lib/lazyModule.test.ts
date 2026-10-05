@@ -1,3 +1,4 @@
+// @mutate src/lib/lazyModule.ts |     if (loaded \|\| pending) return; |     if (loaded) return;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 

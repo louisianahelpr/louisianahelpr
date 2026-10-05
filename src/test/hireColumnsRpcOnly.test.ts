@@ -165,7 +165,6 @@ describe("Q346 layer 3: the client never writes a hire column", () => {
     }
   }
 
-  // @mutate src/test/hireColumnsRpcOnly.test.ts | helper_id\s*:(?!\s*null\b) | helper_id\s*:\s*(?!null\b)
   it("an unassign is not a hire write, with or without a space (Q1196)", () => {
     for (const unassign of ["helper_id: null", "helper_id:null", "helper_id :  null"]) expect(FORBIDDEN.test(`.update({ ${unassign} })`), unassign).toBe(false);
     for (const hire of ["helper_id: uid", "helper_id:uid", "helper_id: nullish"]) expect(FORBIDDEN.test(`.update({ ${hire} })`), hire).toBe(true);

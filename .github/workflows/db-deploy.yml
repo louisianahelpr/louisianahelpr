@@ -97,6 +97,10 @@ on:
       - "scripts/lib/migrationProvenance.mjs"
       - "scripts/audit/migration-provenance.json"
       - "scripts/check-types-fresh.mjs"
+      # What check-types-fresh compares prod against (Q1307): regenerating it
+      # after a red must re-run this workflow, or the red stays the newest push
+      # run and main-red-watch never closes its issue.
+      - "src/integrations/supabase/types.ts"
       - "scripts/check-applied-migration-edits.mjs"
       - "scripts/lib/appliedMigrationEdits.mjs"
       - "scripts/audit/applied-migration-edits.json"

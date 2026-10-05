@@ -1,3 +1,4 @@
+// @mutate src/components/dashboard/SwipeableJobCard.tsx |       onPointerDownCapture={swipeLayer.start} |       onPointerDownCapture={undefined}
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 

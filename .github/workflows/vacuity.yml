@@ -360,6 +360,10 @@ jobs:
     needs: [scope, wait-accounts]
     if: needs.scope.outputs.have_e2e == 'true'
     runs-on: ubuntu-latest
+    # actions: read for the deploy wait (it lists this commit's deploy runs).
+    permissions:
+      contents: read
+      actions: read
     timeout-minutes: 180
     concurrency:
       group: prod-lifecycle-shared-accounts
@@ -438,6 +442,17 @@ jobs:
             # the gate itself fails on.
             echo "::warning::SUPABASE_ACCESS_TOKEN missing on a $EVENT run: e2e registrations that need the service-role key will be inconclusive."
           fi
+
+      # Q432: a push that lands a migration or an edge function starts its
+      # deploys at the same moment as this job. Until they finish, the
+      # prod-backed registrations test the old backend and read RED before any
+      # mutation (vacuity 36215687625). Wait for this commit's db-deploy and
+      # functions-deploy runs, if it has any (bounded; never fails the job).
+      - name: Wait for this commit's prod deploys
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/wait-commit-deploys.mjs
 
       - name: Vacuity gate (Playwright registrations)
         env:

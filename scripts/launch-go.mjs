@@ -68,6 +68,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { supabaseBase } from "./lib/apiBase.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS_DIR = resolve(REPO, "supabase/migrations");
@@ -128,7 +129,7 @@ function loadEnv() {
 }
 
 const env = loadEnv();
-const SUPABASE_URL = env.VITE_SUPABASE_URL;
+const SUPABASE_URL = supabaseBase(env.VITE_SUPABASE_URL);
 const ANON_KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 const ACCESS_TOKEN = env.SUPABASE_ACCESS_TOKEN;

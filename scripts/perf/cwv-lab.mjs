@@ -54,7 +54,7 @@ import { execFileSync } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createSecureServer } from "node:http2";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { brotliCompressSync, constants as zc, gzipSync } from "node:zlib";
@@ -287,14 +287,14 @@ export async function applyThrottle(ctx, page, profile, browserName, cpuRate = p
 const TYPES = { ".js": "text/javascript", ".css": "text/css", ".html": "text/html", ".svg": "image/svg+xml", ".png": "image/png", ".woff2": "font/woff2", ".json": "application/json", ".webmanifest": "application/manifest+json", ".ico": "image/x-icon", ".webp": "image/webp" };
 
 /**
- * A throwaway self-signed certificate for 127.0.0.1 (openssl; cached in the
- * OS temp dir) and its SPKI hash. Chromium launched with
+ * A throwaway self-signed certificate for 127.0.0.1 (openssl; cached under
+ * ~/.lh-shots) and its SPKI hash. Chromium launched with
  * --ignore-certificate-errors-spki-list=<hash> treats it as VALID, so it keeps
  * the HTTP cache (a page with an ignored certificate error caches nothing,
  * which would make every "warm" load cold).
  */
 export function localCert() {
-  const dir = join(tmpdir(), "lh-cwv-cert");
+  const dir = join(homedir(), ".lh-shots", "lh-cwv-cert");
   const key = join(dir, "key.pem"), crt = join(dir, "cert.pem");
   if (!existsSync(crt)) {
     mkdirSync(dir, { recursive: true });

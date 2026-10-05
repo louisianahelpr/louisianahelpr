@@ -13,7 +13,7 @@
  * `ref`, meaning a real button opens it with ref.current.click().
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 
@@ -45,9 +45,10 @@ describe("file inputs stay keyboard-reachable", () => {
     let scanned = 0;
     let pickers = 0;
     (function walk(d: string) {
-      for (const n of readdirSync(d)) {
+      for (const dirent of readdirSync(d, { withFileTypes: true })) {
+        const n = dirent.name;
         const p = join(d, n);
-        if (statSync(p).isDirectory()) walk(p);
+        if (dirent.isDirectory()) walk(p);
         else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) {
           const src = readFileSync(p, "utf8");
           scanned++;

@@ -42,7 +42,7 @@
  * on the pre-Q1158 build check 1 fails for /home at 375 (FCP over its ceiling:
  * the page fade started at opacity 0).
  */
-// @mutate src/components/profile/EarningsTab.tsx | const pageReady = useArrivalGate(!loading && stripeSettled, streakState.settled); | const pageReady = true;
+// @mutate src/components/profile/EarningsTab.tsx | const pageReady = useArrivalGate(!loading, streakState.settled && !ledgerPending); | const pageReady = true;
 // @mutate tailwind.config.ts | from: { opacity: "0.01", transform: "translateY(8px)" }, | from: { opacity: "0", transform: "translateY(8px)" },
 import { test, expect } from "../prodTest";
 import type { Browser, BrowserContext } from "@playwright/test";

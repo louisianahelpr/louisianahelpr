@@ -6,9 +6,14 @@ import path from "node:path";
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 
 const removeIfExists = (targetPath) => {
-  if (!fs.existsSync(targetPath)) return false;
-  fs.rmSync(targetPath, { recursive: true, force: true });
-  return true;
+  // No exists-then-remove: rmSync without `force` throws ENOENT for an absent path, which is the "nothing to remove" answer.
+  try {
+    fs.rmSync(targetPath, { recursive: true });
+    return true;
+  } catch (e) {
+    if (e?.code === "ENOENT") return false;
+    throw e;
+  }
 };
 
 let removed = 0;

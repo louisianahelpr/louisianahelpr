@@ -78,7 +78,7 @@ async function postJob(api: APIRequestContext, poster: Session, jobTitle: string
       description: "Automated journey job. If you are reading this in the app, something is wrong with the test harness.",
       category: "cleaning",
       budget: 25,
-      location: "Baton Rouge, LA",
+      location: "4412 Highland Rd, Baton Rouge, LA 70808",
       date_needed: start?.isoDay ?? slotAhead(3 * 24 * 60).isoDay,
       ...(start ? { start_time: `${start.hh24}:00` } : {}),
       status: "open",
@@ -268,7 +268,7 @@ test.describe.serial("admin and safety journeys", () => {
         headers: rest(victim.session, { Prefer: "return=representation" }),
         data: {
           customer_id: victim.userId, title: fitJobTitle(`${E2E_TITLE_MARKER} ctl ${RUN}`), description: "Ban journey positive control.",
-          category: "cleaning", budget: 25, location: "Baton Rouge, LA", date_needed: slotAhead(3 * 24 * 60).isoDay,
+          category: "cleaning", budget: 25, location: "4412 Highland Rd, Baton Rouge, LA 70808", date_needed: slotAhead(3 * 24 * 60).isoDay,
           status: "open", payment_status: "unpaid", pricing_mode: "set_price", parish: null, is_seed: true,
         },
       });
@@ -321,7 +321,7 @@ test.describe.serial("admin and safety journeys", () => {
         headers: rest(v.session, { Prefer: "return=representation" }),
         data: {
           customer_id: v.userId, title: fitJobTitle(`${E2E_TITLE_MARKER} bp ${RUN}`), description: "Must be refused.",
-          category: "cleaning", budget: 25, location: "Baton Rouge, LA", date_needed: slotAhead(3 * 24 * 60).isoDay,
+          category: "cleaning", budget: 25, location: "4412 Highland Rd, Baton Rouge, LA 70808", date_needed: slotAhead(3 * 24 * 60).isoDay,
           status: "open", payment_status: "unpaid", pricing_mode: "set_price", parish: null, is_seed: true,
         },
       });

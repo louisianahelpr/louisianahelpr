@@ -62,16 +62,10 @@
       "checked": "2026-10-03 (lead, content-checked against origin/main)"
     },
     {
-      "id": "remote:origin/park/q1177-money",
-      "sha": "544eba0d343846d6ff4f64d5b9f304b417ddf683",
-      "reason": "Money page (Q1177) parked by the owner for the next session: layout approved (Earned | Spent, title Money); owner asked to fix Spent before it ships. OPEN.md Q1177 holds what is left.",
-      "checked": "2026-10-05 (lead, pushed from the agent worktree before removing it)"
-    },
-    {
-      "id": "remote:origin/park/hardening-pins-csp",
-      "sha": "bd7992b50b56fb1f77b9301b12cadfe032c1231c",
-      "reason": "Owner-approved free hardening parked by the owner for the next session: 5a8768fe4 pins every GitHub Action to a SHA (+ guard, done); the top WIP commit adds CSP violation reports (csp-report edge fn, vercel.json report-uri), unchecked. OPEN.md item holds what is left.",
-      "checked": "2026-10-05 (lead, pushed from the lane worktree before removing it)"
+      "id": "remote:origin/lane/q1313-notify-me",
+      "sha": "782aa09e77ee1ddca66ff468b0eb2f7e31591f83",
+      "reason": "parked: Notify Me mid-build at the owner's 85% usage stop; finish next session (Q1313)",
+      "checked": "2026-10-05 (lead, WIP not landable; OPEN.md Q1313 holds the status and the draft launch message)"
     }
   ]
 }

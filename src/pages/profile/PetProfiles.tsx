@@ -7,6 +7,8 @@ import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { unwrap } from "@/lib/supabaseResult";
@@ -55,12 +57,15 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
   // Capacitor iOS WebView).
   const [petToDelete, setPetToDelete] = useState<PetProfile | null>(null);
 
-  const { data: pets, isLoading, isError, refetch } = useQuery({
+  const { data: pets, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     // Shared with Post a Job's PetPicker (VN-53) — see petProfilesQuery.ts.
     queryKey: petProfilesQueryKey(userId),
     enabled: !!userId,
     queryFn: () => fetchPetProfiles(userId!),
   });
+  // Q571: offline with nothing loaded showed a blank page (no skeleton,
+  // no empty state, no list). Say so instead.
+  const offlineEmpty = useFeedPhase({ status, fetchStatus }) === "offline-empty";
 
   // Desktop: active pet id lives in the URL (?pet=<id>) so deep-links work.
   const activePetId = searchParams.get("pet");
@@ -193,7 +198,14 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
             </div>
           )}
 
-          {isError && (
+          {offlineEmpty && (
+            <OfflineEmptyState
+              body="Your pets will load here as soon as you're back online."
+              onRetry={() => void refetch()}
+            />
+          )}
+
+          {isError && !offlineEmpty && (
             <ErrorState
               variant="inline"
               title="We couldn't load your pets."
@@ -267,7 +279,17 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
                 </div>
               )}
 
-              {isError && (
+              {offlineEmpty && (
+                <div className="p-4">
+                  <OfflineEmptyState
+                    variant="bare"
+                    body="Your pets will load here as soon as you're back online."
+                    onRetry={() => void refetch()}
+                  />
+                </div>
+              )}
+
+              {isError && !offlineEmpty && (
                 <div className="p-3">
                   <ErrorState
                     variant="inline"

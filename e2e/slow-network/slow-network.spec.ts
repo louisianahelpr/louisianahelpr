@@ -577,7 +577,7 @@ test(stepTitle("pay-start", "drop"), async ({ browser, request, journey }) => {
   await expect(page.getByRole("button", { name: /Processing/i }), "the pay attempt never settled after a lost create-payment response (hang)").toHaveCount(0, { timeout: 60_000 });
   if (!(await consent.isChecked())) await consent.click();
   await expect(submit, "the pay button never came back after a lost create-payment response (hang)").toBeEnabled({ timeout: 60_000 });
-  await Promise.all([page.waitForURL(/checkout\.stripe\.com/, { timeout: 120_000 }), submit.click()]);
+  await Promise.all([page.waitForURL(/^https:\/\/checkout\.stripe\.com\//, { timeout: 120_000 }), submit.click()]);
   // Idempotency: the retry must pay for the SAME job, not post a second one
   // whose first Checkout Session stays live for a job the client deleted.
   await expectExactlyOnce(request, poster, q, "jobs row behind the Checkout Session");

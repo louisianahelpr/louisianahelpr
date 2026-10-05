@@ -35,6 +35,7 @@
 
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
+import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
@@ -50,7 +51,7 @@ import {
 import { ADMIN_VIEWS, catalogLandingFor } from "./auditRoutes";
 import { detectButtonGeometry } from "./buttonGeometry";
 
-const OUTPUT_DIR = "/tmp/ui-review";
+const OUTPUT_DIR = resolve(homedir(), ".lh-shots", "ui-review");
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
 interface OverlayFinding {

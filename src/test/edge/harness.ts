@@ -169,6 +169,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/cron-result.ts";`,
   );
 
+  // Bounded cron reads (Q592): `_shared/boundedFetch.ts` has ZERO imports and
+  // only wraps the fetch handed to createClient; the mock client never calls
+  // it, so the REAL module is fine here.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/boundedFetch\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/boundedFetch.ts";`,
+  );
+
   // Confirmation deadline: `_shared/confirmDeadline.ts` is pure date maths
   // (it only pulls `jobLocalMidnightMs` from cancellationFee.ts). Point at the
   // REAL module — the whole point of that file is that the sweep and the card

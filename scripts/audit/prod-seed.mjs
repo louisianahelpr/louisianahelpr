@@ -57,6 +57,7 @@ import { removeJobMediaRest, removeUserStorageRest } from "../lib/jobMediaRest.m
 import { latestConsentVersions } from "../lib/acceptCurrentTerms.mjs";
 import { seedPasswordFor } from "./seedPasswords.mjs";
 import { classifyVerifyRow } from "../lib/moneyStateExpectations.mjs";
+import { supabaseBase } from "../lib/apiBase.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODE = ["--apply", "--verify", "--teardown", "--avatar", "--group-job"].find((f) => process.argv.includes(f));
@@ -80,7 +81,7 @@ function readEnv() {
   return env;
 }
 const env = readEnv();
-const BASE = env.VITE_SUPABASE_URL?.replace(/\/$/, "");
+const BASE = supabaseBase(env.VITE_SUPABASE_URL)?.replace(/\/$/, "");
 const SR = env.SUPABASE_SERVICE_ROLE_KEY;
 const ANON = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 if (!BASE || !SR) {

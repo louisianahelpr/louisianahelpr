@@ -346,7 +346,7 @@ test.describe.serial("marketplace chain", () => {
         S.livePay = `J2 posted ${S.jobId} and create-payment minted a live Checkout Session`;
         skipLivePay(S.livePay);
       }
-      await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
+      await page.waitForURL(/^https:\/\/checkout\.stripe\.com\//, { timeout: 60_000 });
       await journey.milestone(page, "stripe-checkout");
       await payCheckoutSession(page);
       await expect
@@ -608,7 +608,7 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster sees the reply and the reaction", async () => {
       await expect(pp.getByText(`Helper reply ${RUN}`).first(), "the helper's reply never reached the poster").toBeVisible({ timeout: 60_000 });
-      await expect(pp.getByRole("button", { name: /^React with |reaction/ }).first(), "the helper's reaction is not shown to the poster").toBeVisible({ timeout: 60_000 });
+      await expect(pp.getByRole("button", { name: /^(?:React with |.*reaction)/ }).first(), "the helper's reaction is not shown to the poster").toBeVisible({ timeout: 60_000 });
       await journey.milestone(pp, "poster-sees-reply");
     });
 

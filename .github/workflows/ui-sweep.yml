@@ -1,7 +1,9 @@
 name: UI sweep
 # A main-batch dispatch is titled "(main batch <sha>)": main-red-watch.yml
-# reports it like the push run it replaced.
-run-name: ${{ inputs.batch && format('{0} (main batch {1})', github.workflow, github.sha) || github.workflow }}
+# reports it like the push run it replaced. A hand dispatch names its sweep and
+# variants, so scripts/check-staleness.mjs can count a dispatched overlay sweep
+# on main as the baseline's proof, like the Friday cron (#2198).
+run-name: ${{ inputs.batch && format('{0} (main batch {1})', github.workflow, github.sha) || inputs.sweeps && format('{0} ({1} sweep, {2})', github.workflow, inputs.sweeps, inputs.variants) || github.workflow }}
 
 permissions:
   contents: read
@@ -270,9 +272,9 @@ jobs:
           # something — that pairing is what makes a red sweep triageable
           # without re-running it locally.
           path: |
-            /tmp/ui-review-empty/
-            /tmp/ui-review/
-            /tmp/ui-review-error/
+            ~/.lh-shots/ui-review-empty/
+            ~/.lh-shots/ui-review/
+            ~/.lh-shots/ui-review-error/
             playwright-report/
           if-no-files-found: ignore
           retention-days: 14

@@ -974,6 +974,85 @@ describe("charge-recurring-visits edge function", () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════
+  // Q1104 — the 24h charge key does not span the 3-day funding window
+  // ═══════════════════════════════════════════════════════════════════════
+  // Day 1 charged and never booked (the run died before the insert, or Stripe
+  // never answered); day 2's request is new to Stripe and charged again. The
+  // run now asks Stripe for this claim's earlier visit charge first.
+  const visitMeta = (over: Record<string, string> = {}) => ({
+    type: "recurring_visit", parent_job_id: PARENT_ID, visit_date: VISIT_DATE, hold_id: HOLD_ID, ...over,
+  });
+  const priorIntent = (over: Record<string, unknown> = {}) => ({
+    // A Stripe PaymentIntent, not a recurring_visit_payments row: its status is
+    // built by a call so the fixture-schema scan (which grades row literals by
+    // their distinctive columns) does not read it as that table's status.
+    id: "pi_day1_unbooked", status: String("succeeded"), amount: 11200, metadata: visitMeta(),
+    latest_charge: { id: "ch_day1", amount_refunded: 0 }, ...over,
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           : prior.kind === "adopt"\n          ? { kind: "ok", intent: prior.intent }\n          : await attemptVisitCharge( |           : await attemptVisitCharge(
+  it("Q1104: an earlier UNBOOKED charge of this claim is adopted on the next day, never charged again", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockResolvedValue({ data: [priorIntent()], has_more: false });
+    const res = await runOn(fn, "2026-09-02");
+    const b = await body(res);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect((insertedVisits()[0]?.payload as Record<string, unknown>)?.stripe_payment_intent_id).toBe("pi_day1_unbooked");
+    expect(b.funded).toBe(1);
+    // Read from the payer's own intents, inside the window, with the charge expanded.
+    const [params] = stripeMock.paymentIntents.list.mock.calls[0];
+    expect(params).toMatchObject({ customer: expect.any(String), limit: 100, expand: ["data.latest_charge"] });
+    expect(params.created.gte).toBeGreaterThan(Math.floor(Date.parse("2026-09-02T06:00:00Z") / 1000) - 5 * 86_400);
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (Number(charge.amount_refunded ?? 0) === 0) return { kind: "adopt", intent: pi }; |     return { kind: "adopt", intent: pi };
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |     pi.metadata?.hold_id === holdId | true
+  it("Q1104: a REFUNDED earlier charge, or one for another claim, is never adopted", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockResolvedValue({ data: [
+      priorIntent({ id: "pi_refunded", latest_charge: { id: "ch_r", amount_refunded: 11200 } }),
+      priorIntent({ id: "pi_old_claim", metadata: visitMeta({ hold_id: "hold-old" }) }),
+    ], has_more: false });
+    await runOn(fn, "2026-09-02");
+    expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
+    expect((insertedVisits()[0]?.payload as Record<string, unknown>)?.stripe_payment_intent_id).toBe("pi_day1");
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (prior.kind === "error") { |         if (false) {
+  it("Q1104: Stripe not answering about earlier charges charges NOTHING this run (a defect, retried next run)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockRejectedValue(new Error("request timed out"));
+    const res = await runOn(fn, "2026-09-02");
+    const b = await body(res);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("could not check Stripe for an earlier charge");
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (list.has_more) return { kind: "error", message: "more than 100 PaymentIntents for this payer inside the window" }; |   void 0;
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (prior.kind === "in_flight") { |         if (false) {
+  it("Q1104: an earlier charge still processing, or a list that does not fit one page, charges nothing", async () => {
+    let fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockResolvedValue({ data: [priorIntent({ status: "processing" })], has_more: false });
+    let b = await body(await runOn(fn, "2026-09-02"));
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(reasons(b)).toContain("still processing");
+
+    resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+    fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockResolvedValue({ data: [], has_more: true });
+    b = await body(await runOn(fn, "2026-09-02"));
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(reasons(b)).toContain("more than 100 PaymentIntents");
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
   // Finding 5 / Q734 — the series' own card, never a card found by email
   // ═══════════════════════════════════════════════════════════════════════
 

@@ -83,8 +83,10 @@ describe("Q346 layer 1: the trigger refuses client hire writes", () => {
   it("refuses jobs.status newly 'accepted'", () => {
     expect(body).toMatch(/if new\.status::text = 'accepted' and old\.status::text is distinct from 'accepted' then raise exception 'hire_requires_rpc/);
   });
-  it("refuses jobs.offered_to_helper_id newly pointed", () => {
-    expect(body).toMatch(/if new\.offered_to_helper_id is not null and new\.offered_to_helper_id is distinct from old\.offered_to_helper_id then raise exception 'hire_requires_rpc/);
+  it("refuses jobs.offered_to_helper_id newly pointed, or cleared (Q1325)", () => {
+    // Q1325 (20261005063441): ANY client change, NULL included; clearing it
+    // stranded a 'pending' offer with no target.
+    expect(body).toMatch(/if new\.offered_to_helper_id is distinct from old\.offered_to_helper_id then raise exception 'hire_requires_rpc/);
   });
   it("refuses a group_job_helpers INSERT and a crew helper_id re-point", () => {
     expect(body).toMatch(/if tg_op = 'insert' then raise exception 'hire_requires_rpc/);
@@ -181,12 +183,12 @@ describe("Q346 layer 3: the client never writes a hire column", () => {
 });
 
 // Layer 1: each refusal and each structural property, broken one at a time.
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF current_user::text NOT IN ('authenticated', 'anon') THEN | IF true THEN
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | LANGUAGE plpgsql\nSET search_path | LANGUAGE plpgsql SECURITY DEFINER\nSET search_path
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF NEW.helper_id IS NOT NULL AND NEW.helper_id IS DISTINCT FROM OLD.helper_id THEN | IF false THEN
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF NEW.status::text = 'accepted' AND OLD.status::text IS DISTINCT FROM 'accepted' THEN | IF false THEN
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF NEW.offered_to_helper_id IS NOT NULL | IF false AND NEW.offered_to_helper_id IS NOT NULL
-// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF TG_OP = 'INSERT' THEN | IF false THEN
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | IF current_user::text NOT IN ('authenticated', 'anon') THEN | IF true THEN
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | LANGUAGE plpgsql\nSET search_path | LANGUAGE plpgsql SECURITY DEFINER\nSET search_path
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | IF NEW.helper_id IS NOT NULL AND NEW.helper_id IS DISTINCT FROM OLD.helper_id THEN | IF false THEN
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | IF NEW.status::text = 'accepted' AND OLD.status::text IS DISTINCT FROM 'accepted' THEN | IF false THEN
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | IF NEW.offered_to_helper_id IS DISTINCT FROM OLD.offered_to_helper_id THEN | IF false AND NEW.offered_to_helper_id IS DISTINCT FROM OLD.offered_to_helper_id THEN
+// @mutate supabase/migrations/20261005063441_offered_helper_cannot_be_cleared_by_client.sql | IF TG_OP = 'INSERT' THEN | IF false THEN
 // @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | BEFORE INSERT OR UPDATE ON public.group_job_helpers | BEFORE UPDATE ON public.group_job_helpers
 // @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | BEFORE UPDATE ON public.jobs | AFTER UPDATE ON public.jobs
 // Layer 3: a client hire write planted. (Re-anchored 2026-10-03, Q1187: the

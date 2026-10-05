@@ -51,7 +51,7 @@
  *
  * Q1193: a webhook's minimal Charge carries no `refunds`; the handler lists them.
  *
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | charge.refunds?.data ?? (await listChargeRefunds()); | charge.refunds?.data ?? [];
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     : await listChargeRefunds(); |     : [];
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | throw new Error(`Could not list the refunds on charge ${charge.id}: ${String(e)}`); | return [];
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | listed ??= (async () => { | listed = (async () => {
  */
@@ -743,6 +743,22 @@ describe("Q1193: charge.refunded reads the refunds from Stripe, not from the eve
     expect((await post(fn)).status).toBe(200);
     expect(stripeMock.refunds.list).not.toHaveBeenCalled();
     expect(ledger()).toEqual([expect.objectContaining({ stripe_refund_id: "re_old" })]);
+  });
+
+  // Q1325: an embedded list says has_more past 10 refunds; the whole list is read.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | charge.refunds?.data && !charge.refunds.has_more | charge.refunds?.data
+  it("Q1325: an embedded refund list that has more is read in full from Stripe", async () => {
+    const fn = await loadConfigured();
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_q1325_more",
+      type: "charge.refunded",
+      data: { object: { id: "ch_more", payment_intent: "pi_r", amount: 5000, amount_refunded: 600, currency: "usd", refunds: { data: [{ id: "re_10", amount: 300 }], has_more: true } } },
+    });
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_10", amount: 300, status: "succeeded", metadata: {} }, { id: "re_11", amount: 300, status: "succeeded", metadata: {} }] });
+    expect((await post(fn)).status).toBe(200);
+    expect(stripeMock.refunds.list).toHaveBeenCalledWith(expect.objectContaining({ charge: "ch_more" }));
+    expect(ledger().map((r) => r.stripe_refund_id)).toEqual(["re_10", "re_11"]);
   });
 
   it("a failed refunds list throws BEFORE any write, so Stripe redelivers (never a silent skip)", async () => {

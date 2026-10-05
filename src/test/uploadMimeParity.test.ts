@@ -97,6 +97,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/pages/auth/signup/SignupStep2.tsx": { bucket: "avatars" },
   "src/pages/auth/CompleteProfile.tsx": { bucket: "avatars" },
   "src/components/postjob/detailsSection/PhotoUpload.tsx": { bucket: "job-photos" },
+  "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": { bucket: "job-photos" }, // Q1299: split out of PhotoUpload
   "src/components/postjob/detailsSection/VideoScope.tsx": { bucket: "job-photos" },
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {
     bucket: "marketing-media",

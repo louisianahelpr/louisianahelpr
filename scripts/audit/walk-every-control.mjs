@@ -14,11 +14,13 @@
  * you just looked and didnt make sure anything worked as it should."
  */
 import { chromium } from "@playwright/test";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const BASE = process.env.BASE ?? "http://localhost:5183";
-const OUT = process.env.OUT ?? "/tmp/lh-audit";
+const OUT = process.env.OUT ?? join(homedir(), ".lh-shots", "lh-audit");
 const ACCOUNT = process.env.ACCOUNT ?? "poster-e2e";
 const ROUTES = (process.env.ROUTES ?? "/home").split(",");
 const WIDTHS = (process.env.WIDTHS ?? "375,1440").split(",").map(Number);
@@ -35,7 +37,7 @@ mkdirSync(OUT, { recursive: true });
 const session = process.env.SESSION_FILE
   ? JSON.parse(readFileSync(process.env.SESSION_FILE, "utf8"))
   : JSON.parse(
-      execSync(`node scripts/test-signin-link.mjs ${ACCOUNT} --session --json`, {
+      execFileSync("node", ["scripts/test-signin-link.mjs", ACCOUNT, "--session", "--json"], {
         cwd: "/Users/lexilombas/louisianahelpr", encoding: "utf8", maxBuffer: 1 << 24,
       }),
     );

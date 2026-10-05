@@ -15,6 +15,7 @@ import { handleCustomerSubscriptionUpdated } from "./handlers/customerSubscripti
 import { handleCustomerSubscriptionDeleted } from "./handlers/customerSubscriptionDeleted.ts";
 import { handlePaymentIntentPaymentFailed } from "./handlers/paymentIntentPaymentFailed.ts";
 import { handleChargeRefunded } from "./handlers/chargeRefunded.ts";
+import { handleChargeRefundUpdated } from "./handlers/chargeRefundUpdated.ts";
 import { handleChargeDisputeCreated, handleChargeDisputeFundsWithdrawn } from "./handlers/chargeDisputeCreated.ts";
 import { handleChargeDisputeClosed } from "./handlers/chargeDisputeClosed.ts";
 import { handleAccountUpdated } from "./handlers/accountUpdated.ts";
@@ -37,6 +38,8 @@ const EVENT_HANDLERS: Record<
   "customer.subscription.deleted": handleCustomerSubscriptionDeleted,
   "payment_intent.payment_failed": handlePaymentIntentPaymentFailed,
   "charge.refunded": handleChargeRefunded,
+  // Q1325 (a): a booked refund that later fails or is canceled.
+  "charge.refund.updated": handleChargeRefundUpdated,
   "charge.dispute.created": handleChargeDisputeCreated,
   // Q202: an inquiry the bank escalates into a chargeback withdraws the money
   // here, after charge.dispute.created has already been and gone.

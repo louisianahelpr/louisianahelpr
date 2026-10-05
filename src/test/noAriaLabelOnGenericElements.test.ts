@@ -10,7 +10,7 @@
  * alert…), or by moving the name to the control it describes.
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 
@@ -37,9 +37,10 @@ describe("no aria-label on role-less elements", () => {
     const hits: string[] = [];
     let scanned = 0;
     (function walk(d: string) {
-      for (const n of readdirSync(d)) {
+      for (const dirent of readdirSync(d, { withFileTypes: true })) {
+        const n = dirent.name;
         const p = join(d, n);
-        if (statSync(p).isDirectory()) walk(p);
+        if (dirent.isDirectory()) walk(p);
         else if (/\.tsx$/.test(n) && !/\.test\./.test(n)) {
           scanned++;
           for (const o of offenders(readFileSync(p, "utf8"))) hits.push(`${p}: ${o}`);

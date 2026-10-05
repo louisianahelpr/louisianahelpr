@@ -32,6 +32,8 @@ export interface PosterStepCtx {
   navigate: (to: string) => void;
   onBoost: (jobId: string) => void;
   onEdit: (job: Job) => void;
+  /** A crew with a hired member (crewBooked.ts, Q707): Edit is not offered. */
+  crewBooked: boolean;
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
   onNoShow: (jobId: string) => void;

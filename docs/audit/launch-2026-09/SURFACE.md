@@ -25,7 +25,7 @@ reports coverage against THIS file, not against the route list.
 | Multi-step flows — probable | flow | 15 |
 | Back/next navigation only | flow | 38 |
 | Forms (submittable) | form | 41 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 113 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 114 |
 | Email templates | **exported template** | 19 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
 | **Navigable surfaces** (places a person can stand) | mixed | **455** |
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 150 | 130 | agree within method (script counts every menu instance) |
 | Forms | 41 | ~38 | agree |
-| Confirmed multi-step flows | 18 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 19 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -326,6 +326,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/home/DashboardGuest.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
 | `src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |
+| `src/pages/jobs/JobDetail.tsx` | compare |
 | `src/pages/post-job/EntryChoice.tsx` | nav-handler, union-state |
 | `src/pages/post-job/PostJob.tsx` | compare, nav-handler |
 | `src/pages/post-job/usePostJobForm.ts` | compare, nav-handler |

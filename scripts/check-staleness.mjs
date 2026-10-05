@@ -181,7 +181,12 @@ export const WORKFLOW_BOUND = [
   // ui-sweep.yml also runs as a main batch (main-batch.yml), in a DIFFERENT mode (empty-state);
   // any green run is a proxy, not the thing. Only the Friday 05:00 UTC cron
   // resolves to the overlay sweep, so only a scheduled Friday success counts.
-  { file: "e2e/happy-path/overlay-sweep.baseline.json", workflow: "ui-sweep.yml", branch: "main", event: "schedule", weekdayUtc: 5, maxDays: 8 },
+  // A hand dispatch on main of the SAME sweep (overlay, both scheduled
+  // variants) is the same proof; ui-sweep.yml titles it (#2198, 2026-10-05:
+  // the Friday 10-02 run failed on a dialog name fixed hours later, and the
+  // next Friday was a week away).
+  { file: "e2e/happy-path/overlay-sweep.baseline.json", workflow: "ui-sweep.yml", branch: "main", event: "schedule", weekdayUtc: 5, maxDays: 8,
+    dispatchTitle: /\((?:overlay|all) sweep, (?:phone-light,phone-dark|all)\)$/ },
   // Re-measured daily on prod and re-proved two ways against the baseline in
   // the same run; the committed file is a snapshot of the last one landed.
   // `branch: "main"`: a dispatch on a branch measures that branch's build, so
@@ -203,14 +208,27 @@ export function checkWorkflowBound(bound, lastSuccess, now) {
   return stale;
 }
 
-function lastSuccessFromGh({ workflow, branch, event, weekdayUtc }) {
+/**
+ * Pure: the newest qualifying success. `scheduled` are runs of `event` (kept on
+ * `weekdayUtc` when set); `dispatched` are workflow_dispatch runs, kept only
+ * when their displayTitle matches `dispatchTitle`. Rows are {createdAt, displayTitle}.
+ */
+export function newestQualifying({ weekdayUtc, dispatchTitle }, scheduled, dispatched = []) {
+  const s = scheduled.map((r) => new Date(r.createdAt)).filter((d) => weekdayUtc === undefined || d.getUTCDay() === weekdayUtc);
+  const d = dispatchTitle ? dispatched.filter((r) => dispatchTitle.test(r.displayTitle ?? "")).map((r) => new Date(r.createdAt)) : [];
+  const all = [...s, ...d].sort((a, b) => b - a);
+  return all.length ? all[0] : null;
+}
+
+function lastSuccessFromGh(b) {
+  const { workflow, branch, event, dispatchTitle } = b;
   try {
-    const args = ["run", "list", "--workflow", workflow, "--branch", branch, "--status", "success", "--limit", "40", "--json", "createdAt"];
-    if (event) args.push("--event", event);
-    const rows = JSON.parse(execFileSync("gh", args, { encoding: "utf8" }))
-      .map((r) => new Date(r.createdAt))
-      .filter((d) => weekdayUtc === undefined || d.getUTCDay() === weekdayUtc);
-    return rows.length ? rows[0] : null;
+    const list = (ev) => {
+      const args = ["run", "list", "--workflow", workflow, "--branch", branch, "--status", "success", "--limit", "40", "--json", "createdAt,displayTitle"];
+      if (ev) args.push("--event", ev);
+      return JSON.parse(execFileSync("gh", args, { encoding: "utf8" }));
+    };
+    return newestQualifying(b, list(event), dispatchTitle ? list("workflow_dispatch") : []);
   } catch (e) {
     if (process.env.CI) throw new Error(`gh run list failed in CI (${e.message}) — set GH_TOKEN; refusing to report fresh`);
     console.warn(`note: \`gh run list --workflow ${workflow}\` failed locally (${String(e.message).split("\n")[0]}); its currency is NOT checked in this run — CI refuses instead`);

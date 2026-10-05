@@ -38,8 +38,23 @@ const SHARED_SECRET = /\bPLAYWRIGHT_(POSTER|HELPER)_(EMAIL|PASSWORD|SESSION)\b/;
 // behind it and nightly-red #1957 could never clear.
 export const STALE_RUN_MS = 10 * 60 * 60 * 1000;
 
-/** Does this in_progress run really hold the shared accounts now? */
-export function holdsAccounts(run, now = Date.now()) {
+/**
+ * A vacuity.yml PUSH run signs in as the shared accounts while its
+ * `vacuity-e2e` job (display name below) runs the Playwright registrations
+ * under the account lock (Q551). Its other jobs never do. Q1271.
+ */
+export const VACUITY_WORKFLOW = "vacuity.yml";
+export const VACUITY_E2E_JOB = "Playwright guards shown able to fail";
+
+/**
+ * Does this in_progress run really hold the shared accounts now?
+ * `jobs` (the run's jobs, from the API) is read only for a vacuity.yml push run.
+ */
+export function holdsAccounts(run, now = Date.now(), jobs = []) {
+  if (run.event === "push") {
+    if (!String(run.path ?? "").endsWith(`/${VACUITY_WORKFLOW}`)) return false;
+    return jobs.some((j) => j.name === VACUITY_E2E_JOB && j.status === "in_progress");
+  }
   if (!DRIVES_ACCOUNTS.has(run.event)) return false;
   // A main batch (scripts/ci/main-batch.mjs) is e2e-real-backend's old push
   // leg, dispatched: its account jobs are gated off `inputs.batch` (2026-10-02).
@@ -64,7 +79,7 @@ async function main() {
   const repo = process.env.GITHUB_REPOSITORY;
   const token = process.env.GITHUB_TOKEN;
   const out = (k, v) => {
-    const line = `${k}=${String(v).replace(/\n/g, " ")}\n`;
+    const line = `${k}=${String(v).replace(/[\r\n]+/g, " ")}\n`;
     if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, line);
     process.stdout.write(line);
   };
@@ -84,11 +99,21 @@ async function main() {
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const { workflow_runs: runs = [] } = await r.json();
-      // Only scheduled and dispatched runs sign in as the shared accounts: the
-      // push/PR legs of e2e-real-backend and vacuity do not, and main takes
-      // pushes all day, so counting them would stand the canary down for nothing.
+      // Scheduled and dispatched runs sign in as the shared accounts; of the
+      // push runs only vacuity.yml's, and only while its vacuity-e2e job runs
+      // (Q1271). main takes pushes all day, so counting the rest would stand
+      // the canary down for nothing.
       for (const run of runs) {
-        if (holdsAccounts(run)) busy.push(`${f} ${run.html_url}`);
+        let jobs = [];
+        if (f === VACUITY_WORKFLOW && run.event === "push") {
+          const jr = await fetch(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/jobs?per_page=50`, {
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+            signal: AbortSignal.timeout(15_000),
+          });
+          if (!jr.ok) throw new Error(`jobs of run ${run.id}: HTTP ${jr.status}`);
+          jobs = (await jr.json()).jobs ?? [];
+        }
+        if (holdsAccounts(run, Date.now(), jobs)) busy.push(`${f} ${run.html_url}`);
         else if (DRIVES_ACCOUNTS.has(run.event))
           console.log(`::warning title=Ignoring a stale run::${f} ${run.html_url} has been in progress over ${STALE_RUN_MS / 3_600_000} h; GitHub ghost, not a lock holder.`);
       }

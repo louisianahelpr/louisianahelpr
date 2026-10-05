@@ -1,5 +1,6 @@
 import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronResult } from '../_shared/cron-result.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { FROM_DEFAULT } from '../_shared/resend.ts'
@@ -193,7 +194,7 @@ serve(async (_req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
-  const supabase = createClient(supabaseUrl, supabaseKey)
+  const supabase = createClient(supabaseUrl, supabaseKey, { global: { fetch: boundedFetch() } })
 
   const results = { drip: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
 

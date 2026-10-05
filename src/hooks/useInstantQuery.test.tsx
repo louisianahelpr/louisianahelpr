@@ -3,6 +3,7 @@
 // in real data when fetched, and never show a blocking spinner if the
 // caller provided a fallback. Bugs here either flash spinners (UX
 // regression) or render fallback over stale-but-real data.
+// @mutate src/hooks/useInstantQuery.ts | (query.isLoading \|\| query.fetchStatus === "paused") && | query.isLoading &&
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -94,6 +95,28 @@ describe("useInstantQuery", () => {
       { wrapper },
     );
     expect(result.current.isInitialLoading).toBe(true);
+  });
+
+  it("isInitialLoading stays TRUE for a first load paused offline (Q571: never the empty state)", async () => {
+    // Offline, a never-answered query is PAUSED, not fetching, so isLoading is
+    // false; an empty fallback then rendered "Nothing to send. Every payout is
+    // settled." to an operator who was merely offline.
+    const { onlineManager } = await import("@tanstack/react-query");
+    onlineManager.setOnline(false);
+    try {
+      const fetcher = vi.fn(async () => ["data"]);
+      const { wrapper } = makeWrapper();
+      const { result } = renderHook(
+        () => useInstantQuery({ key: ["test-offline-paused"], fetcher, fallback: [] as string[] }),
+        { wrapper },
+      );
+      await waitFor(() => expect(result.current.fetchStatus).toBe("paused"));
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isInitialLoading).toBe(true);
+      expect(fetcher).not.toHaveBeenCalled();
+    } finally {
+      onlineManager.setOnline(true);
+    }
   });
 
   it("isInitialLoading is true when no fallback AND fetcher hasn't resolved", () => {

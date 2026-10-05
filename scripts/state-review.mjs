@@ -24,7 +24,7 @@
  *
  * USAGE
  *   node scripts/state-review.mjs                       # triage + packets
- *   node scripts/state-review.mjs --in /tmp/lh-state-sweep --out /tmp/lh-review
+ *   node scripts/state-review.mjs --in ~/.lh-shots/lh-state-sweep --out ~/.lh-shots/lh-review
  *   node scripts/state-review.mjs --top 40              # rank, keep the worst 40
  *   node scripts/state-review.mjs --review              # call a vision model
  *
@@ -52,6 +52,8 @@
 
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { homedir } from "node:os";
+import { isLoopbackBase } from "./lib/apiBase.mjs";
 
 // ---------------------------------------------------------------------------
 // args
@@ -64,8 +66,8 @@ const arg = (name, fallback) => {
 };
 const flag = (name) => argv.includes(name);
 
-const IN = resolve(arg("--in", process.env.STATE_SWEEP_OUT || "/tmp/lh-state-sweep"));
-const OUT = resolve(arg("--out", process.env.STATE_REVIEW_OUT || "/tmp/lh-state-review"));
+const IN = resolve(arg("--in", process.env.STATE_SWEEP_OUT || resolve(homedir(), ".lh-shots", "lh-state-sweep")));
+const OUT = resolve(arg("--out", process.env.STATE_REVIEW_OUT || resolve(homedir(), ".lh-shots", "lh-state-review")));
 const TOP = Number(arg("--top", "0")) || 0;
 const DO_REVIEW = flag("--review");
 const PROMPT_PATH = resolve(
@@ -314,6 +316,16 @@ writeFileSync(resolve(OUT, "queue.md"), queue.join("\n") + "\n");
 
 async function reviewOne(packet) {
   const base = process.env.REVIEW_API_BASE || "https://generativelanguage.googleapis.com/v1beta/openai";
+  // Screenshots and REVIEW_API_KEY go to this host: https only, or a loopback stub.
+  if (!/^https:\/\//i.test(base) && !isLoopbackBase(base)) {
+    return {
+      cellId: packet.cellId,
+      shot: packet.shot,
+      findings: [],
+      checked: [],
+      error: "REVIEW_API_BASE must be https:// (or a loopback stub); refusing to send screenshots and REVIEW_API_KEY over plain http",
+    };
+  }
   const model = process.env.REVIEW_MODEL || "gemini-3.6-flash";
   const key = process.env.REVIEW_API_KEY;
 

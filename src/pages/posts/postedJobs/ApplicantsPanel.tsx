@@ -20,6 +20,7 @@ import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
 import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applicantsPanelHelpers";
+import { ApplicantStatusBadge } from "./ApplicantStatusBadge";
 
 interface ApplicantsPanelProps {
   /** No longer read here — the bid-mode sort default was its only consumer,
@@ -592,19 +593,7 @@ export function ApplicantsPanel({
                               </button>
                             </div>
                           )}
-                          {app.status === "accepted" && (
-                            <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]">
-                              <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--bark))]" aria-hidden="true" />
-                              Selected
-                            </span>
-                          )}
-                          {/* Not on a job-cancel close (Q274): the poster cancelled the job, they declined nobody. */}
-                          {app.status === "rejected" && app.closed_reason !== "job_cancelled" && (
-                            <span className="inline-flex items-center gap-1 text-ds-11 px-2.5 py-[3px] rounded-ds-pill font-semibold leading-none min-h-[22px] bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]">
-                              <span className="shrink-0 w-[5px] h-[5px] rounded-full bg-[hsl(var(--olivewood)/0.7)]" aria-hidden="true" />
-                              Declined
-                            </span>
-                          )}
+                          <ApplicantStatusBadge app={app} />
                         </div>
 
                         {/* Row 1b: verification status — the payout fact, one

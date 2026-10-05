@@ -64,7 +64,10 @@ jobs:
             docs/SCOREBOARD.md
             docs/GUARD-BURNDOWN.md
             docs/audit
-          regenerate: node scripts/open-done-when.mjs --tick --no-test && npm run -s inventories:refresh
+          # Re-measure the feeds snapshot (docs/audit/open-feeds.json) BEFORE
+          # ticking: the tick reads sources live, openFeedsMirrored reads the
+          # snapshot, and a stale snapshot turned PR #2301 red (2026-10-05).
+          regenerate: node scripts/open-sync-trackers.mjs && node scripts/open-done-when.mjs --tick --no-test && npm run -s inventories:refresh
           body: "Each ticked line carries what its done-when markers read on prod. Nothing is ticked on a skipped or failed marker."
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
           check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}

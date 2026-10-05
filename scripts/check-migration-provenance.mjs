@@ -26,6 +26,7 @@
  * GitHub: GITHUB_TOKEN + GITHUB_REPOSITORY (Actions), else `gh api`.
  * Exit 1 on a finding, 2 if it could not look.
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -39,7 +40,7 @@ async function query(sql, { readOnly }) {
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   const ref = process.env.SUPABASE_PROJECT_REF;
   if (!token || !ref) throw new Error("SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
-  const res = await fetch(`${process.env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com"}/v1/projects/${ref}/database/query`, {
+  const res = await fetch(`${apiBase(process.env.LH_SUPABASE_API_BASE, "https://api.supabase.com")}/v1/projects/${ref}/database/query`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ query: sql, read_only: readOnly }),

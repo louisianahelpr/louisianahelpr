@@ -14,6 +14,7 @@ import {
 import { Briefcase, Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
@@ -55,7 +56,7 @@ const UserProfile = () => {
   // Blocker side only — a person who blocked you still sees nothing new here.
   const queryClient = useQueryClient();
   const blockedByMeKey = ["user-profile-blocked-by-me", currentUserId, userId] as const;
-  const { data: blockedByMe, isLoading: blockLoading, isError: blockError, refetch: refetchBlock } = useQuery({
+  const { data: blockedByMe, status: blockStatus, isError: blockError, refetch: refetchBlock } = useQuery({
     queryKey: blockedByMeKey,
     enabled: !!currentUserId && !!userId && currentUserId !== userId,
     queryFn: async () => {
@@ -149,6 +150,7 @@ const UserProfile = () => {
     tierProfile,
     postedTotalCount,
     loading,
+    offlineEmpty,
   } = useUserProfileData(userId, currentUserId);
 
   const profile = (data?.profile ?? null) as Profile | null;
@@ -246,7 +248,9 @@ const UserProfile = () => {
 
   // Fail closed: while the block check loads or errors, show the loading /
   // error state rather than briefly painting the details of someone blocked.
-  const blockCheckPending = !!currentUserId && !!userId && currentUserId !== userId && (blockLoading || blockError);
+  // Q571: "pending", not isLoading. A block check paused offline has isLoading
+  // false and no answer, and reading that as "checked" painted the profile.
+  const blockCheckPending = !!currentUserId && !!userId && currentUserId !== userId && (blockStatus === "pending" || blockError);
   if (blockedByMe || (blockCheckPending && blockError)) {
     return wrap(
       <>
@@ -329,56 +333,44 @@ const UserProfile = () => {
     );
   }
 
-  if (isError) {
-    return wrap(
+  // One shell for the three states with no profile to show (offline, error,
+  // not found): the same header and column as the loaded page.
+  const stateCard = (card: ReactNode) =>
+    wrap(
       <>
-        <PageHeader
-          eyebrow={headerEyebrow}
-          title={headerTitle}
-          meta={headerMeta}
-          titleActions={headerActionPlaceholder}
-        />
+        <PageHeader eyebrow={headerEyebrow} title={headerTitle} meta={headerMeta} titleActions={headerActionPlaceholder} />
         <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
-          <div className="flex">
-            <ErrorState variant="inline" onRetry={() => refetch()} />
-          </div>
+          <div className="flex">{card}</div>
         </div>
-      </>
+      </>,
+    );
+
+  if (offlineEmpty) {
+    return stateCard(
+      <OfflineEmptyState body="This profile will load here as soon as you're back online." onRetry={() => void refetch()} />,
     );
   }
 
+  if (isError) return stateCard(<ErrorState variant="inline" onRetry={() => refetch()} />);
+
   if (!profile) {
-    return wrap(
-      <>
-        <PageHeader
-          eyebrow={headerEyebrow}
-          title={headerTitle}
-          meta={headerMeta}
-          titleActions={headerActionPlaceholder}
-        />
-        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
-          <div className="flex">
-            <EmptyState
-              variant="inline"
-              icon={UserX}
-              title="Profile not found"
-              body="This profile may have been removed, or the link is no longer valid."
-              // Same guard as every other back affordance: a profile link
-              // shared into a messaging app opens cold, and `navigate(-1)`
-              // from there leaves the app instead of showing this person the
-              // rest of it. Browse is the honest fallback — they arrived
-              // looking for a helpr.
-              action={
-                <BarkPillButton
-                  onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/home"))}
-                >
-                  Go back
-                </BarkPillButton>
-              }
-            />
-          </div>
-        </div>
-      </>
+    return stateCard(
+      <EmptyState
+        variant="inline"
+        icon={UserX}
+        title="Profile not found"
+        body="This profile may have been removed, or the link is no longer valid."
+        // Same guard as every other back affordance: a profile link
+        // shared into a messaging app opens cold, and `navigate(-1)`
+        // from there leaves the app instead of showing this person the
+        // rest of it. Browse is the honest fallback — they arrived
+        // looking for a helpr.
+        action={
+          <BarkPillButton onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/home"))}>
+            Go back
+          </BarkPillButton>
+        }
+      />,
     );
   }
 

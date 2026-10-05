@@ -10,7 +10,7 @@
  *   node scripts/any-baseline.mjs           print total + per-file counts
  *   node scripts/any-baseline.mjs --write   lower scripts/any-baseline.json (refuses to raise it)
  */
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -39,10 +39,11 @@ export function countAnyByFile(root) {
   const counts = {};
   let scanned = 0;
   const visit = (dir) => {
-    for (const entry of readdirSync(dir)) {
+    for (const dirent of readdirSync(dir, { withFileTypes: true })) {
+      const entry = dirent.name;
       if (NOT_SOURCE_DIRS.has(entry)) continue;
       const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
+      if (dirent.isDirectory()) {
         visit(full);
         continue;
       }
@@ -67,7 +68,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // Lower-only: refuse to raise an entry or add a file, so --write can never
     // be the way a new `any` gets past the ratchet.
     const path = join(root, "scripts/any-baseline.json");
-    const was = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")).files : null;
+    let was = null;
+    try {
+      was = JSON.parse(readFileSync(path, "utf8")).files;
+    } catch (e) {
+      if (e?.code !== "ENOENT") throw e; // first write: no baseline yet
+    }
     const grew = was ? Object.entries(sorted).filter(([f, n]) => n > (was[f] ?? 0)) : [];
     if (grew.length) {
       console.error(`refusing to raise the baseline:\n${grew.map(([f, n]) => `  ${f}: ${was[f] ?? 0} -> ${n}`).join("\n")}`);

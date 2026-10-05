@@ -10,7 +10,7 @@
  */
 // @mutate scripts/audit/pressProdSafety.mjs | const ids = since.map((row) => row.id).filter((id) => !isSeedRowId(id)); | const ids = since.map((row) => row.id);
 // @mutate scripts/audit/prod-seed.mjs | ${h.slice(8, 12)}-5${h.slice(13, 16)} | ${h.slice(8, 12)}-4${h.slice(13, 16)}
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -29,6 +29,10 @@ function seedSid(key: string): string {
 }
 
 describe("press cleanup keeps the shared seed rows", () => {
+  // The script only sends keys to *.supabase.co or a loopback stub (supabaseBase); stub the project URL.
+  const savedUrl = process.env.PLAYWRIGHT_SUPABASE_URL;
+  beforeAll(() => { process.env.PLAYWRIGHT_SUPABASE_URL = "http://127.0.0.1:1"; });
+  afterAll(() => { if (savedUrl === undefined) delete process.env.PLAYWRIGHT_SUPABASE_URL; else process.env.PLAYWRIGHT_SUPABASE_URL = savedUrl; });
   it("tells a seed id from a press-created id", () => {
     const seed = seedSid("fav:helper");
     expect(safety.isSeedRowId(seed)).toBe(true);

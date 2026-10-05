@@ -161,7 +161,7 @@ async function postJob(api: APIRequestContext, s: Session, runId: string, leg: s
         "if you are reading this in the app, something has gone wrong with the test harness.",
       category: "cleaning",
       budget,
-      location: "Baton Rouge, LA",
+      location: "4412 Highland Rd, Baton Rouge, LA 70808",
       date_needed: new Date().toISOString().slice(0, 10),
       status: "open",
       payment_status: "unpaid",

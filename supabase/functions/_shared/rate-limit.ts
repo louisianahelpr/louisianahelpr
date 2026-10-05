@@ -54,10 +54,13 @@
 // the `sub` claim is the platform's assertion, not the caller's. The decode
 // below is therefore a read of an already-verified claim, not an act of trust.
 //
-// WHY THE WIDE WINDOW EXISTS ANYWAY. Three of the importers do run with
-// `verify_jwt = false` (`create-payment`, `complete-signup`, `contact-support`),
-// where a caller can present an unsigned token and rotate `sub` freely to
-// escape its own narrow bucket. Rotating subjects lands in the wide one. It is
+// WHY THE WIDE WINDOW EXISTS ANYWAY. Some importers run with
+// `verify_jwt = false` (2026-10-05, six: `calculate-tax`, `create-payment`, `complete-signup`,
+// `contact-support`, `instant-job-match` since Q1106, `mapkit-token`; read
+// supabase/config.toml rather than this list), where a caller can present an
+// unsigned token and rotate `sub` freely to escape its own narrow bucket.
+// instant-job-match therefore hands its pre-auth call a request with the
+// Authorization header removed, so that call is keyed on the address alone. Rotating subjects lands in the wide one. It is
 // deliberately an order of magnitude looser than the narrow window so that a
 // shared NAT — or an address this module reads wrongly — cannot become a
 // ceiling on ordinary use of a checkout endpoint.

@@ -1,5 +1,5 @@
 // @mutate docs/OPEN.md | - [ ] **Q7 MEDIUM WebKit only | - [~] **Q7 MEDIUM WebKit only
-// @mutate docs/OPEN.md | select count(*) > 0 from tips where payment_status = 'paid' | select public.check_push_token_health() is not null from tips where payment_status = 'paid'
+// @mutate scripts/open-done-when.mjs |     .filter((name) => appFns.has(name)); |     .filter((name) => !appFns.has(name));
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }
 /*
@@ -19,7 +19,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
+import { appFunctionsCalled, partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
 import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
@@ -60,15 +60,15 @@ describe("[~] items say when they are done", () => {
     expect(fns.size, "read no functions from supabase/migrations").toBeGreaterThan(200);
     const bad = items.flatMap((i) =>
       i.markers.flatMap((m) =>
-        m.kind !== "sql"
-          ? []
-          : [...String(m.query).matchAll(/(?:public\.)?(\w+)\s*\(/gi)]
-              .map((x) => x[1].toLowerCase())
-              .filter((name) => fns.has(name))
-              .map((name) => `${i.id}: ${name}()`),
+        m.kind !== "sql" ? [] : appFunctionsCalled(String(m.query), fns).map((name) => `${i.id}: ${name}()`),
       ),
     );
     expect(bad).toEqual([]);
+    // The check itself, on fixed queries: OPEN.md's own markers change every
+    // day, and a mutation of one went vacuous when its item left [~]
+    // (vacuity 37262748113, 2026-10-05, Q788).
+    expect(appFunctionsCalled("select public.check_push_token_health() is not null", fns)).toEqual(["check_push_token_health"]);
+    expect(appFunctionsCalled("select count(*) > 0 from tips where payment_status = 'paid'", fns)).toEqual([]);
   });
 
   it("every done-when marker in OPEN.md parses", () => {

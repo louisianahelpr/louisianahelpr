@@ -143,7 +143,16 @@ describe("a dispute cannot be filed with no explanation", () => {
       defining.length,
       "No migration defines public.rpc_open_dispute — re-point this test, do not delete it.",
     ).toBeGreaterThan(0);
-    const sql = readFileSync(resolve(MIGRATIONS, defining[defining.length - 1]), "utf8");
+    const rpcSql = readFileSync(resolve(MIGRATIONS, defining[defining.length - 1]), "utf8");
+    // rpc_open_dispute delegates the filing to open_dispute_as, which holds the
+    // description rules; Q1244 redefined rpc_open_dispute alone, so follow the
+    // call to open_dispute_as's own newest definition.
+    expect(rpcSql, "rpc_open_dispute no longer delegates to open_dispute_as").toContain("open_dispute_as(");
+    const definingAs = files.filter((f) =>
+      readFileSync(resolve(MIGRATIONS, f), "utf8").includes("FUNCTION public.open_dispute_as"),
+    );
+    expect(definingAs.length, "No migration defines public.open_dispute_as").toBeGreaterThan(0);
+    const sql = readFileSync(resolve(MIGRATIONS, definingAs[definingAs.length - 1]), "utf8");
 
     expect(
       sql,

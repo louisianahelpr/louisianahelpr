@@ -14,10 +14,12 @@
  * plus the standing gates: zero horizontal overflow, exactly one <h1>, and
  * zero axe violations — at 375 and 1440, light and dark.
  *
- * Screenshots land in /tmp/ui-review/activity-density/ as evidence.
+ * Screenshots land in ~/.lh-shots/ui-review/activity-density/ as evidence.
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import type { Locator, Page } from "@playwright/test";
 import {
@@ -44,7 +46,7 @@ import { SEED_JOBS, SEED_APPLICATIONS, CUSTOMER_ID, HELPER_ID } from "./seedData
 import { BUCKET_LABEL, BUCKET_SHORT_LABEL, type ActivityBucket } from "../../src/lib/activityBuckets";
 import { SHORT_LABEL_BELOW_PX } from "../../src/lib/shortLabelBreakpoint";
 
-const SHOTS = "/tmp/ui-review/activity-density";
+const SHOTS = join(homedir(), ".lh-shots", "ui-review", "activity-density");
 mkdirSync(SHOTS, { recursive: true });
 
 type Row = Record<string, unknown>;

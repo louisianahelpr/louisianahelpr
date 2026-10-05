@@ -165,12 +165,12 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   # auto-tip-charge: charges a poster's saved card off-session after a job
   # completes, invoked only by pg_cron. Same posture as its 12 cron siblings
-  # above. This said it was "the ONE that never got a stanza"; as of
-  # 2026-09-10 three cron-invoked functions still have none —
+  # above. This said it was "the ONE that never got a stanza"; until
+  # 2026-10-05 three cron-invoked functions had none —
   # daily-match-digest, saved-helper-availability-push and str-ical-sync — so
-  # they run on the gateway default verify_jwt = true and reach their handler
+  # they ran on the gateway default verify_jwt = true and reached their handler
   # only because pg_cron sends the vault service_role_key, which IS a JWT.
-  # That is the accident this file warns against relying on.
+  # That is the accident this file warns against relying on (fixed below, Q1106).
   #
   # Prod already runs it with verify_jwt=false, so this changes no behaviour —
   # it makes the gate reproducible from the repo instead of an artefact of
@@ -181,6 +181,25 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # IS a JWT, so verify_jwt=true would pass it anyway. Verified healthy in
   # cron_run_log (hourly 200s) on 2026-09-07 (EF-026).
   [functions.auto-tip-charge]
+    verify_jwt = false
+  # Q1106 (2026-10-05): the cron-authenticated functions that had no stanza
+  # (see the note above auto-tip-charge). Each checks `Bearer <CRON_SECRET or
+  # service-role key>` in its handler (instant-job-match and str-ical-sync also
+  # accept a user JWT, validated with auth.getUser); the gateway JWT check was
+  # an accident of the legacy JWT key. Guard: src/test/cronFunctionsDeclareVerifyJwt.test.ts.
+  [functions.daily-match-digest]
+    verify_jwt = false
+  [functions.saved-helper-availability-push]
+    verify_jwt = false
+  [functions.str-ical-sync]
+    verify_jwt = false
+  [functions.arrival-confirm-reminder]
+    verify_jwt = false
+  [functions.instant-job-match]
+    verify_jwt = false
+  [functions.slack-ops-alert]
+    verify_jwt = false
+  [functions.stalled-completion-reminder]
     verify_jwt = false
   [functions.expiring-jobs-push]
     verify_jwt = false

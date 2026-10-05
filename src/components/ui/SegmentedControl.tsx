@@ -235,7 +235,7 @@ export function SegmentedControl<T extends string | number>({
               // `flex: 1 1 0%`, so four options in a narrow card truncate to
               // "Insig…" rather than admitting they do not fit. A row that can
               // genuinely outgrow its container passes `overflow-x-auto`
-              // through `className` (EarningsViewSwitcher, AdminUsers).
+              // through `className` (EarningsRangeToggle, AdminUsers).
               // "wrap" segments take half a row each on a phone and their
               // natural width from 640px up, which is what keeps a four-option
               // track off a third line.

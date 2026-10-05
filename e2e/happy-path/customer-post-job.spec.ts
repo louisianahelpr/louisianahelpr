@@ -153,7 +153,6 @@ test.describe("customer post-job happy path", () => {
         // /rest/v1/jobs read regardless of filters.
         mockTable("jobs", [postedJob]),
         mockTable("applications", []),
-        mockTable("job_checkins", []),
         mockTable("tips", []),
         mockTable("reviews", []),
         mockTable("user_violations", []),

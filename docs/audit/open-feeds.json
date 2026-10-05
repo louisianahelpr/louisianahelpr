@@ -1,22 +1,12 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T12:36Z",
+  "measured_at": "2026-10-05T17:11Z",
   "issues": {
     "readable": true,
     "open": [
       {
-        "number": 2183,
-        "title": "nightly-red: vacuity",
-        "label": "nightly-red"
-      },
-      {
         "number": 2198,
         "title": "nightly-red: staleness-watch",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2213,
-        "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red"
       },
       {
@@ -27,11 +17,6 @@
       {
         "number": 2245,
         "title": "nightly-red: prod-audit",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2304,
-        "title": "nightly-red: branch-prune",
         "label": "nightly-red"
       }
     ]
@@ -64,36 +49,12 @@
         "issue": 2198
       },
       {
-        "fingerprint": "6389f98a9f666200913c7cf501dc289d",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: loading-states-refresh",
-        "issue": 2213
-      },
-      {
-        "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: vacuity",
-        "issue": 2183
-      },
-      {
         "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
-      },
-      {
-        "fingerprint": "30f021e059dca18398edd0fa1a3b8759",
-        "source_kind": "sql_slack",
-        "source": "slack-ops-alert:custom",
-        "status": "open",
-        "title": "# cron(s) need attention",
-        "issue": null
       },
       {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
@@ -104,27 +65,11 @@
         "issue": null
       },
       {
-        "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: branch-prune",
-        "issue": 2304
-      },
-      {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
         "source_kind": "workflow",
         "source": "uptime",
         "status": "open",
         "title": "guest marketplace is empty: no funded jobs (pre-launch)",
-        "issue": null
-      },
-      {
-        "fingerprint": "da3ef1e5e2eea618f50aab6e4f7a9ec6",
-        "source_kind": "error_logs",
-        "source": "cron-dead",
-        "status": "open",
-        "title": "dead cron: expiring-jobs-push has not fired since <ts> (tolerance #)",
         "issue": null
       }
     ]

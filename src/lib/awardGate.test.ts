@@ -125,6 +125,7 @@ describe("every Stripe setup link collects everything up front", () => {
     expect(src.match(/accountLinks\.create\(/g)?.length ?? 0).toBeGreaterThan(2);
     expect(src).not.toMatch(/fields:\s*"currently_due"/);
     const links = src.split("accountLinks.create(").slice(1).map((b) => b.slice(0, 400));
+    expect(links.length).toBeGreaterThan(2);
     for (const b of links) expect(b).toMatch(/collection_options:\s*collectionOptions\(/);
     expect(src).toMatch(/fields: "eventually_due" as const, future_requirements: "include" as const/);
   });

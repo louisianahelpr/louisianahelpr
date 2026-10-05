@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 563,
+    "calls": 564,
     "files": 143,
-    "rendering": 542,
+    "rendering": 543,
     "suppressedByPolicy": 21,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 449,
+      "toast.error": 450,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 308,
       "template": 73,
-      "dynamic": 222,
+      "dynamic": 223,
       "jsx": 0
     }
   },
@@ -5124,7 +5124,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 137,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5134,7 +5134,17 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 216,
+      "line": 205,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "refusal.toast"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/messages/messagesData/sendHandlers.ts",
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5144,7 +5154,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 252,
+      "line": 271,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5154,7 +5164,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 280,
+      "line": 299,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5164,7 +5174,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 316,
+      "line": 335,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5174,7 +5184,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 333,
+      "line": 352,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5184,7 +5194,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 403,
+      "line": 422,
       "kind": "toast.error",
       "title": {
         "form": "literal",

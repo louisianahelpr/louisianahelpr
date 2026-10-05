@@ -155,7 +155,7 @@ check("C1 a crew member's on-time figure counts their 5 crew jobs", Number(stats
 check("C1 a crew member's repeat-client figure counts their 3 crew clients", Number(stats?.repeat_client_sample) === 3 && Number(stats?.repeat_hire_percent) === 67,
   `client_sample=${stats?.repeat_client_sample} percent=${stats?.repeat_hire_percent}`);
 
-// C2: M1 was paid on jobs 2-5 (job 1 still pending): 4 rows, net 90.00 each, gross 100.00, tax 9.00.
+// C2: M1 was paid on jobs 2-5 (job 1 still pending): one export row per paid job, net 90.00 each, gross 100.00, tax 9.00.
 const exp = await all(`SELECT * FROM public.get_helper_earnings_export('${M1}', current_date - 30, current_date)`);
 check("C2 a crew member's paid shares are in their earnings export (and only the paid ones)",
   exp.length === 4 && exp.every((r) => Number(r.net_payout) === 90 && Number(r.gross_budget) === 100 && Number(r.platform_fee) === 10 && Number(r.parish_tax_collected) === 9),

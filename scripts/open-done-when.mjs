@@ -95,6 +95,20 @@ export function rowText(rows) {
   return v === null ? "null" : Array.isArray(v) ? `{${v.join(",")}}` : typeof v === "object" ? JSON.stringify(v) : String(v);
 }
 
+/**
+ * The app functions (names in `appFns`, lower case) a sql marker's query calls.
+ * The read-only role the nightly runs as cannot execute them (#1951), so a
+ * marker that calls one can never read true. Pure, so the guard can prove it
+ * on a fixed query instead of on whichever marker docs/OPEN.md holds today
+ * (vacuity 37262748113: a mutation of a live marker went vacuous once its
+ * item stopped being [~]).
+ */
+export function appFunctionsCalled(query, appFns) {
+  return [...String(query).matchAll(/(?:public\.)?(\w+)\s*\(/gi)]
+    .map((m) => m[1].toLowerCase())
+    .filter((name) => appFns.has(name));
+}
+
 const READ_ONLY_SQL = /^\s*(select|with)\b[^;]*;?\s*$/i;
 
 /**

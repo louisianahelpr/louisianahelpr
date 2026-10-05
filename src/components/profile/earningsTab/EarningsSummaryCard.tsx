@@ -33,7 +33,8 @@ import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/e
  * one screen below a second, near-identical segmented control (PaymentTab's
  * poster-spend scope). Two identical-looking pills, neither attached to
  * anything, was the real reason the screen read as incoherent. Placing it in
- * the card — the way the spend toggle already sits in the spend card — makes
+ * the card — the way the spend toggle then sat in the spend card (removed with
+ * the one-page tab, Q1177) — makes
  * ownership obvious without a single word of explanatory copy.
  *
  * THE FOOTER IS NOT RANGE-SCOPED, AND SAYS SO. "In progress right now" is a
@@ -121,9 +122,9 @@ export function EarningsSummaryCard({
                 ledger row, which is why exactness is non-negotiable), but
                 formatPriceExact drops a whole-dollar ".00" and formatCents does
                 not. Side by side that rendered "$357" directly above "$180.00":
-                two money figures, one screen, two shapes. The whole Money view
-                is 2dp — the wallet, and PaymentTab's spend counter — so this is
-                too. */}
+                two money figures, one screen, two shapes. The whole Earnings
+                page is 2dp — the wallet, and PaymentTab's spend counter — so
+                this is too. */}
             <p
               className="font-sans font-bold tabular-nums leading-none text-ds-28"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}

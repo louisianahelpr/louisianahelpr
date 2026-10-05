@@ -10,6 +10,7 @@ import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { awardBlockFromError, isUnfundedAwardRefusal, posterAwardBlockMessage, reasonFromMissing, UNFUNDED_AWARD_COPY, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { offerResponseDeadline, JOB_STARTS_TOO_SOON_COPY } from "@/lib/offerDeadline";
 import { postedActivityBucket } from "@/components/job-card/activityFilters";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -193,7 +194,15 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       });
       throw new Error("Couldn't prepare this offer — please close and try again.");
     }
-    const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
+    // The answer-by time the SERVER will write (accept_application,
+    // 20261005184940): never past the job's start. Computed here only so the
+    // optimistic card shows the same instant the refetch will; the RPC clamps
+    // whatever this sends.
+    const planned = offerResponseDeadline(deadlineHours, selectedJob);
+    if (!planned.ok) {
+      throw new Error(JOB_STARTS_TOO_SOON_COPY);
+    }
+    const deadline = planned.deadline.toISOString();
     // Optimistic: move the posted job into the "Awaiting Response" bucket
     // (status accepted, no helper_confirmed_at) right away so the card jumps
     // instead of waiting on the RPC + refetch. Rolled back on any error path.

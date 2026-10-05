@@ -34,6 +34,8 @@ import { helperStatusLine, withDisputeSettling } from "../../components/job-card
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
+import { JobTracking } from "@/components/JobTracking";
+import { JobCountdown } from "@/components/job-card/JobCountdown";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -614,6 +616,17 @@ function AppliedJobCardInner({
           {/* Offered: accept/decline — celebratory framing since this
               is a poster reaching out directly. Gold-warm accent
               surfaces the "you were picked" moment without shouting. */}
+          {/* THE SAME STEP RAIL THE POSTER'S CARD SHOWS (owner, 2026-10-05:
+              "the live step tracker ... must also show on the Helpr's Jobs
+              card"). Posted · Offered · Accepted · ... from the job's own
+              columns; read-only here (no helper controls: the offer's one
+              move is Accept/Decline below), and behind the expand exactly as
+              on the poster's card. Guard: src/test/offerCardHierarchy.test.tsx. */}
+          {isOffered && isExpanded && (
+            <div className="px-4 pt-1 pb-2" onClick={(e) => e.stopPropagation()} data-offer-tracker="">
+              <JobTracking embedded includePostingSteps jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+            </div>
+          )}
           {isOffered && (
             <OfferedActions app={app} job={job} onHelperResponse={onHelperResponse} respondingHelperAppId={respondingHelperAppId} />
           )}
@@ -847,7 +860,7 @@ function AppliedJobCardInner({
             </div>
           )}
           {/* A booked one-time job's date/time change (Q407 8). */}
-          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" />
+          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} />
           {/* WHAT THIS CARD IS WAITING ON — one sentence, at the card's bottom
               edge (owner, 2026-09-19: "should show what we are waiting on...
               remove the dots", and on the look: "similar to how dispute open
@@ -878,7 +891,20 @@ function AppliedJobCardInner({
               keeps having removed. `deriveHelperWait` still answers for those
               states (`not_selected` / `cancelled` / `job_gone`); the card
               chooses not to draw a second copy. */}
-          {!isMinimalCard && !isExpanded && <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />}
+          {/* The start clock on the collapsed card too (owner, 2026-10-05); the
+              offer card carries its own two clocks inside OfferedActions. */}
+          {!isMinimalCard && !isExpanded && isConfirmed && (
+            <div className="px-4 pb-2" data-collapsed-start-clock="">
+              <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+            </div>
+          )}
+          {/* NO STRIP ON AN OFFER (owner, 2026-10-05: the answer-by clock showed
+              twice, "23h 55m remaining" over Accept AND "23h 55m left to
+              confirm" here, and the strip repeated "Confirm you'll be there"
+              under a body that already asks it). OfferedActions is on the
+              collapsed and the expanded card alike and IS this card's
+              statement of whose move it is, with its one clock. */}
+          {!isMinimalCard && !isExpanded && !isOffered && <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />}
         </JobCardShell>
         </div>
     </JobCardPersonContext.Provider>

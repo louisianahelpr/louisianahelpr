@@ -42,7 +42,7 @@
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |             AND NEW.offered_to_helper_id = p.helper_id AND NEW.direct_offer_status = 'pending')); |             AND false));
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     if (accept && answer.action === "pending_setup") { |     if (false) {
 // @mutate src/lib/awardGate.ts |     missing.includes("stripe_id") ? "finish your Stripe ID check" : null, |     "finish your Stripe ID check",
-// @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |   const noStrike = useAwardBlockReason() !== null \|\| acceptPending; |   const noStrike = useAwardBlockReason() !== null;
+// @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |   const noStrike = gate.reason !== null \|\| acceptPending; |   const noStrike = gate.reason !== null;
 // @mutate src/lib/lifecycleErrors.ts |   accept_required:\n |   accept_required_retired:\n
 // @mutate src/lib/seriesDates.ts | rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) | rpcErrorMessage("claim_series_dates", error)
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |           NEW.recurrence_end_date, NEW.series_split_ok) THEN |           NEW.recurrence_end_date, NEW.series_split_ok) AND false THEN
@@ -242,7 +242,10 @@ describe("the app: the thank-you pop-up asks only for what is missing (Q1180)", 
   it("the Decline confirm promises no strike exactly when the server files none (re-review #9)", () => {
     const card = blankComments(readFileSync(join(REPO, "src/pages/jobs/appliedJobCard/OfferedActions.tsx"), "utf8"));
     // decline_job_offer: helper_accept_block_reason IS NOT NULL OR a pending row for this job
-    expect(card).toContain("const noStrike = useAwardBlockReason() !== null || acceptPending;");
+    // The gate now comes through useAcceptGate (same derivation, plus a
+    // loading state the offer card's primary needs, owner 2026-10-05).
+    expect(card).toContain("const gate = useAcceptGate();");
+    expect(card).toContain("const noStrike = gate.reason !== null || acceptPending;");
     expect(card).not.toMatch(/setupUnfinished/);
   });
 

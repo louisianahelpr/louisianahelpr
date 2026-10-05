@@ -326,7 +326,8 @@ describe("the poster's collapsed card announces the dispute", () => {
        source match moves to the strip's own mount — still the thing that would
        have to be deleted for a Helpr to lose the signal. */
     expect(
-      /\{!isMinimalCard && !isExpanded && <JobStatusStrip/.test(src),
+      // `!isOffered` (owner, 2026-10-05): an offer card says its own state; a disputed card is never an offer.
+      /\{!isMinimalCard && !isExpanded && !isOffered && <JobStatusStrip/.test(src),
       "AppliedJobCard no longer draws a collapsed-card status strip. A Helpr scrolling " +
         "My Jobs cannot tell that one of these jobs has a 72-hour clock running on their pay.",
     ).toBe(true);

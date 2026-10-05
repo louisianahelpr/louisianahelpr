@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { PostedJobSeriesControls } from "@/pages/posts/PostedJobSeriesControls";
+import { ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
@@ -762,6 +763,11 @@ function PostedJobCardInner({
                 confirmingWorkingJobId={confirmingWorkingJobId}
                 onActionComplete={onActionComplete}
               />
+              {/* The date-change request, LAST on the open card (owner,
+                  2026-10-05: expanded only, and never a band of its own
+                  between the meta row and the brief). Below the card's own
+                  action row it reads as the secondary move it is. */}
+              <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} />
             </div>
             )}
             {/* WHAT THIS CARD IS WAITING ON — ONE STRIP AT THE CARD'S BOTTOM
@@ -812,6 +818,16 @@ function PostedJobCardInner({
                 takes its eyebrow from `postedActivityBucket` (the same word as
                 the tab above the list) and its sentence from the confirmation
                 ladder and the bucket's own predicates. See jobStatusLine.ts. */}
+            {/* THE START CLOCK ON THE COLLAPSED CARD TOO (owner, 2026-10-05:
+                "Job starts in" and the confirm deadline must each show when the
+                card is collapsed, not only expanded). The confirm deadline rides
+                the strip below; the start clock is the same pill the expanded
+                body draws. Guard: src/test/offerCardHierarchy.test.tsx. */}
+            {!isExpanded && job.status === "accepted" && (
+              <div className="px-4 pb-2" data-collapsed-start-clock="">
+                <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+              </div>
+            )}
             {!isExpanded && (
               <PosterStatusStrip
                 job={withDisputeSettling(job, unsettledDisputeJobIds)}

@@ -71,11 +71,18 @@ export function ScheduleChangeForJob({
   job,
   userId,
   viewer,
+  expanded,
 }: {
   job: SeriesCardJob;
   userId: string | null | undefined;
   viewer: "poster" | "helper";
+  /** The card's own expand state. Required, so no card can forget it: the
+   *  date-change control lives BEHIND the expand on every card (owner,
+   *  2026-10-05: "Ask for a new date or time" shows only expanded, it takes
+   *  too much space collapsed). Guard: src/test/offerCardHierarchy.test.tsx. */
+  expanded: boolean;
 }) {
+  if (!expanded) return null;
   if (!userId || job.status !== "accepted" || !job.helper_id || job.helper_completed_at) return null;
   if (viewer === "helper" && job.helper_id !== userId) return null;
   if (job.parent_job_id || job.recurrence_days?.length || job.is_group_job || !job.date_needed) return null;

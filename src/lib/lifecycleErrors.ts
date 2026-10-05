@@ -15,6 +15,7 @@
  * Unknown codes fall through to the caller's own fallback string.
  */
 import { isWriteRejected } from "./mutationResult";
+import { JOB_STARTS_TOO_SOON_COPY } from "./offerDeadline";
 
 /**
  * THE ONE SENTENCE FOR THE BEFORE-PHOTO GATE ON "START WORKING".
@@ -159,7 +160,12 @@ const ACCEPT_REASONS = {
  */
 export const RPC_ERROR_COPY = {
   // useOfferHandlers — accepting an applicant (single and group).
-  accept_application: { ...ACCEPT_REASONS },
+  accept_application: {
+    ...ACCEPT_REASONS,
+    // 20261005184940: an offer is never sent into a job that starts within 15 minutes.
+    job_starts_too_soon: JOB_STARTS_TOO_SOON_COPY,
+    invalid_deadline: "That answer-by time has already passed. Pick a longer window and try again.",
+  },
   accept_group_application: {
     ...ACCEPT_REASONS,
     roster_full: "Every spot on this job is already filled, so no one else can be added.",

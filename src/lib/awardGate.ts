@@ -282,3 +282,19 @@ export function posterAwardBlockMessage(reason: AwardBlockReason, helperName?: s
       return `We couldn't check ${who}'s verification status — give it a moment and try again.`;
   }
 }
+
+/**
+ * The offer card's one line under its primary when the accept would be
+ * refused (owner, 2026-10-05: show it up front, not after the tap). Short on
+ * purpose: the full explanation is the gate dialog the same tap opens.
+ */
+export function acceptGateLine(reason: AwardBlockReason): string {
+  switch (reason) {
+    case "helper_payout_setup_incomplete":
+      return "Set up payouts with Stripe to accept this job. It takes about two minutes, once.";
+    case "helper_identity_unverified":
+      return "Stripe still needs to confirm your ID before you can accept this job.";
+    case "helper_unknown":
+      return "We couldn't read your payout status. Open payout settings to check it.";
+  }
+}

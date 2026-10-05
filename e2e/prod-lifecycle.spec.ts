@@ -583,7 +583,7 @@ test.describe("full money loop against production", () => {
           "if you are reading this in the app, something has gone wrong with the test harness.",
         category: "cleaning",
         budget: 25,
-        location: "Baton Rouge, LA",
+        location: "4412 Highland Rd, Baton Rouge, LA 70808",
         /* TODAY, because the helper's ladder is LOCKED until the job's day
            arrives and this journey's whole subject is walking that ladder.
 

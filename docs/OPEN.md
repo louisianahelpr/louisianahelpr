@@ -1085,7 +1085,7 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### NEW — 37 seed rows pass the address check and still go nowhere
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q1085** LOW Fake '100 Audit Way...99999' addresses satisfy hasStreetAddress() but resolve nowhere for Directions — Open: 37 seed rows have unresolvable fake addresses; fix deferred to E2E lane. (archive L7005)
+- [ ] **Q1085** LOW Fake '100 Audit Way...99999' addresses satisfy hasStreetAddress() but resolve nowhere for Directions — Open: 37 seed rows have unresolvable fake addresses; fix deferred to E2E lane. (archive L7005) **RE-MEASURED 2026-10-05 (alerts lane, read-only SQL): 24 rows hold "100 Audit Way, Baton Rouge, LA 99999", and all 24 are cancelled** (journey jobs, the newest 2026-10-05), so no live job sends Directions to it. The street is typed through the post-job form by e2e/journeys/postJobForm.ts:88 and e2e/prod-audit/interruptions.spec.ts:559 with ZIP 99999 on purpose (no parish, so no real Helpr is notified). Swapping in a real street is a UI-driven change to the address autocomplete step (a suggestion could fill a real ZIP and a parish), so it needs a browser run to prove; not changed here.
 
 ### NEW — three real prod jobs are actually fixtures
 Reconciled 2026-09-23; detail in the archive at the line shown.

@@ -26,6 +26,11 @@ import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { slackAlerts, resetSharedMocks } from "./mocks/shared";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 
+// Certificial's own payload status word (a VENDOR value, not a helper_credentials.status).
+const CERTIFICIAL_ACTIVE = "active";
+// verification_checks.status (its CHECK admits passed), not helper_credentials.status.
+const CHECK_PASSED = "passed";
+
 const CHECKR_SECRET = "checkr_test_secret";
 const CERTIFICIAL_SECRET = "certificial_test_secret";
 
@@ -209,7 +214,7 @@ describe("verification-webhook: Certificial and Stripe Identity (Q1023)", () => 
 
   it("Certificial: a forged signature is refused before anything is written", async () => {
     const fn = await loadConfigured();
-    const res = await fn.fetch(certificialRequest(fn, { certificate_id: "cert_1", status: "active" }, "not-the-secret"));
+    const res = await fn.fetch(certificialRequest(fn, { certificate_id: "cert_1", status: CERTIFICIAL_ACTIVE }, "not-the-secret"));
     expect(res.status).toBe(401);
     expect(scenario.writes).toHaveLength(0);
   });
@@ -217,7 +222,7 @@ describe("verification-webhook: Certificial and Stripe Identity (Q1023)", () => 
   it("Certificial: an unsigned callback is refused", async () => {
     const fn = await loadConfigured();
     const res = await fn.fetch(
-      fn.request({ rawBody: JSON.stringify({ certificate_id: "cert_1", status: "active" }), headers: { "x-vendor": "certificial" } }),
+      fn.request({ rawBody: JSON.stringify({ certificate_id: "cert_1", status: CERTIFICIAL_ACTIVE }), headers: { "x-vendor": "certificial" } }),
     );
     expect(res.status).toBe(401);
     expect(scenario.writes).toHaveLength(0);
@@ -226,9 +231,9 @@ describe("verification-webhook: Certificial and Stripe Identity (Q1023)", () => 
   it("Certificial: an active policy passes the check and records its expiry", async () => {
     const fn = await loadConfigured();
     seedKnownCheck();
-    const res = await fn.fetch(certificialRequest(fn, { id: "evt_cert_1", certificate_id: "cert_1", status: "active", expiration_date: "2027-01-31" }));
+    const res = await fn.fetch(certificialRequest(fn, { id: "evt_cert_1", certificate_id: "cert_1", status: CERTIFICIAL_ACTIVE, expiration_date: "2027-01-31" }));
     expect(res.status).toBe(200);
-    expect(statusWrite()).toMatchObject({ status: "passed", expires_at: "2027-01-31" });
+    expect(statusWrite()).toMatchObject({ status: CHECK_PASSED, expires_at: "2027-01-31" });
   });
 
   it("Certificial: a cancelled policy expires the check; anything unknown fails it", async () => {

@@ -15,19 +15,38 @@
 //
 // Apple HIG requires Apple to appear above (or at least equally prominent
 // to) any other third-party sign-in option, so Apple renders first.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
+import { report } from "@/lib/errorLogger";
 import {
   signInWithProvider,
   type AccountChoice,
   type SocialProvider,
   type SocialSignInResult,
 } from "@/lib/socialAuth";
-import { AccountChoiceDialog } from "@/components/auth/AccountChoiceDialog";
+// Loaded on demand: the dialog pulls in the Radix dialog stack (~19 KB gz),
+// which /login and /signup must not load up front for a question almost nobody
+// is asked (critical-path budget Q178, scripts/perf/critical-path-budget.json).
+// An effect, not React.lazy: a lazy component suspends Login's first render,
+// React may discard it, and takeOAuthRedirectError() (read once, in Login's
+// state initializer) then hands the re-render null, so the dialog never opened.
+type AccountChoiceDialogType = typeof import("@/components/auth/AccountChoiceDialog").AccountChoiceDialog;
+function useAccountChoiceDialog(needed: boolean): AccountChoiceDialogType | null {
+  const [Dialog, setDialog] = useState<AccountChoiceDialogType | null>(null);
+  useEffect(() => {
+    if (!needed || Dialog) return;
+    let live = true;
+    import("@/components/auth/AccountChoiceDialog")
+      .then((m) => { if (live) setDialog(() => m.AccountChoiceDialog); })
+      .catch((err: unknown) => report(err, { severity: "error", tags: { area: "auth", op: "loadAccountChoiceDialog" } }));
+    return () => { live = false; };
+  }, [needed, Dialog]);
+  return Dialog;
+}
 import { userFacingError } from "@/lib/userFacingError";
 
 type SocialAuthLabelMode = "signin" | "signup";
@@ -49,6 +68,7 @@ export function SocialAuthButtons({
 }: SocialAuthButtonsProps) {
   // Q446: the one-account question, from a native refusal or the web redirect.
   const [choice, setChoice] = useState<AccountChoice | null>(initialChoice);
+  const AccountChoiceDialog = useAccountChoiceDialog(choice !== null);
   return (
     // Two marks side by side, not two stacked full-width labelled boxes
     // (owner: "I would prefer using the Apple and Google icons instead of the
@@ -85,7 +105,9 @@ export function SocialAuthButtons({
     <div className="flex flex-col gap-4">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
-      <AccountChoiceDialog choice={choice} onDone={() => setChoice(null)} onChoice={setChoice} redirectTo={redirectTo} />
+      {choice && AccountChoiceDialog && (
+        <AccountChoiceDialog choice={choice} onDone={() => setChoice(null)} onChoice={setChoice} redirectTo={redirectTo} />
+      )}
     </div>
   );
 }

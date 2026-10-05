@@ -11,7 +11,7 @@
  *   - one claim row per tip (a second insert for the same tip is 23505);
  *   - the status set is closed (an unknown status is refused, 23514);
  *   - the claim is a compare-and-set: 'reversed' -> 'repaying' matches once,
- *     a second copy matches 0 rows;
+ *     a second copy matches no row;
  *   - one re-pay transfer id is never recorded on two rows (23505);
  *   - a non-positive amount is refused;
  *   - RLS is on and anon/authenticated hold no privilege; service_role can

@@ -79,14 +79,15 @@ const stripComments = (s: string) =>
     .join("\n");
 
 /** A live source: prod DB / REST / auth, the Management or Stripe API, a prod edge function, GitHub, or a minted prod session. */
-const LIVE_MARKERS: RegExp[] = [
+// A string is a plain substring marker (hostnames are matched as text in source, never as a URL to validate).
+const LIVE_MARKERS: (RegExp | string)[] = [
   /\(\s*["'`]supabase["'`]\s*,\s*\[/, // execFileSync("supabase", [...])
   /\bsupabaseDbQuery\s*\(/, // the CLI's `db query`, through scripts/lib/supabaseDbQuery.mjs (Q1176)
   /\[\s*["'`]supabase["'`]\s*,\s*["'`]gen/, // npx supabase gen types
   /\(\s*["'`]gh["'`]\s*,/, // execFileSync("gh", ...)
   /\(\s*["'`]psql["'`]/,
-  /api\.supabase\.com/,
-  /api\.stripe\.com/,
+  "api.supabase.com",
+  "api.stripe.com",
   // A prod edge-function call (check-stripe-webhook-events reads Stripe through
   // stripe-webhook-config-check; its base is overridable only for this test).
   /LH_SUPABASE_FUNCTIONS_BASE/,
@@ -101,7 +102,7 @@ const candidates = [
   ...readdirSync(join(ROOT, "scripts/audit")).filter((f) => f.endsWith(".mjs")).map((f) => `scripts/audit/${f}`),
 ];
 const code = (f: string) => stripComments(readFileSync(join(ROOT, f), "utf8"));
-const inventory = candidates.filter((f) => LIVE_MARKERS.some((rx) => rx.test(code(f)))).sort();
+const inventory = candidates.filter((f) => LIVE_MARKERS.some((m) => (typeof m === "string" ? code(f).includes(m) : m.test(code(f))))).sort();
 
 /**
  * Cannot be run hermetically here, each with the reason. `mustContain` pins the

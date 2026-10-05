@@ -12,6 +12,8 @@
  *
  * Env: STRIPE_TEST_SECRET_KEY, TOPUP_DOLLARS. Test seam: LH_STRIPE_API_BASE.
  */
+import { apiBase } from "./lib/apiBase.mjs";
+
 export const MAX_DOLLARS = 2000;
 
 export function checkInputs(key, dollarsRaw) {
@@ -34,7 +36,7 @@ async function main() {
     console.error(`::error::${bad}`);
     process.exit(1);
   }
-  const base = process.env.LH_STRIPE_API_BASE ?? "https://api.stripe.com";
+  const base = apiBase(process.env.LH_STRIPE_API_BASE, "https://api.stripe.com");
   const headers = { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" };
   const body = new URLSearchParams({
     amount: String(Number(dollarsRaw) * 100),

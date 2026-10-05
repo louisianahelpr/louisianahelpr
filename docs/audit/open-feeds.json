@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T12:26Z",
+  "measured_at": "2026-10-05T12:36Z",
   "issues": {
     "readable": true,
     "open": [
@@ -39,6 +39,14 @@
   "ledger": {
     "readable": true,
     "open": [
+      {
+        "fingerprint": "aa5ca08c879601e26d29a62f667098b4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http timeout: arrival-confirm-reminder returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
+        "issue": null
+      },
       {
         "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
         "source_kind": "nightly_red",
@@ -149,6 +157,7 @@
     "ledger 6389f98a9f66": "Q722",
     "ledger 7f88b9cc45df": "Q1274",
     "ledger 88ecf6e765df": "Q788",
+    "ledger aa5ca08c8796": "Q1373",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger b75d265e6201": "Q1310",
     "ledger da3ef1e5e2ee": "Q1372",

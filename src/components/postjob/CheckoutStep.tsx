@@ -24,6 +24,7 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 // 50 + 7 + 7 against a printed total of 63 — the poster can see it not add
 // up, on the screen where they decide whether to trust us with a card.
 import { formatPriceExact } from "@/lib/format";
+import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
 import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
 import { hasTaxableLine } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
@@ -461,10 +462,7 @@ export function CheckoutStep({
               Checking your gift card…
             </div>
           )}
-          <div className="flex justify-between text-ds-13">
-            <span className="text-muted-foreground">Job Budget</span>
-            <span className="font-medium text-foreground">${formatPriceExact(budgetNum)}</span>
-          </div>
+          <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} />
           {/* Service fee — waived outright on a gift-funded post. create-payment
               returns from the gift card branch before the tier/fee pricing runs, so
               there is no percentage to state; printing "12%  $0.00" would
@@ -484,23 +482,14 @@ export function CheckoutStep({
             )}
           </div>
           {isUrgent && urgentFeeNum > 0 && (
-            <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent Bonus (Goes to Helpr)</span>
-              <span className="font-medium text-foreground">${formatPriceExact(urgentFeeNum)}</span>
-            </div>
+            <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent Bonus (Goes to Helpr)</>} amount={formatPriceExact(urgentFeeNum)} />
           )}
           {/* Q362: the bonus's card fee is the poster's, so the Helpr gets all of it. */}
           {isUrgent && urgentCardFeeAmount > 0 && (
-            <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground">Urgent Bonus Card Fee</span>
-              <span className="font-medium text-foreground">${formatPriceExact(urgentCardFeeAmount)}</span>
-            </div>
+            <CheckoutSummaryRow label="Urgent Bonus Card Fee" amount={formatPriceExact(urgentCardFeeAmount)} />
           )}
           {onboardingFeeAmount > 0 && (
-            <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground">One-Time Account Setup <span className="text-ds-12">(First Job Only)</span></span>
-              <span className="font-medium text-foreground">${formatPriceExact(onboardingFeeAmount)}</span>
-            </div>
+            <CheckoutSummaryRow label={<>One-Time Account Setup <span className="text-ds-12">(First Job Only)</span></>} amount={formatPriceExact(onboardingFeeAmount)} />
           )}
           {/* ── Gift applied ────────────────────────────────────────────────
               The line this screen was missing. `redeem_gift_card` applies the

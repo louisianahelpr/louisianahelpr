@@ -22,6 +22,7 @@
  * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
  * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |   IF v_job.is_group_job IS TRUE\n     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |   IF false THEN
  * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |     v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled', |     v_released := public.series_visit_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
+ * @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |          AND public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts - now())) / 3600.0) THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id, |          AND true THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id,
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -39,6 +40,9 @@ const body = (name: string) => {
 const LADDER_CALLERS: Record<string, "before_start_give_up" | string> = {
   helper_cancel_booking: "before_start_give_up",
   series_give_up_strike: "before_start_give_up",
+  // Q729/Q1282 (20261005172453): a crew member who blocks the poster before
+  // the start leaves the crew as helper_cancel_booking's crew branch does.
+  block_user_and_settle: "before_start_give_up",
   helper_abort_job: "abandons a job already in progress (after the start), not a before-start cancel",
   decline_job_offer:
     "declines a hire offer the Helpr never confirmed; not a booking they committed to (owner question in docs/OPEN.md Q415)",
@@ -59,7 +63,7 @@ describe("a before-start give-up strikes only within 24 hours (Q407 6, 11)", () 
 
   it("every ladder call in a before-start give-up is gated on is_late_cancellation", () => {
     const giveUps = Object.entries(LADDER_CALLERS).filter(([, why]) => why === "before_start_give_up");
-    expect(giveUps.length).toBe(2);
+    expect(giveUps.length).toBe(3);
     // helper_cancel_booking: one gated call per branch (crew, single).
     const hcb = body("helper_cancel_booking");
     const calls = (hcb.match(/apply_job_denial_consequence\s*\(/g) ?? []).length;
@@ -75,6 +79,13 @@ describe("a before-start give-up strikes only within 24 hours (Q407 6, 11)", () 
     expect(give.match(LATE_GATE)?.length ?? 0).toBe(0); // it gates by WHERE, not IF
     expect(give).toMatch(/WHERE\s+public\.is_late_cancellation\(\s*true,/);
     expect(give).toMatch(/IF\s+v_late\s+IS\s+NULL\s+THEN\s+RETURN\s+false;/);
+    // block_user_and_settle: its one ladder call (a crew member blocking the
+    // poster; the crew pass skips a started crew) is gated on is_late_cancellation.
+    const block = body("block_user_and_settle");
+    expect((block.match(/apply_job_denial_consequence\s*\(/g) ?? []).length).toBe(1);
+    expect(block).toMatch(
+      /IF\s+v_crew\.member_confirmed_at\s+IS\s+NOT\s+NULL\s+AND\s+public\.is_late_cancellation\(\s*true\s*,\s*EXTRACT\(EPOCH FROM \(v_starts - now\(\)\)\) \/ 3600\.0\)\s+THEN\s+PERFORM\s+public\.apply_job_denial_consequence\(/,
+    );
   });
 
   it("helper_cancel_booking keeps the crew branch (20260925140148) and the series return (20260927012806)", () => {

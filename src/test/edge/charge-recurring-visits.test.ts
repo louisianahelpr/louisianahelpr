@@ -55,12 +55,12 @@
 // Registered mutations - each turns this guard RED on its own:
 //   A per-call idempotency key means the retry after a no-answer failure is a
 //   SECOND real charge instead of Stripe replaying the first.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, | `recurring-visit:${parent.id}:${visitDate}:${hold.id}:${Math.random()}`,
+// @mutate supabase/functions/charge-recurring-visits/index.ts | : `recurring-visit:${parent.id}:${visitDate}:${hold.id}`; | : `recurring-visit:${parent.id}:${visitDate}:${hold.id}:${Math.random()}`;
 //   20260927012806: the cron charges a date nobody holds / books someone other than its holder.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!hold) { |         if (false && !hold) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | payout follows helper_id.\n            helper_id: holderId, | payout follows helper_id.\n            helper_id: parent.recurring_helper_id,
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (holdsRes.error) { |       if (false) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |           `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, |           `recurring-visit:${parent.id}:${visitDate}`,
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           : `recurring-visit:${parent.id}:${visitDate}:${hold.id}`; |           : `recurring-visit:${parent.id}:${visitDate}`;
 //   Money audit 2026-09-25: chargeback, pre-charge re-read, holder changed mid-run.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if ((chargebackRes.data ?? []).length > 0) { |       if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (parent.payment_status === "chargeback" \|\| parent.dispute_status === "stripe_chargeback") { |       if (false) {

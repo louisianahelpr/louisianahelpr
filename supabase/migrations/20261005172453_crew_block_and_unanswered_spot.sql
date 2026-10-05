@@ -659,7 +659,7 @@ BEGIN
       INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
       SELECT r.user_id,
              'Block on a started crew job',
-             format('"%s": the poster and one crew member blocked each other after the job started. Nothing on the job was changed; decide what happens to that member''s part.',
+             format('"%s": the person who posted it and one crew member blocked each other after the job started. Nothing on the job was changed; decide what happens to that member''s part.',
                     COALESCE(v_crew.title, 'A job')),
              'admin_alert',
              '/admin?view=jobs&job=' || v_crew.id::text,
@@ -728,7 +728,7 @@ BEGIN
         INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
         SELECT r.user_id,
                'Crew block: fee owed by hand',
-               format('"%s": the poster blocked a committed crew member %s hours before the start. That member is owed a $%s cancellation fee (%s%% of their $%s share). Nothing was charged or paid automatically; settle it by hand.',
+               format('"%s": the person who posted it blocked a committed crew member %s hours before the start. That member is owed a $%s cancellation fee (%s%% of their $%s share). Nothing was charged or paid automatically; settle it by hand.',
                       COALESCE(v_crew.title, 'A job'), round(COALESCE(v_hours, 0), 1),
                       to_char(v_member_fee, 'FM999999990.00'), v_percent,
                       to_char(COALESCE(v_basis, 0) / 100.0, 'FM999999990.00')),

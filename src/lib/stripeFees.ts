@@ -37,19 +37,28 @@ export function stripePercentCostCents(amountCents: number): number {
 }
 
 /**
- * The urgent fee a helper actually nets after the urgent fee covers its OWN
- * marginal Stripe processing cost. The urgent fee is charged to the poster
- * bundled into the escrow checkout and passes through to the helper; this nets
- * out only the bundled marginal cost (2.9%, NOT the once-per-transaction flat)
- * so the platform never subsidizes card processing on the urgent fee. Input and
- * output are in DOLLARS so it slots directly into the
- * `budget − commission + urgentFee` take-home formula used across every earnings
- * display. Returns 0 for a non-positive/absent fee. This is the ONE definition
- * every earnings surface must call, so the amount a helper is SHOWN always
- * equals the amount the edge transfers. Mirrors the edge authority.
+ * What the Helpr receives of the urgent bonus: ALL of it (owner MQ11 / CC-003,
+ * Q362): the poster pays the bonus's card fee on top (`urgentBonusCardFeeCents`).
+ * The name is kept so every earnings surface still calls this ONE definition and
+ * the amount a Helpr is SHOWN equals the amount the edge transfers. DOLLARS in
+ * and out. Returns 0 for a non-positive/absent fee. Mirrors the edge authority.
  */
 export function netUrgentFeeDollars(urgentFeeDollars: number | null | undefined): number {
   const cents = Math.round((urgentFeeDollars ?? 0) * 100);
   if (!(cents > 0)) return 0;
-  return (cents - stripePercentCostCents(cents)) / 100;
+  return cents / 100;
+}
+
+/**
+ * The card fee the poster pays on top of an urgent bonus, in cents: the
+ * smallest whole-cent `fee` with `fee >= stripePercentCostCents(urgent + fee)`
+ * (bundled: percentage only). Mirrors the edge authority, which create-payment
+ * charges as its own line.
+ */
+export function urgentBonusCardFeeCents(urgentCents: number): number {
+  if (!(urgentCents > 0)) return 0;
+  let fee = Math.ceil((urgentCents * STRIPE_PCT) / (1 - STRIPE_PCT));
+  while (fee > 0 && fee - 1 >= stripePercentCostCents(urgentCents + fee - 1)) fee--;
+  while (fee < stripePercentCostCents(urgentCents + fee)) fee++;
+  return fee;
 }

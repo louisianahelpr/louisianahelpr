@@ -419,7 +419,7 @@ export function BudgetSection({
         {isUrgent && (
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
-              ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and your bonus goes to the Helpr who takes it — no platform fee, only card processing. (To reach more Helprs over time, Boost the post after publishing instead.)
+              ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and the Helpr who takes it gets all of your bonus — no platform fee, and its small card fee is added on top at checkout. (To reach more Helprs over time, Boost the post after publishing instead.)
             </p>
             <Label className="text-ds-11">Urgent Bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} Minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} Maximum)</Label>
             <div className="flex flex-wrap gap-2">

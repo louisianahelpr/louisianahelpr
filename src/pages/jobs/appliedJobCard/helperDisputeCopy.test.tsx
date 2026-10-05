@@ -325,8 +325,12 @@ describe("the poster's collapsed card announces the dispute", () => {
        card's single status strip, which every collapsed card wears. So the
        source match moves to the strip's own mount — still the thing that would
        have to be deleted for a Helpr to lose the signal. */
+    // Since 2026-10-05 the mount is <HelperCollapsedStrip> (extracted for the
+    // size ratchet), which draws the same JobStatusStrip for every non-crew card.
+    const strip = readFileSync(resolve(__dirname, "./HelperCollapsedStrip.tsx"), "utf8");
     expect(
-      /\{!isMinimalCard && !isExpanded && <JobStatusStrip/.test(src),
+      /\{!isMinimalCard && !isExpanded && \(\s*<HelperCollapsedStrip/.test(src) &&
+        /return <JobStatusStrip line=\{helperStatusLine\(/.test(strip),
       "AppliedJobCard no longer draws a collapsed-card status strip. A Helpr scrolling " +
         "My Jobs cannot tell that one of these jobs has a 72-hour clock running on their pay.",
     ).toBe(true);

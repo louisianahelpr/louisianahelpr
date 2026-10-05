@@ -55,12 +55,12 @@
 // Registered mutations - each turns this guard RED on its own:
 //   A per-call idempotency key means the retry after a no-answer failure is a
 //   SECOND real charge instead of Stripe replaying the first.
-// @mutate supabase/functions/charge-recurring-visits/index.ts | `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, | `recurring-visit:${parent.id}:${visitDate}:${hold.id}:${Math.random()}`,
+// @mutate supabase/functions/charge-recurring-visits/index.ts | : `recurring-visit:${parent.id}:${visitDate}:${hold.id}`; | : `recurring-visit:${parent.id}:${visitDate}:${hold.id}:${Math.random()}`;
 //   20260927012806: the cron charges a date nobody holds / books someone other than its holder.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!hold) { |         if (false && !hold) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts | payout follows helper_id.\n            helper_id: holderId, | payout follows helper_id.\n            helper_id: parent.recurring_helper_id,
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (holdsRes.error) { |       if (false) {
-// @mutate supabase/functions/charge-recurring-visits/index.ts |           `recurring-visit:${parent.id}:${visitDate}:${hold.id}`, |           `recurring-visit:${parent.id}:${visitDate}`,
+// @mutate supabase/functions/charge-recurring-visits/index.ts |           : `recurring-visit:${parent.id}:${visitDate}:${hold.id}`; |           : `recurring-visit:${parent.id}:${visitDate}`;
 //   Money audit 2026-09-25: chargeback, pre-charge re-read, holder changed mid-run.
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if ((chargebackRes.data ?? []).length > 0) { |       if (false) {
 // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (parent.payment_status === "chargeback" \|\| parent.dispute_status === "stripe_chargeback") { |       if (false) {
@@ -283,6 +283,8 @@ function seedHappyPath() {
   );
   stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_day1", status: "succeeded" });
   stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+  // The pre-booking refund check (Q750 review): the charge carries no refund.
+  stripeMock.refunds.list.mockResolvedValue({ data: [] });
 }
 
 async function loadConfigured(): Promise<EdgeHarness> {
@@ -615,7 +617,11 @@ describe("charge-recurring-visits edge function", () => {
       latest_charge: { balance_transaction: { fee: 320 } },
     });
     stripeMock.refunds.create.mockRejectedValue(Object.assign(new Error("Keys for idempotent requests can only be used with the same parameters"), { type: "StripeIdempotencyError" }));
-    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_prior", status: "succeeded", amount: 9710 }] });
+    // First read: the pre-booking check (no refund yet). Then the refund an
+    // earlier overlapping attempt made after the insert was refused.
+    stripeMock.refunds.list
+      .mockResolvedValueOnce({ data: [] })
+      .mockResolvedValue({ data: [{ id: "re_prior", status: "succeeded", amount: 9710 }] });
 
     const res = await runOn(fn, "2026-09-01");
     const b = await body(res);
@@ -986,7 +992,7 @@ describe("charge-recurring-visits edge function", () => {
     // A Stripe PaymentIntent, not a recurring_visit_payments row: its status is
     // built by a call so the fixture-schema scan (which grades row literals by
     // their distinctive columns) does not read it as that table's status.
-    id: "pi_day1_unbooked", status: String("succeeded"), amount: 11200, metadata: visitMeta(),
+    id: "pi_day1_unbooked", status: String("succeeded"), amount: 11200, currency: "usd", metadata: visitMeta(),
     latest_charge: { id: "ch_day1", amount_refunded: 0 }, ...over,
   });
 
@@ -1004,6 +1010,129 @@ describe("charge-recurring-visits edge function", () => {
     const [params] = stripeMock.paymentIntents.list.mock.calls[0];
     expect(params).toMatchObject({ customer: expect.any(String), limit: 100, expand: ["data.latest_charge"] });
     expect(params.created.gte).toBeGreaterThan(Math.floor(Date.parse("2026-09-02T06:00:00Z") / 1000) - 5 * 86_400);
+  });
+
+  // Q1337: the visit row records THIS run's totals, so an adopted intent that
+  // took a different amount (the tier, tax rate or budget moved since day 1)
+  // must never be booked as if it took this one, and must never be charged
+  // again either: it pages, and books nothing.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (adoptedAmount !== totalCents \|\| adoptedCurrency !== "usd") { |           if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (adoptedAmount !== totalCents \|\| adoptedCurrency !== "usd") { |           if (adoptedCurrency !== "usd") {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (adoptedAmount !== totalCents \|\| adoptedCurrency !== "usd") { |           if (adoptedAmount !== totalCents) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "adopted_amount_mismatch", "held")) |             ([] as string[])
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |     message: cause === "held"\n      ? |     message: false\n      ?
+  it("Q1337: an adopted earlier charge whose amount or currency differs from this visit is neither booked nor charged again; it pages", async () => {
+    for (const over of [{ amount: 10900 }, { amount: 11200, currency: "cad" }]) {
+      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      stripeMock.paymentIntents.list.mockResolvedValue({ data: [priorIntent(over)], has_more: false });
+      const res = await runOn(fn, "2026-09-02");
+      const b = await body(res);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(insertedVisits()).toHaveLength(0);
+      expect(res.status).toBe(500);
+      expect(reasons(b)).toContain("earlier charge pi_day1_unbooked took");
+      const page = slackAlerts.find(
+        (a) => (a as { title?: string }).title === "Recurring visit: earlier charge does not match this visit",
+      ) as { severity?: string; fields?: Record<string, string> } | undefined;
+      expect(page?.severity).toBe("critical");
+      expect(page?.fields?.expectedAmountCents).toBe("11200");
+      expect(page?.fields?.paymentIntent).toBe("pi_day1_unbooked");
+      // Both sides are told the date is not booked; the poster is not told
+      // their card failed (it did not).
+      const told = scenario.writes
+        .filter((w) => w.table === "notifications" && w.op === "insert")
+        .map((w) => w.payload as Record<string, unknown>);
+      expect(told.map((n) => n.user_id).sort()).toEqual([HELPER_ID, POSTER_ID].sort());
+      expect(JSON.stringify(told)).toContain("isn't booked yet");
+      expect(JSON.stringify(told)).not.toContain("Update your card");
+    }
+  });
+
+  // Q750 review (lh-money-escrow 2026-10-05, finding 2): an overlapping run can
+  // refund the intent this run is about to book; Stripe is asked right before
+  // the insert, and a refund (pending included) or an unreadable answer books nothing.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (liveRefunds.some((r) => r.status !== "failed" && r.status !== "canceled")) { |           if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (liveRefunds === null) { |           if (false) {
+  it("Q750 review: an intent refunded (even pending) between the lookup and the insert is never booked; an unreadable refund state books nothing", async () => {
+    for (const refundRead of ["pending", "succeeded", "throws"] as const) {
+      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      stripeMock.paymentIntents.list.mockResolvedValue({ data: [priorIntent()], has_more: false });
+      if (refundRead === "throws") stripeMock.refunds.list.mockRejectedValue(new Error("timed out"));
+      else stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_x", status: refundRead, amount: 11200 }] });
+      const res = await runOn(fn, "2026-09-02");
+      const b = await body(res);
+      expect(insertedVisits(), refundRead).toHaveLength(0);
+      expect(stripeMock.paymentIntents.create, refundRead).not.toHaveBeenCalled();
+      expect(res.status, refundRead).toBe(500);
+      expect(reasons(b), refundRead).toContain(refundRead === "throws" ? "could not confirm pi_day1_unbooked carries no refund" : "pi_day1_unbooked carries a refund");
+      const told = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert");
+      expect(told.length, refundRead).toBe(2);
+      // A person is asked to look either way (re-review LOW 1).
+      expect(slackAlerts.some((a) => (a as { severity?: string }).severity === "critical"), refundRead).toBe(true);
+    }
+  });
+
+  it("Q750 review: a refund that FAILED or was CANCELED does not stop the booking", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockResolvedValue({ data: [priorIntent()], has_more: false });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_f", status: "failed" }, { id: "re_c", status: "canceled" }] });
+    await runOn(fn, "2026-09-02");
+    expect((insertedVisits()[0]?.payload as Record<string, unknown>)?.stripe_payment_intent_id).toBe("pi_day1_unbooked");
+  });
+
+  // Q750 (2), owner 2026-10-05: CHARGE FRESH. A refunded earlier charge of the
+  // SAME claim shares the plain key, which Stripe can still replay; the re-charge
+  // moves to a new key, and a replayed refunded intent is never booked.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         const chargeKey = refundedOfClaim.length > 0 |         const chargeKey = false
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |     refundedIds.push(pi.id); |     void 0;
+  it("Q750 (2): after a refunded charge of the SAME claim the visit is charged FRESH on a new key", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockResolvedValue({ data: [
+      priorIntent({ id: "pi_refunded_old", created: 100, latest_charge: { id: "ch_o", amount_refunded: 11200 } }),
+      priorIntent({ id: "pi_refunded_new", created: 200, latest_charge: { id: "ch_n", amount_refunded: 11200 } }),
+    ], has_more: false });
+    await runOn(fn, "2026-09-02");
+    expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
+    const [, opts] = stripeMock.paymentIntents.create.mock.calls[0];
+    expect(opts.idempotencyKey).toBe(`recurring-visit:${PARENT_ID}:${VISIT_DATE}:${HOLD_ID}:after-pi_refunded_new`);
+    expect((insertedVisits()[0]?.payload as Record<string, unknown>)?.stripe_payment_intent_id).toBe("pi_day1");
+  });
+
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (refundedOfClaim.includes(intent.id)) { |         if (false) {
+  it("Q750 (2): a charge that comes back as the already-refunded intent is never booked; it pages", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockResolvedValue({ data: [
+      priorIntent({ id: "pi_refunded", latest_charge: { id: "ch_r", amount_refunded: 11200 } }),
+    ], has_more: false });
+    // Stripe replays the refunded intent (still `succeeded`).
+    stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_refunded", status: "succeeded" });
+    const res = await runOn(fn, "2026-09-02");
+    const b = await body(res);
+    expect(insertedVisits()).toHaveLength(0);
+    expect(res.status).toBe(500);
+    expect(reasons(b)).toContain("already-refunded intent pi_refunded");
+    expect(slackAlerts.some(
+      (a) => (a as { title?: string }).title === "Recurring visit charge came back as an already-refunded intent",
+    )).toBe(true);
+    const told = scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert");
+    expect(told).toHaveLength(2);
+  });
+
+  // With no earlier refund the key is the plain claim key (same-day replay protection).
+  it("Q750 (2): with no refunded charge of the claim the key stays the plain claim key", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    stripeMock.paymentIntents.list.mockResolvedValue({ data: [], has_more: false });
+    await runOn(fn, "2026-09-02");
+    const [, opts] = stripeMock.paymentIntents.create.mock.calls[0];
+    expect(opts.idempotencyKey).toBe(`recurring-visit:${PARENT_ID}:${VISIT_DATE}:${HOLD_ID}`);
   });
 
   // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (Number(charge.amount_refunded ?? 0) === 0) return { kind: "adopt", intent: pi }; |     return { kind: "adopt", intent: pi };
@@ -2237,6 +2366,82 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
     expect(b.errors).toBe(0);
+  });
+
+  // Q750 (1), owner 2026-10-05: KEEP HOLDING. A paid visit of a series that is
+  // only PAUSED (the holder banned, the pair blocked, the date unheld, a
+  // chargeback stop) is neither refunded nor marked: if the series resumes the
+  // visit happens; if it ends, the over-series sweep refunds it; if its date
+  // passes unbooked, the stale sweep does.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           results.skippedBanned++;\n          continue;\n        }\n        if (blockedHolders.has(holderId)) { |           await stripe.refunds.create({ payment_intent: String(visitPayments.get(visitDate)?.stripe_payment_intent_id) });\n          results.skippedBanned++;\n          continue;\n        }\n        if (blockedHolders.has(holderId)) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           results.skippedBlocked++;\n          continue; |           await stripe.refunds.create({ payment_intent: String(visitPayments.get(visitDate)?.stripe_payment_intent_id) });\n          results.skippedBlocked++;\n          continue;
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           // (owner decision 5: an unfilled date is not charged).\n          results.skippedUnfilled++; |           // (owner decision 5: an unfilled date is not charged).\n          await stripe.refunds.create({ payment_intent: String(visitPayments.get(visitDate)?.stripe_payment_intent_id) });\n          results.skippedUnfilled++;
+  it("Q750 (1): a PAID visit of a merely PAUSED series (holder banned, blocked, date unheld, chargeback stop) keeps being held", async () => {
+    const paid = {
+      id: "vp-paid", visit_date: VISIT_DATE, status: "paid", budget_cents: 30000, fee_cents: 1500, tax_cents: 0,
+      amount_cents: 31500, fee_percent: 5, tax_calculation_id: null, stripe_payment_intent_id: "pi_onsession",
+    };
+    for (const pause of ["banned", "blocked", "unheld", "chargeback"] as const) {
+      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      const fn = await loadConfigured();
+      seedHappyPath();
+      wireJobsReads({
+        series: { rows: [seriesParent({ budget: 300 })] },
+        chargeback: pause === "chargeback" ? { rows: [{ id: "visit-0", payment_status: "chargeback" }] } : undefined,
+      });
+      wireVisitPayments({ preflight: { rows: [paid] } });
+      if (pause === "banned") {
+        scenario.reads.profiles = {
+          ...scenario.reads.profiles,
+          selectOverrides: [
+            { includes: "ban_status", result: { rows: [{ user_id: HELPER_ID, ban_status: "permanently_banned", auto_suspended_until: null }] } },
+          ],
+        };
+      }
+      if (pause === "blocked") scenario.rpc.are_users_blocked = true;
+      if (pause === "unheld") wireHolds([]);
+
+      const b = await body(await runOn(fn, "2026-09-01"));
+
+      expect(stripeMock.refunds.create, pause).not.toHaveBeenCalled();
+      expect(visitPaymentWrites("update"), pause).toEqual([]);
+      expect(insertedVisits(), pause).toHaveLength(0);
+      expect(stripeMock.paymentIntents.create, pause).not.toHaveBeenCalled();
+      expect(b.errors, pause).toBe(0);
+    }
+  });
+
+  // Q750 (2), owner 2026-10-05: CHARGE FRESH, on-session. A date whose paid
+  // visit was refunded is parked as a NEW pending row (a new Checkout, a new
+  // intent); the refunded row's intent is never booked.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         const paidRow = visitPayment?.status === "paid" && visitPayment.stripe_payment_intent_id |         const paidRow = visitPayment?.stripe_payment_intent_id
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           .in("visit_date", due)\n          .in("status", ["pending", "paid"]), |           .in("visit_date", due),
+  it("Q750 (2): a date whose paid visit was REFUNDED is re-parked as a new payment, never booked on the refunded intent", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [seriesParent({ budget: 300 })] } });
+    wireVisitPayments({
+      preflight: {
+        rows: [{
+          id: "vp-refunded", visit_date: VISIT_DATE, status: "refunded", budget_cents: 30000, fee_cents: 1500, tax_cents: 0,
+          amount_cents: 31500, fee_percent: 5, tax_calculation_id: null, stripe_payment_intent_id: "pi_was_refunded",
+        }],
+      },
+    });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(insertedVisits()).toHaveLength(0);
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    const parked = visitPaymentWrites("insert");
+    expect(parked).toHaveLength(1);
+    expect((parked[0].payload as Record<string, unknown>).status).toBe("pending");
+    expect(b.awaitingPayment).toBe(1);
+    // Only live rows are read: a refunded one never stands in for a payment.
+    const pre = scenario.readQueries.find((r) => r.table === "recurring_visit_payments" && r.cols.includes("budget_cents"));
+    expect(pre?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "in", column: "status", value: ["pending", "paid"] }),
+    ]));
   });
 
   // Review of Q750 (lh-money-escrow, 2026-10-03): the 500 cap used to count

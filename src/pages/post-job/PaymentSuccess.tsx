@@ -7,11 +7,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { COPY_AUTO_RELEASE_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
 import {
-  ShieldCheck,
-  Megaphone,
-  Handshake,
-  Hammer,
-  Wallet,
   Share2,
   RotateCcw,
   Users as UsersIcon,
@@ -27,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
+import { isJobPoster } from "@/lib/checkoutReturnOwner";
 import { safeStorage } from "@/lib/safeStorage";
 import { dropSpentDraft } from "@/hooks/useDraftJob";
 // formatPriceExact, not formatPrice: the sentences below state a sum of money
@@ -35,34 +31,14 @@ import { formatPriceExact } from "@/lib/format";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
-// The visibility delay is DERIVED, never retyped — `public.early_access_cutoff()`
-// is the enforcement point and `earlyAccess.ts` is the client mirror the parity
-// test already pins it to. See the "Posted" caption below.
-import { MAX_EARLY_ACCESS_DELAY_MINUTES } from "@/lib/earlyAccess";
-
-// Visual lifecycle preview — replaces the dense paragraph that used to
-// sit in this same slot. Keeps the same content (4 stages from job-state
-// machine: open → accepted → in_progress → completed) but presents it
-// as scannable steps so customers know what to expect next.
-const LIFECYCLE_STEPS = [
-  // "Your job is live for nearby Helprs." was not true for most of the people
-  // it was about. `public.early_access_cutoff()` holds a brand-new job back
-  // from anyone without the early-access perk for
-  // MAX_EARLY_ACCESS_DELAY_MINUTES — Elite sees it at once, Free waits the
-  // full window — so the poster was told their job had reached an audience
-  // that, for the largest tier by far, could not see it yet. That reads as a
-  // dead feed rather than as a delay, and it is the reason a poster gets no
-  // applicants for twenty minutes and assumes nobody wants the job. Saying so
-  // costs one clause and turns a silent wait into an expected one.
-  {
-    icon: Megaphone,
-    label: "Posted",
-    caption: `Live now — nearby Helprs see it within ${MAX_EARLY_ACCESS_DELAY_MINUTES} min.`,
-  },
-  { icon: Handshake, label: "Accepted", caption: "You review applicants and pick one." },
-  { icon: Hammer, label: "In progress", caption: "Helpr arrives and gets to work." },
-  { icon: Wallet, label: "Released", caption: "Both confirm — payment goes out." },
-];
+import { PaymentLifecycleSteps } from "@/components/postjob/PaymentLifecycleSteps";
+import {
+  paymentHeading,
+  paymentPageTitle,
+  unknownPaymentBody,
+  type ConfirmState,
+  type UnknownReason,
+} from "./paymentReturnCopy";
 
 /**
  * TRUTHFULNESS CONTRACT FOR THIS SCREEN
@@ -90,14 +66,10 @@ const LIFECYCLE_STEPS = [
  *               wasn't. It says plainly that it can't confirm, tells the user
  *               not to pay twice, and points at My Posts + support.
  *   checking  — the lookup is still in flight.
+ *   not_yours — the signed-in account did not post this job (owner bug,
+ *               2026-10-05: an admin account was shown another account's
+ *               held payment). No claim, no amount, no poster actions.
  */
-type ConfirmState = "checking" | "held" | "not_held" | "unknown";
-
-/** Why we ended up in `unknown` — changes only the explanatory sentence. */
-// ME-041 (lh-money-escrow, 2026-09-04): "moved" was declared here but nothing
-// in this file ever assigned it — dead since whenever it was added.
-type UnknownReason = "no-reference" | "unreachable" | "not-found" | "pending";
-
 /**
  * `jobs.payment_status` values where "held securely until you confirm the work
  * is done" is literally true: the customer's money is captured and still
@@ -175,15 +147,7 @@ const PaymentSuccess = () => {
 
   const isHeld = confirmState === "held";
 
-  usePageTitle(
-    isHeld
-      ? "Payment Authorized — Helpr"
-      : confirmState === "not_held"
-        ? "Payment Not Completed — Helpr"
-        : confirmState === "checking"
-          ? "Confirming Payment — Helpr"
-          : "Payment Status Unconfirmed — Helpr",
-  );
+  usePageTitle(paymentPageTitle(confirmState));
 
   /**
    * Share the just-posted job so a neighbour can see it and apply.
@@ -267,86 +231,19 @@ const PaymentSuccess = () => {
     setConfirmAttempt((n) => n + 1);
   }, []);
 
-  // ── The confirmation lookup ───────────────────────────────────────────
-  // Read-only. Decides which claim the page is allowed to make; touches no
-  // payment or escrow logic.
-  useEffect(() => {
-    if (!resolvedJobId) {
-      setConfirmState("unknown");
-      setUnknownReason("no-reference");
-      return;
-    }
-    let cancelled = false;
-    setConfirmState("checking");
-    void (async () => {
-      let sawReadError = false;
-      for (let attempt = 0; attempt < PENDING_POLL_ATTEMPTS; attempt += 1) {
-        if (attempt > 0) {
-          await sleep(PENDING_POLL_INTERVAL_MS);
-          if (cancelled) return;
-        }
-        const { data, error } = await supabase
-          .from("jobs")
-          .select("budget, category, payment_status")
-          .eq("id", resolvedJobId)
-          .maybeSingle();
-        if (cancelled) return;
-
-        if (error) {
-          // We asked and could not get an answer. That is evidence of
-          // nothing about the payment, so stop and say exactly that.
-          report(error, { tags: { source: "PaymentSuccess.confirmPayment" } });
-          sawReadError = true;
-          break;
-        }
-        if (!data) {
-          // No readable row for this id — same epistemic position as an
-          // error: we cannot confirm, and must not guess.
-          sawReadError = true;
-          break;
-        }
-
-        if (typeof data.budget === "number") setEscrowAmount(data.budget);
-        if (typeof data.category === "string") setCategory(data.category);
-
-        const status = data.payment_status;
-        if (status && HELD_STATUSES.has(status)) {
-          if (status === "released") setAlreadyReleased(true);
-          setConfirmState("held");
-          return;
-        }
-        if (status && NOT_HELD_STATUSES.has(status)) {
-          setConfirmState("not_held");
-          return;
-        }
-        // 'unpaid' / null → the webhook hasn't landed yet. Keep polling.
-      }
-      if (cancelled) return;
-      setUnknownReason(sawReadError ? "unreachable" : "pending");
-      setConfirmState("unknown");
-    })();
-    return () => { cancelled = true; };
-  }, [resolvedJobId, confirmAttempt]);
-
-  // Celebrate only what we actually confirmed. The success haptic used to
-  // fire on mount, i.e. also when every request behind this screen had died.
-  const celebrated = useRef(false);
-  useEffect(() => {
-    if (isHeld && !celebrated.current) {
-      celebrated.current = true;
-      hapticSuccess();
-      dropSpentDraft(); // paid: drop the draft kept through checkout; a cancel keeps "Load Draft"
-    }
-  }, [isHeld]);
-
-  useEffect(() => {
+  // Funnel events for the checkout return. Fired ONCE, from the confirmation
+  // lookup, for everyone except a signed-in account the lookup proved did not
+  // post the job (Q1386b: a non-poster opening the link used to be counted as
+  // a payment). Still NOT gated on the payment being confirmed held: a failed
+  // or unreadable lookup must not drop the checkout-completed funnel step.
+  const returnEventsFired = useRef(false);
+  const fireReturnEvents = useCallback(() => {
+    if (returnEventsFired.current) return;
+    returnEventsFired.current = true;
     const jobId = searchParams.get("job_id") || null;
     const ppoProps = ppoTrackingProps();
     // Funnel: customer returned from checkout — closes the customer funnel
-    // that previously stopped at job_posted with no record of payment. This
-    // fires on arrival (not on confirmation) deliberately: it is the
-    // checkout-completed funnel step, and gating it on the confirmation read
-    // would silently drop events whenever that read failed.
+    // that previously stopped at job_posted with no record of payment.
     track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
 
     // First-payment aha — fire only when this is the user's first
@@ -370,28 +267,92 @@ const PaymentSuccess = () => {
     })();
   }, [searchParams]);
 
-  const eyebrow = isHeld
-    ? "Payment authorized"
-    : confirmState === "checking"
-      ? "One moment"
-      : confirmState === "not_held"
-        ? "Payment not completed"
-        : "Payment not confirmed";
+  // ── The confirmation lookup ───────────────────────────────────────────
+  // Read-only. Decides which claim the page is allowed to make; touches no
+  // payment or escrow logic.
+  useEffect(() => {
+    if (!resolvedJobId) {
+      setConfirmState("unknown");
+      setUnknownReason("no-reference");
+      fireReturnEvents();
+      return;
+    }
+    let cancelled = false;
+    setConfirmState("checking");
+    void (async () => {
+      let sawReadError = false;
+      // Who is asking: only the job's poster may be told this payment is held.
+      const { data: auth, error: authError } = await supabase.auth.getSession();
+      if (cancelled) return;
+      const viewerId = authError ? null : auth.session?.user?.id ?? null;
+      for (let attempt = 0; attempt < PENDING_POLL_ATTEMPTS; attempt += 1) {
+        if (attempt > 0) {
+          await sleep(PENDING_POLL_INTERVAL_MS);
+          if (cancelled) return;
+        }
+        const { data, error } = await supabase
+          .from("jobs")
+          .select("budget, category, payment_status, customer_id")
+          .eq("id", resolvedJobId)
+          .maybeSingle();
+        if (cancelled) return;
 
-  const heading = isHeld
-    ? "Payment authorized."
-    : confirmState === "checking"
-      ? "Confirming your payment…"
-      : confirmState === "not_held"
-        ? "Your payment didn't go through."
-        : "We couldn't confirm your payment.";
+        if (error) {
+          // We asked and could not get an answer. That is evidence of
+          // nothing about the payment, so stop and say exactly that.
+          report(error, { tags: { source: "PaymentSuccess.confirmPayment" } });
+          sawReadError = true;
+          break;
+        }
+        if (!data || !viewerId) {
+          // No readable row for this id (or no session to compare it with) —
+          // same epistemic position as an error: we cannot confirm, and must
+          // not guess.
+          sawReadError = true;
+          break;
+        }
+        if (!isJobPoster(data.customer_id, viewerId)) {
+          setConfirmState("not_yours");
+          return;
+        }
+        fireReturnEvents();
 
-  const unknownBody =
-    unknownReason === "no-reference"
-      ? "We don't have a reference for this payment, so we can't tell you whether it went through. Please don't pay again — open My Posts to check the job's payment status, or contact support and we'll look it up for you."
-      : unknownReason === "pending"
-        ? "Your payment hasn't been confirmed on our side yet. It usually lands within a minute. Please don't pay again — open My Posts to see this job's payment status, and contact support if it still isn't confirmed in a few minutes."
-        : "We couldn't reach our records to check this payment. That does not mean it failed — we simply can't tell you either way right now. Please don't pay again — open My Posts to see this job's payment status, and contact support if it still isn't clear.";
+        if (typeof data.budget === "number") setEscrowAmount(data.budget);
+        if (typeof data.category === "string") setCategory(data.category);
+
+        const status = data.payment_status;
+        if (status && HELD_STATUSES.has(status)) {
+          if (status === "released") setAlreadyReleased(true);
+          setConfirmState("held");
+          return;
+        }
+        if (status && NOT_HELD_STATUSES.has(status)) {
+          setConfirmState("not_held");
+          return;
+        }
+        // 'unpaid' / null → the webhook hasn't landed yet. Keep polling.
+      }
+      if (cancelled) return;
+      fireReturnEvents(); // unreadable or still pending: we cannot say it is not the poster
+      setUnknownReason(sawReadError ? "unreachable" : "pending");
+      setConfirmState("unknown");
+    })();
+    return () => { cancelled = true; };
+  }, [resolvedJobId, confirmAttempt, fireReturnEvents]);
+
+  // Celebrate only what we actually confirmed. The success haptic used to
+  // fire on mount, i.e. also when every request behind this screen had died.
+  const celebrated = useRef(false);
+  useEffect(() => {
+    if (isHeld && !celebrated.current) {
+      celebrated.current = true;
+      hapticSuccess();
+      dropSpentDraft(); // paid: drop the draft kept through checkout; a cancel keeps "Load Draft"
+    }
+  }, [isHeld]);
+
+  const heading = paymentHeading(confirmState);
+  const unknownBody = unknownPaymentBody(unknownReason);
 
   const supportAction = (
     <Button
@@ -412,7 +373,9 @@ const PaymentSuccess = () => {
     // `centerColumn`: without it AuthShell snaps to `items-start` and the
     // card pins to the left edge (measured at 1440: card x 48–496, dead
     // canvas across the other ~940px). Same prop, same reason as Signup.
-    <AuthShell hideBack centerColumn eyebrow={eyebrow} maxWidth="md">
+    // hideHeader (owner, 2026-10-05): the Helpr·LA wordmark and its
+    // "PAYMENT AUTHORIZED" eyebrow repeated the card's own headline.
+    <AuthShell hideBack hideHeader centerColumn maxWidth="md">
       <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
         {/* The badge is a claim too — it only draws its checkmark when the
             payment is confirmed held. Every other state gets an honest mark
@@ -490,6 +453,11 @@ const PaymentSuccess = () => {
                 This job isn't funded, so no money is being held for it. You can start payment
                 again from My Posts, or contact support if you think this is wrong.
               </>
+            ) : confirmState === "not_yours" ? (
+              <>
+                You're signed in to an account that didn't post this job, so its payment isn't shown
+                here. If you posted it, sign in to that account to see it.
+              </>
             ) : (
               unknownBody
             )}
@@ -501,60 +469,9 @@ const PaymentSuccess = () => {
             render ONLY when we have confirmed we're holding it. */}
         {isHeld && (
           <>
-            <div
-              className="flex items-start justify-center gap-3 rounded-2xl p-4 text-left"
-              style={{
-                background: "hsl(var(--bark) / 0.06)",
-                border: "1px solid hsl(var(--bark) / 0.18)",
-              }}
-            >
-              <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-              <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
-                We hold it until you confirm the job's done. The Helpr is paid once both you and the Helpr mark it complete — your money stays protected the whole time.
-              </p>
-            </div>
-
             <div className="space-y-3 text-left">
               {/* mt-3: the space-y-3 gap the hidden eyebrow gave it (Q1129). */}
-              <ol className="space-y-2.5 mt-3">
-                {LIFECYCLE_STEPS.map((step, i) => {
-                  const Icon = step.icon;
-                  const isFirst = i === 0;
-                  return (
-                    <li key={step.label} className="flex items-start gap-3">
-                      <div
-                        className="w-8 h-8 rounded-ds-md flex items-center justify-center shrink-0 mt-0.5"
-                        style={{
-                          background: isFirst ? "hsl(var(--bark) / 0.12)" : "hsl(var(--olivewood) / 0.08)",
-                          border: `1px solid ${isFirst ? "hsl(var(--bark) / 0.25)" : "hsl(var(--olivewood) / 0.15)"}`,
-                        }}
-                      >
-                        <Icon
-                          className="w-4 h-4"
-                          strokeWidth={1.75}
-                          style={{ color: isFirst ? "hsl(var(--bark))" : "hsl(var(--olivewood))" }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-                          {step.label}
-                          {isFirst && (
-                            <span
-                              className="ml-2 text-ds-10 uppercase tracking-wider font-sans"
-                              style={{ color: "hsl(var(--bark))" }}
-                            >
-                              you are here
-                            </span>
-                          )}
-                        </p>
-                        <p className="font-sans text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                          {step.caption}
-                        </p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
+              <PaymentLifecycleSteps />
               <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 If one side confirms and the other doesn't respond within {COPY_AUTO_RELEASE_HOURS} hours, the job auto-completes and payment is released automatically.
               </p>
@@ -597,7 +514,7 @@ const PaymentSuccess = () => {
                 </Button>
               </div>
             </>
-          ) : (
+          ) : confirmState === "not_yours" ? null : (
             <>
               {/* Unconfirmed / failed / still-checking: the only honest primary
                   action is "go look at the job's real payment state". Sharing

@@ -8,6 +8,12 @@ import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { useQueryClient } from "@tanstack/react-query";
+import { MapPin } from "lucide-react";
+import { queryKeys } from "@/lib/queryKeys";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
+import { JobActionChip } from "@/components/job-card/JobActionRow";
+import { CrewActionError, crewMemberStatusLabel, posterConfirmMemberArrival } from "@/lib/crewLifecycle";
 
 /** Label for a roster slot whose helper has deleted their account.
  *
@@ -26,6 +32,13 @@ type GroupHelper = {
   helper_id: string | null;
   status: string;
   helperName?: string;
+  /* This member's own lifecycle stamps (Q1382). Optional: a caller that did
+     not select them gets the hire status pill and no arrival control. */
+  helper_confirmed_at?: string | null;
+  helper_on_the_way_at?: string | null;
+  helper_arrived_at?: string | null;
+  poster_confirmed_arrival_at?: string | null;
+  helper_completed_at?: string | null;
 };
 
 export function GroupJobHelpers({
@@ -60,6 +73,8 @@ export function GroupJobHelpers({
   const [helpers, setHelpers] = useState<GroupHelper[]>(initialHelpers ?? []);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [pendingRemoval, setPendingRemoval] = useState<GroupHelper | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Only fall back to a per-card fetch when the parent did NOT supply
@@ -95,11 +110,13 @@ export function GroupJobHelpers({
       // a PostgREST `in.(...)` list is not "match nothing", it is a malformed
       // filter, and there is no profile to find for them anyway.
       const helperIds = rows.map((h) => h.helper_id).filter((id): id is string => !!id);
+      // get_safe_profiles, not `profiles`: the poster cannot read another
+      // account's profiles row (RLS), so that select came back EMPTY with no
+      // error and every member read "Helpr" — measured 2026-10-05 on prod as
+      // poster-e2e: profiles 200 [], get_safe_profiles both names (Q1382).
+      // With a per-member "Confirm Arrived", the poster must tell them apart.
       const { data: profiles, error: profilesError } = helperIds.length
-        ? await supabase
-            .from("profiles")
-            .select("user_id, full_name")
-            .in("user_id", helperIds)
+        ? await supabase.rpc("get_safe_profiles", { user_ids: helperIds })
         : { data: [], error: null };
       if (profilesError) {
         console.error("[GroupJobHelpers] failed to load helper profiles:", profilesError);
@@ -133,6 +150,46 @@ export function GroupJobHelpers({
    * zero rows, forever.
    */
   const canRemove = isOwner && jobStatus === "open";
+
+  /**
+   * THE POSTER'S PER-MEMBER "Confirm They Arrived" (Q1382). A crew has no lead
+   * (Q407): each member's arrival is confirmed on their own roster row by
+   * rpc_poster_confirm_member_arrival, and that confirmation is the gate the
+   * server enforces before that member can mark their part done
+   * (enforce_group_member_completion_gates). Offered only for a member who has
+   * checked in and is not confirmed yet, on a job in a state the RPC admits.
+   */
+  const arrivalConfirmable = (h: GroupHelper) =>
+    isOwner &&
+    !!h.helper_id &&
+    !!h.helper_arrived_at &&
+    !h.poster_confirmed_arrival_at &&
+    (jobStatus === "accepted" || jobStatus === "in_progress" || jobStatus === "revision_requested");
+
+  const confirmArrival = async (h: GroupHelper) => {
+    if (!h.helper_id || confirmingId) return;
+    setConfirmingId(h.id);
+    try {
+      const stamp = await posterConfirmMemberArrival(jobId, h.helper_id);
+      setHelpers((prev) => prev.map((x) => (x.id === h.id ? { ...x, poster_confirmed_arrival_at: stamp } : x)));
+      hapticSuccess();
+      toast.success(`${h.helperName || "Your Helpr"} is confirmed on site.`);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+    } catch (err) {
+      hapticError();
+      const copy = err instanceof CrewActionError ? err.copy : null;
+      if (!copy) {
+        report(err instanceof CrewActionError ? err.original ?? err : err, {
+          tags: { source: "GroupJobHelpers.confirmArrival" },
+        });
+      }
+      toast.error(copy ?? "Couldn't confirm that arrival. Please try again.");
+      if (initialHelpers === undefined) void loadHelpers();
+      else void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const removeHelper = async (id: string) => {
     if (removingIds.has(id)) return;
@@ -255,9 +312,29 @@ export function GroupJobHelpers({
                 <span className={`text-ds-11 px-1.5 py-0.5 rounded-full ${
                   h.status === "accepted" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                 }`}>
-                  {applicationStatusLabel(h.status)}
+                  {h.status === "accepted" && h.helper_confirmed_at !== undefined
+                    ? crewMemberStatusLabel({
+                        helper_confirmed_at: h.helper_confirmed_at ?? null,
+                        helper_on_the_way_at: h.helper_on_the_way_at ?? null,
+                        helper_arrived_at: h.helper_arrived_at ?? null,
+                        poster_confirmed_arrival_at: h.poster_confirmed_arrival_at ?? null,
+                        helper_completed_at: h.helper_completed_at ?? null,
+                      })
+                    : applicationStatusLabel(h.status)}
                 </span>
               </div>
+              {arrivalConfirmable(h) && (
+                <div className="shrink-0">
+                  <JobActionChip
+                    icon={MapPin}
+                    label={confirmingId === h.id ? "Confirming…" : "Confirm Arrived"}
+                    ariaLabel={`Confirm ${h.helperName || "this Helpr"} arrived`}
+                    tone="primary"
+                    disabled={confirmingId !== null}
+                    onClick={() => void confirmArrival(h)}
+                  />
+                </div>
+              )}
               {canRemove && (
                 // 44px target (Apple HIG) with a negative inset so the row's
                 // visual rhythm is unchanged — the bare 16px icon was a

@@ -11,7 +11,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { actualOrEstimatedFeeCents, netUrgentFeeDollars, urgentBonusCardFeeCents } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
@@ -469,26 +469,50 @@ serve(async (req) => {
         if (!Number.isFinite(differenceCents) || differenceCents <= 0) {
           throw new PublicError("Could not determine the remaining balance for this gift — please try again");
         }
-        const diffSession = await stripe.checkout.sessions.create({
-          customer: customerId,
-          customer_update: { address: "auto" },
-          line_items: [{
+        // Q362 (lh-money-escrow review): the shortfall can carry (part of) the
+        // urgent bonus on the card, and the Helpr now gets the whole bonus, so
+        // the bonus's card fee is charged here too, on the part of the bonus
+        // the card can be carrying (redeem_gift_card prices the cost as
+        // budget + urgent_fee). Stamped as customer_fee_amount below, so a
+        // cancellation withholds it like the escrow path does.
+        const giftUrgentCents = Math.max(0, Math.round(Number(job.urgent_fee ?? 0) * 100));
+        const diffUrgentCardFeeCents = urgentBonusCardFeeCents(Math.min(giftUrgentCents, differenceCents));
+        const diffLineItems: any[] = [{
+          price_data: {
+            currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
+            product_data: {
+              name: `Helpr Job: ${job.title}`,
+              description: "Remaining balance after applying your gift card. Funds release once both parties confirm completion.",
+              tax_code: NONTAXABLE_TAX_CODE,
+            },
+            unit_amount: differenceCents,
+          },
+          quantity: 1,
+        }];
+        if (diffUrgentCardFeeCents > 0) {
+          diffLineItems.push({
             price_data: {
               currency: "usd",
               tax_behavior: TAX_BEHAVIOR,
               product_data: {
-                name: `Helpr Job: ${job.title}`,
-                description: "Remaining balance after applying your gift card. Funds release once both parties confirm completion.",
+                name: "Urgent bonus card fee",
+                description: "Card processing on the urgent bonus, so your Helpr receives all of it",
                 tax_code: NONTAXABLE_TAX_CODE,
               },
-              unit_amount: differenceCents,
+              unit_amount: diffUrgentCardFeeCents,
             },
             quantity: 1,
-          }],
+          });
+        }
+        const diffSession = await stripe.checkout.sessions.create({
+          customer: customerId,
+          customer_update: { address: "auto" },
+          line_items: diffLineItems,
           mode: "payment",
           automatic_tax: { enabled: true },
           // 3D Secure from $300 (Q202): the hosted page runs the challenge.
-          payment_method_options: threeDSecureOptions(differenceCents),
+          payment_method_options: threeDSecureOptions(differenceCents + diffUrgentCardFeeCents),
           payment_intent_data: {
             metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
             // Q734: honour "save my card" here too. A recurring series charges
@@ -523,7 +547,10 @@ serve(async (req) => {
         // shortfall left the job open+unpaid forever, permanently consuming one
         // of the poster's open-job slots in enforce_open_job_limit.
         // .select("id") because a zero-row match returns error === null.
-        const diffStamp = await stampSession(diffSession.id, {});
+        // Always stamped, zero included: a fee an earlier card checkout of this
+        // job stamped must not survive into this gift job's cancellation
+        // withholding (Q362 re-review LOW 1).
+        const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: diffUrgentCardFeeCents / 100 });
         if (!diffStamp.ok) {
           console.error(`[create-payment] gift card difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffStamp.reason);
           // Safe to fail loudly: the credit is still 'reserved' against THIS
@@ -639,12 +666,20 @@ serve(async (req) => {
           )
         : 0;
       const onboardingChargeCents = owesOnboardingFee ? onboardingFeeCents : 0;
+      // Q362 / CC-003 (owner MQ11): the Helpr gets 100% of the urgent bonus
+      // (netUrgentFeeDollars no longer nets anything), so its card fee is
+      // charged to the poster ON TOP, as its own line. It counts toward the
+      // service fee's whole-charge floor, and is stored inside
+      // customer_fee_amount: non-refundable like the service fee (Stripe keeps
+      // its cut on a refund) and included in every "what the poster paid" sum.
+      const urgentCardFeeCents = urgentBonusCardFeeCents(urgentFeeCents);
       const customerFeeCents = posterServiceFeeCents(
         Math.round(job.budget * 100),
         customerFeePercent,
-        urgentFeeCents + onboardingChargeCents,
+        urgentFeeCents + urgentCardFeeCents + onboardingChargeCents,
+        urgentCardFeeCents,
       );
-      const customerFeeAmount = customerFeeCents / 100;
+      const customerFeeAmount = (customerFeeCents + urgentCardFeeCents) / 100;
       // Helper commission is deducted at payout time, not charged to poster
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
@@ -681,7 +716,7 @@ serve(async (req) => {
       // until LA Dept. of Revenue clarifies B2C SaaS treatment post-Act 470.
       // (Switch tax_code to "txcd_10103001" if a CPA confirms it should be
       // taxed as a digital service.)
-      if (customerFeeAmount > 0) {
+      if (customerFeeCents > 0) {
         lineItems.push({
           price_data: {
             currency: "usd",
@@ -711,6 +746,23 @@ serve(async (req) => {
               tax_code: NONTAXABLE_TAX_CODE, // Non-taxable: passes through to helper
             },
             unit_amount: urgentFeeCents,
+          },
+          quantity: 1,
+        });
+      }
+      // Q362: the urgent bonus's card fee, paid by the poster so the Helpr
+      // receives the whole bonus. Non-taxable (a processing cost).
+      if (urgentCardFeeCents > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
+            product_data: {
+              name: "Urgent bonus card fee",
+              description: "Card processing on the urgent bonus, so your Helpr receives all of it",
+              tax_code: NONTAXABLE_TAX_CODE,
+            },
+            unit_amount: urgentCardFeeCents,
           },
           quantity: 1,
         });

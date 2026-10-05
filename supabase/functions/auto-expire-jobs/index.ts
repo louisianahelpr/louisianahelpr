@@ -90,6 +90,12 @@ serve(async (req) => {
       .select("id, title, customer_id, helper_id, date_needed, accepted_at")
       .eq("status", "accepted")
       .is("helper_confirmed_at", null)
+      // A crew has no lead (Q407): jobs.helper_confirmed_at is never set on a
+      // group job (members confirm on their own roster rows), so without this
+      // every booked crew was reopened the day before its date (lh-money-escrow
+      // review of Q780, 2026-10-05). An unanswered crew spot expires per member
+      // in expire_unanswered_offers instead.
+      .not("is_group_job", "is", true)
       .lte("date_needed", tomorrow)
       .or(
         `accepted_at.lt.${twentyFourHoursAgo},and(accepted_at.is.null,updated_at.lt.${twentyFourHoursAgo})`,
@@ -120,6 +126,7 @@ serve(async (req) => {
         .eq("id", job.id)
         .eq("status", "accepted")
         .is("helper_confirmed_at", null)
+        .not("is_group_job", "is", true)
         .select("id");
       if (!updateError && (reopened?.length ?? 0) === 0) {
         console.log(`[auto-expire-jobs] job ${job.id} changed since read — skipping reopen`);

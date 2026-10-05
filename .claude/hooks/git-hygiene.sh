@@ -28,4 +28,28 @@ report="$HOME/.lh-hygiene/stranded.json"
 if [ -f "$stranded" ] && [ -z "$(find "$report" -mmin -180 2>/dev/null)" ]; then
   (cd "$dir" && nohup nice node "$stranded" --local --report "$report" >>"$HOME/.lh-hygiene/stranded.log" 2>&1 </dev/null &) >/dev/null 2>&1
 fi
+# Weekly disk cleanup (owner, 2026-10-04: "make this automatic"). At most once a
+# week (stamp ~/.lh-hygiene/disk-last-run), in the background:
+#   - screenshots in ~/.lh-shots older than 7 days (recent review evidence stays);
+#   - the npm download cache (it re-downloads on demand);
+#   - worktree FOLDERS of finished work: unlocked, nothing uncommitted, last
+#     commit older than 3 days. `git worktree remove` keeps the branch, so no
+#     commit is lost; a folder with uncommitted changes is never touched (the
+#     stranded report above names it instead).
+disk_stamp="$HOME/.lh-hygiene/disk-last-run"
+if [ -z "$(find "$disk_stamp" -mtime -7 2>/dev/null)" ]; then
+  touch "$disk_stamp"
+  (
+    find "$HOME/.lh-shots" -type f -mtime +7 -delete 2>/dev/null
+    find "$HOME/.lh-shots" -type d -empty -delete 2>/dev/null
+    command -v npm >/dev/null 2>&1 && npm cache clean --force >/dev/null 2>&1
+    cd "$dir" && git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r w; do
+      [ "$w" = "$(git rev-parse --show-toplevel)" ] && continue
+      git worktree list --porcelain | grep -A3 "^worktree $w\$" | grep -q '^locked' && continue
+      [ -n "$(git -C "$w" status --porcelain 2>/dev/null)" ] && continue
+      [ -z "$(git -C "$w" log -1 --since='3 days ago' --format=%h 2>/dev/null)" ] || continue
+      git worktree remove "$w" 2>/dev/null && echo "$(date -u +%FT%TZ) disk-cleanup removed worktree folder $w (branch kept)"
+    done
+  ) >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &
+fi
 exit 0

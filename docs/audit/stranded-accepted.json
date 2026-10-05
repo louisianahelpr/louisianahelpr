@@ -60,6 +60,12 @@
       "sha": "1a601ee57d6e23368809f1d1afec308f7b481192",
       "reason": "prod-seed --verify marks live-Stripe-only money states expected-unseeded (Q915): on main via #2187 (scripts/lib/moneyStateExpectations.mjs, src/test/prodSeedMoneyStatesExpectedUnseeded.test.ts).",
       "checked": "2026-10-03 (lead, content-checked against origin/main)"
+    },
+    {
+      "id": "remote:origin/park/q1177-money",
+      "sha": "544eba0d343846d6ff4f64d5b9f304b417ddf683",
+      "reason": "Money page (Q1177) parked by the owner for the next session: layout approved (Earned | Spent, title Money); owner asked to fix Spent before it ships. OPEN.md Q1177 holds what is left.",
+      "checked": "2026-10-05 (lead, pushed from the agent worktree before removing it)"
     }
   ]
 }

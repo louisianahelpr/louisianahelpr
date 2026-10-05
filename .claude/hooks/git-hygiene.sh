@@ -52,4 +52,24 @@ if [ -z "$(find "$disk_stamp" -mtime -7 2>/dev/null)" ]; then
     done
   ) >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &
 fi
+# Weekly backup of every LOCAL branch and stash entry (owner, 2026-10-04: 62 of
+# 99 branches existed only on this Mac; "be sure it never happens again").
+# One git bundle per week in ~/.lh-backups (the newest 4 kept), so work that
+# never reached GitHub survives a lost worktree or a bad prune. Off-Mac copy:
+# the owner decides after the triage (docs/OPEN.md Q1304).
+bak_stamp="$HOME/.lh-hygiene/branch-backup-last-run"
+if [ -z "$(find "$bak_stamp" -mtime -7 2>/dev/null)" ]; then
+  touch "$bak_stamp"
+  (
+    cd "$dir" || exit 0
+    mkdir -p "$HOME/.lh-backups"
+    i=0
+    git stash list --format=%H 2>/dev/null | while read -r h; do git update-ref "refs/stash-backup/s$i" "$h"; i=$((i+1)); done
+    out="$HOME/.lh-backups/local-branches-$(date +%Y-%m-%d).bundle"
+    git bundle create "$out" --branches $(git for-each-ref --format='%(refname)' refs/stash-backup) >/dev/null 2>&1 \
+      && git bundle verify "$out" >/dev/null 2>&1 \
+      && echo "$(date -u +%FT%TZ) branch-backup wrote $out" \
+      && ls -1t "$HOME"/.lh-backups/local-branches-*.bundle 2>/dev/null | tail -n +5 | while read -r old; do rm -f "$old"; done
+  ) >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &
+fi
 exit 0

@@ -43,9 +43,12 @@
  *  8. scripts/ci/definer-exec-inventory.sql (Q14) — the SECURITY DEFINER
  *     functions in public that anon / authenticated may EXECUTE are EXACTLY the
  *     ones in scripts/ci/definer-exec-allowlist.json, each with why a client
- *     needs it (src/test/definerExecAllowlist.test.ts checks the reasons). Five
- *     answered about other people for any id and no client called them until
- *     20261005054927.
+ *     needs it (src/test/definerExecAllowlist.test.ts checks the reasons). Six
+ *     had no client caller (four of them answered about other people for any
+ *     id) until 20261005054927 revoked them. Q1284: every one whose body never
+ *     reads the caller is listed under "unscoped" with a reason (comments are
+ *     stripped before that test; a string literal holding "auth.uid()" would
+ *     still count as reading the caller, a known limit).
  *
  * Both queries are shared with the db-smoke replay gate; this reads PROD,
  * because prod is where a dashboard edit, an MCP apply or a failed replay can
@@ -172,6 +175,9 @@ if (process.argv.includes("--self-test")) {
   currentDate.push({ function_name: "zz_fake_date_check", config: "search_path=public" });
   emailGate.push({ table: "jobs", what: "email gate trigger not enabled (tgenabled D)" });
   definerRows.push({ signature: "zz_fake_definer(uuid)", role: "authenticated", scoped: false });
+  // The other direction: allowlist entries the live catalog no longer has.
+  DEFINER_ALLOW.authenticated = { ...DEFINER_ALLOW.authenticated, "zz_stale_definer(uuid)": "client" };
+  DEFINER_ALLOW.unscoped = { ...DEFINER_ALLOW.unscoped, "zz_stale_unscoped()": "reviewed 2026-10-05 (Q14): self-test only" };
 }
 
 // Q14: two-way diff of the live client-executable definer set against the allowlist.

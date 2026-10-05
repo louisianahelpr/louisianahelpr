@@ -1,12 +1,8 @@
 {
-  "generated": "2026-10-05T02:12:40.792Z",
+  "generated": "2026-10-05T03:10:55.091Z",
   "guards": 1436,
-  "registered": 1433,
-  "unregistered": [
-    "src/components/dashboard/SwipeableJobCard.test.tsx",
-    "src/components/mobileNav/DockPill.test.tsx",
-    "src/lib/lazyModule.test.ts"
-  ],
+  "registered": 1436,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminStalledJobsWiring.test.tsx",

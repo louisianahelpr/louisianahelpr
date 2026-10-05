@@ -39,7 +39,7 @@ type Db = { from: (t: string) => any };
 /** A stale claim: older than this, the run that took it is gone. */
 const STALE_MS = 10 * 60 * 1000;
 /** A held tip still owed after this long pages a warning (once a day). */
-export const HELD_TIP_AGE_ALERT_MS = 14 * 24 * 60 * 60 * 1000;
+const HELD_TIP_AGE_ALERT_MS = 14 * 24 * 60 * 60 * 1000;
 
 export type HoldBackResult =
   | { kind: "not_held" }

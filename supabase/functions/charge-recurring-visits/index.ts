@@ -350,7 +350,16 @@ async function attemptVisitCharge(
  * day costs nothing, where a guess could charge twice.
  */
 type PriorVisitIntent =
-  | { kind: "none" }
+  /**
+   * Nothing to adopt. `refundedIds`: this claim's earlier charges that were
+   * refunded (Q750 (2), owner 2026-10-05: a refunded date booked again is
+   * charged FRESH, never on the refunded intent). Same-claim charges share one
+   * idempotency key, and Stripe can replay a key for 24 hours or more, so a
+   * re-charge on the old key could hand back the refunded intent as
+   * `succeeded`. The key below changes with this count, and an intent that is
+   * one of these is never booked.
+   */
+  | { kind: "none"; refundedIds?: string[] }
   | { kind: "adopt"; intent: Stripe.PaymentIntent }
   | { kind: "in_flight"; intentId: string }
   | { kind: "error"; message: string };
@@ -383,6 +392,7 @@ async function priorVisitIntent(
     pi.metadata?.visit_date === visitDate &&
     pi.metadata?.hold_id === holdId
   );
+  const refundedIds: string[] = [];
   for (const pi of mine) {
     if (pi.status !== "succeeded") continue;
     const charge = pi.latest_charge as Stripe.Charge | string | null;
@@ -392,10 +402,14 @@ async function priorVisitIntent(
       return { kind: "error", message: `succeeded visit charge ${pi.id} came back without its charge` };
     }
     if (Number(charge.amount_refunded ?? 0) === 0) return { kind: "adopt", intent: pi };
+    refundedIds.push(pi.id);
   }
   const inFlight = mine.find((pi) => pi.status === "processing");
   if (inFlight) return { kind: "in_flight", intentId: inFlight.id };
-  return { kind: "none" };
+  // Newest refunded first: the charge key is derived from it (see the call site).
+  const created = new Map(mine.map((pi) => [pi.id, Number(pi.created ?? 0)]));
+  refundedIds.sort((a, b) => (created.get(b) ?? 0) - (created.get(a) ?? 0));
+  return { kind: "none", refundedIds };
 }
 
 serve(async (req) => {
@@ -1350,8 +1364,52 @@ serve(async (req) => {
           continue;
         }
         if (prior.kind === "adopt") {
+          // Q1337: the visit row below records THIS run's totals (budget, fee,
+          // tax), so an adopted intent is booked only when it took exactly
+          // that much. Between day 1 and today the fee tier, the tax rate or
+          // the series' budget can move; booking a 112.00 intent as a 115.00
+          // visit would refund, pay out and report money that was never
+          // charged. A mismatch charges nothing (the earlier intent already
+          // holds money) and books nothing: a person decides, so it pages.
+          const adoptedAmount = Number(prior.intent.amount);
+          const adoptedCurrency = String(prior.intent.currency ?? "").toLowerCase();
+          if (adoptedAmount !== totalCents || adoptedCurrency !== "usd") {
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "critical",
+              title: "Recurring visit: earlier charge does not match this visit",
+              message:
+                `An earlier unbooked charge ${prior.intent.id} for this visit took ${adoptedAmount} ${adoptedCurrency || "(no currency)"}, but the visit now totals ${totalCents} usd. Nothing was charged or booked; decide by hand whether to book it on that charge or refund it.`,
+              fields: {
+                parentJobId: String(parent.id),
+                visitDate,
+                paymentIntent: prior.intent.id,
+                adoptedAmountCents: String(adoptedAmount),
+                expectedAmountCents: String(totalCents),
+              },
+            });
+            fail(
+              `series ${parent.id} ${visitDate}: earlier charge ${prior.intent.id} took ${adoptedAmount} ${adoptedCurrency || "(no currency)"}, this visit totals ${totalCents} usd; nothing charged or booked`,
+            );
+            // Both sides learn the date is not booked (the Helpr must not head
+            // out); the page above is also an open ops-ledger item until cleared.
+            (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "adopted_amount_mismatch", "held"))
+              .forEach(fail);
+            continue;
+          }
           console.warn(`[charge-recurring-visits] ${parent.id} ${visitDate}: adopting earlier unbooked charge ${prior.intent.id} instead of charging again`);
         }
+        // Q750 (2), owner 2026-10-05: CHARGE FRESH. A refunded charge of this
+        // same claim (an insert that failed and was refunded) shares the plain
+        // key, and Stripe may still replay it (keys live at least 24 hours),
+        // handing back the REFUNDED intent as `succeeded`; the visit would be
+        // booked on money already returned. After a refund the key carries
+        // the newest refunded intent's id: new for each refund, the same for
+        // two overlapping runs of one day (they read the same list).
+        const refundedOfClaim = prior.kind === "none" ? prior.refundedIds ?? [] : [];
+        const chargeKey = refundedOfClaim.length > 0
+          ? `recurring-visit:${parent.id}:${visitDate}:${hold.id}:after-${refundedOfClaim[0]}`
+          : `recurring-visit:${parent.id}:${visitDate}:${hold.id}`;
 
         // ONE call site, but up to TWO attempts on the SAME key — see
         // `attemptVisitCharge`. A network fault here is not a decline.
@@ -1401,7 +1459,8 @@ serve(async (req) => {
           // pre-flight read plus the `jobs_one_visit_per_series_date` index,
           // whose 23505 branch below now proves which intent backs the
           // surviving row before it decides whether a refund is owed.
-          `recurring-visit:${parent.id}:${visitDate}:${hold.id}`,
+          // After a refund of this claim the key moves on (chargeKey, Q750 (2)).
+          chargeKey,
         );
 
         if (outcome.kind !== "ok") {
@@ -1427,7 +1486,7 @@ serve(async (req) => {
               severity: "critical",
               title: "Recurring visit charge outcome UNKNOWN",
               message:
-                `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on one idempotency key, so a PaymentIntent may be holding this poster's money with no visit behind it. Check Stripe for key ${`recurring-visit:${parent.id}:${visitDate}:${hold.id}`} BEFORE tomorrow's run, which will charge again on a fresh key.`,
+                `Stripe did not answer for ${CHARGE_ATTEMPTS} attempts on one idempotency key, so a PaymentIntent may be holding this poster's money with no visit behind it. Check Stripe for key ${chargeKey} BEFORE tomorrow's run, which will charge again on a fresh key.`,
               fields: {
                 parentJobId: String(parent.id),
                 visitDate,
@@ -1444,10 +1503,74 @@ serve(async (req) => {
         }
         const intent = outcome.intent;
 
+        // Q750 (2): never book on a refunded intent, whatever the key replayed.
+        if (refundedOfClaim.includes(intent.id)) {
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Recurring visit charge came back as an already-refunded intent",
+            message:
+              `Charging this visit returned PaymentIntent ${intent.id}, which was already refunded. Nothing was booked. Check the series by hand.`,
+            fields: { parentJobId: String(parent.id), visitDate, intent: intent.id, key: chargeKey },
+          });
+          fail(`series ${parent.id} ${visitDate}: charge returned already-refunded intent ${intent.id}; nothing booked`);
+          (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "refunded_intent_replayed", "held"))
+            .forEach(fail);
+          continue;
+        }
+
         if (intent.status !== "succeeded") {
           (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, `intent_${intent.status}`)).forEach(fail);
           results.declined++;
           continue;
+        }
+
+        // Q750 review (lh-money-escrow 2026-10-05, finding 2): the refunded
+        // list above was read BEFORE the charge. An overlapping run can refund
+        // the very intent this run adopted or had replayed in between, so ask
+        // Stripe now, right before booking: any refund that is not failed or
+        // canceled (pending included) means the money is going back, and the
+        // visit is not booked on it. An unreadable answer books nothing either:
+        // the intent stays held and the next run of the window adopts it.
+        if (!paidRow) {
+          let liveRefunds: Stripe.Refund[] | null = null;
+          let readErr = "refund list gave no data";
+          try {
+            const r = await stripe.refunds.list({ payment_intent: intent.id, limit: 100 });
+            if (r && Array.isArray(r.data)) liveRefunds = r.data;
+          } catch (e) {
+            readErr = caughtMessage(e);
+          }
+          if (liveRefunds === null) {
+            // Paged like the UNKNOWN charge: on the window's last run nothing
+            // after this would ever look at the held intent again.
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "critical",
+              title: "Recurring visit charge held: its refund state could not be read",
+              message:
+                `PaymentIntent ${intent.id} holds this visit's money, but Stripe did not say whether it carries a refund, so the visit was NOT booked. The next run of the window retries; if this was the last, check the intent by hand. Do not refund until checked.`,
+              fields: { parentJobId: String(parent.id), visitDate, intent: intent.id, error: readErr.slice(0, 200) },
+            });
+            fail(`series ${parent.id} ${visitDate}: could not confirm ${intent.id} carries no refund before booking (${readErr.slice(0, 160)}); nothing booked, retried next run`);
+            (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "refund_state_unread", "held"))
+              .forEach(fail);
+            continue;
+          }
+          if (liveRefunds.some((r) => r.status !== "failed" && r.status !== "canceled")) {
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "critical",
+              title: "Recurring visit charge was refunded before it could be booked",
+              message:
+                `PaymentIntent ${intent.id} carries a refund, so this visit was NOT booked on it. Check the series by hand: the poster may need to pay again.`,
+              fields: { parentJobId: String(parent.id), visitDate, intent: intent.id },
+            });
+            fail(`series ${parent.id} ${visitDate}: intent ${intent.id} carries a refund; nothing booked`);
+            (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "intent_refunded_before_booking", "held"))
+              .forEach(fail);
+            continue;
+          }
         }
 
         // Money is in. NOW the visit exists.
@@ -1992,6 +2115,12 @@ async function notifyPosterCardProblem(
   holderId: string | null,
   visitDate: string,
   reason: string,
+  /**
+   * "held": money for this visit is held but it could not be booked safely
+   * (Q1337 / Q750 review): the poster's card did nothing wrong, so they are
+   * told the visit is being checked, not to update their card.
+   */
+  cause: "card" | "held" = "card",
 ): Promise<string[]> {
   console.warn(`[charge-recurring-visits] no visit for ${parent.id} on ${visitDate}: ${reason}`);
   const failures: string[] = [];
@@ -2002,13 +2131,16 @@ async function notifyPosterCardProblem(
   // `job_id: parent.id` is the SUBJECT (Q139): the Q137 seed boundary reads it,
   // so a seed series never notifies a real party. A zero-row insert it dropped
   // BY DESIGN is not a failure (same rule as the booking rows above, Q158).
+  const posterLink = cause === "held" ? "/posts" : "/profile?tab=payment";
   const { data: posterRows, error } = await supabase.from("notifications").insert({
     user_id: parent.customer_id,
     job_id: parent.id,
-    title: "We couldn't charge for your next visit",
-    message: `"${parent.title}" on ${visitDate} wasn't booked because the payment didn't go through. Update your card and we'll pick the series back up.`,
+    title: cause === "held" ? "Your next visit isn't booked yet" : "We couldn't charge for your next visit",
+    message: cause === "held"
+      ? `"${parent.title}" on ${visitDate} isn't booked yet: we're checking the payment for it by hand. You won't be charged twice, and we'll let you know when it's sorted.`
+      : `"${parent.title}" on ${visitDate} wasn't booked because the payment didn't go through. Update your card and we'll pick the series back up.`,
     type: "job_updates",
-    link: "/profile?tab=payment",
+    link: posterLink,
   }).select("id");
   if (
     error || !posterRows ||
@@ -2016,7 +2148,7 @@ async function notifyPosterCardProblem(
       (await seedBoundaryDropsRow(supabase, {
         user_id: parent.customer_id as string,
         job_id: parent.id as string,
-        link: "/profile?tab=payment",
+        link: posterLink,
       })) !== true)
   ) {
     console.error("[charge-recurring-visits] poster notification failed", error ?? "zero rows");

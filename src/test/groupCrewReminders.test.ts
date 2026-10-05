@@ -44,7 +44,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
 // @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
-// @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |   v_crew_deadline := LEAST(GREATEST(p_deadline, now() + interval '55 minutes'), v_cutoff); |   v_crew_deadline := p_deadline;
+// @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF v_row.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.'; |   IF false THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.';
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       .not("is_group_job", "is", true)\n      .lte("date_needed", tomorrow) |       .lte("date_needed", tomorrow)
@@ -172,9 +172,9 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     expect(expire).toMatch(/AND g\.helper_confirmed_at IS NULL\s+AND g\.response_deadline IS NOT NULL\s+AND g\.response_deadline < now\(\)\s+LOOP/);
     expect(expire).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_slot\.slot_id;/);
     expect(body("accept_group_application")).toMatch(/SET response_deadline = v_crew_deadline\s+WHERE job_id = v_job_id AND slot_no = v_slot;/);
-    expect(body("accept_group_application")).toMatch(/v_crew_deadline := LEAST\(GREATEST\(p_deadline, now\(\) \+ interval '55 minutes'\), v_cutoff\);/);
+    expect(body("accept_group_application")).toMatch(/v_crew_deadline := LEAST\(GREATEST\(LEAST\(COALESCE\(p_deadline, now\(\) \+ interval '48 hours'\), now\(\) \+ interval '48 hours'\), now\(\) \+ interval '55 minutes'\), v_cutoff\);/);
     // Review fixes (lh-authz-rls 2026-10-05): no backdated deadline, no admin flood, no unconfirmed arrival.
-    expect(body("accept_group_application")).toMatch(/GREATEST\(p_deadline, now\(\) \+ interval '55 minutes'\)/);
+    expect(body("accept_group_application")).toMatch(/now\(\) \+ interval '48 hours'\), now\(\) \+ interval '55 minutes'\)/);
     expect(block).toMatch(/WHERE r\.role = 'admin'\s+AND v_new_block;/);
     expect(block).toMatch(/GET DIAGNOSTICS v_updated = ROW_COUNT;\s+v_new_block := v_updated > 0;/);
     expect(EFFECTIVE.get("rpc_group_member_mark_arrival")?.file).toBe(CREW_BLOCK);

@@ -20,8 +20,10 @@
 -- A shorter-than-sane window would hand the Helpr an offer that expires before
 -- they could read the push.
 --
--- Group hires (accept_group_application) do not write response_deadline at all;
--- p_deadline stays unused there and is untouched.
+-- Group hires (accept_group_application, restated below from 20261005172453)
+-- get the same rule on group_job_helpers.response_deadline: capped at the start,
+-- a hire within 15 minutes of it refused, and an expiry the start caused is
+-- never a strike (crew pass in expire_unanswered_offers).
 
 CREATE OR REPLACE FUNCTION public.job_offer_cutoff(p_date_needed date, p_start_time time without time zone)
 RETURNS timestamptz
@@ -143,6 +145,8 @@ DECLARE
   v_count int := 0;
   v_no_strike boolean;
   v_crew_no_strike boolean;
+  v_cap_ended boolean;
+  v_crew_cap boolean;
   v_slot record;
   v_cjob record;
   v_remaining int;
@@ -203,7 +207,8 @@ BEGIN
       -- 20261005184940: an answer-by capped at the job's start can be minutes
       -- long. Letting THAT run out is not a strike (lh-money-escrow review of
       -- the cap, finding 1; the owner's wider Q1281 ruling is separate).
-      v_no_strike := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time)
+      v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time);
+      v_no_strike := v_cap_ended
         OR public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL
         OR EXISTS (SELECT 1 FROM public.job_accept_pending p
                     WHERE p.job_id = v_locked.id AND p.helper_id = v_locked.helper_id);
@@ -243,7 +248,9 @@ BEGIN
         v_locked.helper_id,
         'You lost a job offer',
         'The deadline passed on "' || COALESCE(v_locked.title, 'a job')
-          || CASE WHEN v_no_strike
+          || CASE WHEN v_cap_ended
+               THEN '" when the job started, so it went back to everyone. No strike.'
+               WHEN v_no_strike
                THEN '" before your payout setup and Stripe ID were done, so it went back to everyone. No strike. Finish both so you can accept the next offer.'
                ELSE '" and it went back to everyone. Letting an offer expire counts the same as declining it.'
              END,
@@ -275,6 +282,7 @@ BEGIN
   -- to open). No fee: nothing was committed.
   FOR v_slot IN
     SELECT g.id AS slot_id, g.job_id, g.helper_id,
+           g.response_deadline, j.date_needed, j.start_time,
            (j.is_seed IS TRUE OR hp.is_seed IS TRUE) AS seed
       FROM public.group_job_helpers g
       JOIN public.jobs j ON j.id = g.job_id
@@ -309,7 +317,9 @@ BEGIN
         CONTINUE;
       END IF;
 
-      v_crew_no_strike := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL
+      v_crew_cap := v_slot.response_deadline >= public.job_offer_cutoff(v_slot.date_needed, v_slot.start_time);
+      v_crew_no_strike := v_crew_cap
+        OR public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL
         OR EXISTS (SELECT 1 FROM public.job_accept_pending p
                     WHERE p.job_id = v_cjob.id AND p.helper_id = v_slot.helper_id);
       IF NOT v_crew_no_strike THEN
@@ -345,7 +355,9 @@ BEGIN
         v_slot.helper_id,
         'You lost a job offer',
         'The deadline passed on "' || COALESCE(v_cjob.title, 'a job')
-          || CASE WHEN v_crew_no_strike
+          || CASE WHEN v_crew_cap
+               THEN '" when the job started, so your spot went back to everyone. No strike.'
+               WHEN v_crew_no_strike
                THEN '" before your payout setup and Stripe ID were done, so your spot went back to everyone. No strike. Finish both so you can accept the next offer.'
                ELSE '" and your spot went back to everyone. Letting an offer expire counts the same as declining it.'
              END,
@@ -423,6 +435,8 @@ AS $function$
 DECLARE
   v_cutoff        timestamptz;
   v_crew_deadline      timestamptz;
+  v_date_needed   date;
+  v_start_time    time without time zone;
   v_job_id        uuid;
   v_helper_id     uuid;
   v_app_status    text;
@@ -445,11 +459,19 @@ BEGIN
 
   -- Lock the job row — concurrent accepts serialize here, which is what makes
   -- the slot count below trustworthy.
-  SELECT j.status, j.customer_id, j.is_group_job, j.helpers_needed, j.budget
-    INTO v_job_status, v_job_customer, v_is_group, v_needed, v_budget
+  SELECT j.status, j.customer_id, j.is_group_job, j.helpers_needed, j.budget, j.date_needed, j.start_time
+    INTO v_job_status, v_job_customer, v_is_group, v_needed, v_budget, v_date_needed, v_start_time
   FROM public.jobs j
   WHERE j.id = v_job_id
   FOR UPDATE;
+
+  -- 20261005184940: the answer-by never runs past the job's start, so a hire
+  -- too close to it would hand the member a window already gone (and a strike
+  -- at the next sweep). Refused like accept_application, before any write.
+  v_cutoff := public.job_offer_cutoff(v_date_needed, v_start_time);
+  IF v_cutoff IS NOT NULL AND v_cutoff <= now() + interval '15 minutes' THEN
+    RAISE EXCEPTION 'job_starts_too_soon';
+  END IF;
 
   IF v_job_customer IS DISTINCT FROM auth.uid() THEN
     RAISE EXCEPTION 'not_authorized';
@@ -518,10 +540,7 @@ BEGIN
   -- next sweep before they could answer (lh-authz-rls review #1, 2026-10-05).
   -- The answer-by never runs past the job's start (20261005184940), and a NULL
   -- (never expires) is bounded the same way, as accept_application now is.
-  v_cutoff := public.job_offer_cutoff(
-    (SELECT j.date_needed FROM public.jobs j WHERE j.id = v_job_id),
-    (SELECT j.start_time FROM public.jobs j WHERE j.id = v_job_id));
-  v_crew_deadline := LEAST(GREATEST(p_deadline, now() + interval '55 minutes'), v_cutoff);
+  v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff);
   UPDATE public.group_job_helpers
      SET response_deadline = v_crew_deadline
    WHERE job_id = v_job_id AND slot_no = v_slot;

@@ -22,7 +22,7 @@
  * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |          response_deadline = v_deadline | response_deadline = p_deadline
  * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql | now() + interval '48 hours', v_cutoff); | now() + interval '48 hours');
  * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql | CREATE TRIGGER zzzz_offer_deadline_follows_start | CREATE TRIGGER zzzz_offer_deadline_follows_start_off
- * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql | v_no_strike := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time) | v_no_strike := false
+ * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql | v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time); | v_cap_ended := false;
  * @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |       NEW.response_deadline := LEAST(public.job_offer_cutoff(NEW.date_needed, NEW.start_time), now() + interval '48 hours'); |       NEW.response_deadline := LEAST(NEW.response_deadline, public.job_offer_cutoff(NEW.date_needed, NEW.start_time));
  * @mutate src/lib/offerDeadline.ts | const cappedByStart = !!cutoff && cutoff.getTime() < chosen; | const cappedByStart = false;
  * @mutate src/lib/offerDeadline.ts | export const OFFER_MIN_LEAD_MINUTES = 15; | export const OFFER_MIN_LEAD_MINUTES = 5;
@@ -96,7 +96,9 @@ describe("offer answer-by never after the job's start (server)", () => {
 describe("a window ended by the job's start is not a strike (lh-money-escrow review, finding 1)", () => {
   it("expire_unanswered_offers files no strike when the answer-by was the start", () => {
     const body = blankSqlComments(effectiveDefs(DIR).get("expire_unanswered_offers")!.stmt);
-    expect(body).toMatch(/v_no_strike\s*:=\s*v_locked\.response_deadline\s*>=\s*public\.job_offer_cutoff\(v_locked\.date_needed, v_locked\.start_time\)/);
+    expect(body).toMatch(/v_cap_ended\s*:=\s*v_locked\.response_deadline\s*>=\s*public\.job_offer_cutoff\(v_locked\.date_needed, v_locked\.start_time\);/);
+    expect(body).toMatch(/v_no_strike\s*:=\s*v_cap_ended\b/);
+    expect(body).toMatch(/v_crew_no_strike\s*:=\s*v_crew_cap\b/);
   });
   it("a window that was the old start follows a start moved later", () => {
     const fn = blankSqlComments(effectiveDefs(DIR).get("offer_deadline_follows_start")!.stmt);

@@ -87,7 +87,11 @@ says more.
   (strict is off); vacuity runs on every push to main (not required on PRs).
   land.sh fetches, rebases onto origin/main, runs `npm run inventories:refresh`,
   commits what that regenerated, proves `check:generated` and the exact-count
-  guards green, pushes `land/<branch>-<worktree hash>`, opens a PR with rebase
+  guards green, builds the bundle (`npx vite build`) and runs the critical-path
+  budget (`node scripts/perf/critical-path.mjs --check`, Q178; the CI "Bundle
+  Size Check" is not required, so land.sh is where it stops a regression;
+  skipped when the push touches no src/, public/, index.html, vite.config.*,
+  package*.json), pushes `land/<branch>-<worktree hash>`, opens a PR with rebase
   auto-merge, and waits. Work is not landed until
   `gh pr view <branch> --json state` says MERGED.
 - End commits with the Co-Authored-By line from CLAUDE.md.

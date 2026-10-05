@@ -210,7 +210,7 @@ const SURFACE_CHAINS: Record<string, string[]> = {
     "src/components/dashboard/BrowseTasksFeed.tsx",
   ],
   count: ["src/hooks/useDashboardJobsCount.ts"],
-  map: ["src/components/BrowseMap.tsx", "src/components/browseMap/mapFilter.ts"],
+  map: ["src/components/BrowseMap.tsx", "src/components/browseMap/useMapJobs.ts", "src/components/browseMap/mapFilter.ts"],
 };
 
 /**

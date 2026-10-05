@@ -85,19 +85,35 @@ export function stripePercentCostCents(amountCents: number): number {
 }
 
 /**
- * The urgent fee a helper actually nets after the urgent fee covers its OWN
- * marginal Stripe processing cost. The urgent fee is charged to the poster
- * bundled into the escrow checkout and passes through to the helper; this nets
- * out only the bundled marginal cost (2.9%, NOT the once-per-transaction flat)
- * so the platform never subsidizes card processing on the urgent fee while the
- * helper still keeps the fair remainder. Input/output in DOLLARS so it slots
- * directly into the `budget − commission + urgentFee` take-home formula used
- * across payout and every earnings display. Returns 0 for a non-positive/absent
- * fee. This is the ONE definition every payout path and earnings surface must
- * call, so the amount a helper is SHOWN always equals the amount transferred.
+ * What the Helpr receives of the urgent bonus: ALL of it (owner MQ11 / CC-003,
+ * 2026-09-24, Q362: "the poster pays the card fee on top so the Helpr gets
+ * 100%", the same rule as a tip). The bonus's own card-processing cost is
+ * charged to the poster on top (`urgentBonusCardFeeCents`), so nothing is
+ * netted here any more. The name is kept so every payout path and earnings
+ * surface still calls this ONE definition, and the amount a Helpr is SHOWN
+ * always equals the amount transferred. Input/output in DOLLARS (it slots into
+ * `budget − commission + urgentFee`). Returns 0 for a non-positive/absent fee.
  */
 export function netUrgentFeeDollars(urgentFeeDollars: number | null | undefined): number {
   const cents = Math.round((urgentFeeDollars ?? 0) * 100);
   if (!(cents > 0)) return 0;
-  return (cents - stripePercentCostCents(cents)) / 100;
+  return cents / 100;
+}
+
+/**
+ * The card fee the POSTER pays on top of an urgent bonus of `urgentCents`, in
+ * cents (Q362 / CC-003). The bonus rides bundled inside the escrow charge, so
+ * only Stripe's percentage applies (the $0.30 flat is borne once by the primary
+ * legs), and the fee is itself part of the charge: the smallest whole-cent
+ * `fee` with `fee >= stripePercentCostCents(urgent + fee)`. Returns 0 for a
+ * non-positive bonus. create-payment charges it as its own line and stores it
+ * inside `customer_fee_amount` (non-refundable like the service fee, since
+ * Stripe keeps its cut on a refund); the Post-a-Task quote shows the same line.
+ */
+export function urgentBonusCardFeeCents(urgentCents: number): number {
+  if (!(urgentCents > 0)) return 0;
+  let fee = Math.ceil((urgentCents * STRIPE_PCT) / (1 - STRIPE_PCT));
+  while (fee > 0 && fee - 1 >= stripePercentCostCents(urgentCents + fee - 1)) fee--;
+  while (fee < stripePercentCostCents(urgentCents + fee)) fee++;
+  return fee;
 }

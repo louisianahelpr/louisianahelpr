@@ -44,8 +44,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   IF NEW.is_group_job IS TRUE AND NEW.helper_id IS NOT NULL THEN | IF public.is_server_context() THEN RETURN NEW; END IF;\n  IF NEW.is_group_job IS TRUE AND NEW.helper_id IS NOT NULL THEN
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   BEFORE INSERT OR UPDATE OF helper_id, is_group_job, helpers_needed ON public.jobs |   BEFORE INSERT OR UPDATE OF helper_id ON public.jobs
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND NOT public.is_server_context()\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid' |     AND false\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid'
-// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents) |   UPDATE public.jobs SET helper_id = v_helper_id WHERE id = v_job_id;\n  INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents)
-// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |         status = (CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END)::job_status |         status = CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents) |   UPDATE public.jobs SET helper_id = v_helper_id WHERE id = v_job_id;\n  INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents)
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |         status = (CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END)::job_status |         status = CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END
 // Q706: the rule's NEWEST definition is 20261004193450 (false); the twin check reads that one.
 // @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql | AS $function$ SELECT false $function$; | AS $function$ SELECT true $function$;
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     INSERT INTO public.crew_cancellation_fee_shares\n      (job_id | --\n      (job_id
@@ -81,7 +81,6 @@ const HELPER_ID_KEYED =
  */
 const SINGLE_HELPER_ONLY: Record<string, string> = {
   accept_job_offer: "the single Helpr's Accept (Q1180); it refuses a group job outright (group_job_not_supported), a crew confirms through rpc_group_member_confirm",
-  block_user_and_settle: "settles a block against the single hired Helpr; a crew has none (Q728: what a block between the poster and ONE member settles is an owner question)",
   claim_series_dates: "a recurring series is never a group job (20260831200113 constraint); each date has one Helpr",
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",
   end_recurring_series: "a recurring series is never a group job (20260831200113 constraint)",

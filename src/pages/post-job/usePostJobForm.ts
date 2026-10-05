@@ -414,6 +414,7 @@ export function usePostJobForm() {
     budgetNum,
     urgentFeeNum,
     customerFeeAmount,
+    urgentCardFeeAmount,
     onboardingFeeAmount,
     totalCharge,
     hasGift,
@@ -603,6 +604,7 @@ export function usePostJobForm() {
     urgentFeeNum,
     customerFee,
     customerFeeAmount,
+    urgentCardFeeAmount,
     onboardingFeeAmount,
     totalCharge,
     // gift card, surfaced to the checkout screen so the total it

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { categoryPricing } from "@/lib/pricingGuide";
 import { categories } from "@/components/postjob/DetailsSection";
 import { posterServiceFeeCents } from "@/lib/posterFees";
+import { urgentBonusCardFeeCents } from "@/lib/stripeFees";
 import { MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
@@ -173,19 +174,29 @@ export function useJobDerived(params: UseJobDerivedParams) {
   const budgetCents = Math.round(budgetNum * 100);
   const urgentFeeCents = Math.round(urgentFeeNum * 100);
   const onboardingCents = onboardingFeePaid ? 0 : onboardingFeeCents;
+  // Q362 / CC-003: the urgent bonus's card fee, paid on top so the Helpr gets
+  // all of the bonus. Its own checkout line; same function as create-payment.
+  // On a gift post it is charged on the part of the bonus the card shortfall
+  // can be carrying (create-payment's gift-card-diff session does the same);
+  // a gift that covers everything leaves no card charge and no fee.
+  const urgentCardFeeCents = hasGift
+    ? urgentBonusCardFeeCents(Math.min(urgentFeeCents, giftDueCents))
+    : urgentBonusCardFeeCents(urgentFeeCents);
+  const urgentCardFeeAmount = urgentCardFeeCents / 100;
   const customerFeeAmount = hasGift
     ? 0
-    : posterServiceFeeCents(budgetCents, customerFee ?? 12, urgentFeeCents + onboardingCents) / 100;
+    : posterServiceFeeCents(budgetCents, customerFee ?? 12, urgentFeeCents + urgentCardFeeCents + onboardingCents, urgentCardFeeCents) / 100;
   // Every charged line EXCEPT sales tax. Tax is added by CheckoutStep, which
   // is where the parish rate resolves — and for the great majority of
   // categories it is $0, because create-payment marks every line but assembly
   // labor `txcd_00000000`. See `src/lib/salesTax.ts`.
   //
-  // On the gift path this IS the final number: no fees and no tax follow it,
+  // On the gift path this IS the final number (the shortfall plus any urgent
+  // bonus card fee, Q362): no other fee and no tax follow it,
   // so CheckoutStep must not add tax on top (see `hasGift` there).
   const totalCharge = hasGift
-    ? giftDueCents / 100
-    : budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount;
+    ? (giftDueCents + urgentCardFeeCents) / 100
+    : budgetNum + customerFeeAmount + urgentFeeNum + urgentCardFeeAmount + onboardingFeeAmount;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   // Section completion for the 3-step progress bar. Photos are optional
@@ -248,6 +259,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
     budgetNum,
     urgentFeeNum,
     customerFeeAmount,
+    urgentCardFeeAmount,
     onboardingFeeAmount,
     totalCharge,
     hasGift,

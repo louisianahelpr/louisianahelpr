@@ -29,7 +29,7 @@
  * 20260923205635: (a) 8 functions, (b) the same 8 (14 links).
  *
  * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | v_link := '/home?job=' \|\| v_job.id::text; | v_link := '/home';
- * @mutate supabase/migrations/20261004184021_expired_offer_says_it_expired.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
+ * @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
  * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=fraud&user=' \|\| p_reviewee_id,
  * @mutate src/test/helpers/effectiveFunctionDefs.ts | const next = pgRegexpReplace(cur.stmt, r.pattern, r.replacement, r.flags); | const next = cur.stmt;
  */
@@ -109,6 +109,11 @@ const INTENDED_LINK_CHANGES = new Set([
   // ('/admin?view=people&user='), whose profile lists user_violations; the
   // fraud dashboard it opened reads only fraud_flags.
   "20260927060952_low_rating_alert_links_person.sql::apply_low_rating_flag",
+  // Q729/Q1282: new crew paths, every old link kept. The crew block tells the
+  // member ('/jobs?job=') or the poster ('/posts?job=') and alerts admins
+  // ('/admin?view=jobs&job='); the expired crew spot tells both sides.
+  "20261005172453_crew_block_and_unanswered_spot.sql::block_user_and_settle",
+  "20261005172453_crew_block_and_unanswered_spot.sql::expire_unanswered_offers",
 ]);
 
 /**

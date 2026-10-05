@@ -454,13 +454,13 @@ describe("execute-dispute-split edge function", () => {
     });
 
     it("pays the Helpr their share of the urgent fee too", async () => {
-      // $20 urgent fee, net of its bundled 2.9% (no flat) = $19.42; at 60% the
-      // Helpr's share is $11.652 → folded in before the cent rounding.
+      // $20 urgent fee, paid WHOLE (Q362: the poster paid its card fee on
+      // top); at 60% the Helpr's share is $12 → folded in before the rounding.
       seedExecutable(scenario, { helperShare: 0.6, job: { urgent_fee: 20 } });
       const fn = await load();
       const body = await json(await invoke(fn));
-      const netUrgent = (2000 - Math.round(2000 * 0.029)) / 100; // 19.42
-      // $64.452 owed → $64 transferred (Q236 rounds every payout DOWN).
+      const netUrgent = 20;
+      // $64.80 owed → $64 transferred (Q236 rounds every payout DOWN).
       expect(body.helper_cents).toBe(Math.floor(Math.round((60 + netUrgent * 0.6 - 7.2) * 100) / 100) * 100);
       expect(body.helper_cents).toBeGreaterThan(5200);
     });
@@ -1611,7 +1611,7 @@ describe("execute-dispute-split edge function", () => {
       expect(cap.lines()).toEqual([]);
     });
 
-    // @mutate supabase/functions/execute-dispute-split/index.ts | return await refuse(\n            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand" },\n            409,\n          ); | void 0;
+    // @mutate supabase/functions/execute-dispute-split/index.ts | return await refuse(\n            { error: "a prior execution ran in Stripe test mode; nothing moved now, decide by hand (an admin clears the checked stamp with rpc_clear_test_mode_dispute_stamp, then supersedes)" },\n            409,\n          ); | void 0;
     it("a test-mode stamped transfer on a resume refuses 409 and moves nothing: a person decides (Q891 review)", async () => {
       // The stamp names a transfer minted under the test key. That run moved no
       // real money, but a fresh live transfer could pay a leg already settled

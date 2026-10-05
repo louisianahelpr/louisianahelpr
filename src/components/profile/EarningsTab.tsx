@@ -1,7 +1,9 @@
 import { lazy, Suspense, useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TAB_TITLES } from "@/pages/profile/types";
 import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayoutFee";
 import {
   FORM_1099K_GROSS_THRESHOLD_DOLLARS,
@@ -15,7 +17,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { EarningsBreakdownCharts } from "@/components/profile/EarningsBreakdownCharts";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
-import { EarningsPageSkeleton, EarningsPayoutSetupSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
+import { EarningsBankPayoutBones, EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { HelperStreakBadge, useHelperStreak } from "@/components/profile/HelperStreakBadge";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
@@ -41,6 +43,8 @@ import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanne
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
 import { PayoutHistory } from "@/components/profile/earningsTab/PayoutHistory";
 import { EarningHistory } from "@/components/profile/earningsTab/EarningHistory";
+import { MoneyViewSwitcher, moneyViewFromSearch, type MoneyView } from "@/components/profile/earningsTab/MoneyViewSwitcher";
+import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
@@ -57,12 +61,12 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 // real Pro feature; it only ever showed a lock icon and an upgrade CTA. The
 // breakdown section now shows the real, unlocked charts only.
 //
-// SPLIT 2026-09-11 into two views (Earnings / Payouts), then put back on ONE
-// page (Q1177, owner 2026-10-01: the split was "messy and repeat itself a lot",
-// payouts, transfers and jobs each listed twice across the two views). One
-// page, top to bottom: wallet, the earned summary, ONE payouts list (jobs with
-// their transfers, bank payouts), the insights, then the bank account
-// (`PaymentTab`) as the floor.
+// SPLIT 2026-09-11 into two views (Earnings / Payouts), which listed the same
+// money in both (owner, 2026-10-01: "messy and repeat itself a lot"). Since
+// Q1177 the tab is "Money", split the other way (owner, 2026-10-04: "earning
+// and payouts are the same. So do earning and spent instead"): EARNED (wallet,
+// the earned summary, ONE payouts list with each transfer inside its job and
+// the bank payouts, the insights, the bank account) and SPENT (SpentSection).
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
 
 /**
@@ -122,20 +126,21 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
 
-  // ONE PAINT under the header (Q169, Q2007). The connect card (PaymentTab,
-  // for a helpr without Stripe) sits at the top and, once connected, the bank
-  // account (also PaymentTab) at the bottom; the card used to land late and
-  // grow, shoving everything 68->519px down (page-settle CLS 0.54 at 375). So
-  // the skeleton holds until Stripe has answered AND PaymentTab's own data is
-  // in, in either slot. Stripe is PRIMARY, not capped secondary data: both
-  // reads go edge fn -> Stripe and routinely outlast ARRIVAL_CAP_MS (capped, CI
-  // measured CLS 0.2254 at 1440). Data or error both count as settled, so
-  // retries bound the wait. The streak badge and the transfer ledger (its rows
-  // sit INSIDE the payouts list's job cards) are capped secondary data.
-  const [paymentSettled, setPaymentSettled] = useState(false);
-  const markPaymentSettled = useCallback(() => setPaymentSettled(true), []);
-  const stripeSettled = !stripeLoading && (!!stripeError || paymentSettled);
-  const pageReady = useArrivalGate(!loading && stripeSettled, streakState.settled && !ledgerPending);
+  // ONE PAINT for the page's OWN data (Q169): the earnings rows, then (capped)
+  // the streak badge and the transfer ledger, whose rows sit INSIDE the
+  // payouts list's job cards. The page does NOT wait for Stripe (owner,
+  // 2026-10-04: "Don't wait for Stripe"): each Stripe-backed part — the
+  // connect card, the wallet, the bank payouts, the bank account — holds its
+  // own slot with its own bones until it lands. The connect card's bones stay
+  // until PaymentTab reports its reads settled, so the card replaces them in
+  // one swap instead of growing in place (the 68->519px shove of page-settle
+  // CLS 0.54 at 375 was that card arriving late and growing).
+  const [connectSettled, setConnectSettled] = useState(false);
+  const markConnectSettled = useCallback(() => setConnectSettled(true), []);
+  const pageReady = useArrivalGate(!loading, streakState.settled && !ledgerPending);
+  const hasStripeAccount = !!profile?.stripe_account_id;
+  const stripeAnswered = !stripeLoading && !stripeError;
+  const showConnect = stripeAnswered && !stripeData?.connected;
 
   const { payoutYears, exportYear, setExportYear, handleExportCSV } = usePayoutsCsvExport(stripeData?.payouts);
 
@@ -252,36 +257,36 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     } catch { /* best-effort */ }
   };
 
-  /* The bank-account block (PaymentTab). It renders in ONE of two places:
-     - at the top when Stripe is NOT connected, because then it is the only
-       thing on the screen a helpr can act on;
-     - as the floor of the page once connected — the bank account, when the
-       next payout is expected, and what the reader spent as a poster.
-     Mounted in either slot as soon as Stripe answers, so its queries run, and
-     hidden until `pageReady`. `id` is the "Payout settings" scroll target. */
-  const payoutSection = (
-    <section id="earnings-bank-account" className="space-y-4">
-      <Suspense fallback={null}>
-        <PaymentTab totalEarnings={totalEarnings} onSettled={markPaymentSettled} />
-      </Suspense>
-    </section>
-  );
-  const stripeAnswered = !stripeLoading && !stripeError;
+  /* Which half is on screen: Earned (default) or Spent. `?view=spent` opens
+     on Spent, read once at mount and never written back (MoneyViewSwitcher). */
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState<MoneyView>(() => moneyViewFromSearch(searchParams));
+
+  /* "Payout settings" in the tools menu: the payout account is the connect
+     card at the top while not set up, and the floor of the Earned half once
+     it is. Either way it is on this tab, so the item scrolls to it. */
+  const scrollToPayoutAccount = () => {
+    setView("earned");
+    requestAnimationFrame(() =>
+      document.getElementById("earnings-bank-account")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  };
+
+  /* Stripe-backed bones: each part holds its own slot while Stripe answers.
+     Drawn only for a profile with a Stripe account (data-aware, owner
+     2026-10-03): without one there is no wallet and no bank payouts. */
+  const stripeBones = stripeLoading && hasStripeAccount;
 
   return (
     <ProfileTabBody>
       <ProfileTabHeader
-        title="Earnings & Payouts"
+        title={TAB_TITLES.earnings}
         onBack={onBack}
         rightSlot={
           <EarningsToolsMenu
             onExportPdf={() => setExportDialogOpen(true)}
             onExportCsv={handleExportCSV}
-            // The bank account is a section of this one page, so "Payout
-            // settings" scrolls to it rather than navigating away.
-            onNavigatePayment={() =>
-              document.getElementById("earnings-bank-account")?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
+            onNavigatePayment={scrollToPayoutAccount}
           />
         }
       />
@@ -307,24 +312,25 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         </div>
       </div>
 
-      {/* NOT CONNECTED YET: the connect card is the page; everything below it
-          (wallet, goal, charts, ledger) is empty or about money that cannot
-          move until Stripe is set up. `!stripeError` matters: a failed status
-          fetch is NOT "not connected" (it has its own retry banner below).
-          Mounted so its queries run, hidden until `pageReady`; until then, with
-          no Stripe account on the profile row, its data-aware bones hold the
-          slot (owner, 2026-10-03). */}
-      {stripeAnswered && !stripeData?.connected && (
-        <div hidden={!pageReady}>{payoutSection}</div>
+      {/* NOT CONNECTED YET: the connect card sits at the top of both halves,
+          because it is the one thing a helpr can act on. `!stripeError`
+          matters: a failed status fetch is NOT "not connected" (it has its own
+          retry banner). Mounted so its reads run and hidden until they settle;
+          until then, with no Stripe account on the profile row, its
+          data-aware bones hold the slot (owner, 2026-10-03). */}
+      {showConnect && (
+        <div id="earnings-bank-account" hidden={!connectSettled}>
+          <Suspense fallback={null}>
+            <PaymentTab onSettled={markConnectSettled} />
+          </Suspense>
+        </div>
       )}
-      {!pageReady && !profile?.stripe_account_id && <EarningsPayoutSetupSkeleton />}
+      {!hasStripeAccount && (stripeLoading || (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />}
 
       {/* 1099-K banner — appears once YTD payouts cross the federal gross
           threshold (FORM_1099K_GROSS_THRESHOLD_DOLLARS). Quiet, dismissible
           per-user-per-year so it doesn't nag after the helper has seen it.
-          Tapping the CTA opens the existing PDF tax-export dialog. Above the
-          page's sections: it is not a section, it is an alert with a shelf
-          life, and it self-dismisses permanently. */}
+          Tapping the CTA opens the existing PDF tax-export dialog. */}
       {pageReady && show1099Banner && (
         <ThresholdBanner
           ytdYear={ytdYear}
@@ -333,201 +339,203 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
       )}
 
-      {/* ONE PAGE (Q1177, owner 2026-10-01: the two-view split was "messy and
-          repeat itself a lot"). Top to bottom: the wallet, the earned summary
-          (with the week forecast / month goal under it), ONE payouts list, the
-          insights, then the bank account and the tax note. Nothing renders
-          piecemeal: until every source the page reads has settled, the whole
-          page is ONE skeleton with the loaded layout (useArrivalGate). The
-          section is mounted early, hidden, only so a connected helpr's bank
-          account (PaymentTab, at the bottom) can load inside it. */}
-      {!pageReady && <EarningsPageSkeleton withHeader={false} />}
-      <section className="space-y-3" hidden={!pageReady}>
-        {pageReady && (
-          <>
-            {/* Payout data failed to load — say so, with a Retry. Without this
-                the tab silently rendered the "not connected" journey to a
-                connected helper whenever stripe-payouts hiccuped. */}
-            {(stripeError || ledgerError) && !stripeLoading && (
-              <ErrorState
-                variant="inline"
-                title="We couldn't load your payout data."
-                body="Your money is safe — we just couldn't reach Stripe. Tap Try again."
-                onRetry={handleRefresh}
-                retryDisabled={refreshing}
-              />
-            )}
+      {/* EARNED | SPENT (Q1177, owner 2026-10-04). Needs no data, so it is
+          never held back. */}
+      <MoneyViewSwitcher value={view} onChange={setView} />
 
-            {/* Wallet card (Available + Pending side-by-side). NOT RENDERED
-                UNTIL STRIPE IS CONNECTED: a helpr who has not connected does not
-                have a wallet, so the honest page for them has no wallet card —
-                they get the connect block at the top (owner: "needs a full
-                upgrade and polish alot of the same info"). The gate holds until
-                Stripe has answered, so there is no loading state here. */}
-            {stripeData?.connected && (
-              <WalletCard
-                stripeData={stripeData}
-                refreshing={refreshing}
-                availableTotal={availableTotal}
-                pendingTotal={pendingTotal}
-                canUseInstantPayout={canUseInstantPayout}
-                onRefresh={handleRefresh}
-                onCashOut={() => setPayoutDialogOpen(true)}
-                onUpgrade={() => setUpgradeOpen(true)}
-              />
-            )}
+      {/* SPENT: its own read, its own bones (SpentSection). */}
+      {view === "spent" && <SpentSection />}
 
-            {helperId && (
-              <div className="flex">
-                <HelperStreakBadge helperId={helperId} />
-              </div>
-            )}
-
-            <EarningsSummaryCard
-              loading={loading}
-              range={range}
-              onRangeChange={setRange}
-              earnedDollars={rangeEarnings}
-              jobCount={rangeJobs.length}
-              tipsDollars={rangeTips}
-              tipCount={rangeTipRows.length}
-              inProgressCount={inProgressJobs.length}
-              releasingCents={releasingCents}
-              releasingAt={releasingAt}
+      {/* EARNED. Nothing renders piecemeal: until the page's own data has
+          settled, the half is ONE skeleton with the loaded layout
+          (useArrivalGate). Stripe-backed parts inside it hold their own
+          slots (see `stripeBones`). */}
+      {view === "earned" && !pageReady && <EarningsPageSkeleton withHeader={false} />}
+      {view === "earned" && pageReady && (
+        <section className="space-y-3">
+          {/* Payout data failed to load — say so, with a Retry. Without this
+              the tab silently rendered the "not connected" journey to a
+              connected helper whenever stripe-payouts hiccuped. */}
+          {(stripeError || ledgerError) && !stripeLoading && (
+            <ErrorState
+              variant="inline"
+              title="We couldn't load your payout data."
+              body="Your money is safe — we just couldn't reach Stripe. Tap Try again."
+              onRetry={handleRefresh}
+              retryDisabled={refreshing}
             />
+          )}
 
-            {range === "week" && (
-              <EarningsForecastCard
-                helperId={helperId}
-                // Was `approval_status === "approved"` (retired, Q205b). Every
-                // account that reaches this tab has passed the only entry gate
-                // (a confirmed email, ProtectedRoute), so "profile loaded" is
-                // the whole condition.
-                enabled={!!profile}
-                feeFallbackPercent={helperFeeFallbackPct}
-              />
-            )}
-
-            {range === "month" && (
-              <MonthlyGoalCard
-                completedJobs={completedJobs.map((j) => ({
-                  // helper_completed_at so the month bucket matches when the
-                  // job was done, not when it was posted
-                  created_at: j.helper_completed_at ?? j.created_at,
-                  netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
-                }))}
-              />
-            )}
-
-            {/* ONE payouts list (see EarningHistory): unpaid work first, the
-                bank payouts, then paid jobs with each ledger transfer inside
-                the job it paid. It was three lists — "Earning history",
-                "Payout history" and "Recent transfers" — on two views. */}
-            <SectionRule />
-            <EarningHistory
-              earningsJobs={earningsJobs}
-              tips={tips}
-              loading={loading}
-              historyVisible={historyVisible}
-              page={PAGE}
-              onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
-              onBrowseJobs={() => navigate("/home")}
-              feeFallbackPct={helperFeeFallbackPct}
-              firstPayoutFeeDollars={firstPayoutFeeDueFrom(completedJobs, firstPayoutFee)}
-              payoutLedger={payoutLedger}
-              bankPayouts={
-                stripeData?.connected ? (
-                  <PayoutHistory
-                    stripeData={stripeData}
-                    exportYear={exportYear}
-                    onExportYearChange={setExportYear}
-                    payoutYears={payoutYears}
-                  />
-                ) : undefined
-              }
+          {/* Wallet card (Available + Pending side-by-side). NOT RENDERED
+              UNTIL STRIPE IS CONNECTED: a helpr who has not connected does not
+              have a wallet, so the honest page for them has no wallet card —
+              they get the connect card at the top (owner: "needs a full
+              upgrade and polish alot of the same info"). */}
+          {stripeData?.connected ? (
+            <WalletCard
+              stripeData={stripeData}
+              refreshing={refreshing}
+              availableTotal={availableTotal}
+              pendingTotal={pendingTotal}
+              canUseInstantPayout={canUseInstantPayout}
+              onRefresh={handleRefresh}
+              onCashOut={() => setPayoutDialogOpen(true)}
+              onUpgrade={() => setUpgradeOpen(true)}
             />
+          ) : stripeBones ? <EarningsWalletBones /> : null}
 
-            <SectionRule />
-            {/* BOTH ROWS BELOW ARE olivewood/0.7 — subtitles and chevrons alike.
-                The subtitles were 0.65 (4.24:1) and the `›` affordances 0.5
-                (2.84:1), against a 4.5:1 AA floor. 0.7 is the lowest alpha on
-                this token that clears (0.5 → 2.84, 0.65 → 4.24, 0.7 → 4.90) and
-                it is already the app's quiet-ink tier. A disclosure arrow that
-                is fainter than the text it discloses reads as disabled. */}
-            <Collapsible>
-              <CollapsibleTrigger asChild>
-                <button
-                  type="button"
-                  className="group w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+          {helperId && (
+            <div className="flex">
+              <HelperStreakBadge helperId={helperId} />
+            </div>
+          )}
+
+          <EarningsSummaryCard
+            loading={loading}
+            range={range}
+            onRangeChange={setRange}
+            earnedDollars={rangeEarnings}
+            jobCount={rangeJobs.length}
+            tipsDollars={rangeTips}
+            tipCount={rangeTipRows.length}
+            inProgressCount={inProgressJobs.length}
+            releasingCents={releasingCents}
+            releasingAt={releasingAt}
+          />
+
+          {range === "week" && (
+            <EarningsForecastCard
+              helperId={helperId}
+              // Was `approval_status === "approved"` (retired, Q205b). Every
+              // account that reaches this tab has passed the only entry gate
+              // (a confirmed email, ProtectedRoute), so "profile loaded" is
+              // the whole condition.
+              enabled={!!profile}
+              feeFallbackPercent={helperFeeFallbackPct}
+            />
+          )}
+
+          {range === "month" && (
+            <MonthlyGoalCard
+              completedJobs={completedJobs.map((j) => ({
+                // helper_completed_at so the month bucket matches when the
+                // job was done, not when it was posted
+                created_at: j.helper_completed_at ?? j.created_at,
+                netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
+              }))}
+            />
+          )}
+
+          {/* ONE payouts list (see EarningHistory): unpaid work first, the
+              bank payouts, then paid jobs with each ledger transfer inside
+              the job it paid. It was three lists — "Earning history",
+              "Payout history" and "Recent transfers" — on two views. */}
+          <SectionRule />
+          <EarningHistory
+            earningsJobs={earningsJobs}
+            tips={tips}
+            loading={loading}
+            historyVisible={historyVisible}
+            page={PAGE}
+            onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
+            onBrowseJobs={() => navigate("/home")}
+            feeFallbackPct={helperFeeFallbackPct}
+            firstPayoutFeeDollars={firstPayoutFeeDueFrom(completedJobs, firstPayoutFee)}
+            payoutLedger={payoutLedger}
+            bankPayouts={
+              stripeData?.connected ? (
+                <PayoutHistory
+                  stripeData={stripeData}
+                  exportYear={exportYear}
+                  onExportYearChange={setExportYear}
+                  payoutYears={payoutYears}
+                />
+              ) : stripeBones ? <EarningsBankPayoutBones /> : undefined
+            }
+          />
+
+          <SectionRule />
+          {/* BOTH ROWS BELOW ARE olivewood/0.7 — subtitles and chevrons alike.
+              The subtitles were 0.65 (4.24:1) and the `›` affordances 0.5
+              (2.84:1), against a 4.5:1 AA floor. 0.7 is the lowest alpha on
+              this token that clears (0.5 → 2.84, 0.65 → 4.24, 0.7 → 4.90) and
+              it is already the app's quiet-ink tier. A disclosure arrow that
+              is fainter than the text it discloses reads as disabled. */}
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="group w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                    More Insights
+                  </span>
+                  <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                    Where your money comes from, by category and month
+                  </span>
+                </span>
+                <span
+                  className="text-ds-13 shrink-0 transition-transform group-data-[state=open]:rotate-90"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  aria-hidden="true"
                 >
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                      More Insights
-                    </span>
-                    <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                      Where your money comes from, by category and month
-                    </span>
+                  &rsaquo;
+                </span>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-3">
+              <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
+              {/* The ONE entry point to /analytics (Advanced Analytics). A
+                  link, not a locked teaser: the page it opens decides
+                  server-side whether this helper gets the dashboard or the
+                  upgrade offer. */}
+              <button
+                type="button"
+                onClick={() => navigate("/profile?tab=analytics")}
+                className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                    Advanced Analytics
                   </span>
-                  <span
-                    className="text-ds-13 shrink-0 transition-transform group-data-[state=open]:rotate-90"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                    aria-hidden="true"
-                  >
-                    &rsaquo;
+                  <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                    Trends over time, and when work gets posted near you
                   </span>
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-3">
-                <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
-                {/* The ONE entry point to /analytics (Advanced Analytics). A
-                    link, not a locked teaser: the page it opens decides
-                    server-side whether this helper gets the dashboard or the
-                    upgrade offer. */}
-                <button
-                  type="button"
-                  onClick={() => navigate("/profile?tab=analytics")}
-                  className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                      Advanced Analytics
-                    </span>
-                    <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                      Trends over time, and when work gets posted near you
-                    </span>
-                  </span>
-                  <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true">
-                    &rsaquo;
-                  </span>
-                </button>
-              </CollapsibleContent>
-            </Collapsible>
-          </>
-        )}
+                </span>
+                <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true">
+                  &rsaquo;
+                </span>
+              </button>
+            </CollapsibleContent>
+          </Collapsible>
 
-        {/* THE PAYOUT ACCOUNT, the floor of the page once connected. A helpr
-            who has not connected gets this same block at the top instead.
-            Mounted before `pageReady` (the section is hidden) so the page
-            opens with it already filled. */}
-        {stripeAnswered && stripeData?.connected && (
-          <>
-            {pageReady && <SectionRule />}
-            {payoutSection}
-          </>
-        )}
+          {/* THE PAYOUT ACCOUNT, the floor of the Earned half once connected:
+              the bank account and when the next payout is expected. A helpr
+              who has not connected gets this block at the top instead. It
+              draws its own bones while its Stripe read answers. */}
+          {stripeAnswered && stripeData?.connected && (
+            <>
+              <SectionRule />
+              <section id="earnings-bank-account" className="space-y-4">
+                <Suspense fallback={<Skeleton className="h-24 w-full rounded-2xl" />}>
+                  <PaymentTab />
+                </Suspense>
+              </section>
+            </>
+          )}
 
-        {/* The tax note closes the page, under the bank account it is about.
+          {/* The tax note closes the Earned half.
 
-            IT NO LONGER STATES THE THRESHOLD (2026-09-06 rewrite). It read
-            "exceed $20,000 in gross payments and 200 transactions" — a bare,
-            undated number rendered as tax guidance. The federal 1099-K
-            threshold has moved repeatedly (a $600 rule scheduled, deferred by
-            the IRS twice, then repealed), so a typed number goes stale and a
-            helper under the stated line concludes nothing is coming. The honest
-            version says what we know and sends anyone who needs the current
-            number to the IRS. The threshold constants stay in `moneyLimits.ts`
-            because ThresholdBanner still needs a level to fire at. */}
-        {pageReady && (
+              IT NO LONGER STATES THE THRESHOLD (2026-09-06 rewrite). It read
+              "exceed $20,000 in gross payments and 200 transactions" — a bare,
+              undated number rendered as tax guidance. The federal 1099-K
+              threshold has moved repeatedly (a $600 rule scheduled, deferred by
+              the IRS twice, then repealed), so a typed number goes stale and a
+              helper under the stated line concludes nothing is coming. The
+              honest version says what we know and sends anyone who needs the
+              current number to the IRS. The threshold constants stay in
+              `moneyLimits.ts` because ThresholdBanner still needs a level. */}
           <p className="text-ds-11 text-muted-foreground leading-relaxed pt-2 flex gap-1.5">
             <Info className="w-3 h-3 mt-0.5 shrink-0" />
             <span>
@@ -543,8 +551,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               for the current numbers, and talk to a tax professional about your situation.
             </span>
           </p>
-        )}
-      </section>
+        </section>
+      )}
 
       <ProUpgradeSheet
         open={upgradeOpen}

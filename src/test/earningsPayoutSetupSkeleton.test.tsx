@@ -1,5 +1,5 @@
 /*
- * GUARD (docs/OPEN.md Q429, bot PR #2148): the Earnings & Payouts skeleton is
+ * GUARD (docs/OPEN.md Q429, bot PR #2148): the Money tab (was "Earnings & Payouts") skeleton is
  * DATA-AWARE (owner, 2026-10-03: "data-aware skeletons", the state known
  * before the data). A Helpr with no payout account gets PaymentTab's connect
  * card at the top of the page once Stripe answers (it sat above a view
@@ -14,7 +14,7 @@
  * light/dark, on /profile?tab=earnings and /profile?tab=payment.
  */
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const payoutSetup = withHeader && !profile?.stripe_account_id; | const payoutSetup = false;
-// @mutate src/components/profile/EarningsTab.tsx | {!pageReady && !profile?.stripe_account_id && <EarningsPayoutSetupSkeleton />} | {false && <EarningsPayoutSetupSkeleton />}
+// @mutate src/components/profile/EarningsTab.tsx | {!hasStripeAccount && (stripeLoading \|\| (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />} | {false && <EarningsPayoutSetupSkeleton />}
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const wallet = !!profile?.stripe_account_id; | const wallet = false;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -78,7 +78,7 @@ describe("Earnings skeleton is data-aware (Q429)", () => {
     renderSkeleton({ withHeader: false });
     expect(screen.queryByTestId("earnings-payout-setup-skeleton")).toBeNull();
     expect(read("src/components/profile/EarningsTab.tsx")).toContain(
-      "{!pageReady && !profile?.stripe_account_id && <EarningsPayoutSetupSkeleton />}",
+      "{!hasStripeAccount && (stripeLoading || (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />}",
     );
   });
 });

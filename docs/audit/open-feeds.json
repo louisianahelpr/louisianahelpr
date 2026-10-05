@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T07:14Z",
+  "measured_at": "2026-10-05T09:44Z",
   "issues": {
     "readable": true,
     "open": [
@@ -30,11 +30,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2246,
-        "title": "Weekly codebase health — 2026-10-04",
-        "label": "nightly-red"
-      },
-      {
         "number": 2247,
         "title": "nightly-red: open-done-when",
         "label": "nightly-red"
@@ -45,8 +40,8 @@
         "label": "nightly-red"
       },
       {
-        "number": 2306,
-        "title": "nightly-red: db-restore-drill",
+        "number": 2317,
+        "title": "nightly-red: main: Vitest",
         "label": "nightly-red"
       }
     ]
@@ -61,6 +56,14 @@
         "status": "open",
         "title": "nightly-red: prod-audit",
         "issue": 2245
+      },
+      {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -79,12 +82,20 @@
         "issue": 2213
       },
       {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
+        "issue": null
+      },
+      {
         "fingerprint": "42a784cb226e506d814a710c96d26487",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: supabase db deploy",
-        "issue": 2270
+        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -103,6 +114,14 @@
         "issue": 2244
       },
       {
+        "fingerprint": "30f021e059dca18398edd0fa1a3b8759",
+        "source_kind": "sql_slack",
+        "source": "slack-ops-alert:custom",
+        "status": "open",
+        "title": "# cron(s) need attention",
+        "issue": null
+      },
+      {
         "fingerprint": "b75d265e62012a472e62221e79c5ce28",
         "source_kind": "workflow",
         "source": "quota-monitor",
@@ -119,20 +138,12 @@
         "issue": 2247
       },
       {
-        "fingerprint": "0cc83c6bc20bc0e007e1ce4a5aee88e1",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "auth email hook: bad signature",
-        "issue": null
-      },
-      {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: branch-prune",
-        "issue": null
+        "issue": 2304
       },
       {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
@@ -151,22 +162,27 @@
         "issue": null
       },
       {
-        "fingerprint": "7d595594ebaa0c4ed7bce549d2f4e57a",
+        "fingerprint": "57b5f274d7a78c775c09cba57d0e4e1f",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "weekly codebase health — <ts>",
-        "issue": 2246
+        "title": "nightly-red: db-restore-drill",
+        "issue": 2306
+      },
+      {
+        "fingerprint": "da3ef1e5e2eea618f50aab6e4f7a9ec6",
+        "source_kind": "error_logs",
+        "source": "cron-dead",
+        "status": "open",
+        "title": "dead cron: expiring-jobs-push has not fired since <ts> (tolerance #)",
+        "issue": null
       }
     ]
   },
   "mirrored": {
-    "bus DR-004": "Q426",
-    "bus ME-009": "Q1311",
     "bus ME-019": "Q441",
     "bus ME-043": "Q441",
     "bus OA-018": "Q446",
-    "bus SI-033": "Q802",
     "bus TC-004": "Q226",
     "issue #1654": "Q722",
     "issue #1754": "Q785",
@@ -184,26 +200,30 @@
     "issue #2245": "Q785",
     "issue #2246": "Q1276",
     "issue #2247": "Q1277",
+    "issue #2248": "Q1331",
     "issue #2269": "Q1274",
     "issue #2270": "Q1307",
-    "issue #2273": "Q1308",
     "issue #2304": "Q1274",
-    "issue #2306": "Q1322",
+    "issue #2306": "Q1364",
+    "issue #2317": "Q1369",
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
-    "ledger 1ef4b10bb74a": "Q1320",
+    "ledger 30f021e059dc": "Q1370",
     "ledger 42a784cb226e": "Q1307",
     "ledger 54b8c187374a": "Q1277",
     "ledger 54ef0bfdcec3": "Q1309",
+    "ledger 57b5f274d7a7": "Q1371",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
-    "ledger 79112fbf22c8": "Q1321",
+    "ledger 79112fbf22c8": "Q1363",
     "ledger 7d595594ebaa": "Q1276",
     "ledger 7f88b9cc45df": "Q1274",
     "ledger 88ecf6e765df": "Q788",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger b75d265e6201": "Q1310",
-    "ledger db0fb15c4ec3": "Q787"
+    "ledger da3ef1e5e2ee": "Q1372",
+    "ledger db0fb15c4ec3": "Q787",
+    "ledger f22e3275d50d": "Q1369"
   }
 }

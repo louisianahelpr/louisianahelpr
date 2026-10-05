@@ -1337,6 +1337,7 @@ export type Database = {
           poster_confirmed_working_at: string | null
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
+          response_deadline: string | null
           share_cents: number | null
           slot_no: number | null
           status: string
@@ -1359,6 +1360,7 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
+          response_deadline?: string | null
           share_cents?: number | null
           slot_no?: number | null
           status?: string
@@ -1381,6 +1383,7 @@ export type Database = {
           poster_confirmed_working_at?: string | null
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
+          response_deadline?: string | null
           share_cents?: number | null
           slot_no?: number | null
           status?: string

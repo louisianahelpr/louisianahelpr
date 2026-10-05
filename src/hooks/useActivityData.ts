@@ -264,8 +264,11 @@ export function postedDetailInputs(postedJobs: Job[]): PostedDetailInputs {
     helperIds: [...new Set(postedJobs.filter((j) => j.helper_id).map((j) => j.helper_id!))].sort(),
     completedIds: postedJobs.filter((j) => j.status === "completed").map((j) => j.id).sort(),
     trackedIds: postedJobs.filter(postedCardTrackerQueries).map((j) => j.id).sort(),
+    // Q707: an OPEN crew can already have hired members (a crew stays open
+    // while it fills), and the card decides "booked" (no Edit) from this
+    // roster, so open crews are fetched too.
     groupIds: postedJobs
-      .filter((j) => isActiveStatus(j.status) && j.is_group_job)
+      .filter((j) => (isActiveStatus(j.status) || j.status === "open") && j.is_group_job)
       .map((j) => j.id)
       .sort(),
     completedGroupIds: postedJobs

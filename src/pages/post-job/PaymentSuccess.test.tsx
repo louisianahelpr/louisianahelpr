@@ -16,6 +16,11 @@ import { MemoryRouter } from "react-router-dom";
 import PaymentSuccess from "./PaymentSuccess";
 
 const JOB_ID = "10000000-0000-4000-8000-000000000001";
+/** The signed-in account, and by default the job's poster. */
+const POSTER = "20000000-0000-4000-8000-000000000002";
+/** Another account that can read the job (an admin reads every job). */
+const OTHER = "30000000-0000-4000-8000-000000000003";
+let viewerId: string | null = POSTER;
 
 /** What the `jobs` confirmation lookup will answer with. */
 let jobsLookup: { data: unknown; error: unknown } = { data: null, error: null };
@@ -29,7 +34,8 @@ vi.mock("@/integrations/supabase/client", () => ({
       getUser: () => getUser(),
       // AuthShell renders the shared Navbar on web, which reads useAuthReady.
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      getSession: () =>
+        Promise.resolve({ data: { session: viewerId ? { user: { id: viewerId } } : null }, error: null }),
     },
     from: () => ({
       // The confirmation lookup: .select(...).eq(...).maybeSingle()
@@ -88,6 +94,7 @@ describe("PaymentSuccess", () => {
     getUser.mockClear();
     navigateMock.mockReset();
     jobsLookup = { data: null, error: null };
+    viewerId = POSTER;
     localStorage.clear();
     sessionStorage.clear();
   });
@@ -140,7 +147,7 @@ describe("PaymentSuccess", () => {
   describe("the row says the payment never landed", () => {
     it("does not render a success claim for payment_status 'failed'", async () => {
       jobsLookup = {
-        data: { budget: 120, category: "cleaning", payment_status: "failed" },
+        data: { budget: 120, category: "cleaning", payment_status: "failed", customer_id: POSTER },
         error: null,
       };
       renderAt();
@@ -155,7 +162,7 @@ describe("PaymentSuccess", () => {
     it("ends on 'couldn't confirm', never on a success claim", async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       jobsLookup = {
-        data: { budget: 120, category: "cleaning", payment_status: "unpaid" },
+        data: { budget: 120, category: "cleaning", payment_status: "unpaid", customer_id: POSTER },
         error: null,
       };
       renderAt();
@@ -193,10 +200,58 @@ describe("PaymentSuccess", () => {
     });
   });
 
+  // OWNER BUG, 2026-10-05: signed in to their admin account, the owner opened
+  // /payment-success?job_id=X for a job their OTHER account had paid for and
+  // was told "Payment authorized — $10 is held securely", with View Applicants.
+  // The page read the job by id alone. Only the job's poster gets the claim;
+  // never role-gated, so an admin is just another account here.
+  describe("the job belongs to a different account", () => {
+    beforeEach(() => {
+      viewerId = OTHER;
+      jobsLookup = {
+        data: { budget: 10, category: "cleaning", payment_status: "escrow", customer_id: POSTER },
+        error: null,
+      };
+    });
+
+    it("makes no payment claim, quotes no amount and offers no poster actions", async () => {
+      renderAt();
+      const heading = await screen.findByRole("heading", { level: 1, name: /belongs to a different account/i });
+      expect(heading).toBeInTheDocument();
+      expectNoSuccessClaim();
+      expect(screen.queryByText(/\$10/)).toBeNull();
+      expect(screen.queryByRole("button", { name: /view applicants/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /^share$/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /post another/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /open my posts/i })).toBeNull();
+      // …and a way back.
+      expect(screen.getByRole("button", { name: /back to dashboard/i })).toBeInTheDocument();
+    });
+
+    it("treats a job with no poster left (anonymised) as not the viewer's", async () => {
+      viewerId = POSTER;
+      jobsLookup = {
+        data: { budget: 10, category: "cleaning", payment_status: "escrow", customer_id: null },
+        error: null,
+      };
+      renderAt();
+      await screen.findByRole("heading", { level: 1, name: /belongs to a different account/i });
+      expectNoSuccessClaim();
+    });
+
+    it("the poster still gets the claim for the same row", async () => {
+      viewerId = POSTER;
+      renderAt();
+      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      expect(screen.getByText("$10")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /view applicants/i })).toBeInTheDocument();
+    });
+  });
+
   describe("the payment IS confirmed held", () => {
     beforeEach(() => {
       jobsLookup = {
-        data: { budget: 120, category: "cleaning", payment_status: "escrow" },
+        data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER },
         error: null,
       };
     });
@@ -229,7 +284,7 @@ describe("PaymentSuccess", () => {
 
     it("accepts payout_pending — the money is still in escrow", async () => {
       jobsLookup = {
-        data: { budget: 80, category: "cleaning", payment_status: "payout_pending" },
+        data: { budget: 80, category: "cleaning", payment_status: "payout_pending", customer_id: POSTER },
         error: null,
       };
       renderAt();
@@ -247,7 +302,7 @@ describe("PaymentSuccess", () => {
       // released), just never say the escrow-specific "released when you
       // confirm the work is done" sentence, which IS false once released.
       jobsLookup = {
-        data: { budget: 80, category: "cleaning", payment_status: "released" },
+        data: { budget: 80, category: "cleaning", payment_status: "released", customer_id: POSTER },
         error: null,
       };
       renderAt();
@@ -264,7 +319,7 @@ describe("PaymentSuccess", () => {
       // claim success here is still the right call.
       vi.useFakeTimers({ shouldAdvanceTime: true });
       jobsLookup = {
-        data: { budget: 80, category: "cleaning", payment_status: "refunded" },
+        data: { budget: 80, category: "cleaning", payment_status: "refunded", customer_id: POSTER },
         error: null,
       };
       const view = renderAt();

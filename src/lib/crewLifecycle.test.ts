@@ -1,3 +1,7 @@
+// Proof these can fail: a crew member whose crew is still filling is told to
+// set out, and a live crew job falls back to the single-Helpr offer card.
+// @mutate src/lib/crewLifecycle.ts | if (jobStatus === "open") return "waiting_for_crew"; | if (jobStatus === "open") return "set_out";
+// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | const isOffered = isDirectOffer \|\| (!isCrewLive && isAssigned && !job.helper_confirmed_at); | const isOffered = isDirectOffer \|\| (isAssigned && !job.helper_confirmed_at);
 import { describe, it, expect } from "vitest";
 import { crewMemberStatusLabel, crewMemberStep, crewMinutesUntilDone, withCrewSlotStamps } from "./crewLifecycle";
 import { deriveAppliedJobCardState } from "@/pages/jobs/appliedJobCard/appliedJobCardHelpers";

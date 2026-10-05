@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 572,
-    "files": 145,
-    "rendering": 549,
+    "calls": 574,
+    "files": 146,
+    "rendering": 551,
     "suppressedByPolicy": 23,
     "byKind": {
       "confirmConsequential": 23,
       "errorToast": 6,
       "successToast": 1,
       "toast": 35,
-      "toast.error": 455,
+      "toast.error": 457,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 28,
       "toast.warning": 22
     },
     "copyPiecesByForm": {
-      "literal": 307,
+      "literal": 309,
       "template": 74,
       "dynamic": 231,
       "jsx": 0
@@ -4622,27 +4622,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 204,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Your job is boosted — it's at the top of the feed for the next 24 hours."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/home/Dashboard.tsx",
-      "line": 208,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Boost cancelled — your job is still posted, just not boosted."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/home/Dashboard.tsx",
-      "line": 364,
+      "line": 341,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4652,7 +4632,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 816,
+      "line": 793,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4775,6 +4755,46 @@
       "title": {
         "form": "literal",
         "text": "Sending your application…"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 48,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't confirm this boost. Check the job in My Posts."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That boost belongs to a different account."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 56,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Your job is boosted — it's at the top of the feed for the next 24 hours."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Boost cancelled — your job is still posted, just not boosted."
       },
       "renders": true
     },
@@ -5054,7 +5074,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
-      "line": 147,
+      "line": 149,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5064,7 +5084,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
-      "line": 158,
+      "line": 160,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5074,7 +5094,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
-      "line": 200,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5084,7 +5104,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
-      "line": 210,
+      "line": 212,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useBoostReturn } from "./useBoostReturn";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
@@ -186,32 +187,8 @@ const Dashboard = () => {
   // third line to the title card and pushed the job feed down. The
   // headline job count it surfaced still shows in the date eyebrow.
 
-  // Stripe sends a paid boost back to `/home?boosted=<jobId>` (and a
-  // bailed one to `?boost_cancelled=<jobId>`). Nothing consumed either param,
-  // so a poster who had just paid for a boost landed on the feed with no
-  // confirmation at all — the Boosted badge only appears later, on My Posts.
-  // The toast carries an action so it survives the suppress-plain-success
-  // policy (see lib/toastPolicy.ts): the toast IS the route to the boosted post.
-  useEffect(() => {
-    const boosted = searchParams.get("boosted");
-    const boostCancelled = searchParams.get("boost_cancelled");
-    if (!boosted && !boostCancelled) return;
-    if (boosted) {
-      // `?boosted` IS the job id, so send the tap to that job rather than to
-      // My Posts' default "Needs you" bucket — a freshly-boosted open post
-      // with nobody on it yet buckets to `waiting`, so a bare /posts landed
-      // on an empty list.
-      toast.success("Your job is boosted — it's at the top of the feed for the next 24 hours.", {
-        action: { label: "View", onClick: () => navigate(`/posts?job=${boosted}`) },
-      });
-    } else {
-      toast.error("Boost cancelled — your job is still posted, just not boosted.");
-    }
-    const next = new URLSearchParams(searchParams);
-    next.delete("boosted");
-    next.delete("boost_cancelled");
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams, navigate]);
+  // Stripe's boost return (`/home?boosted=<jobId>`): told only to the job's poster.
+  useBoostReturn({ userId: user?.id, searchParams, setSearchParams, navigate });
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   /**

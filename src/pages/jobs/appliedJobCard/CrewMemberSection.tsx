@@ -30,6 +30,8 @@ import { JobActionChip, JobStepPrimaryButton } from "@/components/job-card/JobAc
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 import { JobCountdown } from "@/components/job-card/JobCountdown";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { helperShareCount } from "@/lib/helperEarnings";
 import { DirectionsButton } from "./DirectionsButton";
 import { HelperPhotoAsk } from "./steps/HelperPhotoAsk";
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
@@ -227,6 +229,7 @@ export function CrewMemberSection({
         <p className="text-ds-13 text-muted-foreground text-center">
           We couldn't load your spot on this crew. Pull to refresh.
         </p>
+        <ReportErrorScreen source="CrewMemberSection.slot" title="We couldn't load your spot on this crew." />
       </div>
     ) : null;
   }
@@ -252,7 +255,8 @@ export function CrewMemberSection({
     slot.proof_after_urls,
   );
   const minutesLeft = crewMinutesUntilDone(slot);
-  const crewSize = Math.max(2, Math.floor(job.helpers_needed ?? 2) || 2);
+  // The canonical group gate (helperShareCount), floored at 2: a crew is never one.
+  const crewSize = Math.max(2, helperShareCount(job));
 
   // The same window helper_cancel_booking's crew branch admits: the job still
   // 'open' or 'accepted' (not once anyone has set out), before the start, and

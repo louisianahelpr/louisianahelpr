@@ -30,7 +30,9 @@ const LIVE = read("../../../scripts/probes/fixtures/dispute-table-door.live.sql"
 const MARKERS = read("../../../supabase/migrations/20260915033734_dispute_markers_server_owned.sql");
 const TEXT_OWNED = read("../../../supabase/migrations/20261003180355_dispute_text_server_owned.sql");
 const PROD = read("../../../supabase/migrations/20261004004705_refile_clears_helpr_dispute_answer.sql");
-const NEW = read("../../../supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql");
+const NEW = process.env.MIGRATION_SQL_FILE
+  ? readFileSync(process.env.MIGRATION_SQL_FILE, "utf8")
+  : read("../../../supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql");
 const MODE = process.env.NEW_MIGRATION ?? "";
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against the LIVE (unfixed) state (expect FAILs)`);
 
@@ -57,6 +59,26 @@ await db.exec(`CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uui
   -- Evidence validation is not under test: no evidence is attached, so it never runs.
   CREATE FUNCTION public.dispute_evidence_url_ok(u text, uid uuid, job uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;`);
 await db.exec(TEXT_OWNED);
+// Prod's opener whitelist (pg_trigger + md5 d37547ec… = 20260915101102, read
+// 2026-10-05), the helper it calls, and prod's table-level UPDATE grant, all
+// in place BEFORE the flow: the archive UPDATE runs inside the party's session
+// and must pass this trigger (lh-authz-rls review: the first version raised).
+{
+  const cutFn = (file, name) => {
+    const sql = read(`../../../supabase/migrations/${file}`);
+    const m = [...sql.matchAll(new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+public\\.${name}\\s*\\(`, "gi"))].at(-1);
+    const open = /\bAS\s+(\$\w*\$)/i.exec(sql.slice(m.index));
+    const close = sql.indexOf(open[1], m.index + open.index + open[0].length);
+    return sql.slice(m.index, close + open[1].length) + ";";
+  };
+  await db.exec(`CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.role', true), '') $$;
+    GRANT EXECUTE ON FUNCTION auth.role() TO anon, authenticated, service_role;`);
+  await db.exec(cutFn("20260915101102_null_uid_is_not_server.sql", "is_server_context"));
+  await db.exec(cutFn("20260915101102_null_uid_is_not_server.sql", "enforce_dispute_opener_column_whitelist"));
+  await db.exec(`GRANT EXECUTE ON FUNCTION public.is_server_context() TO authenticated;
+    GRANT SELECT, UPDATE ON public.disputes TO authenticated;
+    CREATE TRIGGER trg_enforce_dispute_opener_column_whitelist BEFORE UPDATE ON public.disputes FOR EACH ROW EXECUTE FUNCTION public.enforce_dispute_opener_column_whitelist();`);
+}
 await db.exec(PROD);
 if (MODE !== "skip") for (let i = 0; i < 3; i++) await db.exec(NEW);
 check("migration applies 3x (replay-safe)", MODE === "skip" || true);
@@ -94,7 +116,7 @@ await db.exec(`UPDATE public.jobs SET dispute_evidence_urls = ARRAY['https://x/o
 const before = await job();
 check("setup: the withdrawal stamped dispute_resolved_at", before.r !== null, JSON.stringify(before));
 r = await open(REASON2);
-check("setup: the poster files a NEW dispute", r.ok, r.err);
+check("R0 the re-file itself succeeds with the whitelist in place (the archive UPDATE passes it)", r.ok, r.err);
 
 const old = hasCol ? (await db.query(`SELECT helper_response FROM public.disputes WHERE job_id = '${JOB}' AND status = 'withdrawn'`)).rows[0] : null;
 check("R1 (1) the Helpr's first answer is kept on the withdrawn dispute's row", !!old && old.helper_response === ANSWER1, hasCol ? JSON.stringify(old) : "no disputes.helper_response column");
@@ -106,20 +128,6 @@ r = await answer(ANSWER2);
 check("the Helpr can answer the new complaint", r.ok && r.rows.length === 1, r.ok ? "" : r.err);
 
 if (hasCol) {
-  // Prod's grant (information_schema, 2026-10-05): authenticated holds table-level UPDATE on disputes.
-  await db.exec(`GRANT SELECT, UPDATE ON public.disputes TO authenticated`);
-  // Prod's trigger (pg_trigger, 2026-10-05) and the helper it calls; the live fixture predates both.
-  {
-    await db.exec(`CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.role', true), '') $$;
-      GRANT EXECUTE ON FUNCTION auth.role() TO anon, authenticated, service_role;`);
-    const sql = read("../../../supabase/migrations/20260915101102_null_uid_is_not_server.sql");
-    const m = [...sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.is_server_context\s*\(/gi)].at(-1);
-    const open = /\bAS\s+(\$\w*\$)/i.exec(sql.slice(m.index));
-    const close = sql.indexOf(open[1], m.index + open.index + open[0].length);
-    await db.exec(sql.slice(m.index, close + open[1].length) + ";");
-    await db.exec(`GRANT EXECUTE ON FUNCTION public.is_server_context() TO authenticated`);
-  }
-  await db.exec(`CREATE TRIGGER trg_enforce_dispute_opener_column_whitelist BEFORE UPDATE ON public.disputes FOR EACH ROW EXECUTE FUNCTION public.enforce_dispute_opener_column_whitelist()`);
   const forge = await as(POSTER, `UPDATE public.disputes SET helper_response = 'I admit everything' WHERE job_id = '${JOB}' AND status = 'open' RETURNING id`);
   check("R4 a party cannot write helper_response on a dispute (the opener whitelist refuses it)", !(forge.ok && forge.rows.length === 1) && /only the evidence on a dispute may be changed/.test(forge.err ?? ""), forge.ok ? `${forge.rows.length} row(s)` : forge.err);
   const keep = (await db.query(`SELECT helper_response FROM public.disputes WHERE job_id = '${JOB}' AND status = 'withdrawn'`)).rows[0].helper_response;

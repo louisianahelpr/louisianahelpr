@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20261005063441_offered_helper_cannot_be_cleared_by_client
- * (docs/OPEN.md Q1324). Harness = directOfferMarkerRpcOnly.pglite.mjs's, with
+ * (docs/OPEN.md Q1325). Harness = directOfferMarkerRpcOnly.pglite.mjs's, with
  * enforce_hire_columns_rpc_only at 20261004184903 (md5 = live 2026-10-05).
  *
  *   node src/test/pglite/offeredHelperNotClearedByClient.pglite.mjs                    # AFTER: migration applied 3x

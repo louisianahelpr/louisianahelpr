@@ -63,7 +63,7 @@ describe("Q356: every jobs *helper_id column is locked against client writes", (
 
   it("the UPDATE trigger refuses each one newly set from a client", () => {
     const unlocked = cols.filter(
-      // `is not null and` is optional: offered_to_helper_id refuses ANY change (Q1324).
+      // `is not null and` is optional: offered_to_helper_id refuses ANY change (Q1325).
       (c) => !new RegExp(`if (?:new\\.${c} is not null and )?new\\.${c} is distinct from old\\.${c}\\b[^;]*? then raise exception 'hire_requires_rpc`).test(hire),
     );
     expect(unlocked, "jobs helper columns a client can still point at someone").toEqual([]);

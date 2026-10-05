@@ -142,10 +142,10 @@
     "get_user_credential_tier(uuid)": "reviewed 2026-10-05 (Q1284): public trust badge tier shown on every profile and card.",
     "get_user_last_active(uuid[])": "reviewed 2026-10-05 (Q1284): the public 'Active now / active N ago' line on profiles and cards (newest login only).",
     "get_user_repeat_hire_percent(uuid)": "reviewed 2026-10-05 (Q1284): public profile stat (repeat-hire percent) shown on the Helpr's profile.",
-    "group_member_slot(uuid, uuid)": "reviewed 2026-10-05 (Q1284): policy helper (crew roster membership); crew rosters are shown to the job's parties. Caller-scoping filed as Q1320.",
-    "has_role(uuid, app_role)": "reviewed 2026-10-05 (Q1284): policy helper used by every admin policy with auth.uid(); called directly it says whether an id is an admin. Caller-scoping filed as Q1320.",
+    "group_member_slot(uuid, uuid)": "reviewed 2026-10-05 (Q1284): policy helper (crew roster membership); crew rosters are shown to the job's parties. Caller-scoping filed as Q1328.",
+    "has_role(uuid, app_role)": "reviewed 2026-10-05 (Q1284): policy helper used by every admin policy with auth.uid(); called directly it says whether an id is an admin. Caller-scoping filed as Q1328.",
     "job_is_funded(uuid)": "reviewed 2026-10-05 (Q1284): policy helper; whether a job's payment is funded, which browse already implies (only funded jobs are listed).",
     "seed_jobs_hidden_publicly()": "reviewed 2026-10-05 (Q1284): the global launch switch (one boolean flag), read by every browse surface.",
-    "user_may_see_job_address(uuid, uuid)": "reviewed 2026-10-05 (Q1284): policy helper called with auth.uid(); called directly with another id it says whether that person is hired/offered on a job. Caller-scoping filed as Q1320."
+    "user_may_see_job_address(uuid, uuid)": "reviewed 2026-10-05 (Q1284): policy helper called with auth.uid(); called directly with another id it says whether that person is hired/offered on a job. Caller-scoping filed as Q1328."
   }
 }

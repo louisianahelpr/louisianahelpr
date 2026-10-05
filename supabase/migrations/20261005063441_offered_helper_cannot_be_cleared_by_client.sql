@@ -1,4 +1,4 @@
--- Q1324 (docs/OPEN.md; found by the lh-authz-rls review of Q1283, 2026-10-05,
+-- Q1325 (docs/OPEN.md; found by the lh-authz-rls review of Q1283, 2026-10-05,
 -- prod dry run by the lead: rows=1): a poster could PATCH
 -- jobs.offered_to_helper_id from a Helpr to NULL. enforce_hire_columns_rpc_only
 -- refused only a change TO a non-NULL id, so the clear landed and left
@@ -41,7 +41,7 @@ BEGIN
         USING ERRCODE = '42501',
               HINT = 'Use accept_application, accept_group_application or respond_to_direct_offer.';
     END IF;
-    -- Q1324: ANY client change, clearing it included. Clearing it left
+    -- Q1325: ANY client change, clearing it included. Clearing it left
     -- direct_offer_status 'pending' with no target: the job went public in
     -- open_jobs_browse while the poster's card said "offer out", and the
     -- expiry sweep later told them the offer "was not accepted".

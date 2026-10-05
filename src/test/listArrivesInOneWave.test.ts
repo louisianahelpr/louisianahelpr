@@ -119,10 +119,14 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   it("post-job's entry column holds until its two data rows settle", () => {
     const src = read("pages/post-job/EntryChoice.tsx");
     expect(src).toMatch(/recentPosted !== null && form\.openJobCount !== null/);
-    expect(src).toMatch(/if \(!entryReady\) return <EntryChoiceSkeleton \/>;/);
-    // Owner, 2026-10-01: the saved-helprs card renders for everyone, so the
-    // placeholder draws one fixed count and the card never hides itself.
-    expect(src).toMatch(/const ENTRY_CARD_COUNT = 5;/);
+    expect(src).toMatch(/if \(!entryReady\) \{[\s\S]{0,300}return <EntryChoiceSkeleton count=\{count\} \/>;/);
+    // Owner, 2026-10-01: the saved-helprs card renders for everyone, so it is
+    // one of the four always-drawn cards and never hides itself. Owner,
+    // 2026-10-03 (Q722, data-aware): the draft and repost cards are drawn only
+    // once their read says they will show.
+    expect(src).toMatch(/export const ENTRY_BASE_CARD_COUNT = 4;/);
+    expect(src).toMatch(/draftCard: form\.draftLoaded && draftCheckoutSettled && form\.hasDraft && draftCheckout !== "paid",/);
+    expect(src).toMatch(/repostCard: !!hasRecent,/);
     expect(read("pages/post-job/OfferToSavedHelpr.tsx")).not.toMatch(/length === 0\) return null/);
   });
 

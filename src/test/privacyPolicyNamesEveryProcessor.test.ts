@@ -13,6 +13,7 @@
  * @mutate src/pages/info/legal/PrivacySection.tsx | push-notification delivery (APNs). | push-notification delivery (APNs / FCM).
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Resend</strong> | <strong className="text-foreground">Mailer</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Google Gemini</strong> | <strong className="text-foreground">An AI model</strong>
+ * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Cloudflare (Turnstile)</strong> | <strong className="text-foreground">A bot check</strong>
  */
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -38,6 +39,8 @@ const DISCLOSED: Record<string, string> = {
   "nominatim.openstreetmap.org": "OpenStreetMap",
   "generativelanguage.googleapis.com": "Gemini",
   "api.resend.com": "Resend",
+  // Q1314 (owner, 2026-10-05): Turnstile disclosed, NO legal version bump.
+  "challenges.cloudflare.com": "Cloudflare (Turnstile)",
 };
 // Hosts that are links, our own domains, test fixtures, or calls that carry no
 // personal data (HIBP gets a 5-char hash prefix only).

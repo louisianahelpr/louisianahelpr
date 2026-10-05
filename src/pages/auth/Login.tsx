@@ -14,6 +14,9 @@ import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
+import { TurnstileField } from "@/components/auth/TurnstileField";
+import { useCaptcha } from "@/hooks/useCaptcha";
+import { signInWithTimeout, isTransportFailure } from "@/lib/loginTransport";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
@@ -24,8 +27,6 @@ import {
 } from "@/lib/lastAuthMethod";
 import { safeStorage } from "@/lib/safeStorage";
 import { safeInternalRedirect } from "@/lib/authRedirects";
-
-const LOGIN_TIMEOUT_MS = 15000;
 
 // Anti-bruteforce: 5 failed attempts in a rolling 5-minute window triggers
 // a soft lockout. Persisted to safeStorage so a force-quit doesn't reset
@@ -79,38 +80,6 @@ function writeAttemptState(state: LoginAttemptState): void {
 function clearAttemptState(): void {
   safeStorage.removeItem(LOGIN_ATTEMPTS_KEY);
 }
-
-const signInWithTimeout = async (email: string, password: string) => {
-  let timeoutId: number | undefined;
-  try {
-    return await Promise.race([
-      supabase.auth.signInWithPassword({ email, password }),
-      new Promise<never>((_, reject) => {
-        timeoutId = window.setTimeout(() => reject(
-          Object.assign(new Error("Login timed out. Please check your connection and try again."), { isTransport: true }),
-        ), LOGIN_TIMEOUT_MS);
-      }),
-    ]);
-  } finally {
-    if (timeoutId) window.clearTimeout(timeoutId);
-  }
-};
-
-/**
- * A failure that says nothing about the credentials: our own 15s race timeout,
- * or a fetch that never reached the auth server. These must NOT enter the
- * failed-attempt ledger — flaky wifi would otherwise soft-lock a legitimate
- * user out for LOGIN_LOCKOUT_MS while their password was correct all along.
- * A wrong password still counts, which is the point of the ledger.
- */
-const isTransportFailure = (error: unknown): boolean => {
-  const e = error as { isTransport?: boolean; name?: string; message?: string } | null;
-  if (!e) return false;
-  if (e.isTransport === true) return true;
-  // supabase-js wraps an unreachable/5xx auth endpoint in this retryable class.
-  if (e.name === "AuthRetryableFetchError") return true;
-  return /failed to fetch|networkerror|network error|load failed|timed out/i.test(e.message ?? "");
-};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -221,6 +190,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const captcha = useCaptcha();
   const [showPassword, setShowPassword] = useState(false);
   // Seed from durable storage so the lockout survives a force-quit.
   const [attemptState, setAttemptState] = useState<LoginAttemptState>(() =>
@@ -273,7 +243,8 @@ const Login = () => {
 
     hapticMedium();
     setLoading(true);
-    const { data, error } = await signInWithTimeout(email, password).catch((error: Error) => ({ data: { session: null }, error }));
+    const { data, error } = await captcha.run((captchaToken) => signInWithTimeout(email, password, captchaToken))
+      .catch((error: Error) => ({ data: { session: null }, error }));
     if (error) {
       setLoading(false);
       const now = Date.now();
@@ -607,6 +578,7 @@ const Login = () => {
               </Link>
             </div>
           </div>
+          <TurnstileField ref={captcha.ref} action="login" />
           <Button
             variant="primary"
             type="submit"

@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS } from "@/components/GuestBrowseSkeleton";
+import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS, GuestFeedEmptySkeleton } from "@/components/GuestBrowseSkeleton";
 import { GuestEmptyStateActions } from "@/components/dashboard/GuestEmptyStateActions";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
@@ -603,11 +603,12 @@ const DashboardGuest = () => {
             }
           />
         </div>
+      ) : !feedReady && !(jobsStatus === "success" && baseJobs.length > 0) ? (
+        /* No list known yet (cold visit, Q722): the empty state's outline. */
+        <GuestFeedEmptySkeleton className={emptyWrapperClass} announce testId="guest-feed-empty-skeleton" />
       ) : !feedReady ? (
-        /* Loading feed — shape-matched JobCardSkeletons (the same
-           primitive the authenticated dashboard uses) so the cards
-           swap in without shifting the layout (no CLS). Reserves the
-           same vertical rhythm as the real list below. */
+        /* Loading feed — shape-matched JobCardSkeletons (the dashboard's
+           primitive), so the cards swap in with no layout shift. */
         <div
           role="status"
           aria-live="polite"
@@ -617,8 +618,7 @@ const DashboardGuest = () => {
           className={`${FEED_GRID_CLASS} ${feedBottomClass} ${GUEST_FEED_RESERVE_CLASS}`}
         >
           <span className="sr-only">Loading jobs…</span>
-          {/* Six, the same count GuestBrowseSkeleton draws, so the chunk-load
-              frame and this one are the same picture. */}
+          {/* Six, GuestBrowseSkeleton's count: the chunk-load frame's picture. */}
           {Array.from({ length: 6 }).map((_, i) => (
             <JobCardSkeleton key={i} />
           ))}

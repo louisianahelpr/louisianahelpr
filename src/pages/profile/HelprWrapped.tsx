@@ -500,13 +500,11 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
           {/* Stats grid */}
           <div className="px-5 pb-5">
             {isLoading || !isReady ? (
-              <div className="grid grid-cols-2 gap-2.5">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="rounded-ds-md p-4 h-20 motion-safe:animate-pulse"
-                    style={{ background: "hsl(var(--parchment) / 0.20)" }}
-                  />
+              // Q722 data-aware: the year is unknown, so draw the ZERO state's lines (110px:
+              // the 333px card the chunk fallback reserved); a year with activity grows below.
+              <div className="text-center py-6 space-y-2" aria-hidden>
+                {["h-[22px] w-44", "h-[12px] w-64", "h-[12px] w-40"].map((size) => (
+                  <div key={size} className={`${size} mx-auto rounded motion-safe:animate-pulse`} style={{ background: "hsl(var(--parchment) / 0.20)" }} />
                 ))}
               </div>
             ) : loadFailed ? (

@@ -45,6 +45,20 @@ describe("recognizedAuthError", () => {
     ).toBe("Too many attempts just now. Give it a moment and try again.");
   });
 
+  it("words a refused Turnstile check as a check to finish, not a wrong password (Q1314)", () => {
+    // GoTrue's body when security_captcha_enabled is on and the token is
+    // missing, expired or already spent.
+    const copy = "The security check didn't finish. Give it a second and try again.";
+    for (const raw of [
+      "captcha protection: request disallowed (timeout-or-duplicate)",
+      "captcha protection: request disallowed (invalid-input-response)",
+      "captcha verification process failed",
+      "no captcha_token found in request",
+    ]) {
+      expect(recognizedAuthError(raw), raw).toBe(copy);
+    }
+  });
+
   it("treats every browser's rejected fetch as the one thing it is", () => {
     // Chromium is the only one of the three any automated check here runs, and
     // it was the only one handled. WebKit is the one users are in.
@@ -134,3 +148,4 @@ describe("a password refusal is not a sign-in failure", () => {
 // `recognizedAuthError` directly. It is the one arm that Chromium-only checks
 // structurally cannot see — the app ships in WKWebView.
 // @mutate src/lib/authErrors.ts | msg.includes("load failed") \|\| msg.includes("networkerror") | msg.includes("networkerror")
+// @mutate src/lib/authErrors.ts |   if (msg.includes("captcha")) { |   if (msg.includes("captcha-never")) {

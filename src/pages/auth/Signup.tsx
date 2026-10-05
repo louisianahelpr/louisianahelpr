@@ -12,6 +12,9 @@ import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { withTimeout } from "@/pages/auth/completeProfile/constants";
 import AuthShell from "@/components/auth/AuthShell";
+import { TurnstileField } from "@/components/auth/TurnstileField";
+import { useCaptcha } from "@/hooks/useCaptcha";
+import { isCaptchaError } from "@/lib/turnstile";
 import { rememberJobIntent, rememberSignupRedirect, postAuthDestination } from "@/lib/jobIntent";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -23,6 +26,8 @@ import {
   fileToBase64,
   ageFromDob,
   passwordProblem,
+  isAlreadyRegistered,
+  noteSignupRedirect,
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
@@ -84,6 +89,7 @@ const Signup = () => {
   // tap during validation got through the disabled check and fired a second
   // concurrent auth.signUp().
   const submittingRef = useRef(false);
+  const captcha = useCaptcha();
 
   // Step 1 fields
   const [firstName, setFirstName] = useState("");
@@ -406,33 +412,18 @@ const Signup = () => {
       // retry that would have fixed it.
       safeStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await captcha.run((captchaToken) => supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: getSignupConfirmRedirect(),
-          data: { full_name: fullName },
-        },
-      });
+        options: { emailRedirectTo: getSignupConfirmRedirect(), data: { full_name: fullName }, captchaToken },
+      }));
+      // A refused security check (Q1314) is not a real attempt: lift the cooldown.
+      if (authError && isCaptchaError(authError.message)) safeStorage.removeItem(SIGNUP_COOLDOWN_KEY);
 
-      if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
-        // Privacy-first: never confess whether an email is registered.
-        // Cowork audit 2026-07-08 flagged the old "please log in" branch
-        // as an enumeration oracle inconsistent with ForgotPassword's
-        // generic-success pattern. Both flows now respond identically —
-        // an attacker probing signup vs reset can't tell either way
-        // whether the address exists. A real logged-out user who
-        // stumbles into this path is redirected to /login with the
-        // same generic message they'd see on ForgotPassword — set here,
-        // read-and-cleared by Login. Without it the user pressed "Create
-        // account" and silently arrived on a different screen.
-        try {
-          sessionStorage.setItem("helpr_signup_redirect", "1");
-        } catch {
-          // Silent by design: this only hands Login the one-shot neutral note
-          // explaining the redirect. Losing it costs a line of copy — and must
-          // never cost the redirect itself, which is the enumeration defence.
-        }
+      if (authError && isAlreadyRegistered(authError.message)) {
+        // Privacy-first: never confess whether an email is registered (see
+        // noteSignupRedirect for the enumeration reasoning).
+        noteSignupRedirect();
         navigate("/login");
         return;
       }
@@ -609,6 +600,7 @@ const Signup = () => {
 
         {/* Step 2: About you + ID */}
         {step === 2 && (
+          <>
           <SignupStep2
             avatarPreview={avatarPreview}
             onAvatarChange={handleAvatarChange}
@@ -649,6 +641,9 @@ const Signup = () => {
               }
             }}
           />
+          {/* Turnstile for signUp (Q1314), mounted with step 2. */}
+          <TurnstileField ref={captcha.ref} action="signup" className="mt-3" />
+          </>
         )}
 
         {/* Step 1: Account credentials + agreements */}

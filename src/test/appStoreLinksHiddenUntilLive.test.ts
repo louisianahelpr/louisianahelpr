@@ -62,7 +62,7 @@ describe("Q1124: App Store links and badges stay hidden until the listing is liv
       .filter((f) => !f.endsWith(join("lib", "appStore.ts")))
       .filter((f) => {
         const text = blankComments(readFileSync(f, "utf8"));
-        return text.includes("apps.apple.com") || text.includes("itunes.apple.com");
+        return /\b(?:apps|itunes)\.apple\.com\b/.test(text);
       })
       .map((f) => relative(REPO, f));
     expect(own).toEqual([]);

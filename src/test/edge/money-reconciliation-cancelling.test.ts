@@ -15,8 +15,8 @@
  *
  * Runs the REAL function source through the edge harness.
  *
- * @mutate supabase/functions/money-reconciliation/index.ts | if (job.payment_status !== "cancelling") continue; | continue;
- * @mutate supabase/functions/money-reconciliation/index.ts | if (nowMs - claimedAt <= CANCELLING_WINDOW_MS) continue; | if (true) continue;
+ * @mutate supabase/functions/money-reconciliation/index.ts | job.payment_status === "cancelling" && nowMs | job.payment_status === "x_removed" && nowMs
+ * @mutate supabase/functions/money-reconciliation/index.ts | > CANCELLING_WINDOW_MS); | > Number.MAX_SAFE_INTEGER);
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";

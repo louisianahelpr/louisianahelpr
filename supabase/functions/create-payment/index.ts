@@ -1742,7 +1742,17 @@ serve(async (req) => {
       // claim could not be re-entered, and nobody could tell whose it was).
       if (!(await recordRefundClaim(supabaseAdmin, jobId, "cancel_escrow", user.id))) {
         // putCancelClaimBack is declared further down; the same CAS inline.
-        const restoreTo = job.payment_status === "cancelling" ? "escrow" : job.payment_status;
+        // Escrow-only (lh-authz-rls re-review of Q1323): a RE-ENTERED claim
+        // (job read 'cancelling') may follow an earlier run that already
+        // refunded, so it is never moved to 'escrow' here; it stays
+        // 'cancelling' under its existing cancel_escrow row and answers 503.
+        const reenteredClaim = job.payment_status !== "escrow";
+        if (reenteredClaim) {
+          return new Response(JSON.stringify({
+            error: "Couldn't start the cancellation. No money was moved — try again.",
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+        }
+        const restoreTo = "escrow";
         const { data: back, error: backErr } = await supabaseAdmin
           .from("jobs").update({ payment_status: restoreTo })
           .eq("id", jobId).eq("status", job.status).eq("payment_status", "cancelling")
@@ -1796,7 +1806,8 @@ serve(async (req) => {
               message: `cancel_escrow claimed crew job ${jobId} (payment_status -> 'cancelling'), found a hired member, and could not restore payment_status. No money moved. Set payment_status back to '${job.payment_status}' by hand.`,
               fields: { job_id: jobId, restore_to: String(job.payment_status), db_error: (restoreErr?.message ?? "zero rows").slice(0, 200) },
             });
-          } else {
+          } else if (job.payment_status === "escrow") {
+            // A re-entered claim keeps its row (lh-authz-rls re-review of Q1323).
             await deleteRefundClaim(supabaseAdmin, jobId);
           }
           if (crewNowErr) {

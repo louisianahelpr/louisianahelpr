@@ -1433,6 +1433,20 @@ describe("create-payment edge function", () => {
         expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "escrow")).toBe(true);
       });
 
+      // lh-authz-rls re-review of Q1323: a RE-ENTERED claim may follow a run that
+      // already refunded, so a failed holder write must never move it to 'escrow'.
+      // @mutate supabase/functions/create-payment/index.ts | const reenteredClaim = job.payment_status !== "escrow"; | const reenteredClaim = false;
+      it("a re-entered claim whose holder cannot be recorded stays 'cancelling' and keeps its row", async () => {
+        seedOpenEscrow("cancelling");
+        scenario.reads.job_refund_claims = { rows: [{ claimed_by: "cancel_escrow", claimed_at: new Date(Date.now() - 3600_000).toISOString() }] };
+        scenario.writeOverrides = [{ table: "job_refund_claims", when: () => true, error: { message: "boom" } }];
+        const res = await cancel();
+        expect(res.status).toBe(503);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "escrow")).toBe(false);
+        expect(scenario.writes.some((w) => w.table === "job_refund_claims" && w.op === "delete")).toBe(false);
+      });
+
       it("still re-enters its OWN stranded claim", async () => {
         seedOpenEscrow("cancelling");
         scenario.reads.job_refund_claims = { rows: [{ claimed_by: "cancel_escrow", claimed_at: new Date(Date.now() - 3600_000).toISOString() }] };

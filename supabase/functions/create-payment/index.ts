@@ -982,7 +982,7 @@ serve(async (req) => {
         bothDone = posterDone && helperDone;
 
         if (bothDone) {
-          // Q1321: only HELD money can be scheduled out. This write never read
+          // Q1326: only HELD money can be scheduled out. This write never read
           // payment_status, so it wrote payout_pending over 'cancelling' (a
           // full admin refund whose Stripe call failed ambiguously, or
           // cancel_escrow mid-refund), over 'refunded' (a Dashboard refund's
@@ -1036,7 +1036,7 @@ serve(async (req) => {
         conditional = job.helper_completed_at
           ? conditional.eq("helper_completed_at", job.helper_completed_at)
           : conditional.is("helper_completed_at", null);
-        // Q1321: the payout-scheduling write is pinned to held escrow, so a
+        // Q1326: the payout-scheduling write is pinned to held escrow, so a
         // refund claim, refund or chargeback that lands after the read above
         // is never written over.
         if (updateFields.payment_status === "payout_pending") conditional = conditional.eq("payment_status", "escrow");
@@ -3206,7 +3206,7 @@ serve(async (req) => {
         // call stopped before the Stripe refund, or Stripe refused it outright.
         // A network fault on the refund itself may have refunded, so the job
         // stays 'cancelling': a payout claim expects 'payout_pending' and the
-        // release write is pinned to 'escrow' (Q1321), so nothing schedules or
+        // release write is pinned to 'escrow' (Q1326), so nothing schedules or
         // sends a payout over it; money-reconciliation's cancelling_stranded
         // pages it for a person.
         const refundErrType = String((e as { type?: string } | null)?.type ?? "");

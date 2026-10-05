@@ -1,4 +1,4 @@
-// Q1321 class guard. payment_status 'payout_pending' is what the payout cron
+// Q1326 class guard. payment_status 'payout_pending' is what the payout cron
 // pays from, so every edge write that SETS it must pin the payment_status it
 // is moving from in the same chain. create-payment's `release` ("mark
 // complete") set it from a dynamic updateFields object with no payment_status
@@ -47,7 +47,7 @@ function payoutPendingSites(file: string, text: string): Site[] {
 
 const sites = walk(FUNCTIONS).flatMap((f) => payoutPendingSites(relative(ROOT, f), readFileSync(f, "utf8")));
 
-describe("Q1321: every edge write that sets payment_status 'payout_pending' pins the state it moves from", () => {
+describe("Q1326: every edge write that sets payment_status 'payout_pending' pins the state it moves from", () => {
   it("inventory: finds the payout_pending writers (floor)", () => {
     expect(sites.length).toBeGreaterThan(5);
     expect(sites.some((s) => s.file === "supabase/functions/create-payment/index.ts")).toBe(true);

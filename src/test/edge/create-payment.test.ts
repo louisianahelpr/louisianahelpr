@@ -1044,16 +1044,16 @@ describe("create-payment edge function", () => {
       expect(payload.status).toBe("completed");
       expect(payload.payment_status).toBe("payout_pending");
       expect(payload.payout_scheduled_at).toBeTruthy();
-      // Q1321: the scheduling write is pinned to held escrow.
+      // Q1326: the scheduling write is pinned to held escrow.
       expect(jobUpdate?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "escrow" });
     });
 
-    // Q1321: "mark complete" never read payment_status, so it scheduled a payout
+    // Q1326: "mark complete" never read payment_status, so it scheduled a payout
     // over a refund in flight ('cancelling'), a refund, a chargeback or an
     // unpaid job, and the payout cron paid the Helpr ~3 days later.
     // @mutate supabase/functions/create-payment/index.ts |           if (job.payment_status !== "escrow") { |           if (false) {
     it.each(["cancelling", "refunded", "chargeback", "unpaid"])(
-      "Q1321: both confirmed on a '%s' job schedules NO payout",
+      "Q1326: both confirmed on a '%s' job schedules NO payout",
       async (paymentStatus) => {
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {

@@ -417,7 +417,7 @@ serve(async (req) => {
       cancellingStranded: new Check(
         "cancelling_stranded",
         "critical",
-        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand.`,
+        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand. A job WITH a Helpr here was claimed by a full admin refund (admin_refund_general, Q1290) whose Stripe refund failed ambiguously: check Stripe for the refund, then set payment_status to 'refunded' (and status 'cancelled') if it went out, or back to what it was if not; never re-run the refund before checking.`,
       ),
       // ── The DB's settled state vs Stripe's (docs/OPEN.md Q50) ──────────
       // Every check above grades the DB against itself. A job the DB says is

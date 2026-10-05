@@ -30,6 +30,7 @@ import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -2865,9 +2866,63 @@ serve(async (req) => {
       // twice. A PARTIAL goodwill refund is still allowed — that is the
       // platform choosing to eat a cost, not the escrow moving twice.
       const wantsFullRefund = typeof amountCents !== "number";
+      // ── Q1290: take the JOB before reading the payout ledger ──────────────
+      // The ledger read below and the payout claim (payoutClaim.claimPayout:
+      // insert a 'pending' payout_transfers row, THEN re-read the job expecting
+      // 'payout_pending') used to interleave: this read before the claim row
+      // existed, the payout's re-read before this call's flip, and both moved
+      // money (the card refunded AND the Helpr paid). The job is now claimed
+      // first, a compare-and-set to 'cancelling' (cancel_escrow's in-flight
+      // refund state) pinned to the status and payment_status just read. A
+      // payout that claims after this sees a job that is no longer
+      // payout_pending and sends nothing; one that claimed before it has its
+      // 'pending' row read by the ledger check below, which refuses. Every
+      // stop before a refund can exist puts the claim back.
+      let generalClaimHeld = false;
+      const putGeneralClaimBack = async (why: string) => {
+        if (!generalClaimHeld) return;
+        const { data: putBack, error: putBackErr } = await supabaseAdmin.from("jobs")
+          .update({ payment_status: job.payment_status })
+          .eq("id", jobId).eq("status", job.status).eq("payment_status", "cancelling")
+          .select("id");
+        if (putBackErr || !putBack || putBack.length === 0) {
+          console.error(`CRITICAL: [create-payment] admin_refund_general on job ${jobId}: ${why}, and its claim could not be put back: ${putBackErr?.message ?? "zero rows"}`);
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "critical",
+            title: "Job stuck in 'cancelling' — admin refund claim could not be put back",
+            message: `admin_refund_general claimed job ${jobId} (payment_status -> 'cancelling'), stopped before any refund (${why}), and could not restore payment_status. No money moved. Set payment_status back to '${job.payment_status ?? "null"}' by hand.`,
+            fields: { job_id: jobId, restore_to: String(job.payment_status), db_error: (putBackErr?.message ?? "zero rows").slice(0, 200) },
+          });
+        } else {
+          generalClaimHeld = false;
+        }
+      };
       if (wantsFullRefund) {
+        let generalClaim = supabaseAdmin.from("jobs").update({ payment_status: "cancelling" })
+          .eq("id", jobId).eq("status", job.status);
+        generalClaim = job.payment_status == null
+          ? generalClaim.is("payment_status", null)
+          : generalClaim.eq("payment_status", job.payment_status);
+        const { data: generalClaimed, error: generalClaimErr } = await generalClaim.select("id");
+        if (generalClaimErr) {
+          console.error(`[create-payment] admin_refund_general claim failed for job ${jobId}:`, generalClaimErr.message);
+          return new Response(JSON.stringify({
+            error: "Couldn't start this refund. No money was moved — try again.",
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+        }
+        if (!generalClaimed || generalClaimed.length === 0) {
+          return new Response(JSON.stringify({
+            error: "This job changed while the refund was being set up (a payout, cancel or dispute may have started). No money was moved — refresh and check it before trying again.",
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+        }
+        generalClaimHeld = true;
+
         const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund");
-        if (alreadyPaidOut) return alreadyPaidOut;
+        if (alreadyPaidOut) {
+          await putGeneralClaimBack("the payout ledger shows money already left (or could not be read)");
+          return alreadyPaidOut;
+        }
 
         // Q1208 (2): that ledger check reads 'pending' and 'paid' only, and
         // failClaim also writes 'failed' for a network fault where the transfer
@@ -2881,6 +2936,7 @@ serve(async (req) => {
           .eq("status", "failed")
           .limit(1);
         if (failedPayoutErr) {
+          await putGeneralClaimBack("the 'failed' payout rows could not be read");
           return new Response(JSON.stringify({
             error: "Couldn't check this job's payout history. No money was moved — try again.",
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
@@ -2893,12 +2949,14 @@ serve(async (req) => {
               .find((t) => Number(t.amount ?? 0) - Number(t.amount_reversed ?? 0) > 0)?.id ?? null;
           } catch (listErr) {
             console.error(`[create-payment] admin_refund_general: transfers.list failed for job ${jobId}:`, listErr);
+            await putGeneralClaimBack("Stripe's transfer list could not be read");
             return new Response(JSON.stringify({
               error: "Couldn't confirm with Stripe that no payout left for this job. No money was moved — try again.",
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
           }
           if (liveTransferId) {
             console.error(`[create-payment] admin_refund_general REFUSED for job ${jobId}: Stripe shows transfer ${liveTransferId} behind a 'failed' payout row`);
+            await putGeneralClaimBack(`Stripe shows transfer ${liveTransferId} behind a 'failed' payout row`);
             await postSlackOpsAlert({
               kind: "money_at_risk",
               severity: "critical",
@@ -2934,7 +2992,11 @@ serve(async (req) => {
       }
       const isPartial = requestedCents !== null;
 
+      // Q1290: set just before the Stripe refund call. Until then nothing can
+      // have moved, so any stop puts the job claim back.
+      let generalRefundSent = false;
       let paymentIntentId = job.stripe_payment_intent_id;
+      try {
       if (!paymentIntentId && job.stripe_session_id) {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
         paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
@@ -2945,7 +3007,6 @@ serve(async (req) => {
       if (!paymentIntentId) {
         throw new PublicError("No payment intent found for this job — cannot issue refund. If the job was never paid, no Stripe refund is needed.");
       }
-      try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
         if (pi.status === "succeeded") {
           // MS-6: bound a partial refund against what Stripe ACTUALLY captured
@@ -3022,6 +3083,7 @@ serve(async (req) => {
             console.log(`[create-payment] admin_refund_general: charge for job ${jobId} already refunded ${generalAlreadyRefundedCents}¢ — reusing ${reused.id}, not refunding again`);
           }
 
+          generalRefundSent = true;
           const refund = reused ?? await stripe.refunds.create({
             payment_intent: paymentIntentId,
             ...(isPartial ? { amount: requestedCents } : {}),
@@ -3069,6 +3131,19 @@ serve(async (req) => {
         }
       } catch (e) {
         console.error("[create-payment] admin_refund_general — refund error:", e);
+        // Q1290: hand the job claim back only when no refund can exist: the
+        // call stopped before the Stripe refund, or Stripe refused it outright.
+        // A network fault on the refund itself may have refunded, so the job
+        // stays 'cancelling' (no payout can claim it; money-reconciliation's
+        // cancelling_stranded pages it for a person).
+        const refundErrType = String((e as { type?: string } | null)?.type ?? "");
+        const nothingMoved = !generalRefundSent || [
+          "StripeInvalidRequestError",
+          "StripeCardError",
+          "StripePermissionError",
+          "StripeAuthenticationError",
+        ].includes(refundErrType);
+        if (nothingMoved) await putGeneralClaimBack(`the refund stopped before any money moved: ${caughtMessage(e).slice(0, 200)}`);
         throw e;
       }
 
@@ -3093,7 +3168,12 @@ serve(async (req) => {
           cancelled_at: new Date().toISOString(),
           cancelled_by: user.id,
         }).eq("id", jobId).eq("status", job.status);
-        generalFlip = job.payment_status == null
+        // Q1290: the job was claimed to 'cancelling' before the ledger read, so
+        // the flip is pinned to that claim; 'refunded' is this refund's own
+        // charge.refunded landing first (it closes 'cancelling' too).
+        generalFlip = generalClaimHeld
+          ? generalFlip.in("payment_status", ["cancelling", "refunded"])
+          : job.payment_status == null
           ? generalFlip.is("payment_status", null)
           : generalFlip.eq("payment_status", job.payment_status);
         let { data: generalRefundUpdated, error: generalRefundUpdateErr } = await generalFlip.select("id");

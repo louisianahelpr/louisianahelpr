@@ -7,7 +7,8 @@
  * checks are still running, and only after that may it push.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 
 const ROOT = join(__dirname, "..", "..");

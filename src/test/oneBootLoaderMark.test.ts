@@ -27,6 +27,7 @@
 // @mutate src/index.css |   width: calc(max(100vw, 100vh) * 0.11); |   width: 80px;
 // @mutate src/components/AppLockGate.tsx | className="boot-h-mark" | className="h-20 w-20 object-contain opacity-80"
 import fs from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import path from "node:path";
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
@@ -54,7 +55,7 @@ const SCREENS: Record<string, { imgs: number; why: string }> = {
 };
 
 function walk(dir: string, out: string[] = []): string[] {
-  for (const e of fs.readdirSync(path.join(REPO, dir), { withFileTypes: true })) {
+  for (const e of readdirSync(path.join(REPO, dir), { withFileTypes: true })) {
     const rel = `${dir}/${e.name}`;
     if (e.isDirectory()) walk(rel, out);
     else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) out.push(rel);

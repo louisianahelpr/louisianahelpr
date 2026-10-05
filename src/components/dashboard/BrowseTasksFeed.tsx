@@ -8,9 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
-import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
-import { CompactJobCard } from "@/components/dashboard/CompactJobCard";
 import {
   JobCardSkeleton,
   RecommendedJobCardSkeleton,
@@ -29,94 +27,9 @@ import type { FeedDensity } from "@/components/dashboard/feedDensity";
 import type { ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 import { partitionBrowseFeed } from "@/pages/home/browseFeedSections";
 import { BrowseMap } from "@/components/dashboard/lazyBrowseMap";
+import { CompactFeedCard, JobFeedCard, type CompactCardCommonProps, type JobCardCommonProps } from "@/components/dashboard/feedCards";
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
-
-/** Props every SwipeableJobCard needs, regardless of which list renders it. */
-interface JobCardCommonProps {
-  effectiveFee: number;
-  currentUserId?: string;
-  onApply: (jobId: string) => void;
-  onReport: Dispatch<SetStateAction<string | null>>;
-  onSelect: Dispatch<SetStateAction<EnrichedJob | null>>;
-  onDismiss: (jobId: string) => void;
-  expandedCardId: string | null;
-  onToggleExpand: (id: string) => void;
-  savedJobIds: Set<string>;
-  onToggleSave: (jobId: string, saved: boolean) => void;
-  userLat: number | null;
-  userLng: number | null;
-}
-
-/**
- * JobFeedCard — the single place that threads the (long) shared prop list
- * onto SwipeableJobCard. Both the "Recommended" band and the "Everything
- * else" feed render the same card with the same props; only their list
- * wrapper differs (animated vs virtualized), so only the wrapper stays
- * duplicated per call site — the card itself is built here once.
- */
-function JobFeedCard({
-  job,
-  index,
-  recommended,
-  common,
-}: {
-  job: EnrichedJob;
-  index: number;
-  recommended?: boolean;
-  common: JobCardCommonProps;
-}) {
-  return (
-    <SwipeableJobCard
-      job={job}
-      effectiveFee={common.effectiveFee}
-      currentUserId={common.currentUserId}
-      recommended={recommended}
-      onApply={common.onApply}
-      onReport={common.onReport}
-      onSelect={common.onSelect}
-      onDismiss={common.onDismiss}
-      index={index}
-      isExpanded={common.expandedCardId === job.id}
-      onToggleExpand={common.onToggleExpand}
-      isSaved={common.savedJobIds.has(job.id)}
-      onToggleSave={common.onToggleSave}
-      userLat={common.userLat}
-      userLng={common.userLng}
-    />
-  );
-}
-
-/** Props every CompactJobCard row needs, regardless of which list renders it. */
-interface CompactCardCommonProps {
-  effectiveFee: number;
-  onSelect: Dispatch<SetStateAction<EnrichedJob | null>>;
-  hoveredJobId?: string | null;
-  setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
-}
-
-/** Same de-dup as JobFeedCard, for the "compact" density's CompactJobCard rows. */
-function CompactFeedCard({
-  job,
-  recommended,
-  common,
-}: {
-  job: EnrichedJob;
-  recommended?: boolean;
-  common: CompactCardCommonProps;
-}) {
-  return (
-    <CompactJobCard
-      job={job}
-      effectiveFee={common.effectiveFee}
-      recommended={recommended}
-      onSelect={(j) => common.onSelect(j)}
-      isHighlighted={common.hoveredJobId === job.id}
-      onMouseEnter={() => common.setHoveredJobId?.(job.id)}
-      onMouseLeave={() => common.setHoveredJobId?.(null)}
-    />
-  );
-}
 
 /**
  * MainFeedSection — the WHOLE comfortable-density feed, ONE list (owner,

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
-import type { FeedDensity } from "@/components/dashboard/feedDensity";
+import { readStoredFeedDensity, type FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { toast } from "sonner";
 import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
@@ -55,6 +55,7 @@ import { useDashboardSideQueries } from "./useDashboardSideQueries";
 import { useSaveJob } from "./useSaveJob";
 import { useApplyFlow } from "./useApplyFlow";
 import { useDetailJob } from "./useDetailJob";
+import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
 
 
 const Dashboard = () => {
@@ -107,21 +108,10 @@ const Dashboard = () => {
     appliedJobIds, blockedUserIds, jobsUpdatedAt,
   } = useDashboardData();
 
-  // Sentinel for infinite scroll — fires fetchNextPage when ~80% of the list is in view.
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const node = loadMoreRef.current;
-    if (!node || !hasNextPage || isFetchingNextPage) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) fetchNextPage();
-      },
-      // rootMargin pulls the trigger ~20% of viewport early (~80% scroll point)
-      { root: null, rootMargin: "0px 0px 20% 0px", threshold: 0 },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, allJobs.length]);
+  // Sentinel for infinite scroll (see useLoadMoreSentinel).
+  const loadMoreRef = useLoadMoreSentinel({
+    hasNextPage, isFetchingNextPage, fetchNextPage, itemCount: allJobs.length,
+  });
 
   const { containerRef, pullDistance, refreshing, isPulling } = usePullToRefresh({
     onRefresh: refresh,
@@ -267,12 +257,7 @@ const Dashboard = () => {
   // Feed density — comfortable (full cards) or compact (48px rows). Read from
   // any persisted preference; the in-toolbar toggle was removed for a cleaner
   // Browse Tasks header, so this is now read-only (defaults to comfortable).
-  const [density] = useState<FeedDensity>(() => {
-    try {
-      const stored = window.localStorage.getItem("job-feed-density");
-      return stored === "compact" || stored === "comfortable" ? stored : "comfortable";
-    } catch { return "comfortable"; }
-  });
+  const [density] = useState<FeedDensity>(readStoredFeedDensity);
 
   /**
    * Is the map column showing? Desktop website only.

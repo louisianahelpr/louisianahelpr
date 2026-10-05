@@ -34,8 +34,10 @@
 //
 // @mutate src/hooks/useDashboardFilters.ts | if (isJobExcludedForViewer(job, viewerExclusions)) return false; | if (job.id === "__never__") return false;
 // @mutate src/pages/home/headerJobCount.ts | if (listComplete) return listedCount; | void listComplete;
-// @mutate src/components/BrowseMap.tsx | }, [currentUserId, reloadNonce, refreshKey]); | }, [currentUserId, reloadNonce]);
+// @mutate src/components/browseMap/useMapJobs.ts | }, [currentUserId, reloadNonce, refreshKey]); | }, [currentUserId, reloadNonce]);
+// @mutate src/components/BrowseMap.tsx | useMapJobs(currentUserId, refreshKey) | useMapJobs(currentUserId, undefined)
 import fs from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import path from "node:path";
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
@@ -178,7 +180,7 @@ describe("3. a landed apply re-reads the set every surface uses", () => {
 describe("4. every signed-in map on /home gets the same set and re-reads with the list", () => {
   const dirs = ["src/pages/home", "src/components/dashboard"];
   const files = dirs.flatMap((d) =>
-    fs.readdirSync(path.join(REPO, d))
+    readdirSync(path.join(REPO, d))
       .filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f))
       .map((f) => `${d}/${f}`),
   );
@@ -201,7 +203,9 @@ describe("4. every signed-in map on /home gets the same set and re-reads with th
     expect(bad, "a signed-in map without exclusions/refreshKey shows a board the list does not").toEqual([]);
   });
   it("BrowseMap re-runs its pin RPC when the refresh key moves", () => {
-    const src = code("src/components/BrowseMap.tsx");
+    // The pin read lives in browseMap/useMapJobs.ts; BrowseMap must hand it the key.
+    expect(code("src/components/BrowseMap.tsx")).toMatch(/useMapJobs\(currentUserId,\s*refreshKey\)/);
+    const src = code("src/components/browseMap/useMapJobs.ts");
     const at = src.indexOf('.rpc("get_open_jobs_for_map")');
     expect(at).toBeGreaterThan(-1);
     const deps = /\},\s*\[([^\]]*)\]\);/.exec(src.slice(at))?.[1] ?? "";

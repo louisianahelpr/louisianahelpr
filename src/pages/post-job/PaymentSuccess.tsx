@@ -32,6 +32,13 @@ import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
 import { PaymentLifecycleSteps } from "@/components/postjob/PaymentLifecycleSteps";
+import {
+  paymentHeading,
+  paymentPageTitle,
+  unknownPaymentBody,
+  type ConfirmState,
+  type UnknownReason,
+} from "./paymentReturnCopy";
 
 /**
  * TRUTHFULNESS CONTRACT FOR THIS SCREEN
@@ -63,13 +70,6 @@ import { PaymentLifecycleSteps } from "@/components/postjob/PaymentLifecycleStep
  *               2026-10-05: an admin account was shown another account's
  *               held payment). No claim, no amount, no poster actions.
  */
-type ConfirmState = "checking" | "held" | "not_held" | "unknown" | "not_yours";
-
-/** Why we ended up in `unknown` — changes only the explanatory sentence. */
-// ME-041 (lh-money-escrow, 2026-09-04): "moved" was declared here but nothing
-// in this file ever assigned it — dead since whenever it was added.
-type UnknownReason = "no-reference" | "unreachable" | "not-found" | "pending";
-
 /**
  * `jobs.payment_status` values where "held securely until you confirm the work
  * is done" is literally true: the customer's money is captured and still
@@ -147,17 +147,7 @@ const PaymentSuccess = () => {
 
   const isHeld = confirmState === "held";
 
-  usePageTitle(
-    isHeld
-      ? "Payment Authorized — Helpr"
-      : confirmState === "not_held"
-        ? "Payment Not Completed — Helpr"
-        : confirmState === "checking"
-          ? "Confirming Payment — Helpr"
-          : confirmState === "not_yours"
-            ? "Different Account — Helpr"
-            : "Payment Status Unconfirmed — Helpr",
-  );
+  usePageTitle(paymentPageTitle(confirmState));
 
   /**
    * Share the just-posted job so a neighbour can see it and apply.
@@ -361,22 +351,8 @@ const PaymentSuccess = () => {
     }
   }, [isHeld]);
 
-  const heading = isHeld
-    ? "Payment authorized."
-    : confirmState === "checking"
-      ? "Confirming your payment…"
-      : confirmState === "not_held"
-        ? "Your payment didn't go through."
-        : confirmState === "not_yours"
-          ? "This payment belongs to a different account."
-          : "We couldn't confirm your payment.";
-
-  const unknownBody =
-    unknownReason === "no-reference"
-      ? "We don't have a reference for this payment, so we can't tell you whether it went through. Please don't pay again — open My Posts to check the job's payment status, or contact support and we'll look it up for you."
-      : unknownReason === "pending"
-        ? "Your payment hasn't been confirmed on our side yet. It usually lands within a minute. Please don't pay again — open My Posts to see this job's payment status, and contact support if it still isn't confirmed in a few minutes."
-        : "We couldn't reach our records to check this payment. That does not mean it failed — we simply can't tell you either way right now. Please don't pay again — open My Posts to see this job's payment status, and contact support if it still isn't clear.";
+  const heading = paymentHeading(confirmState);
+  const unknownBody = unknownPaymentBody(unknownReason);
 
   const supportAction = (
     <Button

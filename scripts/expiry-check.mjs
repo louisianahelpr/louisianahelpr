@@ -57,6 +57,6 @@ if (process.env.GITHUB_OUTPUT) {
   const summary = v.due.length
     ? v.due.map((r) => `${r.label} ${r.status === "EXPIRED" ? "EXPIRED" : "expires"} ${r.expiresAt.slice(0, 10)}`).join("; ")
     : v.summary;
-  appendFileSync(process.env.GITHUB_OUTPUT, `warn=${v.due.length ? "true" : "false"}\nsummary=${summary.replace(/\n/g, " ")}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `warn=${v.due.length ? "true" : "false"}\nsummary=${summary.replace(/[\r\n]+/g, " ")}\n`);
 }
 process.exit(v.fail ? 1 : 0);

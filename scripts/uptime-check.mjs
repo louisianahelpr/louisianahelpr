@@ -206,5 +206,5 @@ if (status === "down") {
 }
 
 if (process.env.GITHUB_OUTPUT) {
-  appendFileSync(process.env.GITHUB_OUTPUT, `status=${status}\nsummary=${summary.replace(/\n/g, " ")}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `status=${status}\nsummary=${summary.replace(/[\r\n]+/g, " ")}\n`);
 }

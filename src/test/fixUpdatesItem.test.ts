@@ -170,7 +170,7 @@ describe("wiring", () => {
   it("land.sh refuses the push, after the rebase and refresh", () => {
     const land = readFileSync(join(ROOT, "scripts/land.sh"), "utf8");
     const at = land.indexOf("node scripts/check-fixes-update-their-items.mjs --range origin/main..HEAD --strict");
-    expect(at).toBeGreaterThan(land.indexOf("npm run -s check:generated"));
+    expect(at).toBeGreaterThan(land.indexOf("node scripts/check-generated-current.mjs --skip-post-merge"));
   });
 
   it("the required Test job runs it with --strict on every PR and push", () => {

@@ -251,6 +251,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // stays out is who on staff wrote or applied them, and records that are the
   // staff's own rather than the person's.
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
+  "tip_hold_redrives.helper_id": { reason: "Q1222: the server's claim ledger for re-paying a tip a payout hold kept back; the tip itself is exported under tips. Adding this ledger to export_my_data is filed as Q1297 (2026-10-04)." },
   "pre_verification_wipes.user_id": { reason: "Q447: the server's record that a pre-verification takeover deleted what someone else typed into this account (and which stored objects to remove); it holds none of the person's own data" },
   "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
   "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },

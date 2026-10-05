@@ -162,5 +162,5 @@ export function hasJobStarted(
 ): boolean {
   const start = jobStartDateTime(dateNeeded, startTime, timeZone);
   if (!start) return false;
-  return true;
+  return now.getTime() >= start.getTime();
 }

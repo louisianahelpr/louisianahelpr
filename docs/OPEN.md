@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 251** (218 to do, 33 fixed with protection pending; 833 done). Feeds mirrored in: 6 from the alert ledger, 5 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 250** (218 to do, 32 fixed with protection pending; 834 done). Feeds mirrored in: 6 from the alert ledger, 5 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
 - **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1084 items — 833 done, 33 partly done (fixed, protection pending), 218 open.**
+**Queue: 1084 items — 834 done, 32 partly done (fixed, protection pending), 218 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1206,7 +1206,6 @@ Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02
   a completed job with payment_status refunded would also read "payout pending"; none exist in prod today (measured by
   the reviewer: completed rows are payout_pending 50, released 22). Decide its label before one can exist.
 - [ ] **Q763 HIGH Prove Q758 live: a Stripe test-mode bulk payout run creates transfers.** Split from Q758 2026-09-27. The fix and its vitest guard landed, but no bulk run has been driven on prod: this worktree has no PLAYWRIGHT_ADMIN_EMAIL/PASSWORD. Done when an admin-account run of Bulk Approve on a test-owned is_seed helper with a completed payout_pending job produces a payout_transfers row with a Stripe test-mode transfer id, then the records are cleaned up.
-- [~] **Q762 LOW Real p95 page load (web and app) is unmeasured.** Found on a KEEP branch, re-verified on main 2026-09-27 (the branch's own Q number collides with a closed item). scripts/slo.mjs:42,49 mark both **FIXED IN CODE 2026-10-05 (lane/code-tooling-1005), live once deployed:** Sentry has no pageload spans (span.op:pageload count 0 over 30 days, helpr-4m) and Speed Insights has no readable API, so the app now measures itself: src/lib/pageLoadTiming.ts sends one Navigation Timing sample per cold load (load_ms, ttfb_ms, dcl_ms; no PII) as analytics_events event page_load, platform web/ios/android, skipping automated browsers (navigator.webdriver, i.e. every CI journey on prod); main.tsx loads it in the deferred analytics bootstrap. scripts/slo.mjs measures both page-load SLOs from it (p95 of load_ms over 7 days per platform; the SQL ran read-only on prod: n = 0 today, so they read UNKNOWN until samples arrive, never PASS). Guards: src/lib/pageLoadTiming.test.ts (one sample per document, none from webdriver, implausible loads dropped; 3 @mutate red) and sloTargetsTwoWay.test.ts (measured, FAIL over target, UNKNOWN when empty). done-when: sql `SELECT (count(*) > 0)::text FROM public.analytics_events WHERE event = 'page_load'` => true
 - [ ] **Q768 LOW iCal sync imports turnovers as drafts, never as unpaid jobs.** Owner decision 2026-09-27 (pop-up, after Q767 removed Fund & Publish): "Import as drafts". str-ical-sync creates is_auto_created jobs with payment_status 'unpaid', which Q767 hides and which now have no pay path (prod had 0 such rows, read-only SQL 2026-09-27). Done when the sync creates no jobs row before payment and the poster opens an imported turnover in Post a Job and pays like any new job, with a class check red on the current sync.
 - [ ] **Q773 MEDIUM e2e-journeys 36298505707 failures not yet owned (lane B, 2026-09-27).** 02-marketplace:754 tip button DISABLED; keyboard-focus:140 held writes (both browsers); WebKit 02-marketplace:463 swipe-pin; WebKit 03-account:74 no saved weekly hours; journeys-webkit perTest 74 over its 51.9 budget. Read each with `gh run view 36298505707 --log-failed`, fix app or harness with a guard, re-dispatch e2e-journeys. Closes with #1719.
 - [ ] **Q894 LOW The shared tree's node_modules is stale: vitest 4.1.11 installed, 5.0.3 locked (measured 2026-10-01, `require('vitest/package.json').version` vs package-lock.json).** Worktrees that symlink ~/louisianahelpr/node_modules (e.g. ~/.lh-busy2/tree) run a vitest that is not the version CI runs. Fix: `npm ci` in ~/louisianahelpr when no lane is mid-run, then re-check the version. A check: a vitest guard that the installed vitest version equals the lockfile's.

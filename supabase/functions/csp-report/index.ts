@@ -24,6 +24,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { MAX_BODY_BYTES, isNoise, parseReports, toErrorLogRow } from "./report.ts";
 
 const RATE_WINDOW_MS = 60_000;
@@ -45,7 +46,7 @@ async function readCapped(req: Request, max: number): Promise<string | null> {
     total += value.byteLength;
     if (total > max) {
       // Stop the upload; the 413 is the answer either way.
-      await reader.cancel().catch((e) => console.warn(`[csp-report] cancel after cap: ${String(e).slice(0, 100)}`));
+      await reader.cancel().catch((e) => console.warn(`[csp-report] cancel after cap: ${caughtMessage(e).slice(0, 100)}`));
       return null;
     }
     chunks.push(value);

@@ -49,10 +49,15 @@ export const GUEST_FEED_RESERVE_CLASS = "min-h-screen md:min-h-0 content-start";
  * at 375 on prod (2026-10-05): hidden eyebrow, 23px title, 3-line body
  * (63px), two 44px actions ("Notify Me When Work Lands", "Or Hire Someone
  * for a Job"). Shared by the chunk fallback and DashboardGuest's own loading
- * frame so the two are one picture (Q722).
+ * frame so the two are one picture (Q722). `className` is the wrapper the
+ * real empty state sits in; `announce` makes the wrapper the live "Loading
+ * jobs…" status (DashboardGuest's frame; the chunk fallback's root already is).
  */
-export const GuestFeedEmptySkeleton = ({ testId }: { testId?: string }) => (
-  <EmptyStateSkeleton hiddenEyebrow titleH={23} bodyLines={3} bodyH={63} actionHeights={[44, 44]} testId={testId} />
+export const GuestFeedEmptySkeleton = ({ className, announce, testId }: { className: string; announce?: boolean; testId?: string }) => (
+  <div className={className} {...(announce ? { role: "status", "aria-live": "polite" as const, "aria-busy": true } : {})}>
+    {announce && <span className="sr-only">Loading jobs…</span>}
+    <EmptyStateSkeleton hiddenEyebrow titleH={23} bodyLines={3} bodyH={63} actionHeights={[44, 44]} testId={testId} />
+  </div>
 );
 
 const GuestBrowseSkeleton = () => {
@@ -84,9 +89,7 @@ const GuestBrowseSkeleton = () => {
     <div className="mx-auto w-full max-w-3xl lg:max-w-5xl px-4 pt-4 space-y-4">
       {/* Job card list — shape-matched to the real feed cards. */}
       {cold ? (
-        <div className="flex-1 min-h-full flex">
-          <GuestFeedEmptySkeleton />
-        </div>
+        <GuestFeedEmptySkeleton className="flex-1 min-h-full flex" />
       ) : (
         <div className="space-y-list">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -132,9 +135,7 @@ const GuestBrowseSkeleton = () => {
         {cold ? (
           // Cold visit (no feed in the cache): the empty state's outline, the
           // same picture DashboardGuest's own loading frame draws (Q722).
-          <div className="min-h-screen md:min-h-[50vh] flex">
-            <GuestFeedEmptySkeleton />
-          </div>
+          <GuestFeedEmptySkeleton className="min-h-screen md:min-h-[50vh] flex" />
         ) : (
           <div className={`${GUEST_FEED_GRID_CLASS} ${GUEST_FEED_RESERVE_CLASS}`}>
             {Array.from({ length: 6 }).map((_, i) => (

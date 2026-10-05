@@ -71,7 +71,7 @@ describe("cold visits draw the zero state, warm visits the list", () => {
 
   it("guest Browse's own loading frame draws the same outline until a non-empty list is known", () => {
     const src = readFileSync(resolve(import.meta.dirname, "../pages/home/DashboardGuest.tsx"), "utf8");
-    expect(src).toMatch(/\) : !feedReady && !\(jobsStatus === "success" && baseJobs\.length > 0\) \? \(\s*\/\*[\s\S]{0,600}?<GuestFeedEmptySkeleton testId="guest-feed-empty-skeleton" \/>/);
+    expect(src).toMatch(/\) : !feedReady && !\(jobsStatus === "success" && baseJobs\.length > 0\) \? \(\s*\/\*[^*]*\*\/\s*<GuestFeedEmptySkeleton className={emptyWrapperClass} announce/);
   });
 
   it("post-job: four cards always, plus each conditional card only once its read says so", () => {

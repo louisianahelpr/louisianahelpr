@@ -604,21 +604,11 @@ const DashboardGuest = () => {
           />
         </div>
       ) : !feedReady && !(jobsStatus === "success" && baseJobs.length > 0) ? (
-        /* Loading feed with NO list known yet (a cold visit; a warm one has
-           the persisted list and never shows a placeholder here): the empty
-           state's outline, in the same wrapper the real empty state uses.
-           Owner decision 2026-10-05 (Q722): before launch the public
-           marketplace is empty, and six job-card bones collapsed into
-           "Nothing today, neighbor." (27px row -> 212px at 375). */
-        <div className={emptyWrapperClass} role="status" aria-live="polite" aria-busy="true">
-          <span className="sr-only">Loading jobs…</span>
-          <GuestFeedEmptySkeleton testId="guest-feed-empty-skeleton" />
-        </div>
+        /* No list known yet (cold visit, Q722): the empty state's outline. */
+        <GuestFeedEmptySkeleton className={emptyWrapperClass} announce testId="guest-feed-empty-skeleton" />
       ) : !feedReady ? (
-        /* Loading feed — shape-matched JobCardSkeletons (the same
-           primitive the authenticated dashboard uses) so the cards
-           swap in without shifting the layout (no CLS). Reserves the
-           same vertical rhythm as the real list below. */
+        /* Loading feed — shape-matched JobCardSkeletons (the dashboard's
+           primitive), so the cards swap in with no layout shift. */
         <div
           role="status"
           aria-live="polite"
@@ -628,8 +618,7 @@ const DashboardGuest = () => {
           className={`${FEED_GRID_CLASS} ${feedBottomClass} ${GUEST_FEED_RESERVE_CLASS}`}
         >
           <span className="sr-only">Loading jobs…</span>
-          {/* Six, the same count GuestBrowseSkeleton draws, so the chunk-load
-              frame and this one are the same picture. */}
+          {/* Six, GuestBrowseSkeleton's count: the chunk-load frame's picture. */}
           {Array.from({ length: 6 }).map((_, i) => (
             <JobCardSkeleton key={i} />
           ))}

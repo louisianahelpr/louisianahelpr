@@ -1702,13 +1702,18 @@ serve(async (req) => {
       // key. Its marker is read first, and the claim is also pinned to the
       // exact payment_status read, so an admin claim landing after this read
       // is not taken over either.
+      // Re-entry needs the marker to say cancel_escrow POSITIVELY: no row, an
+      // admin's row, or an unreadable one all refuse (lh-authz-rls review of
+      // Q1323: an absent row is not "mine").
       if (job.payment_status === "cancelling") {
         const holder = await readRefundClaim(supabaseAdmin, jobId);
-        if (holder.claimedBy === "admin_refund_general" || holder.error) {
+        if (holder.claimedBy !== "cancel_escrow" || holder.error) {
           return new Response(JSON.stringify({
             error: holder.error
               ? "Couldn't check this job's refund in progress. No money was moved — try again."
-              : "An admin refund of this job is in progress, so it can't be cancelled here. No money was moved.",
+              : holder.claimedBy === "admin_refund_general"
+              ? "An admin refund of this job is in progress, so it can't be cancelled here. No money was moved."
+              : "A refund of this job is already in progress and could not be confirmed as this cancellation's own. No money was moved; support has the details.",
             refundClaimedBy: holder.claimedBy,
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: holder.error ? 503 : 409 });
         }
@@ -1733,7 +1738,26 @@ serve(async (req) => {
           error: "This payment can no longer be cancelled — it has already been released, refunded, or was never held in escrow.",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
       }
-      await recordRefundClaim(supabaseAdmin, jobId, "cancel_escrow", user.id);
+      // Q1323: the holder is recorded or the claim is not kept (an unrecorded
+      // claim could not be re-entered, and nobody could tell whose it was).
+      if (!(await recordRefundClaim(supabaseAdmin, jobId, "cancel_escrow", user.id))) {
+        // putCancelClaimBack is declared further down; the same CAS inline.
+        const restoreTo = job.payment_status === "cancelling" ? "escrow" : job.payment_status;
+        const { data: back, error: backErr } = await supabaseAdmin
+          .from("jobs").update({ payment_status: restoreTo })
+          .eq("id", jobId).eq("status", job.status).eq("payment_status", "cancelling")
+          .select("id");
+        if (backErr || !back || back.length === 0) {
+          await claimPutBackMissed(supabaseAdmin, {
+            jobId, path: "cancel_escrow", why: "its claim holder could not be recorded", restoreTo: restoreTo ?? null, dbError: backErr?.message ?? null,
+          });
+        } else {
+          await deleteRefundClaim(supabaseAdmin, jobId);
+        }
+        return new Response(JSON.stringify({
+          error: "Couldn't start the cancellation. No money was moved — try again.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+      }
 
       // ── A crew is hired through its roster, never through helper_id ──
       // The claim's `helper_id IS NULL` stands for "nobody is hired", which is
@@ -1772,6 +1796,8 @@ serve(async (req) => {
               message: `cancel_escrow claimed crew job ${jobId} (payment_status -> 'cancelling'), found a hired member, and could not restore payment_status. No money moved. Set payment_status back to '${job.payment_status}' by hand.`,
               fields: { job_id: jobId, restore_to: String(job.payment_status), db_error: (restoreErr?.message ?? "zero rows").slice(0, 200) },
             });
+          } else {
+            await deleteRefundClaim(supabaseAdmin, jobId);
           }
           if (crewNowErr) {
             console.error(`[create-payment] cancel_escrow post-claim roster check failed for job ${jobId}: ${crewNowErr.message}`);
@@ -1815,6 +1841,8 @@ serve(async (req) => {
           await claimPutBackMissed(supabaseAdmin, {
             jobId, path: "cancel_escrow", why, restoreTo: restoreTo ?? null, dbError: putBackErr?.message ?? null,
           });
+        } else {
+          await deleteRefundClaim(supabaseAdmin, jobId);
         }
       };
       // A sandbox payment or session seen through the live key: nothing real to
@@ -2930,6 +2958,7 @@ serve(async (req) => {
           });
         } else {
           generalClaimHeld = false;
+          await deleteRefundClaim(supabaseAdmin, jobId);
         }
       };
       if (wantsFullRefund) {
@@ -2951,7 +2980,14 @@ serve(async (req) => {
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
         }
         generalClaimHeld = true;
-        await recordRefundClaim(supabaseAdmin, jobId, "admin_refund_general", user.id);
+        // Q1323: recorded or given back; an unrecorded admin claim is one a
+        // poster's cancel could not tell apart from a stranded one.
+        if (!(await recordRefundClaim(supabaseAdmin, jobId, "admin_refund_general", user.id))) {
+          await putGeneralClaimBack("its claim holder could not be recorded");
+          return new Response(JSON.stringify({
+            error: "Couldn't start this refund. No money was moved — try again.",
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+        }
 
         const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund");
         if (alreadyPaidOut) {
@@ -3972,13 +4008,27 @@ const DISPUTE_REFUND_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "ref
 type RefundClaimHolder = "cancel_escrow" | "admin_refund_general";
 const MISSING_TABLE = new Set(["42P01", "PGRST205"]);
 
-async function recordRefundClaim(supabaseAdmin: any, jobId: string, by: RefundClaimHolder, actorId: string | null): Promise<void> {
-  const { error } = await supabaseAdmin
+/** false = the holder could not be recorded: the caller puts its claim back and answers 503. */
+async function recordRefundClaim(supabaseAdmin: any, jobId: string, by: RefundClaimHolder, actorId: string | null): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
     .from("job_refund_claims")
-    .upsert({ job_id: jobId, claimed_by: by, actor_id: actorId, claimed_at: new Date().toISOString() }, { onConflict: "job_id" })
+    .upsert({ job_id: jobId, claimed_by: by, actor_user_id: actorId, claimed_at: new Date().toISOString() }, { onConflict: "job_id" })
     .select("job_id");
+  if (error) {
+    // Before 20261005064908 deploys there is no table: no holder can be
+    // recorded, and none is read (cancel_escrow then never re-enters).
+    if (MISSING_TABLE.has(String((error as { code?: string }).code ?? ""))) return true;
+    console.error(`[create-payment] job_refund_claims write failed for job ${jobId} (${by}):`, error.message);
+    return false;
+  }
+  return Array.isArray(data) && data.length > 0;
+}
+
+/** The claim was put back: its holder row goes with it, so a stale row can never vouch for a later claim. */
+async function deleteRefundClaim(supabaseAdmin: any, jobId: string): Promise<void> {
+  const { error } = await supabaseAdmin.from("job_refund_claims").delete().eq("job_id", jobId).select("job_id");
   if (error && !MISSING_TABLE.has(String((error as { code?: string }).code ?? ""))) {
-    console.error(`[create-payment] job_refund_claims write failed for job ${jobId} (${by}); the claim is held, its holder is unrecorded:`, error.message);
+    console.error(`[create-payment] job_refund_claims delete failed for job ${jobId} after its claim was put back:`, error.message);
   }
 }
 

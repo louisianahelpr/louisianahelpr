@@ -2,6 +2,8 @@
 // can import it under `tsc -b --noEmit` (the .mjs itself is plain Node ESM,
 // run by scripts/audit/press-every-control.mjs).
 export declare const LOADING_SEL: string;
+export declare const LOADING_TEXT_RX_SOURCE: string;
+export declare function countLoadingMarkers(args: [loadingSel: string, textRxSource: string]): number;
 export declare const SELF_HEAL_SEL: string;
 export declare const SELF_HEAL_MS: number;
 
@@ -23,3 +25,13 @@ export type HealPage = {
 export declare function awaitSelfHeal(page: HealPage, opts?: { timeout?: number; sel?: string }): Promise<Heal>;
 export declare function classifyBoot(input: { text: string; errorRx: RegExp; heal: Heal }): BootVerdict;
 export declare function summarizeTimings(timings: RequestTiming[], opts?: { slowest?: number; apiRx?: RegExp }): NetSummary;
+
+/** Minimal surface of a Playwright Page that awaitLoadingQuiet uses. */
+export type QuietPage = {
+  evaluate: (expr: string) => Promise<unknown>;
+  waitForTimeout: (ms: number) => Promise<unknown>;
+};
+export declare function awaitLoadingQuiet(
+  page: QuietPage,
+  opts: { probe: string; quietMs: number; timeoutMs: number; pollMs?: number; now?: () => number },
+): Promise<{ quiet: boolean; waitedMs: number }>;

@@ -37,16 +37,20 @@ export const SLOS = [
   {
     id: "page-load-web", q66: "p95 page load (web + app)", name: "p95 page load, web (real users)",
     target: 4000, unit: "ms", good: "max", window: "7d",
-    source: "Vercel Speed Insights (`SpeedInsights` in src/App.tsx)",
-    ci: null,
-    notMeasured: "real-user load times go only to Vercel Speed Insights, and no script or CI secret here reads them (Vercel's usage API answers 404 Plan not found for this team, on Hobby and still on Pro, Q720/Q1152). lighthouse.yml is one simulated lab load per URL, weekly, not a p95 of real loads",
+    // Q762: until 2026-10-05 real-user load times went only to Vercel Speed
+    // Insights, which nothing here can read (its usage API answers 404 Plan not
+    // found, Q720/Q1152). src/lib/pageLoadTiming.ts now sends one Navigation
+    // Timing sample per cold load (automated browsers skipped).
+    source: "public.analytics_events: event page_load, platform web, properties.load_ms (src/lib/pageLoadTiming.ts)",
+    ci: "scoreboard.yml (SUPABASE_ACCESS_TOKEN, read-only SQL)",
   },
   {
     id: "page-load-app", q66: "p95 page load (web + app)", name: "p95 page load, iOS/Android app",
     target: 4000, unit: "ms", good: "max", window: "7d",
-    source: "none: the app records no load timing",
-    ci: null,
-    notMeasured: "the native app records no load or launch timing anywhere (no timing property is sent to analytics_events or Sentry from src/; checked 2026-09-23)",
+    // Q762: the same sample from the Capacitor WebView (platform ios/android):
+    // navigation start to the load event of the bundled app shell.
+    source: "public.analytics_events: event page_load, platform ios/android, properties.load_ms (src/lib/pageLoadTiming.ts)",
+    ci: "scoreboard.yml (SUPABASE_ACCESS_TOKEN, read-only SQL)",
   },
   {
     id: "api-error-rate", q66: "API error rate", name: "API error rate (5xx share of Supabase API requests)",
@@ -105,6 +109,16 @@ export function sloTargetRows(at) {
 const errMsg = (e) => String(e?.stderr || e?.message || e).split("\n").find((l) => l.trim())?.slice(0, 160) ?? "error";
 const pct = (ok, bad) => (100 * ok) / (ok + bad);
 
+/** p95 / p50 of real-user page loads (Q762) for one platform filter, 7 days. */
+function pageLoadSql(platformFilter) {
+  return `SELECT count(*)::int AS n,
+      percentile_cont(0.95) WITHIN GROUP (ORDER BY (properties->>'load_ms')::numeric) AS p95_ms,
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY (properties->>'load_ms')::numeric) AS p50_ms
+    FROM public.analytics_events
+    WHERE event = 'page_load' AND ${platformFilter} AND created_at > now() - interval '7 days'
+      AND (properties->>'load_ms') ~ '^[0-9]+$'`;
+}
+
 export const SQL = {
   payment: `SELECT count(*) FILTER (WHERE event_type = 'payment_intent.succeeded')::int AS ok,
       count(*) FILTER (WHERE event_type = 'payment_intent.payment_failed')::int AS bad
@@ -118,6 +132,8 @@ export const SQL = {
       percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM coalesce(pt.paid_at, pt.created_at) - j.completed_at) / 3600) AS p50_h
     FROM public.payout_transfers pt JOIN public.jobs j ON j.id = pt.job_id
     WHERE pt.status = 'paid' AND pt.created_at > now() - interval '30 days' AND j.completed_at IS NOT NULL`,
+  pageLoadWeb: pageLoadSql("platform = 'web'"),
+  pageLoadApp: pageLoadSql("platform IN ('ios', 'android')"),
   apiErrors: "select count(*) as total, countIf(toInt32OrZero(log_attributes['response.status_code']) >= 500) as errors from logs where source = 'edge_logs'",
 };
 
@@ -165,6 +181,14 @@ export async function measureSlos({ now = new Date(), sqlFn, logsFn, runsFn }) {
         if (!Number.isFinite(ok) || !Number.isFinite(bad)) throw new Error("unexpected result shape");
         if (!ok && !bad) { out.push(unk(s, "no sent or failed notification_logs rows in 7 days")); continue; }
         out.push(verdict(s, pct(ok, bad), { pass: ok, fail: bad, total: ok + bad }, `${Number(r.intentional) || 0} suppressed/skipped not counted; push delivery is the check_push_token_health row`));
+      } else if (s.id === "page-load-web" || s.id === "page-load-app") {
+        const [r] = await sqlFn(s.id === "page-load-web" ? SQL.pageLoadWeb : SQL.pageLoadApp);
+        const n = Number(r?.n);
+        if (!Number.isFinite(n)) throw new Error("unexpected result shape");
+        if (!n) { out.push(unk(s, "no page_load samples in 7 days")); continue; }
+        const p95 = Number(r.p95_ms), p50 = Number(r.p50_ms);
+        if (!Number.isFinite(p95)) throw new Error("no p95 in the result");
+        out.push(verdict(s, p95, { total: n }, `median ${fmt(p50, "ms")}, ${n} cold loads (navigation start to load event)`));
       } else if (s.id === "time-to-payout") {
         const [r] = await sqlFn(SQL.payout);
         const n = Number(r?.n);

@@ -15,7 +15,7 @@
 // @mutate src/components/ScrollToTop.tsx | window.history.scrollRestoration = "manual"; | window.history.scrollRestoration = "auto";
 // @mutate src/components/ScrollToTop.tsx | if (currentKeyRef.current !== key) return; | if (false) return;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider, Outlet } from "react-router-dom";
 
 vi.mock("@/lib/haptics", () => ({ hapticLight: () => {} }));
@@ -79,11 +79,11 @@ describe("ScrollToTop restores each history entry's OWN offset (Q1312)", () => {
     for (const l of listeners) l.fn(new Event("scroll"));
     // Footer "Jobs" -> /browse, opened at the top.
     await act(async () => { await router.navigate("/browse"); });
-    expect(scrollY).toBe(0);
+    await waitFor(() => expect(scrollY).toBe(0));
     const browseListener = listeners[listeners.length - 1];
     // Back to the landing: it restores 1005.
     await act(async () => { await router.navigate(-1); });
-    expect(scrollY).toBe(1005);
+    await waitFor(() => expect(scrollY).toBe(1005));
     // The race WebKit loses: /browse's listener fires AFTER the route changed,
     // reading the landing's offset (clamped to /browse's height: 505).
     scrollY = 505;
@@ -92,8 +92,8 @@ describe("ScrollToTop restores each history entry's OWN offset (Q1312)", () => {
     // Forward to /browse: it was left at the top, so it must open at the top.
     scrollToCalls.length = 0;
     await act(async () => { await router.navigate(1); });
+    await waitFor(() => expect(scrollY).toBe(0));
     expect(scrollToCalls).not.toContain(505);
-    expect(scrollY).toBe(0);
   });
 
   it("inventory floor: the history walk bound a scroll listener per entry", async () => {

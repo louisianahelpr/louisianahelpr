@@ -15,6 +15,7 @@
  */
 // @mutate .github/workflows/db-restore-drill.yml | bash scripts/db-restore-drill.sh | echo skipped
 // @mutate scripts/db-restore-drill.sh | table did not restore"; FAIL=1 | table did not restore"; FAIL=0
+// @mutate .github/workflows/db-restore-drill.yml | select(.conclusion == "success") | select(.conclusion != "success")
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -39,7 +40,13 @@ describe("the backup restore drill exists and has teeth", () => {
   });
 
   it("restores the newest successful db-backup artifact", () => {
-    expect(wf).toMatch(/gh run list[^\n]*-w db-backup\.yml[^\n]*--status success/);
+    // Picked from an UNFILTERED list by conclusion and createdAt: the API's
+    // `status=success` filter answered with a 21-day-old run on 2026-10-05
+    // (drill 37275273036, nightly-red #2306) while three newer backups had
+    // succeeded.
+    expect(wf).toMatch(/gh run list[^\n]*-w db-backup\.yml -L \d+/);
+    expect(wf).not.toMatch(/gh run list[^\n]*db-backup\.yml[^\n]*--status success/);
+    expect(wf).toMatch(/--jq '\[\.\[\] \| select\(\.conclusion == "success"\)\] \| sort_by\(\.createdAt\) \| last'/);
     expect(wf).toMatch(/gh run download/);
     expect(wf).toMatch(/gpg --batch[^\n]*--decrypt/);
   });

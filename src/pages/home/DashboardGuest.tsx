@@ -673,7 +673,6 @@ const DashboardGuest = () => {
                 onWiden={() => filters.setLocationFilter(`nearby:${nextMiles}`)}
                 onShowAllLocations={() => filters.setLocationFilter("")}
                 onClearFilters={filters.clearFilters}
-                onNotify={() => navigate("/signup")}
                 onHire={() => navigate("/signup")}
               />
             }

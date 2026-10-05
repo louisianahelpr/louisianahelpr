@@ -2562,6 +2562,51 @@ export type Database = {
           },
         ]
       }
+      launch_notify_signups: {
+        Row: {
+          consent_version: string
+          consented_at: string
+          created_at: string
+          email: string
+          email_normalized: string | null
+          id: string
+          is_seed: boolean
+          notified_at: string | null
+          source: string
+          unsubscribe_token: string
+          unsubscribed_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          consent_version: string
+          consented_at?: string
+          created_at?: string
+          email: string
+          email_normalized?: never
+          id?: string
+          is_seed?: boolean
+          notified_at?: string | null
+          source?: string
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          consent_version?: string
+          consented_at?: string
+          created_at?: string
+          email?: string
+          email_normalized?: never
+          id?: string
+          is_seed?: boolean
+          notified_at?: string | null
+          source?: string
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       legal_acceptances: {
         Row: {
           created_at: string
@@ -7127,6 +7172,11 @@ export type Database = {
         Returns: boolean
       }
       jobs_private_select_columns: { Args: never; Returns: string[] }
+      join_launch_notify: {
+        Args: { p_email: string; p_source?: string }
+        Returns: Json
+      }
+      leave_launch_notify: { Args: { p_token: string }; Returns: Json }
       log_cron_defect: {
         Args: { p_context?: Json; p_err: string; p_fn: string; p_ref: string }
         Returns: undefined

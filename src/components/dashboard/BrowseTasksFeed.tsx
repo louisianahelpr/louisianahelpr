@@ -23,6 +23,7 @@ import { useHelprActivity } from "@/hooks/useHelprActivity";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
 import { toast } from "sonner";
+import { joinLaunchNotify, NotifyWhenWorkLandsDialog } from "@/components/dashboard/NotifyWhenWorkLands";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
@@ -325,6 +326,8 @@ export function BrowseTasksFeed({
   // readers via an aria-live="polite" region, without moving focus.
   const prevJobCountRef = useRef(filters.filteredJobs.length);
   const [infiniteScrollMsg, setInfiniteScrollMsg] = useState("");
+  // Q1313: a signed-out viewer's "Notify Me" opens the email form.
+  const [notifyOpen, setNotifyOpen] = useState(false);
 
   useEffect(() => {
     const prev = prevJobCountRef.current;
@@ -640,9 +643,23 @@ export function BrowseTasksFeed({
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() =>
-                    navigate(user ? "/profile?tab=notifications" : "/signup")
-                  }
+                  // Q1313: the tap SAVES who to tell. Signed in: the account's
+                  // own email, no form. Signed out: the email form.
+                  onClick={() => {
+                    if (!user) {
+                      setNotifyOpen(true);
+                      return;
+                    }
+                    void joinLaunchNotify(null, "home_empty").then((r) => {
+                      if (r.ok) {
+                        toast.success("You're on the list. We'll email you when work lands.", {
+                          action: { label: "Job Alerts", onClick: () => navigate("/profile?tab=notifications") },
+                        });
+                      } else {
+                        toast.error(r.message);
+                      }
+                    });
+                  }}
                   className="rounded-ds-md font-sans font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
@@ -746,6 +763,7 @@ export function BrowseTasksFeed({
         );
       })()}
       </PullToRefreshWrapper>
+      <NotifyWhenWorkLandsDialog open={notifyOpen} onOpenChange={setNotifyOpen} source="home_empty" />
     </>
   );
 }

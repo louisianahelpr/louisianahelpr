@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { NotifyWhenWorkLandsDialog } from "@/components/dashboard/NotifyWhenWorkLands";
 
 /**
  * The guest /browse empty state's way forward (moved out of DashboardGuest,
@@ -6,7 +8,9 @@ import { Button } from "@/components/ui/button";
  * copy unchanged).
  *
  * Filtered: widen the radius / show all locations, or clear the filters.
- * Unfiltered: "Notify Me When Work Lands" and "Or Hire Someone for a Job".
+ * Unfiltered: "Notify Me When Work Lands" (Q1313: opens the email form that
+ * SAVES who to tell; it used to open /signup and keep nothing) and "Or Hire
+ * Someone for a Job".
  */
 export function GuestEmptyStateActions({
   hasFilters,
@@ -15,7 +19,6 @@ export function GuestEmptyStateActions({
   onWiden,
   onShowAllLocations,
   onClearFilters,
-  onNotify,
   onHire,
 }: {
   hasFilters: boolean;
@@ -24,9 +27,9 @@ export function GuestEmptyStateActions({
   onWiden: () => void;
   onShowAllLocations: () => void;
   onClearFilters: () => void;
-  onNotify: () => void;
   onHire: () => void;
 }) {
+  const [notifyOpen, setNotifyOpen] = useState(false);
   if (hasFilters) {
     return nearbyActive ? (
       <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
@@ -73,7 +76,7 @@ export function GuestEmptyStateActions({
       <Button
         variant="outline"
         size="sm"
-        onClick={onNotify}
+        onClick={() => setNotifyOpen(true)}
         className="rounded-ds-md px-5 text-ds-16 font-semibold"
       >
         Notify Me When Work Lands
@@ -85,6 +88,7 @@ export function GuestEmptyStateActions({
       >
         Or Hire Someone for a Job
       </button>
+      <NotifyWhenWorkLandsDialog open={notifyOpen} onOpenChange={setNotifyOpen} source="browse_empty" />
     </div>
   );
 }

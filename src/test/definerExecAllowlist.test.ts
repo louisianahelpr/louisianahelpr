@@ -30,6 +30,7 @@
 // @mutate scripts/ci/definer-exec-allowlist.json | "is_caller_banned()": "policy" | "is_caller_banned()": "client"
 // @mutate scripts/ci/definer-exec-allowlist.json | "rpc_group_member_confirm(uuid)": "reviewed | "rpc_group_member_confirm(uuid)": "client", "zz": "reviewed
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_job_pets(uuid)": "client" | "get_job_pets(uuid)": "policy"
+// @mutate scripts/ci/definer-exec-allowlist.json | "get_parish_for_zip(text)": "reviewed 2026-10-05 (Q1284): | "get_parish_for_zip(text)": "fine:
 // @mutate scripts/ci/definer-exec-allowlist.json | "authenticated": { | "authenticated": {\n    "resolve_auto_tip(uuid, numeric)": "client",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -40,7 +41,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = process.cwd();
 const allow = JSON.parse(readFileSync(join(ROOT, "scripts/ci/definer-exec-allowlist.json"), "utf8")) as Record<
-  "anon" | "authenticated",
+  "anon" | "authenticated" | "unscoped",
   Record<string, string>
 >;
 
@@ -88,6 +89,14 @@ describe("Q14: every client-executable SECURITY DEFINER function says why", () =
       (e) => e.why !== "client" && e.why !== "policy" && !/^reviewed \d{4}-\d{2}-\d{2} \(Q\d+\): .{30,}/.test(e.why),
     );
     expect(wrong.map((e) => `${e.role} ${e.sig}: ${e.why}`)).toEqual([]);
+  });
+
+  it('"unscoped" entries (Q1284: bodies that never read the caller) are client-callable and carry a dated reason', () => {
+    const unscoped = Object.entries(allow.unscoped ?? {});
+    expect(unscoped.length).toBeGreaterThan(10);
+    const callable = new Set([...Object.keys(allow.anon), ...Object.keys(allow.authenticated)]);
+    const wrong = unscoped.filter(([sig, why]) => !callable.has(sig) || !/^reviewed \d{4}-\d{2}-\d{2} \(Q\d+\): .{30,}/.test(why));
+    expect(wrong.map(([sig]) => sig)).toEqual([]);
   });
 
   it("the six functions revoked by 20261005054927 stay out", () => {

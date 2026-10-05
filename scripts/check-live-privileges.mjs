@@ -171,7 +171,7 @@ if (process.argv.includes("--self-test")) {
   clientInsert.push({ table: "messages", role: "authenticated", what: "UPDATE (edited_at)" });
   currentDate.push({ function_name: "zz_fake_date_check", config: "search_path=public" });
   emailGate.push({ table: "jobs", what: "email gate trigger not enabled (tgenabled D)" });
-  definerRows.push({ signature: "zz_fake_definer(uuid)", role: "authenticated" });
+  definerRows.push({ signature: "zz_fake_definer(uuid)", role: "authenticated", scoped: false });
 }
 
 // Q14: two-way diff of the live client-executable definer set against the allowlist.
@@ -181,6 +181,13 @@ const allowedDefiner = new Set(
 );
 const definerUnlisted = [...liveDefiner].filter((k) => !allowedDefiner.has(k)).sort();
 const definerStale = [...allowedDefiner].filter((k) => !liveDefiner.has(k)).sort();
+// Q1284: a client-callable definer body that never reads the caller (auth.uid(),
+// is_server_context, has_role, is_admin) answers about any id for anyone; each
+// one must be listed under "unscoped" with why that is fine. Two-way.
+const liveUnscoped = new Set(definerRows.filter((r) => r.scoped === false || r.scoped === "false").map((r) => r.signature));
+const allowedUnscoped = new Set(Object.keys(DEFINER_ALLOW.unscoped ?? {}));
+const unscopedUnlisted = [...liveUnscoped].filter((k) => !allowedUnscoped.has(k)).sort();
+const unscopedStale = [...allowedUnscoped].filter((k) => !liveUnscoped.has(k)).sort();
 
 let failed = false;
 console.log(`Checked ${acl} postgres default-ACL entries and ${fns} plpgsql functions in public.`);
@@ -256,6 +263,15 @@ if (definerUnlisted.length || definerStale.length) {
     "A definer function runs as its owner and skips RLS, so every one a client may call must say why. Fix: if no client calls it, " +
       "REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated in a migration (see 20261005054927); otherwise add it to the allowlist " +
       "with \"client\" (src/ calls it), \"policy\" (a policy calls it) or a reviewed reason; delete entries for revoked or dropped functions.",
+  );
+}
+if (unscopedUnlisted.length || unscopedStale.length) {
+  failed = true;
+  for (const k of unscopedUnlisted) console.error(`::error::SECURITY DEFINER public.${k} is client-callable and never reads the caller (no auth.uid(), is_server_context, has_role or is_admin), but is not under "unscoped" in scripts/ci/definer-exec-allowlist.json (Q1284)`);
+  for (const k of unscopedStale) console.error(`::error::scripts/ci/definer-exec-allowlist.json lists ${k} under "unscoped" but the live function now reads the caller or is no longer client-callable (stale entry, Q1284)`);
+  console.error(
+    "A definer function that never looks at its caller hands every signed-in account the same answer about any id (get_job_view_counts " +
+      "told anyone another poster's view counts). Fix: scope it to the caller (WHERE ... = auth.uid()), or list it under \"unscoped\" with a dated reviewed reason.",
   );
 }
 if (!Number(row?.has_server_context_helper)) {

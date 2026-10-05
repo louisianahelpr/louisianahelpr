@@ -19,7 +19,7 @@
  */
 // @mutate src/pages/posts/postedJobCard/crewBooked.ts |   return (roster ?? []).some((m) => m.helper_id != null); |   return (roster ?? []).length > 0;
 // @mutate src/pages/posts/postedJobCard/steps/OpenStep.tsx |         ...(crewBooked |         ...(false
-// @mutate src/pages/posts/PostedJobCard.tsx |                 crewBooked={crewIsBooked(job, initialGroupHelpers)} |                 crewBooked={false}
+// @mutate src/pages/posts/postedJobCard/PostedJobActions.tsx |     crewBooked: crewIsBooked(job, crewRoster), |     crewBooked: false,
 import { describe, expect, it, vi } from "vitest";
 import { render, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -75,8 +75,10 @@ describe("a booked crew is not offered Edit (Q707)", () => {
     expect(within(draw(true).container).queryByRole("button", { name: "Edit job" })).toBeNull();
   });
 
-  it("PostedJobCard feeds OpenStep from the crew roster it holds", () => {
+  it("PostedJobCard hands its crew roster to the actions, which decide from it", () => {
     const card = blankComments(readFileSync(join(ROOT, "src/pages/posts/PostedJobCard.tsx"), "utf8"));
-    expect(card).toMatch(/crewBooked=\{crewIsBooked\(job, initialGroupHelpers\)\}/);
+    expect(card).toMatch(/crewRoster=\{initialGroupHelpers\}/);
+    const actions = blankComments(readFileSync(join(ROOT, "src/pages/posts/postedJobCard/PostedJobActions.tsx"), "utf8"));
+    expect(actions).toMatch(/crewBooked: crewIsBooked\(job, crewRoster\)/);
   });
 });

@@ -12,7 +12,8 @@
  * blanked). CLOSED_REASON_BADGE must hold exactly those keys, both ways.
  */
 // @mutate src/pages/posts/postedJobs/applicantBadge.ts |   offer_expired: "Offer expired", |   offer_expired: "Declined",
-// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | const badge = posterApplicantBadge(app); | const badge = app.status === "rejected" ? { label: "Declined", kind: "closed" } : posterApplicantBadge(app);
+// @mutate src/pages/posts/postedJobs/ApplicantStatusBadge.tsx |   const badge = posterApplicantBadge(app); |   const badge = app.status === "rejected" ? { label: "Declined", kind: "closed" as const } : posterApplicantBadge(app);
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <ApplicantStatusBadge app={app} /> | {null}
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -57,9 +58,11 @@ describe("the applicant badge has an entry for every closed_reason (Q1259)", () 
     expect(posterApplicantBadge({ status: "pending", closed_reason: null })).toBeNull();
   });
 
-  it("ApplicantsPanel renders the badge from posterApplicantBadge and nowhere else hard-codes Declined", () => {
+  it("ApplicantsPanel renders ApplicantStatusBadge, which reads posterApplicantBadge, and nothing hard-codes Declined", () => {
     const panel = blankComments(readFileSync(join(ROOT, "src/pages/posts/postedJobs/ApplicantsPanel.tsx"), "utf8"));
-    expect(panel).toMatch(/const badge = posterApplicantBadge\(app\);/);
-    expect(panel).not.toMatch(/"Declined"|>\s*Declined\s*</);
+    const badge = blankComments(readFileSync(join(ROOT, "src/pages/posts/postedJobs/ApplicantStatusBadge.tsx"), "utf8"));
+    expect(panel).toMatch(/<ApplicantStatusBadge app=\{app\} \/>/);
+    expect(badge).toMatch(/const badge = posterApplicantBadge\(app\);/);
+    for (const src of [panel, badge]) expect(src).not.toMatch(/"Declined"|>\s*Declined\s*</);
   });
 });

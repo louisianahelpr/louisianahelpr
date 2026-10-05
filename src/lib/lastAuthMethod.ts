@@ -23,5 +23,8 @@ export type AuthMethod = "email" | "google" | "apple";
 const KEY = "helpr_last_auth_method";
 
 export function setLastAuthMethod(method: AuthMethod): void {
-  safeStorage.setItem(KEY, method);
+  // Fixed literals only (CodeQL js/clear-text-storage-of-sensitive-data): the
+  // provider may have been read back from an OAuth error (Q446 account choice).
+  const safeMethod: AuthMethod = method === "apple" ? "apple" : method === "google" ? "google" : "email";
+  safeStorage.setItem(KEY, safeMethod);
 }

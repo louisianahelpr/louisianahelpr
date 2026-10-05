@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 251** (219 to do, 32 fixed with protection pending; 834 done). Feeds mirrored in: 7 from the alert ledger, 5 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 253** (221 to do, 32 fixed with protection pending; 834 done). Feeds mirrored in: 9 from the alert ledger, 6 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
 - **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1085 items — 834 done, 32 partly done (fixed, protection pending), 219 open.**
+**Queue: 1087 items — 834 done, 32 partly done (fixed, protection pending), 221 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -665,6 +665,8 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [~] **Q1310 MEDIUM quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit.** Mirrored 2026-10-05 from alert-ledger row b75d265e6201 (workflow: quota-monitor; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger b75d265e6201. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'b75d265e62012a472e62221e79c5ce28'` => closed **STATUS 2026-10-05 (alerts lane): same source as Q379** (this fingerprint is ledger row d2df1e5e, first seen 2026-09-26; Q379 tracks the cause). Re-measured from quota-monitor run 37253732780 (2026-10-05 02:01Z): 645 replays this usage period (51 accepted, 594 dropped by quota), usage period since 2026-09-06; last 7 days 1, newest day with any 2026-10-02. The burst that filled the quota was the automated browsers Q275 (b59b7445d) already stopped. The figure is cumulative for the period, so the item closes on the first quota-monitor run after the period resets (expected 2026-10-06 from the monitor's own period start, not read from Sentry billing). Nothing else to fix; re-check after 10-06.
 - [ ] **Q1374 MEDIUM nightly-red: press-every-control is red.** Mirrored 2026-10-05 from nightly-red issue #2353 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2353. done-when: issue #2353 closed
 - [ ] **Q1375 MEDIUM /posts · error screen shown: couldn't load applicants.** Mirrored 2026-10-05 from alert-ledger row 6d6726e9c2f1 (user-error-screen: user-error-screen; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 6d6726e9c2f1. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '6d6726e9c2f13fda3aaa0398b57c3c76'` => closed
+- [ ] **Q1376 MEDIUM nightly-red: branch-prune is red.** Mirrored 2026-10-05 from nightly-red issue #2366 and alert-ledger row 7f88b9cc45df by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2366 · feed: ledger 7f88b9cc45df. done-when: issue #2366 closed, done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '7f88b9cc45dfe6718fac157d663f3d2e'` => closed
+- [ ] **Q1377 MEDIUM /jobs · error screen shown: we couldn't load this.** Mirrored 2026-10-05 from alert-ledger row 5b3c79ac5eb7 (user-error-screen: user-error-screen; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 5b3c79ac5eb7. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '5b3c79ac5eb7674118e5fe66b79204e2'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

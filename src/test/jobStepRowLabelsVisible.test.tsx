@@ -131,6 +131,7 @@ import {
   LABELLED_CHIP_MIN_PX,
 } from "@/components/job-card/jobStepRow";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankCssComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 
@@ -148,7 +149,7 @@ const PHONE_WIDTHS = ["320", "375", "414"] as const;
  *  rule this repo keeps ("trust the CSS declaration, never the comment beside
  *  it"). A comment can also carry an unbalanced brace. */
 function stripCssComments(css: string): string {
-  return css.replace(/\/\*[\s\S]*?\*\//g, "");
+  return blankCssComments(css);
 }
 
 /** Split a CSS file into `{ selector, body }` at the top level. Crude, and

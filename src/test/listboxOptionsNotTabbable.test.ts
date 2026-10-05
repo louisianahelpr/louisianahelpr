@@ -16,10 +16,11 @@ import { createElement } from "react";
 import { render, screen, cleanup } from "@testing-library/react";
 import { DateWheelPicker } from "@/components/DateWheelPicker";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 function offenders(raw: string): string[] {
   // Prose that merely names the pattern (e.g. a history comment) is not code.
-  const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const src = blankComments(raw);
   if (!/role=["']listbox["']/.test(src)) return [];
   const out: string[] = [];
   // Opening tags; `=>` is allowed inside so arrow-function props don't end the tag.
@@ -66,7 +67,7 @@ const COMBOBOX_ATTRS = [
 ] as const;
 
 function missingComboboxContract(raw: string): string[] {
-  const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const src = blankComments(raw);
   if (!/role=["']listbox["']/.test(src)) return [];
   if (src.includes(COMBOBOX_HOOK)) return [];
   // Scope is keyed on there being a TEXT-ENTRY field beside the listbox,

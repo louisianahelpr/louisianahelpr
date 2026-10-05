@@ -41,6 +41,7 @@ import {
   stuckSplitCasFilter,
   // @ts-expect-error - plain .mjs tool script, no types
 } from "../../scripts/audit/seedDisputeFixture.mjs";
+import { blankComments } from "./helpers/blankNonCode";
 
 const SEED_SCRIPT = process.env.SEED_SCRIPT_PATH ?? join(process.cwd(), "scripts", "audit", "prod-seed.mjs");
 
@@ -158,7 +159,7 @@ describe("seed dispute fixture", () => {
     const raw = readFileSync(SEED_SCRIPT, "utf8");
     // `[^:]` before `//` so a `https://` inside a string is not mistaken for a
     // line comment.
-    const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    const src = blankComments(raw);
     const start = src.indexOf("async function apply()");
     expect(start, "prod-seed.mjs has no `async function apply()` — did it get renamed?").toBeGreaterThan(-1);
     const end = src.indexOf("\n}\n", start);

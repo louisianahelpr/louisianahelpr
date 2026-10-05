@@ -29,12 +29,12 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), "utf8");
 /** Declarations only — this file's own prose names the bad path. */
-const code = (s: string) =>
-  s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+const code = (s: string) => blankComments(s);
 
 /** Directories a test runner owns and may clear without warning. */
 function runnerOutputDirs(): string[] {

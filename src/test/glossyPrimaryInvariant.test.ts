@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
+import { blankComments } from "./helpers/blankNonCode";
 
 // PROVEN ABLE TO FAIL 2026-09-20 — after a real vacuity was fixed. The count
 // below used to run over RAW button.tsx, where a comment mentioning the class
@@ -50,8 +51,7 @@ function tsxFiles(): string[] {
     .filter((f) => existsSync(resolve(ROOT, f)));
 }
 
-const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const stripComments = (t: string) => blankComments(t);
 
 /**
  * A fully-opaque brand fill. The `(?![\/])` is the whole subtlety: it excludes

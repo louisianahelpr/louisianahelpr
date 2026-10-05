@@ -85,6 +85,7 @@ import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import LEDGER from "./controlInteractionLedger.json";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankCssComments } from "./helpers/blankNonCode";
 
 // ── 1. INVENTORY, derived from the world ────────────────────────────────────
 
@@ -439,7 +440,7 @@ describe("one hover, one press, one ring", () => {
     // inside a hovered control) is allowed, exactly as `group-hover:` is.
     // Comments out first: this stylesheet's prose contains CSS samples, and a
     // brace inside a comment would mis-pair every rule after it.
-    const css = readFileSync("src/index.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, " ");
+    const css = blankCssComments(readFileSync("src/index.css", "utf8"));
     const offenders: string[] = [];
     for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
       const body = m[2];

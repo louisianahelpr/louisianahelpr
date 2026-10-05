@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments as blankTsComments } from "./helpers/blankNonCode";
 
 /**
  * A `<VirtualList>` ON AN APP-SHELL ROUTE MUST VIRTUALIZE AGAINST ITS OWN
@@ -69,10 +70,8 @@ function parseRouteArray(source: string, name: string): string[] {
   // entries, and those comments quote paths ("/profile?tab=x", "/benefits")
   // that are NOT members. Strip comments before reading the strings, or the
   // guard quietly whitelists routes the app never puts on the list.
-  const body = source
-    .slice(open, end)
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "");
+  // Q1020: blanked over the WHOLE file (offsets kept), then sliced.
+  const body = blankTsComments(source).slice(open, end);
   const routes = [...body.matchAll(/"(\/[^"]*)"/g)].map((m) => m[1]);
   if (routes.length === 0) throw new Error(`${name} parsed empty — the hook's shape changed`);
   return routes;
@@ -196,9 +195,9 @@ function walk(dir: string, out: string[] = []): string[] {
  * prop value can legitimately contain `https://`.
  */
 function blankComments(props: string): string {
-  return props
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
-    .replace(/^([ \t]*)\/\/.*$/gm, (m, indent: string) => indent + " ".repeat(m.length - indent.length));
+  // Q1020: the shared string-aware scanner. JSX props text is a fragment that
+  // starts at a tag, so it never opens inside a string.
+  return blankTsComments(props);
 }
 
 /** The JSX props text of a `<VirtualList ...>` element starting at `from`. */

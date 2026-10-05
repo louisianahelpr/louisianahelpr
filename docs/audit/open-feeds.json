@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T10:26Z",
+  "measured_at": "2026-10-05T10:42Z",
   "issues": {
     "readable": true,
     "open": [
@@ -30,11 +30,6 @@
         "label": "nightly-red"
       },
       {
-        "number": 2247,
-        "title": "nightly-red: open-done-when",
-        "label": "nightly-red"
-      },
-      {
         "number": 2304,
         "title": "nightly-red: branch-prune",
         "label": "nightly-red"
@@ -53,14 +48,6 @@
         "issue": 2245
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 2317
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -75,14 +62,6 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2213
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -115,14 +94,6 @@
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
         "issue": null
-      },
-      {
-        "fingerprint": "54b8c187374af47410a43e9dedb4f4df",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: open-done-when",
-        "issue": 2247
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",

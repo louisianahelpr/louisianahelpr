@@ -24,7 +24,6 @@
     "src/components/PhotoProof.tsx": 635,
     "src/components/postjob/CheckoutStep.tsx": 840,
     "src/components/profile/CredentialsTab.tsx": 911,
-    "src/components/profile/EarningsTab.tsx": 667,
     "src/components/profile/ScheduleTab.tsx": 854,
     "src/components/profile/SecurityTab.tsx": 729,
     "src/components/profile/SubscriptionTab.tsx": 885,

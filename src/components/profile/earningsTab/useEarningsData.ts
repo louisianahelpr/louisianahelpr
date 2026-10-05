@@ -38,7 +38,7 @@ export function useEarningsData(helperId: string) {
   // payout_transfers ledger — the authoritative record of every
   // stripe.transfers.create() call to this helper. RLS already restricts
   // SELECT to `auth.uid() = helper_id` so no extra filter needed here.
-  const { data: payoutLedger = [], isError: ledgerError } = useQuery<PayoutLedgerRow[]>({
+  const { data: payoutLedger = [], isError: ledgerError, isPending: ledgerPending } = useQuery<PayoutLedgerRow[]>({
     queryKey: queryKeys.payoutTransfers.byHelper(helperId),
     queryFn: async () => {
       if (!helperId) return [];
@@ -67,5 +67,7 @@ export function useEarningsData(helperId: string) {
     refetch();
   };
 
-  return { stripeData, stripeLoading, stripeError, ledgerError, payoutLedger, refreshing, handleRefresh };
+  // A disabled query (no helperId) is pending forever in React Query v5; only
+  // a ledger that will actually load holds the page's arrival gate.
+  return { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending: !!helperId && ledgerPending, payoutLedger, refreshing, handleRefresh };
 }

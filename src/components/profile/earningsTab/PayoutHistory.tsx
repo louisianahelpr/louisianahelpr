@@ -28,7 +28,7 @@ export function PayoutHistory({
       <div className="flex items-center justify-between gap-2 mb-2">
         <div>
           <h3 className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
-            Payout history
+            Sent to your bank
           </h3>
         </div>
         <Select value={exportYear} onValueChange={onExportYearChange}>

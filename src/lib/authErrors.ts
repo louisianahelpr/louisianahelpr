@@ -38,6 +38,15 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
   if (msg.includes("for security purposes")) {
     return "Too many attempts just now. Give it a moment and try again.";
   }
+  // GoTrue's refusal when Turnstile is on and the token is missing, expired or
+  // already spent (Q1314): "captcha protection: request disallowed
+  // (timeout-or-duplicate)", "... (invalid-input-response)", "no captcha_token
+  // found in request". Checked BEFORE the network branch, because the first
+  // one contains "timeout" and would otherwise read as "Connection trouble".
+  // Not the user's fault and not a wrong password: ask them to finish it.
+  if (msg.includes("captcha")) {
+    return "The security check didn't finish. Give it a second and try again.";
+  }
   if (msg.includes("network") || msg.includes("fetch") || msg.includes("timeout") || msg.includes("timed out")) {
     return "Connection trouble. Check your signal and try again.";
   }
@@ -51,12 +60,6 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
   // CLAUDE.md describes, arriving as copy rather than as layout.
   if (msg.includes("load failed") || msg.includes("networkerror")) {
     return "Connection trouble. Check your signal and try again.";
-  }
-  // GoTrue's refusal when Turnstile is on and the token is missing, expired or
-  // already spent ("captcha verification process failed", Q1314). Not the
-  // user's fault and not a wrong password: ask them to finish the check.
-  if (msg.includes("captcha")) {
-    return "The security check didn't finish. Give it a second and try again.";
   }
   if (msg.includes("user already registered") || msg.includes("already registered")) {
     return "An account already uses that email. Try signing in instead.";

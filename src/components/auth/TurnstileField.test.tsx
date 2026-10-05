@@ -6,6 +6,8 @@
 // @mutate src/components/auth/TurnstileField.tsx |             if (s === "off" \|\| s === "error") return null; |             if (s === "off") return null;
 // @mutate src/components/auth/TurnstileField.tsx |             apiRef.current.reset(widgetRef.current); |             void 0;
 // @mutate src/components/auth/TurnstileField.tsx |         {status === "error" && ( |         {status === "never" && (
+// @mutate src/components/auth/TurnstileField.tsx |             if (s === "interactive") sawInteractive = true; |             void 0;
+// @mutate src/lib/turnstile.ts |   if (import.meta.env.VITE_TURNSTILE_ENABLED !== "true") return null; |   void 0;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, createRef } from "react";
 import { render, screen } from "@testing-library/react";
@@ -26,6 +28,7 @@ beforeEach(() => {
   opts = null;
   api.render.mockClear();
   api.reset.mockClear();
+  vi.stubEnv("VITE_TURNSTILE_ENABLED", "true");
   vi.stubEnv("VITE_TURNSTILE_SITE_KEY", "test-site-key");
   window.turnstile = api;
 });
@@ -75,6 +78,41 @@ describe("TurnstileField (Q1314)", () => {
     await expect(Promise.race([ref.current!.getToken(), slow])).resolves.toBeNull();
     expect(screen.getByText("The security check didn't load.")).toBeTruthy();
     expect(screen.getByRole("button", { name: /retry/i })).toBeTruthy();
+  });
+
+  it("ships dormant: without VITE_TURNSTILE_ENABLED=true it renders nothing and sends no token", async () => {
+    vi.stubEnv("VITE_TURNSTILE_ENABLED", "");
+    const ref = createRef<TurnstileHandle>();
+    const { container } = render(<TurnstileField ref={ref} action="login" />);
+    await act(async () => {});
+    expect(container.innerHTML).toBe("");
+    expect(api.render).not.toHaveBeenCalled();
+    await expect(ref.current!.getToken()).resolves.toBeNull();
+  });
+
+  it("a wait that saw the checkbox keeps the long deadline after after-interactive", async () => {
+    const ref = await mount();
+    vi.useFakeTimers();
+    try {
+      act(() => opts!["before-interactive-callback"]());
+      let settled: string | null | undefined;
+      void ref.current!.getToken().then((t) => (settled = t));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1_000);
+      });
+      act(() => opts!["after-interactive-callback"]());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(12_000);
+      });
+      expect(settled, "gave up at the 8s silent deadline").toBeUndefined();
+      act(() => opts!.callback("tok-after-tap"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(settled).toBe("tok-after-tap");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("renders nothing and resolves null when the site key is turned off", async () => {

@@ -22,16 +22,22 @@ const TURNSTILE_SCRIPT_SRC =
 /**
  * The site key to render with, or `null` when Turnstile is off.
  *
- * Read at call time (not module load) so a test can `vi.stubEnv` it. An
- * explicitly EMPTY `VITE_TURNSTILE_SITE_KEY` turns the widget off; unset means
- * the production key. Under vitest the default is off, because jsdom never
- * loads external scripts and every auth-page test would otherwise wait on a
- * widget that cannot exist; tests that exercise the widget stub the env.
+ * Ships DORMANT: off unless `VITE_TURNSTILE_ENABLED` is "true". While
+ * Supabase's `security_captcha_enabled` is false a token buys nothing, and an
+ * enabled widget would make a submit wait (up to 8s) or show "didn't load"
+ * where it cannot run (the native capacitor://localhost origin is not yet
+ * verified). The lead turns this env on and the server switch on together at
+ * cutover (docs/OPEN.md Q1314). Off = renders nothing, sends no token.
+ *
+ * Read at call time (not module load) so a test can `vi.stubEnv` it. When on,
+ * an unset `VITE_TURNSTILE_SITE_KEY` means the production key and an empty one
+ * means off.
  */
 export function turnstileSiteKey(): string | null {
+  if (import.meta.env.VITE_TURNSTILE_ENABLED !== "true") return null;
   const raw = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
   if (raw !== undefined) return raw.trim() === "" ? null : raw.trim();
-  return import.meta.env.MODE === "test" ? null : DEFAULT_TURNSTILE_SITE_KEY;
+  return DEFAULT_TURNSTILE_SITE_KEY;
 }
 
 export interface TurnstileRenderOptions {

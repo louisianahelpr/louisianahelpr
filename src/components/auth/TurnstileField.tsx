@@ -104,13 +104,17 @@ export const TurnstileField = forwardRef<TurnstileHandle, { action: string; clas
       ref,
       () => ({
         getToken: async () => {
-          const deadline = (s: Status) => (s === "interactive" ? INTERACTIVE_WAIT_MS : SILENT_WAIT_MS);
           const started = Date.now();
+          // Once this wait has seen a visible checkbox it keeps the long
+          // deadline, even after after-interactive drops the status back to
+          // "loading" while Cloudflare verifies the tap.
+          let sawInteractive = false;
           for (;;) {
             if (tokenRef.current) return tokenRef.current;
             const s = statusRef.current;
             if (s === "off" || s === "error") return null;
-            const left = deadline(s) - (Date.now() - started);
+            if (s === "interactive") sawInteractive = true;
+            const left = (sawInteractive ? INTERACTIVE_WAIT_MS : SILENT_WAIT_MS) - (Date.now() - started);
             if (left <= 0) return null;
             await new Promise<void>((wake) => {
               const t = window.setTimeout(wake, left);

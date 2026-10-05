@@ -52,3 +52,18 @@ export function useAwardBlockReason(): AwardBlockReason | null {
   // mirrored branch for branch: the seed carve-out, payouts, then Stripe ID.
   return reasonFromMissing(acceptMissingFromProfile(profile));
 }
+
+/**
+ * The same verdict, with "we don't know yet" kept apart from "nothing stops
+ * you". The offer card needs the difference (owner, 2026-10-05): it shows
+ * "Set Up Payouts" / "Finish Stripe Setup" as the ONE primary when the accept
+ * would be refused, so it must not draw an enabled Accept Job while the profile
+ * is still loading. Same derivation as useAwardBlockReason above (the client
+ * mirror of helper_accept_missing, which is also what accept_job_offer answers
+ * the gate dialog with), so the card and the dialog cannot disagree.
+ */
+export function useAcceptGate(): { loading: boolean; reason: AwardBlockReason | null } {
+  const { profile, isLoading } = useCurrentUser();
+  if (!profile) return { loading: isLoading, reason: null };
+  return { loading: false, reason: reasonFromMissing(acceptMissingFromProfile(profile)) };
+}

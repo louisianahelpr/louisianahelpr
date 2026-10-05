@@ -27,6 +27,7 @@ import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
 import { CrewMemberSection } from "./appliedJobCard/CrewMemberSection";
+import { OfferStepRail } from "./appliedJobCard/OfferStepRail";
 import { HelperCollapsedStrip } from "./appliedJobCard/HelperCollapsedStrip";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
@@ -615,6 +616,7 @@ function AppliedJobCardInner({
           {/* Offered: accept/decline — celebratory framing since this
               is a poster reaching out directly. Gold-warm accent
               surfaces the "you were picked" moment without shouting. */}
+          {isOffered && isExpanded && (<OfferStepRail job={job} />)}
           {isOffered && (
             <OfferedActions app={app} job={job} onHelperResponse={onHelperResponse} respondingHelperAppId={respondingHelperAppId} />
           )}
@@ -853,11 +855,9 @@ function AppliedJobCardInner({
             </div>
           )}
           {/* A booked one-time job's date/time change (Q407 8). */}
-          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" />
-          {/* What this card is waiting on: one sentence at its bottom edge
-              (HelperCollapsedStrip says why it is the same strip the poster wears). */}
+          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} />
           {!isMinimalCard && !isExpanded && (
-            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} />
+            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} />
           )}
         </JobCardShell>
         </div>

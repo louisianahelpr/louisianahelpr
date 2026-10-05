@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 574,
-    "files": 146,
-    "rendering": 551,
-    "suppressedByPolicy": 23,
+    "calls": 584,
+    "files": 149,
+    "rendering": 559,
+    "suppressedByPolicy": 25,
     "byKind": {
-      "confirmConsequential": 23,
+      "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 35,
-      "toast.error": 457,
+      "toast": 36,
+      "toast.error": 462,
       "toast.loading": 1,
-      "toast.message": 1,
-      "toast.success": 28,
+      "toast.message": 2,
+      "toast.success": 29,
       "toast.warning": 22
     },
     "copyPiecesByForm": {
-      "literal": 309,
-      "template": 74,
-      "dynamic": 231,
+      "literal": 314,
+      "template": 76,
+      "dynamic": 234,
       "jsx": 0
     }
   },
@@ -982,7 +982,7 @@
     },
     {
       "file": "src/components/ResponseDeadlineDialog.tsx",
-      "line": 87,
+      "line": 96,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2827,8 +2827,28 @@
       "renders": true
     },
     {
+      "file": "src/components/auth/AccountChoiceDialog.tsx",
+      "line": 63,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Got it. Tap ${name} again to create your account."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/auth/AccountChoiceDialog.tsx",
+      "line": 77,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(result.message, \"We couldn't finish that sign-in. Tap Apple or Google again to retry.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 124,
+      "line": 139,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -2838,7 +2858,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 129,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2848,7 +2868,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 420,
+      "line": 422,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2882,7 +2902,7 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 398,
+      "line": 397,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3096,7 +3116,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 143,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3106,7 +3126,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 147,
+      "line": 148,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -3116,7 +3136,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 337,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3126,7 +3146,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 345,
+      "line": 354,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3136,7 +3156,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 356,
+      "line": 365,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3146,7 +3166,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 361,
+      "line": 370,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3156,7 +3176,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 510,
+      "line": 519,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3166,7 +3186,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 516,
+      "line": 525,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3176,7 +3196,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 521,
+      "line": 530,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3186,7 +3206,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 554,
+      "line": 563,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3196,7 +3216,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 558,
+      "line": 567,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3206,7 +3226,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 571,
+      "line": 580,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3216,7 +3236,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 586,
+      "line": 595,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3226,7 +3246,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 594,
+      "line": 603,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -3236,7 +3256,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 618,
+      "line": 627,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -3586,7 +3606,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 88,
+      "line": 89,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3596,7 +3616,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 129,
+      "line": 130,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3606,11 +3626,61 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 149,
+      "line": 150,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
         "text": "Check ${trimmed} to confirm your new address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 51,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(back.message, \"That sign-in couldn't be connected. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 66,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "${NAME[provider]} connected. It now opens this account."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 68,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(result.message, \"That sign-in couldn't be connected. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 79,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't remove that sign-in method — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 83,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Sign-in method removed."
       },
       "renders": true
     },
@@ -4073,6 +4143,36 @@
       "renders": true
     },
     {
+      "file": "src/hooks/useNotifyWhenWorkLands.ts",
+      "line": 35,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't save that. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useNotifyWhenWorkLands.ts",
+      "line": 40,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "You're set. We'll ping you when paid work lands."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/hooks/useNotifyWhenWorkLands.ts",
+      "line": 42,
+      "kind": "toast.message",
+      "title": {
+        "form": "literal",
+        "text": "Job alerts are on, but this device isn't allowed to notify you. Turn on notifications for Helpr in Settings."
+      },
+      "renders": false
+    },
+    {
       "file": "src/hooks/usePendingSaveConsumer.ts",
       "line": 31,
       "kind": "toast",
@@ -4402,7 +4502,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 239,
+      "line": 231,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4412,7 +4512,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 255,
+      "line": 247,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4422,7 +4522,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 276,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4432,7 +4532,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 278,
+      "line": 270,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4442,7 +4542,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 291,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4452,7 +4552,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 319,
+      "line": 311,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4462,7 +4562,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 353,
+      "line": 345,
       "kind": "toast.error",
       "title": {
         "form": "literal",

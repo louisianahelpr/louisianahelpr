@@ -43,6 +43,9 @@ vi.mock("@/lib/nativeInit", () => ({
 
 import { ForceUpdateGate } from "./ForceUpdateGate";
 import { resetMinSupportedBuildCache } from "@/lib/minSupportedBuild";
+import { __resetDeniedSeenForTests } from "@/hooks/useVersionCheck";
+import { CLIENT_COMPAT_EPOCH, resetClientCompatFloorCache } from "@/lib/clientCompat";
+import { PERMISSION_DENIED_EVENT } from "@/lib/permissionDenied";
 import { APP_STORE_LISTING_LIVE } from "@/lib/appStore";
 
 const APP_MARKER = "the app rendered";
@@ -67,6 +70,8 @@ beforeEach(() => {
   getInfo.mockReset();
   addListener.mockClear();
   resetMinSupportedBuildCache();
+  resetClientCompatFloorCache();
+  __resetDeniedSeenForTests();
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   // The shipping binary. CFBundleVersion 5906 / MARKETING_VERSION 1.0.4 —
   // ios/App/App/Info.plist:24 and ios/App/App.xcodeproj/project.pbxproj.
@@ -217,4 +222,77 @@ describe("ForceUpdateGate — the block screen is not a dead end", () => {
 // Shown able to fail:
 // Make the threshold exclusive, so the binary that is EXACTLY at min_supported_build
 // is hard-blocked with no remote un-stick — the worst outcome this gate can produce.
-// @mutate src/hooks/useVersionCheck.ts | if (installed >= required) return { status: "ok" }; | if (installed > required) return { status: "ok" };
+// @mutate src/hooks/useVersionCheck.ts | installed !== null && installed < required) { | installed !== null && installed <= required) {
+// The schema lever: a bundle below client_compat_floor() must be blocked.
+// @mutate src/hooks/useVersionCheck.ts | if (evidence && floor > FLOOR_UNKNOWN && isBelowFloor(floor, CLIENT_COMPAT_EPOCH)) { | if (evidence && floor > FLOOR_UNKNOWN && isBelowFloor(floor, CLIENT_COMPAT_EPOCH + 1)) {
+
+describe("ForceUpdateGate — the schema lever (client_compat_floor, 2026-10-05 launch blocker)", () => {
+  /** get_public_platform_settings says the build is fine; client_compat_floor says `floor`. */
+  const serve = (floor: unknown) =>
+    rpc.mockImplementation(async (fn: string) =>
+      fn === "client_compat_floor"
+        ? { data: floor, error: null }
+        : { data: [{ min_supported_build: 5000 }], error: null },
+    );
+
+  /** A read was refused: the evidence the compat block waits for. */
+  const deny = () => window.dispatchEvent(new CustomEvent(PERMISSION_DENIED_EVENT));
+
+  it("below the floor alone does NOT block: no lockout before a read is actually refused", async () => {
+    serve(CLIENT_COMPAT_EPOCH + 1);
+    renderGate();
+    await expectAppRendered();
+  });
+
+  it("a bundle below the floor whose read was refused is blocked, with the numbers support needs", async () => {
+    serve(CLIENT_COMPAT_EPOCH + 1);
+    renderGate();
+    await expectAppRendered();
+    deny();
+    await screen.findByText(/Update Helpr to continue/i);
+    expect(screen.queryByText(APP_MARKER)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`Build 5906 · data version ${CLIENT_COMPAT_EPOCH}, requires ${CLIENT_COMPAT_EPOCH + 1}`)),
+    ).toBeInTheDocument();
+  });
+
+  it("while the App Store listing is not live (Q1124) the copy points to TestFlight, not the store", async () => {
+    serve(CLIENT_COMPAT_EPOCH + 1);
+    renderGate();
+    await expectAppRendered();
+    deny();
+    await screen.findByText(/Update Helpr to continue/i);
+    if (APP_STORE_LISTING_LIVE) {
+      expect(screen.getByText(/from the App Store/i)).toBeInTheDocument();
+    } else {
+      expect(screen.getByText(/Open TestFlight, install the latest Helpr build/i)).toBeInTheDocument();
+      expect(screen.queryByText(/from the App Store/i)).not.toBeInTheDocument();
+    }
+  });
+
+  it("at the floor, or with the floor unknown or unreadable, the app loads (fail open)", async () => {
+    for (const floor of [CLIENT_COMPAT_EPOCH, 0, null, "junk"]) {
+      resetClientCompatFloorCache();
+      serve(floor);
+      const { unmount } = renderGate();
+      await expectAppRendered();
+      deny();
+      await new Promise((r) => setTimeout(r, 20));
+      await expectAppRendered();
+      unmount();
+    }
+  });
+
+  it("a 42501 re-checks at once, skipping the 60 s cache", async () => {
+    serve(CLIENT_COMPAT_EPOCH);
+    renderGate();
+    await expectAppRendered();
+    // The floor rises (a migration deployed) and the next read is refused.
+    serve(CLIENT_COMPAT_EPOCH + 1);
+    resetClientCompatFloorCache(); // past the 5 s forced-read reuse window
+    deny();
+    await screen.findByText(/Update Helpr to continue/i);
+  });
+});
+// The compat block waits for a refused read: blocking on the number alone locks every native user out.
+// @mutate src/hooks/useVersionCheck.ts | const evidence = deniedSeen \|\| | const evidence = true \|\|

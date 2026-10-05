@@ -1,5 +1,6 @@
 {
   "anon": {
+    "choose_new_social_account(uuid)": "client",
     "early_access_cutoff()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view, whose callers need EXECUTE; returns a timestamp only.",
     "get_open_jobs_for_map()": "client",
     "get_parish_for_zip(text)": "client",
@@ -32,6 +33,7 @@
     "block_user_and_settle(uuid, text)": "client",
     "can_send_message_in_job(uuid)": "policy",
     "can_send_message_to_in_job(uuid, uuid)": "client",
+    "choose_new_social_account(uuid)": "client",
     "claim_series_dates(uuid, date[])": "client",
     "clear_available_now()": "client",
     "clear_thread_mute(uuid, uuid)": "client",
@@ -131,6 +133,7 @@
     "user_may_see_job_address(uuid, uuid)": "policy"
   },
   "unscoped": {
+    "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",
     "get_category_price_stats(text, text)": "reviewed 2026-10-05 (Q1284): marketplace-wide price statistics per category/parish (aggregates, no person); shown to every poster when pricing a job.",
     "get_fill_rate_stats(integer)": "reviewed 2026-10-05 (Q1284): platform-wide fill-rate aggregates (no person); public by design.",
     "get_helper_completed_counts(uuid[])": "reviewed 2026-10-05 (Q1284): public profile stat (completed jobs per Helpr) shown on every Helpr card and profile.",

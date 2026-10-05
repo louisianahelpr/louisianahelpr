@@ -7,7 +7,9 @@ import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { useAcceptPendingJobs } from "@/hooks/useAcceptPendingJobs";
-import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
+import { useAcceptGate } from "@/hooks/useAwardBlockReason";
+import { acceptGateLine, awardBlockCopy } from "@/lib/awardGate";
+import { JobCountdown } from "@/components/job-card/JobCountdown";
 import type { Application, AppliedApp, Job } from "../../../components/job-card/activityConstants";
 import { DEFAULT_RESPONSE_WINDOW_HOURS, isDirectOffer, offerClock } from "../../../components/job-card/offerClock";
 
@@ -50,7 +52,23 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // halves so it never promises what the server will not do (re-review #9).
   // The profile is live over realtime, and the decline's own result decides
   // the toast afterwards.
-  const noStrike = useAwardBlockReason() !== null || acceptPending;
+  const gate = useAcceptGate();
+  const noStrike = gate.reason !== null || acceptPending;
+  // THE PRIMARY SAYS WHAT THE TAP WILL DO (owner, 2026-10-05): when the accept
+  // would be refused for an unfinished Stripe setup, the one primary IS that
+  // setup ("Set Up Payouts" / "Finish Stripe Setup") with one line saying why,
+  // never an "Accept Job" that then opens a refusal. The tap is unchanged
+  // (onHelperResponse -> accept_job_offer records the pending accept and opens
+  // the setup dialog), so only the words move up front. While the profile is
+  // still loading the button waits ("Checking…") instead of guessing.
+  // Guard: src/test/offerCardHierarchy.test.tsx.
+  const setupLabel = gate.reason ? awardBlockCopy(gate.reason).ctaLabel : null;
+  const setupStep = !gate.loading && (!!gate.reason || acceptPending);
+  const acceptLabel = busy
+    ? "Accepting…"
+    : gate.loading
+      ? "Checking…"
+      : setupLabel ?? (acceptPending ? "Finish Stripe Setup" : "Accept Job");
   const skipConfirm = isDirectOffer(app);
   // The clock and whether it has run out, from the one predicate the
   // Activity buckets use too (offerClock.ts): an expired offer leaves Needs
@@ -94,14 +112,13 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           )}
         </div>
       )}
-      {/* NO "Job starts in" countdown here. This card is the one decision the
-          helper still has to make, and counting down to a start date they have
-          not agreed to answers the wrong question — a job three weeks out
-          showed "Job starts in 20d 18h" next to Accept/Decline, which reads as
-          "plenty of time" when what is actually running out is the window to
-          respond. The deadline below is the clock that matters in this state;
-          the start countdown appears once they have confirmed (see
-          ConfirmedSection). */}
+      {/* "Job starts in" IS shown now (owner, 2026-10-05: both clocks on the
+          card, collapsed and expanded, on both cards). It used to be left off
+          because a job three weeks out read as "plenty of time" next to the
+          answer window; the answer-by clock below stays the one with the
+          consequence, and since 20261005184940 it can never run past the start
+          this pill counts down to. */}
+      <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
       {/* No "Add to Calendar" here (owner). Accepting a job is what should
           put it on the helper's calendar — the app owns that, so handing them
           an .ics file to download and import themselves is asking the user to
@@ -207,12 +224,47 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           refuses it (`offer_expired`), so leaving Accept / Decline on screen
           offered the helper two buttons that both fail — and the one they'd
           reach for is the one that earns money. */}
-      {!isExpired && acceptPending && (
-        <p className="text-ds-12 font-sans leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
-          You accepted. Finish your Stripe setup to complete it; we&rsquo;ll tell the person who posted the job as soon as it&rsquo;s done.
-        </p>
-      )}
-      {isExpired ? null : (
+      {/* ONE PRIMARY, AND WHAT IT WILL DO (owner, 2026-10-05, iPhone 375:
+          "This UI design is bad and needs polishing").
+          · Nothing in the way: Decline | Accept Job, side by side, equal width.
+          · The accept would wait on Stripe (gate reason) or already waits on it
+            (acceptPending): the setup step is the ONE full-width primary — a
+            two-up row clipped "Finish Stripe Setup" at 375 — with one line
+            under it saying why, and Decline steps down to a quiet text action.
+            After accepting, the choice is "finish setup" and a way to back out,
+            not two equal buttons.
+          Guard: src/test/offerCardHierarchy.test.tsx. */}
+      {isExpired ? null : setupStep ? (
+        <div className="space-y-1.5 pt-1" data-offer-setup-step="">
+          <Button
+            variant="primary"
+            size="sm"
+            className="w-full rounded-ds-md"
+            disabled={busy || gate.loading}
+            aria-busy={busy || gate.loading}
+            data-offer-primary="setup"
+            onClick={() => onHelperResponse(app, true)}
+          >
+            <CheckCircle2 className="w-4 h-4" aria-hidden /> {acceptLabel}
+          </Button>
+          <p className="text-ds-11 text-center font-sans leading-snug" style={{ color: "hsl(var(--amber-ink))" }} data-offer-gate-line="">
+            {acceptPending
+              ? "You accepted. Finish your Stripe setup to complete it, and we’ll tell the person who posted the job."
+              : acceptGateLine(gate.reason!)}
+          </p>
+          <div className="flex justify-center">
+            <button
+              type="button"
+              className="min-h-[44px] px-3 text-ds-12 font-semibold underline underline-offset-2 disabled:opacity-40"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+              disabled={busy}
+              onClick={() => (skipConfirm ? onHelperResponse(app, false) : setConfirmOpen(true))}
+            >
+              {busy ? "Declining…" : "Decline this job"}
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="flex gap-2 pt-1">
         <Button
           size="sm"
@@ -226,17 +278,18 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
             borderColor: "hsl(var(--burnt-sienna) / 0.30)",
           }}
         >
-          <XCircle className="w-4 h-4 mr-1" /> {busy ? "Declining…" : "Decline"}
+          <XCircle className="w-4 h-4 hidden min-[360px]:block" aria-hidden /> {busy ? "Declining…" : "Decline"}
         </Button>
         <Button
           variant="primary"
           size="sm"
           className="flex-1 rounded-ds-md"
-          disabled={busy}
-          aria-busy={busy}
+          disabled={busy || gate.loading}
+          aria-busy={busy || gate.loading}
+          data-offer-primary="accept"
           onClick={() => onHelperResponse(app, true)}
         >
-          <CheckCircle2 className="w-4 h-4 mr-1" /> {busy ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept Job"}
+          <CheckCircle2 className="w-4 h-4 hidden min-[360px]:block" aria-hidden /> {acceptLabel}
         </Button>
       </div>
       )}

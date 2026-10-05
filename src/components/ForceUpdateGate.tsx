@@ -46,13 +46,23 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
   // out to be up to date.
   if (check.status !== "blocked") return <>{children}</>;
 
-  const { installedBuild, requiredBuild } = check;
+  const { installedBuild, requiredBuild, reason, compat } = check;
+
+  // The numbers a user reads out to support. "build": the operator raised
+  // min_supported_build. "compat": a migration narrowed what this bundle reads
+  // (client_compat_floor, src/lib/clientCompat.ts).
+  const diagnosis =
+    reason === "compat" && compat
+      ? `Build ${installedBuild ?? "unknown"} · data version ${compat.epoch}, requires ${compat.floor}`
+      : `Installed build ${installedBuild ?? "unknown"} · requires ${requiredBuild}`;
 
   const supportSubject = encodeURIComponent("Helpr update required");
   const supportBody = encodeURIComponent(
     `I’m being asked to update Louisiana Helpr and need help.\n\n` +
-      `Installed build: ${installedBuild}\n` +
-      `Required build: ${requiredBuild}\n\n` +
+      `Installed build: ${installedBuild ?? "unknown"}\n` +
+      (reason === "compat" && compat
+        ? `Data version: ${compat.epoch} (requires ${compat.floor})\n\n`
+        : `Required build: ${requiredBuild}\n\n`) +
       `What’s happening:\n`,
   );
 
@@ -101,9 +111,12 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
             className="mt-2 max-w-[32ch] font-sans text-ds-13"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            This version of Louisiana Helpr is no longer supported. Install the
-            latest update from the App Store and you’ll pick up right where you
-            left off.
+            {/* Q1124: while the App Store listing is not live, testers update
+                through TestFlight, so the copy must not send them to a store
+                page that 404s. */}
+            {APP_STORE_LISTING_LIVE
+              ? "This version of Louisiana Helpr is no longer supported. Install the latest update from the App Store and you’ll pick up right where you left off."
+              : "This version of Louisiana Helpr is no longer supported. Open TestFlight, install the latest Helpr build, then reopen the app. You’ll pick up right where you left off."}
           </p>
         </div>
 
@@ -143,7 +156,7 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
             className="text-center font-mono text-ds-11 tabular-nums"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Installed build {installedBuild} · requires {requiredBuild}
+            {diagnosis}
           </p>
         </div>
       </div>

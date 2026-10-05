@@ -108,6 +108,17 @@ export function signupUrlFor(path?: string | null): string {
   return safe ? `/signup?redirect=${encodeURIComponent(safe)}` : "/signup";
 }
 
+/** Signed-out "Notify Me When Work Lands" (Q1313): quick sign-up, back to the feed. */
+export const NOTIFY_SIGNUP_URL = `${signupUrlFor("/jobs")}&reason=notify`;
+
+/** The line Signup step 1 shows when the visitor arrived from that button. */
+export const NOTIFY_SIGNUP_SUBTITLE = "Sign up to get notified when paid work lands.";
+
+/** Signup's step-1 subtitle for a `reason` query value (undefined = none). */
+export function notifySignupSubtitle(reason: string | null | undefined): string | undefined {
+  return reason === "notify" ? NOTIFY_SIGNUP_SUBTITLE : undefined;
+}
+
 
 /**
  * "…and I wanted it SAVED, not just seen."

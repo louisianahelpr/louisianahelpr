@@ -52,6 +52,7 @@ import { seniorModeMetadataPatch, sessionSeniorFlag, syncSeniorMode } from "@/li
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import RouteMemory from "@/components/RouteMemory";
+import StaleClientWatch from "@/components/StaleClientWatch";
 // Tiny + Supabase-free by design (a synchronous localStorage probe plus a
 // lazy boundary) so it can be imported eagerly here without putting the
 // auth check — and therefore Supabase — on the landing page's LCP path.
@@ -64,11 +65,9 @@ import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
-// Sonner and TooltipProvider pull in sonner +
-// @radix-ui/react-tooltip + @floating-ui (~14 KB gzipped of
-// otherwise-unused JS on the landing page where no toast fires and no tooltip
-// is visible). Lazy-loading them keeps the libs out of the critical entry
-// bundle — they hydrate after first paint when the wrappers actually mount.
+// Sonner + TooltipProvider pull in @radix-ui/react-tooltip + @floating-ui (~14 KB
+// gzipped, unused on the landing page). Lazy-loading keeps them out of the
+// critical entry bundle; they hydrate after first paint when the wrappers mount.
 const Sonner = lazy(() =>
   import("@/components/ui/sonner").then((m) => ({ default: m.Toaster }))
 );
@@ -695,6 +694,7 @@ const App = () => (
               subsequent navigations, that one consumes the value once at
               mount. */}
           <RouteMemory />
+          <StaleClientWatch />
           <OfflineBanner />
           <Suspense fallback={null}>
             <StrikeBanner />

@@ -561,10 +561,10 @@ async function reconcileUnrecorded(
 }
 
 /** failure_reason written with held_repay_owed_at (Q1223); the COLUMN is the debt record. */
-export const HELD_REPAY_MARKER = "payout_hold: re-pay owed once the hold is released";
+const HELD_REPAY_MARKER = "payout_hold: re-pay owed once the hold is released";
 
 /** A held re-pay still owed after this long pages a warning (once a day). */
-export const HELD_REPAY_AGE_ALERT_MS = 14 * 24 * 60 * 60 * 1000;
+const HELD_REPAY_AGE_ALERT_MS = 14 * 24 * 60 * 60 * 1000;
 /** A 'repaying' claim older than this belongs to a run that is gone. */
 const STALE_REPAYING_MS = 10 * 60 * 1000;
 

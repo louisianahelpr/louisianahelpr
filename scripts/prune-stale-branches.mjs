@@ -127,7 +127,7 @@ export function uncoveredCommits(cherryVerbose, covered) {
 
 /**
  * Pure: is this branch stranded work (pushed, unlanded, no PR, not new)?
- * @param {{ name: string, hasOpenPr: boolean, ageHours: number, uncovered: unknown[] }} b
+ * @param {{ name: string, hasOpenPr: boolean, ageHours: number, uncovered: unknown[], accepted?: boolean }} b
  */
 export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = false }) {
   if (PROTECTED.has(name)) return false;

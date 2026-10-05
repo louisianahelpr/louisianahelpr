@@ -359,6 +359,29 @@ describe("card-dispute clawback (Q202)", () => {
       expect(alerts().some((a) => a.severity === "critical" && /paying the Helpr back FAILED/.test(a.title))).toBe(true);
     });
 
+    // Q1292: a REFUSED re-pay leaves the re-drive in the SAME write that
+    // records the refusal. Two writes (status, then a best-effort clear) let a
+    // failed second write keep the row owed, and the sweep paid a Helpr staff
+    // had already paid by hand.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts | { status: "repay_failed", failure_reason: message, held_repay_owed_at: null, held_repay_first_attempt_at: null }, | { status: "repay_failed", failure_reason: message },
+    it("Q1292: a REFUSED re-pay marks repay_failed AND clears the re-pay debt in one write", async () => {
+      const fn = await load();
+      event("evt_w_refused", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ held_repay_owed_at: "2026-10-01T00:00:00.000Z" })] };
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("account closed"), { type: "StripeInvalidRequestError" }));
+      const res = await post(fn);
+      expect(res.status).toBe(200);
+      const failWrites = writesTo("chargeback_clawbacks", "update").filter((w) => payload(w).status === "repay_failed");
+      expect(failWrites).toHaveLength(1);
+      expect(payload(failWrites[0])).toMatchObject({ status: "repay_failed", held_repay_owed_at: null, held_repay_first_attempt_at: null });
+      expect(failWrites[0].filters).toContainEqual({ op: "in", column: "status", value: ["repaying"] });
+      expect(failWrites[0].selectCols).toBe("id");
+      // No second, separate clear: the one write is the whole record.
+      const clears = writesTo("chargeback_clawbacks", "update").filter((w) => payload(w).held_repay_owed_at === null && payload(w).status === undefined);
+      expect(clears).toHaveLength(0);
+    });
+
     // Second review of Q1223 (S-A): the webhook's claim is a true
     // compare-and-set, and a same-key request still in flight is transient.
     // @mutate supabase/functions/_shared/chargebackClawback.ts |       .eq("id", row.id)\n      .eq("status", row.status); |       .eq("id", row.id)\n      .in("status", ["reversed", "repaying", "repay_failed"]);

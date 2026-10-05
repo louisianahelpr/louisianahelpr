@@ -3,7 +3,7 @@
 // chargeback block (charge.dispute.created -> 'chargeback') landing during the
 // Stripe call is overwritten. Quick Release and Quick Refund pinned only status.
 // @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_RELEASE_FLIP_PAYMENT_STATES]).select("id");\n      if (!releaseUpdateErr | .eq("status", "disputed").select("id");\n      if (!releaseUpdateErr
-// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
+// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_REFUND_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

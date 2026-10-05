@@ -28,7 +28,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'estimated_hours',\n |     -- removed\n
  * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'latitude',\n |     -- removed\n
  * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'location',\n |     'location_x',\n
- * @mutate supabase/migrations/20261004191544_jobs_id_server_owned.sql |   NEW.created_at                  := now();\n |     -- removed\n
+ * @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql |   NEW.created_at                  := now();\n |     -- removed\n
  * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'created_at'\n |     -- removed\n
  * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |        AND NEW.require_photo_proof IS TRUE THEN | AND false THEN
  * @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |        IF changed_col IN ('date_needed', 'start_time')\n           AND current_setting | IF current_setting

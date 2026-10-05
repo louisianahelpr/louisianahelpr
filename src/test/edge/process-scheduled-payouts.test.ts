@@ -971,6 +971,24 @@ describe("process-scheduled-payouts edge function", () => {
       expect(alerts().some((a) => a.severity === "critical" && /could not be re-paid/.test(a.title))).toBe(true);
     });
 
+    // Q1293: the refused re-pay's 'failed' write is read; one that did not land
+    // pages "mark it first" and is a defect, so a manual payment is not doubled
+    // by a later run re-taking the still-'repaying' row.
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |     const unmarked = !!failErr \|\| !failedRows \|\| failedRows.length === 0; |     const unmarked = false;
+    it("Q1293: a refused re-pay whose 'failed' write matches 0 rows pages 'mark it first' and is a defect", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      repayReady();
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("account closed"), { type: "StripeInvalidRequestError" }));
+      scenario.writeOverrides = [{ table: "tip_hold_redrives", op: "update", when: (p) => p.status === "failed", rows: [] }];
+      const res = await runCron();
+      expect(tipUpdates().pop()?.payload).toMatchObject({ status: "failed" });
+      const page = alerts().find((a) => a.severity === "critical" && /NOT marked failed/.test(a.title));
+      expect(page?.message).toMatch(/FIRST set that row's status to 'failed'/);
+      const body = await res.json();
+      expect(JSON.stringify(body)).toContain("refused re-pay not marked 'failed'");
+    });
+
     // review of Q1222: the re-pay has no source charge, so a short balance waits.
     // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (isBalanceShort(err)) { |     if (false) {
     it("Q1222: balance_insufficient on the re-pay waits (back to 'reversed'), never a final 'failed'", async () => {

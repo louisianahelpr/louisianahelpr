@@ -73,12 +73,26 @@ export async function handleChargeRefunded(
   };
   // The onboarding-fee correction refund is created with
   // metadata.reason = "duplicate_onboarding_fee" on the Refund object itself,
-  // NOT on the parent Charge. Read from the latest refund (newest first in
-  // Stripe's reverse-chronological list) to correctly detect it. An event that
-  // does carry refunds (an older API version) is used as it is.
-  const latestRefund: Stripe.Refund | undefined = charge.refunds?.data?.[0] ?? (await listChargeRefunds())[0];
-  const isOnboardingFeeCorrection =
-    (latestRefund?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
+  // NOT on the parent Charge. An event that does carry refunds (an older API
+  // version) is used as it is.
+  //
+  // Q1300: the event does not say WHICH refund it is about, so every LIVE
+  // refund on the charge is considered (failed / canceled ones moved no
+  // money). Reading only the newest (list[0]) left the first of two refunds
+  // made close together with no payment_refunds row, and, when the newer one
+  // was an onboarding-fee correction, read an ordinary refund as a correction.
+  // Each ordinary refund gets its own ledger row (upsert on stripe_refund_id,
+  // so a refund another path or an earlier delivery recorded is skipped); the
+  // charge counts as a correction only when EVERY live refund on it is one.
+  const allRefunds: Stripe.Refund[] = charge.refunds?.data ?? (await listChargeRefunds());
+  const isCorrection = (r: Stripe.Refund) =>
+    (r?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
+  const liveRefunds = allRefunds.filter((r) => !!r?.id && r.status !== "failed" && r.status !== "canceled");
+  const ordinaryRefunds = liveRefunds.filter((r) => !isCorrection(r));
+  const isOnboardingFeeCorrection = liveRefunds.length > 0 && ordinaryRefunds.length === 0;
+  // Newest first (Stripe's list order): on a FULL refund this is the refund
+  // that completed the charge (is_partial false); the others were partial.
+  const latestRefund: Stripe.Refund | undefined = ordinaryRefunds[0];
 
   // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so the lookup
   // below cannot see it and this handler used to no-op on a refunded gift,
@@ -274,38 +288,41 @@ export async function handleChargeRefunded(
       // is idempotent — if another code path already wrote the row, ignoreDuplicates
       // skips the insert without error.
       if (latestRefund?.id) {
-        const { error: ledgerErr } = await supabase
-          .from("payment_refunds")
-          .upsert(
-            {
-              job_id: refundedJob.id,
-              customer_id: refundedJob.customer_id,
-              stripe_refund_id: latestRefund.id,
-              stripe_payment_intent_id: refundPiId,
-              // This refund's own amount, not the charge's running total: on a
-              // charge refunded in steps the total would count the earlier
-              // refunds twice (lh-money-escrow review of Q1193, must-fix 2).
-              amount_cents: latestRefund.amount,
-              currency: charge.currency,
-              is_partial: false,
-              reason: latestRefund.reason ?? null,
-              source: "stripe_dashboard",
-            },
-            { onConflict: "stripe_refund_id", ignoreDuplicates: true },
-          );
-        if (ledgerErr) {
-          await postSlackOpsAlert({
-            kind: "money_at_risk",
-            severity: "warning",
-            title: "payment_refunds ledger write failed (charge.refunded)",
-            message: `Could not write refund ledger row for job ${refundedJob.id}.`,
-            fields: {
-              "Job ID": refundedJob.id,
-              "Stripe Refund ID": latestRefund.id,
-              "Error": ledgerErr.message,
-            },
-          });
-          throw new Error(`charge.refunded payment_refunds upsert failed: ${ledgerErr.message}`);
+        // Q1300: one row per ordinary live refund, not only the newest.
+        for (const r of ordinaryRefunds) {
+          const { error: ledgerErr } = await supabase
+            .from("payment_refunds")
+            .upsert(
+              {
+                job_id: refundedJob.id,
+                customer_id: refundedJob.customer_id,
+                stripe_refund_id: r.id,
+                stripe_payment_intent_id: refundPiId,
+                // Each refund's own amount, not the charge's running total: on a
+                // charge refunded in steps the total would count the earlier
+                // refunds twice (lh-money-escrow review of Q1193, must-fix 2).
+                amount_cents: r.amount,
+                currency: charge.currency,
+                is_partial: r.id !== latestRefund.id,
+                reason: r.reason ?? null,
+                source: "stripe_dashboard",
+              },
+              { onConflict: "stripe_refund_id", ignoreDuplicates: true },
+            );
+          if (ledgerErr) {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "warning",
+              title: "payment_refunds ledger write failed (charge.refunded)",
+              message: `Could not write refund ledger row for job ${refundedJob.id}.`,
+              fields: {
+                "Job ID": refundedJob.id,
+                "Stripe Refund ID": r.id,
+                "Error": ledgerErr.message,
+              },
+            });
+            throw new Error(`charge.refunded payment_refunds upsert failed: ${ledgerErr.message}`);
+          }
         }
       } else {
         logStep("WARN: no refund object on charge — payment_refunds row skipped", {
@@ -361,38 +378,41 @@ export async function handleChargeRefunded(
         partialCustomerId = partialJob.customer_id;
       }
 
-      const { error: partialLedgerErr } = await supabase
-        .from("payment_refunds")
-        .upsert(
-          {
-            job_id: partialJobId,
-            customer_id: partialCustomerId,
-            stripe_refund_id: latestRefund.id,
-            stripe_payment_intent_id: refundPiId,
-            amount_cents: latestRefund.amount,
-            currency: charge.currency,
-            is_partial: true,
-            reason: latestRefund.reason ?? null,
-            source: "stripe_dashboard",
-          },
-          { onConflict: "stripe_refund_id", ignoreDuplicates: true },
-        );
-      if (partialLedgerErr) {
-        await postSlackOpsAlert({
-          kind: "money_at_risk",
-          severity: "warning",
-          title: "Partial refund ledger write failed (charge.refunded)",
-          message: `Could not write payment_refunds row for partial refund ${latestRefund.id}.`,
-          fields: {
-            "Stripe Refund ID": latestRefund.id,
-            "Payment Intent": refundPiId,
-            ...(partialJobId ? { "Job ID": partialJobId } : {}),
-            "Error": partialLedgerErr.message,
-          },
-        });
-        throw new Error(`charge.refunded partial payment_refunds upsert failed: ${partialLedgerErr.message}`);
+      // Q1300: one row per ordinary live refund, not only the newest.
+      for (const r of ordinaryRefunds) {
+        const { error: partialLedgerErr } = await supabase
+          .from("payment_refunds")
+          .upsert(
+            {
+              job_id: partialJobId,
+              customer_id: partialCustomerId,
+              stripe_refund_id: r.id,
+              stripe_payment_intent_id: refundPiId,
+              amount_cents: r.amount,
+              currency: charge.currency,
+              is_partial: true,
+              reason: r.reason ?? null,
+              source: "stripe_dashboard",
+            },
+            { onConflict: "stripe_refund_id", ignoreDuplicates: true },
+          );
+        if (partialLedgerErr) {
+          await postSlackOpsAlert({
+            kind: "money_at_risk",
+            severity: "warning",
+            title: "Partial refund ledger write failed (charge.refunded)",
+            message: `Could not write payment_refunds row for partial refund ${r.id}.`,
+            fields: {
+              "Stripe Refund ID": r.id,
+              "Payment Intent": refundPiId,
+              ...(partialJobId ? { "Job ID": partialJobId } : {}),
+              "Error": partialLedgerErr.message,
+            },
+          });
+          throw new Error(`charge.refunded partial payment_refunds upsert failed: ${partialLedgerErr.message}`);
+        }
       }
-      logStep("Partial refund ledger row written", { refundId: latestRefund.id, pi: refundPiId });
+      logStep("Partial refund ledger rows written", { refundIds: ordinaryRefunds.map((r) => r.id), pi: refundPiId });
     }
   }
 }

@@ -2,7 +2,7 @@
 // @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund"); | const raced = null as Response \| null;
 // @mutate supabase/functions/create-payment/index.ts | if (error \|\| !current \|\| current.payment_status !== "chargeback") return null; | if (error \|\| !current) return null;
 // @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_RELEASE_FLIP_PAYMENT_STATES]).select("id");\n      if (!releaseUpdateErr | .eq("status", "disputed").select("id");\n      if (!releaseUpdateErr
-// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
+// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_REFUND_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
 // @mutate supabase/functions/create-payment/index.ts |         payment_method_types: TIP_PAYMENT_METHOD_TYPES, |
 /**
  * Unit tests for the `create-payment` Supabase edge function.
@@ -2741,12 +2741,15 @@ describe("create-payment edge function", () => {
         // Quick Release also closes a job our own transfer.created webhook already
         // marked 'released' in the milliseconds between transferToHelper and the
         // flip (review of Q1192, must-fix 1): without it that race left a paid
-        // Helpr, a stuck claim and a 500. Quick Refund keeps the narrow set.
+        // Helpr, a stuck claim and a 500. Quick Refund likewise closes a job its
+        // own charge.refunded already marked 'refunded' (Q1301: a refund that
+        // completes the charge, when the fee is 0 or was refunded earlier).
         // @mutate supabase/functions/create-payment/index.ts | const DISPUTE_RELEASE_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "released"] as const; | const DISPUTE_RELEASE_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES] as const;
         // @mutate supabase/functions/create-payment/index.ts | const DISPUTE_FLIP_PAYMENT_STATES = ["escrow", "payout_pending"] as const; | const DISPUTE_FLIP_PAYMENT_STATES = ["escrow", "payout_pending", "chargeback"] as const;
+        // @mutate supabase/functions/create-payment/index.ts | const DISPUTE_REFUND_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "refunded"] as const; | const DISPUTE_REFUND_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES] as const;
         it.each([
           ["admin_release_dispute", seedReleasable, ["escrow", "payout_pending", "released"]],
-          ["admin_refund_dispute", seedRefundable, ["escrow", "payout_pending"]],
+          ["admin_refund_dispute", seedRefundable, ["escrow", "payout_pending", "refunded"]],
         ])("%s flips only a job in its own settle-able payment states — never over a chargeback block (Q1192)", async (action, seed, states) => {
           seed();
           const fn = await load();
@@ -3210,7 +3213,7 @@ describe("create-payment edge function", () => {
         expect(res.status).toBe(200);
         expect(stripeMock.refunds.create).not.toHaveBeenCalled();
         expect(scenario.writes.find((w) => w.table === "payment_refunds")?.payload).toMatchObject({ stripe_refund_id: "re_full" });
-        const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+        const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).status === "cancelled");
         expect(flip?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
       });
 
@@ -3292,7 +3295,7 @@ describe("create-payment edge function", () => {
         expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
       });
 
-      // @mutate supabase/functions/create-payment/index.ts | console.error(`[create-payment] admin_refund_general: transfers.list failed for job ${jobId}:`, listErr);\n            return new Response( | console.error(`[create-payment] admin_refund_general: transfers.list failed for job ${jobId}:`, listErr);\n            void new Response(
+      // @mutate supabase/functions/create-payment/index.ts | await putGeneralClaimBack("Stripe's transfer list could not be read");\n            return new Response( | await putGeneralClaimBack("Stripe's transfer list could not be read");\n            void new Response(
       it("fails closed (503, nothing refunded) when Stripe cannot be asked", async () => {
         seedFailedRow();
         stripeMock.transfers.list.mockRejectedValue(new Error("stripe down"));
@@ -3317,21 +3320,102 @@ describe("create-payment edge function", () => {
         return fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "goodwill" } }));
       };
 
-      it("is pinned to the status AND payment_status it read", async () => {
+      const claimWrite = () => scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "cancelling");
+      const closingFlip = () => scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).status === "cancelled");
+      const missClosingFlip = () => {
+        scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.status === "cancelled", rows: [] }];
+      };
+
+      it("is pinned to the status it read and to its own claim ('cancelling', or its own charge.refunded's 'refunded')", async () => {
         seedFull();
         const res = await call();
         expect(res.status).toBe(200);
-        const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+        const flip = closingFlip();
         expect(flip?.payload).toMatchObject({ status: "cancelled", payment_status: "refunded" });
         expect(flip?.filters).toEqual(expect.arrayContaining([
           { op: "eq", column: "status", value: "completed" },
+          { op: "in", column: "payment_status", value: ["cancelling", "refunded"] },
+        ]));
+      });
+
+      // Q1290: the job is TAKEN (compare-and-set to 'cancelling' on the status
+      // and payment_status read) BEFORE the payout ledger is read and before the
+      // Stripe refund, so a payout whose claim lands later re-reads a job that
+      // is no longer payout_pending, and one whose claim landed earlier is seen
+      // by the ledger read. Before, the ledger was read first and the job only
+      // flipped after the refund: a payout in between paid too.
+      // @mutate supabase/functions/create-payment/index.ts |       if (wantsFullRefund) {\n        let generalClaim = | if (false) {\n        let generalClaim =
+      // @mutate supabase/functions/create-payment/index.ts |           : generalClaim.eq("payment_status", job.payment_status); |           : generalClaim;
+      it("Q1290: a full refund claims the job BEFORE the payout-ledger read and the Stripe refund", async () => {
+        seedFull();
+        let ledgerReadsAtClaim = -1;
+        let refundsAtClaim = -1;
+        scenario.writeOverrides = [{
+          table: "jobs", op: "update",
+          when: (p) => {
+            if (p.payment_status === "cancelling" && ledgerReadsAtClaim === -1) {
+              ledgerReadsAtClaim = scenario.readQueries.filter((q) => q.table === "payout_transfers").length;
+              refundsAtClaim = stripeMock.refunds.create.mock.calls.length;
+            }
+            return false;
+          },
+        }];
+        const res = await call();
+        expect(res.status).toBe(200);
+        const claim = claimWrite();
+        expect(claim).toBeDefined();
+        expect(claim!.filters).toEqual(expect.arrayContaining([
+          { op: "eq", column: "status", value: "completed" },
           { op: "eq", column: "payment_status", value: "payout_pending" },
         ]));
+        expect(claim!.selectCols).toBe("id");
+        expect(ledgerReadsAtClaim).toBe(0);
+        expect(refundsAtClaim).toBe(0);
+        // The ledger WAS read (after the claim), and the refund went out.
+        expect(scenario.readQueries.some((q) => q.table === "payout_transfers")).toBe(true);
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      });
+
+      it("Q1290: a claim that matches 0 rows (the job moved: a payout or cancel started) moves nothing", async () => {
+        seedFull();
+        scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.payment_status === "cancelling", rows: [] }];
+        const res = await call();
+        expect(res.status).toBe(409);
+        expect(scenario.readQueries.some((q) => q.table === "payout_transfers")).toBe(false);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |           await putGeneralClaimBack("the payout ledger shows money already left (or could not be read)"); |           void 0;
+      it("Q1290: a payout already in the ledger refuses the refund AND puts the claim back", async () => {
+        seedFull();
+        scenario.reads.payout_transfers = { rows: [{ id: "pt-1" }] };
+        const res = await call();
+        expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        const back = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "payout_pending");
+        expect(back?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "cancelling" });
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |         if (nothingMoved) await putGeneralClaimBack( |         if (false) await putGeneralClaimBack(
+      it("Q1290: a refund Stripe REFUSES puts the claim back; one that fails ambiguously keeps it (the refund may exist)", async () => {
+        seedFull();
+        stripeMock.refunds.create.mockRejectedValueOnce(Object.assign(new Error("charge disputed"), { type: "StripeInvalidRequestError" }));
+        let res = await call();
+        expect(res.status).toBeGreaterThanOrEqual(400);
+        const putBack = () => scenario.writes.some((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "payout_pending");
+        expect(putBack()).toBe(true);
+
+        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        seedFull();
+        stripeMock.refunds.create.mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+        res = await call();
+        expect(res.status).toBeGreaterThanOrEqual(400);
+        expect(putBack()).toBe(false);
       });
 
       it("zero rows because the job MOVED during the refund: 500 and a critical page, never a silent success", async () => {
         seedFull();
-        scenario.writeSelectRows.jobs = [];
+        missClosingFlip();
         scenario.reads.jobs.selectOverrides = [
           { includes: "id, status, payment_status", result: { rows: [{ id: "job-1", status: "disputed", payment_status: "payout_pending" }] } },
         ];
@@ -3342,7 +3426,7 @@ describe("create-payment edge function", () => {
 
       it("zero rows because a concurrent copy of this refund already flipped it: success, no page", async () => {
         seedFull();
-        scenario.writeSelectRows.jobs = [];
+        missClosingFlip();
         scenario.reads.jobs.selectOverrides = [
           { includes: "id, status, payment_status", result: { rows: [{ id: "job-1", status: "cancelled", payment_status: "refunded" }] } },
         ];
@@ -3746,7 +3830,8 @@ describe("create-payment: the admin refunds give the gift card back (Q454)", () 
     scenario.rpc.has_role = true;
   });
   const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job");
-  const jobFlip = () => scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+  // The closing flip, not the Q1290 claim (payment_status -> 'cancelling') a full general refund takes first.
+  const jobFlip = () => scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status !== "cancelling");
   const posterNote = () => scenario.writes
     .filter((w) => w.table === "notifications" && w.op === "insert")
     .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]) as Array<Record<string, unknown>>)
@@ -3984,7 +4069,8 @@ describe("create-payment: the admin refunds give the gift card back (Q454)", () 
       rows: [{ ...disputedMixedJob, status: "in_progress" }],
       selectOverrides: [{ includes: "id, status, payment_status", result: { rows: [{ id: "job-1", status: "completed", payment_status: "payout_pending" }] } }],
     };
-    scenario.writeSelectRows.jobs = [];
+    // Only the closing flip misses (the Q1290 claim before it holds).
+    scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.status === "cancelled", rows: [] }];
     stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_short", status: "succeeded" });
     stripeMock.refunds.create.mockResolvedValue({ id: "re_full", amount: 4000 });
     const fn = await load();

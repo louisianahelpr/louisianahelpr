@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-05T07:13:44.450Z",
-  "guards": 1445,
-  "registered": 1445,
+  "generated": "2026-10-05T08:00:02.619Z",
+  "guards": 1458,
+  "registered": 1458,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -211,15 +211,6 @@
       ]
     },
     {
-      "module": "src/components/InstantPayoutDialog.tsx",
-      "tests": [
-        "src/components/InstantPayoutDialog.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/EarningsTab.tsx"
-      ]
-    },
-    {
       "module": "src/components/job-card/ActivitySectionedView.tsx",
       "tests": [
         "src/components/job-card/PagedActivityList.test.tsx"
@@ -286,42 +277,6 @@
       ]
     },
     {
-      "module": "src/components/PayoutSetupForm.tsx",
-      "tests": [
-        "src/components/PayoutSetupForm.test.tsx"
-      ],
-      "parents": [
-        "src/components/PaymentTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/profile/EarningsForecastCard.tsx",
-      "tests": [
-        "src/components/profile/EarningsForecastCard.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/EarningsTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/profile/earningsTab/EarningHistory.tsx",
-      "tests": [
-        "src/components/profile/earningsTab/EarningHistory.firstPayoutFee.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/EarningsTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/profile/HelperStreakBadge.tsx",
-      "tests": [
-        "src/components/profile/HelperStreakBadge.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/EarningsTab.tsx"
-      ]
-    },
-    {
       "module": "src/components/profile/HelperWorkPhotos.tsx",
       "tests": [
         "src/test/helperWorkPhotos.test.tsx"
@@ -375,15 +330,6 @@
       ],
       "parents": [
         "src/components/dashboard/JobDetailDialog.tsx"
-      ]
-    },
-    {
-      "module": "src/components/wallet/PayoutCelebration.tsx",
-      "tests": [
-        "src/components/wallet/PayoutCelebration.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/EarningsTab.tsx"
       ]
     },
     {

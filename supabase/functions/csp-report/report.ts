@@ -20,7 +20,7 @@ export const MAX_BODY_BYTES = 64 * 1024;
 /** Reporting API batches are read up to this many entries. */
 const MAX_ENTRIES = 20;
 /** At most this many violations are kept in the row's context. */
-export const MAX_CONTEXT_REPORTS = 5;
+const MAX_CONTEXT_REPORTS = 5;
 
 const REPORT_MEDIA_TYPES = new Set([
   "application/csp-report",
@@ -59,7 +59,7 @@ function num(v: unknown): number | null {
  * (password-reset and magic links), and error_logs is not where they belong.
  * Keyword values (`inline`, `eval`, `data`) pass through unchanged.
  */
-export function stripUrl(u: string): string {
+function stripUrl(u: string): string {
   if (!u) return "";
   try {
     const parsed = new URL(u);

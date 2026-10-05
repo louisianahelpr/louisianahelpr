@@ -78,6 +78,10 @@ export const AhaEvent = {
   // so the next has_role-style regression pages within minutes instead of
   // taking hours to diagnose (see PR #355, PR #358).
   ForcedLogoutBounce: "forced_logout_bounce",
+  // Performance: one real-user Navigation Timing sample per cold load
+  // (src/lib/pageLoadTiming.ts, Q762), read by scripts/slo.mjs for the p95
+  // page-load target on web and in the app.
+  PageLoad: "page_load",
 } as const;
 
 type EventName = typeof AhaEvent[keyof typeof AhaEvent] | (string & {});

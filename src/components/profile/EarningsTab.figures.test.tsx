@@ -1,10 +1,10 @@
 /**
- * Q1177: the one-page Earnings tab states the SAME money as the two-view page
- * it replaced, for the same data. Every figure below is hand-computed from the
- * fixture (not re-derived through the helpers under test), and the suite was
- * run unchanged against the two-view EarningsTab on origin/main before the
- * redesign (it reads both views when a view switcher is present) and passed
- * there too.
+ * Q1177: the Money tab's Earned half states the SAME money as the two-view
+ * (Earnings | Payouts) page it replaced, for the same data. Every figure below
+ * is hand-computed from the fixture (not re-derived through the helpers under
+ * test), and the figures suite was run unchanged against the two-view
+ * EarningsTab on origin/main before the redesign (it reads both views when a
+ * "Payouts" tab is present) and passed there too.
  *
  * Fixture: job A released $100 with its stamped $10 fee (take-home $90, one
  * $5 tip, one $90 ledger transfer with a $10 fee), job B approved and waiting
@@ -23,6 +23,11 @@
  */
 // @mutate src/components/profile/EarningsTab.tsx | sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct, firstPayoutFeeDueFrom(rangeJobs, firstPayoutFee)) | sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct)
 // @mutate src/components/profile/EarningsTab.tsx | const rangeTips = sumHelperTipDollars(rangeTipRows); | const rangeTips = 0;
+// @mutate src/components/profile/EarningsTab.tsx | const pageReady = useArrivalGate(!loading, streakState.settled && !ledgerPending); | const pageReady = useArrivalGate(!loading && !stripeLoading, streakState.settled && !ledgerPending);
+// @mutate src/components/profile/EarningsTab.tsx | ) : stripeBones ? <EarningsWalletBones /> : null} | ) : null}
+// @mutate src/components/profile/EarningsTab.tsx | useState<MoneyView>(() => moneyViewFromSearch(searchParams)) | useState<MoneyView>("earned")
+// @mutate src/components/profile/EarningsTab.tsx |       {view === "spent" && <SpentSection />} |       {false && <SpentSection />}
+// @mutate src/pages/profile/types.ts |   earnings: "Money", |   earnings: "Earnings & Payouts",
 // @mutate src/components/profile/earningsTab/EarningHistory.tsx | const tipTotal = sumHelperTipDollars(jobTips); | const tipTotal = 0;
 // @mutate src/components/profile/EarningsTab.tsx |               payoutLedger={payoutLedger}\n |
 // @mutate src/components/profile/earningsTab/EarningHistory.tsx |         {orphanTransfers.map((t) => ( |         {[].map((t: PayoutLedgerRow) => (
@@ -40,7 +45,7 @@ import type { Job, PayoutLedgerRow, StripePayoutData } from "./earningsTab/types
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({
     user: { id: "helper-1" },
-    profile: { subscription_tier: "free", subscription_expires_at: null, stripe_account_id: "acct_1" },
+    profile: profileRow,
     loading: false,
   }),
 }));
@@ -63,6 +68,10 @@ vi.mock("@/components/PaymentTab", () => ({
     return <p>bank account section</p>;
   },
 }));
+// The Spent half is pinned by SpentSection.test.tsx.
+vi.mock("@/components/profile/earningsTab/SpentSection", () => ({ SpentSection: () => <p>spent section</p> }));
+
+let profileRow: Record<string, unknown> = { subscription_tier: "free", subscription_expires_at: null, stripe_account_id: "acct_1" };
 
 const day = 86_400_000;
 const ago = (d: number) => new Date(Date.now() - d * day).toISOString();
@@ -109,9 +118,9 @@ vi.mock("@/components/profile/earningsTab/useEarningsData", () => ({ useEarnings
 
 import { EarningsTab } from "./EarningsTab";
 
-async function renderTab({ settle = true, earningsJobs = jobs } = {}) {
+async function renderTab({ settle = true, earningsJobs = jobs, url = "/profile?tab=earnings" } = {}) {
   render(
-    <MemoryRouter initialEntries={["/profile?tab=earnings"]}>
+    <MemoryRouter initialEntries={[url]}>
       <EarningsTab earningsJobs={earningsJobs} tips={tips} loading={false} onBack={() => {}} helperId="helper-1" helperName="Test Helpr" />
     </MemoryRouter>,
   );
@@ -202,8 +211,9 @@ describe("the one-page Earnings tab states the same money for the same data (Q11
   });
 });
 
-describe("one page, one list (Q1177)", () => {
+describe("Money: Earned | Spent, one payouts list (Q1177)", () => {
   beforeEach(() => {
+    profileRow = { subscription_tier: "free", subscription_expires_at: null, stripe_account_id: "acct_1" };
     earningsData = {
       stripeData,
       stripeLoading: false,
@@ -216,9 +226,44 @@ describe("one page, one list (Q1177)", () => {
     };
   });
 
-  it("has no view switcher and states each transfer exactly once", async () => {
+  it("is titled Money and switches Earned | Spent; Payouts is not a tab of its own", async () => {
     await renderTab();
-    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Money");
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Earned", "Spent"]);
+    expect(screen.getByRole("tab", { name: "Earned" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByText("spent section")).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByRole("tab", { name: "Spent" })); });
+    expect(screen.getByText("spent section")).toBeTruthy();
+    // Only the selected half is mounted.
+    expect(screen.queryByText("Sent to your bank")).toBeNull();
+  });
+
+  it("?view=spent opens on Spent", async () => {
+    await renderTab({ settle: false, url: "/profile?tab=earnings&view=spent" });
+    expect(await screen.findByText("spent section")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Spent" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("does not wait for Stripe: the Earned half paints, the wallet and bank payouts hold their own bones", async () => {
+    earningsData = { ...earningsData, stripeData: undefined, stripeLoading: true };
+    await renderTab();
+    expect(screen.getByText("Fence repair")).toBeTruthy();
+    expect(screen.getByTestId("earnings-wallet-loading")).toBeTruthy();
+    expect(screen.getByTestId("earnings-bank-payouts-loading")).toBeTruthy();
+    expect(screen.queryByTestId("earnings-page-skeleton")).toBeNull();
+  });
+
+  it("without a Stripe account, the connect card's bones hold the top slot while Stripe answers", async () => {
+    profileRow = { ...profileRow, stripe_account_id: null };
+    earningsData = { ...earningsData, stripeData: undefined, stripeLoading: true };
+    await renderTab();
+    expect(screen.getByTestId("earnings-payout-setup-skeleton")).toBeTruthy();
+    expect(screen.queryByTestId("earnings-wallet-loading")).toBeNull();
+    expect(screen.getByText("Fence repair")).toBeTruthy();
+  });
+
+  it("states each transfer exactly once", async () => {
+    await renderTab();
     const text = (document.body.textContent ?? "").replace(/\s+/g, " ");
     expect(count(text, "AAAA1111")).toBe(1);
     expect(count(text, "ORPHAN22")).toBe(1);

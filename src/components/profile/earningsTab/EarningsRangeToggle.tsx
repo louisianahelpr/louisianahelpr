@@ -32,19 +32,22 @@ const RANGE_OPTIONS: SegmentedOption<EarningsRange>[] = [
  * Year"). Two unlabelled segmented controls with different option sets and no
  * visible owner is why the screen read as though nobody could say which
  * control governed which number. The toggle now lives in the card whose
- * figures it scopes. (The spend pill itself was removed when Earnings became
- * one page, Q1177; the Spent card reads lifetime.)
+ * figures it scopes, and since Q1177 (Earned | Spent views) the Spent card
+ * uses THIS control too, with its own label, so the two cards' range rows are
+ * one shape with one option set.
  */
 export function EarningsRangeToggle({
   value,
   onChange,
+  ariaLabel = "Earnings date range",
 }: {
   value: EarningsRange;
   onChange: (v: EarningsRange) => void;
+  ariaLabel?: string;
 }) {
   return (
     <SegmentedControl
-      ariaLabel="Earnings date range"
+      ariaLabel={ariaLabel}
       /* ONE ROW THAT SCROLLS SIDEWAYS (owner, 2026-10-01: "make lifetime week
          month year scroll left and right"). The four options need ~331px and
          the card is ~303px wide at 375, so they used to wrap 2x2. Each pill

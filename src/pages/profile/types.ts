@@ -22,13 +22,13 @@ export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availabilit
 // 2026-08-24; if a tab's heading changes, change it here in the same commit.
 export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   profile: "Edit Profile",
-  earnings: "Earnings & Payouts",
+  earnings: "Money",
   schedule: "Schedule",
   availability: "Availability",
   // `payment` no longer has a Profile row of its own — it renders the merged
   // earnings tab (see ProfileTabPanels) so old deep links still resolve, and
   // therefore carries that screen's title rather than one of its own.
-  payment: "Earnings & Payouts",
+  payment: "Money",
   security: "Account Security",
   // "Legal", not "Legal & Policies", until 2026-09-19 — a drift this file's
   // own rule forbids, found when ProfileTabFallback started rendering these

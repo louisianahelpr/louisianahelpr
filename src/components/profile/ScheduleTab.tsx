@@ -411,7 +411,7 @@ export const SCHEDULE_LAYOUT_CLASS =
 export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack, hideHeader = false }: ScheduleTabProps) {
   // The viewer's own tier rate — the fallback used for assigned jobs whose
   // stamped fee isn't yet authoritative. Resolved once here rather than per
-  // card. Same ladder Earnings & Payouts and Work Record use.
+  // card. Same ladder the Money tab and Work Record use.
   const { profile: viewerProfile } = useCurrentUser();
   const viewerFeePercent = tierFeePercent(
     viewerProfile?.subscription_tier,

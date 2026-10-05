@@ -1,22 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, DollarSign, Banknote } from "lucide-react";
+import { Banknote } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
-import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
-import { unwrap } from "@/lib/supabaseResult";
-
-/** Poster-side slice needed for the Spent card. */
-interface SpentJobRow {
-  id: string;
-  budget: number;
-  poster_completed_at: string | null;
-  helper_completed_at: string | null;
-  created_at: string;
-}
 
 interface PayoutSummaryRow {
   amount_cents: number;
@@ -26,31 +15,26 @@ interface PayoutSummaryRow {
 }
 
 interface PaymentTabProps {
-  /** Lifetime take-home. NOT printed here — the Earned summary card owns that
-   *  figure. Kept because the Spent card still has to know whether ANY money
-   *  has moved in either direction, and hides itself when none has. */
-  totalEarnings: number;
   /** Fires once every query this block renders from has answered — the setup
-   *  form, the last payout and the poster spend — so its height is final.
-   *  EarningsTab keeps the page skeleton up until then (page-settle, Q2007). */
+   *  form and the last payout — so its height is final. EarningsTab keeps the
+   *  connect card's bones in its slot until then (that slot only; the page
+   *  itself never waits for Stripe, owner 2026-10-04). */
   onSettled?: () => void;
 }
 
 /**
- * The BANK ACCOUNT section of the one-page Earnings tab (Q1177): Stripe connect
- * state (PayoutSetupForm), when the next payout is expected, and what this
- * person SPENT as a poster.
+ * The PAYOUT ACCOUNT block of the Money tab: Stripe connect state
+ * (PayoutSetupForm) and when the next payout is expected.
  *
- * Two things left when the tab became one page (owner, 2026-10-01: "messy and
- * repeat itself a lot"):
- *  - "Last payout · $X on date" — the payouts list above states every payout
- *    with its amount and date, so this line was the same fact twice.
- *  - The Spent card's own Lifetime/Week/Month/Year control — a second range
- *    toggle on the screen that already has the Earned card's. The Spent card
- *    itself stays (owner, 2026-10-04): it is the only figure on the page about
- *    the reader as a POSTER, and it reads lifetime.
+ * It renders at the top of the Money tab while payouts are not set up (the
+ * "Connect to start earning" card), and at the bottom of the Earned half once
+ * they are (the bank account). Two things left it with Q1177:
+ *  - "Last payout · $X on date" — the payouts list states every payout with
+ *    its amount and date, so this line was the same fact twice.
+ *  - The Spent card, which is now the Spent half of the tab (SpentSection),
+ *    with its range row, unchanged figures and the jobs it sums.
  */
-export function PaymentTab({ totalEarnings, onSettled }: PaymentTabProps) {
+export function PaymentTab({ onSettled }: PaymentTabProps) {
   const { user } = useCurrentUser();
   // Returning from Stripe Connect onboarding used to confirm by toast — a
   // channel that no longer renders — so the round-trip completed in total
@@ -93,43 +77,12 @@ export function PaymentTab({ totalEarnings, onSettled }: PaymentTabProps) {
     gcTime: 5 * 60_000,
   });
 
-  // Poster-side spending — jobs this user POSTED that completed. "Total
-  // spent" used to be summed from the helper-side `earningsJobs` prop (jobs
-  // the user WORKED), so it reported their clients' budgets as the user's
-  // own spending — fictional money. Scoped query here rather than threading
-  // another prop through EarningsTab, which has no poster-side data.
-  const { data: spentJobs = [], isLoading: spentJobsLoading } = useQuery<SpentJobRow[]>({
-    queryKey: ["payment", "posterSpend", user?.id],
-    queryFn: async () => {
-      const rows = unwrap(
-        await supabase
-          .from("jobs")
-          .select("id, budget, poster_completed_at, helper_completed_at, created_at")
-          .eq("customer_id", user!.id)
-          .eq("status", "completed"),
-      );
-      return (rows ?? []) as SpentJobRow[];
-    },
-    enabled: !!user?.id,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-  });
-
   const [formSettled, setFormSettled] = useState(false);
   const markFormSettled = useCallback(() => setFormSettled(true), []);
-  const settled = !!user?.id && formSettled && !lastPayoutLoading && !spentJobsLoading;
+  const settled = !!user?.id && formSettled && !lastPayoutLoading;
   useEffect(() => {
     if (settled) onSettled?.();
   }, [settled, onSettled]);
-
-  // Lifetime totals — completed jobs only so cancelled/expired don't inflate
-  // the headline.
-  const lifetimeSpent = spentJobs.reduce((s, j) => s + j.budget, 0);
-  const spentCount = spentJobs.length;
-  // No money has moved in either direction: no Spent card at all. It used to
-  // render its own "No activity yet" card, which repeated the payouts list's
-  // empty state on the same page (owner, 2026-10-01: "seems duplicate").
-  const hasNoActivity = lifetimeSpent === 0 && totalEarnings === 0;
 
   return (
     <div className="space-y-section">
@@ -189,64 +142,6 @@ export function PaymentTab({ totalEarnings, onSettled }: PaymentTabProps) {
           </section>
         );
       })()}
-
-      {!hasNoActivity && (
-      <section className="space-y-2">
-        <div className="rounded-2xl liquid-glass p-card">
-          {/* SAY WHOSE MONEY THIS IS. This card and <EarningsSummaryCard /> on
-              the same screen state the two halves of one person's finances —
-              what they spent as a POSTER and what they earned as a HELPER.
-              Unlabelled, the two read as one figure (owner, 2026-08-30). A
-              named header on each, matching the wallet's icon+title anatomy,
-              is what tells the two roles apart. */}
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <DollarSign className="w-4 h-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <h2
-                className="font-display italic font-bold leading-tight text-ds-17"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                Spent
-              </h2>
-              <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                on jobs you posted
-              </p>
-            </div>
-          </div>
-
-          <div>
-            {/* No small-caps eyebrow — the app removed this pattern
-                elsewhere. The dollar figure below is large and self-evidently
-                the headline; a plain caption still names the figure. */}
-            <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Total spent
-            </p>
-            <AnimatedCounter
-              value={lifetimeSpent}
-              prefix="$"
-              className="font-sans font-bold tabular-nums leading-none mt-1 block text-ds-26"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-            />
-            <p className="font-sans mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {spentCount === 0 ? "no jobs yet" : `across ${spentCount} job${spentCount === 1 ? "" : "s"}`}
-            </p>
-          </div>
-          {/* NO "TOTAL EARNED" COLUMN. What this helpr has banked is stated by
-              the Earned summary card from the same `totalEarnings`; printing it
-              here too put one figure on the screen twice. SPENT stays, alone,
-              because nothing else on the page states it. */}
-
-          <div className="mt-4 rounded-ds-md flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>
-            <CreditCard className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Payment methods are managed securely through Stripe at checkout.
-            </p>
-          </div>
-        </div>
-      </section>
-      )}
     </div>
   );
 }

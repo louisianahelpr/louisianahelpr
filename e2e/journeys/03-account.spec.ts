@@ -429,7 +429,7 @@ test(j8, async ({ browser, request, journey }) => {
     [/^Legal/, "Legal"],
     [/^Warnings & Strikes/, "Warnings & Strikes"],
     [/^Help & Support/, "Help & Support"],
-    [/^Earnings & Payouts/, "Earnings"],
+    [/^Money/, "Money"],
   ] as const) {
     await test.step(`${heading} opens`, async () => {
       await page.goto("/profile");

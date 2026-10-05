@@ -128,5 +128,24 @@
     "subscription_purchase_eligibility(text)": "client",
     "toggle_thread_mute(uuid, uuid)": "client",
     "user_may_see_job_address(uuid, uuid)": "policy"
+  },
+  "unscoped": {
+    "get_category_price_stats(text, text)": "reviewed 2026-10-05 (Q1284): marketplace-wide price statistics per category/parish (aggregates, no person); shown to every poster when pricing a job.",
+    "get_fill_rate_stats(integer)": "reviewed 2026-10-05 (Q1284): platform-wide fill-rate aggregates (no person); public by design.",
+    "get_helper_completed_counts(uuid[])": "reviewed 2026-10-05 (Q1284): public profile stat (completed jobs per Helpr) shown on every Helpr card and profile.",
+    "get_helper_on_time_percents(uuid[])": "reviewed 2026-10-05 (Q1284): public profile stat (on-time percent per Helpr) shown on Helpr cards and profiles.",
+    "get_helper_repeat_hire_percents(uuid[])": "reviewed 2026-10-05 (Q1284): public profile stat (repeat-hire percent per Helpr) shown on Helpr cards and profiles.",
+    "get_job_customer_id(uuid)": "reviewed 2026-10-05 (Q1284): policy helper; returns the poster of a job, which open_jobs_browse and the job page already show every signed-in caller.",
+    "get_parish_activity(integer)": "reviewed 2026-10-05 (Q1284): parish-level job activity aggregates (no person); public by design.",
+    "get_parish_for_zip(text)": "reviewed 2026-10-05 (Q1284): static ZIP-to-parish lookup table; no user data.",
+    "get_public_platform_settings()": "reviewed 2026-10-05 (Q1284): the public subset of platform_settings (fees, flags, min build) every client needs at boot.",
+    "get_user_credential_tier(uuid)": "reviewed 2026-10-05 (Q1284): public trust badge tier shown on every profile and card.",
+    "get_user_last_active(uuid[])": "reviewed 2026-10-05 (Q1284): the public 'Active now / active N ago' line on profiles and cards (newest login only).",
+    "get_user_repeat_hire_percent(uuid)": "reviewed 2026-10-05 (Q1284): public profile stat (repeat-hire percent) shown on the Helpr's profile.",
+    "group_member_slot(uuid, uuid)": "reviewed 2026-10-05 (Q1284): policy helper (crew roster membership); crew rosters are shown to the job's parties. Caller-scoping filed as Q1320.",
+    "has_role(uuid, app_role)": "reviewed 2026-10-05 (Q1284): policy helper used by every admin policy with auth.uid(); called directly it says whether an id is an admin. Caller-scoping filed as Q1320.",
+    "job_is_funded(uuid)": "reviewed 2026-10-05 (Q1284): policy helper; whether a job's payment is funded, which browse already implies (only funded jobs are listed).",
+    "seed_jobs_hidden_publicly()": "reviewed 2026-10-05 (Q1284): the global launch switch (one boolean flag), read by every browse surface.",
+    "user_may_see_job_address(uuid, uuid)": "reviewed 2026-10-05 (Q1284): policy helper called with auth.uid(); called directly with another id it says whether that person is hired/offered on a job. Caller-scoping filed as Q1320."
   }
 }

@@ -129,6 +129,7 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/ci/definer-exec-allowlist.json": {
     anon: "scripts/check-live-privileges.mjs:const definerStale = [...allowedDefiner]",
     authenticated: "scripts/check-live-privileges.mjs:const definerStale = [...allowedDefiner]",
+    unscoped: "scripts/check-live-privileges.mjs:const unscopedStale = [...allowedUnscoped]",
   },
   "e2e/happy-path/axe-known-violations.json": {
     "[]": "e2e/happy-path/knownAxeViolations.ts:out.stale.push(",

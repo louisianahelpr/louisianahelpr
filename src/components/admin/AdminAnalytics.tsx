@@ -21,6 +21,8 @@ import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
@@ -122,11 +124,14 @@ const AdminAnalytics = () => {
 
   // Q1140: a React Query load, so a failed jobs read reaches `isError` and the
   // page shows ErrorState, not $0.00 money tiles.
-  const { data, isLoading: loading, isError, refetch } = useQuery({
+  const { data, isLoading: loading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: ["admin-analytics-load"],
     queryFn: loadAnalytics,
     refetchOnWindowFocus: false,
   });
+  // Q571: a load paused offline has isLoading false and no data, which painted
+  // $0.00 money tiles and "No subscribers yet": the zeros Q1140 forbids.
+  const offlineEmpty = useFeedPhase({ status, fetchStatus }) === "offline-empty";
   const profiles = data?.profiles ?? [];
   const allJobs = data?.allJobs ?? [];
   // `null` = the ledger read FAILED. Not the same fact as an empty ledger, and
@@ -142,6 +147,17 @@ const AdminAnalytics = () => {
       <div className="flex items-center justify-center py-12">
         <HelprSpinner size={20} />
       </div>
+    );
+  }
+
+  if (offlineEmpty) {
+    return (
+      <AdminViewShell>
+        <OfflineEmptyState
+          body="Analytics will load here as soon as you're back online. These figures did not load; they are not zero."
+          onRetry={() => void refetch()}
+        />
+      </AdminViewShell>
     );
   }
 

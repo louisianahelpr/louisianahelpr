@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 286** (249 to do, 37 fixed with protection pending; 774 done). Feeds mirrored in: 14 from the alert ledger, 11 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 285** (248 to do, 37 fixed with protection pending; 775 done). Feeds mirrored in: 14 from the alert ledger, 11 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
 - **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1060 items — 774 done, 37 partly done (fixed, protection pending), 249 open.**
+**Queue: 1060 items — 775 done, 37 partly done (fixed, protection pending), 248 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1163,7 +1163,6 @@ Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02
 - [ ] **Q1104 HIGH LATENT #6**: charge-recurring-visits Stripe idempotency keys expire inside the funding window. Unchanged; mitigated by a unique index per the doc but the 24h key-expiry residual risk is still present and self-documented. (also: none found)
 - [ ] **Q1105 LOW LATENT #7**: No FK protects the ten no-FK tables (orphans possible outside app code). Still open and WORSE: orphan analytics_events rows grew from 63 to 830 since the doc was compiled; no FK added. (also: docs/OPEN.md:4294 notes 'no-FK tables are handled in code by choice')
 - [ ] **Q1106 MEDIUM LATENT #8**: Three edge functions have no verify_jwt=false block in config.toml. Still open; config.toml's own comment (2026-09-10) confirms daily-match-digest/saved-helper-availability-push/str-ical-sync still lack the stanza, by acknowledged omission not a fix. (also: none found)
-- [ ] **Q1107 MEDIUM LATENT #10**: OfflineBanner is lazy() — can fail to load on cold offline boot. Unchanged; still lazy-loaded with a null Suspense fallback, deliberate per the row's own note. (also: none found)
 - [ ] **Q1112 MEDIUM UNVERIFIED #3**: Cold-start push tap (real APNs to a force-quit app). Not reached — device-only settlement, unchanged. (also: none found)
 - [ ] **Q1113 LOW UNVERIFIED #4**: helpr:// custom-scheme branch has zero test coverage. Partially settled: unit test now exists (fixed that half); the SFSafariViewController device drive remains not reached. (also: none found)
 - [ ] **Q1114 LOW UNVERIFIED #5**: A group job end to end (post -> accept x3 -> work -> complete -> payout). Still blocked upstream; not reached, consistent with LATENT #1's continued open (b)/(d). (also: docs/OPEN.md VN-52)

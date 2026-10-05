@@ -1695,12 +1695,31 @@ serve(async (req) => {
       // 2026-09-14), so the final flip below can carry the same predicate: a
       // job that moved (a dispute opened, a completion landed) between the read
       // and here is refused BEFORE the refund, not discovered after it.
+      //
+      // Q1323: 'cancelling' is re-entered only when it is cancel_escrow's own
+      // stranded claim. A full admin refund (admin_refund_general, Q1290) takes
+      // the same state; taking it over refunded the charge under a second
+      // key. Its marker is read first, and the claim is also pinned to the
+      // exact payment_status read, so an admin claim landing after this read
+      // is not taken over either.
+      if (job.payment_status === "cancelling") {
+        const holder = await readRefundClaim(supabaseAdmin, jobId);
+        if (holder.claimedBy === "admin_refund_general" || holder.error) {
+          return new Response(JSON.stringify({
+            error: holder.error
+              ? "Couldn't check this job's refund in progress. No money was moved — try again."
+              : "An admin refund of this job is in progress, so it can't be cancelled here. No money was moved.",
+            refundClaimedBy: holder.claimedBy,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: holder.error ? 503 : 409 });
+        }
+      }
       const { data: claimed, error: claimErr } = await supabaseAdmin
         .from("jobs")
         .update({ payment_status: "cancelling" })
         .eq("id", jobId)
         .eq("status", job.status)
         .in("payment_status", ["escrow", "cancelling"])
+        .eq("payment_status", job.payment_status)
         // The allowlist above, inside the atomic write: `job.status` is 'open'
         // here, and a hire landing since the read sets helper_id.
         .is("helper_id", null)
@@ -1714,6 +1733,7 @@ serve(async (req) => {
           error: "This payment can no longer be cancelled — it has already been released, refunded, or was never held in escrow.",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
       }
+      await recordRefundClaim(supabaseAdmin, jobId, "cancel_escrow", user.id);
 
       // ── A crew is hired through its roster, never through helper_id ──
       // The claim's `helper_id IS NULL` stands for "nobody is hired", which is
@@ -2862,9 +2882,18 @@ serve(async (req) => {
       // Nor while the poster's cancel_escrow refund is in flight: two refunds
       // under disjoint keys on one charge, then two flips racing each other.
       if (job.payment_status === "cancelling") {
+        // Q1323: say WHOSE claim it is. A stranded admin refund claim used to
+        // answer "the cancellation is refunding it right now" forever.
+        const holder = await readRefundClaim(supabaseAdmin, jobId);
+        const stale = holder.claimedAt != null && Date.now() - Date.parse(holder.claimedAt) > 10 * 60 * 1000;
         return new Response(
           JSON.stringify({
-            error: "This job's cancellation is refunding it right now. No money was moved — refresh in a minute.",
+            error: holder.claimedBy === "admin_refund_general"
+              ? (stale
+                ? `An earlier admin refund of this job did not finish (started ${holder.claimedAt}). Its Stripe refund may or may not exist: check the charge in Stripe before anything else. No money was moved now.`
+                : "An admin refund of this job is running right now. No money was moved — refresh in a minute.")
+              : "This job's cancellation is refunding it right now. No money was moved — refresh in a minute.",
+            refundClaimedBy: holder.claimedBy,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
         );
@@ -2922,6 +2951,7 @@ serve(async (req) => {
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
         }
         generalClaimHeld = true;
+        await recordRefundClaim(supabaseAdmin, jobId, "admin_refund_general", user.id);
 
         const alreadyPaidOut = await escrowAlreadyMovedTheOtherWay(supabaseAdmin, jobId, "refund", "admin_refund");
         if (alreadyPaidOut) {
@@ -3930,6 +3960,42 @@ const DISPUTE_RELEASE_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "re
  * this flip records.
  */
 const DISPUTE_REFUND_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "refunded"] as const;
+
+/**
+ * Q1323: who holds a job's 'cancelling' refund claim (public.job_refund_claims,
+ * service role only). Written right after the claim's compare-and-set; a row
+ * is meaningful only while the job still reads 'cancelling' (a later claim
+ * overwrites it), so nothing has to delete it. A write failure is logged, not
+ * fatal: the job CAS is the lock, the marker only names its holder. A table
+ * that is not deployed yet (42P01 / PGRST205) reads as "no marker".
+ */
+type RefundClaimHolder = "cancel_escrow" | "admin_refund_general";
+const MISSING_TABLE = new Set(["42P01", "PGRST205"]);
+
+async function recordRefundClaim(supabaseAdmin: any, jobId: string, by: RefundClaimHolder, actorId: string | null): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("job_refund_claims")
+    .upsert({ job_id: jobId, claimed_by: by, actor_id: actorId, claimed_at: new Date().toISOString() }, { onConflict: "job_id" })
+    .select("job_id");
+  if (error && !MISSING_TABLE.has(String((error as { code?: string }).code ?? ""))) {
+    console.error(`[create-payment] job_refund_claims write failed for job ${jobId} (${by}); the claim is held, its holder is unrecorded:`, error.message);
+  }
+}
+
+async function readRefundClaim(
+  supabaseAdmin: any,
+  jobId: string,
+): Promise<{ claimedBy: RefundClaimHolder | null; claimedAt: string | null; error: string | null }> {
+  const { data, error } = await supabaseAdmin
+    .from("job_refund_claims").select("claimed_by, claimed_at").eq("job_id", jobId).maybeSingle();
+  if (error) {
+    if (MISSING_TABLE.has(String((error as { code?: string }).code ?? ""))) return { claimedBy: null, claimedAt: null, error: null };
+    return { claimedBy: null, claimedAt: null, error: error.message };
+  }
+  const row = data as { claimed_by?: string; claimed_at?: string } | null;
+  const by = row?.claimed_by === "cancel_escrow" || row?.claimed_by === "admin_refund_general" ? row.claimed_by : null;
+  return { claimedBy: by, claimedAt: row?.claimed_at ?? null, error: null };
+}
 
 /**
  * Q1322: a 'cancelling' claim could not be put back (cancel_escrow's or a full

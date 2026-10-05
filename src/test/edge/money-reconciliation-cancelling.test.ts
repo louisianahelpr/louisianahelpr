@@ -109,6 +109,23 @@ describe("money-reconciliation — stranded 'cancelling' (Q456)", () => {
     expect(slackAlerts.some((a: any) => a.severity === "critical")).toBe(true);
   });
 
+  // Q1323: the page names the claim's holder from job_refund_claims instead of
+  // guessing it from helper_id (an admin refund of an OPEN job has none).
+  // @mutate supabase/functions/money-reconciliation/index.ts |         claimed_by: holderByJob.get(String(job.id)) ?? "unrecorded", |         claimed_by: "unrecorded",
+  it("Q1323: names the claim's holder (an admin refund of an open job), or 'unrecorded'", async () => {
+    let fn = await load();
+    seed(cancellingJob(3 * 60));
+    scenario.reads.job_refund_claims = { rows: [{ job_id: "job-stuck", claimed_by: "admin_refund_general" }] };
+    let { b } = await run(fn);
+    expect(finding(b, "cancelling_stranded")!.sample[0]).toMatchObject({ job_id: "job-stuck", claimed_by: "admin_refund_general" });
+
+    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
+    fn = await load();
+    seed(cancellingJob(3 * 60));
+    ({ b } = await run(fn));
+    expect(finding(b, "cancelling_stranded")!.sample[0]).toMatchObject({ claimed_by: "unrecorded" });
+  });
+
   it("leaves a cancel that is still inside its own round-trips alone", async () => {
     const fn = await load();
     seed(cancellingJob(5));

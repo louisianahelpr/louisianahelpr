@@ -625,7 +625,7 @@ function main() {
     `generated-current: ${selected.length} CI generator(s) re-run, ${EVIDENCE.length} browser/prod evidence generator(s) registered, ` +
       `${Object.keys(TWO_WAY).length} two-way baseline(s), ${Object.keys(WRITES_NOT_COMMITTED).length} non-inventory writer(s) classified.`,
   );
-  if (!only && selected.length < 7) problems.push(`only ${selected.length} generators registered — the registry shrank; floor is 7`);
+  if (!only && GENERATED.length < 7) problems.push(`only ${GENERATED.length} generators registered — the registry shrank; floor is 7`);
   if (problems.length) {
     for (const p of problems) console.error(`::error::${p}`);
     // 3 = drift only (the caller decides whose it is); 1 = anything else.

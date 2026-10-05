@@ -32,7 +32,7 @@ const pay = extractConstraints().get("jobs")?.get("jobs_payment_status_check");
 const ADMITTED = pay && pay.kind === "enum" ? pay.values : [];
 
 const files = (readdirSync(FN_DIR, { recursive: true }) as string[])
-  .filter((f) => f.endsWith(".ts") && !/(^|\/)(tests?|__tests__)\/|[._]test\.ts$/.test(f))
+  .filter((f) => f.endsWith(".ts") && !/(^|\/)(tests?|__tests__)\//.test(f) && !/[._]test\.ts$/.test(f))
   .map((f) => ({ f, src: blankComments(readFileSync(join(FN_DIR, f), "utf8")) }));
 
 const strs = (s: string) => [...s.matchAll(/["']([a-z_]+)["']/g)].map((m) => m[1]);

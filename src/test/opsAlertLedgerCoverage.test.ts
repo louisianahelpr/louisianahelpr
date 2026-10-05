@@ -31,7 +31,7 @@ import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
 const SLACK_TOKEN = /hooks\.slack\.com|slack\.com\/api|chat\.postMessage|SLACK_WEBHOOK_URL|SLACK_API_KEY/;
-const RAW_SLACK_URL = /hooks\.slack\.com|slack\.com\/api/;
+const RAW_SLACK_URLS = ["hooks.slack.com", "slack.com/api"]; // plain substrings of SQL text, not URL validation
 
 export const TRANSPORTS = [
   "supabase/functions/_shared/slack-alerts.ts",
@@ -101,7 +101,7 @@ export function ledgerBypasses(t: Tree, workflowExempt: Record<string, string> =
 
   // 2. migrations
   for (const [file, src] of Object.entries(t.migrations)) {
-    if (RAW_SLACK_URL.test(src)) v.push(`${file}: SQL posts to a raw Slack URL, bypassing slack-ops-alert and the ledger`);
+    if (RAW_SLACK_URLS.some((u) => src.includes(u))) v.push(`${file}: SQL posts to a raw Slack URL, bypassing slack-ops-alert and the ledger`);
   }
   const all = Object.keys(t.migrations).sort().map((f) => t.migrations[f]).join("\n");
   const trg = [...all.matchAll(/AFTER\s+INSERT\s+ON\s+public\.error_logs[\s\S]{0,200}?EXECUTE\s+(?:FUNCTION|PROCEDURE)\s+public\.(\w+)/gi)];

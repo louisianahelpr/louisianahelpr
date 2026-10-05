@@ -162,7 +162,7 @@ describe("Form 1099-K threshold — one number for the whole product", () => {
     expect(rendered).not.toMatch(/FORM_1099K_TRANSACTION_THRESHOLD/);
     expect(rendered).not.toMatch(/\$20,000/);
     // …and it still points somewhere authoritative instead of going silent.
-    expect(rendered).toMatch(/irs\.gov/);
+    expect(rendered).toContain("irs.gov");
   });
 });
 

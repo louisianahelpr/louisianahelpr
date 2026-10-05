@@ -612,7 +612,7 @@ test.describe("post a job", () => {
       expect(rows.length, "a double-tap on the final Post created more than one job").toBe(1);
       expect(rows[0].is_seed, "a test poster's job must be is_seed (derived server-side from the account)").toBe(true);
       // We stop before Stripe: the page may be on checkout hand-off, which is fine; an error screen is not.
-      if (!/stripe\.com/.test(page.url())) expect(await health(page, "post-double-tap")).toEqual([]);
+      if (!/(^|\.)stripe\.com$/.test(new URL(page.url()).hostname)) expect(await health(page, "post-double-tap")).toEqual([]);
     } finally {
       await removeJobs(request, title, info);
       await ctx.close();

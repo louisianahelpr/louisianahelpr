@@ -49,7 +49,7 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
     const p = join(dir, entry);
     if (statSync(p).isDirectory()) {
       if (entry !== "node_modules") sourceFiles(p, out);
-    } else if (/\.tsx?$/.test(p) && !/\.test\.|\.d\.ts$/.test(p)) {
+    } else if (/\.tsx?$/.test(p) && !p.includes(".test.") && !p.endsWith(".d.ts")) {
       out.push(p.slice(ROOT.length + 1));
     }
   }

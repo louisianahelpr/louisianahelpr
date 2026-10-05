@@ -102,7 +102,7 @@ beforeAll(() => {
 });
 afterAll(() => { setMainRef(null); if (root) rmSync(root, { recursive: true, force: true }); });
 
-// @mutate scripts/stranded-work.mjs |     if (landedElsewhere(comments.map((c) => c.body ?? ""))) continue; |     if (false) continue;
+// @mutate scripts/stranded-work.mjs |   return bodies.some((b) => | return [].some((b) =>
 describe("a closed PR noted as landed elsewhere is not stranded work (2026-10-04)", () => {
   it("accepts the lead's landed notes and nothing else", () => {
     expect(landedElsewhere(["Landed in batch 2 (#2252) as f5a982fdb (Q753, Q510)."])).toBe(true);

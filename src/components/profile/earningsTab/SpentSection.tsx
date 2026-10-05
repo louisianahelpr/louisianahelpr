@@ -8,17 +8,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
+import { spentRows, spentTotalCents, type PosterGiftRow, type PosterRefundRow, type PosterSpendJob } from "@/lib/posterSpend";
 import { EarningsRangeToggle, type EarningsRange } from "./EarningsRangeToggle";
 import { formatCents } from "./earningsTabHelpers";
 
 /** Poster-side slice for the Spent card and its list. */
-interface SpentJobRow {
-  id: string;
+interface SpentJobRow extends PosterSpendJob {
   title: string | null;
-  budget: number;
   poster_completed_at: string | null;
   helper_completed_at: string | null;
   created_at: string;
+}
+
+interface SpentData {
+  jobs: SpentJobRow[];
+  refunds: PosterRefundRow[];
+  gifts: PosterGiftRow[];
 }
 
 /** When a posted job counts as spent: the poster's confirmation, falling back
@@ -30,33 +35,42 @@ const completedAtMs = (j: SpentJobRow) => {
 
 /**
  * THE SPENT HALF of the Money tab (Q1177, owner 2026-10-04: "do earning and
- * spent instead"): what this person paid for jobs they POSTED.
+ * spent instead"): what this person really paid for jobs they POSTED.
  *
- * Moved out of PaymentTab (the payout account), where it sat as a card with
- * its own range control. The figures are PaymentTab's, unchanged: the same
- * read (completed jobs this user posted), the same lifetime sum of `budget`,
- * the same Monday-start week, calendar month and calendar year, the same
- * completion timestamp. One column more is read: `title`, for the list of
- * jobs paid for, from the same row of the same table.
+ * Which completed jobs count, and for how much, is posterSpend.ts's single
+ * rule (owner, 2026-10-04: "Fix Spent first"): the card charge, only when a
+ * card was charged, less refunds, gift-card cover and chargebacks. The total
+ * and the list both come from spentRows(), so the total is the sum of the
+ * rows. Range buckets are PaymentTab's: Monday-start week, calendar month and
+ * year, by completion timestamp.
+ *
+ * Reads, all the poster's own rows: their completed posted jobs (with the
+ * charge columns), their payment_refunds rows ("Customers can read their own
+ * refunds"), and their redeemed gift cards ("Gift cards are party-only").
  */
 export function SpentSection() {
   const { user } = useCurrentUser();
   // "Total spent" used to be summed from the helper-side `earningsJobs` (jobs
   // the user WORKED), so it reported their clients' budgets as the user's own
-  // spending — fictional money. This read is scoped to jobs the user posted.
-  const { data: spentJobs = [], isLoading, isError, isFetching, refetch } = useQuery<SpentJobRow[]>({
-    // `title` joined the select (Q1177), so the key changed with it: a cached
-    // row from the old select has no title.
-    queryKey: ["payment", "posterSpend", "withTitle", user?.id],
+  // spending — fictional money. These reads are scoped to jobs the user posted.
+  const { data, isLoading, isError, isFetching, refetch } = useQuery<SpentData>({
+    // The key names the shape: a cached row from an older select has no charge.
+    queryKey: ["payment", "posterSpend", "charged", user?.id],
     queryFn: async () => {
-      const rows = unwrap(
-        await supabase
+      const [jobs, refunds, gifts] = await Promise.all([
+        supabase
           .from("jobs")
-          .select("id, title, budget, poster_completed_at, helper_completed_at, created_at")
+          .select("id, title, budget, customer_fee_amount, urgent_fee, sales_tax_amount, payment_status, stripe_payment_intent_id, poster_completed_at, helper_completed_at, created_at")
           .eq("customer_id", user!.id)
           .eq("status", "completed"),
-      );
-      return (rows ?? []) as SpentJobRow[];
+        supabase.from("payment_refunds").select("job_id, amount_cents").eq("customer_id", user!.id),
+        supabase.from("gift_cards").select("job_id, amount").eq("recipient_id", user!.id).eq("status", "redeemed"),
+      ]);
+      return {
+        jobs: (unwrap(jobs) ?? []) as SpentJobRow[],
+        refunds: (unwrap(refunds) ?? []) as PosterRefundRow[],
+        gifts: (unwrap(gifts) ?? []) as PosterGiftRow[],
+      };
     },
     enabled: !!user?.id,
     staleTime: 60_000,
@@ -76,10 +90,13 @@ export function SpentSection() {
     : scope === "month" ? new Date(now.getFullYear(), now.getMonth(), 1).getTime()
     : scope === "year" ? new Date(now.getFullYear(), 0, 1).getTime()
     : null;
+  const spentJobs = data?.jobs ?? [];
   const scopedJobs = since === null ? spentJobs : spentJobs.filter((j) => completedAtMs(j) >= since);
-  const totalSpent = scopedJobs.reduce((s, j) => s + j.budget, 0);
-  const spentCount = scopedJobs.length;
-  const listed = [...scopedJobs].sort((a, b) => completedAtMs(b) - completedAtMs(a));
+  // ONE source for the total and the list (posterSpend.ts).
+  const rows = spentRows(scopedJobs, data?.refunds ?? [], data?.gifts ?? []);
+  const totalSpent = spentTotalCents(rows) / 100;
+  const spentCount = rows.length;
+  const listed = [...rows].sort((a, b) => completedAtMs(b.job) - completedAtMs(a.job));
 
   return (
     <section className="space-y-3">
@@ -145,7 +162,7 @@ export function SpentSection() {
           <h3 className="font-display italic font-bold leading-tight text-ds-17 pt-1" style={{ color: "hsl(var(--ink-deep))" }}>
             Jobs you paid for
           </h3>
-          {listed.map((j) => (
+          {listed.map(({ job: j, cents }) => (
             <div key={j.id} className="rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h4 className="font-display italic font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
@@ -156,7 +173,7 @@ export function SpentSection() {
                 </p>
               </div>
               <p className="font-sans font-bold tabular-nums text-ds-16 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>
-                {formatCents(Math.round(j.budget * 100))}
+                {formatCents(cents)}
               </p>
             </div>
           ))}

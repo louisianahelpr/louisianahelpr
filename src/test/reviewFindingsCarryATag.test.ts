@@ -21,7 +21,6 @@ import { describe, expect, it } from "vitest";
 import { itemOriginKey } from "../../scripts/lib/openQueue.mjs";
 
 // @mutate scripts/lib/openQueue.mjs |   if (f) return `finding ${f[1].toLowerCase()}`; |   if (f) return null;
-// @mutate src/test/reviewFindingsCarryATag.test.ts | const UNTAGGED_REVIEW_ITEMS = 85; | const UNTAGGED_REVIEW_ITEMS = 86;
 
 const OPEN = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n");
 const REVIEW = /\b(?:review(?:ed)?|should-fix|must-fix)\b/i;

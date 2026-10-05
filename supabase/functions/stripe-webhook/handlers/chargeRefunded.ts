@@ -84,7 +84,11 @@ export async function handleChargeRefunded(
   // Each ordinary refund gets its own ledger row (upsert on stripe_refund_id,
   // so a refund another path or an earlier delivery recorded is skipped); the
   // charge counts as a correction only when EVERY live refund on it is one.
-  const allRefunds: Stripe.Refund[] = charge.refunds?.data ?? (await listChargeRefunds());
+  // Q1325: an embedded list carries at most 10 refunds; when it says there are
+  // more, the whole list is read from Stripe.
+  const allRefunds: Stripe.Refund[] = charge.refunds?.data && !charge.refunds.has_more
+    ? charge.refunds.data
+    : await listChargeRefunds();
   const isCorrection = (r: Stripe.Refund) =>
     (r?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
   const liveRefunds = allRefunds.filter((r) => !!r?.id && r.status !== "failed" && r.status !== "canceled");

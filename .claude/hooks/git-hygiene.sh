@@ -72,4 +72,34 @@ if [ -z "$(find "$bak_stamp" -mtime -7 2>/dev/null)" ]; then
       && ls -1t "$HOME"/.lh-backups/local-branches-*.bundle 2>/dev/null | tail -n +5 | while read -r old; do rm -f "$old"; done
   ) >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &
 fi
+# Session-start housekeeping the owner asked for on 2026-10-04 ("this should
+# never ever happen in the future"), each step safe to repeat:
+#   1. the main checkout's main fast-forwards to origin/main when it has no
+#      tracked changes (it fell 266 commits behind while sessions worked in
+#      worktrees);
+#   2. agent worktree folders that are fully committed and untouched for 24h are
+#      removed even when an ended session still holds their lock (the branch is
+#      always kept, and the weekly bundle above holds it);
+#   3. the daily morning audit notes (docs/audit/morning/*.md, written by the
+#      morning routine and never staged by land.sh) are copied to
+#      ~/.lh-backups/morning/ and git ignores the folder, so none sits unsaved;
+#   4. lead logs in ~/.lh-tools/logs older than 14 days are deleted.
+(
+  cd "$dir" || exit 0
+  git fetch -q origin main 2>/dev/null
+  if [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = main ] && [ -z "$(git status --porcelain --untracked-files=no)" ]; then
+    git merge -q --ff-only origin/main 2>/dev/null && echo "$(date -u +%FT%TZ) main fast-forwarded to $(git rev-parse --short HEAD)"
+  fi
+  git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r w; do
+    [ "$w" = "$(git rev-parse --show-toplevel)" ] && continue
+    case "$w" in */.claude/worktrees/agent-*) ;; *) continue ;; esac
+    [ -n "$(git -C "$w" status --porcelain 2>/dev/null)" ] && continue
+    [ -n "$(find "$w" -path "$w/node_modules" -prune -o -newermt '-24 hours' -print 2>/dev/null | head -1)" ] && continue
+    git worktree unlock "$w" 2>/dev/null
+    git worktree remove "$w" 2>/dev/null && echo "$(date -u +%FT%TZ) removed finished agent folder $w (branch kept)"
+  done
+  mkdir -p "$HOME/.lh-backups/morning"
+  for f in docs/audit/morning/*.md; do [ -f "$f" ] && cp -n "$f" "$HOME/.lh-backups/morning/" 2>/dev/null; done
+  find "$HOME/.lh-tools/logs" -type f -mtime +14 -delete 2>/dev/null
+) >>"$HOME/.lh-hygiene/hygiene.log" 2>&1 </dev/null &
 exit 0

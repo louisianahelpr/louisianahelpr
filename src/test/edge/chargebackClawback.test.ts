@@ -382,7 +382,7 @@ describe("card-dispute clawback (Q202)", () => {
       expect(clears).toHaveLength(0);
     });
 
-    // Q1322: a refused re-pay whose 'repay_failed' write matched 0 rows is
+    // Q1322: a refused re-pay whose 'repay_failed' write matched no row is
     // re-read: a row already out of the re-drive needs no "fix it by hand" page.
     // @mutate supabase/functions/_shared/chargebackClawback.ts |       const alreadySettled = !!nowRow && nowRow.status !== "repaying" && nowRow.held_repay_owed_at == null; |       const alreadySettled = false;
     it("Q1322: a refused re-pay whose write missed pages only when the row is still owed", async () => {

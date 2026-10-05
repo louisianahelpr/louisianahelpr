@@ -3423,7 +3423,7 @@ describe("create-payment edge function", () => {
         expect(back?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "cancelling" });
       });
 
-      // Q1322: a put-back that matches 0 rows is re-read, and the page is worded
+      // Q1322: a put-back that matches no row is re-read, and the page is worded
       // by the job's actual state ('refunded' needs nothing; never "set it back").
       // @mutate supabase/functions/create-payment/index.ts |   if (now.payment_status === "refunded") { |   if (false) {
       // @mutate supabase/functions/create-payment/index.ts |   if (dbError \|\| readErr \|\| !now \|\| now.payment_status === "cancelling") { |   if (true) {

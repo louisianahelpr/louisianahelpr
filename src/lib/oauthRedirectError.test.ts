@@ -211,3 +211,31 @@ describe("socialAuthErrorCopy — every social refusal has its own words", () =>
     expect(socialAuthErrorCopy("google", "some_new_code")).toBeNull();
   });
 });
+
+// Q446: the Before User Created hook refuses a no-match Apple/Google sign-in
+// with http_code 403 and `lh_account_choice:<id>`. GoTrue's callback turns that
+// into error=access_denied, an EMPTY error_code and the message as
+// error_description (external.go getErrorQueryString) — which the generic map
+// reads as "declined at the provider" and drops. It must become the choice.
+describe("captureOAuthRedirectError — one account per person (Q446)", () => {
+  const ID = "0f8c4a52-6a0e-4d55-9a53-1b2c3d4e5f60";
+  const choiceUrl = (desc: string) => {
+    const q = new URLSearchParams({ error: "access_denied", error_code: "", error_description: desc });
+    const h = new URLSearchParams({ error: "access_denied", error_code: "", error_description: desc, sb: "" });
+    return `/home?${q}#${h}`;
+  };
+
+  it("a refused no-match Apple sign-in comes back as the choice, relay flag included", () => {
+    markOAuthPending("apple", "/home");
+    const f = fakeLocation(choiceUrl(`lh_account_choice:${ID}:relay`));
+    const got = captureOAuthRedirectError(f.loc, f.hist);
+    expect(got).toMatchObject({ provider: "apple", code: "account_choice", choice: { choiceId: ID, relay: true } });
+    expect(f.replaced()).toBe("/home");
+    expect(isExpectedSocialRefusal(got?.code)).toBe(true);
+  });
+
+  it("without the pending marker it is still the choice (provider unknown)", () => {
+    const f = fakeLocation(choiceUrl(`lh_account_choice:${ID}`));
+    expect(captureOAuthRedirectError(f.loc, f.hist)).toMatchObject({ provider: null, code: "account_choice", choice: { choiceId: ID, relay: false } });
+  });
+});

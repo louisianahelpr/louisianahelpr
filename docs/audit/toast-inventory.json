@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 566,
-    "files": 144,
-    "rendering": 545,
+    "calls": 573,
+    "files": 146,
+    "rendering": 552,
     "suppressedByPolicy": 21,
     "byKind": {
-      "confirmConsequential": 23,
+      "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 35,
-      "toast.error": 452,
+      "toast": 36,
+      "toast.error": 456,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 26,
       "toast.warning": 21
     },
     "copyPiecesByForm": {
-      "literal": 307,
-      "template": 73,
-      "dynamic": 226,
+      "literal": 309,
+      "template": 75,
+      "dynamic": 229,
       "jsx": 0
     }
   },
@@ -2807,8 +2807,31 @@
       "renders": true
     },
     {
+      "file": "src/components/auth/AccountChoiceDialog.tsx",
+      "line": 62,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Got it. Tap ${name} again to create your account."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/auth/AccountChoiceDialog.tsx",
+      "line": 76,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "result.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: result.message"
+      ]
+    },
+    {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 124,
+      "line": 139,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -2818,7 +2841,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 129,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3566,7 +3589,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 88,
+      "line": 89,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3576,7 +3599,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 129,
+      "line": 130,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3586,11 +3609,67 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 149,
+      "line": 150,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
         "text": "Check ${trimmed} to confirm your new address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "back.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: back.message"
+      ]
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 65,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "${NAME[provider]} connected. It now opens this account."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 67,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "result.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: result.message"
+      ]
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 78,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't remove that sign-in method — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 82,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Sign-in method removed."
       },
       "renders": true
     },
@@ -4382,7 +4461,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 239,
+      "line": 249,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4392,7 +4471,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 255,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4402,7 +4481,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 276,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4412,7 +4491,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 278,
+      "line": 288,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4422,7 +4501,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 291,
+      "line": 301,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4432,7 +4511,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 319,
+      "line": 329,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4442,7 +4521,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 353,
+      "line": 363,
       "kind": "toast.error",
       "title": {
         "form": "literal",

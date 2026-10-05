@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 261** (219 to do, 42 fixed with protection pending; 821 done). Feeds mirrored in: 11 from the alert ledger, 7 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 262** (220 to do, 42 fixed with protection pending; 821 done). Feeds mirrored in: 12 from the alert ledger, 7 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
 - **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1082 items — 821 done, 42 partly done (fixed, protection pending), 219 open.**
+**Queue: 1083 items — 821 done, 42 partly done (fixed, protection pending), 220 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -667,6 +667,7 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [~] **Q1310 MEDIUM quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit.** Mirrored 2026-10-05 from alert-ledger row b75d265e6201 (workflow: quota-monitor; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger b75d265e6201. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'b75d265e62012a472e62221e79c5ce28'` => closed **STATUS 2026-10-05 (alerts lane): same source as Q379** (this fingerprint is ledger row d2df1e5e, first seen 2026-09-26; Q379 tracks the cause). Re-measured from quota-monitor run 37253732780 (2026-10-05 02:01Z): 645 replays this usage period (51 accepted, 594 dropped by quota), usage period since 2026-09-06; last 7 days 1, newest day with any 2026-10-02. The burst that filled the quota was the automated browsers Q275 (b59b7445d) already stopped. The figure is cumulative for the period, so the item closes on the first quota-monitor run after the period resets (expected 2026-10-06 from the monitor's own period start, not read from Sentry billing). Nothing else to fix; re-check after 10-06.
 - [ ] **Q1370 MEDIUM # cron(s) need attention.** Mirrored 2026-10-05 from alert-ledger row 30f021e059dc (sql_slack: slack-ops-alert:custom; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 30f021e059dc. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '30f021e059dca18398edd0fa1a3b8759'` => closed
 - [ ] **Q1372 MEDIUM dead cron: expiring-jobs-push has not fired since <ts> (tolerance #).** Mirrored 2026-10-05 from alert-ledger row da3ef1e5e2ee (error_logs: cron-dead; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger da3ef1e5e2ee. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'da3ef1e5e2eea618f50aab6e4f7a9ec6'` => closed
+- [ ] **Q1373 MEDIUM cron http timeout: arrival-confirm-reminder returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time:….** Mirrored 2026-10-05 from alert-ledger row aa5ca08c8796 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger aa5ca08c8796. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'aa5ca08c879601e26d29a62f667098b4'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

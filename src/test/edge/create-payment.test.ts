@@ -1017,6 +1017,7 @@ describe("create-payment edge function", () => {
             // helper already confirmed — poster confirming now makes bothDone
             helper_completed_at: longAgo,
             stripe_payment_intent_id: "pi_123",
+            payment_status: "escrow",
           },
         ],
       };
@@ -1043,7 +1044,32 @@ describe("create-payment edge function", () => {
       expect(payload.status).toBe("completed");
       expect(payload.payment_status).toBe("payout_pending");
       expect(payload.payout_scheduled_at).toBeTruthy();
+      // Q1321: the scheduling write is pinned to held escrow.
+      expect(jobUpdate?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "escrow" });
     });
+
+    // Q1321: "mark complete" never read payment_status, so it scheduled a payout
+    // over a refund in flight ('cancelling'), a refund, a chargeback or an
+    // unpaid job, and the payout cron paid the Helpr ~3 days later.
+    // @mutate supabase/functions/create-payment/index.ts |           if (job.payment_status !== "escrow") { |           if (false) {
+    it.each(["cancelling", "refunded", "chargeback", "unpaid"])(
+      "Q1321: both confirmed on a '%s' job schedules NO payout",
+      async (paymentStatus) => {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{
+            id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "in_progress", budget: 100,
+            helper_confirmed_at: longAgo, poster_completed_at: null, helper_completed_at: longAgo,
+            stripe_payment_intent_id: "pi_123", payment_status: paymentStatus,
+          }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_123", status: "succeeded" });
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "release", jobId: "job-1" } }));
+        expect(res.status).toBeGreaterThanOrEqual(400);
+        expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "payout_pending")).toBe(false);
+      },
+    );
 
     it("refuses to schedule payout when the payment intent has not succeeded", async () => {
       seedAuth(scenario, POSTER);
@@ -1058,6 +1084,7 @@ describe("create-payment edge function", () => {
             helper_confirmed_at: longAgo,
             helper_completed_at: longAgo,
             stripe_payment_intent_id: "pi_bad",
+            payment_status: "escrow",
           },
         ],
       };

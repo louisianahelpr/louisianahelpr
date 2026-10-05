@@ -378,7 +378,8 @@ function runPlaywright(guard, { rebuild = false } = {}) {
     if (!b.ok) return { green: false, out: "npm run build FAILED before the spec ran:\n" + b.out.slice(-4000) };
   }
   // The JSON report is read only to learn WHY tests skipped (Q1144).
-  const jsonOut = path.join(os.tmpdir(), `vacuity-pw-${process.pid}-${Date.now()}.json`);
+  const jsonDir = fs.mkdtempSync(path.join(os.tmpdir(), "vacuity-pw-"));
+  const jsonOut = path.join(jsonDir, "report.json");
   const r = spawnSync(
     process.execPath,
     [PLAYWRIGHT_CLI,
@@ -443,7 +444,7 @@ function runPlaywright(guard, { rebuild = false } = {}) {
   } catch {
     // No report (a build failure before Playwright started): nothing to read.
   } finally {
-    fs.rmSync(jsonOut, { force: true });
+    fs.rmSync(jsonDir, { recursive: true, force: true });
   }
   if (r.status === 0 && m && !ranSomething && census?.allLivePay) {
     return {

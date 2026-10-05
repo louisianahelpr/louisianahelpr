@@ -25,10 +25,12 @@
  * simulation the pre-fix build shows ~0px of clearance and the post-fix build
  * shows the full inset, which is the proof.
  *
- * Numbers land in /tmp/ui-review/device-pass/measurements-<label>.json.
+ * Numbers land in ~/.lh-shots/ui-review/device-pass/measurements-<label>.json.
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import {
@@ -46,7 +48,7 @@ import { settleAnimations } from "./auditRoutes";
 import { SEED_JOBS, CUSTOMER_ID, HELPER_ID } from "./seedData";
 import { AXE_TAGS } from "./axeTags";
 
-const SHOTS = "/tmp/ui-review/device-pass";
+const SHOTS = join(homedir(), ".lh-shots", "ui-review", "device-pass");
 mkdirSync(SHOTS, { recursive: true });
 
 /** Set by the runner so a before/after pair writes to two different files. */

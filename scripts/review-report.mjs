@@ -9,7 +9,7 @@
  * script IS that recording's enforcement, and it could not enforce it:
  *
  *   1. It scanned exactly two directories — `test-results/` and
- *      `SWEEP_OUTPUT_DIR` (default `/tmp/ui-review`). A run that captured
+ *      `SWEEP_OUTPUT_DIR` (default `~/.lh-shots/ui-review`). A run that captured
  *      anywhere else — and several do: `a11y-webkit-prod.yml` points
  *      SWEEP_OUTPUT_DIR at `$GITHUB_WORKSPACE/a11y-prod-out/<engine>`,
  *      `check-changed.mjs` at `test-results/check-changed` — was invisible to
@@ -63,6 +63,7 @@
  */
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import { homedir } from "node:os";
 
 /**
  * One spelling per file. On macOS `/tmp` and `/var` are symlinks to
@@ -99,7 +100,7 @@ const extra = [
 
 const roots = [...new Set([
   RESULTS,
-  canon(process.env.SWEEP_OUTPUT_DIR || "/tmp/ui-review"),
+  canon(process.env.SWEEP_OUTPUT_DIR || resolve(homedir(), ".lh-shots", "ui-review")),
   ...extra.map((d) => canon(d)),
   // The log's own paths — every directory a recorded capture actually lives in.
   ...reviews.map((r) => canon(dirname(resolve(r.screenshot)))),

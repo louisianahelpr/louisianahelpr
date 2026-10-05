@@ -5,15 +5,16 @@ import {
   seedAuthedSession,
 } from "../happy-path/fixtures";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 // Responsive UI audit — capture 6 key screens at 4 viewport widths each
 // (24 screenshots total). DOES NOT make code fixes; the orchestrator
-// reviews the output. Saved into /tmp/responsive-audit/ as
+// reviews the output. Saved into ~/.lh-shots/responsive-audit/ as
 // <width>-<screenName>.png plus a per-combo OK/issue log to
-// /tmp/responsive-audit/_report.json.
+// ~/.lh-shots/responsive-audit/_report.json.
 
-const OUTPUT_DIR = "/tmp/responsive-audit";
+const OUTPUT_DIR = path.join(os.homedir(), ".lh-shots", "responsive-audit");
 const REPORT_PATH = path.join(OUTPUT_DIR, "_report.json");
 
 interface Viewport {

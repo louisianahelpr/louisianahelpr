@@ -144,6 +144,15 @@ interface BrowseMapProps {
    * Omitted on the guest dashboard, which has none of these.
    */
   exclusions?: ViewerFeedExclusions;
+  /**
+   * Re-read the pin RPC whenever this changes. /home passes the list's own
+   * last-read time, so the map re-reads exactly when the list does (after an
+   * apply, a pull-to-refresh, a focus refetch). Before this the pins were
+   * fetched once per mount and never again, so a job that left the board
+   * (applied to, hired, cancelled) stayed pinned beside a list that had
+   * dropped it.
+   */
+  refreshKey?: number;
 }
 
 /** Placement of the pin-anchored preview popover, in `mapBoxRef` pixels.
@@ -168,7 +177,7 @@ function readIsDark(): boolean {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
-export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions, refreshKey }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
   const [jobs, setJobs] = useState<MapJob[]>([]);
@@ -215,7 +224,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     return () => {
       cancelled = true;
     };
-  }, [currentUserId, reloadNonce]);
+  }, [currentUserId, reloadNonce, refreshKey]);
 
   // Filtered pin set. Every downstream consumer (count badge, fitToPins, the
   // markers themselves, the empty state) reads THIS, not the raw `jobs` —

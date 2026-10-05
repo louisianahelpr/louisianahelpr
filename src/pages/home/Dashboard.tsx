@@ -43,6 +43,7 @@ import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
+import { headerJobCount } from "@/pages/home/headerJobCount";
 import { safeStorage } from "@/lib/safeStorage";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useJobRef } from "@/hooks/useJobRef";
@@ -102,7 +103,7 @@ const Dashboard = () => {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
     helperAvailability, recommendedJobs, refresh, loadError,
     fetchNextPage, hasNextPage, isFetchingNextPage,
-    appliedJobIds, blockedUserIds,
+    appliedJobIds, blockedUserIds, jobsUpdatedAt,
   } = useDashboardData();
 
   // Sentinel for infinite scroll — fires fetchNextPage when ~80% of the list is in view.
@@ -180,6 +181,15 @@ const Dashboard = () => {
     appliedJobIds, blockedUserIds,
     dismissedJobIds,
     savedOnlyJobIds: exclusions.savedOnlyJobIds,
+  });
+
+  // The header's "N jobs". Once every page is loaded the list IS the set, so
+  // the header prints its length — never a server total that can disagree
+  // with an empty list below it (owner, 2026-10-05). See headerJobCount.ts.
+  const headerCount = headerJobCount({
+    serverCount: filters.totalMatchingCount,
+    listedCount: filters.filteredJobs.length,
+    listComplete: !hasNextPage,
   });
 
   // The greeting card's "stat of the day" line was removed — it added a
@@ -668,8 +678,8 @@ const Dashboard = () => {
                             on the map). Fall back to the loaded count
                             while the true-total query is in flight so
                             the header never shows nothing. */}
-                        {filters.totalMatchingCount ?? filters.filteredJobs.length}
-                        {(filters.totalMatchingCount ?? filters.filteredJobs.length) === 1 ? " job" : " jobs"}
+                        {headerCount}
+                        {headerCount === 1 ? " job" : " jobs"}
                         {filters.hasFilters ? " match your filters" : ""}
                       </span>
                       {filters.searchOpen && (
@@ -782,6 +792,7 @@ const Dashboard = () => {
                     hoveredJobId={hoveredJobId}
                     setHoveredJobId={setHoveredJobId}
                     exclusions={exclusions}
+                    mapRefreshKey={jobsUpdatedAt}
                   />
                 </div>
                 {/* Web-desktop only: the map rides alongside the feed in its
@@ -833,6 +844,9 @@ const Dashboard = () => {
                         // and dismiss both update it, so a pin vanishes the
                         // moment the card does.
                         exclusions={exclusions}
+                        // Re-read the pins whenever the list re-reads, so the
+                        // map never shows a board older than the list beside it.
+                        refreshKey={jobsUpdatedAt}
                       />
                     </Suspense>
                   </div>

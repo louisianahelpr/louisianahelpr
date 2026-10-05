@@ -233,6 +233,8 @@ interface BrowseTasksFeedProps {
    * See src/pages/home/viewerFeedExclusions.ts.
    */
   exclusions?: ViewerFeedExclusions;
+  /** The list's last-read time; the map re-reads its pins when it moves. */
+  mapRefreshKey?: number;
 }
 
 /**
@@ -275,6 +277,7 @@ export function BrowseTasksFeed({
   hoveredJobId,
   setHoveredJobId,
   exclusions,
+  mapRefreshKey,
 }: BrowseTasksFeedProps) {
   // Personalize the signed-in empty state — greet by first name instead of
   // the generic "neighbor" the guest screen uses. Falls back to "neighbor"
@@ -513,6 +516,8 @@ export function BrowseTasksFeed({
               effectiveFee={effectiveFee}
               // Every cull the feed applies, applied to the pins too.
               exclusions={exclusions}
+              // …and re-read whenever the list is.
+              refreshKey={mapRefreshKey}
             />
           </Suspense>
         </div>

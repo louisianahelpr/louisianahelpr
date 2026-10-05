@@ -52,6 +52,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/hooks/useMapKitJs.ts:statusListeners": { kind: "not-user-data", why: "subscriber callbacks" },
   "src/hooks/useAuthReady.ts:authListeners": { kind: "not-user-data", why: "subscriber callbacks" },
   "src/hooks/useDrivingTime.ts:cache": { kind: "not-user-data", why: "drive minutes between ~110m-rounded points" },
+  "src/hooks/useDashboardData.ts:NO_IDS": { kind: "not-user-data", why: "frozen empty constant (never mutated; stable fallback for the exclusion sets)" },
   "src/hooks/useDashboardFilters.ts:EMPTY_ID_SET": { kind: "not-user-data", why: "frozen empty constant" },
   "src/pages/home/viewerFeedExclusions.ts:EMPTY_SET": { kind: "not-user-data", why: "frozen empty constant" },
   "src/lib/errorLogger.ts:bgFailureReportedInMemory": { kind: "not-user-data", why: "report-once dedupe" },

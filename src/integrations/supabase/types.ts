@@ -840,6 +840,7 @@ export type Database = {
           execution_started_at: string | null
           execution_status: string | null
           execution_transfer_id: string | null
+          helper_response: string | null
           id: string
           job_id: string
           opener_id: string | null
@@ -861,6 +862,7 @@ export type Database = {
           execution_started_at?: string | null
           execution_status?: string | null
           execution_transfer_id?: string | null
+          helper_response?: string | null
           id?: string
           job_id: string
           opener_id?: string | null
@@ -882,6 +884,7 @@ export type Database = {
           execution_started_at?: string | null
           execution_status?: string | null
           execution_transfer_id?: string | null
+          helper_response?: string | null
           id?: string
           job_id?: string
           opener_id?: string | null

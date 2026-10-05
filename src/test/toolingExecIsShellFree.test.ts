@@ -33,7 +33,7 @@ const REPO = resolve(__dirname, "../..");
 const SRC_RE = /\.(mjs|cjs|js|ts|tsx)$/;
 
 const MIN_FILES = 400; // 426 measured on 2026-10-05; a floor, adding a script is normal
-const EXECSYNC_SITES = 5; // EXACT (measured 2026-10-05): 4 literal-command calls + the gate.mjs STEPS loop
+const EXECSYNC_SITES = 6; // EXACT (measured 2026-10-05): 4 literal-command calls + 2 in the gate.mjs STEPS loop
 const EXECSYNC_ALLOWED = new Set(["scripts/gate.mjs"]); // `execSync(cmd, ...)` over a constant STEPS table, no external input
 
 function trackedTooling(): string[] {

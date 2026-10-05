@@ -7,7 +7,9 @@
 --     disputes.helper_response keeps it: open_dispute_as copies the job's
 --     answer onto the PREVIOUS (closed) dispute's row before clearing the
 --     job's copy. A party cannot write the column: it joins the pinned list of
---     enforce_dispute_opener_column_whitelist.
+--     enforce_dispute_opener_column_whitelist, which lets only open_dispute_as's
+--     own NULL -> answer write through, under the transaction-local flag
+--     app.dispute_archive_rpc that it raises around that one UPDATE.
 -- (3) The new-dispute path cleared the answer but still appended the
 --     withdrawn dispute's evidence onto jobs.dispute_evidence_urls and left
 --     the withdrawal's dispute_resolved_at stamped (can_review_job reads it).
@@ -19,7 +21,7 @@
 -- and enforce_dispute_opener_column_whitelist from 20260915101102 (md5 live
 -- d37547ecb7c482a5f6dacac315d6b18d = that file), each plus the lines above.
 -- Replay-safe: ADD COLUMN IF NOT EXISTS, CREATE OR REPLACE; grants restated.
--- The admin dispute card does not show the archived answer yet (Q1325).
+-- The admin dispute card does not show the archived answer yet (Q1327).
 -- Guard: src/test/disputeRefileKeepsHelprAnswer.test.ts +
 -- src/test/pglite/disputeRefileKeepsHelprAnswer.pglite.mjs.
 
@@ -78,8 +80,11 @@ BEGIN
   OR NEW.decided_by     IS DISTINCT FROM OLD.decided_by
   OR NEW.decision_text  IS DISTINCT FROM OLD.decision_text
   OR NEW.payout_split   IS DISTINCT FROM OLD.payout_split
-  -- Q1262(1): the archived Helpr answer is open_dispute_as's to write.
-  OR NEW.helper_response IS DISTINCT FROM OLD.helper_response
+  -- Q1262(1): the archived Helpr answer is open_dispute_as's to write, and
+  -- only once (NULL -> an answer) while its transaction-local flag is up.
+  OR (NEW.helper_response IS DISTINCT FROM OLD.helper_response
+      AND NOT (current_setting('app.dispute_archive_rpc', true) = '1'
+               AND OLD.helper_response IS NULL))
   THEN
     RAISE EXCEPTION 'only the evidence on a dispute may be changed'
       USING ERRCODE = 'insufficient_privilege';
@@ -369,6 +374,12 @@ BEGIN
   -- on that dispute's own row before the UPDATE below clears the job's copy
   -- (Q1165). Without this a poster could withdraw and re-file to wipe the
   -- Helpr's statement for good. Only into a closed row that has none yet.
+  -- This runs as a definer INSIDE the party's session, so the opener
+  -- whitelist trigger sees a party's write: a transaction-local flag, set only
+  -- here and cleared right after (as rpc_withdraw_dispute's
+  -- app.dispute_withdraw_rpc), lets exactly this NULL -> answer write through
+  -- (lh-authz-rls review, 2026-10-05: without it the re-file raised 42501).
+  PERFORM set_config('app.dispute_archive_rpc', '1', true);
   UPDATE public.disputes d
      SET helper_response = j.dispute_helper_response
     FROM public.jobs j
@@ -378,6 +389,7 @@ BEGIN
      AND d.id = (SELECT p.id FROM public.disputes p
                   WHERE p.job_id = _job_id AND p.status <> 'open'
                   ORDER BY p.created_at DESC LIMIT 1);
+  PERFORM set_config('app.dispute_archive_rpc', '0', true);
 
   INSERT INTO public.disputes (job_id, opener_id, reason, evidence_urls)
   VALUES (_job_id, _uid, _reason, COALESCE(_evidence_urls, '{}'::text[]))

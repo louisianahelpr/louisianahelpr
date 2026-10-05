@@ -17,7 +17,10 @@
 // @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |      SET helper_response = j.dispute_helper_response |      SET helper_response = NULL
 // @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |          dispute_resolved_at = NULL, |          dispute_resolved_at = dispute_resolved_at,
 // @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |          dispute_evidence_urls = COALESCE(_evidence_urls, '{}'::text[]) |          dispute_evidence_urls = COALESCE(dispute_evidence_urls, '{}'::text[]) \|\| COALESCE(_evidence_urls, '{}'::text[])
-// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |   OR NEW.helper_response IS DISTINCT FROM OLD.helper_response |   OR false
+// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |   OR (NEW.helper_response IS DISTINCT FROM OLD.helper_response | OR (false
+// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |                AND OLD.helper_response IS NULL)) |                AND true))
+// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |   PERFORM set_config('app.dispute_archive_rpc', '1', true);\n  UPDATE public.disputes d |   UPDATE public.disputes d
+// @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql |   PERFORM set_config('app.dispute_archive_rpc', '0', true);\n | \n
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -44,8 +47,19 @@ describe("Q1262: a re-file keeps the Helpr's answer and starts its own evidence"
     expect(archive).toBeGreaterThan(oda.indexOf("RETURN _existing_id;"));
   });
 
-  it("(1) no party can write disputes.helper_response", () => {
-    expect(wl).toMatch(/OR NEW\.helper_response IS DISTINCT FROM OLD\.helper_response THEN RAISE EXCEPTION 'only the evidence on a dispute may be changed'/);
+  it("(1) no party can write disputes.helper_response; only open_dispute_as's flagged NULL -> answer write passes", () => {
+    expect(wl).toMatch(
+      /OR \(NEW\.helper_response IS DISTINCT FROM OLD\.helper_response AND NOT \(current_setting\('app\.dispute_archive_rpc', true\) = '1' AND OLD\.helper_response IS NULL\)\) THEN RAISE EXCEPTION 'only the evidence on a dispute may be changed'/,
+    );
+  });
+
+  it("(1) open_dispute_as raises the flag around exactly the archive UPDATE and lowers it before anything else (lh-authz-rls review)", () => {
+    const on = oda.indexOf("PERFORM set_config('app.dispute_archive_rpc', '1', true); UPDATE public.disputes d SET helper_response");
+    const off = oda.indexOf("PERFORM set_config('app.dispute_archive_rpc', '0', true); INSERT INTO public.disputes");
+    expect(on, "the flag is not raised right before the archive UPDATE").toBeGreaterThan(-1);
+    expect(off, "the flag is not lowered right after it").toBeGreaterThan(on);
+    expect(oda.slice(on + 10, off)).not.toMatch(/set_config\('app\.dispute_archive_rpc'/);
+    expect((oda.match(/app\.dispute_archive_rpc', '1'/g) ?? []).length).toBe(1);
   });
 
   it("(3) the new dispute's job row starts unresolved with its own evidence only", () => {

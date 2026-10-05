@@ -83,8 +83,8 @@ describe("Q346 layer 1: the trigger refuses client hire writes", () => {
   it("refuses jobs.status newly 'accepted'", () => {
     expect(body).toMatch(/if new\.status::text = 'accepted' and old\.status::text is distinct from 'accepted' then raise exception 'hire_requires_rpc/);
   });
-  it("refuses jobs.offered_to_helper_id newly pointed, or cleared (Q1324)", () => {
-    // Q1324 (20261005063441): ANY client change, NULL included; clearing it
+  it("refuses jobs.offered_to_helper_id newly pointed, or cleared (Q1325)", () => {
+    // Q1325 (20261005063441): ANY client change, NULL included; clearing it
     // stranded a 'pending' offer with no target.
     expect(body).toMatch(/if new\.offered_to_helper_id is distinct from old\.offered_to_helper_id then raise exception 'hire_requires_rpc/);
   });

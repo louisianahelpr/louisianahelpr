@@ -8,7 +8,7 @@
 --
 -- Restated from its newest definition, 20261004004707 (md5(prosrc) live
 -- 2026-10-05 3c17f24e156be669f3cddf9102e08a83 = that file). Grants restated.
--- Guard: src/test/scheduleClashDeclines.test.ts.
+-- Guard: src/test/jobScheduleChange.test.ts (the Q1262(2) case) + src/components/schedule/ScheduleChangeControl.test.tsx.
 
 CREATE OR REPLACE FUNCTION public.respond_job_schedule_change(p_request_id uuid, p_accept boolean)
 RETURNS jsonb

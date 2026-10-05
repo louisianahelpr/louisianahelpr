@@ -285,7 +285,7 @@ sure someone hears it and closes it.
   supabase/migrations/** or scripts/vacuity/** runs `npm run gate` (or the
   relevant CI job) before it lands. Measure it: count main-red runs per day
   before and after.
-- [~] **Q52 LOW FALSE-GREEN HUNT (owner, 2026-09-23: "nothing is a false positive
+- [~] **Q52 LOW FALSE-GREEN HUNT (owner, 2026-09-23: "nothing is a false positive STATUS 2026-10-05: re-verified by the code-tooling lane in e58249930 (real-user page-load timing is now measured for the p95 SLO); the remaining work is unchanged.
   or going green if it's not truly green").** Areas 2-4 DONE with guards; area 1
   PARTLY done (see Q89). GUARDS:
   2. Workflows — src/test/workflowFalseGreenShapes.test.ts (SWALLOW `|| true`/

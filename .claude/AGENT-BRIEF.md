@@ -99,6 +99,10 @@ says more.
   `node scripts/queue-count.mjs --write`. Anything you notice but don't fix
   becomes a new queue item — nothing lives outside `docs/OPEN.md`.
 - Every new OPEN.md item carries HIGH/MEDIUM/LOW (src/test/openItemsHaveTier.test.ts).
+- **No duplicate items (owner 2026-10-05).** Before filing, search OPEN.md AND docs/archive for the
+  finding; never file a review point you fixed in the same branch (note it on the fixed item instead).
+  Every item filed from a review ends with `finding: <reviewer>@<reviewed-sha>#<n>`; two numbers with one
+  tag fail openNoDuplicateItems, and an untagged review item fails src/test/reviewFindingsCarryATag.test.ts.
 - A new queue item takes the number `node scripts/queue-count.mjs` prints as
   "next free", read right before you write it (and again after a rebase):
   parallel lanes guessed the same number three times on 2026-09-23.

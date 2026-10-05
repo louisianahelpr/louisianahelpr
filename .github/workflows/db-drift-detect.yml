@@ -70,7 +70,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .github/workflows
@@ -89,7 +89,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # REQUIRED SECRETS ARE A HARD GATE. Changed 2026-08-31.
       #
@@ -129,7 +129,7 @@ jobs:
 
       - name: Install Supabase CLI
         if: steps.precheck.outputs.skip != 'true'
-        uses: supabase/setup-cli@v3
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 
@@ -454,7 +454,7 @@ jobs:
         if: |
           steps.precheck.outputs.skip != 'true' &&
           (steps.drift.outputs.missing_prod != '0' || steps.drift.outputs.missing_repo != '0')
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const body = ${{ toJSON(steps.drift.outputs.body) }};
@@ -495,7 +495,7 @@ jobs:
           steps.precheck.outputs.skip != 'true' &&
           steps.drift.outputs.missing_prod == '0' &&
           steps.drift.outputs.missing_repo == '0'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const { data: existing } = await github.rest.issues.listForRepo({
@@ -645,7 +645,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: db-drift-detect

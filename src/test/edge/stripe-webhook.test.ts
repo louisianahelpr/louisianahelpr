@@ -1356,6 +1356,9 @@ describe("stripe-webhook edge function", () => {
       expect((jobWrite?.payload as Record<string, unknown>).payment_status).toBe(
         "released",
       );
+      // Q444: never a crew job: only the payout cron's roster gate releases one.
+      // @mutate supabase/functions/stripe-webhook/handlers/transferCreated.ts |         .not("is_group_job", "is", true)\n        .select("id") |         .select("id")
+      expect(jobWrite?.filters).toContainEqual({ op: "not", column: "is_group_job", operator: "is", value: true });
     });
   });
 

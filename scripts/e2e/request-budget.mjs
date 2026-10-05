@@ -158,7 +158,7 @@ function main(argv) {
   const labels = [];
   // --dir repeats: a sharded run (press-every-control) is judged as ONE run,
   // its shards' samples summed, because the shard split moves rows between
-  // shards night to night (one shard 7859-32839 requests, the run 55490-82257).
+  // shards night to night (one shard 7859-32839 requests; whole runs 34467-82257 so far).
   const dirs = [];
   let budgetsFile = "e2e/request-budgets.json";
   let allowEmpty = false;

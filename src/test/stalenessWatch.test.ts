@@ -1,6 +1,7 @@
 // @mutate scripts/check-staleness.mjs | if (hours > MAX_EVIDENCE_HOURS) { | if (hours > MAX_EVIDENCE_HOURS * 1000) {
 // @mutate scripts/check-staleness.mjs |     if (days > MAX_REPORT_DAYS) { |     if (days > MAX_REPORT_DAYS * 1000) {
 // @mutate scripts/check-staleness.mjs | && !recordDirs.some((d) => f.startsWith(d)) && !exempt.has(f) | && false
+// @mutate scripts/check-staleness.mjs |   const d = dispatchTitle ? dispatched.filter((r) => dispatchTitle.test(r.displayTitle ?? "")).map((r) => new Date(r.createdAt)) : []; |   const d = dispatched.map((r) => new Date(r.createdAt));
 // @mutate scripts/check-staleness.mjs | workflow: "loading-states-refresh.yml", branch: "main", maxDays: 2 | workflow: "loading-states-refresh.yml", maxDays: 2
 // @mutate scripts/check-staleness.mjs | "--workflow", workflow, "--branch", branch, "--status" | "--workflow", workflow, "--status"
 /*
@@ -10,7 +11,7 @@
  */
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { checkEvidence, checkLedger, checkReports, checkWorkflowBound, evidenceTimestamp, listEvidence, listReports, LIVE_DOCS, MAX_EVIDENCE_HOURS, MAX_LEDGER_COMMITS, MAX_REPORT_DAYS, WORKFLOW_BOUND } from "../../scripts/check-staleness.mjs";
+import { checkEvidence, checkLedger, checkReports, checkWorkflowBound, evidenceTimestamp, listEvidence, listReports, LIVE_DOCS, MAX_EVIDENCE_HOURS, MAX_LEDGER_COMMITS, MAX_REPORT_DAYS, newestQualifying, WORKFLOW_BOUND } from "../../scripts/check-staleness.mjs";
 // @ts-expect-error — plain .mjs script, no declaration file
 import { RECORD_DIRS } from "../../scripts/check-stated-counts.mjs";
 import { execFileSync } from "node:child_process";
@@ -85,6 +86,26 @@ describe("staleness watch — currency proven by something better than age", () 
   it("binds the overlay baseline to the Friday overlay cron, not any green ui-sweep run", () => {
     const overlay = (WORKFLOW_BOUND as { file: string; event?: string; weekdayUtc?: number }[]).find((b) => b.file.includes("overlay-sweep"));
     expect(overlay).toMatchObject({ event: "schedule", weekdayUtc: 5 });
+  });
+
+  // #2198 (2026-10-05): a hand dispatch on main of the SAME overlay sweep (both
+  // scheduled variants) counts; any other dispatch (empty, error, main batch,
+  // phone-light only) does not.
+  it("counts a dispatched overlay sweep of both variants, and nothing else dispatched", () => {
+    const overlay = (WORKFLOW_BOUND as { file: string }[]).find((b) => b.file.includes("overlay-sweep")) as Parameters<typeof newestQualifying>[0];
+    const fri = { createdAt: "2026-10-02T05:00:00Z" }; // a Friday
+    const wed = { createdAt: "2026-09-30T05:00:00Z" };
+    const d = (t: string, at = "2026-10-05T08:00:00Z") => ({ createdAt: at, displayTitle: t });
+    expect(newestQualifying(overlay, [wed])).toBeNull();
+    expect(newestQualifying(overlay, [fri])?.toISOString()).toBe("2026-10-02T05:00:00.000Z");
+    expect(newestQualifying(overlay, [fri], [d("UI sweep (overlay sweep, phone-light,phone-dark)")])?.toISOString()).toBe("2026-10-05T08:00:00.000Z");
+    expect(newestQualifying(overlay, [], [d("UI sweep (all sweep, all)")])).not.toBeNull();
+    for (const t of ["UI sweep (empty sweep, phone-light)", "UI sweep (overlay sweep, phone-light)", "UI sweep (main batch abc)", "UI sweep"]) {
+      expect(newestQualifying(overlay, [], [d(t)]), t).toBeNull();
+    }
+    // ui-sweep.yml titles a hand dispatch the way the pattern reads it.
+    const wf = readFileSync(resolve(__dirname, "../../.github/workflows/ui-sweep.yml"), "utf8");
+    expect(wf).toContain("format('{0} ({1} sweep, {2})', github.workflow, inputs.sweeps, inputs.variants)");
   });
 });
 

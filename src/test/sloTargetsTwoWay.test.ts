@@ -40,7 +40,7 @@ function q66Phrases(open: string): string[] {
   return list.replace(/\s+/g, " ").split(/,\s*(?![^(]*\))/).map((s) => s.trim());
 }
 
-const good = { sqlFn: async (q: string) => (q.includes("payout_transfers") ? [{ n: 12, p95_h: 26.5, p50_h: 24.2 }] : q.includes("notification_logs") ? [{ ok: 995, bad: 5, intentional: 40 }] : [{ ok: 40, bad: 1 }]),
+const good = { sqlFn: async (q: string) => (q.includes("analytics_events") ? [{ n: 140, p95_ms: 3100, p50_ms: 1700 }] : q.includes("payout_transfers") ? [{ n: 12, p95_h: 26.5, p50_h: 24.2 }] : q.includes("notification_logs") ? [{ ok: 995, bad: 5, intentional: 40 }] : [{ ok: 40, bad: 1 }]),
   logsFn: async () => [{ total: 10000, errors: 12 }],
   runsFn: async () => [...Array(1000).fill({ conclusion: "success" }), { conclusion: "failure" }, { conclusion: "cancelled" }] };
 
@@ -122,7 +122,7 @@ describe("a target is RED when missed and never green without a number", () => {
 
   it("outside the target is FAIL", async () => {
     const rows: Row[] = await slo.measureSlos({ now: NOW,
-      sqlFn: async (q: string) => (q.includes("payout_transfers") ? [{ n: 3, p95_h: 71, p50_h: 50 }] : [{ ok: 10, bad: 10 }]),
+      sqlFn: async (q: string) => (q.includes("analytics_events") ? [{ n: 30, p95_ms: 9200, p50_ms: 4100 }] : q.includes("payout_transfers") ? [{ n: 3, p95_h: 71, p50_h: 50 }] : [{ ok: 10, bad: 10 }]),
       logsFn: async () => [{ total: 100, errors: 7 }],
       runsFn: async () => [...Array(90).fill({ conclusion: "success" }), ...Array(10).fill({ conclusion: "failure" })] });
     for (const s of SLOS.filter((x) => !x.notMeasured)) expect(rows.find((r) => r.signal === s.name)!.status, s.id).toBe("FAIL");

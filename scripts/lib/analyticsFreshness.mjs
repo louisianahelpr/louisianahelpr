@@ -158,6 +158,7 @@ export const MISSING_MILESTONES = {
  * Held equal to the source both ways by the guard.
  */
 export const NOT_MONITORED = {
+  page_load: "performance sample (Q762), not a product action; scripts/slo.mjs reads its p95 and goes UNKNOWN when none arrive",
   signup_started: "funnel step before signup_completed; signup_completed is the monitored outcome",
   signup_step_completed: "funnel step before signup_completed",
   signup_step_validation_failed: "friction signal; zero is the good case",

@@ -28,7 +28,9 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 /** `[~]` items in docs/OPEN.md with no done-when marker, measured 2026-10-02 after the LOW branch rebased: 21 (four new "FIXED 2026-10-02, protection pending" lines whose last step is a 375 screenshot, which no marker kind can express); 19 after Q73 and Q387 were ticked done (combined landing #2087); 15 after rebasing onto origin/main 2026-10-02; 18 after three stranded notes landed (Q858 waits on Q785; Complete Profile and My Posts wait on a 375 screenshot); 17 after pd-b gave one a marker; 24 on 2026-10-03 after the lead removed seven markers that held while their items' own remaining work did not (Q71, Q104, Q380, Q416, Q421, Q593, Q701; each line says why); 20 on 2026-10-03 after Q340 got its done-when marker (lane B).; 22 on 2026-10-03 after the perf lane marked Q1157 and Q1158 fixed-and-waiting: what is left of each is Vercel Speed Insights' real-user P75 after deploy, which no marker kind can read (no API) */
 // 24 on 2026-10-04: Q654 and Q1172 are fixed in part and wait on the lead's real-browser filmstrip, 375 LCP/FCP and Lighthouse, which no marker kind can express (merging the PR is not "done").
 // 26 on 2026-10-05: the money lane's Q805 (chargeback follow-ups wait on a Stripe test-mode dispute run and the owner's webhook secret) and Q1336 (waits on the owner subscribing the live endpoint to charge.refund.updated) are fixed in part; neither wait is something a done-when marker can read.
-const MARKERLESS_PARTLY_DONE = 26;
+// 23 on 2026-10-05: Q430 got its done-when marker (issue #2213, the loading-states-refresh fixture run); its burst half was measured green.
+// 25 once both land: 26 (Q805, Q1336) minus Q430's new marker.
+const MARKERLESS_PARTLY_DONE = 25;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

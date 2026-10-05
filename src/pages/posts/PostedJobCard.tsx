@@ -25,6 +25,7 @@ import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
+import { crewIsBooked } from "./postedJobCard/crewBooked";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -747,6 +748,7 @@ function PostedJobCardInner({
                 completedJobMeta={completedJobMeta}
                 onBoost={onBoost}
                 onEdit={onEdit}
+                crewBooked={crewIsBooked(job, initialGroupHelpers)}
                 onCancel={onCancel}
                 onComplete={onComplete}
                 completingJobId={completingJobId}

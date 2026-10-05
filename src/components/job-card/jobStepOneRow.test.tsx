@@ -223,6 +223,7 @@ function posterCtx(job: Job): PosterStepCtx {
     navigate: vi.fn(),
     onBoost: vi.fn(),
     onEdit: vi.fn(),
+    crewBooked: false,
     onCancel: vi.fn(),
     onComplete: vi.fn(),
     onNoShow: vi.fn(),

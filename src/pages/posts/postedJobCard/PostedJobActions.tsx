@@ -25,6 +25,8 @@ interface PostedJobActionsProps {
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
   onBoost: (jobId: string) => void;
   onEdit: (job: Job) => void;
+  /** A crew with a hired member (crewBooked.ts, Q707). */
+  crewBooked?: boolean;
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
@@ -107,6 +109,7 @@ export function PostedJobActions({
   completedJobMeta,
   onBoost,
   onEdit,
+  crewBooked = false,
   onCancel,
   onComplete,
   completingJobId,
@@ -333,6 +336,7 @@ export function PostedJobActions({
     navigate,
     onBoost,
     onEdit,
+    crewBooked,
     onCancel,
     onComplete,
     onNoShow,

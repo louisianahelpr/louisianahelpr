@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 309** (272 to do, 37 fixed with protection pending; 736 done). Feeds mirrored in: 14 from the alert ledger, 11 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 310** (273 to do, 37 fixed with protection pending; 736 done). Feeds mirrored in: 14 from the alert ledger, 11 from nightly-red issues, 6 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
 - **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1045 items — 736 done, 37 partly done (fixed, protection pending), 272 open.**
+**Queue: 1046 items — 736 done, 37 partly done (fixed, protection pending), 273 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -1381,3 +1381,4 @@ Re-checked 2026-09-23; the full compile is at docs/archive/OPEN_ITEMS-2026-09-02
 - [ ] **Q1301 MEDIUM Quick Refund's pin assumes its own refund is partial (from the second lh-money-escrow review of Q1192/Q1193, 2026-10-04: APPROVE with notes).** create-payment ~:2694: when the charge already had a partial refund equal to the Stripe fee (or the fee is 0), Quick Refund completes the charge, charge.refunded flips the job to 'refunded' first, and Quick Refund's flip matches zero rows: a 500 with only console.error, a stuck stamped claim. Fix: allow 'refunded' in the refund pin (mirrors the release pin's 'released'), with a test.
 - [ ] **Q1302 LOW Two Quick Release/Refund race paths are untested (from the second lh-money-escrow review of Q1192/Q1193, 2026-10-04: APPROVE with notes).** Survived mutants: releasing the claim on the Quick Refund race path (~:2707) and the re-read error path in chargebackLandedDuringSettlement (~:3851). Add tests that fail on each.
 - [ ] **Q1303 LOW The settle-race 409 and page say the transfer/refund 'went out' when nothing was sent (from the second lh-money-escrow review of Q1192/Q1193, 2026-10-04: APPROVE with notes).** When helper_id is null or the amount is 0 no Stripe call happens. Fix the wording on that path.
+- [ ] **Q1304 HIGH 62 local branches and 17 stash entries held work that existed only on the lead's Mac (found by Cowork, 2026-10-04).** Done 2026-10-04: all 116 refs bundled to ~/.lh-backups/all-local-branches-and-stashes-2026-10-04.bundle; the 31 whose content is fully on main deleted locally (kept in the bundle); a weekly bundle of every local branch and stash is now automatic (.claude/hooks/git-hygiene.sh, newest 4 kept). Triage table: ~/.lh-backups/branch-triage-2026-10-04.md (3 LAND IT: lead/codescan-gate Q1143, lead/quick-closes Q1196, worktree-agent-a4b8058ccc8b65fe6 Q1177; 3 DECIDE: loading-state branches; 33 superseded; 23 to review). Left: the owner picks the off-Mac copy (private GitHub repo / Time Machine / Drive) after the triage, then land the LAND IT three and settle the rest.

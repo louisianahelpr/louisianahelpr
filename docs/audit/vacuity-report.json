@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-05T11:29:46.682Z",
+  "generated": "2026-10-05T12:24:42.716Z",
   "guards": 1482,
   "registered": 1482,
   "unregistered": [],
@@ -21,7 +21,6 @@
     "src/test/adminEndpointAuthz.test.ts",
     "src/test/banEvasionSurface.test.ts",
     "src/test/blockedStorageBoot.test.ts",
-    "src/test/disputeRowKeepsMessage.test.ts",
     "src/test/e2eNoSupabaseMocks.test.ts",
     "src/test/expiryFormatterClass.test.ts",
     "src/test/jobMatchPreferenceGate.test.ts",
@@ -29,11 +28,8 @@
     "src/test/messageToneInvariant.test.ts",
     "src/test/migrationPrivilegeKeywords.test.ts",
     "src/test/migrationRelationGrants.test.ts",
-    "src/test/replyParentDeleteCascade.test.ts",
     "src/test/storageBucketLimits.test.ts",
-    "src/test/strandedWork.test.ts",
-    "src/test/unknownZipIsNeverSilent.test.ts",
-    "src/test/vacuityWaitsForDeploys.test.ts"
+    "src/test/unknownZipIsNeverSilent.test.ts"
   ],
   "classD_selfReferential": [
     {

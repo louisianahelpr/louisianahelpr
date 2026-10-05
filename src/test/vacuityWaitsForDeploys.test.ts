@@ -38,6 +38,7 @@ describe("vacuity's prod-backed registrations wait for the commit's deploys (Q43
   });
 
   it("the deploy workflows it reads exist", () => {
+    expect(DEPLOY_WORKFLOWS.length).toBeGreaterThan(1);
     for (const wf of DEPLOY_WORKFLOWS) expect(existsSync(join(ROOT, ".github", "workflows", wf)), wf).toBe(true);
   });
 

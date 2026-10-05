@@ -82,6 +82,7 @@
     "supabase/functions/_shared/tierPerks.ts",
     "supabase/functions/_shared/helperFees.ts",
     "supabase/functions/_shared/payoutClaim.ts",
+    "supabase/functions/_shared/releaseFlip.ts",
     "supabase/functions/_shared/productPrices.ts",
     "supabase/functions/_shared/escrowTiming.ts",
     "supabase/functions/_shared/jobBudgetLimits.ts",

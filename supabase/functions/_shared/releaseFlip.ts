@@ -85,7 +85,21 @@ export async function flipJobToReleased(
     // A null `error` with an empty array is the zero-row match, NOT a success.
     lastZeroRow = !error;
     lastMessage = (error as { message?: string } | null)?.message ?? "zero rows matched";
-    if (lastZeroRow) break;
+    if (lastZeroRow) {
+      // Q1324: a full admin refund (create-payment admin_refund_general,
+      // Q1290) claims the job as 'cancelling' BEFORE it reads the payout
+      // ledger, sees this run's claim row there, refuses, and puts the job
+      // back a moment later. A flip landing inside that window is not a
+      // split state: wait for the put-back like a transient fault. Any other
+      // state (refunded, chargeback, escrow) still fails at once.
+      const { data: now } = await supabaseAdmin.from("jobs").select("payment_status").eq("id", jobId).maybeSingle();
+      if ((now as { payment_status?: string } | null)?.payment_status === "cancelling") {
+        lastMessage = "zero rows matched: the job was under a refund claim ('cancelling')";
+        console.warn(`[releaseFlip] job ${jobId} reads 'cancelling' (a refund claim) on attempt ${attempt + 1}; waiting for it to be put back`);
+        continue;
+      }
+      break;
+    }
     if (!TRANSIENT_PG_CODES.has(String((error as { code?: string }).code ?? ""))) break;
     console.warn(
       `[releaseFlip] jobs flip to released hit transient ${(error as { code?: string }).code} for job ${jobId} (attempt ${attempt + 1}); retrying`,

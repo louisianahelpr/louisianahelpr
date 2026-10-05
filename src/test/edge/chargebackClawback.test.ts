@@ -382,6 +382,30 @@ describe("card-dispute clawback (Q202)", () => {
       expect(clears).toHaveLength(0);
     });
 
+    // Q1322: a refused re-pay whose 'repay_failed' write matched 0 rows is
+    // re-read: a row already out of the re-drive needs no "fix it by hand" page.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       const alreadySettled = !!nowRow && nowRow.status !== "repaying" && nowRow.held_repay_owed_at == null; |       const alreadySettled = false;
+    it("Q1322: a refused re-pay whose write missed pages only when the row is still owed", async () => {
+      const lagPages = () => alerts().filter((a) => /REFUSED, ledger row NOT updated/.test(a.title));
+      const setup = (now: Record<string, unknown>) => {
+        event("evt_w_q1322", "charge.dispute.closed", dispute("won"));
+        scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+        scenario.reads.chargeback_clawbacks = { rows: [row()], selectOverrides: [{ includes: "status, held_repay_owed_at", result: { rows: [now] } }] };
+        scenario.writeOverrides = [{ table: "chargeback_clawbacks", op: "update", when: (p) => p.status === "repay_failed", rows: [] }];
+        stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("account closed"), { type: "StripeInvalidRequestError" }));
+      };
+      let fn = await load();
+      setup({ status: "repay_failed", held_repay_owed_at: null });
+      await post(fn);
+      expect(lagPages()).toHaveLength(0);
+
+      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      fn = await load();
+      setup({ status: "repaying", held_repay_owed_at: "2026-10-01T00:00:00.000Z" });
+      await post(fn);
+      expect(lagPages()).toHaveLength(1);
+    });
+
     // Second review of Q1223 (S-A): the webhook's claim is a true
     // compare-and-set, and a same-key request still in flight is transient.
     // @mutate supabase/functions/_shared/chargebackClawback.ts |       .eq("id", row.id)\n      .eq("status", row.status); |       .eq("id", row.id)\n      .in("status", ["reversed", "repaying", "repay_failed"]);

@@ -3423,6 +3423,35 @@ describe("create-payment edge function", () => {
         expect(back?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "cancelling" });
       });
 
+      // Q1322: a put-back that matches 0 rows is re-read, and the page is worded
+      // by the job's actual state ('refunded' needs nothing; never "set it back").
+      // @mutate supabase/functions/create-payment/index.ts |   if (now.payment_status === "refunded") { |   if (false) {
+      // @mutate supabase/functions/create-payment/index.ts |   if (dbError \|\| readErr \|\| !now \|\| now.payment_status === "cancelling") { |   if (true) {
+      it("Q1322: a missed put-back on a job charge.refunded already closed pages nothing; one still 'cancelling' pages critical", async () => {
+        const putBackMisses = () => {
+          scenario.reads.payout_transfers = { rows: [{ id: "pt-1" }] };
+          scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.payment_status === "payout_pending", rows: [] }];
+        };
+        const stuck = () => slackAlerts.filter((a) => /stuck in 'cancelling'/.test(String((a as { title?: string }).title)));
+        seedFull();
+        putBackMisses();
+        scenario.reads.jobs.selectOverrides = [{ includes: "status, payment_status", result: { rows: [{ status: "completed", payment_status: "refunded" }] } }];
+        let res = await call();
+        expect(res.status).toBe(409);
+        expect(stuck()).toHaveLength(0);
+        expect(slackAlerts.filter((a) => /claim/i.test(String((a as { title?: string }).title)))).toHaveLength(0);
+
+        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        seedFull();
+        putBackMisses();
+        scenario.reads.jobs.selectOverrides = [{ includes: "status, payment_status", result: { rows: [{ status: "disputed", payment_status: "cancelling" }] } }];
+        res = await call();
+        expect(res.status).toBe(409);
+        const page = stuck()[0] as { severity?: string; message?: string } | undefined;
+        expect(page?.severity).toBe("critical");
+        expect(page?.message).toMatch(/payment_status back to 'payout_pending' by hand/);
+      });
+
       // @mutate supabase/functions/create-payment/index.ts |         if (nothingMoved) await putGeneralClaimBack( |         if (false) await putGeneralClaimBack(
       it("Q1290: a refund Stripe REFUSES puts the claim back; one that fails ambiguously keeps it (the refund may exist)", async () => {
         seedFull();

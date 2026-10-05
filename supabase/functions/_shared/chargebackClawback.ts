@@ -913,11 +913,22 @@ export async function repayClawback(
         { status: "repay_failed", failure_reason: message, held_repay_owed_at: null, held_repay_first_attempt_at: null },
         { status: ["repaying"] },
       );
-      if (failErr || !failed || failed.length === 0) {
+      // Q1322: zero rows is re-read before paging; a row another writer
+      // already took out of the re-drive needs nothing done.
+      let nowRow: { status?: string; held_repay_owed_at?: string | null } | null = null;
+      if (!failErr && (!failed || failed.length === 0)) {
+        const { data: again } = await supabase
+          .from("chargeback_clawbacks").select("status, held_repay_owed_at").eq("id", row.id).maybeSingle();
+        nowRow = (again as typeof nowRow) ?? null;
+      }
+      const alreadySettled = !!nowRow && nowRow.status !== "repaying" && nowRow.held_repay_owed_at == null;
+      if (alreadySettled) {
+        logStep("Refused clawback re-pay: row already out of the re-drive", { id: row.id, status: nowRow?.status });
+      } else if (failErr || !failed || failed.length === 0) {
         await recordLagPage(
           "Card dispute won — Helpr re-pay REFUSED, ledger row NOT updated",
           `Stripe refused re-paying ${dollars(row.reversed_cents)} for dispute ${dispute.id} (${message.slice(0, 200)}), and chargeback_clawbacks row ${row.id} could not be marked 'repay_failed' with its re-pay debt cleared. Until it is, process-scheduled-payouts may re-pay it automatically: set status='repay_failed', held_repay_owed_at=null BEFORE paying it by hand.`,
-          { "Dispute ID": dispute.id, "Job ID": row.job_id, "Row": row.id, "DB error": failErr?.message ?? "matched 0 rows" },
+          { "Dispute ID": dispute.id, "Job ID": row.job_id, "Row": row.id, "Row now": nowRow ? `${nowRow.status ?? "?"}, owed=${nowRow.held_repay_owed_at ?? "null"}` : "unread", "DB error": failErr?.message ?? "matched 0 rows" },
           dispute.id,
         );
       }

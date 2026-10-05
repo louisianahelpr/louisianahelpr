@@ -9,7 +9,7 @@
  * A session is injected by writing the Supabase auth key into localStorage
  * before the app boots, exactly as scripts/audit/walk-every-control.mjs does.
  */
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { BrowserContext } from "@playwright/test";
@@ -34,7 +34,7 @@ export function prodSession(account: TestAccount): ProdSession {
     if (Date.now() - cached.at < TTL_MS) return cached;
   }
   const raw = JSON.parse(
-    execSync(`node scripts/test-signin-link.mjs ${account} --session --json`, { encoding: "utf8", maxBuffer: 1 << 24 }),
+    execFileSync("node", ["scripts/test-signin-link.mjs", account, "--session", "--json"], { encoding: "utf8", maxBuffer: 1 << 24 }),
   ) as { key: string; value: string; session?: { user?: { id?: string }; access_token?: string } };
   const parsed = JSON.parse(raw.value) as { user?: { id?: string }; access_token?: string };
   const s: ProdSession = {

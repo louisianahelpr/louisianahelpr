@@ -14,9 +14,10 @@
  *     box or rewording is +n/-n and passes; a revert is a large net loss),
  * unless a commit in the push says "[intentional-revert]" and why.
  */
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
-const sh = (c) => execSync(c, { encoding: "utf8", maxBuffer: 1 << 28 }).trim();
+// git args as an array, never a shell string: base, range and file names are interpolated.
+const sh = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28 }).trim();
 
 /** Lines a unified diff adds ("+") or removes ("-"), without the file headers. */
 export function changedLines(diff, sign) {
@@ -38,22 +39,22 @@ if (import.meta.url === `file://${process.argv[1]}`) main();
 
 function main() {
 let base;
-try { base = sh("git merge-base HEAD origin/main"); } catch { process.exit(0); /* no remote to compare against */ }
+try { base = sh("merge-base", "HEAD", "origin/main"); } catch { process.exit(0); /* no remote to compare against */ }
 const range = `${base}..HEAD`;
-const msgs = sh(`git log --format=%B ${range}`);
+const msgs = sh("log", "--format=%B", range);
 if (/\[intentional-revert\]/.test(msgs)) process.exit(0);
 
 const problems = [];
-const status = sh(`git diff --name-status ${base} HEAD -- supabase/migrations`);
+const status = sh("diff", "--name-status", base, "HEAD", "--", "supabase/migrations");
 for (const line of status.split("\n").filter(Boolean)) {
   if (/^[DR]/.test(line)) problems.push(`migration deleted/renamed: ${line}`);
 }
 // OPEN.md's done items MOVE, verbatim, to docs/archive/OPEN-done-*.md
 // (scripts/archive-done.mjs, Q16). A removed OPEN.md line that the same push
 // adds to an archive is kept, not lost; only the rest counts.
-const archived = new Set(changedLines(sh(`git diff -U0 ${base} HEAD -- ":(glob)docs/archive/OPEN-done-*.md"`), "+"));
+const archived = new Set(changedLines(sh("diff", "-U0", base, "HEAD", "--", ":(glob)docs/archive/OPEN-done-*.md"), "+"));
 for (const f of ["CLAUDE.md", "docs/OPEN.md"]) {
-  const lost = netLoss(sh(`git diff -U0 ${base} HEAD -- ${f}`), f === "docs/OPEN.md" ? archived : new Set());
+  const lost = netLoss(sh("diff", "-U0", base, "HEAD", "--", f), f === "docs/OPEN.md" ? archived : new Set());
   if (lost > 10) problems.push(`${f}: net ${lost} line(s) removed`);
 }
 if (problems.length) {

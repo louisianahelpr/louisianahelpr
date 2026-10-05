@@ -1,11 +1,12 @@
 /**
- * Q1177: the Spent half of the Money tab. Its figures are PaymentTab's Spent
- * card's, unchanged: lifetime / Monday-start week / calendar month / calendar
- * year of the budgets of completed jobs this user POSTED, bucketed by the
- * poster's confirmation, then the helper's, then created_at. The "same
- * figures" test below was run (rendering main's PaymentTab and pressing the
- * same "Spend date range" options) against origin/main before the redesign
- * and gave the same four totals and counts.
+ * Q1177: the Spent half of the Money tab. Ranges are PaymentTab's Spent
+ * card's: lifetime / Monday-start week / calendar month / calendar year of
+ * completed jobs this user POSTED, bucketed by the poster's confirmation, then
+ * the helper's, then created_at. WHAT counts is posterSpend.ts (owner,
+ * 2026-10-04, "Fix Spent first"): only real card charges, less refunds, gift
+ * cover and chargebacks. The range fixture below is all plain paid jobs
+ * (budget only, a PaymentIntent, released), so each charge equals its budget;
+ * the "only real charges" test adds the jobs that must count less or nothing.
  *
  * Fixed clock: Sunday 2026-10-04, so this week began Monday 2026-09-28.
  *   p1 $30.00   poster-confirmed 2026-09-01  (year)
@@ -16,7 +17,9 @@
  */
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; | const diffToMonday = -dayOfWeek;
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | const completedAt = j.poster_completed_at ?? j.helper_completed_at; | const completedAt = j.poster_completed_at;
-// @mutate src/components/profile/earningsTab/SpentSection.tsx | const totalSpent = scopedJobs.reduce((s, j) => s + j.budget, 0); | const totalSpent = spentJobs.reduce((s, j) => s + j.budget, 0);
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | const rows = spentRows(scopedJobs, data?.refunds ?? [], data?.gifts ?? []); | const rows = spentRows(spentJobs, data?.refunds ?? [], data?.gifts ?? []);
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | const rows = spentRows(scopedJobs, data?.refunds ?? [], data?.gifts ?? []); | const rows = spentRows(scopedJobs, [], data?.gifts ?? []);
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | {formatCents(cents)} | {formatCents(Math.round((j.budget ?? 0) * 100))}
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | .eq("status", "completed"), | .neq("status", "cancelled"),
 // @mutate src/components/profile/earningsTab/SpentSection.tsx |         {isError ? ( |         {false ? (
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -27,8 +30,15 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, profile: null, loading: false }),
 }));
 
-type Row = { id: string; title: string | null; budget: number; poster_completed_at: string | null; helper_completed_at: string | null; created_at: string };
+type Row = {
+  id: string; title: string | null; budget: number; poster_completed_at: string | null; helper_completed_at: string | null; created_at: string;
+  customer_fee_amount?: number | null; urgent_fee?: number | null; sales_tax_amount?: number | null;
+  payment_status?: string | null; stripe_payment_intent_id?: string | null;
+};
 let rows: Row[];
+let refundRows: { job_id: string; amount_cents: number }[] = [];
+let giftRows: { job_id: string | null; amount: number }[] = [];
+const paid = (r: Row): Row => ({ payment_status: "released", stripe_payment_intent_id: `pi_${r.id}`, ...r });
 let filters: [string, string, unknown][] = [];
 let failRead = false;
 
@@ -39,7 +49,10 @@ function builder(table: string) {
   b.eq = (col: string, v: unknown) => { filters.push([table, col, v]); return b; };
   b.neq = (col: string, v: unknown) => { filters.push([table, `neq:${col}`, v]); return b; };
   b.then = (resolve: (v: unknown) => unknown) =>
-    Promise.resolve(failRead ? { data: null, error: { message: "permission denied", code: "42501" } } : { data: rows, error: null }).then(resolve);
+    Promise.resolve(
+      failRead ? { data: null, error: { message: "permission denied", code: "42501" } }
+      : { data: table === "jobs" ? rows.map(paid) : table === "payment_refunds" ? refundRows : giftRows, error: null },
+    ).then(resolve);
   return b;
 }
 vi.mock("@/integrations/supabase/client", () => ({
@@ -70,6 +83,8 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     })) as unknown as typeof window.matchMedia;
     filters = [];
     failRead = false;
+    refundRows = [];
+    giftRows = [];
     rows = [
       { id: "p1", title: "Gutter cleaning", budget: 30, poster_completed_at: "2026-09-01T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
       { id: "p2", title: "Old fence", budget: 20.5, poster_completed_at: "2025-12-01T12:00:00", helper_completed_at: null, created_at: "2025-11-30T12:00:00" },
@@ -84,6 +99,32 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     await screen.findByText(/Total spent/);
     expect(filters).toContainEqual(["jobs", "customer_id", "user-1"]);
     expect(filters).toContainEqual(["jobs", "status", "completed"]);
+    // The charge columns the rule reads, the poster's own refunds and their redeemed gifts.
+    const jobCols = String(filters.find((f) => f[0] === "jobs" && f[1] === "select")?.[2]);
+    for (const c of ["budget", "customer_fee_amount", "urgent_fee", "sales_tax_amount", "payment_status", "stripe_payment_intent_id"]) expect(jobCols).toContain(c);
+    expect(filters).toContainEqual(["payment_refunds", "customer_id", "user-1"]);
+    expect(filters).toContainEqual(["gift_cards", "recipient_id", "user-1"]);
+    expect(filters).toContainEqual(["gift_cards", "status", "redeemed"]);
+  });
+
+  it("only real charges count: closed unpaid $0, full refund out, partial refund = kept, chargeback $0, gift part out, rows show the charge", async () => {
+    rows = [
+      { id: "c1", title: "Real paid job", budget: 40, customer_fee_amount: 4.8, poster_completed_at: "2026-09-01T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
+      { id: "c2", title: "Closed no payment", budget: 50, payment_status: "cancelled", stripe_payment_intent_id: null, poster_completed_at: "2026-09-02T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
+      { id: "c3", title: "Fully refunded", budget: 25, payment_status: "refunded", poster_completed_at: "2026-09-03T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
+      { id: "c4", title: "Partly refunded", budget: 60, poster_completed_at: "2026-09-04T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
+      { id: "c5", title: "Charged back", budget: 70, payment_status: "chargeback", poster_completed_at: "2026-09-05T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
+      { id: "c6", title: "Gift helped", budget: 30, poster_completed_at: "2026-09-06T12:00:00", helper_completed_at: null, created_at: "2026-08-30T12:00:00" },
+    ];
+    refundRows = [{ job_id: "c3", amount_cents: 2500 }, { job_id: "c4", amount_cents: 1500 }];
+    giftRows = [{ job_id: "c6", amount: 20 }];
+    renderSpent();
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$99\.80\s*across 3 jobs/));
+    expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Gift helped", "Partly refunded", "Real paid job"]);
+    expect(text()).toMatch(/Real paid job\s*Sep 1\s*\$44\.80/);
+    expect(text()).toMatch(/Partly refunded\s*Sep 4\s*\$45\.00/);
+    expect(text()).toMatch(/Gift helped\s*Sep 6\s*\$10\.00/);
+    expect(text()).not.toMatch(/Closed no payment|Fully refunded|Charged back/);
   });
 
   it("same figures: lifetime, week, month and year totals and counts", async () => {

@@ -500,20 +500,11 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
           {/* Stats grid */}
           <div className="px-5 pb-5">
             {isLoading || !isReady ? (
-              // DATA-AWARE (owner, Q722): the year is not known yet, so this
-              // draws the ZERO state's lines ("No activity yet", two lines of
-              // explanation: py-6, 22.5px + 2 x 16px = 110px measured), so the
-              // card is the 333px the tab's chunk fallback reserved. A year
-              // with activity swaps in its stat grid and Share button and
-              // grows below; it used to draw four 80px tiles and collapse
-              // into the zero state.
+              // Q722 data-aware: the year is unknown, so draw the ZERO state's lines (110px:
+              // the 333px card the chunk fallback reserved); a year with activity grows below.
               <div className="text-center py-6 space-y-2" aria-hidden>
                 {["h-[22px] w-44", "h-[12px] w-64", "h-[12px] w-40"].map((size) => (
-                  <div
-                    key={size}
-                    className={`${size} mx-auto rounded motion-safe:animate-pulse`}
-                    style={{ background: "hsl(var(--parchment) / 0.20)" }}
-                  />
+                  <div key={size} className={`${size} mx-auto rounded motion-safe:animate-pulse`} style={{ background: "hsl(var(--parchment) / 0.20)" }} />
                 ))}
               </div>
             ) : loadFailed ? (

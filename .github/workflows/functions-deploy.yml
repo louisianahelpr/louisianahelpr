@@ -56,7 +56,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history: a push can carry MANY commits, and the diff has to
           # span the whole pushed range, not just the tip. fetch-depth: 2 only
@@ -218,7 +218,7 @@ jobs:
 
       - name: Install Supabase CLI
         if: steps.precheck.outputs.skip != 'true' && steps.targets.outputs.skip_deploy != 'true'
-        uses: supabase/setup-cli@v3
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
 

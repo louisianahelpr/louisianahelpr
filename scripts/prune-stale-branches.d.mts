@@ -13,7 +13,8 @@ export function decideBranch(b: {
 }): { name: string; action: "KEEP" | "DELETE" | "UNLANDED"; reason: string };
 export const STRANDED_AFTER_HOURS: number;
 export function uncoveredCommits(cherryVerbose: string, covered: Set<string>): { sha: string; subject: string }[];
-export function isStranded(b: { name: string; hasOpenPr: boolean; ageHours: number; uncovered: unknown[] }): boolean;
+export function isStranded(b: { name: string; hasOpenPr: boolean; ageHours: number; uncovered: unknown[]; accepted?: boolean }): boolean;
+export function readAcceptedTips(file?: string): Map<string, string>;
 export const AUTO_LAND_PREFIX: string;
 export const AUTO_LAND_STUCK_HOURS: number;
 export function autoLandTitle(name: string): string;

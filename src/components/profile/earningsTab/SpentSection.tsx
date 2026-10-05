@@ -8,13 +8,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
-import { spentRows, spentTotalCents, type PosterGiftRow, type PosterRefundRow, type PosterSpendJob } from "@/lib/posterSpend";
+import { spentRows, spentTotalCents, type PosterGiftRow, type PosterRefundRow, type PosterSpendJob, type PosterTipRow, type SpentRow } from "@/lib/posterSpend";
 import { EarningsRangeToggle, type EarningsRange } from "./EarningsRangeToggle";
 import { formatCents } from "./earningsTabHelpers";
 
 /** Poster-side slice for the Spent card and its list. */
 interface SpentJobRow extends PosterSpendJob {
   title: string | null;
+  status: string;
+  cancelled_at: string | null;
   poster_completed_at: string | null;
   helper_completed_at: string | null;
   created_at: string;
@@ -23,15 +25,24 @@ interface SpentJobRow extends PosterSpendJob {
 interface SpentData {
   jobs: SpentJobRow[];
   refunds: PosterRefundRow[];
+  tips: PosterTipRow[];
   gifts: PosterGiftRow[];
 }
 
 /** When a posted job counts as spent: the poster's confirmation, falling back
  *  to the helper's, then `created_at` for older rows that predate both. */
 const completedAtMs = (j: SpentJobRow) => {
-  const completedAt = j.poster_completed_at ?? j.helper_completed_at;
+  // A cancelled job's money moved when it was cancelled; a job not yet marked
+  // done by either side is dated when it was posted (created_at, below).
+  const completedAt = j.status === "cancelled"
+    ? j.cancelled_at
+    : j.poster_completed_at ?? j.helper_completed_at;
   return completedAt ? new Date(completedAt).getTime() : new Date(j.created_at).getTime();
 };
+
+/** A row's date: its job's (above), or a tip's own when it stands alone. */
+const rowMs = (r: SpentRow<SpentJobRow>) =>
+  r.job ? completedAtMs(r.job) : new Date(r.tip?.created_at ?? 0).getTime();
 
 /**
  * THE SPENT HALF of the Money tab (Q1177, owner 2026-10-04: "do earning and
@@ -57,19 +68,27 @@ export function SpentSection() {
     // The key names the shape: a cached row from an older select has no charge.
     queryKey: ["payment", "posterSpend", "charged", user?.id],
     queryFn: async () => {
-      const [jobs, refunds, gifts] = await Promise.all([
+      const posterId = user!.id;
+      const [jobs, refunds, gifts, tips] = await Promise.all([
         supabase
           .from("jobs")
-          .select("id, title, budget, customer_fee_amount, urgent_fee, sales_tax_amount, payment_status, stripe_payment_intent_id, poster_completed_at, helper_completed_at, created_at")
-          .eq("customer_id", user!.id)
-          .eq("status", "completed"),
-        supabase.from("payment_refunds").select("job_id, amount_cents").eq("customer_id", user!.id),
+          .select("id, title, status, budget, customer_fee_amount, urgent_fee, sales_tax_amount, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at")
+          // EVERY job this person posted, whatever its status: money held in
+          // escrow on an open or in-progress job has left the card too, and a
+          // cancellation can keep a fee (owner, 2026-10-05: "everything that
+          // actually left the poster's card"). posterSpend decides which of
+          // them cost anything.
+          .eq("customer_id", posterId),
+        supabase.from("payment_refunds").select("job_id, amount_cents, stripe_payment_intent_id").eq("customer_id", user!.id),
         supabase.from("gift_cards").select("job_id, amount").eq("recipient_id", user!.id).eq("status", "redeemed"),
+        // Tips this person PAID (tips RLS also shows tips they received).
+        supabase.from("tips").select("id, job_id, amount, payment_status, stripe_payment_intent_id, created_at").eq("tipper_id", user!.id),
       ]);
       return {
         jobs: (unwrap(jobs) ?? []) as SpentJobRow[],
         refunds: (unwrap(refunds) ?? []) as PosterRefundRow[],
         gifts: (unwrap(gifts) ?? []) as PosterGiftRow[],
+        tips: (unwrap(tips) ?? []) as PosterTipRow[],
       };
     },
     enabled: !!user?.id,
@@ -90,13 +109,13 @@ export function SpentSection() {
     : scope === "month" ? new Date(now.getFullYear(), now.getMonth(), 1).getTime()
     : scope === "year" ? new Date(now.getFullYear(), 0, 1).getTime()
     : null;
-  const spentJobs = data?.jobs ?? [];
-  const scopedJobs = since === null ? spentJobs : spentJobs.filter((j) => completedAtMs(j) >= since);
+  // ONE source for the total and the list (posterSpend.ts), then the range.
+  const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? []);
   // ONE source for the total and the list (posterSpend.ts).
-  const rows = spentRows(scopedJobs, data?.refunds ?? [], data?.gifts ?? []);
+  const rows = since === null ? allRows : allRows.filter((r) => rowMs(r) >= since);
   const totalSpent = spentTotalCents(rows) / 100;
   const spentCount = rows.length;
-  const listed = [...rows].sort((a, b) => completedAtMs(b.job) - completedAtMs(a.job));
+  const listed = [...rows].sort((a, b) => rowMs(b) - rowMs(a));
 
   return (
     <section className="space-y-3">
@@ -162,18 +181,20 @@ export function SpentSection() {
           <h3 className="font-display italic font-bold leading-tight text-ds-17 pt-1" style={{ color: "hsl(var(--ink-deep))" }}>
             Jobs you paid for
           </h3>
-          {listed.map(({ job: j, cents }) => (
-            <div key={j.id} className="rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3">
+          {listed.map((r) => (
+            <div key={r.job?.id ?? `tip-${r.tip?.id}`} className="rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h4 className="font-display italic font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                  {j.title ?? "Job"}
+                  {r.job ? r.job.title ?? "Job" : "Tip"}
                 </h4>
                 <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {formatShortDate(new Date(completedAtMs(j)))}
+                  {formatShortDate(new Date(rowMs(r)))}
+                  {r.job?.status === "cancelled" ? " · Cancelled" : ""}
+                  {r.job && r.tipCents > 0 ? ` · includes ${formatCents(r.tipCents)} tip` : ""}
                 </p>
               </div>
               <p className="font-sans font-bold tabular-nums text-ds-16 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>
-                {formatCents(cents)}
+                {formatCents(r.cents)}
               </p>
             </div>
           ))}

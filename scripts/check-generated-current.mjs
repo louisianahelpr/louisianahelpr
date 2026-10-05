@@ -30,54 +30,42 @@
  *      (scripts/check-staleness.mjs listEvidence()).
  *
  * Usage:
- *   node scripts/check-generated-current.mjs            # regenerate + diff + coverage scans
+ *   node scripts/check-generated-current.mjs            # regenerate + diff + coverage scans (MAIN only)
  *   node scripts/check-generated-current.mjs --only <id>[,<id>]
+ *   node scripts/check-generated-current.mjs --coverage # the three registry scans only (branches: land.sh, PR CI, gate)
  *   node scripts/check-generated-current.mjs --list     # print the inventory table
  *   node scripts/check-generated-current.mjs --outputs  # every CI generator's output path, one per line
- *   node scripts/check-generated-current.mjs --fix      # regenerate all in place (npm run inventories:refresh)
- *   ... --skip-post-merge                               # leave the whole-tree totals (postMerge: true) alone: land.sh and PR attribution
- *   node scripts/check-generated-current.mjs --attribute --head <sha> --base <sha>
- *                                                       # PR CI after exit 3: whose drift is it?
+ *   node scripts/check-generated-current.mjs --fix      # regenerate all in place (npm run inventories:refresh; the main bot)
  *
- * Exit codes: 0 current; 1 a generator crashed, a registry scan found a gap,
- * or (with --attribute) the PR itself left an inventory stale; 3 DRIFT, when
- * every problem is a committed output that differs from its regenerated copy.
+ * Exit codes: 0 current; 1 a generator crashed or a registry scan found a gap;
+ * 3 DRIFT, when every problem is a committed output that differs from its
+ * regenerated copy.
  *
- * WHY DRIFT IS ITS OWN EXIT (2026-10-01, PR #2051). Several outputs are
- * AGGREGATE counts over the whole tree (the vacuity report's guard total, the
- * burn-down score, the OPEN.md queue score). Two branches that each add a guard
- * both change "guards": 1284 to 1285; git merges that text cleanly to 1285 while
- * the merged tree has 1286. Main's required checks are not strict, so a PR that
- * went green on an older main merges without re-running, and main is stale with
- * no one at fault. Before this, every open PR's merge-ref check then went red on
- * a count it never touched (#2051: "guards 1285, regenerated 1286"). Now:
- *   - a PR whose merge ref drifts is judged on its OWN tree (--attribute): red
- *     only for an output stale at the PR head that was current at its merge
- *     base, i.e. the PR changed inputs and did not regenerate;
- *   - drift on main is not the pusher's failure: staleness-watch.yml's land
- *     job regenerates main and lands it through the bot/refresh/inventories PR
- *     on the push that drifted, not the next night. The nightly run stays
- *     strict, so a refresh that never lands still goes red.
+ * ONE WRITER: THE BOT ON MAIN (owner, 2026-10-05; first step 2026-10-04 "generate
+ * shared docs after merge, not in every PR"). Every output below is a whole-tree
+ * product: when each branch regenerated them, every landing touched the same
+ * lines (the queue score, the burn-down total, the vacuity guard count) and
+ * conflicted with every other landing, or merged cleanly to the WRONG number
+ * (2026-10-01, #2051: committed 1285, regenerated 1286). So:
+ *   - a branch never commits a generated output. scripts/check-branch-generated.mjs
+ *     (protectedPaths() below) refuses one in land.sh and in the required Test
+ *     check; the bot's own bot/refresh/* branches are exempt;
+ *   - main is the only place the outputs are regenerated and diffed:
+ *     staleness-watch.yml runs this check on every push to main, and on DRIFT
+ *     (exit 3) lands `npm run inventories:refresh` through the
+ *     bot/refresh/inventories PR (.github/actions/refresh-pr, auto-merge);
+ *   - vitest never reads a committed output to judge a branch (a branch's copy
+ *     is stale by design); it runs the generator instead
+ *     (src/test/branchesNeverEditGenerated.test.ts scans for it).
  *
- * POST-MERGE TOTALS (owner, 2026-10-04: "generate shared docs after merge, not in
- * every PR"). The generators marked postMerge (vacuity report, burn-down, queue
- * score, scoreboard, audit coverage/surface/rollup) count the WHOLE tree, so
- * every landing that regenerated them touched the same lines and conflicted with
- * every other landing. Now land.sh and the PR check pass --skip-post-merge:
- * branches never regenerate them and are never blamed for them, and
- * staleness-watch.yml regenerates main after each push and lands it as
- * bot/refresh/inventories. Main's own check (push, nightly) stays strict.
- *
- * Run per push by test.yml and staleness-watch.yml (push trigger, so a
- * docs-only commit is covered too), nightly by staleness-watch.yml, and by
- * `npm run gate`.
+ * Run (full) per push to main and nightly by staleness-watch.yml; branches run
+ * only --coverage (land.sh, test.yml on a PR, `npm run gate`).
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { listEvidence } from "./check-staleness.mjs";
-import { archivePathFor } from "./lib/openQueue.mjs";
+import { ARCHIVE_DIR, ARCHIVE_RE, archivePathFor } from "./lib/openQueue.mjs";
 
 export const REPO = resolve(import.meta.dirname, "..");
 
@@ -97,7 +85,6 @@ export const GENERATED = [
   },
   {
     id: "surface",
-    postMerge: true,
     script: "scripts/audit-surface.mjs",
     cmd: ["node", "scripts/audit-surface.mjs"],
     outputs: ["docs/audit/launch-2026-09/SURFACE.md"],
@@ -105,7 +92,6 @@ export const GENERATED = [
   },
   {
     id: "rollup",
-    postMerge: true,
     script: "scripts/audit-bus.mjs",
     cmd: ["node", "scripts/audit-bus.mjs", "rollup"],
     outputs: ["docs/audit/launch-2026-09/ROLLUP.md"],
@@ -113,7 +99,6 @@ export const GENERATED = [
   },
   {
     id: "coverage",
-    postMerge: true,
     script: "scripts/audit-coverage.mjs",
     cmd: ["node", "scripts/audit-coverage.mjs"],
     outputs: ["docs/audit/launch-2026-09/COVERAGE.md"],
@@ -135,7 +120,6 @@ export const GENERATED = [
   },
   {
     id: "vacuity-report",
-    postMerge: true,
     script: "scripts/vacuity/index.mjs",
     cmd: ["node", "scripts/vacuity/index.mjs", "--report", "--no-mutate"],
     // index.mjs exits 1 when the vacuity gate itself is red; the report is
@@ -147,14 +131,13 @@ export const GENERATED = [
   },
   {
     id: "burndown",
-    postMerge: true,
     script: "scripts/burndown-score.mjs",
     cmd: ["node", "scripts/burndown-score.mjs"],
     outputs: ["docs/GUARD-BURNDOWN.md"],
     what: "guard burn-down score table (proven / exempt / owed per scope)",
   },
   {
-    // BEFORE queue-count: moves done items to the dated archive; the counts,
+    // BEFORE scoreboard: moves done items to the dated archive; the counts,
     // which read OPEN.md + archives (scripts/lib/openQueue.mjs), do not move.
     id: "archive-done",
     script: "scripts/archive-done.mjs",
@@ -167,15 +150,8 @@ export const GENERATED = [
     what: "docs/OPEN.md holds live items only; done items move verbatim to docs/archive/OPEN-done-YYYY-MM.md (Q16)",
   },
   {
-    id: "queue-count",
-    postMerge: true,
-    script: "scripts/queue-count.mjs",
-    cmd: ["node", "scripts/queue-count.mjs", "--write"],
-    outputs: ["docs/OPEN.md"],
-    what: "the OPEN.md queue score line (done / partly done / open), owner 2026-09-23",
-  },
-  {
-    // AFTER queue-count: the Everything-open block restates the queue score.
+    // AFTER archive-done. The Everything-open block (with the queue score line,
+    // which docs/OPEN.md no longer carries, owner 2026-10-05) and the table.
     // Offline, this recomputes the LOCAL rows (queue, audit bus, burn-down,
     // baselines) and carries the LIVE section (CI runs, prod SQL, issues,
     // branches) forward verbatim — so the diff here is deterministic, and the
@@ -183,11 +159,10 @@ export const GENERATED = [
     // check-staleness.mjs's job; `node scripts/scoreboard.mjs --write` and
     // .github/workflows/scoreboard.yml re-measure it (Q58/Q59).
     id: "scoreboard",
-    postMerge: true,
     script: "scripts/scoreboard.mjs",
     cmd: ["node", "scripts/scoreboard.mjs"],
-    outputs: ["docs/SCOREBOARD.md", "docs/OPEN.md"],
-    what: "the scoreboard (pass / fail / total per signal) and OPEN.md's Everything-open block, owner 2026-09-23",
+    outputs: ["docs/SCOREBOARD.md"],
+    what: "the scoreboard (pass / fail / total per signal) and its Everything-open block with the queue score line, owner 2026-09-23 / 2026-10-05",
   },
 ];
 
@@ -268,7 +243,7 @@ export const HISTORICAL = {
 export const WRITES_NOT_COMMITTED = {
   "scripts/prune-stale-branches.mjs": "Q915: UNLANDED-branch table to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",
   "scripts/stranded-work.mjs": "Q1146: --report JSON to ~/.lh-hygiene/stranded.json (outside the repo; written by .claude/hooks/git-hygiene.sh, read by session-start.sh), never a repo file",
-  "scripts/lib/openItemMerge.mjs": "land.sh only: resolves a docs/OPEN.md rebase conflict item by item, mid-rebase; the result is the replayed commit's own content, and the refresh that follows regenerates every generated block in it",
+  "scripts/lib/openItemMerge.mjs": "land.sh only: resolves a docs/OPEN.md rebase conflict item by item, mid-rebase; the result is the replayed commit's own content (docs/OPEN.md holds items only)",
   "scripts/storage-backup.mjs": "Q147: downloaded storage files + manifest.json into the db-backup runner's out/storage (encrypted into the CI artifact, never a repo file)",
   "scripts/rollback/rollback.mjs": "timing log to ~/.lh-rollback/timing.jsonl (outside the repo); in a LIVE migration rollback only, the new revert migration it stamps, which the operator commits (docs/RUNBOOK-rollback.md)",
   "scripts/audit-capture.mjs": "screenshots to ~/lh-audit-shots",
@@ -369,6 +344,24 @@ export function discoverDeclaredGenerated() {
 
 export function registeredOutputs() {
   return new Set([...GENERATED, ...EVIDENCE].flatMap((g) => g.outputs));
+}
+
+/**
+ * Files only the main bot may write (owner, 2026-10-05). Every CI generator's
+ * outputs, EXCEPT docs/OPEN.md (archive-done edits it on main, but its items
+ * are the authored source a branch exists to change), plus EVERY dated
+ * done-item archive (archive-done appends to them; open-renumber reads them).
+ * EVIDENCE outputs are not here: each has its own refresh and checker, and
+ * some (supabase types, the write-contract snapshot) are legitimately
+ * committed with the migration that changes them.
+ */
+export const AUTHORED_SOURCES = new Set(["docs/OPEN.md"]);
+
+export function isProtectedPath(path) {
+  const p = String(path).replace(/^\.\//, "");
+  if (AUTHORED_SOURCES.has(p)) return false;
+  if (p.startsWith(`${ARCHIVE_DIR}/`) && ARCHIVE_RE.test(p.slice(ARCHIVE_DIR.length + 1))) return true;
+  return GENERATED.some((g) => g.outputs.includes(p));
 }
 
 /** Coverage of the three scans, both directions. Returns problem strings. */
@@ -472,7 +465,7 @@ export function checkGenerator(g) {
 function printList() {
   console.log("| file | generator | how refreshed | how checked |");
   console.log("|---|---|---|---|");
-  for (const g of GENERATED) for (const o of g.outputs) console.log(`| \`${o}\` | \`${g.cmd.join(" ")}\` | by the committer (CI names the command) | regenerate-and-diff, every push + nightly |`);
+  for (const g of GENERATED) for (const o of g.outputs) console.log(`| \`${o}\` | \`${g.cmd.join(" ")}\` | by the main bot (staleness-watch.yml, bot/refresh/inventories) | regenerate-and-diff, every push to main + nightly |`);
   for (const g of EVIDENCE) for (const o of g.outputs) console.log(`| \`${o}\` | \`${g.script}\` | ${g.refreshedBy} | ${g.checkedBy} |`);
   for (const [f, how] of Object.entries(TWO_WAY)) console.log(`| \`${f}\` | hand-lowered baseline | when a fix lowers it, same commit | ${how} |`);
 }
@@ -485,105 +478,25 @@ export function isPureDrift(problems) {
   return problems.length > 0 && problems.every((p) => p.startsWith("STALE "));
 }
 
-/**
- * Read a checker run's output (every version of this script prints one
- * `::error::<problem>` line per problem) into stale output paths and every
- * other problem.
- */
-export function parseCheckOutput(text) {
-  const stale = new Set();
-  const other = [];
-  for (const line of String(text).split("\n")) {
-    if (!line.startsWith("::error::")) continue;
-    const m = /^::error::STALE (\S+)/.exec(line);
-    if (m) stale.add(m[1]);
-    else other.push(line.slice("::error::".length));
-  }
-  return { stale: [...stale].sort(), other };
-}
-
-/**
- * The verdict for a PR whose merge ref drifted. `head` and `base` are
- * parseCheckOutput() results for the PR head and its merge base.
- *   - the head has a crash or registry gap of its own: fail, name it;
- *   - the head is current: pass, the drift is a concurrent change on main;
- *   - an output stale at the head but current at the base: the PR's own, fail;
- *   - every stale output was already stale at the base: inherited, pass.
- */
-export function attributeDrift(head, base) {
-  if (head.other.length) return { ok: false, own: [], inherited: [], other: head.other };
-  const own = head.stale.filter((o) => !base.stale.includes(o));
-  const inherited = head.stale.filter((o) => base.stale.includes(o));
-  return { ok: own.length === 0, own, inherited, other: [] };
-}
-
-/** Run THAT commit's own checker in a throwaway worktree outside the repo. */
-function checkAtCommit(sha) {
-  const dir = mkdtempSync(join(tmpdir(), "lh-generated-"));
-  const tree = join(dir, "tree");
-  git("worktree", "add", "--detach", "--quiet", tree, sha);
-  try {
-    if (existsSync(join(REPO, "node_modules"))) symlinkSync(join(REPO, "node_modules"), join(tree, "node_modules"));
-    const run = spawnSync("node", ["scripts/check-generated-current.mjs", "--skip-post-merge"], { cwd: tree, encoding: "utf8", maxBuffer: 1 << 26 });
-    const parsed = parseCheckOutput(`${run.stdout}\n${run.stderr}`);
-    if (run.status !== 0 && !parsed.stale.length && !parsed.other.length) {
-      parsed.other.push(`checker at ${sha} exited ${run.status} without naming a problem: ${(run.stderr || run.stdout || "").trim().split("\n").slice(-3).join(" | ")}`);
-    }
-    return parsed;
-  } finally {
-    try { git("worktree", "remove", "--force", tree); } catch { /* the rm below still clears it */ }
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-function attributeMain(argv) {
-  const arg = (k) => { const i = argv.indexOf(k); return i >= 0 ? String(argv[i + 1] ?? "") : ""; };
-  const head = arg("--head");
-  const base = arg("--base");
-  if (!/^[0-9a-f]{7,40}$/.test(head) || !/^[0-9a-f]{7,40}$/.test(base)) {
-    console.error("::error::--attribute needs --head <sha> --base <merge-base sha>");
-    process.exit(1);
-  }
-  console.log(`attribute: running the PR head's own check (${head.slice(0, 9)})`);
-  const h = checkAtCommit(head);
-  let b = { stale: [], other: [] };
-  if (h.stale.length && !h.other.length) {
-    console.log(`attribute: running the merge base's own check (${base.slice(0, 9)})`);
-    b = checkAtCommit(base);
-  }
-  const v = attributeDrift(h, b);
-  if (!v.ok) {
-    for (const p of v.other) console.error(`::error::at the PR head: ${p}`);
-    for (const o of v.own) {
-      console.error(
-        `::error::STALE ${o} — this PR changed what it is generated from and did not regenerate it ` +
-          `(current at the merge base ${base.slice(0, 9)}, stale at the PR head ${head.slice(0, 9)}). ` +
-          "Run `npm run inventories:refresh` on the branch and commit (scripts/land.sh does this).",
-      );
-    }
-    process.exit(1);
-  }
-  const why = v.inherited.length
-    ? `stale outputs were already stale at the merge base (${v.inherited.join(", ")}): inherited from main`
-    : "inventory is current at the PR head: the drift comes only from commits that reached main after this PR branched";
-  console.log(
-    `::warning::The merge with current main drifts, but every ${why}. An aggregate count (guards, burn-down, queue score) ` +
-      "merges cleanly to the wrong number when two branches change it; staleness-watch.yml regenerates main on the push " +
-      "that drifts and lands it as bot/refresh/inventories. Not this PR's to fix.",
-  );
-}
-
 function main() {
   const argv = process.argv.slice(2);
   if (argv.includes("--list")) return printList();
-  if (argv.includes("--attribute")) return attributeMain(argv);
+  if (argv.includes("--coverage")) {
+    // What a BRANCH is judged on: the registries cover every writer, every
+    // self-declared generated file and every timestamped JSON. Never the
+    // outputs' currency: that is main's (staleness-watch.yml).
+    const problems = coverageProblems();
+    for (const p of problems) console.error(`::error::${p}`);
+    if (problems.length) process.exit(1);
+    console.log(`generated-current --coverage: registries complete (${GENERATED.length} CI generators, ${EVIDENCE.length} evidence, ${Object.keys(WRITES_NOT_COMMITTED).length} non-inventory writers).`);
+    return;
+  }
   if (argv.includes("--outputs")) {
     // One path per line: what staleness-watch.yml's Q57 refresh PR may commit.
     for (const o of [...new Set(GENERATED.flatMap((g) => g.outputs))]) console.log(o);
     return;
   }
-  const skipPostMerge = argv.includes("--skip-post-merge");
-  const active = GENERATED.filter((g) => !(skipPostMerge && g.postMerge));
+  const active = GENERATED;
   if (argv.includes("--fix")) {
     // Regenerate everything IN PLACE (no restore), in dependency order, and say
     // what moved. Never stages anything: the committer reviews and commits.

@@ -110,6 +110,12 @@ for (const [key, items] of [...byRoute].sort((a, b) => a[0].localeCompare(b[0]))
   }
   md += "\n";
 }
-mkdirSync(join(ROOT, "docs/audit"), { recursive: true });
-writeFileSync(join(ROOT, "docs/audit/form-inventory.md"), md);
-console.log(`${inventory.length} files, ${routes.length} routes, ${byRoute.size} groups`);
+if (process.argv.includes("--stdout")) {
+  // The inventory of THIS tree, written nowhere: tests read this, never the
+  // committed copy, which only the main bot regenerates (owner, 2026-10-05).
+  process.stdout.write(md);
+} else {
+  mkdirSync(join(ROOT, "docs/audit"), { recursive: true });
+  writeFileSync(join(ROOT, "docs/audit/form-inventory.md"), md);
+  console.log(`${inventory.length} files, ${routes.length} routes, ${byRoute.size} groups`);
+}

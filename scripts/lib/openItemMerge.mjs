@@ -19,7 +19,10 @@
  *   - an item the branch added is appended after main's last queue item (a
  *     number main also uses is left to scripts/open-renumber.mjs, which
  *     land.sh runs right after the rebase);
- *   - the generated queue-count line keeps main's copy (the refresh rewrites it);
+ *   - a line of the count blocks OPEN.md used to carry (the queue-count line
+ *     and the Everything-open block, moved to docs/SCOREBOARD.md 2026-10-05)
+ *     keeps main's copy, i.e. none: a branch from before the move is not
+ *     stopped by them;
  *   - anything else (an item both sides changed, any other line the branch
  *     changed) returns null: a person resolves it.
  *
@@ -32,7 +35,8 @@ import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const ITEM = /^- \[[ x~.]\] \*\*(Q\d+)\b/;
-const QUEUE_COUNT = /^\*\*Queue: \d+ items/;
+/** Lines of the generated count blocks OPEN.md carried until 2026-10-05 (now docs/SCOREBOARD.md's). */
+const GENERATED_LINE = /^(\*\*Queue: \d+ items|<!-- \/?(generated: |live)|\*\*Open work — start here\*\*|Numbers for everything we test: |- \*\*(Open: \d+|Workflows on main|Remote branches|Live \(workflows, branches\)):?\*\*)/;
 
 function items(lines) {
   const map = new Map();
@@ -55,17 +59,17 @@ export function mergeOpenItems({ base, ours, theirs }) {
   const bi = items(B), oi = items(O), ti = items(T);
   if (!bi || !oi || !ti) return null;
 
-  // Non-item lines the branch changed: only the generated count line may differ.
+  // Non-item lines the branch changed: only a generated count line may differ.
   const baseLines = new Set(B);
   for (const line of T) {
     if (ITEM.test(line) || baseLines.has(line)) continue;
-    if (QUEUE_COUNT.test(line)) continue;
+    if (GENERATED_LINE.test(line)) continue;
     return null;
   }
   const theirsLines = new Set(T);
   for (const line of B) {
     if (ITEM.test(line) || theirsLines.has(line)) continue;
-    if (QUEUE_COUNT.test(line)) continue;
+    if (GENERATED_LINE.test(line)) continue;
     return null; // the branch removed a non-item line
   }
 

@@ -19,14 +19,25 @@ name: Staleness watch
 #    CI generator on LATEST main (`npm run inventories:refresh`) and lands
 #    whatever moved through .github/actions/refresh-pr — one bot branch, one
 #    PR, auto-merge on green.
+#    THIS JOB IS THE ONE WRITER OF EVERY GENERATED FILE (owner, 2026-10-05:
+#    "branches only change real things; one bot on main owns the numbers").
+#    Branches never regenerate or commit one (scripts/check-branch-generated.mjs
+#    refuses it in land.sh and the required Test check), so nearly every push
+#    that changes an input drifts, and this job lands the regeneration.
+#    Branch protection (enforce_admins, 5 required checks) refuses a direct
+#    push to main, so the bot lands through its own auto-merging PR (PAT
+#    REFRESH_PR_TOKEN: its merge is a push that re-runs this workflow).
 #    On push it runs ONLY when check:generated exits 3 (drift: every problem is
-#    a stale committed output). That is no pusher's fault: aggregate counts
-#    (vacuity guards, burn-down, queue score) merge cleanly to the wrong number
-#    when two non-strict PRs each change them (2026-10-01, #2051: committed
-#    1285, regenerated 1286), and before this main stayed stale until the
-#    nightly while every open PR went red on it. A push that is current, or
-#    fails for any other reason (exit 1: a crash, a registry gap), opens no
-#    refresh PR and stays red for its pusher. The nightly stays strict.
+#    a stale committed output). A push that is current, or fails for any other
+#    reason (exit 1: a crash, a registry gap), opens no refresh PR and stays
+#    red for its pusher. The nightly stays strict.
+#    Batching: while bot/refresh/inventories is open, mergeable, not failed and
+#    younger than 45 min, a push does NOT rebuild it (a rebuild restarts its
+#    ~20 min of checks, so pushes faster than that would starve it); its own
+#    merge is a push that runs this again and catches up. Loop breaker: when
+#    the last two commits on main are both this bot's refreshes and main still
+#    drifts, a generator is not a fixed point; the job goes red instead of
+#    opening a third refresh.
 
 on:
   push:
@@ -132,14 +143,52 @@ jobs:
       contents: write
       pull-requests: write
       actions: write
+      checks: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 3   # the loop breaker reads the last commits' subjects
+      - name: One refresh in flight at a time; never loop on the bot's own commit
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          EVENT: ${{ github.event_name }}
+          BOT_TITLE: "chore(refresh): generated inventories regenerated"
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "push" ]; then
+            SUBJECTS=$(git log -2 --format=%s HEAD)
+            N_BOT=$(grep -cF "$BOT_TITLE" <<<"$SUBJECTS" || true)
+            if [ "$N_BOT" -ge 2 ]; then
+              echo "::error::main still drifts after two consecutive bot refreshes ($(git rev-parse --short HEAD)): a generator does not reach a fixed point. Not opening another refresh; run npm run inventories:refresh twice locally and fix the generator whose output moves."
+              exit 1
+            fi
+          fi
+          INFO=$(gh pr list --repo "$GITHUB_REPOSITORY" --head bot/refresh/inventories --state open --json number,mergeStateStatus,headRefOid --jq '.[0] // empty')
+          if [ -n "$INFO" ] && [ "$EVENT" = "push" ]; then
+            PR=$(jq -r .number <<<"$INFO")
+            MSS=$(jq -r .mergeStateStatus <<<"$INFO")
+            OID=$(jq -r .headRefOid <<<"$INFO")
+            PUSHED=$(gh api "repos/$GITHUB_REPOSITORY/commits/$OID" --jq .commit.committer.date)
+            AGE_MIN=$(( ( $(date -u +%s) - $(date -u -d "$PUSHED" +%s) ) / 60 ))
+            FAILED=$(gh pr checks "$PR" --repo "$GITHUB_REPOSITORY" --required --json bucket --jq '[.[] | select(.bucket == "fail")] | length' 2>/dev/null || echo unknown)
+            if [ "$MSS" != "DIRTY" ] && [ "$FAILED" = "0" ] && [ "$AGE_MIN" -lt 45 ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "::notice::bot/refresh/inventories (#$PR) is in flight (${AGE_MIN} min old, $MSS, no failed required check); its merge re-runs this and catches up. Not rebuilding it."
+              exit 0
+            fi
+            echo "Rebuilding #$PR: $MSS, failed required checks: $FAILED, ${AGE_MIN} min old."
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.gate.outputs.skip != 'true'
         with:
           node-version: 22
           cache: npm
       - run: npm install --no-audit --no-fund --legacy-peer-deps
+        if: steps.gate.outputs.skip != 'true'
       - name: The files this refresh may change (every CI generator's outputs)
+        if: steps.gate.outputs.skip != 'true'
         id: outs
         run: |
           set -euo pipefail
@@ -147,6 +196,7 @@ jobs:
           test -n "$OUTS"
           { echo 'paths<<EOF_PATHS'; echo "$OUTS"; echo 'EOF_PATHS'; } >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/refresh-pr
+        if: steps.gate.outputs.skip != 'true'
         with:
           id: inventories
           title: "chore(refresh): generated inventories regenerated"

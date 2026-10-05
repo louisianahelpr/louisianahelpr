@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Land the current worktree's commits on main WITH the generated files current.
+# Land the current worktree's commits on main. Branches only change real things:
+# generated files are never regenerated or committed here (owner, 2026-10-05).
 #
-#   bash scripts/land.sh            # fetch, rebase, refresh, verify, PR, wait for merge
+#   bash scripts/land.sh            # fetch, rebase, verify, PR, wait for merge
 #   bash scripts/land.sh --dry-run  # everything except the push
 #   bash scripts/land.sh --no-wait  # open/refresh the PR with auto-merge, don't wait
 #   (--pr is accepted and ignored: the PR path is the only path.)
@@ -19,20 +20,26 @@
 # auto-merge with REBASE (not squash: a squash rewrites the messages and drops
 # per-commit Sensitive-Review trailers), then wait. Strict is off, but the
 # script still keeps the branch current: when main moves first (BEHIND, or
-# DIRTY because another landing regenerated the same files) it loops: fetch,
-# rebase, refresh, re-run the guards, force-push. A failed check
+# DIRTY: another landing changed the same OPEN.md spot) it loops: fetch,
+# rebase, re-run the guards, force-push. A failed check
 # stops the script red with the check names. The work is landed only when the
 # PR shows MERGED.
 #
-# Why the refresh (2026-09-27): agents landed with `git push --no-verify origin
-# HEAD:main`, which skips the pre-commit hook that regenerates the inventories.
-# One new test file moved the guard count and main went red on
-# check:generated (503fd193c). The generated files depend on the REBASED tree,
-# so they are refreshed after the rebase, then proven with check:generated.
+# GENERATED FILES ARE MAIN'S (owner, 2026-10-05). This script used to run
+# `inventories:refresh` after the rebase and commit what moved (2026-09-27, after
+# 503fd193c reached main stale). Every landing then rewrote the same whole-tree
+# lines (queue score, Everything-open block, SCOREBOARD, burn-down, vacuity
+# report, archives) and conflicted with every other landing. Now:
+#   - a rebase stop on a generated file takes MAIN's side (the bot regenerates it);
+#   - any generated file the branch still changes is put back to main's copy
+#     (check-branch-generated.mjs --restore) and that is committed;
+#   - check-branch-generated.mjs then proves the branch touches none, the same
+#     check the required Test job runs on the PR;
+#   - staleness-watch.yml regenerates main after the merge and lands it as
+#     bot/refresh/inventories. check:generated is main's check, not a branch's.
 #
-# Commits ONLY what the refresh produced: tracked files must be clean to start
-# (commit your work first; never git stash in this repo), and untracked files
-# that already existed (e.g. docs/audit/morning/*.md) are never staged.
+# Tracked files must be clean to start (commit your work first; never git stash
+# in this repo); untracked files are never staged.
 set -euo pipefail
 
 DRY=0
@@ -60,22 +67,19 @@ if [ -n "$DIRTY" ]; then
   exit 1
 fi
 
-# Untracked files present before the refresh are someone else's; never staged.
-UNTRACKED_BEFORE=$(git ls-files --others --exclude-standard | sort)
-
 attempt=0
 while :; do
   attempt=$((attempt + 1))
-  # The head this run starts from. When the rebase and refresh below land on
+  # The head this run starts from. When the rebase and fix-ups below land on
   # the very same tree, it is pushed again unchanged (same SHA), so a re-run
-  # never restarts the checks for nothing (dropping and regenerating the
-  # refresh commit would otherwise mint a new SHA every time).
+  # never restarts the checks for nothing (dropping and re-making a fix-up
+  # commit would otherwise mint a new SHA every time).
   START_HEAD=$(git rev-parse HEAD)
   git fetch -q origin main
 
-  # This script's own earlier refresh commits are dropped before the rebase:
-  # the refresh below regenerates them from the rebased tree anyway, and they
-  # are what conflicts when another landing regenerated the same files first
+  # This script's own earlier refresh commits (from before 2026-10-05, when it
+  # still regenerated on the branch) are dropped before the rebase: they are
+  # what conflicts when another landing regenerated the same files first
   # (2026-10-03: #2210 and #2211 went DIRTY the moment #2212 merged, and each
   # took a hand `git rebase --skip` and a re-run). Guard: landingPath.test.ts.
   # Counted from a here-string, never `cmd | grep -q`: under pipefail, grep -q
@@ -83,6 +87,7 @@ while :; do
   # (2026-10-03: it once reported six real commits as "nothing to land").
   # Every grep in this script reads a variable for the same reason.
   REFRESH_SUBJECT="chore: refresh generated inventories"
+  DROP_SUBJECT="chore: drop generated-file edits (the main bot regenerates them)"
   SUBJECTS=$(git log --format=%s origin/main..HEAD)
   N_REFRESH=$(grep -cxF "$REFRESH_SUBJECT" <<<"$SUBJECTS" || true)
   N_ALL=$(grep -c . <<<"$SUBJECTS" || true)
@@ -96,17 +101,37 @@ while :; do
     REBASE=(git rebase -q origin/main)
   fi
   if ! "${REBASE[@]}"; then
-    # A stop on docs/OPEN.md alone is almost always two landings filing or
-    # noting items at the same place (five such stops on 2026-10-03, each
-    # resolved by hand the same way): merge it item by item and go on. An item
-    # both sides changed, or any other conflicted file, still stops for a
-    # person. Guard: src/test/openItemMerge.test.ts.
+    # Two kinds of stop resolve themselves; anything else stops for a person.
+    #  - A GENERATED file (a branch from before 2026-10-05 that still carries
+    #    one): take main's side (in a rebase, --ours is the branch being rebased
+    #    ONTO, i.e. origin/main). The bot regenerates it after the merge.
+    #  - docs/OPEN.md: two landings filing or noting items at the same place
+    #    (five such stops on 2026-10-03, each resolved by hand the same way):
+    #    merged item by item. An item both sides changed still stops.
+    # Guards: src/test/openItemMerge.test.ts, src/test/branchesNeverEditGenerated.test.ts.
+    STOPS=0
     while [ -d "$(git rev-parse --git-path rebase-merge)" ] || [ -d "$(git rev-parse --git-path rebase-apply)" ]; do
+      STOPS=$((STOPS + 1))
+      if [ "$STOPS" -gt 200 ]; then
+        echo "land: the rebase did not move after 200 automatic resolutions; finish it by hand (git status)." >&2
+        exit 1
+      fi
       UNMERGED=$(git diff --name-only --diff-filter=U)
-      if [ "$UNMERGED" = "docs/OPEN.md" ] && node scripts/lib/openItemMerge.mjs; then
-        git add docs/OPEN.md
-        # stops again if the next replayed commit conflicts; the loop looks again
-        GIT_EDITOR=true git rebase --continue >/dev/null 2>&1 || true
+      GEN_UNMERGED=""
+      [ -n "$UNMERGED" ] && GEN_UNMERGED=$(node scripts/check-branch-generated.mjs --classify $UNMERGED)
+      for f in $GEN_UNMERGED; do
+        if git cat-file -e "origin/main:$f" 2>/dev/null; then git checkout -q origin/main -- "$f"; else git rm -q -- "$f"; fi
+        echo "land: $f is generated; took origin/main's copy (the main bot regenerates it)."
+      done
+      REST=$(grep -vxF -f <(printf '%s\n' $GEN_UNMERGED) <<<"$UNMERGED" || true)
+      if [ -z "$REST" ] || { [ "$REST" = "docs/OPEN.md" ] && node scripts/lib/openItemMerge.mjs && git add docs/OPEN.md; }; then
+        # stops again if the next replayed commit conflicts; the loop looks again.
+        # A replayed commit that carried ONLY generated files is now empty: skip it.
+        if git diff --cached --quiet; then
+          git rebase --skip >/dev/null 2>&1 || true
+        else
+          GIT_EDITOR=true git rebase --continue >/dev/null 2>&1 || true
+        fi
         continue
       fi
       echo "land: the rebase onto origin/main stopped on a conflict in this branch's own work; resolve it (git status), then re-run bash scripts/land.sh." >&2
@@ -117,10 +142,18 @@ while :; do
   # Queue numbers are taken from each lane's own base, so two lanes file the
   # same Q (Q743, Q904/Q905, Q909-Q914 collided 2026-09-30..10-01). After the
   # rebase, the item already on main keeps the number and this branch's copy
-  # moves to the next number free on both; the refresh below commits it. Exits
+  # moves to the next number free on both; committed just below. Exits
   # 1 (stopping the land) only when main itself carries the duplicate.
   # Guard: src/test/openRenumber.test.ts.
   node scripts/open-renumber.mjs --base origin/main
+  if ! git diff --quiet -- docs/OPEN.md; then
+    git add docs/OPEN.md
+    git commit -q --no-verify -m "chore: renumber this branch's queue items that main already uses
+
+Moved by scripts/open-renumber.mjs in scripts/land.sh after rebasing onto origin/main.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+  fi
 
   # A merge may REPLACE an item main already has (2026-10-04: a batch merge put
   # the branches' new items over main's Q1208/Q1209/Q1210 and nothing moved the
@@ -128,24 +161,23 @@ while :; do
   # Guard: src/test/openItemsKept.test.ts.
   node scripts/check-open-items-kept.mjs --base origin/main
 
-  node scripts/check-generated-current.mjs --fix --skip-post-merge
+  # Branches only change real things (owner, 2026-10-05): put back any generated
+  # file this branch still changes (main's copy), commit that, then prove the
+  # branch touches none: the same check the required Test job runs on the PR.
+  # The registry scan (--coverage) is the part of check:generated that judges a
+  # BRANCH: a new script that writes files must be registered.
+  node scripts/check-branch-generated.mjs --base origin/main --restore
+  # --restore stages exactly what it put back; nothing else is committed here.
+  if ! git diff --cached --quiet; then
+    git commit -q --no-verify -m "$DROP_SUBJECT
 
-  CHANGED=$( { git diff --name-only; comm -13 <(printf '%s\n' "$UNTRACKED_BEFORE") <(git ls-files --others --exclude-standard | sort); } | sed '/^$/d' | sort -u)
-  if [ -n "$CHANGED" ]; then
-    echo "land: generated files refreshed:"
-    echo "$CHANGED" | sed 's/^/  /'
-    echo "$CHANGED" | tr '\n' '\0' | xargs -0 git add --
-    git commit -q --no-verify -m "chore: refresh generated inventories
-
-Regenerated by scripts/land.sh after rebasing onto origin/main.
+The main bot (staleness-watch.yml, bot/refresh/inventories) regenerates
+every generated file after the merge; a branch never commits one.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
-  else
-    echo "land: generated files already current."
   fi
-
-  # The same check CI runs; red here stops the push.
-  node scripts/check-generated-current.mjs --skip-post-merge
+  node scripts/check-branch-generated.mjs --base origin/main
+  node scripts/check-generated-current.mjs --coverage
 
   # A money/authz/data-model commit with no recorded review turns main red on
   # the "Sensitive review record" workflow (15921ea17, 2026-09-27). Check only
@@ -155,8 +187,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
   # A commit that names an open docs/OPEN.md item must update that item in the
   # same landing (Q1150, owner 2026-10-03: e952452d7 fixed Q572 and Q445 and
-  # neither line moved, so the open count overstated the work). Runs after the
-  # refresh, so an item ticked [x] here has already moved to the archive.
+  # neither line moved, so the open count overstated the work). A ticked [x]
+  # item stays in OPEN.md until the main bot archives it; it counts as updated.
   node scripts/check-fixes-update-their-items.mjs --range origin/main..HEAD --strict
 
   # A closing keyword in a commit message (fixes #N, closes owner/repo#N, an
@@ -268,8 +300,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
       echo "land: fix, commit, and re-run bash scripts/land.sh." >&2
       exit 1
     fi
-    # Strict is off, so main moving shows as DIRTY (a conflict, usually the
-    # generated files another landing refreshed), almost never BEHIND; both
+    # Strict is off, so main moving shows as DIRTY (a conflict, usually
+    # an OPEN.md spot another landing changed), almost never BEHIND; both
     # go back to the rebase instead of waiting out the 90 minutes.
     MSS=$(echo "$INFO" | jq -r .mergeStateStatus)
     if [ "$MSS" = BEHIND ] || [ "$MSS" = DIRTY ]; then

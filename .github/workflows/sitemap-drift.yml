@@ -16,10 +16,16 @@ permissions:
 # derives the list from `src/App.tsx` and fails when the file on disk does not
 # advertise exactly the app's public routes.
 #
-# --check compares the URL set and their changefreq/priority, NOT raw bytes, so
-# a hand-written comment or whitespace never produces a false failure.
-#
-# Fix for a red run:  node scripts/generate-sitemap.mjs   (then commit the file)
+# public/sitemap.xml is a GENERATED file (scripts/check-generated-current.mjs
+# "sitemap"): since 2026-10-05 a branch never commits it (owner: branches only
+# change real things; scripts/check-branch-generated.mjs refuses it), and
+# staleness-watch.yml regenerates it on main after the merge and lands it as
+# bot/refresh/inventories. So a PR that adds or removes a public route leaves
+# the committed copy stale BY DESIGN, and `--check` against it would be red on
+# every such PR. This job now proves the generator itself still runs and
+# renders the route table (--stdout, nothing written); the guards in
+# src/lib/sitemap.test.ts and the route tests read that generated output, not
+# the committed file. Main's currency: staleness-watch.yml (check:generated).
 #
 # Costs seconds: no npm install, no build — the script uses only Node builtins.
 
@@ -63,5 +69,10 @@ jobs:
       # check, so a run that never happens cannot leave a PR stuck on
       # "Expected". If it is ever promoted to required, convert it to the
       # in-job dorny/paths-filter pattern those workflows use.
-      - name: Check for sitemap drift
-        run: node scripts/generate-sitemap.mjs --check
+      - name: The sitemap generator renders the route table
+        run: |
+          set -euo pipefail
+          XML=$(node scripts/generate-sitemap.mjs --stdout)
+          N=$(grep -c "<loc>" <<<"$XML" || true)
+          echo "generated sitemap: $N URL(s)"
+          [ "$N" -gt 3 ] || { echo "::error::generate-sitemap.mjs rendered $N URLs; the route parser has rotted"; exit 1; }

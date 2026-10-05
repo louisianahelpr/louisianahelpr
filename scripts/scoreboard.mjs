@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 /**
- * THE SCOREBOARD (docs/OPEN.md Q59) and the "Everything open" block at the top
- * of docs/OPEN.md (Q58b) — one generator, so the two can never disagree.
+ * THE SCOREBOARD (docs/OPEN.md Q59) and its "Everything open" block (Q58b),
+ * which carries the queue score line — one generator, one file, so the two can
+ * never disagree. docs/OPEN.md holds ITEMS only (owner, 2026-10-05): the count
+ * lines that used to head it were rewritten by every landing and conflicted
+ * with every other landing, so they live here, written on main by the
+ * inventories bot (staleness-watch.yml), never by a branch
+ * (scripts/check-branch-generated.mjs).
  *
  * Owner, 2026-09-23: "all tracked in 1 place so new sessions can easily pick up
  * and leave" and "always keep a current ledger to show numbers ... like it
@@ -19,7 +24,7 @@
  *   LOCAL  computed from files in the repo (the OPEN.md queue, the audit bus,
  *          the guard burn-down, baselines). Deterministic at a given commit;
  *          check-generated-current.mjs regenerates and diffs them on EVERY
- *          push, so they are never stale.
+ *          push to main, and the inventories bot lands the regeneration.
  *   LIVE   measured from outside the repo (GitHub Actions runs and issues,
  *          read-only SQL against prod, git remote refs, the local gate
  *          record). They change without a commit, so they are refreshed by
@@ -34,16 +39,16 @@
  *
  * Usage:
  *   node scripts/scoreboard.mjs              # offline: LOCAL rows recomputed, LIVE carried forward (what CI diffs)
- *   node scripts/scoreboard.mjs --write      # measure everything, write docs/SCOREBOARD.md + the OPEN.md block
+ *   node scripts/scoreboard.mjs --write      # measure everything, write docs/SCOREBOARD.md (block + table)
  *   node scripts/scoreboard.mjs --open-block # print the Everything-open block, live where fast (session start; never fails)
- *   node scripts/scoreboard.mjs --check      # shape check of the committed files only
+ *   node scripts/scoreboard.mjs --check      # shape check of the committed docs/SCOREBOARD.md only
  *   node scripts/scoreboard.mjs --live-from <dir>  # offline, LIVE sections taken from <dir>'s copies (Q57 refresh PR)
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { queueCounts } from "./queue-count.mjs";
+import { COUNT_LINE_SHAPE, countLine, queueCounts } from "./queue-count.mjs";
 import { foreignLines, gitRefReader, queueText } from "./lib/openQueue.mjs";
 import { countFindings, foldFindings, parseFindingsLog } from "./lib/auditFindings.mjs";
 import { feedCounts } from "./lib/openFeeds.mjs";
@@ -855,9 +860,9 @@ export function committedLive(text) {
 
 const NEVER_MEASURED = "**Live rows: never measured.** Run `node scripts/scoreboard.mjs --write` (needs `gh` and the linked Supabase CLI).";
 
-export function renderScoreboard(local, liveBlock) {
+export function renderScoreboard(local, liveBlock, openBlock = "") {
   return `# Scoreboard — everything we test or track
-
+${openBlock ? `\n${openBlock}\n` : ""}
 ${SB_START}
 
 **What this is (Q59).** One row per signal we test or track: its status, pass / fail /
@@ -869,8 +874,9 @@ Statuses: PASS · FAIL · WARN (open work, not a failure) · STALE · UNKNOWN ·
 
 ## From the repo at this commit
 
-Recomputed from committed files and diffed on every push by
-\`scripts/check-generated-current.mjs\`, so these cannot be stale.
+Recomputed from committed files on main by the inventories bot
+(\`.github/workflows/staleness-watch.yml\` runs \`scripts/check-generated-current.mjs\` on every
+push to main and lands the regeneration); branches never write this file.
 
 ${table(local)}
 
@@ -935,9 +941,12 @@ export function renderOpenBlock(local, liveBlock, openText = "") {
   // (265 on 2026-10-02). Ratchet: src/test/openUnnumberedRatchet.test.ts.
   const un = q.unnumbered ?? 0;
   const unText = un ? ` Plus ${un} unnumbered open line${un === 1 ? "" : "s"} not yet given a Q number.` : "";
+  const queue = countLine({ total: q.total, done: q.pass, partial: partly, open: q.fail, unnumbered: un });
   return `${EO_START}
-**Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
+**Open work — start here** (Q58). [docs/OPEN.md](OPEN.md) is the ONE open-work list; these counts are generated from it.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
+
+${queue}
 
 - **Open: ${q.fail + partly}** (${q.fail} to do, ${partly} fixed with protection pending; ${q.pass} done).${unText} Feeds mirrored in: ${f.ledger} from the alert ledger, ${f.issue} from nightly-red issues, ${f.bus} from the audit bus (\`node scripts/open-sync-trackers.mjs\`).
 ${LIVE_START}
@@ -959,30 +968,29 @@ export function renderLiveOpen(live) {
 export const OPEN_BLOCK_SHAPES = [
   /^\*\*Open work — start here\*\*/,
   /^Numbers for everything we test: /,
+  COUNT_LINE_SHAPE,
   /^- \*\*Open: \d+\*\* /,
   /^- \*\*(Workflows on main|Remote branches|Live \(workflows, branches\)|Ops alert ledger|nightly-red issues):/,
 ];
 
-/** Replace [start..end] in `text` (inclusive of the markers) or insert after the H1. */
-export function spliceOpen(text, block) {
-  const i = text.indexOf(EO_START), j = text.indexOf(EO_END);
-  if (i >= 0 && j > i) return text.slice(0, i) + block + text.slice(j + EO_END.length);
-  const h1 = text.indexOf("\n", text.indexOf("# "));
-  return text.slice(0, h1 + 1) + "\n" + block + "\n" + text.slice(h1 + 1);
-}
-
 // ── shape check (per push, offline) ─────────────────────────────────────────
 
-/** Problems with a rendered scoreboard/open block. Empty = well-formed. */
-export function shapeProblems(sb, open) {
+/** The scoreboard table's LIVE section (inside SB_START..SB_END), or null. */
+export const scoreboardLive = (sb) => committedLive(between(sb ?? "", SB_START, SB_END) ?? "");
+/** The Everything-open block's LIVE lines (inside EO_START..EO_END), or null. */
+export const openBlockLive = (sb) => committedLive(between(sb ?? "", EO_START, EO_END) ?? "");
+
+/** Problems with a rendered scoreboard (its Everything-open block included). Empty = well-formed. */
+export function shapeProblems(sb) {
   const p = [];
   if (!sb.includes(SB_START) || !sb.includes(SB_END)) p.push(`${SCOREBOARD}: generated markers missing`);
-  if (!open.includes(EO_START) || !open.includes(EO_END)) p.push(`${OPEN}: Everything-open markers missing`);
-  if (!between(open, EO_START, EO_END)?.includes("SCOREBOARD.md")) p.push(`${OPEN}: Everything-open block does not link docs/SCOREBOARD.md`);
-  const live = committedLive(sb);
+  const eo = between(sb, EO_START, EO_END);
+  if (eo === null) p.push(`${SCOREBOARD}: Everything-open markers missing`);
+  else if (!eo.split("\n").some((l) => COUNT_LINE_SHAPE.test(l))) p.push(`${SCOREBOARD}: Everything-open block has no queue score line`);
+  const live = scoreboardLive(sb);
   if (live === null) p.push(`${SCOREBOARD}: live markers missing`);
   else if (live !== NEVER_MEASURED && !/^\*\*Live rows measured at \d{4}-\d\d-\d\dT\d\d:\d\dZ\.\*\*/.test(live)) p.push(`${SCOREBOARD}: live section has no "measured at" stamp`);
-  p.push(...openLiveStampProblems(sb, open));
+  p.push(...openLiveStampProblems(sb));
   const rows = sb.split("\n").filter((l) => /^\| (?!group \||---)/.test(l));
   if (rows.length < 5) p.push(`${SCOREBOARD}: only ${rows.length} rows — the table did not render`);
   for (const l of rows) {
@@ -998,14 +1006,14 @@ export function shapeProblems(sb, open) {
 }
 
 /**
- * OPEN.md's live header lines (Workflows on main, Remote branches) are written
+ * The Everything-open block's live lines (Workflows on main, Remote branches) are written
  * by the same `--write` that stamps SCOREBOARD.md's live section, and carried
  * forward together. A line whose `_(stamp)_` is older than a sibling line or
  * than SCOREBOARD's "Live rows measured at" was skipped by a refresh and is
  * frozen (2026-10-02: lines stuck at 2026-09-23T06:08Z beside newer ones).
  */
-export function openLiveStampProblems(sb, open) {
-  const block = committedLive(between(open ?? "", EO_START, EO_END) ?? "");
+export function openLiveStampProblems(sb) {
+  const block = openBlockLive(sb);
   if (!block) return [];
   const stamps = [];
   for (const l of block.split("\n")) {
@@ -1015,7 +1023,7 @@ export function openLiveStampProblems(sb, open) {
   const sbAt = /\*\*Live rows measured at (\d{4}-\d\d-\d\dT\d\d:\d\dZ)\.\*\*/.exec(sb ?? "")?.[1];
   const newest = [sbAt, ...stamps.map((s) => s.at)].filter(Boolean).sort().at(-1);
   return stamps.filter((s) => s.at < newest)
-    .map((s) => `${OPEN}: live line "${s.name}" is stamped ${s.at}, older than its siblings (${newest}) — it was not refreshed; run \`node scripts/scoreboard.mjs --write\``);
+    .map((s) => `${SCOREBOARD}: Everything-open live line "${s.name}" is stamped ${s.at}, older than its siblings (${newest}) — it was not refreshed; run \`node scripts/scoreboard.mjs --write\``);
 }
 
 /** Hours since the live section was measured, or null when there is none. */
@@ -1036,7 +1044,7 @@ function readRepo(p) { return existsSync(join(REPO, p)) ? readFileSync(join(REPO
  */
 async function printOpenBlock(local, read) {
   const openText = read(OPEN) ?? "";
-  const old = (committedLive(between(openText, EO_START, EO_END) ?? "") ?? "").split("\n");
+  const old = (openBlockLive(read(SCOREBOARD) ?? "") ?? "").split("\n");
   const live = [
     old.find((l) => l.startsWith("- **Workflows on main:**")) ?? "- **Workflows on main:** not measured yet.",
     old.find((l) => l.startsWith("- **Remote branches:**")) ?? "- **Remote branches:** not measured yet.",
@@ -1083,11 +1091,11 @@ async function main() {
   }
   const local = localRows();
 
-  const sbPath = join(REPO, SCOREBOARD), openPath = join(REPO, OPEN);
+  const sbPath = join(REPO, SCOREBOARD);
   const sbText = readRepo(SCOREBOARD), openText = readRepo(OPEN);
 
   if (argv.includes("--check")) {
-    const p = shapeProblems(sbText ?? "", openText ?? "");
+    const p = shapeProblems(sbText ?? "");
     for (const x of p) console.error(`::error::${x}`);
     if (p.length) process.exit(1);
     console.log("scoreboard shape OK");
@@ -1101,38 +1109,35 @@ async function main() {
     const dir = join(REPO, "test-results", "slo");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `slo-${live.slo.measuredAt.slice(0, 10)}.json`), JSON.stringify(live.slo, null, 2) + "\n");
-    sbLive = carryForwardMeasured(renderLiveScoreboard(live), committedLive(sbText));
+    sbLive = carryForwardMeasured(renderLiveScoreboard(live), scoreboardLive(sbText));
     openLive = renderLiveOpen(live);
   } else if (argv.includes("--live-from")) {
     // Q57 refresh PR: .github/workflows/scoreboard.yml measured the live rows
     // on an older checkout; rebuild on THIS (latest main) tree, taking only
-    // the LIVE sections from that measurement — never the whole OPEN.md, which
-    // lanes edit all day.
+    // the LIVE sections from that measurement.
     const from = argv[argv.indexOf("--live-from") + 1];
-    const read = (p) => (from && existsSync(join(from, p)) ? readFileSync(join(from, p), "utf8") : null);
-    sbLive = committedLive(read(SCOREBOARD));
-    openLive = committedLive(between(read(OPEN) ?? "", EO_START, EO_END) ?? "");
+    const measured = from && existsSync(join(from, SCOREBOARD)) ? readFileSync(join(from, SCOREBOARD), "utf8") : "";
+    sbLive = scoreboardLive(measured);
+    openLive = openBlockLive(measured);
     if (sbLive === null || openLive === null) {
-      console.error(`::error::--live-from ${from}: no live section in its ${SCOREBOARD} / ${OPEN}`);
+      console.error(`::error::--live-from ${from}: no live section in its ${SCOREBOARD}`);
       process.exit(1);
     }
   } else {
-    sbLive = committedLive(sbText);
-    openLive = committedLive(between(openText ?? "", EO_START, EO_END) ?? "");
+    sbLive = scoreboardLive(sbText);
+    openLive = openBlockLive(sbText);
   }
-  const sb = renderScoreboard(local, sbLive);
-  const foreign = foreignLines(between(openText, EO_START, EO_END) ?? "", OPEN_BLOCK_SHAPES);
+  const foreign = foreignLines(between(sbText ?? "", EO_START, EO_END) ?? "", OPEN_BLOCK_SHAPES);
   if (foreign.length) {
-    console.error(`scoreboard: ${foreign.length} hand-written line(s) inside the generated Everything-open block in ${OPEN}; writing would delete them. Move them outside the markers:\n${foreign.map((l) => `  ${l.slice(0, 160)}`).join("\n")}`);
+    console.error(`scoreboard: ${foreign.length} hand-written line(s) inside the generated Everything-open block in ${SCOREBOARD}; writing would delete them. Move them to docs/OPEN.md as items:\n${foreign.map((l) => `  ${l.slice(0, 160)}`).join("\n")}`);
     process.exit(1);
   }
-  const open = spliceOpen(openText, renderOpenBlock(local, openLive, openText));
+  const sb = renderScoreboard(local, sbLive, renderOpenBlock(local, openLive, openText));
   writeFileSync(sbPath, sb);
-  writeFileSync(openPath, open);
-  const problems = shapeProblems(sb, open);
+  const problems = shapeProblems(sb);
   for (const x of problems) console.error(`::error::${x}`);
   if (problems.length) process.exit(1);
-  console.log(`scoreboard: ${local.length} local row(s)${argv.includes("--write") ? ", live rows re-measured" : ", live rows carried forward"} → ${SCOREBOARD} + ${OPEN} (Everything open)`);
+  console.log(`scoreboard: ${local.length} local row(s)${argv.includes("--write") ? ", live rows re-measured" : ", live rows carried forward"} → ${SCOREBOARD} (with the Everything-open block)`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main().catch((e) => { console.error(e); process.exit(1); });

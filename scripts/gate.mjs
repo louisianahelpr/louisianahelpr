@@ -52,7 +52,11 @@ const STEPS = [
   ["migration relation grants", "node scripts/check-migration-relation-grants.mjs"],
   ["migration timestamps", "node scripts/check-migration-versions.mjs"],
   ["loading-state shape", "npm run check:loading-states"],
-  ["generated inventories current", "npm run check:generated"],
+  // A branch never commits a generated file (owner, 2026-10-05); their
+  // currency is main's (staleness-watch.yml), so the gate checks the branch
+  // rule and the registry, not check:generated.
+  ["no generated file edited on this branch", "node scripts/check-branch-generated.mjs --base origin/main"],
+  ["generator registry complete", "node scripts/check-generated-current.mjs --coverage"],
   ["stated counts dated", "npm run check:counts"],
   [
     "deferred vendors (built graph)",

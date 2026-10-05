@@ -1,15 +1,11 @@
 # Open list
 
-<!-- generated: everything-open (node scripts/scoreboard.mjs --write) -->
-**Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
-Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
-
-- **Open: 253** (221 to do, 32 fixed with protection pending; 834 done). Feeds mirrored in: 9 from the alert ledger, 6 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-<!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
-- **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
-<!-- /live -->
-<!-- /generated: everything-open -->
+**Counts are not kept here (owner, 2026-10-05).** This file holds ITEMS only. The
+open / done / partly-done numbers and the queue score line are generated from these
+items on main, by the inventories bot, into [docs/SCOREBOARD.md](SCOREBOARD.md); the
+session-start banner computes them from origin/main. A branch never writes a count or
+any other generated file (`scripts/check-branch-generated.mjs`, run by land.sh and
+the required Test check), so two landings never conflict on a number.
 
 **This is the ONLY open-work list** (owner, 2026-09-12). Handoff memories, the
 audit-bus ledger and agent reports are evidence, not backlogs: anything still
@@ -25,9 +21,10 @@ with a reconcile log of every item closed and its evidence. Nothing was deleted.
 
 **Done items leave this file (Q16, 2026-09-26):** a ticked `- [x]` item is moved
 verbatim to the dated archive docs/archive/OPEN-done-YYYY-MM.md by
-`npm run inventories:refresh` (scripts/archive-done.mjs); check:generated fails
-while one is left here. The queue score, next free number and the done-item
-guard check read this file AND the archives, so archiving never changes a count.
+scripts/archive-done.mjs, run ON MAIN by the inventories bot after the landing
+(staleness-watch.yml); a branch just ticks the line and never edits an archive. The
+queue score, next free number and the done-item guard check read this file AND the
+archives, so archiving never changes a count.
 
 **`[~]` items say when they are done (2026-09-27):** put what is left as one or
 more markers on the item, written out in full and ANDed together:
@@ -51,10 +48,6 @@ screens), Q10 (owner-side), then the rest in number order. An item's own line
 is the source of truth for its state; this sentence only orders them.
 
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
-
-<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1087 items — 834 done, 32 partly done (fixed, protection pending), 221 open.**
-<!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
 

@@ -1,23 +1,25 @@
 #!/usr/bin/env node
 /**
- * The queue's score line in docs/OPEN.md, computed from the items themselves.
- * Counted over OPEN.md AND its done archives (scripts/lib/openQueue.mjs, Q16).
- * Owner, 2026-09-23: "add it to the list count when you mark it done so we can
- * keep current track of numbers." src/test/queueItemsNameTheirGuard.test.ts
- * fails when the stored line and the items disagree.
+ * The queue's score line, computed from the items themselves. Counted over
+ * OPEN.md AND its done archives (scripts/lib/openQueue.mjs, Q16). Owner,
+ * 2026-09-23: "add it to the list count when you mark it done so we can keep
+ * current track of numbers."
+ *
+ * WHERE THE LINE LIVES (owner, 2026-10-05). It used to sit in a generated block
+ * at the top of docs/OPEN.md, and every landing rewrote it, so every landing
+ * conflicted with every other one on the same line. docs/OPEN.md now holds
+ * items only. The line is rendered into docs/SCOREBOARD.md's Everything-open
+ * block by scripts/scoreboard.mjs, on main, by the inventories bot
+ * (staleness-watch.yml); the session-start hook computes it from origin/main.
+ * A branch never writes it (scripts/check-branch-generated.mjs refuses).
  *
  * It also counts UNNUMBERED open lines (`- [ ] ` with no **Q<n>**): on
  * 2026-10-02 origin/main held 265 of them that no count showed. They are named
  * in the line and ratcheted by src/test/openUnnumberedRatchet.test.ts.
  *
- *   node scripts/queue-count.mjs          # print the line
- *   node scripts/queue-count.mjs --write  # rewrite it in docs/OPEN.md
+ *   node scripts/queue-count.mjs          # print the line and the next free number
  */
-import { readFileSync, writeFileSync } from "node:fs";
-import { foreignLines, gitRefReader, queueText } from "./lib/openQueue.mjs";
-
-export const START = "<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->";
-export const END = "<!-- /generated: queue-count -->";
+import { gitRefReader, queueText } from "./lib/openQueue.mjs";
 
 /** Not-done top-level checkbox lines that carry no **Q<n>** number. */
 const OPEN_LINE = /^- \[[ ~]\] /;
@@ -76,31 +78,17 @@ export function countLine(c) {
   return `**Queue: ${c.total} items — ${c.done} done, ${c.partial} partly done (fixed, protection pending), ${c.open} open${un ? `; plus ${un} unnumbered open line${un === 1 ? "" : "s"} still to number` : ""}.**`;
 }
 
-/** The only line the queue-count block may hold (foreignLines). */
+/** The shape of the line countLine writes (scoreboard.mjs OPEN_BLOCK_SHAPES). */
 export const COUNT_LINE_SHAPE = /^\*\*Queue: \d+ items — .*\*\*$/;
 
-export function storedLine(md) {
-  const a = md.indexOf(START), b = md.indexOf(END);
-  return a >= 0 && b > a ? md.slice(a + START.length, b).trim() : null;
-}
-
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const path = "docs/OPEN.md";
-  const md = readFileSync(path, "utf8");
+  if (process.argv.includes("--write")) {
+    console.error("queue-count: --write is gone (owner, 2026-10-05). docs/OPEN.md holds items only; the queue line is written into docs/SCOREBOARD.md on main by the inventories bot (staleness-watch.yml). Branches never write it: just edit your items.");
+    process.exit(1);
+  }
   // Counts, duplicates and the next number read OPEN.md + its done archives (Q16).
   const all = queueText(".");
-  const line = countLine(queueCounts(all));
-  if (process.argv.includes("--write")) {
-    if (storedLine(md) === null) throw new Error(`no ${START} marker in ${path}`);
-    const a = md.indexOf(START), b = md.indexOf(END);
-    const foreign = foreignLines(md.slice(a + START.length, b), [COUNT_LINE_SHAPE]);
-    if (foreign.length) {
-      console.error(`queue-count: ${foreign.length} hand-written line(s) inside the generated block in ${path}; --write would delete them. Move them outside the markers:\n${foreign.map((l) => `  ${l.slice(0, 160)}`).join("\n")}`);
-      process.exit(1);
-    }
-    writeFileSync(path, md.slice(0, a + START.length) + "\n" + line + "\n" + md.slice(b));
-  }
-  console.log(line);
+  console.log(countLine(queueCounts(all)));
   const dupes = duplicateIds(all);
   if (dupes.length) { console.error(`DUPLICATE queue numbers: ${dupes.join(", ")} — run node scripts/open-renumber.mjs`); process.exitCode = 1; }
   console.log(`next free: ${nextFreeAcross(".")} (the higher of this tree and origin/main; git fetch first)`);

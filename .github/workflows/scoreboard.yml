@@ -141,7 +141,7 @@ jobs:
             docs/OPEN.md
             docs/audit/open-feeds.json
           measured-dir: ${{ runner.temp }}/measured
-          regenerate: node scripts/open-sync-trackers.mjs --from "$MEASURED/docs/audit/open-feeds.json" && node scripts/queue-count.mjs --write && node scripts/scoreboard.mjs --live-from "$MEASURED"
+          regenerate: node scripts/open-sync-trackers.mjs --from "$MEASURED/docs/audit/open-feeds.json" && node scripts/scoreboard.mjs --live-from "$MEASURED"
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
           check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
 

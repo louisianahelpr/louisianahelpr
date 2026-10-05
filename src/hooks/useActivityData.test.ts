@@ -224,8 +224,8 @@ describe("fetchPostedActivityDetail — My Posts decoration", () => {
     expect("p3" in result.latestTracking).toBe(false);
   });
 
-  it("batches groupHelpersByJob with a single in() + one batched profiles lookup", async () => {
-    setResponse("group_job_helpers|select,in:job_id=g1&g2", {
+  it("batches groupHelpersByJob with a single in() + one batched get_safe_profiles lookup", async () => {
+    setResponse("group_job_helpers|select,in:job_id=g1&g2&g3", {
       data: [
         { id: "gh1", job_id: "g1", helper_id: "helper-A", status: "accepted", joined_at: "2026-05-01" },
         { id: "gh2", job_id: "g1", helper_id: "helper-B", status: "accepted", joined_at: "2026-05-02" },
@@ -233,7 +233,9 @@ describe("fetchPostedActivityDetail — My Posts decoration", () => {
       ],
       error: null,
     });
-    setResponse("profiles|select,in:user_id=helper-A&helper-B", {
+    // get_safe_profiles, not a `profiles` select: the poster cannot read a
+    // crew member's profiles row (RLS returned [] on prod, Q1382).
+    setResponse("rpc:get_safe_profiles:helper-A,helper-B", {
       data: [
         { user_id: "helper-A", full_name: "Anna Test" },
         { user_id: "helper-B", full_name: "Ben Test" },
@@ -251,8 +253,10 @@ describe("fetchPostedActivityDetail — My Posts decoration", () => {
     expect(result.groupHelpersByJob["g1"]).toHaveLength(2);
     expect(result.groupHelpersByJob["g1"][0].helperName).toBe("Anna T.");
     expect(result.groupHelpersByJob["g2"][0].helperName).toBe("Anna T.");
-    // Solo + open jobs are NOT pre-fetched.
+    // Solo jobs are NOT pre-fetched. An OPEN crew is (Q707: it can already
+    // have hired members, which hide Edit); g3 simply has nobody yet.
     expect("s1" in result.groupHelpersByJob).toBe(false);
+    expect(inputs.groupIds).toEqual(["g1", "g2", "g3"]);
     expect("g3" in result.groupHelpersByJob).toBe(false);
   });
 

@@ -216,6 +216,13 @@ export function posterConfirmationRung(
   now: Date = new Date(),
 ): PosterConfirmRung | null {
   if (step !== "scheduled" && step !== "in_progress") return null;
+  // A CREW (Q1382): arrivals are confirmed PER MEMBER, on the roster's own
+  // "Confirm Arrived" chips (GroupJobHelpers, rpc_poster_confirm_member_arrival).
+  // This ladder reads the job's scalar stamps, which belong to nobody on a crew
+  // (Q407), so it could only ever draw a disabled "Confirm They Arrived" beside
+  // the roster's live ones. (Its stalled notice needs a confirmed job-level
+  // working stamp, which a crew never has, so nothing is lost.)
+  if (job.is_group_job === true) return null;
 
   // AN OFFER IS NOT A BOOKING (owner, 2026-10-05: "Confirm Arrival must NOT
   // show at all until the Helpr has accepted"). While the Helpr has not

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T18:38Z",
+  "measured_at": "2026-10-05T19:02Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,6 +22,11 @@
       {
         "number": 2353,
         "title": "nightly-red: press-every-control",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2366,
+        "title": "nightly-red: branch-prune",
         "label": "nightly-red"
       }
     ]
@@ -62,11 +67,35 @@
         "issue": null
       },
       {
+        "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: branch-prune",
+        "issue": null
+      },
+      {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
         "source_kind": "workflow",
         "source": "uptime",
         "status": "open",
         "title": "guest marketplace is empty: no funded jobs (pre-launch)",
+        "issue": null
+      },
+      {
+        "fingerprint": "6d6726e9c2f13fda3aaa0398b57c3c76",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/posts · error screen shown: couldn't load applicants",
+        "issue": null
+      },
+      {
+        "fingerprint": "5b3c79ac5eb7674118e5fe66b79204e2",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/jobs · error screen shown: we couldn't load this.",
         "issue": null
       }
     ]
@@ -84,9 +113,13 @@
     "issue #2244": "Q1275",
     "issue #2245": "Q785",
     "issue #2353": "Q1374",
+    "issue #2366": "Q1376",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
+    "ledger 5b3c79ac5eb7": "Q1377",
     "ledger 6205197429d4": "Q593",
+    "ledger 6d6726e9c2f1": "Q1375",
+    "ledger 7f88b9cc45df": "Q1376",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger b75d265e6201": "Q1310",
     "ledger db0fb15c4ec3": "Q787"

@@ -46,7 +46,7 @@ registration proves sensitivity to the ONE line it names — `release-payout` is
 |---|---|---|---|---|
 | **`src/test/*.test.ts*`** | 873 | **873 — COMPLETE** | 0 | **0** |
 | **`src/test/edge/` (money)** | 102 | **102 — COMPLETE** | 0 | **0** |
-| **colocated beside components** | 422 | **422 — COMPLETE** | 0 | **0** |
+| **colocated beside components** | 424 | **424 — COMPLETE** | 0 | **0** |
 | **Playwright `e2e/`** | 87 | **76 — COMPLETE** | 11 | **0** |
 | **total** | **1484** | **1473 (99%)** | **11** | **0** |
 

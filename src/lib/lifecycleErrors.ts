@@ -180,6 +180,40 @@ export const RPC_ERROR_COPY = {
     not_on_this_crew: "You're not on this job's crew any more, so you can't add photos to it.",
     part_already_done: "You already marked your part done, so its photos are part of the record now.",
   },
+  // CrewMemberSection — a crew member's own steps on their roster row (Q1382).
+  rpc_group_member_confirm: {
+    not_authenticated: "Sign in again to confirm your spot.",
+    not_on_this_crew: "You're not on this job's crew any more.",
+    job_not_confirmable: "This job isn't live any more, so your spot can't be confirmed. Pull to refresh.",
+  },
+  rpc_group_member_on_the_way: {
+    not_authenticated: "Sign in again to update your status.",
+    not_on_this_crew: NO_LONGER_BOOKED_STATUS,
+    job_not_active: "You can head out once every spot on the crew is filled and the job is booked.",
+    helper_not_confirmed: "Confirm your spot first, then mark yourself on the way.",
+  },
+  rpc_group_member_mark_arrival: {
+    not_authenticated: "Sign in again to check in.",
+    not_on_this_crew: NO_LONGER_BOOKED_STATUS,
+    job_not_active: "You can check in once every spot on the crew is filled and the job is booked.",
+    helper_not_confirmed: "Confirm your spot first, then check in.",
+  },
+  rpc_group_member_mark_done: {
+    not_authenticated: "Sign in again to mark your part done.",
+    not_on_this_crew: "You're not on this job's crew any more, so you can't mark a part done.",
+    part_not_completable: "Your part couldn't be marked done. Pull to refresh and check where the job stands.",
+    // The per-member completion gates are raised by the roster TRIGGER
+    // (enforce_group_member_completion_gates), which this inventory does not
+    // follow; their copy is CREW_DONE_GATE_COPY in src/lib/crewLifecycle.ts.
+  },
+  // GroupJobHelpers — the poster's per-member "Confirm They Arrived".
+  rpc_poster_confirm_member_arrival: {
+    not_authenticated: "Sign in again to confirm an arrival.",
+    not_the_poster: "Only the person who posted this job can confirm a Helpr arrived.",
+    job_not_active: "This job isn't active any more, so arrivals can't be confirmed.",
+    not_on_this_crew: "That Helpr isn't on this crew any more. Pull to refresh.",
+    arrival_confirm_before_arrival: "That Helpr hasn't checked in yet. You can confirm once they tap I've Arrived.",
+  },
   // useOfferHandlers — responding to a direct offer.
   respond_to_direct_offer: {
     offer_expired: "This offer expired — the job is open to everyone again.",

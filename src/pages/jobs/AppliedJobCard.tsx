@@ -26,11 +26,11 @@ import { OfferedActions } from "./appliedJobCard/OfferedActions";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
+import { CrewMemberSection } from "./appliedJobCard/CrewMemberSection";
+import { HelperCollapsedStrip } from "./appliedJobCard/HelperCollapsedStrip";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
-import { JobStatusStrip } from "../../components/job-card/JobStatusStrip";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
-import { helperStatusLine, withDisputeSettling } from "../../components/job-card/jobStatusLine";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
@@ -139,6 +139,7 @@ function AppliedJobCardInner({
     isOffered,
     isConfirmed,
     isActive,
+    isCrewLive,
     isDisputed,
     isCompleted,
     isCancelled,
@@ -697,6 +698,11 @@ function AppliedJobCardInner({
             />
           )}
 
+          {/* A crew member's live job (Q1382): their own roster row's steps. */}
+          {isCrewLive && (
+            <CrewMemberSection app={app} job={job} userId={userId} isExpanded={isExpanded} navigate={navigate} />
+          )}
+
           {/* Disputed */}
           {isDisputed && isExpanded && (
             <DisputedSection
@@ -860,51 +866,12 @@ function AppliedJobCardInner({
             </div>
           )}
           {/* A booked one-time job's date/time change (Q407 8). */}
-          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" expanded={isExpanded} />
-          {/* WHAT THIS CARD IS WAITING ON — one sentence, at the card's bottom
-              edge (owner, 2026-09-19: "should show what we are waiting on...
-              remove the dots", and on the look: "similar to how dispute open
-              displays").
-
-              THE SAME STRIP THE POSTER'S CARD WEARS, written from the HELPR's
-              point of view — one job, two readers, two sentences. "Approve &
-              release pay" over there is "With them for approval" here.
-
-              IT ABSORBS THE COLLAPSED DISPUTE BADGE. That badge was the one
-              thing a collapsed disputed card said, and it survives verbatim as
-              `tone: "alarm"` — same words ("Dispute open" / "Admin reviewing"
-              ... "Payment on hold"), same sienna, same `data-dispute-open-badge`
-              hook, so `helperDisputeCopy` still pins that a Helpr scrolling My
-              Jobs can see a 72-hour clock on their pay. The PANEL stays behind
-              the expand, which was already the ruling: controls in, signal out.
-
-              PURE RENDER — no query, no realtime channel, no tracker. It reads
-              columns this card already holds. That is also what the compact
-              rail bought and this keeps: until this morning the three sections
-              above mounted a full JobTracking on every collapsed card, one
-              subscription per row of the list.
-
-              NOT ON A MINIMAL CARD. A not-selected or cancelled application
-              already leads its body with exactly this statement, in prose that
-              says WHO cancelled (`describeCancellation`) — which is more than
-              a strip can carry. Two of them would be the duplication this card
-              keeps having removed. `deriveHelperWait` still answers for those
-              states (`not_selected` / `cancelled` / `job_gone`); the card
-              chooses not to draw a second copy. */}
-          {/* The start clock on the collapsed card too (owner, 2026-10-05); the
-              offer card carries its own two clocks inside OfferedActions. */}
-          {!isMinimalCard && !isExpanded && isConfirmed && (
-            <div className="px-4 pb-2" data-collapsed-start-clock="">
-              <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
-            </div>
+          <ScheduleChangeForJob job={job} userId={userId} viewer="helper" />
+          {/* What this card is waiting on: one sentence at its bottom edge
+              (HelperCollapsedStrip says why it is the same strip the poster wears). */}
+          {!isMinimalCard && !isExpanded && (
+            <HelperCollapsedStrip app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} />
           )}
-          {/* NO STRIP ON AN OFFER (owner, 2026-10-05: the answer-by clock showed
-              twice, "23h 55m remaining" over Accept AND "23h 55m left to
-              confirm" here, and the strip repeated "Confirm you'll be there"
-              under a body that already asks it). OfferedActions is on the
-              collapsed and the expanded card alike and IS this card's
-              statement of whose move it is, with its one clock. */}
-          {!isMinimalCard && !isExpanded && !isOffered && <JobStatusStrip line={helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app)} />}
         </JobCardShell>
         </div>
     </JobCardPersonContext.Provider>

@@ -1,4 +1,4 @@
-// @mutate src/components/postjob/CheckoutStep.tsx | <span className="text-muted-foreground">Job Budget</span> | <span className="text-muted-foreground">Job Budget</span>{"Your Helpr receives $1 of this"}
+// @mutate src/components/postjob/CheckoutStep.tsx | <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} /> | <CheckoutSummaryRow label="Job Budget" amount={formatPriceExact(budgetNum)} />{"Your Helpr receives $1 of this"}
 /**
  * Owner, 2026-09-24: "On payment break down remove your helpr earns… from this."
  * The poster's Payment Breakdown lists what THEY pay (budget, fee, tax, total).

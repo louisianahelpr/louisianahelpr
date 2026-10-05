@@ -59,7 +59,7 @@
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isConfirmed && isExpanded && ( | {isConfirmed && (
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isActive && isExpanded && ( | {isActive && (
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isDisputed && isExpanded && ( | {isDisputed && (
- * @mutate src/pages/jobs/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && !isOffered && <JobStatusStrip | {false && <JobStatusStrip
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | {!isMinimalCard && !isExpanded && (\n            <HelperCollapsedStrip | {false && (\n            <HelperCollapsedStrip
  * @mutate src/pages/posts/PostedJobCard.tsx | {!isExpanded && (\n              <PosterStatusStrip | {false && (\n              <PosterStatusStrip
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";

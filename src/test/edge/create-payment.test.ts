@@ -2,7 +2,7 @@
 // @mutate supabase/functions/create-payment/index.ts | const raced = await chargebackLandedDuringSettlement(supabaseAdmin, jobId, "refund"); | const raced = null as Response \| null;
 // @mutate supabase/functions/create-payment/index.ts | if (error \|\| !current \|\| current.payment_status !== "chargeback") return null; | if (error \|\| !current) return null;
 // @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_RELEASE_FLIP_PAYMENT_STATES]).select("id");\n      if (!releaseUpdateErr | .eq("status", "disputed").select("id");\n      if (!releaseUpdateErr
-// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
+// @mutate supabase/functions/create-payment/index.ts | .eq("status", "disputed").in("payment_status", [...DISPUTE_REFUND_FLIP_PAYMENT_STATES]).select("id");\n      if (!refundUpdateErr | .eq("status", "disputed").select("id");\n      if (!refundUpdateErr
 // @mutate supabase/functions/create-payment/index.ts |         payment_method_types: TIP_PAYMENT_METHOD_TYPES, |
 /**
  * Unit tests for the `create-payment` Supabase edge function.
@@ -2741,12 +2741,15 @@ describe("create-payment edge function", () => {
         // Quick Release also closes a job our own transfer.created webhook already
         // marked 'released' in the milliseconds between transferToHelper and the
         // flip (review of Q1192, must-fix 1): without it that race left a paid
-        // Helpr, a stuck claim and a 500. Quick Refund keeps the narrow set.
+        // Helpr, a stuck claim and a 500. Quick Refund likewise closes a job its
+        // own charge.refunded already marked 'refunded' (Q1301: a refund that
+        // completes the charge, when the fee is 0 or was refunded earlier).
         // @mutate supabase/functions/create-payment/index.ts | const DISPUTE_RELEASE_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "released"] as const; | const DISPUTE_RELEASE_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES] as const;
         // @mutate supabase/functions/create-payment/index.ts | const DISPUTE_FLIP_PAYMENT_STATES = ["escrow", "payout_pending"] as const; | const DISPUTE_FLIP_PAYMENT_STATES = ["escrow", "payout_pending", "chargeback"] as const;
+        // @mutate supabase/functions/create-payment/index.ts | const DISPUTE_REFUND_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "refunded"] as const; | const DISPUTE_REFUND_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES] as const;
         it.each([
           ["admin_release_dispute", seedReleasable, ["escrow", "payout_pending", "released"]],
-          ["admin_refund_dispute", seedRefundable, ["escrow", "payout_pending"]],
+          ["admin_refund_dispute", seedRefundable, ["escrow", "payout_pending", "refunded"]],
         ])("%s flips only a job in its own settle-able payment states — never over a chargeback block (Q1192)", async (action, seed, states) => {
           seed();
           const fn = await load();

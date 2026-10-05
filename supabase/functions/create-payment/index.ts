@@ -2691,7 +2691,7 @@ serve(async (req) => {
       // itself is idempotent (Stripe key refund-dispute-<job>, ledger upsert on
       // stripe_refund_id); the flip and everything after it run once.
       // .in("payment_status", ...): same chargeback race as admin_release_dispute (Q1192).
-      }).eq("id", jobId).eq("status", "disputed").in("payment_status", [...DISPUTE_FLIP_PAYMENT_STATES]).select("id");
+      }).eq("id", jobId).eq("status", "disputed").in("payment_status", [...DISPUTE_REFUND_FLIP_PAYMENT_STATES]).select("id");
       if (!refundUpdateErr && refundUpdated && refundUpdated.length === 0) {
         const settled = await alreadyResolvedDispute(supabaseAdmin, jobId, "cancelled", "refunded");
         if (settled) {
@@ -3828,10 +3828,21 @@ const DISPUTE_FLIP_PAYMENT_STATES = ["escrow", "payout_pending"] as const;
  * status, and it fires within milliseconds of transferToHelper, between the
  * ledger insert and this flip. Inside a held settlement claim, 'released' can
  * only come from that webhook (lh-money-escrow review of Q1192, must-fix 1).
- * Quick Refund keeps the narrower set: it withholds the fee, so
- * charge.refunded never flips the job under it.
  */
 const DISPUTE_RELEASE_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "released"] as const;
+
+/**
+ * Quick Refund also closes a job its OWN refund's charge.refunded already
+ * marked 'refunded' (Q1301). It withholds the Stripe fee, so its refund is
+ * usually partial and charge.refunded leaves the job alone; but when the fee
+ * is 0, or the charge already carried a partial refund equal to the fee, its
+ * refund COMPLETES the charge and charge.refunded (stripe-webhook
+ * chargeRefunded.ts) flips the job to 'refunded' first. The flip then matched
+ * zero rows: a 500 and a stuck, stamped claim. Inside a held settlement claim
+ * 'refunded' can only mean the card holder has the money back, which is what
+ * this flip records.
+ */
+const DISPUTE_REFUND_FLIP_PAYMENT_STATES = [...DISPUTE_FLIP_PAYMENT_STATES, "refunded"] as const;
 
 /**
  * Zero rows matched the Quick Release / Quick Refund flip: did a chargeback

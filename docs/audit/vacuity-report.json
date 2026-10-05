@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-05T22:12:46.053Z",
-  "guards": 1489,
-  "registered": 1489,
+  "generated": "2026-10-05T23:05:01.189Z",
+  "guards": 1497,
+  "registered": 1497,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -357,6 +357,7 @@
         "src/test/descriptionGroupsWithMeta.test.tsx",
         "src/test/enRouteAddressVisible.test.tsx",
         "src/test/jobCardPersonTileAboveRow.test.tsx",
+        "src/test/offerCardHierarchy.test.tsx",
         "src/pages/jobs/AppliedJobCard.locationTapExpands.test.tsx",
         "src/pages/jobs/AppliedJobCard.posterTile.test.tsx",
         "src/components/job-card/activityBadgeListAgreement.test.tsx",
@@ -400,6 +401,7 @@
         "src/test/collapsedStatusSentence.test.tsx",
         "src/test/descriptionGroupsWithMeta.test.tsx",
         "src/test/jobCardPersonTileAboveRow.test.tsx",
+        "src/test/offerCardHierarchy.test.tsx",
         "src/pages/posts/PostedJobCard.contestedTracker.test.tsx",
         "src/pages/posts/PostedJobCard.helprTile.test.tsx",
         "src/pages/posts/PostedJobCard.owesConfirmationBadge.test.tsx"

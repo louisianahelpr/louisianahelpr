@@ -283,7 +283,8 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
   it("pin stays off for it: the swipe row gets no pin action", () => {
     const list = blankComments(read("src/components/messages/ConversationList.tsx"));
     expect(list).toMatch(/onTogglePin=\{c\.otherUserId === null \? undefined : \(\) => handleTogglePin\(c\)\}/);
-    const row = blankComments(read("src/components/messages/SwipeableConversationRow.tsx"));
+    // Q1299: the gesture moved into the lazily loaded ConversationSwipeLayer.
+    const row = blankComments(read("src/components/messages/ConversationSwipeLayer.tsx"));
     expect(row).toMatch(/offset > SWIPE_THRESHOLD && onTogglePin/);
     expect(row).toMatch(/right: onTogglePin \? 180 : 0/);
   });

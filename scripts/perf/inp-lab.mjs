@@ -260,7 +260,11 @@ export async function arrive(page, selector, route) {
  * Analytics and Speed Insights), so the lab never sends a replay, an event or
  * a page view to prod's dashboards.
  */
-export const TELEMETRY = [/\.sentry\.io\//, /\.posthog\.com\//, /\/_vercel\/(insights|speed-insights)\/(view|event|vitals)/];
+export const TELEMETRY = [
+  /^https?:\/\/(?:[^/]+\.)?sentry\.io(?:\/|$)/,
+  /^https?:\/\/(?:[^/]+\.)?posthog\.com(?:\/|$)/,
+  /^https?:\/\/[^/]+\/_vercel\/(insights|speed-insights)\/(view|event|vitals)(?:\/|$)/
+];
 export async function asPerson(ctx) {
   await ctx.addInitScript(() => {
     try { Object.defineProperty(Navigator.prototype, "webdriver", { get: () => false, configurable: true }); } catch { /* engine refused */ }

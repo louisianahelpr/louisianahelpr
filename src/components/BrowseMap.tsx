@@ -27,7 +27,6 @@
 // state and the "Bottom control stack" block in the JSX for why.
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { useUserLocation } from "@/hooks/useUserLocation";
@@ -42,6 +41,7 @@ import {
   type MapJob,
 } from "./browseMap/config";
 import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
+import { useMapJobs } from "./browseMap/useMapJobs";
 import JobCard from "./dashboard/JobCard";
 import { clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
 import {
@@ -144,6 +144,15 @@ interface BrowseMapProps {
    * Omitted on the guest dashboard, which has none of these.
    */
   exclusions?: ViewerFeedExclusions;
+  /**
+   * Re-read the pin RPC whenever this changes. /home passes the list's own
+   * last-read time, so the map re-reads exactly when the list does (after an
+   * apply, a pull-to-refresh, a focus refetch). Before this the pins were
+   * fetched once per mount and never again, so a job that left the board
+   * (applied to, hired, cancelled) stayed pinned beside a list that had
+   * dropped it.
+   */
+  refreshKey?: number;
 }
 
 /** Placement of the pin-anchored preview popover, in `mapBoxRef` pixels.
@@ -168,54 +177,13 @@ function readIsDark(): boolean {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
-export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions, refreshKey }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
-  const [jobs, setJobs] = useState<MapJob[]>([]);
-  const [loading, setLoading] = useState(true);
-  // The pin RPC used to fail SILENTLY: `if (error) { report(...); return; }`
-  // left `jobs` at [], so a 500 rendered the "Empty map for now." card — the
-  // map told the user Louisiana had no work when in truth the query died.
-  // That is the exact failure CLAUDE.md's "never drop the Supabase error"
-  // rule exists to stop, and the error-state sweep caught it on /home's
-  // map view (SILENT_FAILURE: 36 failed requests, no failure wording, no way
-  // out). Tracked explicitly so the map can say so and offer a retry.
-  const [loadError, setLoadError] = useState(false);
-  /** Bumped by the retry button to re-run the fetch effect. */
-  const [reloadNonce, setReloadNonce] = useState(0);
+  // The pin set and its load state; see browseMap/useMapJobs.ts.
+  const { jobs, loading, loadError, retry } = useMapJobs(currentUserId, refreshKey);
   const [mapReady, setMapReady] = useState(false);
   const [isDark, setIsDark] = useState(readIsDark);
-
-  useEffect(() => {
-    let cancelled = false;
-    supabase
-      .rpc("get_open_jobs_for_map")
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          report(error, { tags: { source: "BrowseMap.rpc" } });
-          setLoadError(true);
-          setLoading(false);
-          return;
-        }
-        setLoadError(false);
-        const rows = (data as MapJob[] | null) ?? [];
-        // Defensive: drop any rows that snuck through with null coords
-        // despite the SQL filter (e.g. type coercion oddness).
-        // The RPC doesn't expose customer_id (PII concern), so we can't
-        // filter "my own posts" client-side — that's fine since
-        // handleApplyRequest in Dashboard already bails out with a
-        // "you can't apply to your own post" toast on attempt.
-        const cleaned = rows.filter(
-          (j) => j.latitude !== null && j.longitude !== null && !Number.isNaN(Number(j.latitude)),
-        );
-        setJobs(cleaned);
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [currentUserId, reloadNonce]);
 
   // Filtered pin set. Every downstream consumer (count badge, fitToPins, the
   // markers themselves, the empty state) reads THIS, not the raw `jobs` —
@@ -278,12 +246,6 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
    *  move into the sheet and back to the pin on close (a pointer tap must NOT
    *  steal focus — that scroll-jumps the map on iOS). */
   const openedByKeyboardRef = useRef(false);
-
-  const retry = () => {
-    setLoadError(false);
-    setLoading(true);
-    setReloadNonce((n) => n + 1);
-  };
 
   // ── MapKit lifecycle ────────────────────────────────────────────────────
   const mapRef = useRef<MKMap | null>(null);

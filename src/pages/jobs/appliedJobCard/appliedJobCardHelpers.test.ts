@@ -115,7 +115,7 @@ describe("describeCancellation — the card names who cancelled", () => {
 // The routing line: a synthetic `direct-<jobId>` row must never satisfy
 // isPending, or the card offers Withdraw/Edit against an id no table holds.
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | const isPending = app.status === "pending" && !isDirectOffer; | const isPending = app.status === "pending";
-// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | const isOffered = isDirectOffer \|\| (isAssigned && !job.helper_confirmed_at); | const isOffered = isAssigned && !job.helper_confirmed_at;
+// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | const isOffered = isDirectOffer \|\| (!isCrewLive && isAssigned && !job.helper_confirmed_at); | const isOffered = !isCrewLive && isAssigned && !job.helper_confirmed_at;
 
 /**
  * Q753 — My Jobs' payout figure carries the one-time setup fee while the job's

@@ -177,6 +177,7 @@ rpc_exempt(fn, why) AS (
   ('admin_reverse_violation', 'admin-only (body checks has_role admin)'),
   ('resolve_stalled_job_flag', 'admin-only (body checks has_role admin)'),
   ('review_credential', 'admin-only (body checks has_role admin)'),
+  ('rpc_clear_test_mode_dispute_stamp', 'admin-only (body checks has_role admin; Q1280)'),
   ('rpc_decide_dispute', 'admin-only (body checks has_role admin)'),
   ('rpc_decide_crew_dispute', 'admin-only (body checks has_role admin; Q728)'),
   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),

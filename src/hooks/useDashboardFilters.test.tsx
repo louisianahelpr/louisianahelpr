@@ -431,10 +431,12 @@ describe("useDashboardFilters — sort priority chain", () => {
 
   it("the pay sort follows the VIEWER's fee tier, so two viewers can order the same feed differently", () => {
     // Commission scales the budget but NOT the urgent bonus (that passes
-    // through net of its own Stripe cost), so a job whose pay is mostly bonus
-    // climbs as the viewer's fee rises. If the hook ignored `effectiveFee`
-    // these two would order identically for everyone.
-    const plain = makeJob({ id: "plain", budget: 100 });
+    // through whole, Q362: the poster pays its card fee on top), so a job whose
+    // pay is mostly bonus climbs as the viewer's fee rises. If the hook ignored
+    // `effectiveFee` these two would order identically for everyone. At fee 0
+    // plain shows $101 and bonusy $100 (a $100 plain budget would tie now that
+    // the bonus is no longer netted).
+    const plain = makeJob({ id: "plain", budget: 101 });
     const bonusy = makeJob({ id: "bonusy", budget: 80, is_urgent: true, urgent_fee: 20 });
 
     const elite = setup([plain, bonusy], { effectiveFee: 0 });

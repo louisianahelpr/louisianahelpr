@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 584,
+    "calls": 585,
     "files": 149,
-    "rendering": 559,
+    "rendering": 560,
     "suppressedByPolicy": 25,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 36,
+      "toast": 37,
       "toast.error": 462,
       "toast.loading": 1,
       "toast.message": 2,
@@ -18,7 +18,7 @@
     },
     "copyPiecesByForm": {
       "literal": 314,
-      "template": 76,
+      "template": 77,
       "dynamic": 234,
       "jsx": 0
     }
@@ -2828,7 +2828,7 @@
     },
     {
       "file": "src/components/auth/AccountChoiceDialog.tsx",
-      "line": 63,
+      "line": 65,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -2838,7 +2838,7 @@
     },
     {
       "file": "src/components/auth/AccountChoiceDialog.tsx",
-      "line": 77,
+      "line": 79,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3636,7 +3636,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 51,
+      "line": 52,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3646,7 +3646,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 66,
+      "line": 67,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -3656,7 +3656,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 68,
+      "line": 69,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3666,7 +3666,17 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 79,
+      "line": 73,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Connecting ${NAME[provider]} cancelled. Nothing changed."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SignInMethodsCard.tsx",
+      "line": 84,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3676,7 +3686,7 @@
     },
     {
       "file": "src/components/profile/SignInMethodsCard.tsx",
-      "line": 83,
+      "line": 88,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

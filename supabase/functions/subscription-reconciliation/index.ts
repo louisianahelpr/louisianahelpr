@@ -72,6 +72,7 @@
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -190,7 +191,7 @@ serve(async (req) => {
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
-    const admin = createClient(supabaseUrl!, serviceRoleKey!);
+    const admin = createClient(supabaseUrl!, serviceRoleKey!, { global: { fetch: boundedFetch() } });
     const stripe = new Stripe(stripeKey!, { apiVersion: "2025-08-27.basil" });
 
     const url = new URL(req.url);

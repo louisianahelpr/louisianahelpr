@@ -175,7 +175,7 @@ describe("Q1187: the app writes no confirmation; an edge function only as the se
   const EDGE_SERVER_WRITERS: Record<string, RegExp> = {
     // books a funded series visit to the date's holder (Q210); no user JWT reaches this client
     "supabase/functions/charge-recurring-visits/index.ts":
-      /createClient\(\s*Deno\.env\.get\("SUPABASE_URL"\)\s*\?\?\s*"",\s*\(Deno\.env\.get\("SECRET_KEY"\)\s*\?\?\s*Deno\.env\.get\("SUPABASE_SERVICE_ROLE_KEY"\)\)\s*\?\?\s*"",?\s*\)/,
+      /createClient\(\s*Deno\.env\.get\("SUPABASE_URL"\)\s*\?\?\s*"",\s*\(Deno\.env\.get\("SECRET_KEY"\)\s*\?\?\s*Deno\.env\.get\("SUPABASE_SERVICE_ROLE_KEY"\)\)\s*\?\?\s*"",?\s*(?:\{\s*global:\s*\{\s*fetch:\s*boundedFetch\(\)\s*\}\s*\},?\s*)?\)/,
   };
 
   it("no client write in src/ stamps helper_confirmed_at (the accept is accept_job_offer)", () => {

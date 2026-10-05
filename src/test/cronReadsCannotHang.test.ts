@@ -24,7 +24,10 @@
  * @mutate supabase/functions/_shared/boundedFetch.ts | const signal = callerSignal ? AbortSignal.any([callerSignal, deadline]) : deadline; | const signal = callerSignal;
  * @mutate supabase/functions/_shared/boundedFetch.ts | if (method !== "GET" && method !== "HEAD") return impl(input, init); | if (method === "HEAD") return impl(input, init);
  * @mutate supabase/functions/_shared/boundedFetch.ts | if (callerSignal?.aborted) throw e; | if (false) throw e;
+ * @mutate supabase/functions/_shared/boundedFetch.ts |     stalled.name = "AbortError"; |     stalled.name = "Error";
  * @mutate supabase/functions/arrival-confirm-reminder/index.ts | createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } }) | createClient(supabaseUrl, serviceRoleKey)
+ * @mutate supabase/functions/review-nag-cron/index.ts | createClient(supabaseUrl, serviceKey, { global: { fetch: boundedFetch() } }) | createClient(supabaseUrl, serviceKey)
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts | createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } }) | createClient(supabaseUrl, serviceRoleKey)
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
@@ -36,34 +39,14 @@ import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
 
-/** HTTP-cron functions not yet on boundedFetch (2026-09-26). Shrink only. */
+/**
+ * HTTP-cron functions not yet on boundedFetch. Shrink only. 24 on 2026-09-26;
+ * 0 on 2026-10-05 (Q592: all 24 converted; boundedFetch bounds and retries
+ * GET/HEAD only, writes pass through untouched, which is what made the seven
+ * money paths safe to convert after an lh-money-escrow review).
+ */
 // @two-way src/test/cronReadsCannotHang.test.ts:stale baseline entry in LEGACY_UNBOUNDED
-const LEGACY_UNBOUNDED = new Set([
-  "auto-expire-jobs",
-  "auto-release-payment",
-  "auto-resolve-disputes",
-  "auto-tip-charge",
-  "charge-recurring-visits",
-  "cleanup-abandoned-accounts",
-  "cleanup-notifications",
-  "daily-match-digest",
-  "engagement-automations",
-  "expire-subscriptions",
-  "expiring-jobs-push",
-  "marketing-publish",
-  "marketing-token-health",
-  "money-reconciliation",
-  "payment-confirm-reminder",
-  "process-email-queue",
-  "process-scheduled-payouts",
-  "review-nag-cron",
-  "saved-helper-availability-push",
-  "stalled-completion-reminder",
-  "str-ical-sync",
-  "subscription-reconciliation",
-  "void-cancelled-payments",
-  "weekly-helper-report",
-]);
+const LEGACY_UNBOUNDED = new Set<string>([]);
 
 function cronFunctions(): string[] {
   const dir = join(ROOT, "supabase", "migrations");
@@ -134,6 +117,16 @@ describe("boundedFetch", () => {
     const f = boundedFetch({ attemptMs: 20, readAttempts: 3, fetchImpl: (_i, init) => (calls++, stall(init?.signal)) });
     await expect(f("https://x.test/rest/v1/jobs?select=id")).rejects.toThrow(/read stalled: GET https:\/\/x\.test\/rest\/v1\/jobs got no response in 3 attempts/);
     expect(calls).toBe(3);
+  });
+
+  it("the exhausted read is an AbortError, so the client does not retry it 3 more times (Q592 review)", async () => {
+    const f = boundedFetch({ attemptMs: 10, readAttempts: 2, fetchImpl: (_i, init) => stall(init?.signal) });
+    const err = await f("https://x.test/rest/v1/jobs?select=id").catch((e: unknown) => e);
+    expect((err as Error).name).toBe("AbortError");
+    // postgrest-js rethrows an AbortError at once and retries anything else
+    // (node_modules/@supabase/postgrest-js fetchWithRetry): pin both halves.
+    const pg = readFileSync(join(ROOT, "node_modules/@supabase/postgrest-js/dist/index.cjs"), "utf8");
+    expect(pg).toMatch(/\.name\) === "AbortError"[^\n]*throw fetchError/);
   });
 
   it("a write is passed through once, with no deadline of its own", async () => {

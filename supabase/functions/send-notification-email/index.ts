@@ -182,7 +182,20 @@ serve(async (req) => {
         _user_id: user_id, _category: category, _channel: 'email',
         _status: status, _subject: title, _job_id: job_id ?? null, _error: reason, _message_id: null,
       })
-      if (skipLogError) console.error(`log_notification (${status}) failed:`, skipLogError.message)
+      if (skipLogError) {
+        console.error(`log_notification (${status}) failed:`, skipLogError.message)
+        // Q855 (lh-silent-failure, 2026-09-30): the skip row is the only record
+        // that this email was held back and why. A failed write must reach the
+        // ops alert ledger, not just the function log nobody reads.
+        await postSlackOpsAlert({
+          kind: 'custom',
+          severity: 'warning',
+          title: 'Notification log write failed: a skipped email left no record',
+          message: `send-notification-email skipped an email (${status}: ${reason}) but log_notification failed, so notification_logs does not show it.`,
+          fields: { status, error: skipLogError.message, type: String(type ?? '') },
+          oncePerDayKey: 'send-notification-email:log-skip-failed',
+        })
+      }
     }
 
     // Q137: a seed subject (a seed job, or a seed account named as the actor in

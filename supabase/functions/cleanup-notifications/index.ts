@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
@@ -25,7 +26,7 @@ serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false }, global: { fetch: boundedFetch() } }
     );
 
     // Delete read notifications older than 30 days

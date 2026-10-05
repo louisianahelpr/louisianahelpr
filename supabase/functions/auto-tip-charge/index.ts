@@ -28,6 +28,7 @@
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -93,6 +94,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl!, serviceRoleKey!, {
       auth: { persistSession: false },
+      global: { fetch: boundedFetch() },
     });
     const stripe = new Stripe(stripeSecretKey!, { apiVersion: "2025-08-27.basil" });
 

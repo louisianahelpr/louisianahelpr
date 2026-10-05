@@ -24,6 +24,7 @@
 //                the pagination loop below, which bounds work, not damage.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { purgeAccount } from "../_shared/accountPurge.ts";
@@ -50,7 +51,8 @@ serve(async (req) => {
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
+    (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!,
+    { global: { fetch: boundedFetch() } },
   );
 
   const dryRun = new URL(req.url).searchParams.get("dryRun") === "1";

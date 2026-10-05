@@ -1375,9 +1375,9 @@ describe("create-payment edge function", () => {
   describe("action: cancel_escrow", () => {
     // Q1323: 'cancelling' is re-entered only when it is cancel_escrow's own
     // claim; a full admin refund's claim (job_refund_claims) is never taken over.
-    // @mutate supabase/functions/create-payment/index.ts |         if (holder.claimedBy === "admin_refund_general" \|\| holder.error) { |         if (holder.error) {
+    // @mutate supabase/functions/create-payment/index.ts |         if (holder.claimedBy !== "cancel_escrow" \|\| holder.error) { |         if (holder.error) {
     // @mutate supabase/functions/create-payment/index.ts |         .eq("payment_status", job.payment_status)\n        // The allowlist above |         // The allowlist above
-    // @mutate supabase/functions/create-payment/index.ts |       await recordRefundClaim(supabaseAdmin, jobId, "cancel_escrow", user.id); |       void 0;
+    // @mutate supabase/functions/create-payment/index.ts | claimed_by: by, actor_user_id: actorId, | claimed_by: by, actor_user_id: null,
     describe("Q1323: the 'cancelling' claim names its holder", () => {
       const seedOpenEscrow = (payment_status: string) => {
         seedAuth(scenario, POSTER);
@@ -1410,7 +1410,27 @@ describe("create-payment edge function", () => {
         const claim = scenario.writes.find((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelling");
         expect(claim?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "escrow" });
         const marker = scenario.writes.find((w) => w.table === "job_refund_claims");
-        expect(marker?.payload).toMatchObject({ job_id: "job-1", claimed_by: "cancel_escrow", actor_id: POSTER.id });
+        expect(marker?.payload).toMatchObject({ job_id: "job-1", claimed_by: "cancel_escrow", actor_user_id: POSTER.id });
+      });
+
+      // lh-authz-rls review of Q1323: an ABSENT marker is not "mine".
+      // @mutate supabase/functions/create-payment/index.ts |         if (holder.claimedBy !== "cancel_escrow" \|\| holder.error) { |         if (holder.claimedBy === "admin_refund_general" \|\| holder.error) {
+      it("refuses to re-enter a 'cancelling' claim with NO marker", async () => {
+        seedOpenEscrow("cancelling");
+        scenario.reads.job_refund_claims = { rows: [] };
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |       if (!(await recordRefundClaim(supabaseAdmin, jobId, "cancel_escrow", user.id))) { |       if (!(await recordRefundClaim(supabaseAdmin, jobId, "cancel_escrow", user.id)) && false) {
+      it("a claim whose holder cannot be recorded is put back and answers 503, nothing refunded", async () => {
+        seedOpenEscrow("escrow");
+        scenario.writeOverrides = [{ table: "job_refund_claims", when: () => true, error: { message: "boom" } }];
+        const res = await cancel();
+        expect(res.status).toBe(503);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "escrow")).toBe(true);
       });
 
       it("still re-enters its OWN stranded claim", async () => {
@@ -1521,6 +1541,9 @@ describe("create-payment edge function", () => {
           stripe_payment_intent_id: "pi_3UK0fmKp2H4b7tEC1Srs4HSu", budget: 100, customer_fee_amount: 10,
         }],
       };
+      // Q1323: re-entry needs cancel_escrow's own claim marker (none on prod is
+      // 'cancelling', measured 2026-10-05).
+      scenario.reads.job_refund_claims = { rows: [{ claimed_by: "cancel_escrow", claimed_at: "2026-10-01T00:00:00.000Z" }] };
       stripeMock.paymentIntents.retrieve.mockRejectedValue(
         testModeUnderLiveKey("payment_intent", "pi_3UK0fmKp2H4b7tEC1Srs4HSu"),
       );
@@ -1673,6 +1696,9 @@ describe("create-payment edge function", () => {
         id: "pi_short", status: "succeeded", amount: 500, amount_received: 500,
         latest_charge: { amount_refunded: 470 },
       });
+      // Q1323: re-entry needs cancel_escrow's own claim marker (none on prod is
+      // 'cancelling', measured 2026-10-05).
+      scenario.reads.job_refund_claims = { rows: [{ claimed_by: "cancel_escrow", claimed_at: "2026-10-01T00:00:00.000Z" }] };
       scenario.writeSelectRows.jobs = [{ id: "job-1" }];
       scenario.rpc.restore_gift_card_for_job = { outcome: "already_restored", credit_id: "gift-2", restore_cents: 2500 };
       const fn = await load();
@@ -3542,7 +3568,7 @@ describe("create-payment edge function", () => {
 
       // Q1323: the admin claim records its holder, and a stranded admin claim
       // says so instead of "the cancellation is refunding it right now".
-      // @mutate supabase/functions/create-payment/index.ts |         await recordRefundClaim(supabaseAdmin, jobId, "admin_refund_general", user.id); |         void 0;
+      // @mutate supabase/functions/create-payment/index.ts | .upsert({ job_id: jobId, claimed_by: by, | .upsert({ job_id: jobId, claimed_by: "cancel_escrow",
       // @mutate supabase/functions/create-payment/index.ts |             error: holder.claimedBy === "admin_refund_general" |             error: false
       it("Q1323: a full refund records itself as the claim holder; a stranded admin claim is named as such", async () => {
         seedFull();
@@ -3557,6 +3583,26 @@ describe("create-payment edge function", () => {
         expect(res.status).toBe(409);
         expect((await json(res)).error).toMatch(/earlier admin refund of this job did not finish/);
         expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+
+      // lh-authz-rls review of Q1323: an unrecorded admin claim is given back
+      // (503), and a put-back deletes the marker so an old row never vouches.
+      // @mutate supabase/functions/create-payment/index.ts |         if (!(await recordRefundClaim(supabaseAdmin, jobId, "admin_refund_general", user.id))) { |         if (!(await recordRefundClaim(supabaseAdmin, jobId, "admin_refund_general", user.id)) && false) {
+      // @mutate supabase/functions/create-payment/index.ts |           generalClaimHeld = false;\n          await deleteRefundClaim(supabaseAdmin, jobId); |           generalClaimHeld = false;
+      it("Q1323: an admin claim whose holder cannot be recorded is put back (503); a put-back deletes the marker", async () => {
+        seedFull();
+        scenario.writeOverrides = [{ table: "job_refund_claims", op: "insert", when: () => true, error: { message: "boom" } }];
+        let res = await call();
+        expect(res.status).toBe(503);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "payout_pending")).toBe(true);
+
+        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        seedFull();
+        scenario.reads.payout_transfers = { rows: [{ id: "pt-1" }] };
+        res = await call();
+        expect(res.status).toBe(409);
+        expect(scenario.writes.some((w) => w.table === "job_refund_claims" && w.op === "delete")).toBe(true);
       });
 
       it("refuses while the poster's cancel_escrow refund is in flight (payment_status cancelling)", async () => {

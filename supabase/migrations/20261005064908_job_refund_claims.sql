@@ -12,10 +12,14 @@
 --     helper_id (wrong for an admin refund of an open job);
 --   * a stranded admin claim answered "the cancellation is refunding right
 --     now" to every later admin refund, forever.
--- One row per held claim: the path that took it and when. Written by the
--- service role right after the job's compare-and-set to 'cancelling', removed
--- when the claim is put back or the job is closed. The job CAS stays the lock;
--- this row only says whose it is.
+-- One row per held claim: the path that took it, who, and when. Written by the
+-- service role right after the job's compare-and-set to 'cancelling' (a claim
+-- whose row cannot be written is put back at once and the call answers 503),
+-- deleted when the claim is put back. A job closed from 'cancelling'
+-- (refunded / cancelled) keeps its row, which matters only while the job
+-- reads 'cancelling'. cancel_escrow re-enters 'cancelling' only when this row
+-- positively says cancel_escrow. The job CAS stays the lock; this row says
+-- whose it is.
 --
 -- Readers/writers: create-payment and money-reconciliation (service role).
 -- Nothing else may read or write it: RLS on with no policy, revoked from
@@ -27,7 +31,7 @@
 CREATE TABLE IF NOT EXISTS public.job_refund_claims (
   job_id     uuid        PRIMARY KEY REFERENCES public.jobs(id) ON DELETE CASCADE,
   claimed_by text        NOT NULL CHECK (claimed_by IN ('cancel_escrow', 'admin_refund_general')),
-  actor_id   uuid,
+  actor_user_id uuid,
   claimed_at timestamptz NOT NULL DEFAULT now()
 );
 

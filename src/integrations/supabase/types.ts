@@ -1960,6 +1960,49 @@ export type Database = {
           },
         ]
       }
+      job_refund_claims: {
+        Row: {
+          actor_user_id: string | null
+          claimed_at: string
+          claimed_by: string
+          job_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          claimed_at?: string
+          claimed_by: string
+          job_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          claimed_at?: string
+          claimed_by?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_refund_claims_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_refund_claims_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_refund_claims_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_revisions: {
         Row: {
           created_at: string

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T04:49Z",
+  "measured_at": "2026-10-05T06:37Z",
   "issues": {
     "readable": true,
     "open": [
@@ -40,18 +40,8 @@
         "label": "nightly-red"
       },
       {
-        "number": 2269,
-        "title": "nightly-red: branch-prune",
-        "label": "nightly-red"
-      },
-      {
         "number": 2270,
         "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2273,
-        "title": "nightly-red: prod-errors",
         "label": "nightly-red"
       }
     ]
@@ -82,14 +72,6 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2213
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
       },
       {
         "fingerprint": "42a784cb226e506d814a710c96d26487",
@@ -140,19 +122,19 @@
         "issue": null
       },
       {
-        "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: branch-prune",
-        "issue": 2269
-      },
-      {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
         "source_kind": "workflow",
         "source": "uptime",
         "status": "open",
         "title": "guest marketplace is empty: no funded jobs (pre-launch)",
+        "issue": null
+      },
+      {
+        "fingerprint": "79112fbf22c85121a80ec6470b33411f",
+        "source_kind": "workflow",
+        "source": "code-scanning",
+        "status": "open",
+        "title": "github code scanning: open alerts on main",
         "issue": null
       },
       {
@@ -195,11 +177,13 @@
     "ledger 0cc83c6bc20b": "Q887",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
+    "ledger 1ef4b10bb74a": "Q1320",
     "ledger 42a784cb226e": "Q1307",
     "ledger 54b8c187374a": "Q1277",
     "ledger 54ef0bfdcec3": "Q1309",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q722",
+    "ledger 79112fbf22c8": "Q1321",
     "ledger 7d595594ebaa": "Q1276",
     "ledger 7f88b9cc45df": "Q1274",
     "ledger 88ecf6e765df": "Q788",

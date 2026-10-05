@@ -148,7 +148,7 @@ function posterCtx(job: Job): PosterStepCtx {
     job, userId: POSTER, helperNames: { [HELPER]: "Hallie H." }, completedJobMeta: {},
     completingJobId: null, confirmingArrivalJobId: null,
     confirmingWorkingJobId: null, instantReleaseOn: false, navigate: vi.fn(),
-    onBoost: vi.fn(), onEdit: vi.fn(), onCancel: vi.fn(), onComplete: vi.fn(),
+    onBoost: vi.fn(), onEdit: vi.fn(), crewBooked: false, onCancel: vi.fn(), onComplete: vi.fn(),
     onNoShow: vi.fn(), onTip: vi.fn(), onReview: vi.fn(), onDispute: vi.fn(),
     onReport: vi.fn(), onViewDispute: vi.fn(), onConfirmArrival: vi.fn(),
     onConfirmWorking: vi.fn(), onActionComplete: vi.fn(),

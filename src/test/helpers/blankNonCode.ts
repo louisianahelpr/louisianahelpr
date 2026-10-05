@@ -266,3 +266,34 @@ export function blankSqlComments(src: string): string {
   }
   return out.join("");
 }
+
+/**
+ * CSS: `/* ... *\/` comments blanked (newlines kept), never inside a `'...'` or
+ * `"..."` string, and NOT `//`, which is not a comment in CSS: an unquoted
+ * `url(https://fonts.googleapis.com/...)` is code. Same blanking contract as
+ * the others: every offset and line number of the result matches the input
+ * (Q1020: the CSS guards used to delete with a regex).
+ */
+export function blankCssComments(src: string): string {
+  const out = src.split("");
+  const n = src.length;
+  let i = 0;
+  while (i < n) {
+    const c = src[i];
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < n && src[j] !== c && src[j] !== "\n") j += src[j] === "\\" ? 2 : 1;
+      i = j + 1;
+      continue;
+    }
+    if (c === "/" && src[i + 1] === "*") {
+      const end = src.indexOf("*/", i + 2);
+      const stop = end === -1 ? n : end + 2;
+      for (let k = i; k < stop; k++) if (out[k] !== "\n") out[k] = " ";
+      i = stop;
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
+}

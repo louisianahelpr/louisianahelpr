@@ -5,6 +5,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import HeroSection from "@/components/landing/HeroSection";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankCssComments, blankComments as blankTsComments } from "./helpers/blankNonCode";
 
 // PROVEN ABLE TO FAIL 2026-09-20, in both directions: dropping `font-display`
 // from the LOCKED hero H1 reds the last test, and putting a real `font-serif`
@@ -72,14 +73,12 @@ const walk = (dir: string, out: string[] = []): string[] => {
  * Every comment is replaced by SPACES rather than removed, so a reported
  * `file:line` still points at the line it always did.
  */
-const blankComments = (t: string): string => {
-  const blank = (m: string) => m.replace(/[^\n]/g, " ");
-  return t
-    .replace(/\/\*[\s\S]*?\*\//g, blank)
-    .replace(/<!--[\s\S]*?-->/g, blank)
-    // `(^|[^:])` keeps `https://…` out of it — the same guard every other
-    // source scan in src/test uses.
-    .replace(/(^|[^:])\/\/.*$/gm, (m, p1: string) => p1 + blank(m.slice(p1.length)));
+const blankComments = (t: string, file: string): string => {
+  // Q1020: the shared string-aware scanners (src/test/helpers/blankNonCode),
+  // one per language; a regex chain deleted code after a `/*` in a string.
+  if (file.endsWith(".css")) return blankCssComments(t);
+  if (file.endsWith(".html")) return t.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, " "));
+  return blankTsComments(t);
 };
 
 const readOrSkip = (f: string): string | null => {
@@ -108,7 +107,7 @@ describe("two-font type system", () => {
       .flatMap((f) => {
         const text = readOrSkip(f);
         if (text === null) return [];
-        const lines = blankComments(text).split("\n");
+        const lines = blankComments(text, f).split("\n");
         return lines
           .map((line, i) => ({ line, i }))
           // Prose that records the retirement is fine; anything that would
@@ -125,7 +124,7 @@ describe("two-font type system", () => {
       .flatMap((f) => {
         const text = readOrSkip(f);
         if (text === null) return [];
-        const lines = blankComments(text).split("\n");
+        const lines = blankComments(text, f).split("\n");
         return lines
           .map((line, i) => ({ line, i }))
           .filter(({ line }) => /(^|[^\w-])!?font-serif(?![\w-])/.test(line))

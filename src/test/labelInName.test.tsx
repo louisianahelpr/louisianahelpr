@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { render, screen, cleanup } from "@testing-library/react";
 import { Wrench } from "lucide-react";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * `aria-label` MUST NOT REPLACE A VISIBLE LABEL — WCAG 2.5.3 Label in Name.
@@ -34,8 +35,7 @@ function tsxFiles(): string[] {
     .filter((f) => existsSync(resolve(ROOT, f)));
 }
 
-const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const stripComments = (t: string) => blankComments(t);
 
 // ---------------------------------------------------------------------------
 // 1 — the runtime contract, on the component that takes both

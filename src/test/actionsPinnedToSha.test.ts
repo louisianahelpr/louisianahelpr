@@ -21,7 +21,8 @@
  * must carry an `@sha256:` digest.
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, relative } from "node:path";
 import { parse } from "yaml";
 

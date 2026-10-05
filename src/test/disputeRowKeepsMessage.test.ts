@@ -32,7 +32,10 @@ describe("dispute rows keep Message on screen at every width (Q1082)", () => {
     }
   }
   it("both dispute rows name Message as their survivor", () => {
-    for (const f of ["src/pages/posts/postedJobCard/steps/DisputedStep.tsx", "src/pages/jobs/appliedJobCard/DisputedSection.tsx"]) {
+    const FILES = ["src/pages/posts/postedJobCard/steps/DisputedStep.tsx", "src/pages/jobs/appliedJobCard/DisputedSection.tsx"];
+    expect(FILES.length).toBeGreaterThan(1);
+    expect(POSTER.length + HELPR.length).toBeGreaterThan(6);
+    for (const f of FILES) {
       const s = src(f);
       expect(s, f).toContain('step="disputed"');
       expect(s, f).toContain('soloChipKey="message"');

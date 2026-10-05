@@ -44,7 +44,9 @@ describe("Q1242: the reply_to_id FK cascade is not refused as a non-sender edit"
 
   it("the FK it is written for is still ON DELETE SET NULL (newest declaration)", () => {
     let action = "";
-    for (const f of migrationFiles(MIG)) {
+    const files = migrationFiles(MIG);
+    expect(files.length).toBeGreaterThan(900);
+    for (const f of files) {
       const sql = blankSqlComments(readFileSync(join(MIG, f), "utf8"));
       for (const m of sql.matchAll(/reply_to_id\s+uuid\s+references\s+(?:public\.)?messages\s*\(\s*id\s*\)\s+on\s+delete\s+(set\s+null|cascade|restrict|no\s+action)/gi)) action = m[1];
       for (const m of sql.matchAll(/messages_reply_to_id_fkey[^;]*?on\s+delete\s+(set\s+null|cascade|restrict|no\s+action)/gi)) action = m[1];

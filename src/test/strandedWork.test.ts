@@ -180,6 +180,7 @@ describe("stranded-work: every place work sits", () => {
       : [];
     // Judged two hours after the push: past STRANDED_AFTER_HOURS.
     const items = remoteInventory(git, index, gh, { now: Date.now() + 2 * 3_600_000 });
+    expect(items.length).toBeGreaterThan(1);
     expect(items.map((i: { kind: string; id: string }) => `${i.kind} ${i.id}`).sort()).toEqual([
       "closed-unmerged-pr pr:7",
       "remote-branch remote:origin/cloud-session",

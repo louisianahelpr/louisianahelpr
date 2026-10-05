@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import type { ConfigCheck } from "./useConfigChecks";
+import { report } from "@/lib/errorLogger";
 
 /**
  * Whether the scheduled jobs are actually running — on a screen someone opens.
@@ -159,16 +160,20 @@ export const useCronHealth = () => {
 
       // ── 3. Silent runs: found candidates, dispositioned none, twice running.
       // Written by `sweep_silent_cron_failures()`.
-      const { data: silentRows } = await supabase
+      const { data: silentRows, error: silentError } = await supabase
         .from("error_logs")
         .select("severity, message, tags")
         .eq("tags->>source", "cron-silent")
         .gte("created_at", since)
         .limit(100);
+      // Q1194: a refused read is "unknown", never "No job reported ...".
+      if (silentError) report(silentError, { severity: "warning", tags: { source: "useCronHealth", check: "cron-silent" } });
 
       const silent = (silentRows ?? []) as ErrLog[];
       checks.push(
-        silent.length > 0
+        silentError
+          ? { id: "cron-silent", label: "Silent cron runs", tone: "unknown", detail: "Could not read the silent-run log." }
+          : silent.length > 0
           ? {
               id: "cron-silent",
               label: "Silent cron runs",

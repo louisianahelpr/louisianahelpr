@@ -156,3 +156,6 @@ docs/audit/a11y-separators/**/*.png
 
 # Q104 per-run backend request samples (e2e/requestMeter.mjs)
 request-budget/
+
+# Daily morning audit notes: never read; ignored and deleted by .claude/hooks/git-hygiene.sh (owner, 2026-10-04)
+docs/audit/morning/*.md

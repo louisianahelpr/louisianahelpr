@@ -3519,18 +3519,6 @@
     "nargs": 0
    }
   ],
-  "reject_other_applications_on_accept": [
-   {
-    "anon": false,
-    "args": [
-     "p_job_id",
-     "p_accepted_application_id"
-    ],
-    "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 2
-   }
-  ],
   "reject_self_issued_ban": [
    {
     "anon": false,
@@ -5035,11 +5023,40 @@
   },
   "applications": {
    "checks": [
-    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text]))))",
+    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text, 'offer_expired'::text]))))",
     "CHECK ((stake_status = ANY (ARRAY['none'::text, 'staked'::text, 'returned'::text, 'forfeited'::text])))",
     "CHECK (((stake_amount IS NULL) OR (stake_amount >= (0)::numeric)))"
    ],
-   "columnGrants": {},
+   "columnGrants": {
+    "authenticated": {
+     "SELECT": [
+      "attachment_urls",
+      "closed_reason",
+      "created_at",
+      "decline_reason",
+      "flagged_hidden",
+      "helper_id",
+      "id",
+      "job_id",
+      "job_latitude",
+      "job_longitude",
+      "message",
+      "offer_message",
+      "offer_message_flagged_hidden",
+      "poster_viewed_at",
+      "stake_amount",
+      "stake_status",
+      "status",
+      "updated_at"
+     ],
+     "UPDATE": [
+      "attachment_urls",
+      "decline_reason",
+      "message",
+      "status"
+     ]
+    }
+   },
    "columns": {
     "attachment_urls": {
      "enum": null,
@@ -5125,7 +5142,28 @@
      "notNull": false,
      "type": "text"
     },
+    "message_withheld": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
     "offer_message": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "offer_message_flagged_hidden": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "offer_message_withheld": {
      "enum": null,
      "generated": false,
      "hasDefault": false,
@@ -5175,17 +5213,11 @@
    "grants": {
     "anon": [
      "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
+     "REFERENCES"
     ],
     "authenticated": [
      "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
+     "REFERENCES"
     ]
    },
    "kind": "table",
@@ -5400,6 +5432,20 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text"
+    },
+    "held_repay_first_attempt_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "held_repay_owed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "helper_id": {
      "enum": null,
@@ -8703,7 +8749,20 @@
    "checks": [
     "CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text, 'resolved'::text])))"
    ],
-   "columnGrants": {},
+   "columnGrants": {
+    "authenticated": {
+     "INSERT": [
+      "description",
+      "job_id",
+      "photos",
+      "requested_by",
+      "status"
+     ],
+     "UPDATE": [
+      "status"
+     ]
+    }
+   },
    "columns": {
     "created_at": {
      "enum": null,
@@ -8770,19 +8829,9 @@
     }
    },
    "grants": {
-    "anon": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ],
     "authenticated": [
-     "DELETE",
-     "INSERT",
      "REFERENCES",
-     "SELECT",
-     "UPDATE"
+     "SELECT"
     ]
    },
    "kind": "table",
@@ -8800,6 +8849,7 @@
    "triggers": [
     "before:delete",
     "before:insert",
+    "before:insert|update",
     "before:insert|update|delete",
     "before:update"
    ]
@@ -9068,41 +9118,9 @@
      "type": "uuid"
     }
    },
-   "grants": {
-    "anon": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ],
-    "authenticated": [
-     "DELETE",
-     "INSERT",
-     "REFERENCES",
-     "SELECT",
-     "UPDATE"
-    ]
-   },
+   "grants": {},
    "kind": "table",
-   "policies": [
-    {
-     "cmd": "INSERT",
-     "name": "Helpers insert own views",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "public"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "Posters read views on own jobs",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "public"
-     ]
-    }
-   ],
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert",
@@ -11552,14 +11570,6 @@
     {
      "cmd": "INSERT",
      "name": "Users can send messages",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "Users can subscribe to own channels",
      "permissive": "PERMISSIVE",
      "roles": [
       "authenticated"

@@ -1,4 +1,4 @@
-// @mutate scripts/burndown-score.mjs | r.files++; | r.files += 2;
+// @mutate scripts/check-generated-current.mjs |   const active = GENERATED.filter((g) => !(skipPostMerge && g.postMerge)); |   const active = GENERATED;
 // @mutate scripts/check-generated-current.mjs | return after.every((text, k) => text === before[k]); | return false;
 // @mutate scripts/check-generated-current.mjs | return { ok: own.length === 0, own, inherited, other: [] }; | return { ok: true, own, inherited, other: [] };
 // @mutate scripts/check-generated-current.mjs | if (head.other.length) return | if (false) return
@@ -15,6 +15,9 @@
  * registry-coverage scans are shown red on planted gaps in both directions.
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join } from "node:path";
 import {
   GENERATED,
   EVIDENCE,
@@ -49,8 +52,28 @@ describe("generated inventories are current", () => {
     expect(declared).toContain("docs/GUARD-BURNDOWN.md");
   });
 
-  it("the committed burn-down score is exactly what its generator produces now", () => {
-    expect(checkGenerator(byId("burndown"))).toEqual([]);
+  // Owner, 2026-10-04: whole-tree totals are generated after merge, not in every
+  // PR (every landing touched the same lines and conflicted). Branches skip
+  // them; staleness-watch.yml regenerates main per push, and main's own check
+  // (push + nightly) is strict. Exact list, both ways.
+  it("the whole-tree totals are post-merge, exactly these, and land.sh / PR attribution skip them", () => {
+    const post = (GENERATED as (Gen & { postMerge?: boolean })[]).filter((g) => g.postMerge).map((g) => g.id).sort();
+    expect(post).toEqual(["burndown", "coverage", "queue-count", "rollup", "scoreboard", "surface", "vacuity-report"]);
+    const land = readFileSync(join(__dirname, "..", "..", "scripts", "land.sh"), "utf8");
+    expect(land).toMatch(/check-generated-current\.mjs --fix --skip-post-merge/);
+    expect(land).not.toMatch(/npm run -s inventories:refresh/);
+    const self = readFileSync(join(__dirname, "..", "..", "scripts", "check-generated-current.mjs"), "utf8");
+    expect(self).toMatch(/\["scripts\/check-generated-current\.mjs", "--skip-post-merge"\]/);
+    const watch = readFileSync(join(__dirname, "..", "..", ".github", "workflows", "staleness-watch.yml"), "utf8");
+    expect(watch).not.toMatch(/--skip-post-merge/);
+  });
+
+  it("--skip-post-merge really leaves a post-merge total unchecked, and the plain check still checks it", () => {
+    const run = (args: string[]) => spawnSync(process.execPath, ["scripts/check-generated-current.mjs", ...args], { cwd: join(__dirname, "..", ".."), encoding: "utf8" });
+    const skipped = run(["--only", "burndown", "--skip-post-merge"]);
+    expect(`${skipped.stdout}${skipped.stderr}`).not.toMatch(/GUARD-BURNDOWN|burndown/);
+    const checked = run(["--only", "burndown"]);
+    expect(`${checked.stdout}${checked.stderr}`).toMatch(/GUARD-BURNDOWN|burndown/);
   });
 
   it("the committed form inventory is exactly what its generator produces now", () => {

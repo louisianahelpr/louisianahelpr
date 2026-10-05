@@ -1,0 +1,19 @@
+-- Q1216 (docs/OPEN.md): reject_other_applications_on_accept has no caller.
+--
+-- Callers counted 2026-10-04, every layer:
+--   * live pg_proc: no function body calls it (the only mention, in
+--     complete_job_accept, is a comment naming the rule it now applies itself);
+--     no cron.job command names it. pg_stat_user_functions cannot say whether
+--     a client called it: track_functions is 'none' on prod (no function has a
+--     stats row), so the client side is counted from source instead.
+--   * migrations: only its own CREATE/REVOKE/GRANT statements and comments.
+--   * supabase/functions: no reference. src/ (non-test): no reference; its
+--     last caller, useOfferHandlers.ts's PGRST202 accept fallback, was
+--     retired by Q1187. e2e/, scripts/: no call (inventory/baseline entries only).
+-- complete_job_accept closes the other pending applications itself. The
+-- function was SECURITY DEFINER and executable by authenticated: harmless as
+-- written, but a callable door nobody uses. Dropped, with its ban-gate
+-- exemption, race-class baseline entry and generated type.
+--
+-- Replay-safe: DROP FUNCTION IF EXISTS.
+DROP FUNCTION IF EXISTS public.reject_other_applications_on_accept(uuid, uuid);

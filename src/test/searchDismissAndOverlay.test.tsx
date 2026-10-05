@@ -764,6 +764,8 @@ describe("desktop Browse strip — opening search unmounts nothing but the field
  * on the day someone remembers to add it here.
  */
 const NO_SLOT_NEEDED: Record<string, string> = {
+  "pages/info/Legal.tsx":
+    "owner, 2026-10-04 (Q912): the open policy field fills the whole pill, so its ✕ DOES sit on the magnifier's return box by design; the re-press that made that dangerous is refused instead (RETAP_GUARD_MS, pointer only), held by src/test/legalSearchRetapGuard.test.ts and measured in Chromium and WebKit at 375/1440 (8 of 8 reopened without the guard, 0 of 8 with it)",
   "components/dashboard/BrowseTasksToolbar.tsx":
     "renders no row and no trigger — it only passes the shared flag to the filter sheet",
   "components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx":

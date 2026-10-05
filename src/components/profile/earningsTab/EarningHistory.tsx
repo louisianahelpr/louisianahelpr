@@ -128,9 +128,10 @@ export function EarningHistory({
             <Briefcase className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
           </div>
           <div className="space-y-1.5">
-            <span className="text-display-eyebrow">Quiet ledger</span>
+            {/* mt-1.5: the gap the hidden eyebrow span gave it as a
+                space-y-1.5 sibling (Q1129), kept so nothing moves. */}
             <p
-              className="font-display italic font-bold leading-tight"
+              className="font-display italic font-bold leading-tight mt-1.5"
               style={{
                 fontSize: "clamp(1.05rem, 1.5vw + 0.4rem, 1.35rem)",
                 color: "hsl(var(--ink-deep))",

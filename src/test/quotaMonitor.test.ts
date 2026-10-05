@@ -84,8 +84,8 @@ describe("quota inventory", () => {
       if (q.read === null) expect(q.why?.length ?? 0, `${q.id} has no API and must say why`).toBeGreaterThan(40);
       if (q.id !== "supabase.connections") expect(q.limit, q.id).toBeGreaterThan(0);
     }
-    // The Vercel cap is the FREE plan's (the owner, 2026-09-23), not Pro's.
-    expect(QUOTAS.find((q) => q.id === "vercel.deploys_per_day")!.limit).toBe(100);
+    // The Vercel cap is Pro's (owner, 2026-10-03; Q1152), not Hobby's 100.
+    expect(QUOTAS.find((q) => q.id === "vercel.deploys_per_day")!.limit).toBe(6000);
   });
 });
 
@@ -125,7 +125,7 @@ describe("evaluateQuotas", () => {
 
   it("70% alerts as warn, 90% as high, 100% as over; each is on the report", () => {
     const readings = allOk();
-    readings["vercel.deploys_per_day"] = { value: 75 };
+    readings["vercel.deploys_per_day"] = { value: 4500 };
     readings["sentry.errors_30d"] = { value: 5_000 };
     readings["resend.sends_month"] = { value: 46_000 };
     const res = evaluateQuotas(readings, { live });
@@ -240,7 +240,7 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
     const { code, out } = await runCli({ sql: "ok", logs: "ok", vercel: "ok", sentry: "ok" });
     expect(code, out).toBe(0);
     expect(out).not.toMatch(/\*\*UNREADABLE\*\*/);
-    expect(out).toMatch(/Deployments created \(last 24h\) \| 1 \| 100/);
+    expect(out).toMatch(/Deployments created \(last 24h\) \| 1 \| 6,000/);
     expect(out).toMatch(/Database connections \| 9 \| 60/);
     expect(out).toMatch(/::warning title=Quota NOT monitored::Supabase Egress/);
     expect(out).toMatch(/::warning title=Quota NOT monitored::Supabase Realtime messages/);
@@ -331,7 +331,7 @@ describe("check-quota-usage.mjs (stub APIs)", () => {
   it("deployments are counted from Vercel: paged, and a refused read is red and named", async () => {
     const paged = await runCli({ sql: "ok", logs: "ok", vercel: "paged", sentry: "ok" });
     expect(paged.code, paged.out).toBe(0);
-    expect(paged.out).toMatch(/Deployments created \(last 24h\) \| 3 \| 100/);
+    expect(paged.out).toMatch(/Deployments created \(last 24h\) \| 3 \| 6,000/);
     const refused = await runCli({ sql: "ok", logs: "ok", vercel: "forbidden", sentry: "ok" });
     expect(refused.code).toBe(1);
     expect(refused.out).toMatch(/could not read deployments: Vercel deployments 403/);

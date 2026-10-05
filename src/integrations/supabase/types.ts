@@ -139,7 +139,10 @@ export type Database = {
           job_latitude: number | null
           job_longitude: number | null
           message: string | null
+          message_withheld: string | null
           offer_message: string | null
+          offer_message_flagged_hidden: boolean
+          offer_message_withheld: string | null
           poster_viewed_at: string | null
           stake_amount: number | null
           stake_status: string | null
@@ -159,7 +162,10 @@ export type Database = {
           job_latitude?: number | null
           job_longitude?: number | null
           message?: string | null
+          message_withheld?: string | null
           offer_message?: string | null
+          offer_message_flagged_hidden?: boolean
+          offer_message_withheld?: string | null
           poster_viewed_at?: string | null
           stake_amount?: number | null
           stake_status?: string | null
@@ -179,7 +185,10 @@ export type Database = {
           job_latitude?: number | null
           job_longitude?: number | null
           message?: string | null
+          message_withheld?: string | null
           offer_message?: string | null
+          offer_message_flagged_hidden?: boolean
+          offer_message_withheld?: string | null
           poster_viewed_at?: string | null
           stake_amount?: number | null
           stake_status?: string | null
@@ -285,6 +294,8 @@ export type Database = {
           created_at: string
           dispute_id: string
           failure_reason: string | null
+          held_repay_first_attempt_at: string | null
+          held_repay_owed_at: string | null
           helper_id: string | null
           id: string
           job_id: string
@@ -301,6 +312,8 @@ export type Database = {
           created_at?: string
           dispute_id: string
           failure_reason?: string | null
+          held_repay_first_attempt_at?: string | null
+          held_repay_owed_at?: string | null
           helper_id?: string | null
           id?: string
           job_id: string
@@ -317,6 +330,8 @@ export type Database = {
           created_at?: string
           dispute_id?: string
           failure_reason?: string | null
+          held_repay_first_attempt_at?: string | null
+          held_repay_owed_at?: string | null
           helper_id?: string | null
           id?: string
           job_id?: string
@@ -3742,6 +3757,33 @@ export type Database = {
         }
         Relationships: []
       }
+      pre_verification_wipes: {
+        Row: {
+          error: string | null
+          id: string
+          objects: Json
+          storage_done_at: string | null
+          user_id: string
+          wiped_at: string
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          objects?: Json
+          storage_done_at?: string | null
+          user_id: string
+          wiped_at?: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          objects?: Json
+          storage_done_at?: string | null
+          user_id?: string
+          wiped_at?: string
+        }
+        Relationships: []
+      }
       profile_search_rate_log: {
         Row: {
           created_at: string
@@ -5093,6 +5135,56 @@ export type Database = {
           },
         ]
       }
+      tip_hold_redrives: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          failure_reason: string | null
+          first_repay_attempt_at: string | null
+          helper_id: string
+          repay_transfer_id: string | null
+          reversal_id: string | null
+          status: string
+          tip_id: string
+          transfer_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          failure_reason?: string | null
+          first_repay_attempt_at?: string | null
+          helper_id: string
+          repay_transfer_id?: string | null
+          reversal_id?: string | null
+          status?: string
+          tip_id: string
+          transfer_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          failure_reason?: string | null
+          first_repay_attempt_at?: string | null
+          helper_id?: string
+          repay_transfer_id?: string | null
+          reversal_id?: string | null
+          status?: string
+          tip_id?: string
+          transfer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_hold_redrives_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: true
+            referencedRelation: "tips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tips: {
         Row: {
           amount: number
@@ -5830,7 +5922,6 @@ export type Database = {
       }
     }
     Functions: {
-      accept_job_offer: { Args: { p_job_id: string }; Returns: Json }
       accept_application: {
         Args: {
           p_application_id: string
@@ -5851,6 +5942,7 @@ export type Database = {
           slots_total: number
         }[]
       }
+      accept_job_offer: { Args: { p_job_id: string }; Returns: Json }
       admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
       admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
       admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }
@@ -6150,10 +6242,6 @@ export type Database = {
         Args: { p_helper: string; p_job_id: string }
         Returns: Json
       }
-      direct_accept_block_reason: {
-        Args: { p_helper: string; p_job_id: string }
-        Returns: string
-      }
       complete_job_accept: { Args: { p_job_id: string }; Returns: boolean }
       contact_leak_reason: { Args: { p_text: string }; Returns: string }
       credential_document_path_ok: {
@@ -6225,6 +6313,10 @@ export type Database = {
       }
       detect_stuck_payments: { Args: never; Returns: Json }
       detect_suspicious_user_patterns: { Args: never; Returns: number }
+      direct_accept_block_reason: {
+        Args: { p_helper: string; p_job_id: string }
+        Returns: string
+      }
       dispute_evidence_url_ok: {
         Args: { _job_id: string; _uploader: string; _url: string }
         Returns: boolean
@@ -7220,6 +7312,13 @@ export type Database = {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json
       }
+      pre_verification_wipe_objects: {
+        Args: { p_wipe_id: string }
+        Returns: {
+          bucket: string
+          name: string
+        }[]
+      }
       process_referral: {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: boolean
@@ -7281,10 +7380,6 @@ export type Database = {
       refund_monthly_free_boost: {
         Args: { p_month: string; p_user_id: string }
         Returns: boolean
-      }
-      reject_other_applications_on_accept: {
-        Args: { p_accepted_application_id: string; p_job_id: string }
-        Returns: undefined
       }
       release_dispute_settlement_claim: {
         Args: { _job_id: string; _token?: string }
@@ -7541,6 +7636,10 @@ export type Database = {
       }
       user_report_title: {
         Args: { p_reason: string; p_reported_type: string }
+        Returns: string
+      }
+      wipe_pre_verification_account: {
+        Args: { p_user_id: string }
         Returns: string
       }
     }

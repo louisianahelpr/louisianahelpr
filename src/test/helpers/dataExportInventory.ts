@@ -162,12 +162,6 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
 export const POSTER_SIDE_EXEMPT: Record<string, string> = {
   job_checkins: "a check-in is the Helpr's own location event, exported to them by user_id; never the poster's data",
   job_tracking: "the Helpr's live location trail, exported to them by helper_id; never the poster's data",
-  job_views:
-    "a view event is the VIEWER's data, exported to them by viewer_id; the poster's screens show only counts, " +
-    "and exporting the rows would hand the poster other people's viewing history",
-  messages:
-    "the poster clause is the realtime-subscription policy (realtime.topic() ~ '^jobs:<id>'), a channel join, " +
-    "not a read of message rows; the poster's messages are exported by sender_id / receiver_id",
 };
 
 /**
@@ -257,6 +251,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // stays out is who on staff wrote or applied them, and records that are the
   // staff's own rather than the person's.
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
+  "tip_hold_redrives.helper_id": { reason: "Q1222: the server's claim ledger for re-paying a tip a payout hold kept back; the tip itself is exported under tips. Adding this ledger to export_my_data is filed as Q1297 (2026-10-04)." },
+  "pre_verification_wipes.user_id": { reason: "Q447: the server's record that a pre-verification takeover deleted what someone else typed into this account (and which stored objects to remove); it holds none of the person's own data" },
   "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
   "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
   "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },

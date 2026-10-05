@@ -834,17 +834,21 @@ test.describe("full money loop against production", () => {
     expect(await aged.json(), "ageing the job matched zero rows — the poster could not set created_at").toHaveLength(1);
 
     // --- 3. APPLY -----------------------------------------------------------
-    const applied = await request.post(`${SUPABASE_URL}/rest/v1/applications`, {
-      headers: { ...rest(helper), Prefer: "return=representation" },
-      data: {
-        job_id: job.id,
-        helper_id: helper.user.id,
-        message: `${E2E_TITLE_MARKER} automated application`,
-      },
+    // THROUGH `apply_to_job`, the RPC the product's Apply button calls
+    // (useApplyFlow.ts). Since Q1009 (20261004184135) no client holds INSERT on
+    // applications, so a raw POST is refused with 42501; the RPC is the only
+    // door, and it returns the new application's id.
+    const applied = await request.post(`${SUPABASE_URL}/rest/v1/rpc/apply_to_job`, {
+      headers: rest(helper),
+      data: { p_job_id: job.id, p_message: `${E2E_TITLE_MARKER} automated application` },
     });
-    expect(applied.ok(), `application insert failed: ${applied.status()} ${await applied.text()}`).toBe(true);
-    const [application] = await applied.json();
+    expect(applied.ok(), `apply_to_job failed: ${applied.status()} ${await applied.text()}`).toBe(true);
+    const application = { id: (await applied.json()) as string };
     expect(application.id).toBeTruthy();
+    // Read the row back: an id the RPC returned is not proof the row is there.
+    const appRow = await request.get(`${SUPABASE_URL}/rest/v1/applications?id=eq.${application.id}&select=id,status`, { headers: rest(helper) });
+    expect(appRow.ok(), `reading the new application failed: ${appRow.status()}`).toBe(true);
+    expect(((await appRow.json()) as Array<{ status: string }>)[0]?.status, "apply_to_job returned an id with no pending row behind it").toBe("pending");
 
     /* --- 4. HIRE -----------------------------------------------------------
        THROUGH `accept_application`, the RPC the product's own accept button

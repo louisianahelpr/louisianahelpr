@@ -40,6 +40,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { gzipSync } from "node:zlib";
+import { signedInOnlyModules, stripComments } from "./perf/bootReach.mjs";
 
 const DIST = "dist";
 const ASSETS = `${DIST}/assets`;
@@ -225,6 +226,101 @@ for (const { file, why } of DEFERRED_MODULES) {
   }
 }
 
+// ── Signed-in-only shared code (Q654) ─────────────────────────────────────
+// vite.config.ts's `app-shared` group is on the boot path of every page. A
+// src/lib|hooks|... module that no signed-OUT cold load reaches (static imports
+// from main.tsx and each guest first screen, scripts/perf/bootReach.mjs) must
+// not ride in it: useActivityData, subscriptionTiers, nativePush and ~150 more
+// did, and every public visitor downloaded them (Lighthouse unused-javascript
+// 138-146 KiB per public route). They live in `signed-in-shared-*` now. Read from
+// the built chunks' sourcemaps, so a deleted group, a changed `test` or a module
+// the walk and the bundler disagree about is caught however it arrives.
+{
+  const { signedInOnly } = signedInOnlyModules(process.cwd());
+  const rel = (abs) => abs.slice(process.cwd().length + 1);
+  const wanted = new Set([...signedInOnly].map(rel));
+  const carriers = all.filter((f) => [...(sourcesIn(f) ?? [])].some((src) => wanted.has(src)));
+  // Blindness check: those modules are live code, so the build must hold them SOMEWHERE.
+  if (wanted.size < 50 || !carriers.length) {
+    fail(`bootReach found ${wanted.size} signed-in-only shared modules and ${carriers.length} chunk(s) carrying them. ` +
+         `Either the walk is blind (src/boot/routePreload.ts changed shape) or the .js.map files are gone. Fix the scan.`);
+  }
+  for (const chunk of carriers.filter((f) => reached.has(f))) {
+    const mods = [...(sourcesIn(chunk) ?? [])].filter((src) => wanted.has(src));
+    violations.push({
+      chunk,
+      why: `${mods.length} module(s) no signed-out cold load reaches are on the boot path, e.g. ${mods.slice(0, 3).join(", ")}`,
+      gzip: bytes(chunk),
+      chain: chainTo(chunk),
+    });
+  }
+}
+
+// ── Route closures (Q1172) ────────────────────────────────────────────────
+// The boot walk above stops at the app shell; each FIRST SCREEN then loads its
+// own page chunk and that chunk's static closure before it can draw. framer-motion
+// rode two of them: /home through BrowseTasksFeed -> SwipeableJobCard (~40 kB
+// brotli before its first draw) and the dock through MobileNav -> NavQuickMenu /
+// SharedLayoutPill (the dock arrived ~1 s after its page). So every route in
+// ENTRY_ROUTE_CHUNKS (src/boot/routePreload.ts: the screens whose chunk the
+// entry starts on the first round) plus MobileNav is walked too, and each
+// closure is held to the same deferred packages. The route list is READ from
+// routePreload.ts, never copied here, so a new first screen is covered on arrival.
+const routeSrc = stripComments(readFileSync("src/boot/routePreload.ts", "utf8"));
+const routeBlock = routeSrc.match(/export const ENTRY_ROUTE_CHUNKS[\s\S]*?\n\};/);
+if (!routeBlock) fail("could not find ENTRY_ROUTE_CHUNKS in src/boot/routePreload.ts — fix this scan rather than deleting it.");
+const routeSpecifiers = new Set([...routeBlock[0].matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((x) => x[1]));
+// `protectedRoute` is declared above the table as one shared loader.
+for (const x of routeSrc.matchAll(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']/g)) routeSpecifiers.add(x[1]);
+const ROUTE_ROOTS = [...routeSpecifiers].map((spec) => ({ label: spec, name: spec.split("/").pop() }));
+// The dock is a lazy chunk of its own, started with every signed-in page.
+ROUTE_ROOTS.push({ label: "components/MobileNav", name: "MobileNav" });
+if (ROUTE_ROOTS.length < 8) {
+  fail(`read only ${ROUTE_ROOTS.length} first-screen roots from routePreload.ts (expected 8+). The scan is blind; fix it.`);
+}
+
+/**
+ * First-screen closures that STILL carry a deferred package, as `root: package`.
+ * Exact both ways: a root listed here that is clean fails as stale (lower the
+ * list in the commit that fixes it), and a root that is red and not listed fails
+ * as a regression. Each entry is open work with its own Q in docs/OPEN.md.
+ */
+// @two-way scripts/check-deferred-vendors.mjs:(stale entry: remove it, the baseline is exact)
+const KNOWN_ROUTE_CLOSURE_VIOLATIONS = {
+  "pages/messages/Messages": "framer-motion", // SwipeableConversationRow (Q1208)
+  "pages/post-job/PostJob": "framer-motion", // PhotoUpload's Reorder (Q1208)
+};
+
+const routeFound = [];
+for (const { label, name } of ROUTE_ROOTS) {
+  const re = new RegExp(`^${name}-[\\w-]{6,}\\.js$`);
+  const rootChunk = all.find((f) => re.test(f));
+  if (!rootChunk) fail(`no built chunk for first-screen root ${label} (expected ${name}-<hash>.js). Fix this scan; do not drop the root.`);
+  const par = new Map([[rootChunk, null]]);
+  const queue = [rootChunk];
+  while (queue.length) {
+    const f = queue.shift();
+    let text;
+    try { text = readFileSync(`${ASSETS}/${f}`, "utf8"); } catch { continue; }
+    for (const hit of text.matchAll(STATIC_IMPORT)) if (!par.has(hit[1])) { par.set(hit[1], f); queue.push(hit[1]); }
+  }
+  if (par.size < 2) fail(`the closure of ${rootChunk} has ${par.size} chunk(s); the import syntax changed. Fix the walk.`);
+  const chainFrom = (f) => { const out = [f]; let cur = f; while (par.get(cur)) { cur = par.get(cur); out.push(cur); } return out.reverse().join(" → "); };
+  for (const { pkg, why } of DEFERRED_PACKAGES) {
+    for (const chunk of [...par.keys()].filter((f) => packagesIn(f)?.has(pkg))) {
+      routeFound.push({ label, pkg, chunk, why: `${pkg}: ${why}`, gzip: bytes(chunk), chain: chainFrom(chunk) });
+    }
+  }
+}
+const known = KNOWN_ROUTE_CLOSURE_VIOLATIONS;
+for (const v of routeFound) {
+  if (known[v.label] !== v.pkg) violations.push({ chunk: v.chunk, why: `first screen ${v.label}: ${v.why}`, gzip: v.gzip, chain: v.chain });
+}
+for (const [label, pkg] of Object.entries(known)) {
+  if (!ROUTE_ROOTS.some((r) => r.label === label)) violations.push({ chunk: label, why: `KNOWN_ROUTE_CLOSURE_VIOLATIONS lists ${label}, which is not a first-screen root (stale entry: remove it)`, gzip: 0, chain: label });
+  else if (!routeFound.some((v) => v.label === label && v.pkg === pkg)) violations.push({ chunk: label, why: `KNOWN_ROUTE_CLOSURE_VIOLATIONS lists ${label}: ${pkg}, but its closure is now clean (stale entry: remove it, the baseline is exact)`, gzip: 0, chain: label });
+}
+
 let critRaw = 0, critGz = 0;
 for (const f of reached) { const b = readFileSync(`${ASSETS}/${f}`); critRaw += b.length; critGz += gzipSync(b).length; }
 
@@ -257,4 +353,6 @@ if (violations.length) {
   process.exit(1);
 }
 
+console.log(`\n✓ no signed-in-only shared module is on the boot path (bootReach.mjs vs the built sourcemaps)`);
+console.log(`\n✓ no first-screen closure (${ROUTE_ROOTS.length} roots from ENTRY_ROUTE_CHUNKS + MobileNav) carries a deferred package beyond the ${Object.keys(known).length} known`);
 console.log(`\n✓ no deferred vendor (${[...DEFERRED.map((d) => d.prefix + "*"), ...DEFERRED_PACKAGES.map((d) => d.pkg), ...DEFERRED_MODULES.map((d) => d.file)].join(", ")}) is statically reachable from the entry`);

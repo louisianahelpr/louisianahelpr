@@ -178,68 +178,37 @@ test.describe("bad actors: IDOR & authz", () => {
     expect(r.ok(), `SECURITY: a self-review was accepted (status ${r.status()})`).toBe(false);
   });
 
-  test("applying to your own job is refused BY THE SELF-APPLICATION RULE", async ({ request }) => {
-    // WHY THIS ASSERTS THE REASON AND NOT JUST `!ok`. Until 20260921190002 this
-    // test was green for gates that have nothing to do with identity: the
-    // target job is unfunded (the INSERT policy's job_is_funded is false) and
-    // seconds old (enforce_application_job_state's Early Access window, C5).
-    // Either refuses the insert long before "is this your own post?" is asked —
-    // and no such rule existed anywhere on the table, so deleting one would not
-    // have moved this test. Proven on prod 2026-09-21 in a rolled-back DO
-    // block: against a funded, two-hour-old job the poster's self-application
-    // LANDED (self_app_id=78d3652a-017b-4a55-82ba-ed3d6ffe22b1, no error).
+  test("a raw POST to applications is refused at the grant, for the poster and a third party alike (Q1009)", async ({ request }) => {
+    // Since 20261004184135 (Q1009) no client holds INSERT on applications: an
+    // application is written only by apply_to_job (or the series / direct-offer
+    // RPCs), which carry the rate ladder, its advisory lock and the funding
+    // gate a raw INSERT skipped. So the raw POST is refused with 42501 BEFORE
+    // any row rule runs, for the poster on their own job and for a genuine
+    // third party. Pinning 42501 is what makes this able to fail: give
+    // authenticated INSERT back and the poster's refusal becomes
+    // cannot_apply_to_own_job and the helper's a policy/early-access refusal.
     //
-    // The rule now lives in enforce_application_job_state as C3, placed BEFORE
-    // the status/funding/early-access checks — and RLS WITH CHECK is evaluated
-    // after BEFORE ROW triggers — so `cannot_apply_to_own_job` is the FIRST
-    // refusal even on this unfunded, brand-new job. Pinning the message is what
-    // makes this test able to fail: remove C3 and the error becomes
-    // `job_in_early_access_window`, which this assertion rejects.
-    const r = await request.post(`${SUPABASE_URL}/rest/v1/applications`, {
-      headers: { ...posterHeaders, Prefer: "return=representation" },
-      data: { job_id: targetJobId, helper_id: posterId, status: "pending", message: `${E2E_TITLE_MARKER} self apply` },
-    });
-    const body = await r.text();
-    if (r.status() === 201) {
-      announceUncovered("SECURITY: self-application landed", `poster ${posterId} applied to own job ${targetJobId}`);
+    // The self-application rule itself (enforce_application_job_state C3,
+    // 20260921190002) still stands behind the RPCs; it cannot be reached
+    // through apply_to_job on this unfunded fixture (the RPC refuses "not
+    // accepting applications yet" first, and funding a job would be a live
+    // payment), so its identity scoping is proven in PGlite:
+    // scripts/probes/self-application-gate.pglite.mjs (the poster's insert is
+    // refused with cannot_apply_to_own_job, a third party's lands).
+    for (const [who, headers, uid] of [["poster", posterHeaders, posterId], ["helper", helperHeaders, helperId]] as const) {
+      const r = await request.post(`${SUPABASE_URL}/rest/v1/applications`, {
+        headers: { ...headers, Prefer: "return=representation" },
+        data: { job_id: targetJobId, helper_id: uid, status: "pending", message: `${E2E_TITLE_MARKER} raw apply` },
+      });
+      const body = await r.text();
+      if (r.ok()) {
+        announceUncovered("SECURITY: a raw applications INSERT landed", `${who} ${uid} on job ${targetJobId}`);
+        await request.delete(`${SUPABASE_URL}/rest/v1/applications?job_id=eq.${targetJobId}&helper_id=eq.${uid}`, { headers });
+      }
+      expect(r.ok(), `SECURITY: the ${who}'s raw application INSERT was accepted (status ${r.status()}) ${body}`).toBe(false);
+      expect(body, `the ${who}'s raw INSERT was refused, but not at the grant (status ${r.status()}): ${body}`).toContain("42501");
+      expect(body, `the ${who}'s raw INSERT reached a row rule, so the grant is back (status ${r.status()}): ${body}`).toMatch(/permission denied/i);
     }
-    expect(r.ok(), `SECURITY: an application to one's own job was accepted (status ${r.status()}) ${body}`).toBe(false);
-    expect(
-      body,
-      `the self-application was refused, but for the WRONG reason (status ${r.status()}): ${body}. ` +
-        `That means the customer!=helper rule is not what stopped it — this test would stay green with the rule deleted.`,
-    ).toContain("cannot_apply_to_own_job");
-  });
-
-  test("the self-application rule is identity-scoped, not a blanket refusal", async ({ request }) => {
-    // The control for the test above: a rule that refuses everyone is not a fix.
-    // The helper is a genuine third party, so whatever refuses THEIR application
-    // to this (unfunded, brand-new) job must not be the self-application rule.
-    // The positive half — a legitimate third-party application actually landing
-    // on a funded, non-early-access job — cannot be staged here without running
-    // a money journey, so it is proven instead by
-    // scripts/probes/self-application-gate.pglite.mjs (the third-party insert
-    // lands with the migration applied) and by the prod dry-run recorded in
-    // supabase/migrations/20260921190002_refuse_self_application.sql
-    // (third_app_id=2dc9c10f-4a2d-46ae-8f5e-63809abce3d3, no error).
-    const r = await request.post(`${SUPABASE_URL}/rest/v1/applications`, {
-      headers: { ...helperHeaders, Prefer: "return=representation" },
-      data: { job_id: targetJobId, helper_id: helperId, status: "pending", message: `${E2E_TITLE_MARKER} third party apply` },
-    });
-    const body = await r.text();
-    if (r.status() === 201) {
-      // It landed — the identity rule is plainly not blanket. Remove the row.
-      const del = await request.delete(
-        `${SUPABASE_URL}/rest/v1/applications?job_id=eq.${targetJobId}&helper_id=eq.${helperId}`,
-        { headers: helperHeaders },
-      );
-      if (!del.ok()) announceUncovered("third-party probe application not cleaned", `job ${targetJobId}: ${del.status()}`);
-      return;
-    }
-    expect(
-      body,
-      `a third party was refused by the SELF-application rule — the customer!=helper check is matching the wrong row: ${body}`,
-    ).not.toContain("cannot_apply_to_own_job");
   });
 
   test("a poster cannot raise price or fee on their own job by UPDATE (money lock)", async ({ request }) => {

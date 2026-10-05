@@ -71,7 +71,9 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role; END IF;
 END $$;
 CREATE SCHEMA IF NOT EXISTS auth;
-CREATE TABLE auth.users (id uuid PRIMARY KEY, email text);
+-- email_confirmed_at: the class SQL's fixture inserts it (a newer classified
+-- function reads it); without it the fixture raised FIXTURE_FAILED (Q1243).
+CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, email_confirmed_at timestamptz);
 -- Supabase's auth.uid(): the sub claim, from either GUC.
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
   SELECT coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),
@@ -132,22 +134,38 @@ const HELPERS = ["job_legacy_completed_at", "job_messaging_closes_at", "is_calle
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded" && !AFTER_STUBS.includes(f))];
 const loaded = [];
+// Skip mode loads the newest definition that exists BEFORE the fix. A function
+// first defined after it (is_off_job, 20260925230845, which today's
+// can_message_in_job calls) has no such definition and none of the pre-fix
+// bodies calls it, so it is left out and stubbed with the rest (Q1243).
+const absentBeforeFix = new Set();
+if (MODE)
+  for (const name of [...ORDER, ...AFTER_STUBS]) {
+    try {
+      newest(name);
+    } catch {
+      absentBeforeFix.add(name); // no definition before the fix: stubbed below
+    }
+  }
 for (const name of ORDER) {
+  if (absentBeforeFix.has(name)) continue;
   const def = newest(name);
   await db.exec(def.sql);
   loaded.push(`${name}@${def.file.slice(0, 14)}`);
 }
 console.log(`loaded newest definitions: ${loaded.join(" ")}`);
+if (absentBeforeFix.size) console.log(`not defined before the fix (stubbed): ${[...absentBeforeFix].join(" ")}`);
 
 // Stubs for the rest of the classified inventory (right arity + volatility).
 const sqlFile = readFileSync(`${ROOT}scripts/ci/null-arg-validators.sql`, "utf8");
 const classRows = [...sqlFile.matchAll(/^\s*\('([a-z_0-9]+)',\s*'(allow|absent|deny|classify|noarg|action)',/gm)].map((m) => ({ fn: m[1], kind: m[2] }));
-// 66 on 2026-09-26: main's file had 61 (this line still said 55, stale); Q392
-// adds job_announceable_to (allow) and deliver_job_match (action); the
-// recurring lane (Q407) adds three. 67 on 2026-09-27: 8d13bd427 added
-// series_give_up_strike (action) and this line stayed at 66 (Q418).
-check("the class list parses (67 entries)", classRows.length === 67, `${classRows.length}`);
-const real = new Set([...ALLOW, ...HELPERS, "is_server_context"]);
+// The count comes from the SQL itself (Q1243): a hand-kept constant here went
+// stale four times (55, 61, 66, 67; the file had 70 on 2026-10-04). Every row
+// of the q140_class VALUES block must parse, and there must be a real list.
+const classBlock = sqlFile.slice(sqlFile.indexOf("INSERT INTO q140_class"), sqlFile.indexOf("INSERT INTO q140_case"));
+const declared = (classBlock.match(/^\s*\('/gm) ?? []).length;
+check(`the class list parses (${declared} entries in the SQL)`, declared > 60 && classRows.length === declared, `${classRows.length} parsed`);
+const real = new Set([...ALLOW, ...HELPERS, "is_server_context"].filter((f) => !absentBeforeFix.has(f)));
 for (const { fn, kind } of classRows) {
   if (real.has(fn)) continue;
   const args = kind === "noarg" ? "" : "x text";
@@ -155,6 +173,7 @@ for (const { fn, kind } of classRows) {
   await db.exec(`CREATE FUNCTION public.${fn}(${args}) RETURNS boolean LANGUAGE sql ${vol} AS $$ SELECT false $$;`);
 }
 for (const name of AFTER_STUBS) {
+  if (absentBeforeFix.has(name)) continue;
   const def = newest(name);
   await db.exec(def.sql);
   console.log(`loaded newest definition after stubs: ${name}@${def.file.slice(0, 14)}`);

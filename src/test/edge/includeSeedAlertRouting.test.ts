@@ -7,7 +7,7 @@
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | (jobs ?? []).filter((j) => j.is_seed === true) | (jobs ?? []).filter((j) => j.is_seed !== false)
 // @mutate supabase/functions/subscription-reconciliation/index.ts | notes.some((n) => n !== dryRunNote) | notes.length
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | const { ids: adminIds } = job.is_seed === true\n          ? { ids: [] as string[] } | const { ids: adminIds } = false\n          ? { ids: [] as string[] }
-// @mutate supabase/functions/process-scheduled-payouts/index.ts | const { ids: adminIds } = job.is_seed === true\n              ? { ids: [] as string[] } | const { ids: adminIds } = job.is_seed !== false\n              ? { ids: [] as string[] }
+// @mutate supabase/functions/process-scheduled-payouts/index.ts | const { ids: adminIds } = job.is_seed === true\n                ? { ids: [] as string[] } | const { ids: adminIds } = job.is_seed !== false\n                ? { ids: [] as string[] }
 // @mutate supabase/functions/subscription-reconciliation/index.ts | (seedProfile.has(id) ? `${id} (seed profile)` : id) | id
 /**
  * docs/OPEN.md Q91: an `?include_seed=1` run of a money cron never pages
@@ -229,7 +229,7 @@ describe("process-scheduled-payouts ?include_seed=1", () => {
     const job: Record<string, unknown> = {
       id: "job-1", title: "Mow the lawn", helper_id: "helper-1", customer_id: "poster-1",
       budget: 100, platform_fee_amount: 10, helper_fee_percent: 10, urgent_fee: 0,
-      stripe_session_id: "cs_1", stripe_payment_intent_id: "pi_1", status: "completed",
+      stripe_session_id: "cs_1", stripe_payment_intent_id: "pi_1", status: "completed", payment_status: "payout_pending",
       is_group_job: false, helpers_needed: 1, sales_tax_rate: 0,
     };
     if (isSeed !== undefined) job.is_seed = isSeed;

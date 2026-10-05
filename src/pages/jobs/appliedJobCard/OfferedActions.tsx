@@ -69,7 +69,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           "radial-gradient(80% 100% at 50% 0%, hsl(var(--amber-tint) / 0.10) 0%, transparent 60%)",
       }}
     >
-      {app.offer_message && (
+      {(app.offer_message || app.offer_message_flagged_hidden) && (
         <div
           className="rounded-ds-md p-3"
           style={{
@@ -78,10 +78,11 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           }}
         >
           {/* Only the message itself, no label above it (owner, 2026-10-03). */}
-          {/* Same server flag as the applicant note. This is the OTHER
-              direction of the same leak — the poster's message reached the
-              helper verbatim in the 2026-09-06 review. */}
-          {app.flagged_hidden ? (
+          {/* The poster's own flag (Q1206): this direction is judged apart
+              from the applicant's note, and a flagged message's text never
+              reaches this client (the server moves it to a column no client
+              can read), so the notice is all there is to show. */}
+          {app.offer_message_flagged_hidden ? (
             <p className="font-sans leading-relaxed text-ds-14" style={{ color: "hsl(var(--burnt-sienna))" }}>
               This message was hidden — it looked like contact or payment details.
               Keep the conversation on Helpr so your payment stays protected.

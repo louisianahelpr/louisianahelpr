@@ -957,6 +957,114 @@ describe("release-payout edge function", () => {
       expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
     });
 
+    // Q1211: a refund that flipped the job after this call read it stops the
+    // transfer at the claim; nothing moves and the unsent claim is released.
+    it("Q1211: a job a refund flipped after it was read is not paid (409, claim released)", async () => {
+      seedPayableJob(scenario);
+      (scenario.reads.jobs as { selectOverrides?: unknown[] }).selectOverrides = [
+        { includes: "id, payment_status", result: { rows: [{ id: "job-1", payment_status: "refunded" }] } },
+      ];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/no longer payout_pending/);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update")?.payload).toMatchObject({ status: "canceled" });
+    });
+
+    // Q1210: a gift smaller than the cost reserves the gift and collects the
+    // shortfall by card (create-payment's gift branch), so the escrow is the
+    // gift PLUS the shortfall charge. Capping at the gift alone refused every
+    // payout larger than it, so the job could never pay out.
+    describe("Q1210 a job paid partly by gift and partly by card", () => {
+      function seedMixed(piStatus = "succeeded") {
+        // Budget $100: a $50 gift plus a $50 card shortfall. The payout
+        // ($100 less the 12% free-tier commission = $88) is more than the gift alone.
+        seedPayableJob(scenario, { stripe_payment_intent_id: "pi_diff", stripe_session_id: "cs_diff", budget: 100 });
+        scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
+        scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 5000 };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_diff",
+          status: piStatus,
+          amount: 5000,
+          amount_received: piStatus === "succeeded" ? 5000 : 0,
+          latest_charge: "ch_diff",
+        });
+      }
+
+      // @mutate supabase/functions/release-payout/index.ts | if (!giftFunded \|\| job.stripe_payment_intent_id \|\| job.stripe_session_id) { | if (!giftFunded) {
+      // @mutate supabase/functions/release-payout/index.ts | escrowChargeId = giftFunded | escrowChargeId = false
+      it("pays it, capped at the card capture plus the gift", async () => {
+        seedMixed();
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_diff");
+        expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+        const args = stripeMock.transfers.create.mock.calls[0][0];
+        expect(args.amount).toBe(8800);
+        // Never drawn from the shortfall charge: it holds $50, the payout is
+        // $88, so Stripe would refuse a transfer pinned to it every time.
+        expect(args.source_transaction).toBeUndefined();
+      });
+
+      it("still refuses a payout above card + gift", async () => {
+        seedMixed();
+        scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+        );
+        expect(res.status).toBe(409);
+        expect((await json(res)).error).toMatch(/exceeds captured escrow/i);
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      });
+
+      // @mutate supabase/functions/release-payout/index.ts | if (pi && giftFunded && pi.status !== "succeeded") { | if (false) {
+      it("counts an uncaptured card leg as zero instead of refusing the gift's share", async () => {
+        // A leftover intent that never captured adds nothing; the gift alone
+        // still pays whatever it covers, as before Q1210.
+        seedMixed("requires_payment_method");
+        scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8800);
+      });
+
+      it("defers (502) when the card leg cannot be read, rather than capping at the gift", async () => {
+        seedMixed();
+        stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("stripe down"));
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+        );
+        expect(res.status).toBe(502);
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      });
+
+      // @mutate supabase/functions/release-payout/index.ts | } else if (giftFunded) { | } else if (false) {
+      it("defers (502) when the shortfall SESSION cannot be read", async () => {
+        seedMixed();
+        scenario.reads.jobs = {
+          rows: [{ ...(scenario.reads.jobs as { rows: Record<string, unknown>[] }).rows[0], stripe_payment_intent_id: null }],
+        };
+        stripeMock.checkout.sessions.retrieve.mockRejectedValue(new Error("stripe down"));
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+        );
+        expect(res.status).toBe(502);
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      });
+    });
+
     // ── Fee fallback when the helper's PROFILE READ FAILS ──────────────────
     //
     // Not the same thing as the "untiered helper" case above: that one reads a

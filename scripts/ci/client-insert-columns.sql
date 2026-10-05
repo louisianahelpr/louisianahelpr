@@ -14,11 +14,17 @@
 -- src/test/messagesInsertColumnsClientScoped.test.ts pins each list to the
 -- client's own insert/update payloads (write-contract AST), two-way.
 --
+-- An EMPTY list means no client column at all: the table is written only by
+-- server functions (Q1009, applications).
+--
 -- Shared by:
 --   scripts/check-live-privileges.mjs   prod, after every db-deploy and nightly (db-drift-detect)
 --   .github/workflows/db-smoke.yml      the replayed migration set, before a deploy
 --   src/test/pglite/messagesInsertColumnsClientScoped.pglite.mjs   PGlite red/green proof (INSERT)
 --   src/test/pglite/messageReadReceiptIsTheReceivers.pglite.mjs    PGlite red/green proof (UPDATE)
+--   src/test/pglite/applicationsInsertRpcOnly.pglite.mjs           PGlite red/green proof (applications, Q1009)
+--   src/test/pglite/jobRevisionPartyColumns.pglite.mjs             PGlite red/green proof (job_revisions, Q1231)
+--   src/test/pglite/applicationPartyColumns.pglite.mjs             PGlite red/green proof (applications UPDATE, Q1234)
 -- Keep it a single SELECT with no trailing semicolon-dependent statements.
 WITH declared(tbl, role, priv, cols) AS (
   VALUES
@@ -27,7 +33,24 @@ WITH declared(tbl, role, priv, cols) AS (
                                                   'attachment_duration', 'reply_to_id']::text[]),
     ('messages', 'anon', 'INSERT', ARRAY[]::text[]),
     ('messages', 'authenticated', 'UPDATE', ARRAY['content', 'read']::text[]),
-    ('messages', 'anon', 'UPDATE', ARRAY[]::text[])
+    ('messages', 'anon', 'UPDATE', ARRAY[]::text[]),
+    -- Q1009: an application is written only by a definer RPC (apply_to_job,
+    -- claim_series_dates, complete_direct_offer_accept); a direct INSERT
+    -- skipped the minute/hour caps and the apply_rate advisory lock.
+    ('applications', 'authenticated', 'INSERT', ARRAY[]::text[]),
+    ('applications', 'anon', 'INSERT', ARRAY[]::text[]),
+    -- Q1234: the applicant edits message/attachment_urls, the poster declines
+    -- (status, decline_reason); which party writes which is
+    -- enforce_application_party_columns.
+    ('applications', 'authenticated', 'UPDATE', ARRAY['attachment_urls', 'decline_reason', 'message', 'status']::text[]),
+    ('applications', 'anon', 'UPDATE', ARRAY[]::text[]),
+    -- Q1231: the poster files a revision request; the Helpr answers its status.
+    -- Who may write which (requested_by pinned, poster-only insert, Helpr-only
+    -- status) is enforce_job_revision_party_columns.
+    ('job_revisions', 'authenticated', 'INSERT', ARRAY['job_id', 'requested_by', 'description', 'photos', 'status']::text[]),
+    ('job_revisions', 'anon', 'INSERT', ARRAY[]::text[]),
+    ('job_revisions', 'authenticated', 'UPDATE', ARRAY['status']::text[]),
+    ('job_revisions', 'anon', 'UPDATE', ARRAY[]::text[])
 ),
 rels AS (
   SELECT d.tbl, d.role, d.priv, d.cols, c.oid

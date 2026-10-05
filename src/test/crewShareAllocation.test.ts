@@ -80,8 +80,13 @@ describe("crew shares split the budget exactly", () => {
       3,
       10,
     );
-    // The owner rule's default counts the unconfirmed member too.
-    expect(q.total).toBe(25);
-    expect(q.counted).toBe(3);
+    // Q706 (owner 2026-10-04): a member counts only once they confirmed their
+    // own spot, so the unconfirmed third member is owed nothing. (The old
+    // default counted every hired member: total 25, counted 3.)
+    expect(q.counted).toBe(2);
+    expect(q.perMember[2]).toBe(0);
+    expect(q.total).toBeCloseTo(q.perMember[0] + q.perMember[1], 2);
+    expect(q.total).toBeLessThan(25);
+    expect(q.total).toBeGreaterThan(16);
   });
 });

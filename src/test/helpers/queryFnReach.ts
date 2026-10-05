@@ -39,7 +39,11 @@
  *   - `.throwOnError()`: postgrest-js then throws its own PostgrestError, which
  *     carries no status either;
  *   - a result rebuilt by hand without its status (`({ data, error }) => ({
- *     data, error })`): unwrap() further down then has no status to copy.
+ *     data, error })`): unwrap() further down then has no status to copy;
+ *   - (Q1194, kind "error-unread") an awaited Supabase read whose `error` is
+ *     never read: see awaitDropsError for the exact shapes. It proves the
+ *     error is touched, not that a failed read stops a value rendering
+ *     (report-and-continue passes).
  * The module that owns the sanctioned throw (unwrap(), passed as `sanctioned`)
  * is never followed into.
  *
@@ -81,7 +85,7 @@ export interface ReachReport {
     at: string;
     chain: string[];
     code: string;
-    kind: "raw-throw" | "rewrapped" | "throwOnError" | "status-dropped";
+    kind: "raw-throw" | "rewrapped" | "throwOnError" | "status-dropped" | "error-unread";
   }[];
   /** query functions whose value the scan could not resolve to code: each one is a hole in the guard */
   unfollowable: string[];
@@ -433,8 +437,94 @@ export class QueryFnReach {
     return found;
   }
 
+  /**
+   * Q1194: is this awaited Supabase result bound somewhere its `error` is
+   * never read? Only the shapes that provably drop it are flagged:
+   *   - `const { data, count } = await supabase…` (no `error`, no `...rest`);
+   *   - `const res = await supabase…` where every use of `res` in its function
+   *     is a property read other than `.error` (`res.data`, `res.count`);
+   *   - `(await supabase…).data`;
+   *   - each of the above per element of `const [a, b] = await Promise.all([supabase…, …])`.
+   * Anything else (passed to unwrap() or any call, returned, spread, kept in
+   * an array) is a read: the scan does not follow the value further.
+   */
+  private awaitDropsError(n: ts.AwaitExpression): boolean {
+    let child: ts.Node = n;
+    let parent = n.parent;
+    while (
+      parent &&
+      (ts.isParenthesizedExpression(parent) || ts.isAsExpression(parent) || ts.isNonNullExpression(parent) || ts.isSatisfiesExpression(parent))
+    ) {
+      child = parent;
+      parent = parent.parent;
+    }
+    const inner = strip(n.expression);
+    // A builder kept in a variable first (`let q = supabase.from(..); … await q`).
+    const builderVar =
+      ts.isIdentifier(inner) &&
+      (() => {
+        const d = this.findDeclaration(inner);
+        return !!d && ts.isVariableDeclaration(d) && !!d.initializer && isSupabaseCall(d.initializer);
+      })();
+    if (isSupabaseCall(inner) || builderVar) {
+      if (ts.isPropertyAccessExpression(parent) && parent.expression === child) return parent.name.text !== "error";
+      if (ts.isVariableDeclaration(parent) && parent.initializer === child) return this.bindingDropsError(parent.name, parent);
+      // `res = await supabase…` (a reassignment)
+      if (
+        ts.isBinaryExpression(parent) &&
+        parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        parent.right === child &&
+        ts.isIdentifier(parent.left)
+      )
+        return this.bindingDropsError(parent.left, parent);
+      return false;
+    }
+    // const [a, b] = await Promise.all([supabase…, supabase…])
+    if (
+      ts.isCallExpression(inner) &&
+      ts.isPropertyAccessExpression(strip(inner.expression)) &&
+      (strip(inner.expression) as ts.PropertyAccessExpression).name.text === "all" &&
+      inner.arguments[0] &&
+      ts.isArrayLiteralExpression(strip(inner.arguments[0])) &&
+      ts.isVariableDeclaration(parent) &&
+      parent.initializer === child &&
+      ts.isArrayBindingPattern(parent.name)
+    ) {
+      const elements = (strip(inner.arguments[0]) as ts.ArrayLiteralExpression).elements;
+      return parent.name.elements.some((b, i) => {
+        const el = elements[i];
+        if (!el || ts.isSpreadElement(el) || !isSupabaseCall(strip(el)) || ts.isOmittedExpression(b) || b.dotDotDotToken) return false;
+        return this.bindingDropsError(b.name, parent);
+      });
+    }
+    return false;
+  }
+
+  private bindingDropsError(name: ts.BindingName, decl: ts.Node): boolean {
+    if (ts.isObjectBindingPattern(name))
+      return !name.elements.some((el) => el.dotDotDotToken || propName(el.propertyName ?? el.name) === "error");
+    if (!ts.isIdentifier(name)) return false;
+    // Every use of the name in its function (or file).
+    let scope: ts.Node | undefined = decl.parent;
+    while (scope && !isFn(scope) && !ts.isSourceFile(scope)) scope = scope.parent;
+    if (!scope) return false;
+    let read = false;
+    const walk = (x: ts.Node) => {
+      if (read) return;
+      if (ts.isIdentifier(x) && x !== name && x.text === name.text && isReferencePosition(x)) {
+        const p = x.parent;
+        const propRead = ts.isPropertyAccessExpression(p) && p.expression === x && p.name.text !== "error";
+        if (!propRead) read = true;
+      }
+      ts.forEachChild(x, walk);
+    };
+    walk(scope);
+    return !read;
+  }
+
   /** What, if anything, is wrong with this node for a query function to reach. */
   private classify(n: ts.Node): Violation["kind"] | null {
+    if (ts.isAwaitExpression(n) && this.awaitDropsError(n)) return "error-unread";
     if (ts.isObjectLiteralExpression(n)) {
       // A Supabase result rebuilt by hand (`({ data, error }) => ({ data, error })`)
       // without its `status`: unwrap() downstream then has no status to carry.
@@ -650,6 +740,49 @@ export class QueryFnReach {
       reachedThrows: [...this.reached.values()].sort((a, b) => a.at.localeCompare(b.at)),
     };
   }
+}
+
+/**
+ * Methods on the client that are awaited but return no `{ data, error }`
+ * result, or (`then`) hand it to a callback that is the reader.
+ */
+const NOT_A_RESULT = new Set(["removeChannel", "removeAllChannels", "unsubscribe", "track", "untrack", "send", "getPublicUrl", "then"]);
+/** `supabase.auth.*` methods that only read local state: a failure IS "no user". */
+const LOCAL_AUTH = new Set(["getSession"]);
+
+/**
+ * A Supabase request: a call chain rooted at the `supabase` client
+ * (`supabase.from(..)…`, `.rpc(..)`, `.functions.invoke(..)`,
+ * `.storage.from(..)…`, `.auth.getUser()`), which resolves to `{ data, error }`.
+ */
+function isSupabaseCall(e: ts.Expression): boolean {
+  let x = strip(e);
+  let outer: string | undefined;
+  let first: string | undefined; // the member read off the client itself: from, rpc, functions, storage, auth
+  let sawCall = false;
+  for (;;) {
+    if (ts.isCallExpression(x)) {
+      sawCall = true;
+      const c = strip(x.expression);
+      outer ??= ts.isPropertyAccessExpression(c) ? c.name.text : undefined;
+      x = c;
+    } else if (ts.isPropertyAccessExpression(x)) {
+      first = x.name.text;
+      x = strip(x.expression);
+    } else break;
+  }
+  // `.throwOnError()` throws on error (flagged as its own kind above): no result
+  // to drop. `supabase.auth.getSession()` reads local storage, so a failure is
+  // "no user". getUser() is a network call whose 5xx/offline error also comes
+  // back as `user: null`, so it must have its error read (Q1194 review).
+  return (
+    sawCall &&
+    ts.isIdentifier(x) &&
+    x.text === "supabase" &&
+    !(first === "auth" && LOCAL_AUTH.has(outer ?? "")) &&
+    !NOT_A_RESULT.has(outer ?? "") &&
+    outer !== "throwOnError"
+  );
 }
 
 /** Is this identifier a reference (not a declaration name, not `x.NAME`, not a type)? */

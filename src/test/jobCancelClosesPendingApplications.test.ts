@@ -6,7 +6,7 @@
 // whenever a later migration redefines notify_on_application.
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | IF NEW.closed_reason = 'job_cancelled' THEN | IF false THEN
 // @mutate src/components/job-card/jobStatusLine.ts | if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected"; | if (app.status === "rejected") return "not_selected";
-// @mutate src/pages/jobs/AppliedJobCard.tsx | {app.closed_reason === "job_cancelled" | {app.closed_reason === "never"
+// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | if (app.closed_reason === "job_cancelled") return | if (app.closed_reason === "never") return
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {app.status === "rejected" && app.closed_reason !== "job_cancelled" && ( | {app.status === "rejected" && (
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -106,8 +106,9 @@ describe("Q274: a cancelled job closes its pending applications, truthfully", ()
   });
 
   it("the applied card and the poster's Applicants panel read the marker before saying Not selected / Declined", () => {
-    const card = src("src/pages/jobs/AppliedJobCard.tsx");
-    expect(card).toMatch(/app\.closed_reason === "job_cancelled"\s*\?\s*"Job cancelled"/);
+    expect(src("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/\{closedCardLabel\(app\)\}/);
+    const card = src("src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts");
+    expect(card).toMatch(/if \(app\.closed_reason === "job_cancelled"\) return "Job cancelled"/);
     const panel = src("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
     expect(panel).toMatch(/app\.status === "rejected" && app\.closed_reason !== "job_cancelled" && \(/);
   });

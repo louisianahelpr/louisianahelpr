@@ -25,7 +25,7 @@ import { join } from "node:path";
 // @ts-expect-error — plain .mjs module, no declaration file
 import { buildMainIndex, unlandedContent, isIgnoredPath } from "../../scripts/lib/strandedContent.mjs";
 // @ts-expect-error — plain .mjs module, no declaration file
-import { localInventory, remoteInventory, judge, makeGit, setMainRef } from "../../scripts/stranded-work.mjs";
+import { localInventory, remoteInventory, judge, makeGit, setMainRef, landedElsewhere } from "../../scripts/stranded-work.mjs";
 
 let root = "";
 let repo = "";
@@ -101,6 +101,20 @@ beforeAll(() => {
   setMainRef("origin/main");
 });
 afterAll(() => { setMainRef(null); if (root) rmSync(root, { recursive: true, force: true }); });
+
+// @mutate scripts/stranded-work.mjs |   return bodies.some((b) => | return [].some((b) =>
+describe("a closed PR noted as landed elsewhere is not stranded work (2026-10-04)", () => {
+  it("accepts the lead's landed notes and nothing else", () => {
+    expect(landedElsewhere(["Landed in batch 2 (#2252) as f5a982fdb (Q753, Q510)."])).toBe(true);
+    expect(landedElsewhere(["Landed on main as 67e7a5e90 (and e3a1117a7)."])).toBe(true);
+    expect(landedElsewhere(["Same work as the earlier cloud PR, already on main through batch 2 (#2252)."])).toBe(true);
+    expect(landedElsewhere(["Reopened automatically by branch-prune, which did not read the list. The work is on main."])).toBe(true);
+    expect(landedElsewhere(["<!-- auto-generated comment: summarize by coderabbit.ai -->"])).toBe(false);
+    expect(landedElsewhere(["closing, will redo later"])).toBe(false);
+    expect(landedElsewhere(["Not landed: superseded"])).toBe(false);
+    expect(landedElsewhere([])).toBe(false);
+  });
+});
 
 describe("strandedContent: on main by content, not by SHA or subject", () => {
   it("a branch whose change was re-landed under a new SHA is on main", () => {

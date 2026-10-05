@@ -51,7 +51,7 @@
  *
  * Q1193: a webhook's minimal Charge carries no `refunds`; the handler lists them.
  *
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | charge.refunds?.data?.[0] ?? (await listChargeRefunds())[0]; | charge.refunds?.data?.[0];
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | charge.refunds?.data ?? (await listChargeRefunds()); | charge.refunds?.data ?? [];
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | throw new Error(`Could not list the refunds on charge ${charge.id}: ${String(e)}`); | return [];
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | listed ??= (async () => { | listed = (async () => {
  */
@@ -496,6 +496,11 @@ describe("Q450: a full refund made outside the split closes a decided dispute", 
     // A decided Helpr share the platform no longer holds is critical (review LOW-7).
     expect(alerts().find((a) => /dispute closed, nothing left to split/.test(a.title))?.severity).toBe("critical");
     expect(notes().some((n) => n.user_id === "admin-1" && /decided Helpr share unpaid/.test(String(n.title)))).toBe(true);
+    // Q1208 (3): the person deciding whether to pay the Helpr is told the
+    // gift (if any) goes back to the poster whole.
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | decide whether to pay it. ${GIFT_GOES_BACK_WHOLE}` | decide whether to pay it.`
+    expect(notes().some((n) => n.user_id === "admin-1" && /gift card that paid part of this job is given back in full to the person who posted it/.test(String(n.message)))).toBe(true);
+    expect(alerts().find((a) => /dispute closed, nothing left to split/.test(a.title))?.message).toMatch(/given back in full to the person who posted it/);
     const helperNote = notes().filter((n) => n.user_id === "h");
     expect(helperNote).toHaveLength(1);
     expect(helperNote[0].link).toBe("/jobs?job=job-r");
@@ -645,8 +650,8 @@ describe("Q1193: charge.refunded reads the refunds from Stripe, not from the eve
     expect(alerts().some((a) => /payment_refunds ledger/.test(a.title))).toBe(false);
   });
 
-  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |               amount_cents: latestRefund.amount,\n              currency: charge.currency,\n              is_partial: false, |               amount_cents: charge.amount_refunded,\n              currency: charge.currency,\n              is_partial: false,
-  it("a charge refunded in two steps: the row that completes it records ITS amount, not the running total (review of Q1193, must-fix 2)", async () => {
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |                 amount_cents: r.amount,\n                currency: charge.currency,\n                is_partial: r.id !== latestRefund.id, |                 amount_cents: charge.amount_refunded,\n                currency: charge.currency,\n                is_partial: r.id !== latestRefund.id,
+  it("a charge refunded in two steps: each row records ITS amount, not the running total (review of Q1193, must-fix 2)", async () => {
     const fn = await loadConfigured();
     minimalChargeEvent("evt_q1193_steps", 5000);
     scenario.reads.jobs = { rows: [job] };
@@ -656,7 +661,55 @@ describe("Q1193: charge.refunded reads the refunds from Stripe, not from the eve
       { id: "re_first", amount: 300, status: "succeeded", metadata: {} },
     ] });
     expect((await post(fn)).status).toBe(200);
-    expect(ledger()).toEqual([expect.objectContaining({ stripe_refund_id: "re_rest", amount_cents: 4700, is_partial: false })]);
+    // Q1300: the earlier refund gets its row too (an upsert that skips it when
+    // its own delivery already wrote it); only the completing one is not partial.
+    expect(ledger()).toEqual([
+      expect.objectContaining({ stripe_refund_id: "re_rest", amount_cents: 4700, is_partial: false }),
+      expect.objectContaining({ stripe_refund_id: "re_first", amount_cents: 300, is_partial: true }),
+    ]);
+  });
+
+  // Q1300: the event does not name its refund; list[0] alone dropped the
+  // earlier of two close refunds and could read an ordinary one as a correction.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |       for (const r of ordinaryRefunds) {\n        const { error: partialLedgerErr } | for (const r of ordinaryRefunds.slice(0, 1)) {\n        const { error: partialLedgerErr }
+  it("Q1300: two partial Dashboard refunds close together both get a ledger row", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1300_two", 800);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      { id: "re_b", amount: 500, status: "succeeded", metadata: {} },
+      { id: "re_a", amount: 300, status: "succeeded", metadata: {} },
+    ] });
+    expect((await post(fn)).status).toBe(200);
+    expect(ledger().map((r) => [r.stripe_refund_id, r.amount_cents, r.is_partial])).toEqual([["re_b", 500, true], ["re_a", 300, true]]);
+  });
+
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   const isOnboardingFeeCorrection = liveRefunds.length > 0 && ordinaryRefunds.length === 0; |   const isOnboardingFeeCorrection = liveRefunds.length > 0 && isCorrection(liveRefunds[0]);
+  it("Q1300: an ordinary refund followed by a fee correction is still ledgered (never read as the correction)", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1300_mix", 500);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      { id: "re_fee", amount: 200, status: "succeeded", metadata: { reason: "duplicate_onboarding_fee" } },
+      { id: "re_dash", amount: 300, status: "succeeded", metadata: {} },
+    ] });
+    expect((await post(fn)).status).toBe(200);
+    // The correction's own row is written where it is made (settleOnboardingFee).
+    expect(ledger().map((r) => r.stripe_refund_id)).toEqual(["re_dash"]);
+  });
+
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | !!r?.id && r.status !== "failed" && r.status !== "canceled" | !!r?.id
+  it("Q1300: a failed or canceled refund moved no money and gets no row", async () => {
+    const fn = await loadConfigured();
+    minimalChargeEvent("evt_q1300_failed", 300);
+    scenario.reads.jobs = { rows: [job] };
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      { id: "re_bad", amount: 900, status: "failed", metadata: {} },
+      { id: "re_cxl", amount: 700, status: "canceled", metadata: {} },
+      { id: "re_ok", amount: 300, status: "succeeded", metadata: {} },
+    ] });
+    expect((await post(fn)).status).toBe(200);
+    expect(ledger().map((r) => r.stripe_refund_id)).toEqual(["re_ok"]);
   });
 
   it("PARTIAL Dashboard refund on a minimal Charge writes the partial ledger row (it was silent)", async () => {
@@ -710,7 +763,7 @@ describe("Q1193: charge.refunded reads the refunds from Stripe, not from the eve
  * the escrow (its decision splits the gift; the close pages instead) or a
  * payout already moved out of it (lh-money-escrow review, MEDIUM).
  *
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (decided === "no_unsettled_dispute" \|\| decided === "closed") { | if (true) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | const stake = (decided === "no_unsettled_dispute" \|\| decided === "closed") | const stake = (true)
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | const giftBack = await restoreGiftForRefundedJob(supabase, String(refundedJob.id)); | const giftBack = { ok: true as const, outcome: null, restoreCents: 0, spendable: false };
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | throw new Error(`Gift restore failed for refunded job | void new Error(`Gift restore failed for refunded job
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (payout.transferId) { | if (false) {
@@ -742,6 +795,7 @@ describe("Q454: a full refund gives the job's gift card back", () => {
     const fn = await loadConfigured();
     refundedEvent("evt_q454_gift");
     scenario.reads.jobs = { rows: [job] };
+    scenario.reads.gift_cards = giftAtStake;
     let noticedFirst = true;
     let flippedFirst = false;
     scenario.rpc.restore_gift_card_for_job = () => {
@@ -765,6 +819,7 @@ describe("Q454: a full refund gives the job's gift card back", () => {
     const fn = await loadConfigured();
     refundedEvent("evt_q454_revoked");
     scenario.reads.jobs = { rows: [job] };
+    scenario.reads.gift_cards = giftAtStake;
     scenario.rpc.restore_gift_card_for_job = { outcome: "restored", credit_id: "gc-new", restore_cents: 6000, payment_status: "refunded" };
     await post(fn);
     expect(restoreCalls()).toHaveLength(1);
@@ -775,6 +830,7 @@ describe("Q454: a full refund gives the job's gift card back", () => {
     const fn = await loadConfigured();
     refundedEvent("evt_q454_paid");
     scenario.reads.jobs = { rows: [{ ...job, payment_status: "payout_pending" }] };
+    scenario.reads.gift_cards = giftAtStake;
     scenario.reads.payout_transfers = { rows: [{ id: "pt-1", stripe_transfer_id: "tr_paid", status: "paid" }] };
     const res = await post(fn);
     expect(res.status).toBe(200);
@@ -785,10 +841,55 @@ describe("Q454: a full refund gives the job's gift card back", () => {
     expect(refundNote()).toBeDefined();
   });
 
+  // Q1208 (1): the same refund on a job no gift ever funded (a reversed
+  // payout, say) paged "gift card NOT returned" about a gift that never was.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (stake.atStake) { | if (true) {
+  it("Q1208 (1): a card-only job's full refund after a reversed payout pages nothing about a gift", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q1208_nogift");
+    scenario.reads.jobs = { rows: [{ ...job, payment_status: "payout_pending" }] };
+    scenario.reads.gift_cards = { rows: [] };
+    scenario.reads.payout_transfers = { rows: [{ id: "pt-1", stripe_transfer_id: "tr_rev", status: "reversed" }] };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(restoreCalls()).toHaveLength(0);
+    expect(alerts().some((a) => /gift card NOT returned/.test(a.title))).toBe(false);
+    expect(refundNote()).toBeDefined();
+  });
+
+  // Review of Q1208 (should-fix): a card-only job whose payout is pending or
+  // paid during a full refund is the Q1211 double outflow: it still pages.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | if (livePayout.liveTransferId) { | if (false) {
+  it("Q1208 review: a card-only job whose payout is PAID during the full refund still pages", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q1208_paid_nogift");
+    scenario.reads.jobs = { rows: [{ ...job, payment_status: "payout_pending" }] };
+    scenario.reads.gift_cards = { rows: [] };
+    scenario.reads.payout_transfers = { rows: [{ id: "pt-1", stripe_transfer_id: "tr_paid", status: "paid" }] };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    const page = alerts().find((a) => a.title === "Full refund on a job whose payout already moved");
+    expect(page?.severity).toBe("critical");
+    expect(page?.message).toMatch(/tr_paid/);
+    expect(restoreCalls()).toHaveLength(0);
+  });
+
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | throw new Error(`Gift read failed before the gift restore | void new Error(`Gift read failed before the gift restore
+  it("Q1208 (1): an unreadable gift ledger throws (Stripe redelivers), never reads as 'no gift'", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q1208_giftread");
+    scenario.reads.jobs = { rows: [job] };
+    scenario.reads.gift_cards = { error: { message: "connection reset" } };
+    const res = await post(fn);
+    expect(res.status).toBeGreaterThanOrEqual(500);
+  });
+
   it("leaves the gift to the decision when a decided dispute owns the escrow", async () => {
     const fn = await loadConfigured();
     refundedEvent("evt_q454_decided");
     scenario.reads.jobs = { rows: [job] };
+    // A gift IS at stake: the decision, not this refund, decides it.
+    scenario.reads.gift_cards = giftAtStake;
     scenario.reads.disputes = { rows: [{ id: "d-1" }] };
     stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_dash", amount: 4000, status: "succeeded", metadata: {} }] });
     scenario.rpc.settle_dispute_by_external_refund = {
@@ -823,6 +924,44 @@ describe("Q454: a full refund gives the job's gift card back", () => {
     expect(res.status).toBe(200);
     expect(refundNote()).toBeDefined();
     expect(String(refundNote()?.message)).not.toMatch(/gift card paid is back/);
+  });
+
+  // Since Q1208 (1) the stake check runs first, so the restore's own
+  // fallbacks are reached only in a race: the gift was given back, or left,
+  // between that check and an RPC outage. Each is modelled by answering the
+  // check (its own column lists) and the fallback differently.
+  it("Q1208 race: given back between the stake check and an RPC outage is not a failure", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q1208_race_restored");
+    scenario.reads.jobs = { rows: [job] };
+    scenario.reads.gift_cards = {
+      rows: [{ id: "gc-1" }],
+      selectOverrides: [
+        { includes: "parent_credit_id", result: { rows: [] } },
+        { includes: "restored_from_job_id", result: { rows: [{ id: "gc-new", restored_from_job_id: "job-g" }] } },
+      ],
+    };
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "connection reset" } };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(refundNote()).toBeDefined();
+  });
+
+  it("Q1208 race: gone between the stake check and an RPC outage is not a failure", async () => {
+    const fn = await loadConfigured();
+    refundedEvent("evt_q1208_race_gone");
+    scenario.reads.jobs = { rows: [job] };
+    scenario.reads.gift_cards = {
+      rows: [],
+      selectOverrides: [
+        { includes: "restored_from_job_id", result: { rows: [] } },
+        { includes: "id, status", result: { rows: [{ id: "gc-1" }] } },
+      ],
+    };
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "function does not exist", code: "PGRST202" } };
+    const res = await post(fn);
+    expect(res.status).toBe(200);
+    expect(refundNote()).toBeDefined();
   });
 
   it("no gift at stake: an unavailable restore does not hold the refund hostage", async () => {

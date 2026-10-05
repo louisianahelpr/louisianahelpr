@@ -53,8 +53,10 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   const handleConfirm = async () => {
     if (sendingRef.current) return;
     // SAME CONTRACT AS MESSAGES. The server scans this offer message the way
-    // it scans a chat message and, when it trips a rule, stores it with
-    // `flagged_hidden` set — the helpr never sees it. The poster got a success
+    // it scans a chat message and, when it trips a rule, withholds it: the
+    // text moves to a server-only column and `offer_message_flagged_hidden` is
+    // set (Q1206; `flagged_hidden` is the applicant's note) — the helpr never
+    // sees it. The poster got a success
     // path and no hint that the sentence they wrote had been withheld. Messages
     // has always blocked the same content BEFORE sending and named the words
     // that caused it; this is that scanner and that dialog. The server-side

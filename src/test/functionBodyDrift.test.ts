@@ -200,7 +200,7 @@ describe("function-body drift — in-place rewrites are replayed", () => {
   it("helper_cancel_booking is expected at its newest CREATE, which carries the new copy itself", () => {
     const e = expected.get("helper_cancel_booking(uuid)")!;
     expect(e.state).toBe("defined");
-    expect(e.version).toBe("20261002055930"); // Q737 restated it with the series lock first
+    expect(e.version).toBe("20261004193450"); // Q706 restated it (strikes start at the accept)
     expect(e.body).toContain("Message the person who posted it or open a dispute.");
     expect(e.body).not.toContain("Message the poster or open a dispute.");
   });

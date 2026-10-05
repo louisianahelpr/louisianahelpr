@@ -295,17 +295,37 @@ export function _resetBackgroundFailureReportsForTests() {
  * afternoon and nothing to read). Prefer the object's own message, and
  * carry its code/details/hint so the row says what the database said.
  */
+/**
+ * The PostgREST fields an Error can carry as own properties: unwrap()
+ * (src/lib/supabaseResult.ts) throws an Error copy holding the Supabase
+ * error's code/details/hint plus the response status (Q1195).
+ */
+function postgrestFields(o: Record<string, unknown>): string[] {
+  const parts: string[] = [];
+  for (const k of ["code", "details", "hint", "status"] as const) {
+    const v = o[k];
+    if (typeof v === "string" && v) parts.push(`${k}=${v}`);
+    else if (typeof v === "number") parts.push(`${k}=${v}`);
+  }
+  return parts;
+}
+
 function describeUnknownError(err: unknown): string {
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error) {
+    // Q1195: an unwrap()'d read logged its message alone (no PostgREST code),
+    // and a refused HEAD count, whose message is "", logged nothing at all.
+    // The fields go AFTER " — ": ops_alert_ledger_from_error_log and
+    // ops_alert_verify title an alert by split_part(message, ' — ', 1), so
+    // an alert's title and fingerprint stay exactly what they were.
+    const fields = postgrestFields(err as unknown as Record<string, unknown>);
+    if (!fields.length) return err.message;
+    return err.message ? `${err.message} — ${fields.join(" · ")}` : fields.join(" · ");
+  }
   if (err && typeof err === "object") {
     const o = err as Record<string, unknown>;
     const parts: string[] = [];
     if (typeof o.message === "string" && o.message) parts.push(o.message);
-    for (const k of ["code", "details", "hint", "status"] as const) {
-      const v = o[k];
-      if (typeof v === "string" && v) parts.push(`${k}=${v}`);
-      else if (typeof v === "number") parts.push(`${k}=${v}`);
-    }
+    parts.push(...postgrestFields(o));
     if (parts.length) return parts.join(" · ");
     try {
       const json = JSON.stringify(err);

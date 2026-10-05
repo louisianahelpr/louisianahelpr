@@ -1,8 +1,11 @@
 /*
  * GUARD (owner, 2026-09-23): nothing but the plain page background shows
  * before the landing page, and the H mark is never drawn in a square box.
- *  - index.html's #boot-loader holds no image (its filter shadow rendered as a
- *    clipped square on iPhone WebKit);
+ *  - index.html's #boot-loader holds no <img> or <svg> (the old <img> H's
+ *    filter shadow rendered as a clipped square on iPhone WebKit). Owner,
+ *    2026-10-04 (Q651): the H is back above a loading bar, but only as a
+ *    filter-free CSS background in the artwork's own ratio, fading in after
+ *    600 ms; src/test/bootHintIsFilterFree.test.ts holds that;
  *  - "/" loads behind LandingPlainFallback, not the generic dashboard-shaped
  *    route skeleton (a guest saw skeleton -> landing, which read as a jump);
  *  - HelprSpinner sizes the 96x82 mark by height with width auto.
@@ -17,7 +20,7 @@ import { resolve } from "node:path";
 const read = (p: string) => readFileSync(resolve(__dirname, "../..", p), "utf8");
 
 describe("no brand loader before the landing page", () => {
-  it("the boot shell is the plain background: no image or mark inside #boot-loader", () => {
+  it("the boot shell draws no <img>/<svg> mark inside #boot-loader (the H, Q651, is a filter-free CSS background)", () => {
     const html = read("index.html");
     const start = html.indexOf('id="boot-loader"');
     expect(start).toBeGreaterThan(0);

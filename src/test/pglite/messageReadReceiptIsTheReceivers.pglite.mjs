@@ -111,7 +111,7 @@ const m4 = await send(SENDER, RECEIVER, "fourth");
 
 // ── C: the shared live check ────────────────────────────────────────────────
 {
-  const rows = (await db.query(CLIENT_COLUMNS_CHECK.replace(/;\s*$/, ""))).rows.map((r) => `${r.role}: ${r.what}`);
+  const rows = (await db.query(CLIENT_COLUMNS_CHECK.replace(/;\s*$/, ""))).rows.filter((r) => r.table === "messages").map((r) => `${r.role}: ${r.what}`);
   check("C1 scripts/ci/client-insert-columns.sql: authenticated UPDATEs exactly content and read", rows.length === 0, rows.join("; ") || "0 rows");
 }
 

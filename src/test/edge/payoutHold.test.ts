@@ -167,7 +167,7 @@ describe("process-scheduled-payouts honours the payout hold", () => {
     const job = {
       id: "job-1", title: "Mow", helper_id: "helper-1", customer_id: "poster-1", budget: 100,
       platform_fee_amount: 10, helper_fee_percent: 10, urgent_fee: 0, stripe_session_id: "cs_1",
-      stripe_payment_intent_id: "pi_1", status: "completed", is_group_job: false, helpers_needed: 1, sales_tax_rate: 0,
+      stripe_payment_intent_id: "pi_1", status: "completed", payment_status: "payout_pending", is_group_job: false, helpers_needed: 1, sales_tax_rate: 0,
     };
     s.reads.jobs = { rows: [job] };
     s.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
@@ -276,14 +276,53 @@ describe("money-reconciliation does not page on a payout a hold keeps back", () 
     expect(((b.defectReasons as string[] | undefined) ?? []).join(" ")).not.toContain("payout_pending_stranded");
   });
 
-  it("a crew job is held when ANY roster member is held", async () => {
+  it("a crew job is held when every UNPAID roster member is held", async () => {
     seed(scenario);
     scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_group_job: true, helpers_needed: 2, helper_id: null };
     scenario.reads.group_job_helpers = { rows: [{ id: "g1", job_id: "job-1", helper_id: "helper-2" }, { id: "g2", job_id: "job-1", helper_id: "helper-1" }] };
+    // helper-2 was paid; only the held helper-1 is still owed.
+    scenario.reads.payout_transfers = {
+      rows: [{ job_id: "job-1", helper_id: "helper-2", amount_cents: 4400, platform_fee_cents: 600, status: "paid", stripe_transfer_id: "tr_2" }],
+    };
     scenario.reads.payout_holds = { rows: [HELD] };
     const b = await json(await run());
     expect(checks(b)).not.toContain("payout_pending_stranded");
     expect(b.payout_pending_held).toEqual([{ job_id: "job-1", helper_ids: ["helper-1"] }]);
+  });
+
+  // Q1240: one held member used to exempt the WHOLE crew job, so an unheld
+  // member whose leg was stuck (no Connect account, no PaymentIntent, an
+  // orphaned claim) was silent for as long as the other's hold lasted.
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (unpaidHeld.length > 0 && unpaidHeld.length === unpaid.length) { | if (held.length) {
+  it("Q1240: a held member does not hide an UNHELD member who is still unpaid", async () => {
+    seed(scenario);
+    scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_group_job: true, helpers_needed: 2, helper_id: null };
+    scenario.reads.group_job_helpers = { rows: [{ id: "g1", job_id: "job-1", helper_id: "helper-2" }, { id: "g2", job_id: "job-1", helper_id: "helper-1" }] };
+    // helper-2 is NOT held and was never paid (a claim that moved nothing).
+    scenario.reads.payout_transfers = {
+      rows: [{ job_id: "job-1", helper_id: "helper-2", amount_cents: 4400, platform_fee_cents: 600, status: "pending", stripe_transfer_id: null }],
+    };
+    scenario.reads.payout_holds = { rows: [HELD] };
+    const b = await json(await run());
+    expect(checks(b)).toContain("payout_pending_stranded");
+    expect(b.payout_pending_held).toEqual([]);
+  });
+
+  // @mutate supabase/functions/money-reconciliation/index.ts | if (unpaidHeld.length > 0 && unpaidHeld.length === unpaid.length) { | if (held.length && unpaidHeld.length === unpaid.length) {
+  it("Q1240: a crew whose members were ALL paid but never flipped is stranded, even with a held member", async () => {
+    seed(scenario);
+    scenario.reads.jobs!.rows![0] = { ...scenario.reads.jobs!.rows![0], is_group_job: true, helpers_needed: 2, helper_id: null };
+    scenario.reads.group_job_helpers = { rows: [{ id: "g1", job_id: "job-1", helper_id: "helper-2" }, { id: "g2", job_id: "job-1", helper_id: "helper-1" }] };
+    scenario.reads.payout_transfers = {
+      rows: [
+        { job_id: "job-1", helper_id: "helper-1", amount_cents: 4400, platform_fee_cents: 600, status: "paid", stripe_transfer_id: "tr_1" },
+        { job_id: "job-1", helper_id: "helper-2", amount_cents: 4400, platform_fee_cents: 600, status: "paid", stripe_transfer_id: "tr_2" },
+      ],
+    };
+    scenario.reads.payout_holds = { rows: [HELD] };
+    const b = await json(await run());
+    expect(checks(b)).toContain("payout_pending_stranded");
+    expect(b.payout_pending_held).toEqual([]);
   });
 
   it("FAILS CLOSED: an unreadable hold exempts nothing, and the run is degraded", async () => {
@@ -465,5 +504,66 @@ describe("tips honour the payout hold", () => {
     expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
     expect(scenario.writes.some((w) => w.table === "tips")).toBe(false);
     expect(res.status).toBe(200);
+  });
+
+  // Q1224: auto_tip_candidates offers a job for 14 days; a hold longer than
+  // that dropped the tip with nobody told. On the window's last day it is
+  // recorded (a 'failed' auto row) and the poster is told; nothing is charged.
+  describe("Q1224 an auto-tip whose window closes under a hold", () => {
+    async function runHeldTip(completedDaysAgo: number) {
+      setEnv({
+        SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key",
+        STRIPE_SECRET_KEY: "sk_test_abc", CRON_SECRET,
+      });
+      const fn = await loadEdgeFunction("auto-tip-charge");
+      scenario.rpc.auto_tip_candidates = [
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+      ];
+      scenario.reads.jobs = { rows: [{ id: "job-1", completed_at: new Date(Date.now() - completedDaysAgo * 86_400_000).toISOString() }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.reads.payout_holds = { rows: [HELD] };
+      return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
+    }
+
+    // @mutate supabase/functions/auto-tip-charge/index.ts | if (!Number.isFinite(completedMs) \|\| Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) continue; | continue;
+    it("on the last day: records a 'failed' auto tip and tells the poster, charging nothing", async () => {
+      const res = await runHeldTip(13.5);
+      expect(res.status).toBe(200);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      const tip = scenario.writes.find((w) => w.table === "tips" && w.op === "insert");
+      expect(tip?.payload).toMatchObject({ job_id: "job-1", source: "auto", payment_status: "failed" });
+      const note = scenario.writes.find((w) => w.table === "notifications");
+      expect(note?.payload).toMatchObject({ user_id: "poster-1", title: "Your automatic tip wasn't sent" });
+    });
+
+    // Review of Q1224 (should-fix): a crew job has one candidate per member;
+    // the poster gets ONE notice for the job, and it names the job.
+    // @mutate supabase/functions/auto-tip-charge/index.ts |         if (agedOutNotified.has(jobId)) continue; |
+    it("a crew job with two held members: two recorded tips, ONE notice carrying job_id", async () => {
+      setEnv({
+        SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key",
+        STRIPE_SECRET_KEY: "sk_test_abc", CRON_SECRET,
+      });
+      const fn = await loadEdgeFunction("auto-tip-charge");
+      scenario.rpc.auto_tip_candidates = [
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 5 },
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-2", budget: 100, tip_amount: 5 },
+      ];
+      scenario.reads.jobs = { rows: [{ id: "job-1", completed_at: new Date(Date.now() - 13.5 * 86_400_000).toISOString() }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.reads.payout_holds = { rows: [HELD, { ...HELD, helper_id: "helper-2" }] };
+      await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
+      expect(scenario.writes.filter((w) => w.table === "tips" && w.op === "insert")).toHaveLength(2);
+      const notes = scenario.writes.filter((w) => w.table === "notifications").map((w) => w.payload as Record<string, unknown>);
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).toMatchObject({ user_id: "poster-1", job_id: "job-1" });
+    });
+
+    // @mutate supabase/functions/auto-tip-charge/index.ts | const AUTO_TIP_HELD_RECORD_AFTER_MS = 13 * 24 * 60 * 60 * 1000; | const AUTO_TIP_HELD_RECORD_AFTER_MS = 0;
+    it("earlier in the window: still waits for the hold, writes nothing", async () => {
+      const res = await runHeldTip(2);
+      expect(res.status).toBe(200);
+      expect(scenario.writes.some((w) => w.table === "tips" || w.table === "notifications")).toBe(false);
+    });
   });
 });

@@ -84,14 +84,51 @@ export async function restoreGiftForRefundedJob(supabase: Db, jobId: string): Pr
 export async function payoutOnJob(
   supabase: Db,
   jobId: string,
-): Promise<{ transferId?: string; readError?: string }> {
+): Promise<{ transferId?: string; liveTransferId?: string; readError?: string }> {
   const { data, error } = await supabase
     .from("payout_transfers")
     .select("id, stripe_transfer_id, status")
     .eq("job_id", jobId)
     .in("status", ["pending", "paid", "reversed"])
-    .limit(1);
+    .limit(50);
   if (error) return { readError: (error as { message?: string }).message ?? "payout_transfers read failed" };
-  const row = ((data ?? []) as Array<{ id: string; stripe_transfer_id: string | null }>)[0];
-  return row ? { transferId: row.stripe_transfer_id ?? row.id } : {};
+  const rows = (data ?? []) as Array<{ id: string; stripe_transfer_id: string | null; status: string }>;
+  // Review of Q1208: a pending/paid row (money out, or about to be) is the
+  // payout-during-refund signal on ANY job; a reversed one matters only to a
+  // gift (its money came back).
+  const live = rows.find((r) => r.status === "pending" || r.status === "paid");
+  const row = rows[0];
+  return {
+    ...(row ? { transferId: row.stripe_transfer_id ?? row.id } : {}),
+    ...(live ? { liveTransferId: live.stripe_transfer_id ?? live.id } : {}),
+  };
+}
+
+/**
+ * Q1208 (1): is a gift card still at stake on this job? A redeemed or reserved
+ * gift_cards row on it with no replacement minted for it yet. The full-refund
+ * gift branch runs only then: on an ordinary card-funded job it used to page
+ * "gift card NOT returned" whenever a payout row existed (a full refund after a
+ * reversed transfer), about a gift that never was. A read failure is reported,
+ * never read as "no gift".
+ */
+export async function giftAtStake(
+  supabase: Db,
+  jobId: string,
+): Promise<{ atStake: boolean; readError?: string }> {
+  const { data: gifts, error: giftErr } = await supabase
+    .from("gift_cards")
+    .select("id, status")
+    .eq("job_id", jobId)
+    .in("status", ["redeemed", "reserved"])
+    .limit(1);
+  if (giftErr) return { atStake: false, readError: (giftErr as { message?: string }).message ?? "gift_cards read failed" };
+  if (((gifts ?? []) as unknown[]).length === 0) return { atStake: false };
+  const { data: restored, error: restoredErr } = await supabase
+    .from("gift_cards")
+    .select("id, restored_from_job_id, parent_credit_id")
+    .eq("restored_from_job_id", jobId)
+    .limit(1);
+  if (restoredErr) return { atStake: false, readError: (restoredErr as { message?: string }).message ?? "gift_cards read failed" };
+  return { atStake: !((restored ?? []) as Array<{ restored_from_job_id?: string | null }>).some((r) => r.restored_from_job_id === jobId) };
 }

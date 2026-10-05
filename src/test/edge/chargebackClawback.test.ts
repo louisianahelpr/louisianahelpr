@@ -21,26 +21,26 @@
  *
  * Each mutation below undoes one of those and must turn this file red.
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | if (!isInquiry) clawbackJob = { id: chargebackJob.id, title: chargebackJob.title ?? null }; | if (false) clawbackJob = { id: chargebackJob.id, title: chargebackJob.title ?? null };
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | if (row && row.status !== "reversing" && row.status !== "reverse_failed") continue; | if (false) continue;
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = reversible;
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = Math.min(reversible, remaining);
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const target = Math.min(Math.max(0, Math.floor(Number(disputedCents) \|\| 0)), total); | const target = Math.max(0, Math.floor(Number(disputedCents) \|\| 0));
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | b.rem - a.rem \|\| a.created - b.created | b.rem - a.rem \|\| b.created - a.created
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | for (let k = 0; given < target && k < frac.length; k++, given++) { | for (let k = 0; false; k++, given++) {
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |   if (result.shortfall.length > 0) { |   if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | { idempotencyKey: `clawback-${dispute.id}-${t.id}` }, | {},
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | result.failed.push({ transferId: t.id, error: message }); | void message;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | if (row && row.status !== "reversing" && row.status !== "reverse_failed") continue; | if (false) continue;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = reversible;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | amount = Math.min(share, reversible, remaining); | amount = Math.min(reversible, remaining);
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | const target = Math.min(Math.max(0, Math.floor(Number(disputedCents) \|\| 0)), total); | const target = Math.max(0, Math.floor(Number(disputedCents) \|\| 0));
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | b.rem - a.rem \|\| a.created - b.created | b.rem - a.rem \|\| b.created - a.created
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | for (let k = 0; given < target && k < frac.length; k++, given++) { | for (let k = 0; false; k++, given++) {
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |   if (result.shortfall.length > 0) { |   if (false) {
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | { idempotencyKey: `clawback-${dispute.id}-${t.id}` }, | {},
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | result.failed.push({ transferId: t.id, error: message }); | void message;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts | .eq("payment_status", "released") | .eq("id", chargebackJob.id)
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | repaid = await repayClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title }); | repaid = { repaidNowCents: 0, failed: [], rows: 0 };
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await finalizeLostClawback({ stripe, supabase, logStep }, closedDispute, { id: closedJob.id, title: closedJob.title }); | void 0;
  * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | } else if (ours.disputeId) { | } else if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const found = await existingReversal(stripe, t.id, dispute.id); | const found = null;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | const found = await existingReversal(stripe, t.id, dispute.id); | const found = null;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           .update({ chargeback_evidence_due_by: | .update({ chargeback_evidence_due_by_x:
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           link: `/admin?view=jobs&job=${chargebackJob.id}`, |           link: "/admin",
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts | const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id); | const prior = null;
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |     await markJob();\n    try { |     try {
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |           status: "paid",\n          initiated_by: "system", |           status: "pending",\n          initiated_by: "system",
- * @mutate supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts |         out.neverTaken++; |         void 0;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id); | const prior = null;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |     await markJob();\n    try { |     try {
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |           status: "paid",\n          initiated_by: "system", |           status: "pending",\n          initiated_by: "system",
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |         out.neverTaken++; |         void 0;
  * @mutate supabase/functions/stripe-webhook/index.ts |   "charge.dispute.funds_withdrawn": handleChargeDisputeFundsWithdrawn, |   // (unregistered)
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |   if (mode === "created" \|\| changed) await postSlackOpsAlert({ |   if (mode === "created") await postSlackOpsAlert({
  */
@@ -309,6 +309,106 @@ describe("card-dispute clawback (Q202)", () => {
       expect(notices().some((n) => n.user_id === "helper-1" && /paid to you again/.test(n.message))).toBe(true);
     });
 
+    // Q1223: a held Helpr's re-pay is marked owed (its own column, so no later
+    // failure_reason can erase it) and process-scheduled-payouts re-runs it
+    // after the release (this event does not recur). The page is a WARNING
+    // that says not to pay by hand (review of Q1223: a manual payment would be
+    // paid twice), and the job stays 'chargeback' until the re-pay.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |         .update({ held_repay_owed_at: new Date().toISOString(), failure_reason: HELD_REPAY_MARKER, updated_at: new Date().toISOString() }) |         .update({ failure_reason: HELD_REPAY_MARKER, updated_at: new Date().toISOString() })
+    // @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | && repaid.held.length === 0 && repaid.holdErrors.length === 0) { | ) {
+    it("WON for a HELD Helpr: nothing paid now, the row is marked owed, a do-not-pay-by-hand warning, job stays chargeback", async () => {
+      const fn = await load();
+      event("evt_w_held", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      scenario.reads.payout_holds = { rows: [{ helper_id: "helper-1", reason: "review", held_at: null, denied_at: null }] };
+      const res = await post(fn);
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const mark = writesTo("chargeback_clawbacks", "update").find((w) => payload(w).held_repay_owed_at);
+      expect(mark, "owed marker write").toBeDefined();
+      expect(mark!.filters).toContainEqual({ op: "in", column: "status", value: ["reversed", "repay_failed", "repaying"] });
+      expect(alerts().some((a) => a.severity === "critical")).toBe(false);
+      expect(alerts().some((a) => a.severity === "warning" && /NOT pay it by hand/.test(a.message))).toBe(true);
+      expect(writesTo("jobs", "update").some((w) => payload(w).payment_status === "released")).toBe(false);
+    });
+
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |     if (repayHold.kind !== "clear") {\n      const { error: markErr } | if (repayHold.kind === "held") {\n      const { error: markErr }
+    it("WON with an UNREADABLE hold: marked owed too (re-driven later), pages critical", async () => {
+      const fn = await load();
+      event("evt_w_holderr", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      scenario.reads.payout_holds = { error: { message: "connection reset", code: "08006" } };
+      await post(fn);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(writesTo("chargeback_clawbacks", "update").some((w) => payload(w).held_repay_owed_at)).toBe(true);
+      expect(alerts().some((a) => a.severity === "critical" && /could not be read/.test(a.title))).toBe(true);
+    });
+
+    // review of Q1223: a key reused with other parameters never fixes itself.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts | t === "StripeRateLimitError";\n} | t === "StripeRateLimitError" \|\| t === "StripeIdempotencyError";\n}
+    it("WON whose re-pay hits StripeIdempotencyError: recorded and paged for a person, not retried forever", async () => {
+      const fn = await load();
+      event("evt_w_idem", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Keys for idempotent requests can only be used with the same parameters"), { type: "StripeIdempotencyError" }));
+      const res = await post(fn);
+      expect(res.status).toBe(200);
+      expect(alerts().some((a) => a.severity === "critical" && /paying the Helpr back FAILED/.test(a.title))).toBe(true);
+    });
+
+    // Q1292: a REFUSED re-pay leaves the re-drive in the SAME write that
+    // records the refusal. Two writes (status, then a best-effort clear) let a
+    // failed second write keep the row owed, and the sweep paid a Helpr staff
+    // had already paid by hand.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts | { status: "repay_failed", failure_reason: message, held_repay_owed_at: null, held_repay_first_attempt_at: null }, | { status: "repay_failed", failure_reason: message },
+    it("Q1292: a REFUSED re-pay marks repay_failed AND clears the re-pay debt in one write", async () => {
+      const fn = await load();
+      event("evt_w_refused", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ held_repay_owed_at: "2026-10-01T00:00:00.000Z" })] };
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("account closed"), { type: "StripeInvalidRequestError" }));
+      const res = await post(fn);
+      expect(res.status).toBe(200);
+      const failWrites = writesTo("chargeback_clawbacks", "update").filter((w) => payload(w).status === "repay_failed");
+      expect(failWrites).toHaveLength(1);
+      expect(payload(failWrites[0])).toMatchObject({ status: "repay_failed", held_repay_owed_at: null, held_repay_first_attempt_at: null });
+      expect(failWrites[0].filters).toContainEqual({ op: "in", column: "status", value: ["repaying"] });
+      expect(failWrites[0].selectCols).toBe("id");
+      // No second, separate clear: the one write is the whole record.
+      const clears = writesTo("chargeback_clawbacks", "update").filter((w) => payload(w).held_repay_owed_at === null && payload(w).status === undefined);
+      expect(clears).toHaveLength(0);
+    });
+
+    // Second review of Q1223 (S-A): the webhook's claim is a true
+    // compare-and-set, and a same-key request still in flight is transient.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |       .eq("id", row.id)\n      .eq("status", row.status); |       .eq("id", row.id)\n      .in("status", ["reversed", "repaying", "repay_failed"]);
+    it("WON: the re-pay claim is pinned to the status and updated_at it read", async () => {
+      const fn = await load();
+      event("evt_w_pin", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ updated_at: "2026-10-01T00:00:00.000Z" })] };
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await post(fn);
+      const claim = writesTo("chargeback_clawbacks", "update").find((w) => payload(w).status === "repaying");
+      expect(claim!.filters).toContainEqual({ op: "eq", column: "status", value: "reversed" });
+      expect(claim!.filters).toContainEqual({ op: "eq", column: "updated_at", value: "2026-10-01T00:00:00.000Z" });
+    });
+
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |   if ((err as { code?: string })?.code === "idempotency_key_in_use") return true; |
+    it("WON whose re-pay meets idempotency_key_in_use (a racing copy) fails the delivery for a retry, never pages FAILED", async () => {
+      const fn = await load();
+      event("evt_w_inuse", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("There is currently another in-progress request using this Idempotent Key"), { type: "StripeInvalidRequestError", code: "idempotency_key_in_use" }));
+      const res = await post(fn);
+      expect(res.status).toBeGreaterThanOrEqual(500);
+      expect(alerts().some((a) => /paying the Helpr back FAILED/.test(a.title))).toBe(false);
+    });
+
     it("WON on an already-repaid row pays nothing again", async () => {
       const fn = await load();
       event("evt_w2", "charge.dispute.closed", dispute("won"));
@@ -344,6 +444,29 @@ describe("card-dispute clawback (Q202)", () => {
       expect(writesTo("jobs", "update")).toHaveLength(0);
       expect(alerts().some((a) => /Investigate/.test(a.message))).toBe(false);
       expect(alerts().some((a) => /card dispute/i.test(a.title))).toBe(true);
+    });
+  });
+
+  // Q1222 (review): our own held-tip reversal is not an unexplained one.
+  describe("transfer.reversed for a held tip", () => {
+    // @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts |   if (await isHeldTipReversal(supabase, transfer.id)) { |   if (false) {
+    it("does not freeze anything or page 'investigate' — it is our own hold-back", async () => {
+      const fn = await load();
+      event("evt_r_tip", "transfer.reversed", { id: "tr_tip", amount: 1500, amount_reversed: 1500, destination: "acct_helper" });
+      scenario.reads.chargeback_clawbacks = { rows: [] };
+      scenario.reads.tip_hold_redrives = { rows: [{ tip_id: "tip-1", transfer_id: "tr_tip" }] };
+      await post(fn);
+      expect(writesTo("jobs", "update")).toHaveLength(0);
+      expect(alerts().some((a) => /Investigate/.test(a.message))).toBe(false);
+    });
+
+    it("an unrelated reversal still pages 'investigate'", async () => {
+      const fn = await load();
+      event("evt_r_other", "transfer.reversed", { id: "tr_other", amount: 1500, amount_reversed: 1500, destination: "acct_helper" });
+      scenario.reads.chargeback_clawbacks = { rows: [] };
+      scenario.reads.tip_hold_redrives = { rows: [{ tip_id: "tip-1", transfer_id: "tr_tip" }] };
+      await post(fn);
+      expect(alerts().some((a) => /Investigate/.test(a.message))).toBe(true);
     });
   });
 

@@ -216,7 +216,6 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                 className="w-[min(92vw,320px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-4"
                 align="center"
               >
-                <p className="text-display-eyebrow mb-2">After every job</p>
                 <p className="font-display italic font-bold leading-tight mb-2 text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   Everyone who hires you leaves one overall rating.
                 </p>

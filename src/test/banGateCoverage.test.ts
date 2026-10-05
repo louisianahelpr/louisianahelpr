@@ -95,6 +95,25 @@ function scanMigrationRpcs(): { lastBody: Map<string, string>; granted: Set<stri
   return { lastBody, granted };
 }
 const gatedInRepo = (fn: string) => /is_caller_banned\s*\(/.test(migrationRpcs().lastBody.get(fn) ?? "");
+// A snapshot RPC a later migration DROPs (and does not re-create) is gone from
+// prod: it leaves the universe, as a gated one does (Q1216,
+// reject_other_applications_on_accept, dropped by 20261004193221).
+let droppedScan: Set<string> | undefined;
+const droppedSinceSnapshot = (fn: string) => {
+  // Scanned once (see migrationRpcs: a rescan per RPC timed out on CI).
+  if (!droppedScan) {
+    const state = new Map<string, boolean>();
+    for (const f of readdirSync(MIGRATIONS).filter((x) => x.endsWith(".sql") && x.slice(0, 14) > SNAP_VERSION).sort()) {
+      const sql = blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8"));
+      const events: { at: number; name: string; dropped: boolean }[] = [];
+      for (const m of sql.matchAll(/DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?([a-z0-9_]+)\b/gi)) events.push({ at: m.index!, name: m[1].toLowerCase(), dropped: true });
+      for (const m of sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi)) events.push({ at: m.index!, name: m[1].toLowerCase(), dropped: false });
+      for (const e of events.sort((x, y) => x.at - y.at)) state.set(e.name, e.dropped);
+    }
+    droppedScan = new Set([...state].filter(([, d]) => d).map(([n]) => n));
+  }
+  return droppedScan.has(fn);
+};
 function postSnapshotUngatedRpcs(): string[] {
   const { lastBody, granted } = migrationRpcs();
   // The live check counts VOLATILE functions only; a STABLE/IMMUTABLE one writes nothing.
@@ -151,7 +170,11 @@ describe("Q281 ban gate: every client write path is gated or exempt with a reaso
     // A snapshot RPC whose newest migration body now calls is_caller_banned()
     // leaves the universe: the live check reports its exemption stale (Q301,
     // block_user_and_settle, db-deploy run 35934404847 red after the push).
-    const universe = new Set([...SNAP.rpcs.filter((f) => !gatedInRepo(f)), ...postSnapshotUngatedRpcs()]);
+    const universe = new Set([...SNAP.rpcs.filter((f) => !gatedInRepo(f)), ...postSnapshotUngatedRpcs()].filter((f) => !droppedSinceSnapshot(f)));
+    // Q1216: the drop is seen (the snapshot still lists it).
+    expect(SNAP.rpcs).toContain("reject_other_applications_on_accept");
+    expect(droppedSinceSnapshot("reject_other_applications_on_accept")).toBe(true);
+    expect(droppedSinceSnapshot("apply_to_job")).toBe(false);
     expect([...universe].filter((f) => !exempt.has(f)), "RPC with no classification").toEqual([]);
     expect([...exempt].filter((f) => !universe.has(f)), "exemption for an RPC prod does not expose").toEqual([]);
   });

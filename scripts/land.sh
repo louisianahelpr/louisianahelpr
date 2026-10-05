@@ -128,7 +128,7 @@ while :; do
   # Guard: src/test/openItemsKept.test.ts.
   node scripts/check-open-items-kept.mjs --base origin/main
 
-  npm run -s inventories:refresh
+  node scripts/check-generated-current.mjs --fix --skip-post-merge
 
   CHANGED=$( { git diff --name-only; comm -13 <(printf '%s\n' "$UNTRACKED_BEFORE") <(git ls-files --others --exclude-standard | sort); } | sed '/^$/d' | sort -u)
   if [ -n "$CHANGED" ]; then
@@ -145,7 +145,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   fi
 
   # The same check CI runs; red here stops the push.
-  npm run -s check:generated
+  node scripts/check-generated-current.mjs --skip-post-merge
 
   # A money/authz/data-model commit with no recorded review turns main red on
   # the "Sensitive review record" workflow (15921ea17, 2026-09-27). Check only

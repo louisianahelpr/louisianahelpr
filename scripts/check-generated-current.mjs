@@ -35,6 +35,7 @@
  *   node scripts/check-generated-current.mjs --list     # print the inventory table
  *   node scripts/check-generated-current.mjs --outputs  # every CI generator's output path, one per line
  *   node scripts/check-generated-current.mjs --fix      # regenerate all in place (npm run inventories:refresh)
+ *   ... --skip-post-merge                               # leave the whole-tree totals (postMerge: true) alone: land.sh and PR attribution
  *   node scripts/check-generated-current.mjs --attribute --head <sha> --base <sha>
  *                                                       # PR CI after exit 3: whose drift is it?
  *
@@ -57,6 +58,15 @@
  *     job regenerates main and lands it through the bot/refresh/inventories PR
  *     on the push that drifted, not the next night. The nightly run stays
  *     strict, so a refresh that never lands still goes red.
+ *
+ * POST-MERGE TOTALS (owner, 2026-10-04: "generate shared docs after merge, not in
+ * every PR"). The generators marked postMerge (vacuity report, burn-down, queue
+ * score, scoreboard, audit coverage/surface/rollup) count the WHOLE tree, so
+ * every landing that regenerated them touched the same lines and conflicted with
+ * every other landing. Now land.sh and the PR check pass --skip-post-merge:
+ * branches never regenerate them and are never blamed for them, and
+ * staleness-watch.yml regenerates main after each push and lands it as
+ * bot/refresh/inventories. Main's own check (push, nightly) stays strict.
  *
  * Run per push by test.yml and staleness-watch.yml (push trigger, so a
  * docs-only commit is covered too), nightly by staleness-watch.yml, and by
@@ -87,6 +97,7 @@ export const GENERATED = [
   },
   {
     id: "surface",
+    postMerge: true,
     script: "scripts/audit-surface.mjs",
     cmd: ["node", "scripts/audit-surface.mjs"],
     outputs: ["docs/audit/launch-2026-09/SURFACE.md"],
@@ -94,6 +105,7 @@ export const GENERATED = [
   },
   {
     id: "rollup",
+    postMerge: true,
     script: "scripts/audit-bus.mjs",
     cmd: ["node", "scripts/audit-bus.mjs", "rollup"],
     outputs: ["docs/audit/launch-2026-09/ROLLUP.md"],
@@ -101,6 +113,7 @@ export const GENERATED = [
   },
   {
     id: "coverage",
+    postMerge: true,
     script: "scripts/audit-coverage.mjs",
     cmd: ["node", "scripts/audit-coverage.mjs"],
     outputs: ["docs/audit/launch-2026-09/COVERAGE.md"],
@@ -122,6 +135,7 @@ export const GENERATED = [
   },
   {
     id: "vacuity-report",
+    postMerge: true,
     script: "scripts/vacuity/index.mjs",
     cmd: ["node", "scripts/vacuity/index.mjs", "--report", "--no-mutate"],
     // index.mjs exits 1 when the vacuity gate itself is red; the report is
@@ -133,6 +147,7 @@ export const GENERATED = [
   },
   {
     id: "burndown",
+    postMerge: true,
     script: "scripts/burndown-score.mjs",
     cmd: ["node", "scripts/burndown-score.mjs"],
     outputs: ["docs/GUARD-BURNDOWN.md"],
@@ -153,6 +168,7 @@ export const GENERATED = [
   },
   {
     id: "queue-count",
+    postMerge: true,
     script: "scripts/queue-count.mjs",
     cmd: ["node", "scripts/queue-count.mjs", "--write"],
     outputs: ["docs/OPEN.md"],
@@ -167,6 +183,7 @@ export const GENERATED = [
     // check-staleness.mjs's job; `node scripts/scoreboard.mjs --write` and
     // .github/workflows/scoreboard.yml re-measure it (Q58/Q59).
     id: "scoreboard",
+    postMerge: true,
     script: "scripts/scoreboard.mjs",
     cmd: ["node", "scripts/scoreboard.mjs"],
     outputs: ["docs/SCOREBOARD.md", "docs/OPEN.md"],
@@ -507,7 +524,7 @@ function checkAtCommit(sha) {
   git("worktree", "add", "--detach", "--quiet", tree, sha);
   try {
     if (existsSync(join(REPO, "node_modules"))) symlinkSync(join(REPO, "node_modules"), join(tree, "node_modules"));
-    const run = spawnSync("node", ["scripts/check-generated-current.mjs"], { cwd: tree, encoding: "utf8", maxBuffer: 1 << 26 });
+    const run = spawnSync("node", ["scripts/check-generated-current.mjs", "--skip-post-merge"], { cwd: tree, encoding: "utf8", maxBuffer: 1 << 26 });
     const parsed = parseCheckOutput(`${run.stdout}\n${run.stderr}`);
     if (run.status !== 0 && !parsed.stale.length && !parsed.other.length) {
       parsed.other.push(`checker at ${sha} exited ${run.status} without naming a problem: ${(run.stderr || run.stdout || "").trim().split("\n").slice(-3).join(" | ")}`);
@@ -565,12 +582,14 @@ function main() {
     for (const o of [...new Set(GENERATED.flatMap((g) => g.outputs))]) console.log(o);
     return;
   }
+  const skipPostMerge = argv.includes("--skip-post-merge");
+  const active = GENERATED.filter((g) => !(skipPostMerge && g.postMerge));
   if (argv.includes("--fix")) {
     // Regenerate everything IN PLACE (no restore), in dependency order, and say
     // what moved. Never stages anything: the committer reviews and commits.
     // Adding a test moves the burn-down score and the vacuity report, so this
     // is the one command to run before pushing a new guard.
-    for (const g of GENERATED) {
+    for (const g of active) {
       const before = g.outputs.map((o) => (existsSync(join(REPO, o)) ? readFileSync(join(REPO, o), "utf8") : ""));
       const run = spawnSync(g.cmd[0], g.cmd.slice(1), { cwd: REPO, encoding: "utf8", maxBuffer: 1 << 26 });
       const afterAll = g.outputs.map((o) => (existsSync(join(REPO, o)) ? readFileSync(join(REPO, o), "utf8") : ""));
@@ -596,7 +615,7 @@ function main() {
   const only = i >= 0 ? new Set(argv[i + 1].split(",")) : null;
 
   const problems = only ? [] : coverageProblems();
-  const selected = GENERATED.filter((g) => !only || only.has(g.id));
+  const selected = active.filter((g) => !only || only.has(g.id));
   for (const g of selected) {
     const p = checkGenerator(g);
     console.log(`${p.length ? "✗" : "✓"} ${g.id.padEnd(15)} ${g.outputs.join(", ")}`);
@@ -606,7 +625,7 @@ function main() {
     `generated-current: ${selected.length} CI generator(s) re-run, ${EVIDENCE.length} browser/prod evidence generator(s) registered, ` +
       `${Object.keys(TWO_WAY).length} two-way baseline(s), ${Object.keys(WRITES_NOT_COMMITTED).length} non-inventory writer(s) classified.`,
   );
-  if (!only && selected.length < 7) problems.push(`only ${selected.length} generators registered — the registry shrank; floor is 7`);
+  if (!only && GENERATED.length < 7) problems.push(`only ${GENERATED.length} generators registered — the registry shrank; floor is 7`);
   if (problems.length) {
     for (const p of problems) console.error(`::error::${p}`);
     // 3 = drift only (the caller decides whose it is); 1 = anything else.

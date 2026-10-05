@@ -103,6 +103,8 @@ const EPSILON = 0.005;
  * subject is the un-settled state.
  */
 const SETTLE_WINDOW_HOURS = 2;
+/** Q1222/Q1223: held money whose Helpr is clear and still unpaid this long after its last touch was dropped. */
+const HELD_REDRIVE_STUCK_HOURS = 24;
 const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
 
 /**
@@ -257,6 +259,10 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl!, serviceRoleKey!);
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
+    // The ONE place this monitor reads payout holds (Q764 stranded exemption,
+    // Q1241 held cancellation fees): one site, so the payoutPathsHonourHold
+    // registration that removes it removes every read.
+    const readPayoutHolds = (ids: ReadonlyArray<string | null | undefined>) => loadPayoutHolds(admin, ids);
 
     // Every check is declared up front so a clean run still reports which
     // invariants were actually evaluated — "0 findings" is only meaningful
@@ -277,6 +283,22 @@ serve(async (req) => {
         "gift_revoked_after_being_spent",
         "warning",
         "A redeemed gift_cards row is payment_status='refunded' — the donation was reversed AFTER it had funded a job, so the platform absorbed that value from its own balance. Not an error (we deliberately never claw back from the Helpr), but it is a real loss and should be reconciled against Stripe.",
+      ),
+      // Q1212: the refund paths return the gift AFTER the job's terminal flip;
+      // a restore that failed (or was refused) paged once and nothing
+      // re-reported it.
+      giftNotReturned: new Check(
+        "gift_not_returned_after_refund",
+        "critical",
+        `A redeemed gift card funded a job that is now cancelled/refunded (settled more than ${SETTLE_WINDOW_HOURS}h ago), and no replacement gift was minted for it (no gift_cards.restored_from_job_id), no payout to the Helpr is live, and no decided dispute is still waiting to execute: the poster is owed their gift back. Run restore_gift_card_for_job for the job (it is idempotent), or return it by hand.`,
+      ),
+      // Q1222/Q1223 (review): money a payout hold kept back is re-driven by
+      // process-scheduled-payouts. A row a person must settle, or one whose
+      // Helpr is clear but that is still not re-paid a day later, was dropped.
+      heldMoneyNotRedriven: new Check(
+        "held_money_not_redriven",
+        "critical",
+        `Money a payout hold kept back is not moving: a tip_hold_redrives row Stripe refused ('failed' re-pay or 'not_reversed'), or a held tip / won-chargeback re-pay (chargeback_clawbacks.held_repay_owed_at) whose Helpr is no longer on hold and that is still unpaid ${HELD_REDRIVE_STUCK_HOURS}h after the re-drive first tried it (an 'owed' tip: ${HELD_REDRIVE_STUCK_HOURS}h after it was paid) (no payout account, a short balance, or a dead sweep). Read the row's failure_reason; a refused row is paid by hand and marked repaid with that transfer id.`,
       ),
       cancellationFee: new Check(
         "cancellation_fee_mismatch",
@@ -395,7 +417,7 @@ serve(async (req) => {
       cancellingStranded: new Check(
         "cancelling_stranded",
         "critical",
-        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand.`,
+        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand. A job WITH a Helpr here was claimed by a full admin refund (admin_refund_general, Q1290) whose Stripe refund failed ambiguously: check Stripe for the refund, then set payment_status to 'refunded' (and status 'cancelled') if it went out, or back to what it was if not; never re-run the refund before checking.`,
       ),
       // ── The DB's settled state vs Stripe's (docs/OPEN.md Q50) ──────────
       // Every check above grades the DB against itself. A job the DB says is
@@ -430,6 +452,13 @@ serve(async (req) => {
         "stripe_payment_intent_not_found",
         "warning",
         "jobs.stripe_payment_intent_id names a PaymentIntent the configured Stripe key cannot see (resource_missing). Either the id is wrong or it belongs to the other key mode (test vs live) — so this job's money cannot be reconciled at all.",
+      ),
+      // Q1220: the Q891 quiet skip is right for a seed job; on a REAL job it
+      // hid a stuck payment.
+      stripeTestObjectOnRealJob: new Check(
+        "stripe_test_object_on_real_job",
+        "warning",
+        "A REAL (non-seed) job's stripe_payment_intent_id is a Stripe TEST-mode object, so the live key cannot read it and there is no real money behind it. Every money path skips the job, so it is stuck: decide by hand whether it was ever really paid, then fix its payment fields.",
       ),
       // ── The single-Helpr cancellation-fee ledger (LOW-2) ───────────────
       // void-cancelled-payments sends a cancelled job's fee to its Helpr as a
@@ -652,6 +681,8 @@ serve(async (req) => {
     // Hits are held until the end so a hit on an is_seed job outside the
     // default scan can be routed like every other seed hit (see Emit).
     const feeHits: Array<{ check: Check; hit: Record<string, unknown> }> = [];
+    /** Q1241: a held Helpr's waiting cancellation-fee rows (reported, never warned). */
+    const heldFeeRows: Array<{ job_id: string; fee_transfer_id: string; helper_id: string }> = [];
     const feeScan = await scanAll<FeeLedgerRow>("cancellation_fee_transfers", (countOpt) =>
       admin
         .from("cancellation_fee_transfers")
@@ -688,10 +719,30 @@ serve(async (req) => {
           hit: { job_id: job.id, helper_id: job.helper_id, cancellation_fee: money(job.cancellation_fee) },
         });
       }
+      // Q1241: void-cancelled-payments claims a fee row 'pending' BEFORE it
+      // checks the payout hold, so a held Helpr's fee waits there ON PURPOSE
+      // for the length of the hold (it is sent on the first run after the
+      // release). Reported in `cancellation_fee_held`, never warned. Only an
+      // UNSENT claim (pending, no transfer id) is exempt: a failed transfer, or
+      // money sent but never stamped, still reports for a held Helpr (review
+      // of Q1241). FAIL
+      // CLOSED: an unreadable hold exempts nothing and degrades the run.
+      const waitingFeeRows = feeRows.filter((r) => r.status === "pending" || r.status === "failed");
+      let feeHolds: ReadonlyMap<string, unknown> = new Map<string, unknown>();
+      if (waitingFeeRows.length) {
+        const helperIds = [...new Set(waitingFeeRows.map((r) => r.helper_id).filter((h): h is string => !!h))];
+        const feeHoldLookup = await readPayoutHolds(helperIds);
+        if (feeHoldLookup.ok) feeHolds = feeHoldLookup.holds;
+        else notes.push(`payout hold read failed, no held cancellation fee exempted: ${feeHoldLookup.message}`);
+      }
       for (const r of feeRows) {
         if (r.status !== "pending" && r.status !== "failed") continue;
         const since = latest(r.updated_at, r.created_at);
         if (since !== null && feeNowMs - since < SETTLE_WINDOW_MS) continue;
+        if (r.status === "pending" && !r.stripe_transfer_id && r.helper_id && feeHolds.has(r.helper_id)) {
+          heldFeeRows.push({ job_id: r.job_id, fee_transfer_id: r.id, helper_id: r.helper_id });
+          continue;
+        }
         feeHits.push({
           check: checks.feeLedgerUnpaid,
           hit: { job_id: r.job_id, fee_transfer_id: r.id, status: r.status, stripe_transfer_id: r.stripe_transfer_id, helper_amount: money(r.helper_amount) },
@@ -744,9 +795,79 @@ serve(async (req) => {
     // Helpr's due jobs in payout_pending ON PURPOSE: every payout path refuses
     // them until the hold is released. Those jobs are not stranded, so they are
     // reported in `payout_pending_held` (body only, no page) instead of here.
-    // A crew job is held when ANY roster member is held (its release waits for
-    // every member). FAIL CLOSED: if the holds or the roster cannot be read,
-    // nothing is exempted and the run is degraded, so it keeps paging.
+    // A crew job is held when every member still UNPAID is held (its release
+    // waits for every member; Q1240: one held member used to exempt the whole
+    // job). FAIL CLOSED: if the holds or the roster cannot be read, nothing is
+    // exempted and the run is degraded, so it keeps paging.
+    //
+    // ── Payout ledger ────────────────────────────────────────────────────────
+    // Read HERE, above the hold exemption below, because that exemption needs
+    // to know which crew members were already paid (Q1240).
+    type TransferRow = {
+      job_id: string;
+      helper_id?: string | null;
+      amount_cents: number | null;
+      platform_fee_cents: number | null;
+      status: string | null;
+      stripe_transfer_id: string | null;
+    };
+    const transferScan = await scanAll<TransferRow>("payout_transfers", (countOpt) =>
+      admin
+        .from("payout_transfers")
+        .select("job_id, helper_id, amount_cents, platform_fee_cents, status, stripe_transfer_id", countOpt)
+        .order("id", { ascending: true }),
+    );
+    if (transferScan.error) throw new Error(`payout_transfers read failed: ${transferScan.error.message}`);
+    // A TRUNCATED payout ledger does not hide findings here — it MANUFACTURES
+    // them. `paidJobIds` is built from whatever came back, so every `released`
+    // job whose transfer row fell outside a short read is reported as
+    // `released_without_payout_transfer`: "money supposedly left, with no
+    // record of where." That is a CRITICAL, and a critical that fires because a
+    // scan came up short is how an alarm gets muted. `transferFeeMismatch` has
+    // the same exposure for the same reason.
+    //
+    // So both ledger checks degrade to "skipped", exactly as the dispute
+    // cross-check below already does. Skipping is recorded in `notes`, which
+    // feeds the defect count and the degraded Slack alert, so the skip is
+    // louder than the false criticals would have been — and honest.
+    const transferCap = scanDefect("payout_transfers", transferScan);
+    const transfers = transferScan.rows;
+
+    // Only rows where money actually moved count as "this job was paid".
+    //
+    // This used to be `status !== 'reversed'`, an allow-everything-else test
+    // that was correct only because 'failed' rows never existed — nothing in
+    // the payout set ever wrote one. They do now (the claim protocol in
+    // _shared/payoutClaim.ts records every failed attempt), and so do 'pending'
+    // CLAIM rows written moments before a transfer that may never happen. Under
+    // the old test both would have counted as payment, and
+    // `released_without_payout_transfer` — a critical check — would have gone
+    // quiet on exactly the jobs it exists to catch.
+    // Money is out, and stayed out, iff the row is 'paid' — or 'pending' with a
+    // REAL Stripe transfer id, which is the brief window between
+    // transfers.create returning and the row being stamped paid.
+    //
+    // 'reversed' and 'reversal_cleared' both mean money was clawed back, so
+    // neither counts. A 'pending' row with a NULL id is a CLAIM taken moments
+    // before a transfer that may never happen, and 'failed'/'canceled' are
+    // attempts that moved nothing.
+    const isSettledTransfer = (t: { status: unknown; stripe_transfer_id?: unknown }) =>
+      String(t.status) === "paid" ||
+      (String(t.status) === "pending" && t.stripe_transfer_id != null);
+
+    // Each job's members whose payout settled. On a TRUNCATED ledger nobody
+    // counts as paid, so a crew is exempted only when every member is held:
+    // fail closed toward paging.
+    const paidMembersByJob = new Map<string, Set<string>>();
+    if (!transferCap) {
+      for (const t of transfers) {
+        if (!t.helper_id || !isSettledTransfer(t)) continue;
+        const set = paidMembersByJob.get(t.job_id) ?? new Set<string>();
+        set.add(t.helper_id);
+        paidMembersByJob.set(t.job_id, set);
+      }
+    }
+
     const pendingRows = jobRows.filter((j) => j.payment_status === "payout_pending");
     const heldPayoutJobs: Array<{ job_id: string; helper_ids: string[] }> = [];
     const heldJobIds = new Set<string>();
@@ -781,15 +902,21 @@ serve(async (req) => {
           }
         }
       }
-      const holdLookup = await loadPayoutHolds(admin, [...membersByJob.values()].flat());
+      const holdLookup = await readPayoutHolds([...membersByJob.values()].flat());
       if (!holdLookup.ok) {
         notes.push(`payout hold read failed, no held payout exempted: ${holdLookup.message}`);
       } else {
         for (const [jobId, members] of membersByJob) {
           const isCrew = crewPending.includes(jobId);
           if (isCrew && !rosterOk) continue;
+          // Exempt only when EVERY member still owed is held (Q1240): one held
+          // member must not hide an unheld one whose leg is stuck, and a job
+          // whose members were all paid but never flipped is not "held".
           const held = members.filter((m) => holdLookup.holds.has(m));
-          if (held.length) {
+          const paid = paidMembersByJob.get(jobId);
+          const unpaid = members.filter((m) => !paid?.has(m));
+          const unpaidHeld = unpaid.filter((m) => holdLookup.holds.has(m));
+          if (unpaidHeld.length > 0 && unpaidHeld.length === unpaid.length) {
             heldJobIds.add(jobId);
             heldPayoutJobs.push({ job_id: jobId, helper_ids: [...new Set(held)] });
           }
@@ -965,58 +1092,7 @@ serve(async (req) => {
       }
     }
 
-    // ── Payout ledger ────────────────────────────────────────────────────────
-    type TransferRow = {
-      job_id: string;
-      helper_id?: string | null;
-      amount_cents: number | null;
-      platform_fee_cents: number | null;
-      status: string | null;
-      stripe_transfer_id: string | null;
-    };
-    const transferScan = await scanAll<TransferRow>("payout_transfers", (countOpt) =>
-      admin
-        .from("payout_transfers")
-        .select("job_id, helper_id, amount_cents, platform_fee_cents, status, stripe_transfer_id", countOpt)
-        .order("id", { ascending: true }),
-    );
-    if (transferScan.error) throw new Error(`payout_transfers read failed: ${transferScan.error.message}`);
-    // A TRUNCATED payout ledger does not hide findings here — it MANUFACTURES
-    // them. `paidJobIds` is built from whatever came back, so every `released`
-    // job whose transfer row fell outside a short read is reported as
-    // `released_without_payout_transfer`: "money supposedly left, with no
-    // record of where." That is a CRITICAL, and a critical that fires because a
-    // scan came up short is how an alarm gets muted. `transferFeeMismatch` has
-    // the same exposure for the same reason.
-    //
-    // So both ledger checks degrade to "skipped", exactly as the dispute
-    // cross-check below already does. Skipping is recorded in `notes`, which
-    // feeds the defect count and the degraded Slack alert, so the skip is
-    // louder than the false criticals would have been — and honest.
-    const transferCap = scanDefect("payout_transfers", transferScan);
-    const transfers = transferScan.rows;
-
-    // Only rows where money actually moved count as "this job was paid".
-    //
-    // This used to be `status !== 'reversed'`, an allow-everything-else test
-    // that was correct only because 'failed' rows never existed — nothing in
-    // the payout set ever wrote one. They do now (the claim protocol in
-    // _shared/payoutClaim.ts records every failed attempt), and so do 'pending'
-    // CLAIM rows written moments before a transfer that may never happen. Under
-    // the old test both would have counted as payment, and
-    // `released_without_payout_transfer` — a critical check — would have gone
-    // quiet on exactly the jobs it exists to catch.
-    // Money is out, and stayed out, iff the row is 'paid' — or 'pending' with a
-    // REAL Stripe transfer id, which is the brief window between
-    // transfers.create returning and the row being stamped paid.
-    //
-    // 'reversed' and 'reversal_cleared' both mean money was clawed back, so
-    // neither counts. A 'pending' row with a NULL id is a CLAIM taken moments
-    // before a transfer that may never happen, and 'failed'/'canceled' are
-    // attempts that moved nothing.
-    const isSettledTransfer = (t: { status: unknown; stripe_transfer_id?: unknown }) =>
-      String(t.status) === "paid" ||
-      (String(t.status) === "pending" && t.stripe_transfer_id != null);
+    // ── Payout ledger: read above, before the payout hold exemption (Q1240) ──
     if (transferCap) {
       notes.push(`payout-ledger checks skipped: ${transferCap}`);
     } else {
@@ -1191,24 +1267,35 @@ serve(async (req) => {
     // 'refunded' too. A node still reading 'paid' under a 'refunded' ancestor is
     // spendable money conjured out of a reversal.
     {
-      const { data: giftRows, error: giftErr } = await admin
-        .from("gift_cards")
-        .select("id, parent_credit_id, payment_status, status, amount, job_id");
-
-      // Never swallow this. A dropped error here reads as "no gift defects",
-      // which is exactly the false all-clear this function exists to prevent.
-      if (giftErr) {
-        throw new Error(`money-reconciliation: gift_cards read failed: ${giftErr.message}`);
-      }
-
-      const gifts = (giftRows ?? []) as Array<{
+      type GiftRow = {
         id: string;
         parent_credit_id: string | null;
         payment_status: string | null;
         status: string | null;
         amount: number | null;
         job_id: string | null;
-      }>;
+        restored_from_job_id?: string | null;
+      };
+      // Paged with a verified total (review of Q1212): a single read is
+      // silently capped at db-max-rows, and a short gift ledger MANUFACTURES a
+      // critical gift_not_returned_after_refund (the replacement row fell off
+      // the page), as a short payout ledger does above.
+      const giftScan = await scanAll<GiftRow>("gift_cards", (countOpt) =>
+        admin
+          .from("gift_cards")
+          .select("id, parent_credit_id, payment_status, status, amount, job_id, restored_from_job_id", countOpt)
+          .order("id", { ascending: true }),
+      );
+
+      // Never swallow this. A dropped error here reads as "no gift defects",
+      // which is exactly the false all-clear this function exists to prevent.
+      if (giftScan.error) {
+        throw new Error(`money-reconciliation: gift_cards read failed: ${giftScan.error.message}`);
+      }
+      const giftCap = scanDefect("gift_cards", giftScan);
+      if (giftCap) notes.push(`gift-card checks skipped: ${giftCap}`);
+
+      const gifts: GiftRow[] = giftCap ? [] : giftScan.rows;
       const byId = new Map(gifts.map((g) => [g.id, g]));
 
       /** Walk to the root, bounded, so a cyclic parent chain cannot hang the run. */
@@ -1238,6 +1325,120 @@ serve(async (req) => {
             job_id: g.job_id,
             amount: money(g.amount ?? 0),
           });
+        }
+      }
+
+      // ── Q1212: a gift still owed back after its job was refunded ──────────
+      // The refund paths (create-payment's admin refunds, charge.refunded,
+      // cancel_escrow) return the gift AFTER the job's terminal flip. A restore
+      // that failed, or was refused because a payout had moved, paged once;
+      // this re-reports it every run until it is returned. Exempt: a
+      // replacement already minted for the job (restored_from_job_id), a live
+      // payout (the gift funded work that was paid), and a decided dispute
+      // whose split has not executed (the split returns the gift's share).
+      // Both exemptions need a complete read: a truncated ledger or an
+      // unreadable dispute skips the check (degraded), never guesses.
+      const nowGift = Date.now();
+      const jobById = new Map(jobRows.map((j) => [j.id as string, j]));
+      const owedCandidates = gifts.filter((g) => {
+        if (g.status !== "redeemed" || !g.job_id) return false;
+        const job = jobById.get(g.job_id);
+        if (!job || job.status !== "cancelled") return false;
+        if (job.payment_status !== "refunded" && job.payment_status !== "cancelled") return false;
+        const settledAt = latest(job.updated_at, job.cancelled_at);
+        return settledAt === null || nowGift - settledAt >= SETTLE_WINDOW_MS;
+      });
+      if (owedCandidates.length) {
+        const candidateJobIds = [...new Set(owedCandidates.map((g) => g.job_id as string))];
+        const splitScan = await scanAllIn<{ job_id: string; status: string | null; execution_status: string | null }>(
+          "disputes",
+          candidateJobIds,
+          (chunk, countOpt) =>
+            admin
+              .from("disputes")
+              .select("job_id, status, execution_status", countOpt)
+              .order("id", { ascending: true })
+              .eq("status", "decided")
+              .in("job_id", chunk),
+        );
+        const splitCap = splitScan.error
+          ? `disputes read failed (${splitScan.error.message})`
+          : scanDefect("disputes", splitScan);
+        if (transferCap || splitCap) {
+          notes.push(`gift-not-returned check skipped: ${transferCap ?? splitCap}`);
+        } else {
+          const restoredJobIds = new Set(gifts.map((g) => g.restored_from_job_id).filter((x): x is string => !!x));
+          const giftPaidJobIds = new Set(transfers.filter(isSettledTransfer).map((t) => t.job_id));
+          const undecidedSplitJobIds = new Set(
+            splitScan.rows.filter((d) => d.status === "decided" && d.execution_status !== "executed").map((d) => d.job_id),
+          );
+          for (const g of owedCandidates) {
+            if (!g.job_id) continue;
+            if (restoredJobIds.has(g.job_id)) continue;
+            if (giftPaidJobIds.has(g.job_id)) continue;
+            if (undecidedSplitJobIds.has(g.job_id)) continue;
+            checks.giftNotReturned.add({
+              gift_card_id: g.id,
+              job_id: g.job_id,
+              amount: money(g.amount ?? 0),
+            });
+          }
+        }
+      }
+    }
+
+    // ── Held money re-drive (Q1222/Q1223) ────────────────────────────────────
+    // Before 20261004220059 is deployed the table / column does not exist:
+    // that is a note, never a crash.
+    {
+      const missing = (code?: string) => code === "42P01" || code === "PGRST205" || code === "42703";
+      const stuckBefore = Date.now() - HELD_REDRIVE_STUCK_HOURS * 3_600_000;
+      const tipRes = await admin
+        .from("tip_hold_redrives")
+        .select("tip_id, helper_id, status, amount_cents, failure_reason, created_at, first_repay_attempt_at")
+        .in("status", ["owed", "reversed", "repaying", "failed", "not_reversed"])
+        .limit(1000);
+      const clawRes = await admin
+        .from("chargeback_clawbacks")
+        .select("id, dispute_id, helper_id, status, reversed_cents, failure_reason, held_repay_owed_at, held_repay_first_attempt_at")
+        .not("held_repay_owed_at", "is", null)
+        .limit(1000);
+      for (const [name, res] of [["tip_hold_redrives", tipRes], ["chargeback_clawbacks.held_repay_owed_at", clawRes]] as const) {
+        if (res.error && !missing((res.error as { code?: string }).code)) {
+          throw new Error(`money-reconciliation: ${name} read failed: ${res.error.message}`);
+        }
+        if (res.error) notes.push(`held-money re-drive check skipped for ${name}: not deployed yet`);
+      }
+      type TipRow = { tip_id: string; helper_id: string; status: string; amount_cents: number; failure_reason: string | null; created_at: string | null; first_repay_attempt_at: string | null };
+      type ClawRow = { id: string; dispute_id: string; helper_id: string | null; status: string; reversed_cents: number; failure_reason: string | null; held_repay_first_attempt_at: string | null };
+      const tipRows = (tipRes.error ? [] : tipRes.data ?? []) as TipRow[];
+      const clawRows = (clawRes.error ? [] : clawRes.data ?? []) as ClawRow[];
+      if (tipRows.length || clawRows.length) {
+        const holdRead = await readPayoutHolds([...tipRows.map((r) => r.helper_id), ...clawRows.map((r) => r.helper_id)]);
+        if (!holdRead.ok) {
+          notes.push(`held-money re-drive check skipped: payout hold read failed (${holdRead.message})`);
+        } else {
+          // Measured from a stamp no hourly attempt moves (second review of
+          // Q1222/Q1223: updated_at is touched every run, so it never aged):
+          // an 'owed' tip from created_at (it settles in minutes), a re-pay
+          // from the re-drive's FIRST attempt with the Helpr clear. No stamp
+          // yet means no attempt yet: not stuck.
+          const stale = (at: string | null) => { const t = ts(at); return t !== null && t < stuckBefore; };
+          for (const r of tipRows) {
+            const refused = r.status === "failed" || r.status === "not_reversed";
+            const stuck = !refused && (r.status === "owed"
+              ? stale(r.created_at)
+              : !holdRead.holds.has(r.helper_id) && stale(r.first_repay_attempt_at));
+            if (refused || stuck) {
+              checks.heldMoneyNotRedriven.add({ tip_id: r.tip_id, status: r.status, amount: money(r.amount_cents / 100), reason: r.failure_reason });
+            }
+          }
+          for (const r of clawRows) {
+            if (r.status === "repaid") continue;
+            if (r.helper_id && holdRead.holds.has(r.helper_id)) continue;
+            if (!stale(r.held_repay_first_attempt_at)) continue;
+            checks.heldMoneyNotRedriven.add({ clawback_id: r.id, dispute_id: r.dispute_id, status: r.status, amount: money(r.reversed_cents / 100), reason: r.failure_reason });
+          }
         }
       }
     }
@@ -1347,6 +1548,8 @@ serve(async (req) => {
             // 404 resource_missing too, and is not a missing PaymentIntent.
             if (isTestObjectUnderLiveKey(e)) {
               logTestObjectUnderLiveKey("money-reconciliation", { job_id: job.id, object: "payment_intent", id: piId });
+              // Q1220: quiet for a seed job only; a real job's hit is a finding.
+              if (job.is_seed !== true) checks.stripeTestObjectOnRealJob.add({ job_id: job.id, payment_intent: piId });
               return;
             }
             if (err?.statusCode === 404 || err?.code === "resource_missing") {
@@ -1733,6 +1936,8 @@ serve(async (req) => {
       // Q764: payout_pending jobs an admin's payout hold is keeping there on
       // purpose. Excluded from payout_pending_stranded; reported, never paged.
       payout_pending_held: heldPayoutJobs,
+      // Q1241: a held Helpr's cancellation fee waits on purpose; reported, never warned.
+      cancellation_fee_held: heldFeeRows,
       // Hits on is_seed jobs (only possible with ?include_seed=1). Reported,
       // sent to the digest, never paged and never a defect; see above.
       seed_findings: seedFindings,

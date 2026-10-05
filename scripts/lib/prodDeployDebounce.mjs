@@ -2,7 +2,9 @@
  * Q271: when does .github/workflows/prod-deploy.yml create a production
  * deployment? One pure function, pinned by src/test/prodDeployDebounce.test.ts.
  *
- * Why: Vercel Hobby allows 100 deployments a day. On 2026-09-23 pushes to main
+ * Why: Vercel Hobby allowed 100 deployments a day (the team was on Hobby until
+ * 2026-10-03; Pro allows 6000, vercel.com/docs/limits read 2026-10-04, Q1152;
+ * batching stays: the owner has not said otherwise). On 2026-09-23 pushes to main
  * made 100 between 03:42Z and 17:20Z (87 READY production), because every
  * landing touches src/ and vercel.json's ignoreCommand only skips pushes that
  * change no deploy path. At the cap Vercel stops deploying and prod goes stale

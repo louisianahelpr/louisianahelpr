@@ -27,7 +27,8 @@
  * that wrote this (egress-blocked), so each `limitSource` says where the
  * number comes from and that it was NOT re-read on 2026-09-23. Every limit can
  * be overridden per run by its `env` variable without a code change; the plan
- * facts the owner gave on 2026-09-23 are: Supabase PRO, Vercel FREE (Hobby),
+ * facts the owner gave on 2026-09-23 are: Supabase PRO, Vercel FREE (Hobby;
+ * Vercel moved to PRO by 2026-10-03, owner; Q1152),
  * Resend and Sentry "have plan limits" (plan not named -> free tier assumed,
  * and said so in the report).
  */
@@ -39,7 +40,8 @@ const GB = 1024 ** 3;
 
 /**
  * THE plan limits, one definition (docs/OPEN.md Q221). Plans measured
- * 2026-09-23: Supabase PRO, Vercel FREE (Hobby). QUOTAS below,
+ * 2026-09-23: Supabase PRO, Vercel FREE (Hobby); Vercel PRO since 2026-10-03
+ * (owner; Q1152, its limits re-read from vercel.com/docs on 2026-10-04). QUOTAS below,
  * scripts/supabase-usage-check.mjs and scripts/lib/vercelUsage.mjs all read
  * their numbers from here; src/test/planLimits.test.ts holds them to it both
  * ways (every consumer reads a limit from here, every limit here has a
@@ -48,7 +50,7 @@ const GB = 1024 ** 3;
  * Numbers were NOT re-read from the vendor pages on 2026-09-23 (egress-blocked
  * from the cloud session), which each `source` says.
  */
-export const PLANS = { supabase: "Pro", vercel: "Hobby", resend: "Pro", sentry: "Developer (assumed)" };
+export const PLANS = { supabase: "Pro", vercel: "Pro", resend: "Pro", sentry: "Developer (assumed)" };
 
 export const PLAN_LIMITS = {
   supabase_db_bytes: { value: 8 * GB, unit: "bytes", source: "Supabase Pro: 8 GB disk per project included (pricing page; not re-read 2026-09-23)." },
@@ -56,11 +58,11 @@ export const PLAN_LIMITS = {
   supabase_edge_invocations_month: { value: 2_000_000, unit: "invocations/month", source: "Supabase Pro: 2,000,000 edge function invocations/month included (pricing page; not re-read 2026-09-23)." },
   supabase_egress_bytes_month: { value: 250 * GB, unit: "bytes/month", source: "Supabase Pro: 250 GB egress/month included (pricing page; not re-read 2026-09-23)." },
   supabase_realtime_messages_month: { value: 5_000_000, unit: "messages/month", source: "Supabase Pro: 5,000,000 Realtime messages/month included (pricing page; not re-read 2026-09-23)." },
-  vercel_deploys_per_day: { value: 100, unit: "deployments/day", source: "Vercel Hobby: 100 deployments created per day (limits page; not re-read 2026-09-23). Hit for real on 2026-09-13 (\"Deployment rate limited — retry in 24 hours\")." },
-  vercel_edge_requests_month: { value: 1_000_000, unit: "requests/month", source: "Vercel Hobby: 1,000,000 Edge Requests/month included (limits page; not re-read 2026-09-23)." },
-  vercel_fast_data_transfer_gb_month: { value: 100, unit: "GB/month", source: "Vercel Hobby: 100 GB Fast Data Transfer/month included (the Hobby tables read \"100 GB\", decimal; not re-read 2026-09-23)." },
-  vercel_function_invocations_month: { value: 1_000_000, unit: "invocations/month", source: "Vercel Hobby: 1,000,000 function invocations/month included (the Vercel Functions pricing table, \"1 million included\" under Hobby, read 2026-09-14/15; not re-read 2026-09-23)." },
-  vercel_build_minutes_month: { value: null, unit: "CPU minutes/month", source: "Vercel Hobby: no build-minute allowance number sourced in this repo; measured and logged, never graded." },
+  vercel_deploys_per_day: { value: 6000, unit: "deployments/day", source: "Vercel Pro: 6000 deployments created per day (vercel.com/docs/limits, page last_updated 2026-09-16, read 2026-10-04; Hobby was 100, hit for real on 2026-09-13)." },
+  vercel_edge_requests_month: { value: 1_000_000, unit: "requests/month", source: "Vercel Pro: Flat Rate CDN's lowest tier is included, \"a capacity of 1 million CDN requests and 1 TB of data transfer each month\" (vercel.com/docs/plans/pro-plan, page last_updated 2026-09-15, read 2026-10-04). Past it Pro bills on demand from the $20 monthly credit, it does not pause." },
+  vercel_fast_data_transfer_gb_month: { value: 1000, unit: "GB/month", source: "Vercel Pro: 1 TB data transfer/month in the included Flat Rate CDN tier (vercel.com/docs/plans/pro-plan, page last_updated 2026-09-15, read 2026-10-04; decimal, 1000 GB). Hobby was 100 GB." },
+  vercel_function_invocations_month: { value: null, unit: "invocations/month", source: "Vercel Pro: no fixed invocation allowance; usage draws on the $20 monthly credit, then on demand (vercel.com/docs/plans/pro-plan, read 2026-10-04). Measured and logged, never graded. Hobby was 1,000,000." },
+  vercel_build_minutes_month: { value: null, unit: "CPU minutes/month", source: "Vercel Pro: no build-minute allowance (builds draw on the monthly credit; vercel.com/docs/plans/pro-plan, read 2026-10-04); measured and logged, never graded." },
   resend_emails_month: { value: 50_000, unit: "emails/month", source: "Resend Pro: 50,000 emails/month on the lower Pro tier, $20/mo (resend.com/pricing, read 2026-09-30; the owner confirmed Pro 2026-09-30, the 50k vs 100k tier is not confirmed, so the lower figure is graded). Pro has \"No daily email limit\", so there is no daily row." },
   sentry_replays_month: { value: 50, unit: "replays/month", source: "Sentry Developer plan: 50 session replays/month (ASSUMED, not re-read 2026-09-23). Measured 2026-09-23: 63 replays accepted in the trailing 30 days, none after 2026-09-14, and the helpr-4m banner read \"Replay Quota Exceeded\" (docs/OPEN.md Q275)." },
   sentry_errors_month: { value: 5_000, unit: "errors/month", source: "Sentry Developer plan: 5,000 errors/month (ASSUMED: the owner said only 'Sentry has plan limits')." },
@@ -148,7 +150,7 @@ export const QUOTAS = [
     window: "trailing 24h",
     read: "vercel",
     env: "LH_QUOTA_VERCEL_DEPLOYS_PER_DAY",
-    limitSource: "Vercel Hobby: 100 deployments created per day (limits page; not re-read 2026-09-23). Hit for real on 2026-09-13 (\"Deployment rate limited — retry in 24 hours\", scripts/check-deploy-budget.mjs). Measured: Vercel deployments API, every deployment of the team (all projects, all targets, API/CLI/Git alike) created in the last 24h.",
+    limitSource: "Vercel Pro: 6000 deployments created per day (vercel.com/docs/limits, last_updated 2026-09-16, read 2026-10-04; Hobby's 100 was hit for real on 2026-09-13, scripts/check-deploy-budget.mjs). Measured: Vercel deployments API, every deployment of the team (all projects, all targets, API/CLI/Git alike) created in the last 24h.",
   },
   {
     id: "resend.sends_month",

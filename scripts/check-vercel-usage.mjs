@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Vercel usage alert — how close is the team to a plan limit? (Hobby, Q221)
+ * Vercel usage alert — how close is the team to a plan limit? (Pro since 2026-10-03, Q1152; Q221)
  *
  * docs/OPEN.md 2026-09-14 ("Vercel usage alert", owner: "finish up"). Reads
  * the last 7 days of GET /v1/billing/charges (FOCUS v1.3 JSONL) for team
@@ -14,9 +14,9 @@
  * src/test/checkVercelUsage.test.ts; this file is only env/IO plumbing.
  *
  * No VERCEL_TOKEN repo secret -> prints ONE skip line and exits 0 (green).
- * The Hobby "Plan not found" 404 (docs/OPEN.md Q720 — Hobby has no
- * billing-cycle usage export, checked 2026-09-27, no alternative endpoint
- * exists) -> ::warning and exits 0, with the report and summary saying
+ * The "Plan not found" 404 (docs/OPEN.md Q720 on Hobby: no billing-cycle
+ * usage export, checked 2026-09-27, no alternative endpoint exists; still 404
+ * on Pro, measured 2026-10-04, Q1152) -> ::warning and exits 0, with the report and summary saying
  * UNMEASURED, never "ok"/"under quota" — a loud, non-failing gap, not a
  * green pretending to have measured something.
  * Any OTHER 401/404/5xx or a network failure -> ::error and exit 1 (red),

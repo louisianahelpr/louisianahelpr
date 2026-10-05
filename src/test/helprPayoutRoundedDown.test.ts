@@ -64,8 +64,10 @@ const NOT_A_JOB_PAYOUT: Record<string, string> = {
     "moves the instant-payout fee from the Helpr's own connected balance to the platform",
   "supabase/functions/cash-out-credits/index.ts":
     "cashes out referral/credit balance the user already holds, at its exact value",
-  "supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts":
+  "supabase/functions/_shared/chargebackClawback.ts":
     "re-pays exactly the cents a clawback reversed (row.reversed_cents); the original transfer was already rounded",
+  "supabase/functions/_shared/heldTipRepay.ts":
+    "re-pays exactly the tip cents a payout hold reversed (Q1222); a tip goes to the Helpr in full, never rounded",
 };
 
 /** EXACT per-file count of `transfers.create(` (comments blanked). */
@@ -76,7 +78,8 @@ const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
   "supabase/functions/instant-payout/index.ts": 1,
   "supabase/functions/process-scheduled-payouts/index.ts": 1,
   "supabase/functions/release-payout/index.ts": 1,
-  "supabase/functions/stripe-webhook/handlers/_chargebackClawback.ts": 1,
+  "supabase/functions/_shared/chargebackClawback.ts": 1,
+  "supabase/functions/_shared/heldTipRepay.ts": 1,
   "supabase/functions/void-cancelled-payments/index.ts": 2,
 };
 
@@ -110,7 +113,7 @@ describe("Helpr payouts are whole dollars, rounded down (Q236)", () => {
       if (n > 0) found[f] = n;
     }
     expect(found).toEqual(EXPECTED_TRANSFER_CALLS);
-    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(9);
+    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(10);
     // Every file is classified exactly once.
     for (const f of Object.keys(found)) {
       const classes = [f in HELPR_PAYOUT_SITES, f in NOT_A_JOB_PAYOUT].filter(Boolean).length;

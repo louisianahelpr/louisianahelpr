@@ -35,8 +35,9 @@ name: Supabase usage
 # NEITHER source carries — see the report footer.
 #
 # NO VERCEL STEP, on purpose (docs/OPEN.md Q720, owner 2026-09-27): Vercel
-# usage is not measurable on the Hobby plan. GET /v1/billing/charges answers
-# 404 "Plan not found." for this team in every run since 09-19, and Vercel's
+# usage is not measurable for this team. GET /v1/billing/charges answers
+# 404 "Plan not found." for this team in every run since 09-19 (Hobby) and
+# still on Pro (measured 2026-10-04, Q1152), and Vercel's
 # REST API has no other usage endpoint. The owner accepted never measuring it
 # rather than moving to Pro, so the step was removed instead of reporting
 # UNMEASURED every week. src/test/supabaseUsageNoVercelStep.test.ts keeps it out.

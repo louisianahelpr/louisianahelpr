@@ -17,7 +17,7 @@ import {
   holdReasons,
 } from "./_chargebackHold.ts";
 import { giftDonationAlreadyReversed, revokeGiftCardForRefund } from "./_giftCardRefund.ts";
-import { clawBackReleasedPayout, HOLD_NOTICE_TITLE, notifyPayee, type ClawbackResult } from "./_chargebackClawback.ts";
+import { clawBackReleasedPayout, HOLD_NOTICE_TITLE, notifyPayee, type ClawbackResult } from "../../_shared/chargebackClawback.ts";
 
 export async function handleChargeDisputeCreated(
   event: Stripe.Event,

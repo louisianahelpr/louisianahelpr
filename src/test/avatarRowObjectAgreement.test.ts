@@ -434,6 +434,16 @@ const DYNAMIC_REMOVERS: Record<string, { why: string; check?: (src: Source) => s
     why: "job media only (job-photos / proof-photos / application-attachments by job id); never the avatars bucket",
     check: (src) => (/["']avatars["']/.test(src.text) ? "jobMedia now names the avatars bucket" : null),
   },
+  "supabase/functions/_shared/preVerificationWipeSweep.ts": {
+    why:
+      "Q447: removes the objects of a pre-verification takeover wipe, which cleared profiles.avatar_url in the SAME database " +
+      "transaction that recorded them (wipe_pre_verification_account), and only those still unchanged since the wipe " +
+      "(pre_verification_wipe_objects): a new avatar the real owner uploads under the same key is never removed",
+    check: (src) =>
+      /\.rpc\(\s*["']pre_verification_wipe_objects["']/.test(src.text)
+        ? null
+        : "preVerificationWipeSweep no longer takes its object list from pre_verification_wipe_objects (the unchanged-since-the-wipe filter)",
+  },
   "src/lib/storageCleanup.ts": {
     why: "chat attachments and job photos of a row being deleted; never the avatars bucket",
     check: (src) => (/["']avatars["']/.test(src.text) ? "storageCleanup now names the avatars bucket" : null),

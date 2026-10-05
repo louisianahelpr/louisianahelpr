@@ -106,7 +106,15 @@ export function remoteInventory(git, mainIndex, gh = defaultGh) {
     try { git(["fetch", "-q", "origin", `+refs/pull/${pr.number}/head:${ref}`]); } catch { /* deleted fork head: checked below */ }
     let r;
     try { r = unlandedContent(git, ref, MAIN_REF(), mainIndex); } catch { r = { stranded: true, missing: -1, removedStill: 0, files: [] }; }
-    if (r.stranded) out.push({ kind: "closed-unmerged-pr", id: `pr:${pr.number}`, sha: pr.headRefOid, missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file), note: pr.title });
+    if (!r.stranded) continue;
+    // A PR the lead closed because its work reached main another way carries
+    // a "Landed ..." note (owner rule 2026-10-04: close landed cloud/auto-land
+    // copies with a 'landed in' comment). Its leftover lines are superseded
+    // wording, not lost work: accepted, so closed PRs stop piling up here.
+    let comments = [];
+    try { comments = gh(["pr", "view", String(pr.number), "--json", "comments"]).comments ?? []; } catch { /* unreadable: judged as stranded */ }
+    if (landedElsewhere(comments.map((c) => c.body ?? ""))) continue;
+    out.push({ kind: "closed-unmerged-pr", id: `pr:${pr.number}`, sha: pr.headRefOid, missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file), note: pr.title });
   }
   const now = Date.now();
   for (const pr of open) {
@@ -116,6 +124,11 @@ export function remoteInventory(git, mainIndex, gh = defaultGh) {
     }
   }
   return out;
+}
+
+/** A closed PR whose comments say its work landed on main another way. */
+export function landedElsewhere(bodies) {
+  return bodies.some((b) => /^\s*(Landed (on main |in |as |through )|Same work as .*already on main|Reopened automatically by branch-prune.*work is on main)/is.test(b));
 }
 
 /** Which remote items are not accepted, and which acceptances no longer match anything (exact both ways). */

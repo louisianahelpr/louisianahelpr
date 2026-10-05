@@ -1,0 +1,23 @@
+-- Q1009 (docs/OPEN.md): an application is written only by a SECURITY DEFINER
+-- RPC (apply_to_job, claim_series_dates, complete_direct_offer_accept), never
+-- by a client's own INSERT.
+--
+-- Read live 2026-10-04 (pg_class.relacl): anon and authenticated held
+-- table-level INSERT on public.applications, and the policy "Helpers can
+-- create applications" admits a Helpr's own pending row on a funded job. So a
+-- direct POST (the app's old PGRST202 fallback in useApplyFlow.ts, or any
+-- hostile client) skipped what only apply_to_job does:
+--   * the per-minute and per-hour rungs of the cap ladder (the only trigger,
+--     enforce_application_limit, reads application_cap('day') alone);
+--   * pg_advisory_xact_lock('apply_rate:' || uid), the serialization that
+--     lets concurrent counts see each other (two raw INSERTs both pass the
+--     day cap at cap - 1);
+--   * the job row's FOR SHARE read, which composes with the accept's lock.
+-- The client fallback is removed in the same commit; this revoke closes the
+-- door for every client, not just ours. The three writers are SECURITY
+-- DEFINER owned by postgres, so they do not use the caller's grant; the
+-- service role (charge-recurring-visits' upsert) keeps its own.
+--
+-- Pinned by scripts/ci/client-insert-columns.sql (applications INSERT: no
+-- column for anon or authenticated), live after every db-deploy and on db-smoke.
+REVOKE INSERT ON public.applications FROM PUBLIC, anon, authenticated;

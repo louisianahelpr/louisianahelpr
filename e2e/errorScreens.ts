@@ -130,6 +130,17 @@ export function detectStuckOrBlank(): string | null {
   if (document.getElementById("boot-loader")) return "boot loader still showing";
   const busy = document.querySelectorAll('[aria-busy="true"]').length;
   const pulses = [...document.querySelectorAll('[class*="animate-pulse"]')].filter((e) => !e.closest("[aria-hidden='true']")).length;
-  if (busy || pulses) return `still loading (${busy} aria-busy, ${pulses} skeleton pulses)`;
+  // Q1002: the shared <Skeleton> bone (data-skeleton) shimmers instead of
+  // pulsing and usually sits in an aria-hidden wrapper, so a page frozen on
+  // it passed. Counted when rendered at all (no hidden/display:none ancestor);
+  // aria-hidden does not exempt it: a skeleton is always decorative.
+  const shown = (e: Element) => {
+    for (let n: Element | null = e; n; n = n.parentElement) {
+      if (n.hasAttribute("hidden") || getComputedStyle(n).display === "none") return false;
+    }
+    return true;
+  };
+  const bones = [...document.querySelectorAll("[data-skeleton]")].filter(shown).length;
+  if (busy || pulses || bones) return `still loading (${busy} aria-busy, ${pulses} skeleton pulses, ${bones} skeleton bones)`;
   return null;
 }

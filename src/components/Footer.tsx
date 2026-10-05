@@ -5,6 +5,7 @@ import HelprMark from "@/components/HelprMark";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { browseDestinationFor } from "@/lib/browseDestination";
 import { prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
+import { APP_STORE_URL, APP_STORE_LISTING_LIVE } from "@/lib/appStore";
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
@@ -235,19 +236,23 @@ const Footer = () => {
               the circles `rounded-full` implies. Height was never the problem —
               width was being taken away. */}
           <div className="flex items-center gap-2.5">
-            {/* Apple (App Store) and Instagram are not live yet — inert
-                chips with a "Coming soon" label rather than a link, so
-                nothing implies a destination that doesn't exist. Facebook
-                is the only real, clickable account. */}
-            <button
-              type="button"
-              disabled
-              className="group inline-flex h-11 w-11 shrink-0 cursor-not-allowed items-center justify-center rounded-full bg-[hsl(var(--olivewood))]/40 text-[hsl(var(--parchment))] shadow-sm"
-              aria-label="Apple App Store — coming soon"
-              title="Coming soon"
-            >
-              <Apple className="h-[18px] w-[18px]" strokeWidth={1.5} fill="currentColor" />
-            </button>
+            {/* The App Store chip is HIDDEN until the listing is live (owner,
+                2026-10-04, Q1124: it 404s); it returns as a real link with the
+                real ID from the launch checklist (Q1289). Instagram is not live
+                yet either: an inert "Coming soon" chip. Facebook is the only
+                real, clickable account. */}
+            {APP_STORE_LISTING_LIVE && (
+              <a
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"
+                aria-label="Download Helpr on the App Store (opens in a new tab)"
+                title="Download on the App Store"
+              >
+                <Apple className="h-[18px] w-[18px]" strokeWidth={1.5} fill="currentColor" />
+              </a>
+            )}
             <a
               href={FACEBOOK_URL}
               target="_blank"

@@ -20,6 +20,8 @@ import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
 import { checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
+import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
 
 
 serve(async (req) => {
@@ -521,6 +523,8 @@ serve(async (req) => {
       isPifFunded: boolean;
       giftAppliedCents: number;
       capturedCents: number;
+      /** The main loop found this gift job's card leg in Stripe TEST mode (Q891). */
+      cardLegTestMode: boolean;
       paidCents: number;
     }): Promise<{ ok: boolean; refundId?: string | null; refundCents?: number; manual?: boolean }> => {
       const { job } = a;
@@ -684,6 +688,12 @@ serve(async (req) => {
         return { ok: true, refundId: row.stripe_refund_id, refundCents: priorCents + giftRestoredCents };
       }
 
+      // A card leg the main loop found in Stripe TEST mode (Q891, read there
+      // since Q1210) has no real money behind it: never refund against it,
+      // never page a person to return it by hand, never release. The skip was
+      // already logged there, once.
+      if (a.isPifFunded && a.cardLegTestMode) return { ok: false };
+
       if (!a.paymentIntentId) {
         // No card charge to refund the rest to; a person decides. On a crew
         // decision the dispute is left open ('crew_fanout') so the admin queue
@@ -710,24 +720,10 @@ serve(async (req) => {
       // (a plain transfer, no source_transaction), so its card difference
       // holds what the escrow (charge + gift) has left after the transfers
       // and the gift restore, and never more than the charge itself.
-      // A gift-funded job skips the PI read in the main loop (capturedCents is
-      // 0 there), so a partial gift with a card difference reads its charge
-      // here, or its card share could never refund automatically.
-      let capturedCents = a.capturedCents;
-      if (a.isPifFunded && capturedCents === 0) {
-        try {
-          const pi = await stripe.paymentIntents.retrieve(a.paymentIntentId);
-          const captured = resolveCapturedEscrow(pi);
-          capturedCents = pi.status === "succeeded" && captured.kind === "captured" ? captured.cents : 0;
-        } catch (e) {
-          if (isTestObjectUnderLiveKey(e)) {
-            logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: a.paymentIntentId });
-            return { ok: false };
-          }
-          jobDefect(job.id, `crew ${source} PI read ${job.id}: ${(e as Error).message}`);
-          return { ok: false };
-        }
-      }
+      // Since Q1210 the main loop reads a partial gift's card difference too,
+      // so `capturedCents` already holds it (this used to re-read the charge
+      // here; a test-mode card leg is handled above).
+      const capturedCents = a.capturedCents;
       const chargeLeftCents = a.isPifFunded
         ? Math.min(capturedCents, Math.max(0, capturedCents + a.giftAppliedCents - a.paidCents - giftRestoredCents))
         : Math.max(0, a.capturedCents - a.paidCents);
@@ -786,6 +782,7 @@ serve(async (req) => {
       isPifFunded: boolean;
       giftAppliedCents: number;
       capturedCents: number;
+      cardLegTestMode: boolean;
     }): Promise<{ ready: boolean; paidCents: number; refundId?: string | null; refundCents?: number; manual?: boolean }> => {
       const { job } = a;
       const { data: paidRows, error: paidCountErr } = await supabaseAdmin
@@ -1023,11 +1020,40 @@ serve(async (req) => {
         }
       }
 
-      // ── Step 2: Resolve payment intent ID (skipped for gift cards — no poster charge) ──
+      // ── Step 2: Resolve payment intent ID (skipped for a wholly gift-funded job — no poster charge) ──
+      //
+      // Q1210: a gift smaller than the cost is RESERVED and the shortfall is
+      // collected by card (create-payment's gift branch), so a gift job that
+      // also carries a PaymentIntent or session is MIXED and its escrow is the
+      // gift plus that capture. Skipping the read for every gift job capped the
+      // payout at the gift alone and refused any payout larger than it. The
+      // capture now counts toward the cap; the transfer is still never drawn
+      // from that charge (Step 6 keeps `!isPifFunded`). On a gift job a card
+      // leg with no intent, a test-mode one, or one that never captured adds
+      // nothing (the pre-Q1210 cap); one that cannot be read defers.
       /** What Stripe actually captured, in cents. 0 for a purely gift-funded job. */
       let capturedCents = 0;
+      /** A gift job's card leg turned out to be a Stripe TEST-mode object. */
+      let cardLegTestMode = false;
+      /**
+       * Q1220: the Q891 quiet skip is right for a SEED job. A REAL job on a
+       * test-mode object is stuck (this cron skips it every run, forever), so
+       * it pages a warning, once a day per job. Unknown is_seed is REAL (Q91).
+       */
+      const alertRealJobOnTestObject = async (object: string, id: string | null | undefined) => {
+        if (job.is_seed === true) return;
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          seed: false,
+          severity: "warning",
+          title: "Real job stuck on a Stripe test-mode object",
+          message: `Job ${job.id} is not a seed job, but its ${object} is a Stripe TEST-mode object, so the live key cannot read it and every payout run skips it. Decide by hand whether it was ever really paid, then fix its payment fields.`,
+          fields: { job_id: job.id, object, id: id ?? "none" },
+          oncePerDayKey: `psp-test-object-real-job:${job.id}`,
+        });
+      };
       let paymentIntentId = job.stripe_payment_intent_id;
-      if (!isPifFunded) {
+      if (!isPifFunded || paymentIntentId || job.stripe_session_id) {
         if (!paymentIntentId && job.stripe_session_id) {
           try {
             const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
@@ -1040,77 +1066,100 @@ serve(async (req) => {
           } catch (e) {
             if (isTestObjectUnderLiveKey(e)) {
               logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
-              results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
+              await alertRealJobOnTestObject("checkout.session", job.stripe_session_id);
+              if (!isPifFunded) {
+                results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
+                continue;
+              }
+              cardLegTestMode = true;
+            } else if (isPifFunded) {
+              // The card half of a mixed escrow is unknowable: defer rather
+              // than cap at the gift alone and refuse under the wrong banner.
+              console.error(`Could not retrieve the shortfall session for gift job ${job.id}:`, e);
+              results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
+              jobDefect(job.id, `shortfall session ${job.id}: ${(e as Error).message}`);
               continue;
+            } else {
+              console.warn("Could not retrieve session:", e);
             }
-            console.warn("Could not retrieve session:", e);
           }
         }
 
-        if (!paymentIntentId) {
+        if (!paymentIntentId && !isPifFunded) {
           console.error(`No payment intent for job ${job.id}, cannot process payout`);
           results.push({ job_id: job.id, status: "no_pi" });
           continue;
         }
 
         // ── Step 3: Verify charge is captured (immediate capture — should be succeeded) ──
-        try {
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (paymentIntentId) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-          // Keep the AMOUNT, not just the status. This step already had the
-          // PaymentIntent in hand and threw the figure away, which is why this
-          // function could transfer more than was ever collected.
-          const captured = resolveCapturedEscrow(pi);
+            // Keep the AMOUNT, not just the status. This step already had the
+            // PaymentIntent in hand and threw the figure away, which is why this
+            // function could transfer more than was ever collected.
+            const captured = resolveCapturedEscrow(pi);
 
-          if (pi.status !== "succeeded") {
-            console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — CANNOT transfer funds.`);
-            results.push({ job_id: job.id, status: `pi_not_succeeded_${pi.status}`, skipped: true });
-            // A SEED job's blocked payout never reaches the admins' in-app
-            // inbox (docs/OPEN.md Q93): an `?include_seed=1` run filled
-            // /admin notifications with fixture noise. Its result row above is
-            // unchanged; unknown is_seed is REAL, as for every seed route (Q91).
-            const { ids: adminIds } = job.is_seed === true
-              ? { ids: [] as string[] }
-              : await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.piNotSucceeded");
-            {
-              for (const adminId of adminIds) {
-                await insertNotifications(supabaseAdmin, {
-                  user_id: adminId,
-                  job_id: job.id,
-                  title: "Payout blocked — charge not captured",
-                  message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
-                  type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
-                });
+            if (pi.status !== "succeeded" && isPifFunded) {
+              // A mixed job's card leg that never captured has no money behind
+              // it: it adds nothing and the gift alone caps the payout (Q1210).
+              console.warn(`Gift job ${job.id}: shortfall intent ${paymentIntentId} is "${pi.status}", so its card leg counts as 0.`);
+            } else if (pi.status !== "succeeded") {
+              console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — CANNOT transfer funds.`);
+              results.push({ job_id: job.id, status: `pi_not_succeeded_${pi.status}`, skipped: true });
+              // A SEED job's blocked payout never reaches the admins' in-app
+              // inbox (docs/OPEN.md Q93): an `?include_seed=1` run filled
+              // /admin notifications with fixture noise. Its result row above is
+              // unchanged; unknown is_seed is REAL, as for every seed route (Q91).
+              const { ids: adminIds } = job.is_seed === true
+                ? { ids: [] as string[] }
+                : await loadAdminIds(supabaseAdmin, "process-scheduled-payouts.piNotSucceeded");
+              {
+                for (const adminId of adminIds) {
+                  await insertNotifications(supabaseAdmin, {
+                    user_id: adminId,
+                    job_id: job.id,
+                    title: "Payout blocked — charge not captured",
+                    message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
+                    type: "admin_alert", link: `/admin?view=jobs&job=${job.id}`,
+                  });
+                }
               }
+              continue;
+            } else {
+              // Status is succeeded, so anything still unverifiable is a missing
+              // amount on Stripe's side, not an uncaptured charge. Skip THIS job
+              // under its own status rather than letting a zero cap refuse it as
+              // "exceeds captured escrow" — that message would send the on-call
+              // after the poster's budget for what is an integration fault.
+              if (captured.kind === "unverifiable") {
+                console.error(`Cannot establish captured escrow for job ${job.id} (PI ${paymentIntentId}): ${captured.reason}`);
+                results.push({ job_id: job.id, status: "escrow_amount_unverifiable", skipped: true });
+                jobDefect(job.id, `escrow amount unverifiable ${job.id}: ${captured.reason}`);
+                continue;
+              }
+              if (captured.source === "amount") {
+                console.warn(`PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`);
+              }
+              capturedCents = captured.cents;
             }
-            continue;
+          } catch (e: any) {
+            if (isTestObjectUnderLiveKey(e)) {
+              logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
+              await alertRealJobOnTestObject("payment_intent", paymentIntentId);
+              if (!isPifFunded) {
+                results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
+                continue;
+              }
+              cardLegTestMode = true;
+            } else {
+              console.error(`Failed to verify payment for job ${job.id}:`, e);
+              results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
+              jobDefect(job.id, `payment verify ${job.id}: ${(e as Error).message}`);
+              continue;
+            }
           }
-
-          // Status is succeeded, so anything still unverifiable is a missing
-          // amount on Stripe's side, not an uncaptured charge. Skip THIS job
-          // under its own status rather than letting a zero cap refuse it as
-          // "exceeds captured escrow" — that message would send the on-call
-          // after the poster's budget for what is an integration fault.
-          if (captured.kind === "unverifiable") {
-            console.error(`Cannot establish captured escrow for job ${job.id} (PI ${paymentIntentId}): ${captured.reason}`);
-            results.push({ job_id: job.id, status: "escrow_amount_unverifiable", skipped: true });
-            jobDefect(job.id, `escrow amount unverifiable ${job.id}: ${captured.reason}`);
-            continue;
-          }
-          if (captured.source === "amount") {
-            console.warn(`PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`);
-          }
-          capturedCents = captured.cents;
-        } catch (e: any) {
-          if (isTestObjectUnderLiveKey(e)) {
-            logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
-            results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
-            continue;
-          }
-          console.error(`Failed to verify payment for job ${job.id}:`, e);
-          results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
-          jobDefect(job.id, `payment verify ${job.id}: ${(e as Error).message}`);
-          continue;
         }
       }
 
@@ -1177,7 +1226,7 @@ serve(async (req) => {
         // run: before it, nothing ever asked again and the job sat
         // payout_pending with its poster's refund unsent.
         if (job.is_group_job && !crewSettled.has(job.id)) {
-          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents });
+          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, cardLegTestMode });
           if (settle.ready && await closeCrewDecision(job, settle)) {
             const healed = await flipJobToReleased(supabaseAdmin, job.id);
             if (healed.ok) {
@@ -1412,6 +1461,9 @@ serve(async (req) => {
         // fired), and this run made a SECOND transfer under a different
         // idempotency key. Passing no snapshot makes claimPayout re-read the
         // same query under the claim it is about to take.
+        // Q1211: this batch read its due jobs once, at the top; a refund or
+        // cancel that landed since stops the transfer here.
+        expectPaymentStatus: "payout_pending",
       });
       if (claim.kind === "error" && isPayoutHeldRefusal(claim.message)) {
         // Q764: a hold landed after the check at the top of this loop and the
@@ -1431,7 +1483,9 @@ serve(async (req) => {
       if (claim.kind === "blocked") {
         console.log(`[process-scheduled-payouts] payout not claimed for job ${job.id} / helper ${helperId}: ${claim.reason}`);
         await rollBackOnboardingFeeClaim();
-        results.push({ job_id: job.id, status: "already_claimed", detail: claim.reason });
+        // Q1211: a refund or cancel moved the job during this run. An outcome
+        // (the refund won), not a defect and not someone else's claim.
+        results.push({ job_id: job.id, status: claim.jobMoved ? "job_moved_on" : "already_claimed", detail: claim.reason });
         continue;
       }
       const failedCount = claim.failedCount;
@@ -1590,7 +1644,7 @@ serve(async (req) => {
           // Settled (refund, flip, dispute close) earlier in THIS run: once.
           allRosterPaid = false;
         } else if (job.is_group_job) {
-          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents });
+          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, cardLegTestMode });
           // The decision is closed before the flip (review M4): a failed close
           // keeps the job payout_pending for the next run to retry.
           allRosterPaid = crewSettle.ready && await closeCrewDecision(job, crewSettle);
@@ -1780,6 +1834,31 @@ serve(async (req) => {
     // otherwise falls back to timestamp proximity — which guessed wrong three
     // times in four. Without this key a payout cron is invisible to both
     // watchers built to watch it.
+    // ── Held money whose payout hold has been released (Q1222, Q1223) ──────
+    // A payout hold keeps two payments back that nothing else re-drives: a
+    // WON chargeback's re-payment (charge.dispute.closed does not recur) and
+    // a tip paid while the Helpr was held (its transfer was reversed to the
+    // platform). Both re-pay here, every run, through claim rows and fixed
+    // idempotency keys, so a second run or a concurrent copy pays nothing
+    // twice; a Helpr still on hold simply waits. Faults are defects; the rows
+    // wait for the next run.
+    const clawbackRedrive = await redriveHeldClawbackRepays({
+      stripe,
+      supabase: supabaseAdmin,
+      logStep: (step, details) => console.log(`[process-scheduled-payouts] ${step}`, details ?? ""),
+    });
+    for (const d of clawbackRedrive.defects) defects.record(d);
+    const tipRedrive = await redriveHeldTips(stripe, supabaseAdmin);
+    for (const d of tipRedrive.defects) defects.record(d);
+    const heldRedrive = {
+      clawback_disputes: clawbackRedrive.disputes,
+      clawback_repaid_cents: clawbackRedrive.repaidCents,
+      clawback_waiting: clawbackRedrive.waiting,
+      tips_repaid: tipRedrive.repaid,
+      tips_kept: tipRedrive.kept,
+      tips_waiting: tipRedrive.waiting,
+    };
+
     // Seed jobs' defects: reported in the body and to the digest, never paged
     // and never counted (Q91). Only reachable on an `?include_seed=1` run.
     if (seedDefects.length) {
@@ -1795,7 +1874,7 @@ serve(async (req) => {
 
     return cronResult(
       "process-scheduled-payouts",
-      { success: true, processed, results, seedDefects },
+      { success: true, processed, results, seedDefects, heldRedrive },
       defects.defects,
       corsHeaders,
     );

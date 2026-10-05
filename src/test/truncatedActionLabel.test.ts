@@ -90,9 +90,9 @@ const KNOWN: Record<string, string> = {
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Sign Up to Apply\" sw==cw 146/146 on guest /browse?job=<id> at 320, 375 and 1440",
   'src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx:button:{(job.credential_tier ?? 0) === 2 ? "Licensed Pros Only" : "':
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): no credential_tier>0 open job on prod, so this button's markup was injected alone into the real footer row (254px at 320, 309 at 375, 726 at 1440): \"Licensed Pros Only\" 138, \"Licensed & Insured Only\" 174, sw==cw at 320, 375 and 1440",
-  "src/components/mobileNav/NavQuickMenu.tsx:button:{label}":
+  "src/components/mobileNav/NavQuickMenuItem.tsx:button:{label}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): long-press Posts quick filters (Needs You/Waiting/Scheduled/Done/Cancelled) and Messages recent chats sw==cw at 320 and 375 as poster-e2e",
-  "src/components/mobileNav/NavQuickMenu.tsx:button:{sub}":
+  "src/components/mobileNav/NavQuickMenuItem.tsx:button:{sub}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): recent-chat subtitles (\"Helper reply ...\") sw==cw 194/194 at 320 as poster-e2e",
   "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(subtitle, query) : subtitle}":
     "MEASURED NOT CLIPPED 2026-09-26 (Q119): all 23 section subtitles on /legal, /terms, /privacy, /rules sh==ch at 320, 375 and 1440 (guest, local build on prod)",

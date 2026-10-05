@@ -50,6 +50,7 @@ function seedCrew(members: Array<[string, number, number]>, { needed = 3, paidAl
     stripe_session_id: "cs_1",
     stripe_payment_intent_id: "pi_1",
     status: "completed",
+    payment_status: "payout_pending",
     is_group_job: true,
     helpers_needed: needed,
     sales_tax_rate: 0,
@@ -93,7 +94,23 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     resetSharedMocks();
   });
 
+  // The registration that guarded the frozen share used to sit on the even
+  // $100/3 case below, where budget / 3 rounds to the same whole dollars as
+  // every frozen share: it SURVIVED its own mutation (measured 2026-10-04 on
+  // origin/main). Uneven shares tell the two apart.
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | const perHelperBudget = crewSlot?.shareCents != null ? crewSlot.shareCents / 100 : job.budget / helpersCount; | const perHelperBudget = job.budget / helpersCount;
+  it("uneven frozen shares ($50 / $30 / $20): each member is paid from THEIR share, not budget / 3", async () => {
+    seedCrew([["m1", 0, 5000], ["m2", 1, 3000], ["m3", 2, 2000]]);
+    await run();
+    const gross = settledLedger().map((r) => Number(r.amount_cents) + Number(r.platform_fee_cents)).sort((x, y) => x - y);
+    const shares = [2000, 3000, 5000];
+    expect(gross).toHaveLength(3);
+    gross.forEach((g, i) => {
+      expect(shares[i] - g).toBeGreaterThanOrEqual(0);
+      expect(shares[i] - g).toBeLessThan(100);
+    });
+  });
+
   it("$100 across 3: each member is paid from their frozen share, in whole dollars rounded down (Q236)", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333], ["m3", 2, 3333]]);
     await run();
@@ -374,7 +391,8 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect((slackAlerts as Array<{ title?: string }>).some((a) => /manual refund|could not be restored|Crew refund short/i.test(a.title ?? ""))).toBe(false);
   });
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | capturedCents = pi.status === "succeeded" && captured.kind === "captured" ? captured.cents : 0; | capturedCents = 0;
+  // Since Q1210 the card difference is read once, in the main loop (the crew refund used to re-read it).
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | capturedCents = captured.cents; | capturedCents = 0;
   it("MQ31(C) review #1: a partial-gift crew (4000c gift + 6000c card, 2 of 3) restores 1333c as gift credit and refunds the other 2000c to the card, no manual page", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     scenario.reads.gift_cards = { rows: [{ id: "gc-1" }] };
@@ -438,7 +456,8 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     };
   }
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | logTestObjectUnderLiveKey("process-scheduled-payouts", { job_id: job.id, object: "payment_intent", id: a.paymentIntentId }); | throw e;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (a.isPifFunded && a.cardLegTestMode) return { ok: false }; |
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | cardLegTestMode = true;\n            } else { | \n            } else {
   it("Q891: a partial-gift crew whose charge is a TEST-mode PaymentIntent: no card refund, no defect (200), no page, not released, one structured log line", async () => {
     const skips = captureTestModeSkips();
     try {
@@ -455,7 +474,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       expect(scenario.writes.some((w) => w.table === "payment_refunds")).toBe(false);
       expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
       expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
-      expect(slackAlerts).toHaveLength(0);
+      expect(new Set((slackAlerts as Array<{ title?: string }>).map((a) => a.title))).toEqual(new Set(["Real job stuck on a Stripe test-mode object"])); // Q1220: a real job pages (once a day per job; oncePerDayKey dedupes the per-member repeats)
       // One line per ask: each member's pass re-asks whether the crew may
       // release (the refund is read from the ledger), so it may log per member.
       const lines = skips.lines();
@@ -463,6 +482,24 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       for (const line of lines) {
         expect(line).toMatchObject({ fn: "process-scheduled-payouts", object: "payment_intent", id: "pi_1", job_id: "job-crew" });
       }
+    } finally {
+      skips.restore();
+    }
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | cardLegTestMode = true;\n            } else if (isPifFunded) { | \n            } else if (isPifFunded) {
+  it("Q1210 + Q891: a partial-gift crew whose shortfall SESSION is a test-mode object: no card refund, no page, not released", async () => {
+    const skips = captureTestModeSkips();
+    try {
+      seedPartialGiftCrew();
+      setJob({ stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" });
+      stripeMock.checkout.sessions.retrieve.mockRejectedValue(testModeUnderLiveKey("checkout.session", "cs_test_old"));
+      const res = await run();
+      expect(res.status).toBe(200);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(false);
+      expect(new Set((slackAlerts as Array<{ title?: string }>).map((a) => a.title))).toEqual(new Set(["Real job stuck on a Stripe test-mode object"])); // Q1220: a real job pages (once a day per job; oncePerDayKey dedupes the per-member repeats)
+      expect(skips.lines().length).toBeGreaterThan(0);
     } finally {
       skips.restore();
     }
@@ -478,7 +515,9 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       const res = await run();
       expect(res.status).toBe(500);
       const body = JSON.parse(await res.text()) as Record<string, unknown>;
-      expect((body.defectReasons as string[]).some((r) => /crew .* PI read job-crew/.test(r))).toBe(true);
+      // Since Q1210 the main loop reads a mixed (gift + card) job's charge too,
+      // so the fault now surfaces at that first read, before the crew refund.
+      expect((body.defectReasons as string[]).some((r) => /payment verify job-crew/.test(r))).toBe(true);
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(skips.lines()).toEqual([]);
     } finally {

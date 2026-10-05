@@ -36,7 +36,13 @@ export function useViewerCredentialTier(enabled: boolean) {
     enabled,
     staleTime: 60_000,
     queryFn: async (): Promise<number> => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      // Q1194: a failed getUser() (network, 5xx) also comes back user-less.
+      // Still tier 0 (fails open; the server enforces the tier), but said, not
+      // mistaken for signed-out. A signed-out caller is AuthSessionMissingError.
+      if (userError && userError.name !== "AuthSessionMissingError") {
+        report(userError, { severity: "warning", tags: { source: "useViewerCredentialTier.getUser" } });
+      }
       if (!user) return 0;
       try {
         const { data: tier, error } = await supabase.rpc("get_user_credential_tier", {

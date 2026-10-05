@@ -20,7 +20,7 @@
  * holes the reviews found.
  */
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR v_job_status IS DISTINCT FROM 'accepted' THEN
-// @mutate supabase/migrations/20261002055930_series_cancel_locks_parent_first.sql |          response_deadline = NULL,\n         helper_confirmed_at = NULL, |          response_deadline = NULL,
+// @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |          response_deadline = NULL,\n         helper_confirmed_at = NULL, |          response_deadline = NULL,
 // @mutate supabase/functions/auto-expire-jobs/index.ts |         .is("helper_confirmed_at", null)\n        .select("id"); |         .select("id");
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

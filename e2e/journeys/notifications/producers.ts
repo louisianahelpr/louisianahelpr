@@ -180,7 +180,8 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:stripe-idv-webhook": {
     uncovered: "fires on a Stripe Identity verification event; the shared helper is already verified and must stay so",
   },
-  "edge:stripe-webhook/handlers/_chargebackClawback": { uncovered: STRIPE_EVENT("charge.dispute.* (a chargeback)") },
+  "edge:_shared/chargebackClawback": { uncovered: STRIPE_EVENT("charge.dispute.* (a chargeback)") },
+  "edge:_shared/heldTipRepay": { uncovered: STRIPE_EVENT("checkout.session.completed for a tip to a Helpr under a payout hold") },
   "edge:stripe-webhook/handlers/accountUpdated": { uncovered: STRIPE_EVENT("account.updated with a requirements change") },
   "edge:stripe-webhook/handlers/chargeDisputeClosed": { uncovered: STRIPE_EVENT("charge.dispute.closed") },
   "edge:stripe-webhook/handlers/chargeDisputeCreated": { uncovered: STRIPE_EVENT("charge.dispute.created") },

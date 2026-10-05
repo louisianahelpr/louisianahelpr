@@ -27,6 +27,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { purgeAccount } from "../_shared/accountPurge.ts";
+import { drainPreVerificationWipes, type WipeSweepClient } from "../_shared/preVerificationWipeSweep.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
 /**
@@ -277,10 +278,18 @@ serve(async (req) => {
       }
     }
 
+    // Q447: the storage half of the pre-verification takeover wipe. The
+    // database already cleared the profile, legal and referral rows when the
+    // real email owner took the account over; the objects typed in before
+    // verification can only be removed through the Storage API.
+    const takeover = await drainPreVerificationWipes(supabase as unknown as WipeSweepClient, { dryRun });
+    for (const f of takeover.failures) defects.record(`pre-verification wipe: ${f}`);
+
     return cronResult(
       "cleanup-abandoned-accounts",
       {
         dryRun,
+        preVerificationWipes: { pending: takeover.wipes, objectsRemoved: takeover.removed, done: takeover.done, failed: takeover.failedWipes },
         cutoff,
         scanned: candidates.length,
         // In dryRun this is the WOULD-DELETE count; nothing was touched.

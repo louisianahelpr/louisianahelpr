@@ -693,6 +693,11 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           // (#27) can group by job type without a follow-up fetch.
           supabase.from("jobs").select("id, title, category").in("id", jobIds),
         ]);
+        // Q1194: the names and titles degrade to "a neighbor" / "a job" on a
+        // failed read (the same words a deleted account gets), so say so in
+        // error_logs rather than let the fallback hide it.
+        if (profilesRes2.error) report(profilesRes2.error, { severity: "warning", tags: { source: "useUserProfileData.reviewerNames" } });
+        if (jobsRes.error) report(jobsRes.error, { severity: "warning", tags: { source: "useUserProfileData.reviewJobs" } });
         const nameMap = new Map(profilesRes2.data?.map((p: any) => [p.user_id, formatName(p.full_name)]) || []);
         const jobMap = new Map(jobsRes.data?.map((j: any) => [j.id, { title: j.title, category: j.category as string | null }]) || []);
         reviews = enrichReviewRows(reviewsRes.data, nameMap, jobMap);

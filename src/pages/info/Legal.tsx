@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { Search, X } from "lucide-react";
@@ -8,7 +8,6 @@ import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 import { cn } from "@/lib/utils";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -60,6 +59,8 @@ const TAB_CONTENT: Record<TabKey, ReactNode> = {
 };
 
 /* ─────────────────────────  PAGE  ───────────────────────── */
+const RETAP_GUARD_MS = 500; // a pointer re-press on the magnifier this soon after ✕ is the same gesture (Q912)
+
 const Legal = () => {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
@@ -111,20 +112,25 @@ const Legal = () => {
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
   }, [searchOpen]);
+  /* THE FIELD FILLS THE PILL (owner, 2026-10-04, Q912), so its ✕ sits where the magnifier returns (the
+     2026-09-19 slot, 10f00eebc, avoided that). A pointer re-press within RETAP_GUARD_MS is refused instead;
+     keyboard (click detail 0) never is. Measured 375/1440, Chromium + WebKit: ✕ then the same point 150 ms
+     later stays closed; a press after the pause opens it. */
+  const closedAtRef = useRef(0);
   const closeSearch = () => {
+    closedAtRef.current = performance.now();
     setSearchOpen(false);
     setQuery("");
   };
-  /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every
-     expanding search in this app shares (PostsHeader states it in full,
-     owner 2026-09-19). Measured here at 320 / 375 / 1440 before this:
-     pressing the field's ✕ closed the field in a single press and dropped
-     `document.activeElement` on <body>, so a keyboard reader was returned to
-     the top of a very long policy document by the control whose whole job is
-     "put me back where I was". The magnifier does not exist while the field is
-     open, so the focus has to move on the render that brings it back — hence
-     an effect keyed on the flag rather than a call inside the click handler.
-     Only on a true->false transition, so it can never steal focus on load. */
+  const openSearch = (e: ReactMouseEvent) => {
+    if (e.detail > 0 && performance.now() - closedAtRef.current < RETAP_GUARD_MS) return;
+    setSearchOpen(true);
+  };
+  /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the dismiss contract every expanding search shares
+     (PostsHeader states it in full, owner 2026-09-19). Measured at 320 / 375 / 1440 before this: the ✕
+     dropped `document.activeElement` on <body>, returning a keyboard reader to the top of a very long
+     document. The magnifier does not exist while the field is open, so focus moves on the render that
+     brings it back (an effect keyed on the flag), only on true->false, so it never steals focus on load. */
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const wasSearchOpenRef = useRef(searchOpen);
   useEffect(() => {
@@ -449,7 +455,7 @@ const Legal = () => {
           ref={searchTriggerRef}
           type="button"
           data-search-trigger
-          onClick={() => setSearchOpen(true)}
+          onClick={openSearch}
           aria-label="Search all policies"
           aria-expanded={searchOpen}
           /* No box. The bordered chip put a second outlined control on a row
@@ -464,17 +470,10 @@ const Legal = () => {
         </button>
       )}
     </div>
-    {/* THE MAGNIFIER'S LANDING SLOT. This row collapses the search slot back
-        to a 40px button the moment the field closes, and the field's ✕ is
-        anchored to that same trailing edge — so without the slot the ✕ sits
-        exactly on top of the button that replaces it (measured: 44px of
-        overlap at every width), and one press to dismiss is immediately
-        followed by a press that re-opens. Held open, the field stops one
-        icon-width short of where the magnifier comes back to, which is the
-        owner's "open slightly to the left of the icon so it doesn't cover
-        anything" applied to the policy search. `h-10 w-10` is the trigger's
-        own box below — the slot reserves the real width, not a guess. */}
-    {searchOpen && <SearchTriggerSlot width="40px" />}
+    {/* NO LANDING SLOT (owner, 2026-10-04, Q912): the open field fills the
+        pill to its inner edge. It used to stop 40px short (10f00eebc) so the ✕
+        never sat on the magnifier's return box; the re-press that made that
+        dangerous is now refused by RETAP_GUARD_MS in openSearch above. */}
     </>
   );
 

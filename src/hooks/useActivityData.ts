@@ -13,6 +13,7 @@ import { checkDrift } from "@/lib/checkDrift";
 import { report } from "@/lib/errorLogger";
 import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
+import { readApplicationRows, readableApplicationRows } from "@/lib/applicationColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
@@ -442,7 +443,10 @@ export async function fetchPostedActivityDetail(
  */
 export async function fetchAppliedActivity(userId: string): Promise<AppliedActivity> {
   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = await Promise.all([
-    supabase.from("applications").select("*").eq("helper_id", userId).order("created_at", { ascending: false }),
+    // The readable columns, not "*": flag_reason is withheld from clients (Q1232).
+    // Through readApplicationRows: it retries without a column the database
+    // does not have yet (42703) when the web ships ahead of db-deploy (Q1206).
+    readApplicationRows((columns) => supabase.from("applications").select(columns).eq("helper_id", userId).order("created_at", { ascending: false })),
     /* The job rows behind my applications. An RPC rather than
        `.in("id", jobIds)` because a helper with a merely PENDING application
        is not entitled to the poster's street address, and no RLS policy can
@@ -492,7 +496,7 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
   }
 
   let appliedApps: AppliedApp[] = [];
-  const apps = appsRes.data ?? [];
+  const apps = readableApplicationRows(appsRes.data);
   if (apps.length > 0) {
     const jobIds = new Set(apps.map((a) => a.job_id));
     // The applied-jobs list is meaningless without the job rows behind it —
@@ -540,6 +544,7 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       // value here, not a placeholder.
       flag_reason: null,
       flagged_hidden: false,
+      offer_message_flagged_hidden: false,
       // 20260907061408 snapshots the job's 2dp point onto a real application at
       // apply time so the proximity RPCs read a fixed point instead of a
       // poster-movable one. A direct offer never went through apply, so there

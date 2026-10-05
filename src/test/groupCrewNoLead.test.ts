@@ -46,7 +46,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND NOT public.is_server_context()\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid' |     AND false\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid'
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents) |   UPDATE public.jobs SET helper_id = v_helper_id WHERE id = v_job_id;\n  INSERT INTO public.group_job_helpers (job_id, helper_id, slot_no, share_cents)
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |         status = (CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END)::job_status |         status = CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END
-// @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql | AS $function$ SELECT true $function$;\n\n-- MEDIUM-4 | AS $function$ SELECT false $function$;\n\n-- MEDIUM-4
+// Q706: the rule's NEWEST definition is 20261004193450 (false); the twin check reads that one.
+// @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql | AS $function$ SELECT false $function$; | AS $function$ SELECT true $function$;
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     INSERT INTO public.crew_cancellation_fee_shares\n      (job_id | --\n      (job_id
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |       ADD CONSTRAINT reviews_one_per_reviewee_per_job UNIQUE (job_id, reviewer_id, reviewee_id); |       ADD CONSTRAINT reviews_one_per_reviewee_per_job UNIQUE (job_id, reviewer_id);
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND reviewer_id = NEW.reviewee_id\n |     AND true\n
@@ -85,6 +86,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",
   end_recurring_series: "a recurring series is never a group job (20260831200113 constraint)",
   enforce_dispute_markers_server_owned: "a crew member cannot write jobs at all (no UPDATE policy match)",
+  enforce_application_party_columns: "Q1234: matches applications.helper_id (the applicant's own row), not jobs.helper_id; it decides who edits an application's note, nothing about a hire",
   enforce_helper_completion_gates: "judges the single Helpr's job-level Done; a crew completes through the roster roll-up",
   enforce_helper_jobs_column_whitelist: "the single Helpr's jobs UPDATE whitelist; a crew member matches no jobs UPDATE policy",
   give_up_series_dates: "a recurring series is never a group job (20260831200113 constraint)",

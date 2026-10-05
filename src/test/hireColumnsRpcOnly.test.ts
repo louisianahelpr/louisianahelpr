@@ -138,7 +138,10 @@ describe("Q346 layer 2: every hire-writing function is a definer the trigger let
 
 describe("Q346 layer 3: the client never writes a hire column", () => {
   const files = walkSource([join(ROOT, "src")]).filter((f) => !/\.test\.tsx?$|\/src\/test\//.test(f));
-  const FORBIDDEN = /(?<![\w.])helper_id\s*:\s*(?!null\b)|offered_to_helper_id\s*:|status\s*:\s*["']accepted["']/;
+  // Q1196: the lookahead holds the whitespace too. With `\s*:\s*(?!null\b)` the
+  // second \s* backtracked to nothing and " null" passed the lookahead, so an
+  // unassign written with a space read as a hire write.
+  const FORBIDDEN = /(?<![\w.])helper_id\s*:(?!\s*null\b)|offered_to_helper_id\s*:|status\s*:\s*["']accepted["']/;
   let jobsWrites = 0;
   const hits: string[] = [];
   for (const f of files) {
@@ -162,6 +165,11 @@ describe("Q346 layer 3: the client never writes a hire column", () => {
     }
   }
 
+  it("an unassign is not a hire write, with or without a space (Q1196)", () => {
+    for (const unassign of ["helper_id: null", "helper_id:null", "helper_id :  null"]) expect(FORBIDDEN.test(`.update({ ${unassign} })`), unassign).toBe(false);
+    for (const hire of ["helper_id: uid", "helper_id:uid", "helper_id: nullish"]) expect(FORBIDDEN.test(`.update({ ${hire} })`), hire).toBe(true);
+  });
+
   it("the scan sees the client's jobs writes", () => {
     expect(files.length).toBeGreaterThan(800);
     expect(jobsWrites).toBeGreaterThan(10);
@@ -173,12 +181,12 @@ describe("Q346 layer 3: the client never writes a hire column", () => {
 });
 
 // Layer 1: each refusal and each structural property, broken one at a time.
-// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF current_user::text NOT IN ('authenticated', 'anon') THEN | IF true THEN
-// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | LANGUAGE plpgsql\nSET search_path | LANGUAGE plpgsql SECURITY DEFINER\nSET search_path
-// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF NEW.helper_id IS NOT NULL AND NEW.helper_id IS DISTINCT FROM OLD.helper_id THEN | IF false THEN
-// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF NEW.status::text = 'accepted' AND OLD.status::text IS DISTINCT FROM 'accepted' THEN | IF false THEN
-// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF NEW.offered_to_helper_id IS NOT NULL | IF false AND NEW.offered_to_helper_id IS NOT NULL
-// @mutate supabase/migrations/20260924044812_recurring_helper_rpc_only.sql | IF TG_OP = 'INSERT' THEN | IF false THEN
+// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF current_user::text NOT IN ('authenticated', 'anon') THEN | IF true THEN
+// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | LANGUAGE plpgsql\nSET search_path | LANGUAGE plpgsql SECURITY DEFINER\nSET search_path
+// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF NEW.helper_id IS NOT NULL AND NEW.helper_id IS DISTINCT FROM OLD.helper_id THEN | IF false THEN
+// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF NEW.status::text = 'accepted' AND OLD.status::text IS DISTINCT FROM 'accepted' THEN | IF false THEN
+// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF NEW.offered_to_helper_id IS NOT NULL | IF false AND NEW.offered_to_helper_id IS NOT NULL
+// @mutate supabase/migrations/20261004184903_direct_offer_marker_rpc_only.sql | IF TG_OP = 'INSERT' THEN | IF false THEN
 // @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | BEFORE INSERT OR UPDATE ON public.group_job_helpers | BEFORE UPDATE ON public.group_job_helpers
 // @mutate supabase/migrations/20260924042503_hire_columns_rpc_only.sql | BEFORE UPDATE ON public.jobs | AFTER UPDATE ON public.jobs
 // Layer 3: a client hire write planted. (Re-anchored 2026-10-03, Q1187: the

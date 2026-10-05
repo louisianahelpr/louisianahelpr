@@ -317,6 +317,185 @@ describe("stripe-webhook edge function", () => {
       );
     });
 
+    // Q1222: a tip Checkout opened before a payout hold and paid after it. The
+    // tip is a destination charge, so it reached the held Helpr. Tips are final
+    // (Q781): the poster is NOT refunded; the transfer is reversed back to the
+    // platform and process-scheduled-payouts re-pays it after the release.
+    describe("Q1222 a tip paid while the Helpr is on a payout hold", () => {
+      const heldTipEvent = (id: string) =>
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id,
+          type: "checkout.session.completed",
+          data: {
+            object: {
+              id: `cs_${id}`,
+              mode: "payment",
+              payment_intent: "pi_tip",
+              customer_email: "poster@test.com",
+              metadata: { type: "tip", job_id: "job-1", tipper_id: "poster-1", helper_id: "helper-1" },
+            },
+          },
+        });
+      const HOLD = { helper_id: "helper-1", reason: "review", held_at: null, denied_at: null };
+
+      // @mutate supabase/functions/_shared/heldTipRepay.ts | if (hold.kind === "clear") { | if (true) {
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const back = await holdBackPaidTip(stripe, supabase, { | const back = { kind: "not_held" } as { kind: string }; void ({
+      it("reverses the transfer (no refund), records the debt, and does not tell the Helpr yet", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [HOLD] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip", latest_charge: { id: "ch_tip", transfer: "tr_tip" } });
+        stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_tip", amount: 1500 });
+        stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_tip" });
+        heldTipEvent("evt_tip_held");
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(stripeMock.transfers.createReversal).toHaveBeenCalledWith(
+          "tr_tip",
+          expect.objectContaining({ metadata: expect.objectContaining({ reason: "payout_hold", tip_id: "tip-1" }) }),
+          { idempotencyKey: "tip-hold-reverse-tip-1" },
+        );
+        const claim = scenario.writes.find((w) => w.table === "tip_hold_redrives" && w.op === "insert");
+        expect(claim?.payload).toMatchObject({ tip_id: "tip-1", helper_id: "helper-1", transfer_id: "tr_tip", amount_cents: 1500, status: "owed" });
+        const moved = scenario.writes.find((w) => w.table === "tip_hold_redrives" && w.op === "update");
+        expect(moved?.payload).toMatchObject({ status: "reversed", reversal_id: "trr_tip" });
+        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(false);
+      });
+
+      // @mutate supabase/functions/_shared/heldTipRepay.ts | if (hold.kind === "error") throw new Error(`payout hold read failed for a paid tip | if (false) throw new Error(`payout hold read failed for a paid tip
+      it("an unreadable hold fails the delivery (Stripe redelivers); nothing is reversed", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { error: { message: "connection reset", code: "08006" } };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        // Everything a reversal would need is there: only the unreadable hold stops it.
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip", latest_charge: { id: "ch_tip", transfer: "tr_tip" } });
+        stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_tip", amount: 1500 });
+        stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_tip" });
+        heldTipEvent("evt_tip_holdread");
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBeGreaterThanOrEqual(500);
+        expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+      });
+
+      it("a Helpr NOT on hold: no reversal, the Helpr is told as before", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        heldTipEvent("evt_tip_clear");
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(true);
+      });
+
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (isTransient(err)) throw err;\n    const why = message(err); |     const why = message(err);
+      it("a TRANSIENT reversal fault fails the delivery (Stripe redelivers), never recorded as refused", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [HOLD] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip", latest_charge: { id: "ch_tip", transfer: "tr_tip" } });
+        stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_tip", amount: 1500 });
+        stripeMock.transfers.createReversal.mockRejectedValue(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+        heldTipEvent("evt_tip_transient");
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBeGreaterThanOrEqual(500);
+        expect(scenario.writes.some((w) => w.table === "tip_hold_redrives" && (w.payload as Record<string, unknown>).status === "not_reversed")).toBe(false);
+      });
+
+      it("a refused reversal is recorded and pages critical; the delivery still acks", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [HOLD] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip", latest_charge: { id: "ch_tip", transfer: "tr_tip" } });
+        stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_tip", amount: 1500 });
+        stripeMock.transfers.createReversal.mockRejectedValue(Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }));
+        heldTipEvent("evt_tip_refused");
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        expect(scenario.writes.find((w) => w.table === "tip_hold_redrives" && w.op === "update")?.payload).toMatchObject({ status: "not_reversed" });
+        expect((slackAlerts as Array<{ title?: string; severity?: string }>).some((a) => a.severity === "critical" && /could not be pulled back/.test(String(a.title)))).toBe(true);
+      });
+
+      // review of Q1222: a reversal whose row update failed is found at Stripe
+      // and adopted on the redelivery, never repeated (and never refused after
+      // the ~24h idempotency window into a false "the Helpr has the money").
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |   const found = await ourReversal(stripe, a.transferId, a.tipId); |   const found = null;
+      it("a redelivery whose 'owed' row Stripe already reversed adopts that reversal (no second reversal)", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [HOLD] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [{ tip_id: "tip-1", status: "owed", transfer_id: "tr_tip", reversal_id: null }] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        stripeMock.transfers.listReversals.mockResolvedValue({ data: [{ id: "trr_prev", metadata: { reason: "payout_hold", tip_id: "tip-1" } }] });
+        stripeMock.transfers.createReversal.mockRejectedValue(Object.assign(new Error("idempotency window passed"), { type: "StripeInvalidRequestError" }));
+        heldTipEvent("evt_tip_redeliver");
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+        const ups = scenario.writes.filter((w) => w.table === "tip_hold_redrives" && w.op === "update").map((w) => w.payload as Record<string, unknown>);
+        expect(ups).toContainEqual(expect.objectContaining({ status: "reversed", reversal_id: "trr_prev" }));
+        expect(ups.some((p) => p.status === "not_reversed")).toBe(false);
+      });
+
+      // Second review (S-D): a reversal whose row did not move pages.
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |   if (data && data.length > 0) return;\n  const { data: cur } | return;\n  const { data: cur }
+      it("a reversal whose record matched zero rows (row gone) pages critical", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [HOLD] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        scenario.writeSelectRows["tip_hold_redrives:update"] = [];
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip", latest_charge: { id: "ch_tip", transfer: "tr_tip" } });
+        stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_tip", amount: 1500 });
+        stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_tip" });
+        heldTipEvent("evt_tip_zero");
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect((slackAlerts as Array<{ title?: string; severity?: string }>).some((a) => a.severity === "critical" && /did not move to 'reversed'/.test(String(a.title)))).toBe(true);
+      });
+
+      // Second review (S-E): released before the pull-back: the Helpr keeps it AND is told, once.
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (k && k.length > 0) await notifyKept(supabase, args.helperId, args.jobId); |
+      it("a redelivery after the hold was released with no reversal at Stripe: 'kept', and the Helpr is told once", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [{ tip_id: "tip-1", status: "owed", transfer_id: "tr_tip", reversal_id: null }] };
+        // A redelivery: the paid flip already happened, so it matches no row now.
+        scenario.writeSelectRows["tips:update"] = [];
+        heldTipEvent("evt_tip_kept");
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(scenario.writes.filter((w) => w.table === "tip_hold_redrives" && w.op === "update").map((w) => w.payload)).toContainEqual(expect.objectContaining({ status: "kept" }));
+        const told = scenario.writes.filter((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1");
+        expect(told).toHaveLength(1);
+      });
+
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |     const found = await ourReversal(stripe, String(existing.transfer_id), args.tipId); |     const found = null;
+      it("a redelivery after the hold was released: an 'owed' row Stripe already reversed is 'reversed', not 'kept'", async () => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [{ tip_id: "tip-1", status: "owed", transfer_id: "tr_tip", reversal_id: null }] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        stripeMock.transfers.listReversals.mockResolvedValue({ data: [{ id: "trr_prev", metadata: { reason: "payout_hold", tip_id: "tip-1" } }] });
+        heldTipEvent("evt_tip_released");
+        await fn.fetch(webhookRequest(fn, "{}"));
+        const ups = scenario.writes.filter((w) => w.table === "tip_hold_redrives" && w.op === "update").map((w) => w.payload as Record<string, unknown>);
+        expect(ups).toContainEqual(expect.objectContaining({ status: "reversed", reversal_id: "trr_prev" }));
+        expect(ups.some((p) => p.status === "kept")).toBe(false);
+      });
+    });
+
     it("does NOT re-notify the helper when a tip webhook is redelivered (no row flips)", async () => {
       const fn = await loadConfigured();
       // Duplicate delivery: the tip was already 'paid', so the conditional

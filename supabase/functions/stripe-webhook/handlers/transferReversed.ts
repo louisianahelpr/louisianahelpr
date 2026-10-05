@@ -8,7 +8,8 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
-import { clawbackForTransfer } from "./_chargebackClawback.ts";
+import { clawbackForTransfer } from "../../_shared/chargebackClawback.ts";
+import { isHeldTipReversal } from "../../_shared/heldTipRepay.ts";
 
 export async function handleTransferReversed(
   event: Stripe.Event,
@@ -70,7 +71,7 @@ export async function handleTransferReversed(
     throw new Error(`payout_transfers status flip failed for reversed transfer ${transfer.id}: ${ledgerUpdateErr.message}`);
   }
 
-  // OUR OWN reversal: a card-dispute clawback (Q202, _chargebackClawback.ts).
+  // OUR OWN reversal: a card-dispute clawback (Q202, _shared/chargebackClawback.ts).
   // chargeDisputeCreated already moved the job to payment_status='chargeback'
   // before reversing, and the chargeback_clawbacks row is the record a won
   // dispute pays back from, so there is nothing to freeze and nothing for ops
@@ -93,6 +94,16 @@ export async function handleTransferReversed(
       },
       link: `https://dashboard.stripe.com/disputes/${ours.disputeId}`,
     });
+    return;
+  }
+
+  // OUR OWN reversal: a tip paid while its Helpr was on a payout hold (Q1222,
+  // _shared/heldTipRepay.ts). A tip is no job payout (it has no
+  // payout_transfers row), the tip_hold_redrives row is the record it is
+  // re-paid from, and nothing is frozen or investigated. A failed lookup
+  // answers false and falls through to the ordinary, more cautious path.
+  if (await isHeldTipReversal(supabase, transfer.id)) {
+    logStep("Transfer reversed by a held-tip hold-back (Q1222) — re-paid after the hold", { transferId: transfer.id });
     return;
   }
 

@@ -162,7 +162,9 @@ describe("race-class guard — edge functions (create-payment release, proven on
     // the inventory on the dispute-races branch: it is pinned to the status and
     // payment_status it read.
     expect(flips).toHaveLength(1);
-    expect(live).toMatch(/\}\)\.eq\("id", jobId\)\.eq\("status", job\.status\);\s*\n\s*generalFlip = job\.payment_status == null/);
+    // Q1290: a full refund claims the job ('cancelling') before its ledger read,
+    // so its flip pins that claim (or the refund's own 'refunded').
+    expect(live).toMatch(/\}\)\.eq\("id", jobId\)\.eq\("status", job\.status\);[\s\S]{0,400}?generalFlip = generalClaimHeld\s*\n\s*\? generalFlip\.in\("payment_status", \["cancelling", "refunded"\]\)\s*\n\s*: job\.payment_status == null/);
     expect(live).toMatch(/\.update\(updateFields\)\s*\n\s*\.eq\("id", jobId\)\s*\n\s*\.eq\("status", job\.status\)/);
     // Q1192: both flips also pin the payment_status they read.
     // Quick Release pins DISPUTE_RELEASE_FLIP_PAYMENT_STATES (adds 'released', its own transfer webhook), Quick Refund DISPUTE_REFUND_FLIP_PAYMENT_STATES (adds 'refunded', its own charge.refunded, Q1301).

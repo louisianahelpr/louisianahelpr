@@ -8,6 +8,8 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { POSTS_HEADER_PADDING } from "@/pages/posts/PostsHeader";
 import { JOBS_HEADER_PADDING } from "@/pages/jobs/JobsHeader";
 import { defaultStatusFilterFor } from "@/components/job-card/activityConstants";
+import { EmptyStateSkeleton, useCachedListCount } from "@/components/ui/skeletons/EmptyStateSkeleton";
+import type { PostedActivity } from "@/hooks/useActivityData";
 
 /**
  * ONE loading silhouette for My Jobs / My Posts, shared by the route fallback
@@ -29,6 +31,8 @@ import { defaultStatusFilterFor } from "@/components/job-card/activityConstants"
  */
 export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
   const isWebDesktop = useIsWebDesktop();
+  // Data-aware (Q722): how many posts the cache already knows about. 0 = cold.
+  const cachedPosts = useCachedListCount<PostedActivity>(["activity", "posted"], (d) => d.postedJobs?.length ?? 0);
   /* The phone tab row opens FOLDED on the default filter and OPEN on any
      other `?filter=` (owner, 2026-09-25: "open with the chevrons
      collapsed"). The placeholder reserves the row exactly when the loaded
@@ -130,11 +134,24 @@ export function ActivityPageSkeleton({ tab }: { tab: "applied" | "posted" }) {
           pitch was 2px short per row and the list crept upward as it went:
           measured at 375, placeholder card 4 landed 13px above the real one.
           A gap is part of the reservation. */}
-      <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-list" aria-hidden>
-        {tab === "applied"
-          ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
-          : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
-      </div>
+      {/* My Posts on a COLD visit (no posted list in the query cache) draws
+          the empty state's outline, in the same `flex-1 min-h-0` box with the
+          same `flex-1 min-h-full flex` holder JobListPage and
+          ActivityEmptyState give the real one (owner decision 2026-10-05,
+          Q722; see EmptyStateSkeleton). A warm visit keeps the cards. */}
+      {tab === "posted" && cachedPosts === 0 ? (
+        <div className="flex-1 min-h-0 pb-0 flex flex-col">
+          <div className="flex-1 min-h-full flex">
+            <EmptyStateSkeleton testId="posts-empty-skeleton" />
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 px-4 pt-3 pb-0 space-y-list" aria-hidden>
+          {tab === "applied"
+            ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
+            : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
+        </div>
+      )}
     </PageScaffold>
   );
 }

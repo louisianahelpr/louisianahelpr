@@ -21,9 +21,8 @@ import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { AnalyticsUnavailable } from "@/components/admin/adminAnalytics/AnalyticsUnavailable";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
-import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { SectionLabel, SubscriberPieChart, RevenueLineChart, MonthlyJobsBarChart, ChartFallback } from "./adminAnalytics/analyticsLazy";
@@ -129,8 +128,7 @@ const AdminAnalytics = () => {
     queryFn: loadAnalytics,
     refetchOnWindowFocus: false,
   });
-  // Q571: a load paused offline has isLoading false and no data, which painted
-  // $0.00 money tiles and "No subscribers yet": the zeros Q1140 forbids.
+  // Q571: paused offline = isLoading false and no data ($0.00 tiles otherwise).
   const offlineEmpty = useFeedPhase({ status, fetchStatus }) === "offline-empty";
   const profiles = data?.profiles ?? [];
   const allJobs = data?.allJobs ?? [];
@@ -150,28 +148,9 @@ const AdminAnalytics = () => {
     );
   }
 
-  if (offlineEmpty) {
-    return (
-      <AdminViewShell>
-        <OfflineEmptyState
-          body="Analytics will load here as soon as you're back online. These figures did not load; they are not zero."
-          onRetry={() => void refetch()}
-        />
-      </AdminViewShell>
-    );
-  }
-
+  if (offlineEmpty) return <AnalyticsUnavailable offline onRetry={() => void refetch()} />;
   if (isError) {
-    return (
-      <AdminViewShell>
-        <ErrorState
-          variant="inline"
-          title="We couldn't load analytics."
-          body="Tap Try again. These figures did not load; they are not zero."
-          onRetry={() => refetch()}
-        />
-      </AdminViewShell>
-    );
+    return <AnalyticsUnavailable onRetry={() => void refetch()} />;
   }
 
   // ─── Computed metrics ───

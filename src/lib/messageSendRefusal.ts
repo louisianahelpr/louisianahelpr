@@ -27,9 +27,9 @@ export interface SendRefusal {
 }
 
 /** Raised by public.enforce_message_rate (P0001). */
-export const RATE_LIMIT_RAISE = /You are sending messages too quickly/i;
+const RATE_LIMIT_RAISE = /You are sending messages too quickly/i;
 
-export const RATE_LIMITED_TOAST =
+const RATE_LIMITED_TOAST =
   "You've hit the hourly message limit. Wait a little while, then tap the message to try again.";
 
 const RULES: { kind: SendRefusalKind; match: (msg: string) => boolean; retryable: boolean; toast: string }[] = [

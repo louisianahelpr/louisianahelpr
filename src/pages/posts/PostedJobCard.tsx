@@ -25,7 +25,6 @@ import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
-import { crewIsBooked } from "./postedJobCard/crewBooked";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -98,8 +97,7 @@ function PostedJobCardInner({
   const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
-  const hasDescription =
-    job.description.trim().toLowerCase() !== job.title.trim().toLowerCase();
+  const hasDescription = job.description.trim().toLowerCase() !== job.title.trim().toLowerCase();
   const hasRequirements = !!job.special_requirements?.trim();
 
   // The tracking card carries the assigned helper's identity (see below), so
@@ -748,7 +746,7 @@ function PostedJobCardInner({
                 completedJobMeta={completedJobMeta}
                 onBoost={onBoost}
                 onEdit={onEdit}
-                crewBooked={crewIsBooked(job, initialGroupHelpers)}
+                crewRoster={initialGroupHelpers}
                 onCancel={onCancel}
                 onComplete={onComplete}
                 completingJobId={completingJobId}

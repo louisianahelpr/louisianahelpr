@@ -3,7 +3,7 @@
   "_threshold": 600,
   "files": {
     "src/App.tsx": 727,
-    "src/components/admin/AdminAnalytics.tsx": 633,
+    "src/components/admin/AdminAnalytics.tsx": 628,
     "src/components/admin/AdminCredentialQueue.tsx": 601,
     "src/components/admin/AdminDisputes.tsx": 809,
     "src/components/admin/AdminReports.tsx": 722,
@@ -26,7 +26,7 @@
     "src/components/profile/CredentialsTab.tsx": 911,
     "src/components/profile/EarningsTab.tsx": 667,
     "src/components/profile/ScheduleTab.tsx": 854,
-    "src/components/profile/SecurityTab.tsx": 729,
+    "src/components/profile/SecurityTab.tsx": 620,
     "src/components/profile/SubscriptionTab.tsx": 885,
     "src/components/ReportDialog.tsx": 654,
     "src/components/ui/dialog.tsx": 931,
@@ -40,12 +40,12 @@
     "src/pages/jobs/AppliedJobCard.tsx": 889,
     "src/pages/post-job/PaymentSuccess.tsx": 670,
     "src/pages/posts/PostedJobCard.tsx": 829,
-    "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 850,
-    "src/pages/profile/GiftCard.tsx": 887,
+    "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 839,
+    "src/pages/profile/GiftCard.tsx": 847,
     "src/pages/profile/HelprWrapped.tsx": 610,
     "src/pages/profile/petProfiles/PetForm.tsx": 648,
     "src/pages/profile/Profile.tsx": 863,
     "src/pages/profile/WorkRecord.tsx": 751,
-    "src/pages/user/UserProfile.tsx": 843
+    "src/pages/user/UserProfile.tsx": 835
   }
 }

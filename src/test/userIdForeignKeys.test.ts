@@ -36,6 +36,8 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 // each matching purge_user_data's documented decision).
 // @two-way src/test/userIdForeignKeys.test.ts:NO_FK_BY_DESIGN lists no column that now has a FK
 const NO_FK_BY_DESIGN: Record<string, string> = {
+  "job_refund_claims.actor_user_id":
+    "server-only lock marker naming who started a refund claim (poster or admin); the row is deleted on put-back and a FK would block deleting that person's account mid-claim (Q1323)",
   "user_bans.user_id":
     "a ban outlives the account by design: purge_user_data retains it (4n) and retain_ban_on_deletion carries it forward; a FK would CASCADE it away or block the delete",
   "user_bans.banned_by":
@@ -142,7 +144,7 @@ describe("every person-id column (*user_id, *_by) has a foreign key or a stated 
   // (2026-10-04). A new
   // person column moves this; so does a scanner that stops reading a file.
   it("scans the whole person-column inventory", () => {
-    expect(all.size).toBe(66);
+    expect(all.size).toBe(67); // +job_refund_claims.actor_user_id (Q1323, 2026-10-05)
   });
   it("sees the columns this class is about (parser sanity)", () => {
     for (const k of ["notification_logs.user_id", "jobs.cancelled_by", "profiles.license_reviewed_by", "payment_refunds.initiated_by_user_id", "notifications.user_id"]) {

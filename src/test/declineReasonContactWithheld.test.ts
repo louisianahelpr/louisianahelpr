@@ -28,6 +28,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 
 const MIG = join(process.cwd(), "supabase/migrations");
 const all = migrationFiles(MIG).map((f) => blankSqlComments(readFileSync(join(MIG, f), "utf8")));
+// @two-way src/test/declineReasonContactWithheld.test.ts:stale EXEMPT column
 const EXEMPT = new Set(["status", "attachment_urls"]);
 
 /** Columns of the newest `GRANT UPDATE (cols) ON public.applications TO authenticated`. */
@@ -76,5 +77,13 @@ describe("Q1285: applications' client-writable free text is scanned", () => {
     const branch = body.search(/IF v_dir = 'decline' THEN IF public\.contact_leak_reason\(NEW\.decline_reason\) IS NOT NULL THEN NEW\.decline_reason := NULL; END IF; RETURN NEW; END IF;/);
     expect(branch, "the decline branch is missing").toBeGreaterThan(-1);
     expect(body.indexOf("NEW.flagged_hidden")).toBeGreaterThan(branch);
+  });
+});
+
+describe("declineReasonContactWithheld EXEMPT list", () => {
+  it("has no stale entry: every exempt column is still client-updatable on applications", () => {
+    const cols = new Set(clientUpdatableColumns());
+    const stale = [...EXEMPT].filter((c) => !cols.has(c));
+    expect(stale, `stale EXEMPT column ${stale.join(", ")}: remove it`).toEqual([]);
   });
 });

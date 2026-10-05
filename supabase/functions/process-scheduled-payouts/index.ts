@@ -552,7 +552,10 @@ serve(async (req) => {
       // ── The rest of the charge goes back PRO-RATA (owner, MQ31(C), 2026-09-27) ──
       // The poster's service fee and sales tax come back in proportion to the
       // unpaid share of the BUDGET (the fee is a % of the budget and only the
-      // budget line is taxed; the urgent tip carries neither). The one-time
+      // budget line is taxed). Since Q362 customer_fee_amount also holds the
+      // urgent bonus's card fee; it is pro-rated the same way, by the budget
+      // share, which can differ from the bonus's slot share by a few cents
+      // (refunded plus kept is still the charge, to the cent). The one-time
       // onboarding fee is a per-account charge, not this job's, and is kept.
       // When the Stripe-cost floor set the fee, the pro-rata includes part of
       // that floor; Stripe keeps its processing fee on a refund, so the

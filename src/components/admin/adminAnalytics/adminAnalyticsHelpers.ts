@@ -225,8 +225,8 @@ export const computeMetrics = (
   // Kept for callers that do not pass the ledger — visible next to the reason
   // it is wrong, rather than deleted.
   // ONE take-home formula (helperEarnings.ts, Q765): roster split, the stamped
-  // fee on a released row, the urgent bonus net of its Stripe cost split like
-  // the budget (#114). Fallback percent = the row's own stamped rate.
+  // fee on a released row, the whole urgent bonus (Q362) split like the
+  // budget (#114). Fallback percent = the row's own stamped rate.
   const derivedHelperPayouts = completedJobs.reduce(
     (s, j) => s + helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent)),
     0,

@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 25 | 24 | agree |
 | Overlay surfaces | 152 | 130 | agree within method (script counts every menu instance) |
 | Forms | 41 | ~38 | agree |
-| Confirmed multi-step flows | 19 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 20 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -279,6 +279,7 @@ dismissible, and correct in every state.
 | `src/pages/admin/Admin.tsx` | 1 | BrandConfirmDialog |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | 1 | BrandConfirmDialog |
 | `src/pages/jobs/appliedJobCard/ConfirmedSection.tsx` | 1 | BrandConfirmDialog |
+| `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | 1 | BrandConfirmDialog |
 | `src/pages/jobs/appliedJobCard/DisputedSection.tsx` | 1 | BrandConfirmDialog |
 | `src/pages/jobs/appliedJobCard/OfferedActions.tsx` | 1 | BrandConfirmDialog |
 | `src/pages/jobs/AppliedJobsTab.tsx` | 1 | Sheet |
@@ -327,6 +328,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/auth/signup/SignupStep1.tsx` | compare |
 | `src/pages/home/DashboardGuest.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
+| `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |
 | `src/pages/jobs/JobDetail.tsx` | compare |
 | `src/pages/post-job/EntryChoice.tsx` | nav-handler, union-state |

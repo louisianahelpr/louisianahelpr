@@ -13,8 +13,8 @@
       "toast.error": 456,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 26,
-      "toast.warning": 21
+      "toast.success": 28,
+      "toast.warning": 22
     },
     "copyPiecesByForm": {
       "literal": 309,
@@ -66,7 +66,7 @@
     },
     {
       "file": "src/components/BrowseMap.tsx",
-      "line": 859,
+      "line": 821,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -79,7 +79,7 @@
     },
     {
       "file": "src/components/BrowseMap.tsx",
-      "line": 873,
+      "line": 835,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -362,7 +362,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 89,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -373,6 +373,26 @@
     {
       "file": "src/components/GroupJobHelpers.tsx",
       "line": 176,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "${h.helperName || \"Your Helpr\"} is confirmed on site."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 186,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy ?? \"Couldn't confirm that arrival. Please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 233,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2851,7 +2871,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 504,
+      "line": 420,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4681,27 +4701,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 204,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Your job is boosted — it's at the top of the feed for the next 24 hours."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/home/Dashboard.tsx",
-      "line": 208,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Boost cancelled — your job is still posted, just not boosted."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/home/Dashboard.tsx",
-      "line": 364,
+      "line": 336,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4711,7 +4711,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 816,
+      "line": 789,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4805,7 +4805,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 374,
+      "line": 386,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -4819,7 +4819,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 381,
+      "line": 393,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4829,11 +4829,51 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 450,
+      "line": 462,
       "kind": "toast.loading",
       "title": {
         "form": "literal",
         "text": "Sending your application…"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 48,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't confirm this boost. Check the job in My Posts."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "That boost belongs to a different account."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 56,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Your job is boosted — it's at the top of the feed for the next 24 hours."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/home/useBoostReturn.ts",
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Boost cancelled — your job is still posted, just not boosted."
       },
       "renders": true
     },
@@ -5104,6 +5144,76 @@
               {
                 "form": "literal",
                 "text": "Job cancelled. This counts as a reliability strike."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
+      "line": 149,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
+      "line": 160,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy ?? fallback"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
+      "line": 202,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy ?? \"We couldn't take you off this job. Please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx",
+      "line": 212,
+      "kind": "toast.warning",
+      "title": {
+        "form": "dynamic",
+        "text": "action === \"temp_ban\" ? \"You're off this crew. Third strike: your account is suspended for 7 days.\" : action === \"warning\" ? \"You're off this crew. Final warning: one more strike is a 7-day suspension.\" : action && action !== \"none\" ? \"You're off this crew. This counts as a reliability strike.\" : \"You're off this crew.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "You're off this crew. Third strike: your account is suspended for 7 days."
+          },
+          {
+            "form": "dynamic",
+            "text": "action === \"warning\" ? \"You're off this crew. Final warning: one more strike is a 7-day suspension.\" : action && action !== \"none\" ? \"You're off this crew. This counts as a reliability strike.\" : \"You're off this crew.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "You're off this crew. Final warning: one more strike is a 7-day suspension."
+              },
+              {
+                "form": "dynamic",
+                "text": "action && action !== \"none\" ? \"You're off this crew. This counts as a reliability strike.\" : \"You're off this crew.\"",
+                "branches": [
+                  {
+                    "form": "literal",
+                    "text": "You're off this crew. This counts as a reliability strike."
+                  },
+                  {
+                    "form": "literal",
+                    "text": "You're off this crew."
+                  }
+                ]
               }
             ]
           }

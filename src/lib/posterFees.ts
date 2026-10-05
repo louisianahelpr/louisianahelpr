@@ -44,11 +44,16 @@ export function posterFeePercentForTier(
  * @param budgetCents        job budget in cents
  * @param feePercent         the poster's resolved tier fee percent (12/11/10/9/8)
  * @param otherChargeCents   sum of every OTHER charged line item, in cents
+ * @param prepaidCostCents   card cost already collected by another line (Q362:
+ *                           the urgent bonus's own card fee). Included in
+ *                           `otherChargeCents` too; the floor is lowered by it
+ *                           so the poster never pays the same card cost twice.
  */
 export function posterServiceFeeCents(
   budgetCents: number,
   feePercent: number,
   otherChargeCents = 0,
+  prepaidCostCents = 0,
 ): number {
   const tierFeeCents = Math.round((budgetCents * feePercent) / 100);
   // The floor must cover Stripe's cost on the WHOLE charge, and the fee itself
@@ -62,5 +67,15 @@ export function posterServiceFeeCents(
   const base = budgetCents + otherChargeCents;
   let floorCents = base > 0 ? Math.ceil((base * STRIPE_PCT + STRIPE_FLAT_CENTS) / (1 - STRIPE_PCT)) : 0;
   while (floorCents > 0 && floorCents < stripeProcessingCostCents(base + floorCents)) floorCents++;
+  // Q362: a line that already pays its own card cost (the urgent bonus card
+  // fee) covers that part of the floor. The fixed point is re-solved with it:
+  // the smallest fee with `fee + prepaid >= stripeCost(base + fee)`, so the
+  // platform stays covered and the bonus's card cost is never charged twice.
+  const prepaid = Math.max(0, prepaidCostCents);
+  if (prepaid > 0 && floorCents > 0) {
+    floorCents = Math.max(0, floorCents - prepaid);
+    while (floorCents > 0 && floorCents - 1 + prepaid >= stripeProcessingCostCents(base + floorCents - 1)) floorCents--;
+    while (floorCents + prepaid < stripeProcessingCostCents(base + floorCents)) floorCents++;
+  }
   return Math.max(tierFeeCents, floorCents);
 }

@@ -26,8 +26,9 @@ const TIER_FALLBACK_PCT = 20;
 
 // $20 urgent fee nets $19.42 to the helper ($20 − its own bundled 2.9% Stripe
 // cost). $30 nets $29.13.
-const NET_URGENT_20 = 19.42;
-const NET_URGENT_30 = 29.13;
+// Q362 / CC-003: the Helpr receives the WHOLE urgent bonus (the poster pays its card fee on top).
+const NET_URGENT_20 = 20;
+const NET_URGENT_30 = 30;
 
 describe("helperPlatformFeeDollars — fee precedence", () => {
   it("uses the stamped platform_fee_amount over the frozen % and the tier rate", () => {
@@ -70,13 +71,13 @@ describe("helperPlatformFeeDollars — fee precedence", () => {
 });
 
 describe("helperTakeHomeDollars — budget − fee + net urgent", () => {
-  it("nets the urgent bonus of its own bundled Stripe cost", () => {
+  it("adds the WHOLE urgent bonus (Q362: the poster pays its card fee on top)", () => {
     const job: HelperEarningsJob = {
       budget: 100,
       helper_fee_percent: 10,
       urgent_fee: 20,
     };
-    // 100 − 10 + 19.42 (NOT the gross $20 — the edge transfers the net),
+    // 100 − 10 + 20 (the whole bonus; the edge transfers all of it),
     // floored to the whole dollar the transfer pays (Q236).
     expect(helperTakeHomeDollars(job, TIER_FALLBACK_PCT)).toBe(Math.floor(90 + NET_URGENT_20));
   });
@@ -111,7 +112,7 @@ describe("group jobs — the budget is split across the roster", () => {
     expect(helperTakeHomeDollars(job, TIER_FALLBACK_PCT)).toBe(88);
   });
 
-  it("splits the net urgent bonus across the roster too", () => {
+  it("splits the whole urgent bonus across the roster too", () => {
     const job: HelperEarningsJob = {
       budget: 300,
       helper_fee_percent: 12,

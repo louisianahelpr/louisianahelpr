@@ -114,6 +114,7 @@
     "rpc_group_member_mark_arrival(uuid, numeric, numeric)": "reviewed 2026-10-05 (Q14): crew member acts on their own slot (auth.uid()); no client caller yet (group jobs blocked at launch).",
     "rpc_group_member_mark_done(uuid)": "reviewed 2026-10-05 (Q14): crew member acts on their own slot (auth.uid()); named by the invoker trigger enforce_helper_completion_gates; no client caller yet.",
     "rpc_group_member_on_the_way(uuid, double precision, double precision)": "reviewed 2026-10-05 (Q14): crew member acts on their own slot (auth.uid()); no client caller yet (group jobs blocked at launch).",
+    "rpc_clear_test_mode_dispute_stamp(uuid, text, text)": "reviewed 2026-10-05 (Q1280): admin-only (has_role check inside, not a party), compare-and-set on the named stamp, audit-logged; the hand path out of a test-mode dispute stamp; no client caller yet.",
     "rpc_group_member_set_proof(uuid, text[], text[])": "client",
     "rpc_helper_mark_done(uuid)": "client",
     "rpc_open_dispute(uuid, text, text[])": "client",

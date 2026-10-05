@@ -370,23 +370,17 @@ serve(async (req) => {
     };
 
     /**
-     * Which requirement set the Account Link should collect.
-     *
-     * DEFAULT `currently_due` — the minimum Stripe needs to start paying out.
-     *
-     * `eventually_due` is requested by the acceptance gate's "finish
-     * verification" CTA, and it is not a nicety. The identity verdict
-     * (_shared/stripeIdentity.ts) is only TRUE when NOTHING identity-shaped is
-     * outstanding in ANY bucket — `eventually_due` and `future_requirements`
-     * included. A `currently_due`-only link therefore cannot clear that gate:
-     * the helper completes Stripe's flow, comes back, and is still blocked,
-     * forever. Collecting `eventually_due` is what makes the blocked state
-     * escapable, so the two must stay in step.
+     * Which requirement set every Account Link collects: ALWAYS `eventually_due`
+     * with future requirements. The identity verdict (_shared/stripeIdentity.ts)
+     * is only TRUE when nothing identity-shaped is outstanding in ANY bucket, so
+     * a `currently_due` link left Helprs who "finished" setup still blocked from
+     * accepting (seen live 2026-10-05: ssn_last_4 eventually_due).
      */
-    const collectionOptions = (collect?: string) =>
-      collect === "eventually_due"
-        ? { fields: "eventually_due" as const, future_requirements: "include" as const }
-        : { fields: "currently_due" as const, future_requirements: "omit" as const };
+    // Owner, 2026-10-05: Stripe setup collects EVERYTHING up front, SSN last 4
+    // included, so a Helpr who finishes setup can apply and accept at once.
+    // `collect` is kept for old app builds and ignored.
+    const collectionOptions = (_collect?: string) =>
+      ({ fields: "eventually_due" as const, future_requirements: "include" as const });
 
     // ─── ONBOARD: Create account + return Account Link URL ───
     if (action === "onboard") {
@@ -672,10 +666,7 @@ serve(async (req) => {
           refresh_url: safeReturnUrl(return_url),
           return_url: safeReturnUrl(return_url),
           type: "account_onboarding",
-          collection_options: {
-            fields: "currently_due",
-            future_requirements: "omit",
-          },
+          collection_options: collectionOptions(),
         });
         return new Response(JSON.stringify({ url: accountLink.url }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -816,10 +807,7 @@ serve(async (req) => {
         refresh_url: safeReturnUrl(return_url),
         return_url: safeReturnUrl(return_url),
         type: "account_onboarding",
-        collection_options: {
-          fields: "currently_due",
-          future_requirements: "omit",
-        },
+        collection_options: collectionOptions(),
       });
 
       return new Response(JSON.stringify({ success: true, url: accountLink.url, account_id: accountId }), {

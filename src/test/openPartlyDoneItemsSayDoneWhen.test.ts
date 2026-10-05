@@ -35,7 +35,8 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 27 on 2026-10-05 (crews lane): Q780 reviewed; what is left waits on Q1382 (the crew member UI) and its screenshots, which no marker kind can read.
 // 28 with both lanes landed together (money Q362 + crews Q707/Q780).
 // 29 on 2026-10-05 (lead): Q1385 waits on a live check by a second account after deploy; no marker kind reads that.
-const MARKERLESS_PARTLY_DONE = 29;
+// 28 on 2026-10-05 (lead tick): Q1385 left the markerless set when it was verified live.
+const MARKERLESS_PARTLY_DONE = 28;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

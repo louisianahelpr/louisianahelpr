@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T17:21Z",
+  "measured_at": "2026-10-05T17:45Z",
   "issues": {
     "readable": true,
     "open": [
@@ -18,20 +18,17 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red"
+      },
+      {
+        "number": 2353,
+        "title": "nightly-red: press-every-control",
+        "label": "nightly-red"
       }
     ]
   },
   "ledger": {
     "readable": true,
     "open": [
-      {
-        "fingerprint": "aa5ca08c879601e26d29a62f667098b4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http timeout: arrival-confirm-reminder returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
-        "issue": null
-      },
       {
         "fingerprint": "16e6e91f67011cbc4ce5a0fe4bb9ea11",
         "source_kind": "nightly_red",
@@ -86,6 +83,7 @@
     "issue #2198": "Q787",
     "issue #2244": "Q1275",
     "issue #2245": "Q785",
+    "issue #2353": "Q1374",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
     "ledger 6205197429d4": "Q593",

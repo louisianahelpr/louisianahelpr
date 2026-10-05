@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 251** (217 to do, 34 fixed with protection pending; 832 done). Feeds mirrored in: 7 from the alert ledger, 4 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 251** (218 to do, 33 fixed with protection pending; 833 done). Feeds mirrored in: 6 from the alert ledger, 5 from nightly-red issues, 3 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 8 red, 10 stale, 0 unknown, 52 green of 70 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-04T22:21Z)_
 - **Remote branches:** 14 carry patches not on main, 0 fully merged, of 15 (Q79). _(2026-10-04T22:21Z)_
@@ -53,7 +53,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1083 items — 832 done, 34 partly done (fixed, protection pending), 217 open.**
+**Queue: 1084 items — 833 done, 33 partly done (fixed, protection pending), 218 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -663,7 +663,7 @@ Each item mirrors one open source; its `feed:` tag is sticky (never edit it) and
 - [ ] **Q1134 MEDIUM guest marketplace is empty: no funded jobs (pre-launch).** Mirrored 2026-10-03 from alert-ledger row 0e88968519a2 (workflow: uptime; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 0e88968519a2. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '0e88968519a2dacc4d7e6d4201fc2534'` => closed
 - [ ] **Q1275 MEDIUM nightly-red: nightly-red-age is red.** Mirrored 2026-10-04 from nightly-red issue #2244 and alert-ledger row ab6fdbe8c882 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2244 · feed: ledger ab6fdbe8c882. done-when: issue #2244 closed, done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'ab6fdbe8c882e8ae266ab1285b4c01c6'` => closed
 - [~] **Q1310 MEDIUM quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit.** Mirrored 2026-10-05 from alert-ledger row b75d265e6201 (workflow: quota-monitor; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger b75d265e6201. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'b75d265e62012a472e62221e79c5ce28'` => closed **STATUS 2026-10-05 (alerts lane): same source as Q379** (this fingerprint is ledger row d2df1e5e, first seen 2026-09-26; Q379 tracks the cause). Re-measured from quota-monitor run 37253732780 (2026-10-05 02:01Z): 645 replays this usage period (51 accepted, 594 dropped by quota), usage period since 2026-09-06; last 7 days 1, newest day with any 2026-10-02. The burst that filled the quota was the automated browsers Q275 (b59b7445d) already stopped. The figure is cumulative for the period, so the item closes on the first quota-monitor run after the period resets (expected 2026-10-06 from the monitor's own period start, not read from Sentry billing). Nothing else to fix; re-check after 10-06.
-- [~] **Q1373 MEDIUM cron http timeout: arrival-confirm-reminder returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time:….** Mirrored 2026-10-05 from alert-ledger row aa5ca08c8796 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger aa5ca08c8796. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'aa5ca08c879601e26d29a62f667098b4'` => closed ROOT CAUSE (measured 2026-10-05): the 12:24Z run took 60,446ms and answered a clean 200 (function_edge_logs); the API gateway logged no request from it 12:24:00-12:25:04 and the 12:14Z run took 341ms, so the time went to the platform, not our query (same as the 09-25 42.8s stall). Only 2 timeouts at 30s since the 09-22 rewrite (the other 9 were the old 5s default). FIX: 20261005171624 raises all 25 HTTP crons from 30s to 90s so pg_net sees the real answer; guard src/test/httpCronsDeclareATimeout.test.ts (Q1373 block, proven red). Verify live: cron.job shows 0 commands with `timeout_milliseconds := 30000`.
+- [ ] **Q1374 MEDIUM nightly-red: press-every-control is red.** Mirrored 2026-10-05 from nightly-red issue #2353 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #2353. done-when: issue #2353 closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

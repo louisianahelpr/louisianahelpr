@@ -33,10 +33,11 @@
  * Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF. Test seam: LH_SUPABASE_API_BASE.
  * Wired into .github/workflows/quota-monitor.yml (job db_pool_budget).
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { failingRunRef, recordOpsAlert } from "./lib/opsAlertLedger.mjs";
 
 const env = process.env;
-const SUPA = env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
+const SUPA = apiBase(env.LH_SUPABASE_API_BASE, "https://api.supabase.com");
 const REF = env.SUPABASE_PROJECT_REF;
 const TOKEN = env.SUPABASE_ACCESS_TOKEN;
 /**

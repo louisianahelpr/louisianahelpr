@@ -12,6 +12,7 @@
  * upper bound; used to prove the check red on 42a7962cc without prod).
  * Exits non-zero on a finding (code one), or code two if it could not read prod.
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -39,7 +40,7 @@ async function appliedVersions() {
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   const ref = process.env.SUPABASE_PROJECT_REF;
   if (!token || !ref) throw new Error("SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required (or pass --offline)");
-  const res = await fetch(`${process.env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com"}/v1/projects/${ref}/database/query`, {
+  const res = await fetch(`${apiBase(process.env.LH_SUPABASE_API_BASE, "https://api.supabase.com")}/v1/projects/${ref}/database/query`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ query: "select version from supabase_migrations.schema_migrations", read_only: true }),

@@ -29,6 +29,7 @@
  * Exit status: zero when every check passes, one when a check failed, two when
  * it could not run (never reported clean).
  */
+import { apiBase } from "./lib/apiBase.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -98,7 +99,7 @@ function redirectCovered(config, url) {
 }
 
 async function mgmt(path, init = {}) {
-  const base = process.env.LH_SUPABASE_API_BASE ?? "https://api.supabase.com";
+  const base = apiBase(process.env.LH_SUPABASE_API_BASE, "https://api.supabase.com");
   const res = await fetch(`${base}/v1/projects/${process.env.SUPABASE_PROJECT_REF}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`, "Content-Type": "application/json" },

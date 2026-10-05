@@ -53,6 +53,7 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { homedir } from "node:os";
+import { isLoopbackBase } from "./lib/apiBase.mjs";
 
 // ---------------------------------------------------------------------------
 // args
@@ -315,6 +316,16 @@ writeFileSync(resolve(OUT, "queue.md"), queue.join("\n") + "\n");
 
 async function reviewOne(packet) {
   const base = process.env.REVIEW_API_BASE || "https://generativelanguage.googleapis.com/v1beta/openai";
+  // Screenshots and REVIEW_API_KEY go to this host: https only, or a loopback stub.
+  if (!/^https:\/\//i.test(base) && !isLoopbackBase(base)) {
+    return {
+      cellId: packet.cellId,
+      shot: packet.shot,
+      findings: [],
+      checked: [],
+      error: "REVIEW_API_BASE must be https:// (or a loopback stub); refusing to send screenshots and REVIEW_API_KEY over plain http",
+    };
+  }
   const model = process.env.REVIEW_MODEL || "gemini-3.6-flash";
   const key = process.env.REVIEW_API_KEY;
 

@@ -29,10 +29,18 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |     JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n  ),\n  -- Timing | WHERE false\n  ),\n  -- Timing
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id AND p.status = 'paid' |       WHERE false
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
 const root = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(root, "supabase/migrations");
 const THIS = "20260927012241_group_crew_reminders_and_counts.sql";
+/** Q731 + Q729 (2026-10-05): the last helper_id-only readers a crew needs. */
+const CREW_COUNTS = "20261005171601_crew_counts_exports_and_ban_alert.sql";
 const EFFECTIVE = effectiveDefs(MIGRATIONS);
 const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "");
 
@@ -45,11 +53,6 @@ const NOT_FOR_A_CREW: Record<string, string> = {
     "a single Helpr's offer deadline; a crew member has none (accept_group_application writes no response_deadline). Whether an unconfirmed crew member's slot should expire is an owner question (Q728), since Q407(13) counts an offered member as hired",
   get_payout_batch_job_ids: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
   get_payout_batches: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
-  get_helper_earnings_export:
-    "NOT YET BUILT (Q728 follow-up): the earnings export reads jobs.helper_id, so a crew member's earnings (payout_transfers per member) are missing from it",
-  get_helper_tiers:
-    "NOT YET BUILT (Q728 follow-up): the admin tier list (20260926034718) counts completed_jobs and lists Helprs through jobs.helper_id only, so a crew-only Helpr is missing and a crew member's crew jobs are uncounted",
-  get_neighbor_hire_count:"NOT YET BUILT (Q728 follow-up): the 'hired by N neighbours' signal counts single-helper jobs only",
 };
 
 describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
@@ -61,7 +64,7 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       })
       .map(([n]) => n)
       .sort();
-    expect(found.length).toBeGreaterThan(3);
+    expect(found.length).toBeGreaterThan(2);
     expect(found, "an unclassified helper_id-only cron or count: give a crew its roster version, or classify it").toEqual(
       Object.keys(NOT_FOR_A_CREW).sort(),
     );
@@ -74,7 +77,34 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       const b = body(fn);
       expect(b, `${fn} is gone`).not.toHaveLength(0);
       expect(b, `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);
-      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q728 definition`).toBe(THIS);
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q728 (or Q731) definition`).toBe(fn === "get_public_profile_stats" ? CREW_COUNTS : THIS);
+    }
+    for (const fn of ["get_helper_earnings_export", "get_helper_tiers", "get_neighbor_hire_count", "settle_one_off_jobs_for_banned_account"]) {
+      expect(body(fn), `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q731/Q729 definition`).toBe(CREW_COUNTS);
+    }
+  });
+
+  it("Q731/Q729: the profile timing and repeat figures, the export, tiers, neighbours and a ban all reach a crew member", () => {
+    const stats = body("get_public_profile_stats");
+    // One `worked` set, single jobs UNION the member's crew jobs with their own
+    // roster arrival; timing and repeat-client both read only it.
+    expect(stats).toMatch(/worked AS \([\s\S]*JOIN public\.jobs j ON j\.helper_id = t\.user_id AND j\.status = 'completed'\s+UNION ALL[\s\S]*g\.helper_arrived_at[\s\S]*JOIN public\.group_job_helpers g ON g\.helper_id = t\.user_id\s+JOIN public\.jobs j ON j\.id = g\.job_id AND j\.is_group_job IS TRUE AND j\.status = 'completed'/);
+    const timing = stats.slice(stats.indexOf("timing AS ("), stats.indexOf("timing_agg AS ("));
+    const repeat = stats.slice(stats.indexOf("repeat_clients AS ("), stats.indexOf("repeat_agg AS ("));
+    for (const [name, cte] of [["timing", timing], ["repeat_clients", repeat]] as const) {
+      expect(cte, `${name} reads jobs.helper_id again, so crews drop out`).toMatch(/FROM worked w/);
+      expect(cte, `${name} reads jobs.helper_id again, so crews drop out`).not.toMatch(/helper_id/);
+    }
+    expect(body("get_neighbor_hire_count")).toMatch(/OR \(j\.is_group_job IS TRUE AND EXISTS \(\s*SELECT 1 FROM public\.group_job_helpers g WHERE g\.job_id = j\.id AND g\.helper_id = p_helper_id\)\)/);
+    expect(body("get_helper_tiers")).toMatch(/LEFT JOIN public\.jobs j\s+ON j\.helper_id = p\.user_id\s+OR \(j\.is_group_job IS TRUE AND EXISTS \(\s*SELECT 1 FROM public\.group_job_helpers g WHERE g\.job_id = j\.id AND g\.helper_id = p\.user_id\)\)/);
+    expect(body("get_helper_tiers")).toMatch(/OR EXISTS \(SELECT 1 FROM public\.group_job_helpers gg WHERE gg\.helper_id = p\.user_id\)/);
+    expect(body("get_helper_earnings_export")).toMatch(/WHERE p\.job_id = j\.id AND p\.helper_id = g\.helper_id AND p\.status = 'paid'[\s\S]*WHERE g\.helper_id = _helper_id/);
+    expect(body("settle_one_off_jobs_for_banned_account")).toMatch(/OR \(j\.is_group_job IS TRUE\s+AND j\.status::text IN \('completed', 'cancelled'\)\s+AND j\.payment_status IN \('escrow', 'payout_pending'\)\s+AND EXISTS \(SELECT 1 FROM public\.group_job_helpers g\s+WHERE g\.job_id = j\.id AND g\.helper_id = p_user\)/);
+    const proof = readFileSync(resolve(root, "src/test/pglite/crewCountsAndBanAlert.pglite.mjs"), "utf8");
+    expect(proof).toContain("effectiveDefs(DIR, { before: THIS })");
+    for (const c of ["C1 a crew member's on-time", "C2 a crew member's paid shares", "C3 a crew-only Helpr", "C4 'hired by N neighbours'", "C5 a crew member banned", "RED as expected"]) {
+      expect(proof).toContain(c);
     }
   });
 

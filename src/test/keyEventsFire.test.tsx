@@ -80,7 +80,9 @@ const h = vi.hoisted(() => {
   const supabase = {
     auth: {
       getUser: async () => ({ data: { user: { id: USER_ID } }, error: null }),
-      getSession: async () => ({ data: { session: null }, error: null }),
+      // PaymentSuccess compares the session user with jobs.customer_id: only the
+      // job's poster is counted as having paid (Q1385/Q1386b).
+      getSession: async () => ({ data: { session: { user: { id: USER_ID } } }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       signUp: async () => {
         state.signUpCalls += 1;
@@ -290,11 +292,13 @@ async function driveJobAccepted(): Promise<string> {
   return "job-accepted-1";
 }
 
+const PAYMENT_JOB = "30000000-0000-4000-8000-0000000000cc"; // a UUID: PaymentSuccess ignores a malformed job_id (Q305)
+
 async function drivePaymentMade(): Promise<string> {
-  const JOB = "30000000-0000-4000-8000-0000000000cc"; // a UUID: PaymentSuccess ignores a malformed job_id (Q305)
+  const JOB = PAYMENT_JOB;
   h.state.fromHandler = (c, t) =>
     c.table === "jobs" && t === "maybeSingle"
-      ? { data: { budget: 120, category: "cleaning", payment_status: "escrow" }, error: null }
+      ? { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: h.USER_ID }, error: null }
       : undefined;
   render(
     <MemoryRouter initialEntries={[`/payment-success?job_id=${JOB}`]}>
@@ -405,6 +409,25 @@ describe("every KEY analytics event fires from its real code path (Q72)", () => 
       await expectSent(event, jobId);
     }, 15_000);
   }
+});
+
+describe("payment_made counts only the job's poster (Q1385/Q1386b)", () => {
+  it("a different account opening the payment-success link emits no payment_made", async () => {
+    h.state.fromHandler = (c, t) =>
+      c.table === "jobs" && t === "maybeSingle"
+        ? { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: "99999999-0000-4000-8000-00000000dead" }, error: null }
+        : undefined;
+    render(
+      <MemoryRouter initialEntries={[`/payment-success?job_id=${PAYMENT_JOB}`]}>
+        <PaymentSuccess />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { level: 1, name: /belongs to a different account/i });
+    flushAnalytics();
+    await new Promise((r) => setTimeout(r, 30));
+    flushAnalytics();
+    expect(rowsFor("payment_made")).toEqual([]);
+  });
 });
 
 describe("job_completed counts a completion once", () => {

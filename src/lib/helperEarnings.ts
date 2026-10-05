@@ -23,8 +23,8 @@
 //     helper is actually paid by N×, which is why the split is unconditional
 //     here rather than an opt-in.
 //
-// The urgent bonus passes through to the helper net of its own bundled Stripe
-// processing cost (`netUrgentFeeDollars`), so the figure shown equals the
+// The urgent bonus passes through to the helper WHOLE (`netUrgentFeeDollars`;
+// Q362: the poster pays its card fee on top), so the figure shown equals the
 // amount the edge transfers.
 //
 // Callers supply `feeFallbackPercent` themselves — it is the helper's

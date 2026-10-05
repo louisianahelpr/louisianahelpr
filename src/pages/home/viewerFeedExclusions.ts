@@ -30,6 +30,13 @@
 //
 // Adding a new cull? Add a field here and the guard will tell you, by name,
 // which of the three surfaces you have not taught about it.
+//
+// SAME SET, SAME MOMENT (2026-10-05, the B1 report again: "1 job", a map pin,
+// "Nothing today"). Every surface honoured `appliedJobIds`, but the list
+// applied it inside useDashboardData's queryFn, frozen into the cached and
+// persisted page, while the count and the map read the live set; a reload
+// paired that page with an older context. Each surface now reads THIS object
+// at render. src/test/homeSurfacesReadOneLiveExclusionSet.test.tsx holds it.
 
 /**
  * Every cull that depends on WHO IS LOOKING rather than on the job row.

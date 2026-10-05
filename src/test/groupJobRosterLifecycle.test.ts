@@ -39,7 +39,7 @@ import { readdirSync } from "./helpers/trackedFiles";
  */
 
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
-// @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql |     'helper_completed_at',\n    'poster_confirmed_completion_at', |     'poster_confirmed_completion_at',
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'helper_completed_at',\n    'poster_confirmed_completion_at', |     'poster_confirmed_completion_at',
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql | REVOKE INSERT, UPDATE, DELETE ON public.group_job_helpers FROM PUBLIC, anon; | REVOKE INSERT ON public.group_job_helpers FROM PUBLIC;
 // @mutate supabase/migrations/20260925140148_group_roster_departure.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
 // @mutate supabase/migrations/20260925140148_group_roster_departure.sql |   AFTER DELETE ON public.group_job_helpers |   AFTER INSERT ON public.group_job_helpers

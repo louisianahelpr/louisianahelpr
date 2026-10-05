@@ -28,6 +28,7 @@ import {
   type SupabaseScenario,
 } from "./mocks/supabase";
 import { rateLimitState, resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { urgentBonusCardFeeCents } from "../../../supabase/functions/_shared/stripeFees";
 
 const AUTH = { Authorization: "Bearer test-jwt" };
 const POSTER = { id: "poster-1", email: "poster@test.com" };
@@ -539,6 +540,43 @@ describe("create-payment edge function", () => {
         expect(params.payment_intent_data.metadata.gift_card_id).toBe("gift-1");
       });
 
+      // Q362 (lh-money-escrow review of 7b6911484, finding 1): the shortfall card
+      // charge can carry the urgent bonus, so its card fee rides on top there
+      // too (on the part of the bonus the card can carry), stamped as the fee.
+      // @mutate supabase/functions/create-payment/index.ts |         if (diffUrgentCardFeeCents > 0) { |         if (false) {
+      // @mutate supabase/functions/create-payment/index.ts |         const diffUrgentCardFeeCents = urgentBonusCardFeeCents(Math.min(giftUrgentCents, differenceCents)); |         const diffUrgentCardFeeCents = urgentBonusCardFeeCents(giftUrgentCents);
+      it("Q362: an urgent gift shortfall charges the bonus's card fee on the part the card carries", async () => {
+        for (const [urgent, diff, carried] of [[30, 4000, 3000], [250, 4000, 4000]] as const) {
+          resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+          seedGiftShortfall();
+          scenario.reads.jobs = {
+            rows: [{ id: "job-1", customer_id: POSTER.id, budget: 100, category: "cleaning", title: "Clean my house", payment_status: "unpaid", is_urgent: true, urgent_fee: urgent }],
+          };
+          scenario.rpc.redeem_gift_card = { outcome: "partial", difference_cents: diff };
+          const fn = await load();
+          const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
+          expect(res.status).toBe(200);
+          const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+          const fee = params.line_items.find(
+            (li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Urgent bonus card fee",
+          );
+          expect(fee?.price_data.unit_amount, `urgent ${urgent}`).toBe(urgentBonusCardFeeCents(carried));
+          const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
+          expect(stamp.customer_fee_amount).toBe(urgentBonusCardFeeCents(carried) / 100);
+        }
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |         const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: diffUrgentCardFeeCents / 100 }); |         const diffStamp = await stampSession(diffSession.id, {});
+      it("Q362: a non-urgent gift shortfall has no card fee line and stamps a zero fee (clearing any stale one)", async () => {
+        seedGiftShortfall();
+        const fn = await load();
+        await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
+        const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+        expect(params.line_items).toHaveLength(1);
+        const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
+        expect(stamp.customer_fee_amount).toBe(0);
+      });
+
       // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), | setup_future_usage: "off_session" as const,
       it("does not save the card when the poster did not ask", async () => {
         seedGiftShortfall();
@@ -726,6 +764,56 @@ describe("create-payment edge function", () => {
         seedUrgentJob({ is_urgent: true, urgent_fee: 0 });
         await run();
         expect(urgentLineItem()?.price_data.unit_amount).toBe(500);
+      });
+
+      // Q362 / CC-003 (owner MQ11): the Helpr gets 100% of the bonus, so the
+      // poster pays its card fee ON TOP, as its own line, stored inside
+      // customer_fee_amount with the service fee.
+      // @mutate supabase/functions/create-payment/index.ts |       if (urgentCardFeeCents > 0) { |       if (false) {
+      // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = (customerFeeCents + urgentCardFeeCents) / 100; |       const customerFeeAmount = customerFeeCents / 100;
+      it("Q362: charges the urgent bonus's card fee on top, as its own line, and stores it in customer_fee_amount", async () => {
+        seedUrgentJob({ is_urgent: true, urgent_fee: 15 });
+        await run();
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        const names = args.line_items.map((li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name);
+        const cardFee = args.line_items.find(
+          (li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Urgent bonus card fee",
+        );
+        expect(names).toContain("Urgent tip");
+        // 1500 bonus: the smallest fee with fee >= round((1500 + fee) * 2.9%) is 45.
+        expect(cardFee?.price_data.unit_amount).toBe(urgentBonusCardFeeCents(1500));
+        expect(urgentBonusCardFeeCents(1500)).toBe(45);
+        const service = args.line_items.find(
+          (li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name === "Service fee",
+        );
+        const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown>;
+        expect(stamp.customer_fee_amount).toBe((service.price_data.unit_amount + 45) / 100);
+      });
+
+      // Q362 review finding 2: when the service fee's Stripe-cost floor wins, it
+      // must not charge the bonus's card cost a second time.
+      // @mutate supabase/functions/create-payment/index.ts |         urgentFeeCents + urgentCardFeeCents + onboardingChargeCents,\n        urgentCardFeeCents,\n |         urgentFeeCents + urgentCardFeeCents + onboardingChargeCents,\n
+      it("Q362: on a small job with a big bonus the poster pays the card cost once, and the platform is covered", async () => {
+        seedUrgentJob({ budget: 20, is_urgent: true, urgent_fee: 250 });
+        await run();
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        const items = args.line_items as Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
+        const amount = (name: string) => items.find((li) => li.price_data.product_data.name === name)?.price_data.unit_amount ?? 0;
+        const total = items.reduce((s, li) => s + li.price_data.unit_amount, 0);
+        const collected = amount("Service fee") + amount("Urgent bonus card fee");
+        const stripeCost = Math.round(total * 0.029) + 30;
+        // Covered...
+        expect(collected).toBeGreaterThanOrEqual(stripeCost);
+        // ...and not twice: the old double-count overshot by the whole card fee ($7.47).
+        expect(amount("Service fee")).toBe(200); // pro tier 10% of $20; the floor no longer wins
+      });
+
+      it("Q362: a job with no urgent bonus has no urgent card fee line", async () => {
+        seedUrgentJob({ is_urgent: false, urgent_fee: 0 });
+        await run();
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        expect(args.line_items.map((li: { price_data: { product_data: { name: string } } }) => li.price_data.product_data.name))
+          .not.toContain("Urgent bonus card fee");
       });
 
       it("charges NO urgent tip when the job is not urgent, whatever the column holds", async () => {

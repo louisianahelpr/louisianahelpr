@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { blankSqlComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 /**
@@ -29,10 +29,32 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |     JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n  ),\n  -- Timing | WHERE false\n  ),\n  -- Timing
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id AND p.status = 'paid' |       WHERE false
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
+// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |       IF v_member_fee > 0 THEN |       IF false THEN
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |      SET response_deadline = CASE WHEN p_deadline IS NULL THEN NULL |      SET response_deadline = CASE WHEN true THEN NULL
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |                                   ELSE GREATEST(p_deadline, now() + interval '55 minutes') END |                                   ELSE p_deadline END
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
+// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF v_row.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.'; |   IF false THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.';
+// @mutate supabase/functions/auto-expire-jobs/index.ts |       .not("is_group_job", "is", true)\n      .lte("date_needed", tomorrow) |       .lte("date_needed", tomorrow)
 const root = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(root, "supabase/migrations");
 const THIS = "20260927012241_group_crew_reminders_and_counts.sql";
+/** Q731 + Q729 (2026-10-05): the last helper_id-only readers a crew needs. */
+const CREW_COUNTS = "20261005171601_crew_counts_exports_and_ban_alert.sql";
+/** Q729 + Q1282 (2026-10-05): a block, and an unanswered spot, reach a crew member. */
+const CREW_BLOCK = "20261005172453_crew_block_and_unanswered_spot.sql";
 const EFFECTIVE = effectiveDefs(MIGRATIONS);
 const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "");
 
@@ -41,15 +63,8 @@ const SINGLE_HELPER_SELECT =
   /\bj\.helper_id IS NOT NULL\b|\bj\.helper_id\s*=\s*(?:_user_id|p_user_id|t\.user_id|p\.user_id|ANY\s*\(\s*p_user_ids\s*\)|_helper_id|p_helper_id|u\.id|u\.user_id)\b/i;
 
 const NOT_FOR_A_CREW: Record<string, string> = {
-  expire_unanswered_offers:
-    "a single Helpr's offer deadline; a crew member has none (accept_group_application writes no response_deadline). Whether an unconfirmed crew member's slot should expire is an owner question (Q728), since Q407(13) counts an offered member as hired",
   get_payout_batch_job_ids: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
   get_payout_batches: "admin single-helper release batches (release-payout refuses a crew); a crew is paid only by process-scheduled-payouts' fan-out",
-  get_helper_earnings_export:
-    "NOT YET BUILT (Q728 follow-up): the earnings export reads jobs.helper_id, so a crew member's earnings (payout_transfers per member) are missing from it",
-  get_helper_tiers:
-    "NOT YET BUILT (Q728 follow-up): the admin tier list (20260926034718) counts completed_jobs and lists Helprs through jobs.helper_id only, so a crew-only Helpr is missing and a crew member's crew jobs are uncounted",
-  get_neighbor_hire_count:"NOT YET BUILT (Q728 follow-up): the 'hired by N neighbours' signal counts single-helper jobs only",
 };
 
 describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
@@ -61,7 +76,7 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       })
       .map(([n]) => n)
       .sort();
-    expect(found.length).toBeGreaterThan(3);
+    expect(found.length).toBeGreaterThan(1);
     expect(found, "an unclassified helper_id-only cron or count: give a crew its roster version, or classify it").toEqual(
       Object.keys(NOT_FOR_A_CREW).sort(),
     );
@@ -74,7 +89,34 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       const b = body(fn);
       expect(b, `${fn} is gone`).not.toHaveLength(0);
       expect(b, `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);
-      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q728 definition`).toBe(THIS);
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q728 (or Q731) definition`).toBe(fn === "get_public_profile_stats" ? CREW_COUNTS : THIS);
+    }
+    for (const fn of ["get_helper_earnings_export", "get_helper_tiers", "get_neighbor_hire_count", "settle_one_off_jobs_for_banned_account"]) {
+      expect(body(fn), `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q731/Q729 definition`).toBe(CREW_COUNTS);
+    }
+  });
+
+  it("Q731/Q729: the profile timing and repeat figures, the export, tiers, neighbours and a ban all reach a crew member", () => {
+    const stats = body("get_public_profile_stats");
+    // One `worked` set, single jobs UNION the member's crew jobs with their own
+    // roster arrival; timing and repeat-client both read only it.
+    expect(stats).toMatch(/worked AS \([\s\S]*JOIN public\.jobs j ON j\.helper_id = t\.user_id AND j\.status = 'completed'\s+UNION ALL[\s\S]*g\.helper_arrived_at[\s\S]*JOIN public\.group_job_helpers g ON g\.helper_id = t\.user_id\s+JOIN public\.jobs j ON j\.id = g\.job_id AND j\.is_group_job IS TRUE AND j\.status = 'completed'/);
+    const timing = stats.slice(stats.indexOf("timing AS ("), stats.indexOf("timing_agg AS ("));
+    const repeat = stats.slice(stats.indexOf("repeat_clients AS ("), stats.indexOf("repeat_agg AS ("));
+    for (const [name, cte] of [["timing", timing], ["repeat_clients", repeat]] as const) {
+      expect(cte, `${name} reads jobs.helper_id again, so crews drop out`).toMatch(/FROM worked w/);
+      expect(cte, `${name} reads jobs.helper_id again, so crews drop out`).not.toMatch(/helper_id/);
+    }
+    expect(body("get_neighbor_hire_count")).toMatch(/OR \(j\.is_group_job IS TRUE AND EXISTS \(\s*SELECT 1 FROM public\.group_job_helpers g WHERE g\.job_id = j\.id AND g\.helper_id = p_helper_id\)\)/);
+    expect(body("get_helper_tiers")).toMatch(/LEFT JOIN public\.jobs j\s+ON j\.helper_id = p\.user_id\s+OR \(j\.is_group_job IS TRUE AND EXISTS \(\s*SELECT 1 FROM public\.group_job_helpers g WHERE g\.job_id = j\.id AND g\.helper_id = p\.user_id\)\)/);
+    expect(body("get_helper_tiers")).toMatch(/OR EXISTS \(SELECT 1 FROM public\.group_job_helpers gg WHERE gg\.helper_id = p\.user_id\)/);
+    expect(body("get_helper_earnings_export")).toMatch(/WHERE p\.job_id = j\.id AND p\.helper_id = g\.helper_id AND p\.status = 'paid'[\s\S]*WHERE g\.helper_id = _helper_id/);
+    expect(body("settle_one_off_jobs_for_banned_account")).toMatch(/OR \(j\.is_group_job IS TRUE\s+AND j\.status::text IN \('completed', 'cancelled'\)\s+AND j\.payment_status IN \('escrow', 'payout_pending'\)\s+AND EXISTS \(SELECT 1 FROM public\.group_job_helpers g\s+WHERE g\.job_id = j\.id AND g\.helper_id = p_user\)/);
+    const proof = readFileSync(resolve(root, "src/test/pglite/crewCountsAndBanAlert.pglite.mjs"), "utf8");
+    expect(proof).toContain("effectiveDefs(DIR, { before: THIS })");
+    for (const c of ["C1 a crew member's on-time", "C2 a crew member's paid shares", "C3 a crew-only Helpr", "C4 'hired by N neighbours'", "C5 a crew member banned", "RED as expected"]) {
+      expect(proof).toContain(c);
     }
   });
 
@@ -107,5 +149,44 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     for (const c of ["R1 nobody on the crew", "R4 a fully confirmed crew", "R5 M1's two completed crew jobs", "A7 auto-start", "A8 M1's two crew jobs count"]) {
       expect(src).toContain(c);
     }
+  });
+
+  it("Q729/Q1282: a block takes only that member off the crew, and an unanswered spot expires", () => {
+    for (const fn of ["block_user_and_settle", "expire_unanswered_offers", "accept_group_application", "enforce_group_member_lifecycle_server_owned"]) {
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q729 definition`).toBe(CREW_BLOCK);
+    }
+    const block = body("block_user_and_settle");
+    expect(block).toMatch(/WHERE j\.is_group_job IS TRUE[\s\S]*\(j\.customer_id = v_user\s+AND g\.helper_id = p_blocked\)\s+OR \(j\.customer_id = p_blocked AND g\.helper_id = v_user\)/);
+    expect(block).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_crew\.slot_id;/);
+    // The poster's strike and the by-hand fee alert; the member's strike mirrors helper_cancel_booking.
+    expect(block).toMatch(/v_committed := public\.crew_fee_pays_unconfirmed\(\) OR v_crew\.member_confirmed_at IS NOT NULL;/);
+    expect(block).toMatch(/p_violation_type\s+=> 'cancel_with_helper'/);
+    expect(block).toMatch(/IF v_member_fee > 0 THEN[\s\S]{0,600}'Crew block: fee owed by hand'/);
+    expect(block).toMatch(/v_crew\.member_confirmed_at IS NOT NULL\s+AND public\.is_late_cancellation\(true,[\s\S]*apply_job_denial_consequence\(\s*v_user, v_crew\.id/);
+    const expire = body("expire_unanswered_offers");
+    expect(expire).toMatch(/AND g\.helper_confirmed_at IS NULL\s+AND g\.response_deadline IS NOT NULL\s+AND g\.response_deadline < now\(\)\s+LOOP/);
+    expect(expire).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_slot\.slot_id;/);
+    expect(body("accept_group_application")).toMatch(/SET response_deadline = CASE WHEN p_deadline IS NULL THEN NULL[\s\S]{0,120}WHERE job_id = v_job_id AND slot_no = v_slot;/);
+    // Review fixes (lh-authz-rls 2026-10-05): no backdated deadline, no admin flood, no unconfirmed arrival.
+    expect(body("accept_group_application")).toMatch(/GREATEST\(p_deadline, now\(\) \+ interval '55 minutes'\)/);
+    expect(block).toMatch(/WHERE r\.role = 'admin'\s+AND v_new_block;/);
+    expect(block).toMatch(/GET DIAGNOSTICS v_updated = ROW_COUNT;\s+v_new_block := v_updated > 0;/);
+    expect(EFFECTIVE.get("rpc_group_member_mark_arrival")?.file).toBe(CREW_BLOCK);
+    expect(body("rpc_group_member_mark_arrival")).toMatch(/IF v_row\.helper_confirmed_at IS NULL THEN\s+RAISE EXCEPTION 'helper_not_confirmed'/);
+    expect(body("enforce_group_member_lifecycle_server_owned")).toMatch(/'response_deadline'\s+\];[\s\S]*NEW\.response_deadline\s+:= NULL;/);
+    const proof = readFileSync(resolve(root, "src/test/pglite/crewBlockAndUnansweredSpot.pglite.mjs"), "utf8");
+    expect(proof).toContain("effectiveDefs(DIR, { before: THIS })");
+    for (const c of ["B1 poster blocks a confirmed member", "B2 the member blocks the poster", "B3 a crew past its start", "E1 a crew hire keeps", "E2 an unconfirmed member", "L1 the poster cannot move", "E1b a backdated reply deadline", "RED as expected"]) {
+      expect(proof).toContain(c);
+    }
+  });
+
+  it("auto-expire-jobs never reopens a crew for a job-level confirmation it can never have (Q780 review)", () => {
+    const src = blankComments(readFileSync(resolve(root, "supabase/functions/auto-expire-jobs/index.ts"), "utf8"));
+    const i = src.indexOf("const { data: acceptedCandidates");
+    expect(i).toBeGreaterThan(-1);
+    const query = src.slice(i, src.indexOf(";", i));
+    expect(query).toMatch(/\.is\("helper_confirmed_at", null\)/);
+    expect(query, "the stale-acceptance sweep selects crews again").toMatch(/\.not\("is_group_job", "is", true\)/);
   });
 });

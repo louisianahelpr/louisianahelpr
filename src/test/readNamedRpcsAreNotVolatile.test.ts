@@ -33,7 +33,7 @@
 // Shown able to fail: strip the STABLE promise off the LATEST declaration of a
 // read-named function and this guard must name it. (It has also failed for
 // real twice — see the header and the commit that added it.)
-// @mutate supabase/migrations/20260908024646_unsettled_dispute_blocks_payout.sql | STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id, | VOLATILE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id,
+// @mutate supabase/migrations/20261005172816_urgent_bonus_full_to_helpr_payout_batches.sql | STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id, | VOLATILE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id,
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";

@@ -542,7 +542,7 @@ describe("release-payout edge function", () => {
       );
     });
 
-    it("includes the net urgent_fee in the gross payout", async () => {
+    it("includes the whole urgent_fee in the gross payout (Q362)", async () => {
       seedPayableJob(scenario, { budget: 100, urgent_fee: 20 });
       const fn = await load();
       const res = await fn.fetch(
@@ -552,10 +552,9 @@ describe("release-payout edge function", () => {
         }),
       );
       // Untiered helper → free tier → 12%.
-      // The urgent fee nets its own bundled 2.9% Stripe cost: $20 − $0.58 =
-      // $19.42. net = (100 − 12% of 100) + 19.42 = 88 + 19.42 = $107.42,
-      // paid as $107 (Q236: whole dollars, rounded down; platform keeps 42c).
-      expect((await json(res)).amount_cents).toBe(10700);
+      // Q362: the Helpr gets the WHOLE $20 urgent bonus (the poster paid its
+      // card fee on top). net = (100 − 12% of 100) + 20 = $108 (Q236: whole dollars).
+      expect((await json(res)).amount_cents).toBe(10800);
     });
 
     it("deducts the one-time $2 onboarding fee from a helper who has not paid it", async () => {

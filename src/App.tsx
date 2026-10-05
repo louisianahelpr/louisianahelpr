@@ -40,10 +40,15 @@ const DashboardRouteSkeleton = skeletonOnDemand(() => import("@/components/Dashb
 const ActivityRouteSkeleton = skeletonOnDemand(() => import("@/components/ActivityRouteSkeleton"));
 const ProfileRouteSkeleton = skeletonOnDemand(() => import("@/components/ProfileRouteSkeleton"));
 const LoginRouteSkeleton = skeletonOnDemand(() => import("@/components/LoginRouteSkeleton"));
-// OfflineBanner statically imports WifiOff from lucide-react, which would
-// otherwise pull the entire lucide chunk onto the critical initial load path.
-// It's only ever visible when the network drops (rare), so lazy-loading is safe.
-const OfflineBanner = lazy(() => import("@/components/OfflineBanner"));
+// OfflineBanner is a STATIC import on purpose (Q1107). It used to be lazy(),
+// to keep lucide-react off the boot path, but lucide and supabase are both in
+// main's static graph anyway (measured on the 2026-10-05 build: main's closure
+// is 13 chunks including lucide-* and supabase-*), so lazy() saved nothing and
+// added a failure: the banner's chunk had to be FETCHED at the moment it is
+// needed, and on a cold offline boot that fetch is the one thing that cannot
+// succeed. src/test/offlineSurfacesAreStatic.test.ts keeps every offline
+// surface mounted here out of lazy().
+import OfflineBanner from "@/components/OfflineBanner";
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
@@ -695,7 +700,7 @@ const App = () => (
               subsequent navigations, that one consumes the value once at
               mount. */}
           <RouteMemory />
-          <Suspense fallback={null}><OfflineBanner /></Suspense>
+          <OfflineBanner />
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>

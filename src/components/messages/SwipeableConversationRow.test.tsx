@@ -28,7 +28,11 @@ describe("SwipeableConversationRow (Q1299)", () => {
 
     // The first touch of a row starts the layer.
     fireEvent.pointerDown(content);
-    await waitFor(() => expect(container.querySelector('[style*="touch-action"]')).not.toBeNull());
+    // 10 s, not waitFor's 1 s: the layer is a dynamic import of framer-motion,
+    // and under a loaded runner (land.sh's --changed run beside other lanes,
+    // 2026-10-06) its first import took longer than 1 s three runs in a row
+    // while the file passed alone. The assertion is unchanged.
+    await waitFor(() => expect(container.querySelector('[style*="touch-action"]')).not.toBeNull(), { timeout: 10_000 });
 
     // Same node, same local state: nothing remounted.
     expect(getByTestId("content")).toBe(content);

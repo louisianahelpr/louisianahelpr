@@ -33,6 +33,7 @@
 // @mutate e2e/prod-gift-card.spec.ts | async function signIn(api: APIRequestContext, email: string): Promise<Session> { | async function signIn(api: APIRequestContext, email: string): Promise<Session> {\n  await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, { data: { email } });
 // @mutate scripts/audit/pressProdSafety.mjs | session = await mintAdminSession({ email, serviceKey, supabaseUrl: supabaseUrl(), anonKey: anonKey() }); | session = (await globalThis.client.auth.signInWithPassword({ email, password: "x" })).data.session;
 // @mutate e2e/journeys/03-account.spec.ts | const fresh = await getSession(request, "helper", true); | const fresh = await getSession(request, "helper", true); void process.env.PLAYWRIGHT_HELPER_PASSWORD;
+// @mutate scripts/lib/adminSession.mjs | { type: "recovery", email }, fetchTransport); | { type: "recovery", email });
 // @mutate .github/workflows/slow-network.yml |         uses: ./.github/actions/service-role-key | uses: ./.github/actions/local-preview
 
 import { describe, it, expect } from "vitest";
@@ -174,6 +175,16 @@ describe("no test harness signs in with an anon password grant (Q1314)", () => {
 
   it("only the filed login-form specs read a shared password secret (exact, two-way)", () => {
     expect(passwordSecretReaders()).toEqual(Object.keys(TYPED_PASSWORD_LOGINS).sort());
+  });
+
+  it("the service-role generate_link call never goes through a caller's (traced) transport", () => {
+    // Playwright traces copy request headers verbatim into trace.zip, which CI
+    // uploads on failure from a PUBLIC repo (lh-authz-rls review 2026-10-06):
+    // the service-role header must only ever leave through node fetch.
+    const src = readFileSync("scripts/lib/adminSession.mjs", "utf8");
+    const call = /send\(\s*"\/auth\/v1\/admin\/generate_link"[\s\S]*?\)\s*;/.exec(src);
+    expect(call, "the generate_link call in adminSession.mjs").not.toBeNull();
+    expect(call![0]).toMatch(/,\s*fetchTransport\s*\)\s*;$/);
   });
 
   it("every job holding a shared test account has the service-role key before it signs in", () => {

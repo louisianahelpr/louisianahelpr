@@ -107,7 +107,10 @@ import { TAB_TITLES, type Tab } from "@/pages/profile/types";
 type Block = { h: number | "fill"; media?: number };
 export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   availability: [{ h: 85 }, { h: 768 }],
-  security: [{ h: 74, media: 1 }, { h: 74, media: 1 }, { h: 74, media: 1 }, { h: 360, media: 4 }],
+  // Email, password, two-factor, sign-in methods (Q446 added it after
+  // two-factor; loading-states-refresh 37408930852 caught the missing bone:
+  // 5 placeholder rows -> 6 real), active sessions.
+  security: [{ h: 74, media: 1 }, { h: 74, media: 1 }, { h: 74, media: 1 }, { h: 224, media: 1 }, { h: 360, media: 4 }],
   reviews: [{ h: 307 }],
   subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
   support: [{ h: 469 }, { h: 43 }],

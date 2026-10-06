@@ -240,7 +240,7 @@ const AUTO_RELEASE = {
   run: (c, f) =>
     c.query(
       `UPDATE public.jobs SET status = 'completed', payment_status = 'payout_pending', payout_scheduled_at = now() + interval '24 hours'
-        WHERE id = $1 AND status = 'in_progress' AND payment_status = 'escrow'`,
+        WHERE id = $1 /* RED PROOF: CAS removed */`,
       [f.job],
     ),
 };
@@ -252,9 +252,8 @@ const AUTO_RESOLVE = {
       `UPDATE public.jobs SET status = 'completed', payment_status = 'payout_pending',
               payout_scheduled_at = now() + interval '24 hours', dispute_status = 'auto_resolved',
               dispute_resolved_at = now(), dispute_reason = '[AUTO-RESOLVED] race-runner'
-        WHERE id = $1 AND status = 'disputed' AND payment_status = 'escrow' AND dispute_deadline <= now()
-          AND dispute_status IS NOT DISTINCT FROM $2 AND disputed_by IS NOT DISTINCT FROM $3`,
-      [f.job, f.disputeStatus, f.disputedBy],
+        WHERE id = $1 /* RED PROOF: CAS removed */`,
+      [f.job],
     ),
 };
 const paidOut = (s) => s.payment_status === "payout_pending" || s.status === "completed";

@@ -7,7 +7,7 @@
  * read it once and say why the person is back. A timestamp only, no account
  * data; ignored after 2 minutes.
  */
-export const ACCOUNT_CHOICE_RETRY_KEY = "helpr_account_choice_retry";
+const ACCOUNT_CHOICE_RETRY_KEY = "helpr_account_choice_retry";
 const MAX_AGE_MS = 2 * 60 * 1000;
 
 export const ACCOUNT_CHOICE_RETRY_COPY =

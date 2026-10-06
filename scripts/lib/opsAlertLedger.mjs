@@ -260,6 +260,16 @@ export function selfRecordingWorkflows(files, readScript) {
   for (const { file, text } of files) {
     const base = String(file).replace(/^.*\//, "").replace(/\.ya?ml$/, "");
     const src = String(text);
+    // A deploy workflow's `if: failure()` step that records its own item with
+    // `--fails-run` (failingRunRef: run_url + job) is self-recording too: the
+    // red job is covered by that item, so main-red-watch's nightly-red issue
+    // for the same run must not become a second item (2026-10-06, run
+    // 37503454646: functions-deploy open twice turned prod-errors red).
+    // redRunCovered still decides per run, so a red in another job is not covered.
+    if (failureStepRecorders(src).includes(`${base}.yml`)) {
+      out.add(base);
+      continue;
+    }
     // The prod-load queue job (Q1161) orders a run; it is not a check, so it neither records nor disqualifies.
     const runs = [...src.matchAll(/^\s*(?:-\s+)?run:\s*(.*)$/gm)].map((m) => m[1].trim()).filter((r) => r !== PROD_LOAD_QUEUE_STEP);
     const uses = [...src.matchAll(/^\s*(?:-\s+)?uses:\s*["']?([^"'\s#]+)/gm)].map((m) => m[1]);
@@ -271,6 +281,25 @@ export function selfRecordingWorkflows(files, readScript) {
       return typeof body === "string" && body.includes("failingRunRef(") && body.includes(`"${base}.yml"`);
     });
     if (ok) out.add(base);
+  }
+  return out;
+}
+
+/**
+ * The verify refs of every `ops-alert-ledger.mjs record ... --fails-run`
+ * invocation in a workflow's text (backslash continuations joined), e.g.
+ * ["functions-deploy.yml"]. `--fails-run` is only honest inside a step gated
+ * on `if: failure()`; src/test/opsLedgerSelfRecordingWorkflows.test.ts holds
+ * every workflow to that.
+ */
+export function failureStepRecorders(text) {
+  const joined = String(text).replace(/\\\r?\n\s*/g, " ");
+  const out = [];
+  for (const m of joined.matchAll(/^[^\n#]*ops-alert-ledger\.mjs record\b[^\n]*$/gm)) {
+    const line = m[0];
+    if (!/\s--fails-run\b/.test(line)) continue;
+    const ref = /\s--verify-ref\s+["']?([\w.-]+\.ya?ml)["']?/.exec(line)?.[1];
+    if (ref) out.push(ref);
   }
   return out;
 }

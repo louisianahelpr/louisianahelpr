@@ -10,10 +10,12 @@
  *
  *   node scripts/ops-alert-ledger.mjs record --source-kind workflow --source <name> \
  *        --title <text> --severity critical|error|warning|info [--sample <text>] \
- *        [--verify-ref <workflow file>] [--run-url <url>] [--strict]
+ *        [--verify-ref <workflow file>] [--run-url <url>] [--fails-run] [--strict]
  *       What a workflow Slack step runs next to its curl. Best-effort by default;
  *       --strict exits non-zero when the ledger does not accept the write.
  *       --source-kind nightly_red for a self-recording workflow records nothing.
+ *       --fails-run (only in an `if: failure()` step): the item covers this red
+ *       run's job, so the workflow is self-recording (failureStepRecorders).
  *
  *   node scripts/ops-alert-ledger.mjs sync
  *       Hourly, from prod-errors.yml:
@@ -49,7 +51,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, dupesThatFail, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, runningWorkflowKey, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
+import { OPEN_ITEMS_SQL, PENDING_SQL, duplicateGroups, dupesThatFail, failingRunRef, greenNightlyRunAfter, ledgerWorkflowKey, lit, newestNightlyIssueByTitle, recordOpsAlert, redRunCovered, runningWorkflowKey, selfRecordingWorkflows, sql, unreadableReason, workflowAliases } from "./lib/opsAlertLedger.mjs";
 import { missingSentryEnvIsAlert, sentryIssueToAlert, sentryIssuesUrl, sentryReadToken } from "./lib/sentryLedgerSync.mjs";
 import { CODE_SCANNING_JQ, CODE_SCANNING_SOURCE, CODE_SCANNING_TITLE, codeScanningChanged, summarizeCodeScanning } from "./lib/codeScanningLedger.mjs";
 import { ALERT_ISSUE_LABELS, ALERT_LABELS, alertWorkflowOf } from "./lib/alertIssueLabels.mjs";
@@ -172,7 +174,10 @@ async function record() {
     title,
     severity: opt("severity", "error"),
     sample: opt("sample", title),
-    sampleRef: { run_url: opt("run-url", null) },
+    // --fails-run: recorded by an `if: failure()` step of the red run itself,
+    // so the item names its run and job (failingRunRef) and covers that red
+    // (redRunCovered); without it, the item says nothing about which job failed.
+    sampleRef: flag("fails-run") ? { ...failingRunRef(), run_url: opt("run-url", null) ?? failingRunRef().run_url } : { run_url: opt("run-url", null) },
     verifyKind: opt("verify-kind", undefined),
     verifyRef: opt("verify-ref", undefined),
   });

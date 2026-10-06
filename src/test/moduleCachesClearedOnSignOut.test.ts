@@ -40,7 +40,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/components/notificationPanel/notificationFeed.ts:feeds": { kind: "keyed-by-user-id" },
   "src/components/notificationPanel/notificationFeed.ts:arrivalListeners": { kind: "not-user-data", why: "subscriber callbacks" },
   "src/components/notificationPanel/notificationFeed.ts:recoveryListeners": { kind: "not-user-data", why: "subscriber callbacks" },
-  "src/integrations/supabase/preferencesStorageAdapter.ts:cache": { kind: "not-user-data", why: "mirror of native Preferences, which sign-out clears itself" },
+  "src/integrations/supabase/keychainStorageAdapter.ts:cache": { kind: "not-user-data", why: "mirror of the native Keychain session, which sign-out removes itself (removeItem)" },
   "src/components/ScrollToTop.tsx:scrollPositions": { kind: "not-user-data", why: "scroll offsets by route" },
   "src/pages/profile/Profile.tsx:profileScrollByKey": { kind: "not-user-data", why: "scroll offsets by tab" },
   "src/components/admin/AdminHelperTiers.tsx:reportedUnknownTiers": { kind: "not-user-data", why: "report-once dedupe of tier names" },

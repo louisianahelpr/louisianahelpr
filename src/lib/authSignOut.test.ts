@@ -22,6 +22,8 @@ const removePersistedClient = vi.fn(async () => {});
 const unregisterPushOnSignOut = vi.fn(async () => {});
 const clearRememberedRoute = vi.fn();
 const order: string[] = [];
+const clearNativeSessionMirror = vi.fn(async () => {});
+vi.mock("@/integrations/supabase/keychainStorageAdapter", () => ({ clearNativeSessionMirror }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -53,6 +55,7 @@ vi.mock("@/lib/lastRoute", () => ({ clearRememberedRoute }));
 
 beforeEach(() => {
   order.length = 0;
+  clearNativeSessionMirror.mockClear();
   vi.clearAllMocks();
 });
 
@@ -113,6 +116,8 @@ describe("signOutWithPushCleanup", () => {
     await signOutWithPushCleanup();
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
     expect(spy).toHaveBeenCalled();
+    // The app's Keychain mirror too, or the next launch restores the session.
+    expect(clearNativeSessionMirror).toHaveBeenCalledTimes(1);
     spy.mockRestore();
   });
 
@@ -125,6 +130,27 @@ describe("signOutWithPushCleanup", () => {
     await expect(signOutWithPushCleanup()).resolves.toBeDefined();
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
     spy.mockRestore();
+  });
+
+  it("a Keychain delete that never settles cannot stop sign-out finishing", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers();
+    try {
+      clearNativeSessionMirror.mockImplementationOnce(() => new Promise<void>(() => { /* bridge never answers */ }));
+      signOut.mockResolvedValueOnce({ error: { name: "AuthApiError", message: "network" } as never });
+      const { signOutWithPushCleanup } = await import("./authSignOut");
+      let done = false;
+      const p = signOutWithPushCleanup().then(() => { done = true; });
+      await vi.advanceTimersByTimeAsync(1_500);
+      await p;
+      expect(done).toBe(true);
+      expect(clear).toHaveBeenCalled();
+      // ...and the miss is said out loud: the next launch may restore the session.
+      expect(spy.mock.calls.some((c) => /Keychain clear did not finish/.test(String(c[0])))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      spy.mockRestore();
+    }
   });
 
   it("leaves THIS device's session alone for scope:'others' — that sign-out is about other devices", async () => {
@@ -152,6 +178,8 @@ describe("signOutWithPushCleanup", () => {
 // fast-paths off it, and the post-sign-out navigate("/") feeds the user
 // straight back in still signed in — "i had to click log out twice".
 // @mutate src/lib/authSignOut.ts | clearPersistedAuthToken(); | void 0;
+// @mutate src/lib/authSignOut.ts |       clearNativeSessionMirror().then(() => "done" as const, () => "done" as const), |       Promise.resolve("done" as const),
+// @mutate src/lib/authSignOut.ts |     if (outcome === "capped") { |     if (false) {
 
 // "others" keeps THIS device signed in, so nothing of this device is torn down.
 // @mutate src/lib/authSignOut.ts | const { error } = await supabase.auth.signOut({ scope: "others" }); | const { error } = await signOutWithPushCleanup();

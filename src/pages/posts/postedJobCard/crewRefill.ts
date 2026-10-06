@@ -28,7 +28,7 @@ export function crewSpotRefillable(
   if (!job.is_group_job || job.status !== "accepted" || !roster) return false;
   const cutoff = jobOfferCutoff(job.date_needed, job.start_time);
   if (cutoff && cutoff.getTime() <= now.getTime() + OFFER_MIN_LEAD_MINUTES * 60_000) return false;
-  const needed = Math.max(1, Math.floor(job.helpers_needed ?? 1) || 1);
+  const needed = job.is_group_job ? Math.max(1, Math.floor(job.helpers_needed ?? 1) || 1) : 1;
   const filled = roster.length;
   return filled < needed;
 }

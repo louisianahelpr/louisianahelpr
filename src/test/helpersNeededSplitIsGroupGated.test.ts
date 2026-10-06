@@ -142,7 +142,8 @@ describe("a budget is split by helpers_needed only on a group job", () => {
     // until Q765 moved the admin pay summary and analytics payout totals onto
     // helperTakeHomeDollars). A new site or a removed one moves this number;
     // update it in the same commit.
-    expect(all.length).toBe(10);
+    // 11 since 2026-10-06: crewRefill.ts (Q1378 refill: free spots on a booked crew).
+    expect(all.length).toBe(11);
   });
 
   // Every shape the reviewer of 37ba1c1d0 showed the first extractor missed

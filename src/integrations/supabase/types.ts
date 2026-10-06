@@ -7650,7 +7650,12 @@ export type Database = {
       }
       redact_audit_snapshot: { Args: { p_row: Json }; Returns: Json }
       redeem_gift_card: {
-        Args: { p_credit_id: string; p_job_id: string; p_user_id: string }
+        Args: {
+          p_credit_id: string
+          p_job_id: string
+          p_retired_session?: string
+          p_user_id: string
+        }
         Returns: Json
       }
       refund_monthly_free_boost: {

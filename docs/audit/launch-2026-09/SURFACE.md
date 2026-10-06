@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 25 |
 | Overlay surfaces | **instance** | 153 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
-| Toast messages | **call site** | 586 (across 149 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 591 (across 150 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 20 |
-| Multi-step flows — probable | flow | 15 |
+| Multi-step flows — probable | flow | 16 |
 | Back/next navigation only | flow | 38 |
 | Forms (submittable) | form | 41 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 114 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 115 |
 | Email templates | **exported template** | 19 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **461** |
-| **Copy surfaces** (strings a person may read) | mixed | **623** |
-| **Total auditable surface** | mixed | **1084** |
+| **Navigable surfaces** (places a person can stand) | mixed | **463** |
+| **Copy surfaces** (strings a person may read) | mixed | **628** |
+| **Total auditable surface** | mixed | **1091** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -345,6 +345,7 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 
 | Component | Signals |
 |---|---|
+| `src/components/admin/AdminBanEvasionReview.tsx` | union-state |
 | `src/components/admin/AdminCredentialQueue.tsx` | union-state |
 | `src/components/admin/AdminDisputes.tsx` | union-state |
 | `src/components/admin/AdminJobs.tsx` | union-state |

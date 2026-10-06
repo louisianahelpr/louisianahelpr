@@ -54,18 +54,19 @@ concurrency:
 
 jobs:
   # 2026-10-04 (owner: "how can we get stuff to get on main faster"): the suite
-  # runs in FOUR parallel shards (~1/4 of the ~11-17 min each), and the
+  # runs in SIX parallel shards (was four; owner 2026-10-05 "how can we make this go
+  # faster": the four took 2-5 min each, so six bring the slowest near 3 min), and the
   # `Vitest unit tests` job below, the branch-protection check name, only
   # reports whether every shard passed. A shard that fails, is cancelled or is
   # skipped fails the check: it never reads as green.
   vitest-shard:
-    name: Vitest shard ${{ matrix.shard }}/4
+    name: Vitest shard ${{ matrix.shard }}/6
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
 
     steps:
       - name: Checkout
@@ -87,7 +88,7 @@ jobs:
         # `--reporter=default` keeps the GitHub Actions summary readable;
         # `--passWithNoTests` would mask "I deleted every test" bugs, so
         # we deliberately do NOT pass it.
-        run: npx vitest run --reporter=default --shard=${{ matrix.shard }}/4
+        run: npx vitest run --reporter=default --shard=${{ matrix.shard }}/6
 
   vitest:
     name: Vitest unit tests

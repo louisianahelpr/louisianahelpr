@@ -192,6 +192,40 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
     src/test/expiryMonitor.test.ts \
     src/test/componentSizeRatchet.test.ts
 
+  # FIRST-TRY PASS (owner, 2026-10-05: "how can we make this go faster"). On
+  # 2026-10-05 most landings took 2-4 GitHub rounds (~20 min each), and every
+  # extra round was a check that runs in seconds here: ESLint on a changed
+  # file (no-regex-spaces), check:counts (an undated number in a comment), a
+  # test that reads a changed file by path (socialAuthButtonGap,
+  # countCachesArePerUser), fixtureSchemaContract, the workflow-shape guards.
+  # Run them on the rebased tree before the push. Guard: landingPath.test.ts.
+  CHANGED_ALL=$(git diff --name-only --diff-filter=ACMR origin/main..HEAD)
+  CHANGED_LINT=$(printf '%s\n' "$CHANGED_ALL" | grep -E '\.(ts|tsx|mjs|js)$' | grep -vE '^supabase/functions/' || true)
+  if [ -n "$CHANGED_LINT" ]; then
+    # shellcheck disable=SC2086
+    npx eslint --quiet $CHANGED_LINT
+  fi
+  npm run -s check:counts
+  # Tests that import a changed file (vitest's own graph) and tests that name
+  # a changed file's basename (the ones that read source by path), plus the
+  # repo-wide guards that went red only on GitHub on 2026-10-05.
+  NAMED_TESTS=""
+  for f in $CHANGED_ALL; do
+    b=$(basename "$f")
+    case "$b" in *.md|*.json|*.snap) continue ;; esac
+    NAMED_TESTS="$NAMED_TESTS $(git grep -l -F -- "$b" -- 'src/**/*.test.ts' 'src/**/*.test.tsx' 2>/dev/null | tr '\n' ' ')"
+  done
+  # Two runs: vitest intersects file filters with --changed, so they cannot share one.
+  npx vitest run --changed origin/main --passWithNoTests
+  # shellcheck disable=SC2086
+  npx vitest run $NAMED_TESTS \
+    src/test/fixtureSchemaContract.test.ts \
+    src/test/workflowFalseGreenShapes.test.ts \
+    src/test/prodLoadQueue.test.ts \
+    src/test/workflowInstallsMatchLockfile.test.ts \
+    src/test/baselinesAreTwoWay.test.ts \
+    src/test/mutateRegistrationsResolve.test.ts
+
   # db-deploy runs the moment a migration reaches main, before CI's vitest
   # does. Its two commonest reds (ledger 00fd2bd0, runs since 2026-09-24:
   # 5x "types.ts matches the live schema", 3x "no allow check says yes to a

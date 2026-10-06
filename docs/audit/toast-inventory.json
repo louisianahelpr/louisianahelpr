@@ -3,18 +3,18 @@
   "summary": {
     "calls": 591,
     "files": 150,
-    "rendering": 564,
-    "suppressedByPolicy": 27,
+    "rendering": 566,
+    "suppressedByPolicy": 25,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 37,
+      "toast": 38,
       "toast.error": 466,
       "toast.loading": 1,
-      "toast.message": 2,
-      "toast.success": 31,
-      "toast.warning": 22
+      "toast.message": 1,
+      "toast.success": 30,
+      "toast.warning": 23
     },
     "copyPiecesByForm": {
       "literal": 316,
@@ -3686,7 +3686,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 89,
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3696,7 +3696,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 130,
+      "line": 131,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3706,7 +3706,7 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 150,
+      "line": 151,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -4244,23 +4244,23 @@
     },
     {
       "file": "src/hooks/useNotifyWhenWorkLands.ts",
-      "line": 48,
-      "kind": "toast.success",
+      "line": 51,
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "You're set. We'll ping you when paid work lands."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/hooks/useNotifyWhenWorkLands.ts",
-      "line": 50,
-      "kind": "toast.message",
+      "line": 53,
+      "kind": "toast.warning",
       "title": {
         "form": "literal",
         "text": "Job alerts are on, but this device isn't allowed to notify you. Turn on notifications for Helpr in Settings."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/hooks/usePendingSaveConsumer.ts",
@@ -4592,7 +4592,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 231,
+      "line": 233,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4602,21 +4602,11 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 247,
+      "line": 249,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "friendlyAuthError(error.message)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 268,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "Too many attempts — try again in ${minutesLeft} min."
       },
       "renders": true
     },
@@ -4625,6 +4615,16 @@
       "line": 270,
       "kind": "toast.error",
       "title": {
+        "form": "template",
+        "text": "Too many attempts — try again in ${minutesLeft} min."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Login.tsx",
+      "line": 272,
+      "kind": "toast.error",
+      "title": {
         "form": "dynamic",
         "text": "friendlyAuthError(error.message)"
       },
@@ -4632,7 +4632,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 283,
+      "line": 285,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4642,7 +4642,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 311,
+      "line": 313,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4652,7 +4652,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 345,
+      "line": 347,
       "kind": "toast.error",
       "title": {
         "form": "literal",

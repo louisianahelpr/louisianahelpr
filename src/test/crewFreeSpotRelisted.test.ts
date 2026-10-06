@@ -28,13 +28,16 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |   IF v_status != 'open' AND NOT (v_status = 'accepted' AND COALESCE(public.crew_spots_open(p_job_id), 0) > 0) THEN |   IF v_status != 'open' THEN
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
-// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role;
+// @mutate supabase/migrations/20261006031016_crew_spots_open_not_client_callable.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;
+// @mutate supabase/migrations/20261006031016_crew_spots_open_not_client_callable.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0))
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 const EFFECTIVE = effectiveDefs(MIGRATIONS);
 const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "");
 const THIS = "20261006023437_crew_free_spot_relisted.sql";
+/** lh-authz-rls review of c5785c40d: crew_spots_open is not client-callable; the view counts inline. */
+const PRIVATE = "20261006031016_crew_spots_open_not_client_callable.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
 
 /** Every place that decides whether a job takes applicants, and how it must read the rule. */
@@ -72,22 +75,38 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
     expect(fn).toMatch(/GREATEST\(0, COALESCE\(j\.helpers_needed, 1\)\s+- \(SELECT count\(\*\)::int FROM public\.group_job_helpers g WHERE g\.job_id = j\.id\)\)/);
     // A count only: it never returns who is on the roster.
     expect(fn).not.toMatch(/helper_id/);
-    const sql = blankSqlComments(readFileSync(resolve(MIGRATIONS, THIS), "utf8"));
-    expect(sql).toContain("REVOKE ALL ON FUNCTION public.crew_spots_open(uuid) FROM PUBLIC, anon, authenticated;");
-    expect(sql).toContain("GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;");
+    // Not client-callable (lh-authz-rls review of c5785c40d): it carries none of
+    // the browse exclusions, so it must never answer for an arbitrary job id.
+    // The NEWEST grant statement on it, across the ledger, is service_role only.
+    const grants = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
+      .flatMap((f) => blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")).match(/GRANT EXECUTE ON FUNCTION public\.crew_spots_open\(uuid\) TO [^;]*;/g) ?? []);
+    expect(grants.pop()).toBe("GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role;");
+    const priv = blankSqlComments(readFileSync(resolve(MIGRATIONS, PRIVATE), "utf8"));
+    expect(priv).toContain("REVOKE ALL ON FUNCTION public.crew_spots_open(uuid) FROM PUBLIC, anon, authenticated;");
     const allow = JSON.parse(readFileSync(resolve(ROOT, "scripts/ci/definer-exec-allowlist.json"), "utf8"));
-    for (const s of ["anon", "authenticated", "unscoped"]) expect(allow[s]["crew_spots_open(uuid)"]).toMatch(/^reviewed 2026-10-05 \(Q1409\)/);
+    for (const s of ["anon", "authenticated", "unscoped"]) expect(allow[s]["crew_spots_open(uuid)"], `allowlist ${s}`).toBeUndefined();
+    // Every remaining caller runs it as its owner.
+    for (const caller of Object.keys(TAKES_APPLICANTS)) expect(body(caller), `${caller} must be SECURITY DEFINER to call it`).toMatch(/SECURITY DEFINER/);
   });
 
-  it("open_jobs_browse lists the re-listed spot, projects the count, and stays a definer view", () => {
-    const sql = readFileSync(resolve(MIGRATIONS, THIS), "utf8");
+  it("open_jobs_browse lists the re-listed spot, counts it INLINE (the same rule), and stays a definer view", () => {
+    const sql = readFileSync(resolve(MIGRATIONS, PRIVATE), "utf8");
     const view = blankSqlComments(sql.slice(sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse")));
     expect(view).toMatch(/WITH \(security_invoker = false\)/);
-    expect(view).toMatch(/WHEN is_group_job IS TRUE THEN crew_spots_open\(id\)\s+ELSE NULL::integer\s+END AS crew_spots_open\s+FROM jobs/);
-    expect(view).toMatch(/WHERE \(status = 'open'::job_status OR \(status = 'accepted'::job_status AND is_group_job IS TRUE AND crew_spots_open\(id\) > 0\)\) AND parent_job_id IS NULL/);
+    // The view calls no client-uncallable helper (a definer view checks function EXECUTE as the caller).
+    expect(view).not.toMatch(/crew_spots_open\s*\(/);
+    // crew_spots_open's rule, piece by piece, both in the column and in the row filter.
+    const SPOTS = "(CASE WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END)";
+    expect(view).toContain(`WHEN is_group_job IS TRUE THEN ${SPOTS}`);
+    expect(view).toContain(`WHERE (status = 'open'::job_status OR (status = 'accepted'::job_status AND is_group_job IS TRUE AND ${SPOTS} > 0)) AND parent_job_id IS NULL`);
+    // ...and it is the function's rule: same exclusion, cutoff and count.
+    const fn = body("crew_spots_open");
+    expect(fn).toMatch(/j\.is_group_job IS NOT TRUE OR j\.parent_job_id IS NOT NULL THEN 0/);
+    expect(fn).toMatch(/interval '15 minutes'/);
+    expect(body("job_offer_cutoff")).toMatch(/WHEN p_start_time IS NULL THEN \(\(p_date_needed \+ 1\)::timestamp AT TIME ZONE 'America\/Chicago'\)\s+ELSE \(\(p_date_needed \+ p_start_time\)::timestamp AT TIME ZONE 'America\/Chicago'\)/);
     const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
-    expect(newestView).toBe(THIS);
+    expect(newestView).toBe(PRIVATE);
   });
 
   it("the card says how many spots are open, read from the view after the main list (a missing column never breaks browse)", () => {
@@ -116,6 +135,11 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
     for (const c of ["B1 open_jobs_browse lists", "B2 never a full crew", "B3 the ranked, map and public lists", "A1 a new Helpr applies",
       "A2 a direct application insert", "M1 the applicant still sees", "const expected = 5;"]) {
       expect(src).toContain(c);
+    }
+    const priv = readFileSync(resolve(ROOT, "src/test/pglite/crewSpotsOpenPrivate.pglite.mjs"), "utf8");
+    expect(priv).toContain(`const THIS = "${PRIVATE}"`);
+    for (const c of ["P1 anon cannot call crew_spots_open", "P2 authenticated cannot call", "P3 as ${role}", "P4 the view's count equals", "SET ROLE ${role}", "const expected = 2;"]) {
+      expect(priv).toContain(c);
     }
   });
 });

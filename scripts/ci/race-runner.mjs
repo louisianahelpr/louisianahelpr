@@ -152,7 +152,7 @@ async function fixture(admin, race) {
   // Race 16 (Q975 probe 7): a finished job whose payout is scheduled
   // (payout_pending), the state a transfer.created flips to released while a
   // charge.dispute.created tries to block the payout.
-  if (race === 16) {
+  if (race === 16 || race === 17) {
     const f = await escrowDoneFixture(admin, poster, helper, false);
     await admin.query(
       `UPDATE public.jobs SET status = 'completed', payment_status = 'payout_pending', poster_completed_at = now(),
@@ -506,6 +506,15 @@ const RACES = {
     // released branch then claws back), never relabelled 'chargeback' over a
     // paid payout (which hid a paid Helpr from ops, chargeDisputeCreated.ts).
     bad: (s) => s.payment_status === "chargeback",
+  },
+  17: {
+    name: "Q975 the payout landing vs a chargeback (the dispute holds the lock)",
+    A: CHARGEBACK_BLOCKS,
+    B: PAYOUT_LANDS,
+    refusal: /^$/,
+    // The dispute blocked first: the transfer webhook must not relabel the
+    // job 'released' over it (that hides the open chargeback from ops).
+    bad: (s) => s.payment_status === "released",
   },
   5: {
     name: "helper Done again vs release",

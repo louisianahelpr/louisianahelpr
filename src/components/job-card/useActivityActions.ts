@@ -72,6 +72,8 @@ export function useActivityActions({
   const [boostJobId, setBoostJobId] = useState<string | null>(null);
   const [enhancedTipJobId, setEnhancedTipJobId] = useState<string | null>(null);
   const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
+  // Q709(c): on a crew, the member being tipped (the server needs to be told who).
+  const [enhancedTipHelperId, setEnhancedTipHelperId] = useState<string | undefined>(undefined);
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
   const [deadlineDialogApp, setDeadlineDialogApp] = useState<EnrichedApplication | null>(null);
@@ -191,6 +193,7 @@ export function useActivityActions({
     boostJobId, setBoostJobId,
     enhancedTipJobId, setEnhancedTipJobId,
     enhancedTipHelperName, setEnhancedTipHelperName,
+    enhancedTipHelperId, setEnhancedTipHelperId,
     noShowJobId, setNoShowJobId,
     cancelDialogJob, setCancelDialogJob,
     deadlineDialogApp, setDeadlineDialogApp,

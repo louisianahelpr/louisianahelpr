@@ -34,7 +34,7 @@ export interface PostedJobCardProps {
   /** Helper avatar URL by helper id, for the expanded card's Helpr tile
    *  (VN-22). Optional: absent, the tile falls back to the monogram. */
   helperAvatars?: Record<string, string | null>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }>; crewTips?: Array<{ id: string; name: string; tipped: boolean }> }>;
   userId: string;
   /** Job-lifecycle handlers, owned by the parent ActivityTab. */
   onBoost: (jobId: string) => void;
@@ -43,7 +43,7 @@ export interface PostedJobCardProps {
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
   onNoShow: (jobId: string) => void;
-  onTip: (jobId: string, helperName: string) => void;
+  onTip: (jobId: string, helperName: string, helperId?: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
   /** Opens the "Report" dialog (ReportDialog, reportedType="job") for a

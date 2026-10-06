@@ -41,7 +41,8 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 31 rebased on main's ticks (27 there + batch 2's 4).
 // 32 on 2026-10-05 (Q1378 lane): Q1378 is built but waits on the money/authz reviews and a prod re-shot after deploy (no marker kind reads either).
 // 33 on 2026-10-05 (Q1378 lane): Q1409 built, waits on reviews, deploy and a prod re-shot (no marker kind reads those).
-const MARKERLESS_PARTLY_DONE = 33;
+// 34 on 2026-10-05 (Q1378 lane): Q709 (c) built, waits on a screenshot of a real completed crew card.
+const MARKERLESS_PARTLY_DONE = 34;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

@@ -639,7 +639,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onComplete={actions.completeJob}
               completingJobId={actions.completingJobId}
               onNoShow={actions.setNoShowJobId}
-              onTip={(jobId, name) => { actions.setEnhancedTipJobId(jobId); actions.setEnhancedTipHelperName(name); }}
+              onTip={(jobId, name, helperId) => { actions.setEnhancedTipJobId(jobId); actions.setEnhancedTipHelperName(name); actions.setEnhancedTipHelperId(helperId); }}
               onReview={actions.openReviewForPosted}
               onDispute={actions.setDisputeJob}
               onReport={(job) => setReportJobId(job.id)}
@@ -723,6 +723,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         enhancedTipHelperName={actions.enhancedTipHelperName}
         setEnhancedTipJobId={actions.setEnhancedTipJobId}
         setEnhancedTipHelperName={actions.setEnhancedTipHelperName}
+        enhancedTipHelperId={actions.enhancedTipHelperId}
+        setEnhancedTipHelperId={actions.setEnhancedTipHelperId}
         noShowJobId={actions.noShowJobId}
         setNoShowJobId={actions.setNoShowJobId}
         onNoShow={actions.handleNoShow}

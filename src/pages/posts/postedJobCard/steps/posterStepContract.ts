@@ -23,7 +23,7 @@ export interface PosterStepCtx {
   job: Job;
   userId: string;
   helperNames: Record<string, string>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }> }>;
+  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean; crewToReview?: Array<{ id: string; name: string }>; crewTips?: Array<{ id: string; name: string; tipped: boolean }> }>;
   completingJobId: string | null;
   confirmingArrivalJobId: string | null;
   confirmingWorkingJobId: string | null;
@@ -37,7 +37,7 @@ export interface PosterStepCtx {
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
   onNoShow: (jobId: string) => void;
-  onTip: (jobId: string, helperName: string) => void;
+  onTip: (jobId: string, helperName: string, helperId?: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
   onReport: (job: Job) => void;

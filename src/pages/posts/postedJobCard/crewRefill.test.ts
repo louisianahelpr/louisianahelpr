@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { crewSpotRefillable } from "./crewRefill";
 
+// @mutate src/pages/posts/postedJobCard/crewRefill.ts |   return filled < needed; |   return false;
+// @mutate src/pages/posts/postedJobCard/crewRefill.ts |   if (cutoff && cutoff.getTime() <= now.getTime() + OFFER_MIN_LEAD_MINUTES * 60_000) return false; |
+
 // Q1378: the poster's card offers a refill on a booked crew with a free spot,
 // before the start, and nowhere else.
 const NOW = new Date("2026-10-06T15:00:00Z"); // 10:00 CDT

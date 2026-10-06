@@ -29,8 +29,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |         || CASE WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |         || CASE WHEN false
-// @mutate src/pages/posts/postedJobCard/crewRefill.ts |   return filled < needed; |   return false;
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |         \|\| CASE WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |         \|\| CASE WHEN false
+// @mutate src/pages/posts/PostedJobCard.tsx | (job.status === "open" \|\| crewSpotRefillable(job, initialGroupHelpers)) && ( | job.status === "open" && (
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");

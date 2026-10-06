@@ -10,6 +10,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+// @ts-expect-error — plain .mjs script, no declaration file (as scoreboardQuotaRows.test.ts)
 import { LAUNCH_LIST_END, LAUNCH_LIST_START, launchListProgress, renderOpenBlock } from "../../scripts/scoreboard.mjs";
 
 const ROOT = join(__dirname, "..", "..");

@@ -31,6 +31,34 @@ import { jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { loadBanReviewUsers } from "../_shared/banReview.ts";
+
+/**
+ * Q1324 (money review 2026-10-06): an account under an open ban settlement
+ * review moves no money until an admin confirms or lifts it. Which side is
+ * under review decides the answer, because the OTHER party must never learn a
+ * review exists (lh-authz-rls review of fbdfa47c7):
+ *   - the payer: refused with "contact support" (they know they are banned);
+ *   - the Helpr being tipped: the exact payout-hold reply, which is what a
+ *     held Helpr already gets (a Helpr under review also has a hold row).
+ * Escrow funding does not check the Helpr: the money only reaches escrow, and
+ * the database refuses its payout while the review is open.
+ * A failed read refuses the payment (fail closed).
+ */
+async function underBanReview(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  payerId: string,
+  counterpartyId?: string | null,
+): Promise<"payer" | "counterparty" | null> {
+  const ids = [payerId, counterpartyId].filter((id): id is string => !!id);
+  const lookup = await loadBanReviewUsers(db, ids);
+  if (!lookup.ok) throw new Error(`ban review read failed: ${lookup.message}`);
+  if (lookup.users.has(payerId)) return "payer";
+  if (counterpartyId && lookup.users.has(counterpartyId)) return "counterparty";
+  return null;
+}
+const PAYER_UNDER_REVIEW = "This payment can't go through right now. Please contact support.";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -163,6 +191,7 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new PublicError("Job not found");
       if (job.customer_id !== user.id) throw new PublicError("Not authorized");
+      if (await underBanReview(supabaseAdmin, user.id)) throw new PublicError(PAYER_UNDER_REVIEW);
 
       // ─── A settled job is never funded (Q235 follow-up) ───
       // Checked BEFORE the payment_status gate so a poster retrying a closed
@@ -1345,6 +1374,8 @@ serve(async (req) => {
         if (!job.helper_id) throw new PublicError("No Helpr assigned to this job");
         helperId = job.helper_id;
       }
+      const tipReview = await underBanReview(supabaseAdmin, user.id, helperId);
+      if (tipReview === "payer") throw new PublicError(PAYER_UNDER_REVIEW);
 
       // Check if helper has a connected Stripe account for direct tip transfer.
       // A read ERROR must fail the request — treating it as "no Connect account"
@@ -1375,7 +1406,7 @@ serve(async (req) => {
         console.error(`[create-payment] tip — payout hold check failed for ${helperId}: ${tipHold.message}`);
         throw new PublicError("Could not verify the Helpr's payout account — please try again");
       }
-      if (tipHold.kind === "held") {
+      if (tipHold.kind === "held" || tipReview === "counterparty") {
         return new Response(
           JSON.stringify({ error: "This Helpr can't receive tips right now. Please try again later.", code: PAYOUT_HELD_CODE }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
@@ -1502,6 +1533,7 @@ serve(async (req) => {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentId)) {
         throw new PublicError("Missing visit payment");
       }
+      if (await underBanReview(supabaseAdmin, user.id)) throw new PublicError(PAYER_UNDER_REVIEW);
       const { data: row, error: rowErr } = await supabaseAdmin
         .from("recurring_visit_payments")
         .select("id, parent_job_id, visit_date, payer_id, status, budget_cents, fee_cents, tax_cents, amount_cents, stripe_session_id")

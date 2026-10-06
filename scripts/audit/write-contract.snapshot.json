@@ -83,6 +83,26 @@
     "nargs": 3
    }
   ],
+  "admin_ban_settlement_reviews": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "admin_confirm_ban_settlement": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "admin_delete_review": [
    {
     "anon": false,
@@ -165,6 +185,17 @@
     "anon": false,
     "args": [
      "p_helper_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "admin_resolve_ban_evasion_match": [
+   {
+    "anon": false,
+    "args": [
+     "p_match_id"
     ],
     "authenticated": true,
     "nargdefaults": 0,

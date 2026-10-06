@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 586,
-    "files": 149,
-    "rendering": 561,
-    "suppressedByPolicy": 25,
+    "calls": 591,
+    "files": 150,
+    "rendering": 564,
+    "suppressedByPolicy": 27,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 37,
-      "toast.error": 463,
+      "toast.error": 466,
       "toast.loading": 1,
       "toast.message": 2,
-      "toast.success": 29,
+      "toast.success": 31,
       "toast.warning": 22
     },
     "copyPiecesByForm": {
-      "literal": 314,
+      "literal": 316,
       "template": 77,
-      "dynamic": 235,
+      "dynamic": 238,
       "jsx": 0
     }
   },
@@ -1295,6 +1295,56 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/AdminBanEvasionReview.tsx",
+      "line": 103,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Ban confirmed. The account's jobs were settled."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminBanEvasionReview.tsx",
+      "line": 111,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Ban lifted. The account's jobs carry on and its payouts are released."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminBanEvasionReview.tsx",
+      "line": 115,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "action === \"confirm\" ? rpcErrorMessage(\"admin_confirm_ban_settlement\", err) ?? mutationErrorMessage(err, \"Couldn't confirm the ban — try again.\") : mutationErrorMessage(err, \"Couldn't lift the ban — try again.\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "rpcErrorMessage(\"admin_confirm_ban_settlement\", err) ?? mutationErrorMessage(err, \"Couldn't confirm the ban — try again.\")"
+          },
+          {
+            "form": "dynamic",
+            "text": "mutationErrorMessage(err, \"Couldn't lift the ban — try again.\")"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminBanEvasionReview.tsx",
+      "line": 134,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"admin_resolve_ban_evasion_match\", err) ?? mutationErrorMessage(err, \"Couldn't mark that match checked — try again.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/AdminBanReview.tsx",
       "line": 211,
       "kind": "confirmConsequential",
@@ -1666,7 +1716,7 @@
     },
     {
       "file": "src/components/admin/AdminFraudDashboard.tsx",
-      "line": 150,
+      "line": 153,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2597,6 +2647,26 @@
       "title": {
         "form": "dynamic",
         "text": "copyFor(err) ?? userFacingError(err, \"Couldn't update that payout hold — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/usePayoutHolds.ts",
+      "line": 84,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "releasing ? \"Hold released, but Stripe automatic payouts could not be switched back on yet. It retries every 10 minutes and ops has been alerted.\" : \"Hold saved, but Stripe automatic payouts could not be paused yet. It retries every 10 minutes and ops has been alerted.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Hold released, but Stripe automatic payouts could not be switched back on yet. It retries every 10 minutes and ops has been alerted."
+          },
+          {
+            "form": "literal",
+            "text": "Hold saved, but Stripe automatic payouts could not be paused yet. It retries every 10 minutes and ops has been alerted."
+          }
+        ]
       },
       "renders": true
     },

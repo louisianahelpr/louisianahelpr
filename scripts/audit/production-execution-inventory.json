@@ -115,5 +115,10 @@
     "why": "Owner corrected 2026-09-22: urgent is a SEPARATE purchase path from boost and was missing here entirely. Measured: 2 rows carry urgent_fee ($25, $10), both is_seed=true and both payment_status='cancelled' \u2014 the fee was set on the row but no urgent purchase has ever COMPLETED",
     "status": "NEVER-COMPLETED",
     "last_seen": "2026-09-07"
+  },
+  "payout-hold-stripe-sync": {
+    "observable": "payout_schedule_freezes",
+    "why": "One row per held Helpr whose Stripe payout schedule is frozen; requested_at/updated_at/verified_at move on every freeze, restore and 6-hourly re-check (Q1221)",
+    "status": "NEVER"
   }
 }

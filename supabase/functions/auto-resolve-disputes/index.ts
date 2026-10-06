@@ -6,6 +6,7 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
+import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
 const corsHeaders = {
@@ -283,7 +284,21 @@ serve(async (req) => {
       );
     }
 
+    // Q1324: a dispute on a job whose poster or Helpr is under an OPEN ban
+    // settlement review is not auto-resolved (no refund, no payout) until an
+    // admin confirms or lifts the ban; the confirm escalates it. One read; if
+    // it fails, no dispute is auto-resolved this run (fail closed).
+    const banReview = await loadBanReviewUsers(supabase);
+    if (!banReview.ok) {
+      console.error("[auto-resolve-disputes] ban review read failed; nothing auto-resolved this run:", banReview.message);
+      defects.record(`ban review read: ${banReview.message}`);
+    }
+
     for (const job of expiredDisputes || []) {
+      if (!banReview.ok || frozenByBanReview(banReview, job)) {
+        claimSkipped.push({ job_id: job.id, verdict: "ban_review" });
+        continue;
+      }
       const disputeStatus = job.dispute_status || "open";
 
       // If escalated to admin, don't auto-resolve — admin must handle it

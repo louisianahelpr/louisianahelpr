@@ -28,7 +28,7 @@
  * (origin/cloud/q139-notification-subjects, 20260923162545) in place of
  * 20260923205635: (a) 8 functions, (b) the same 8 (14 links).
  *
- * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | v_link := '/home?job=' \|\| v_job.id::text; | v_link := '/home';
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql | v_link := '/home?job=' \|\| v_job.id::text; | v_link := '/home';
  * @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql | '/posts?job=' \|\| v_locked.id::text, | '/posts',
  * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=fraud&user=' \|\| p_reviewee_id,
  * @mutate src/test/helpers/effectiveFunctionDefs.ts | const next = pgRegexpReplace(cur.stmt, r.pattern, r.replacement, r.flags); | const next = cur.stmt;

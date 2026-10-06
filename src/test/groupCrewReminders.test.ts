@@ -34,7 +34,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id AND p.status = 'paid' |       WHERE false
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
-// @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
+// @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
@@ -53,6 +53,7 @@ const MIGRATIONS = resolve(root, "supabase/migrations");
 const THIS = "20260927012241_group_crew_reminders_and_counts.sql";
 /** Q731 + Q729 (2026-10-05): the last helper_id-only readers a crew needs. */
 const CREW_COUNTS = "20261005171601_crew_counts_exports_and_ban_alert.sql";
+const Q1324_FOLLOW_UP = "20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql";
 /** Q729 + Q1282 (2026-10-05): a block, and an unanswered spot, reach a crew member. */
 const CREW_BLOCK = "20261005172453_crew_block_and_unanswered_spot.sql";
 const EFFECTIVE = effectiveDefs(MIGRATIONS);
@@ -93,7 +94,11 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     }
     for (const fn of ["get_helper_earnings_export", "get_helper_tiers", "get_neighbor_hire_count", "settle_one_off_jobs_for_banned_account"]) {
       expect(body(fn), `${fn} no longer reads the roster`).toMatch(/group_job_helpers/);
-      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q731/Q729 definition`).toBe(CREW_COUNTS);
+      // settle_one_off_jobs_for_banned_account is restated by Q1324's follow-up
+      // (the confirm's as-of price), body otherwise the Q731 one.
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q731/Q729 definition`).toBe(
+        fn === "settle_one_off_jobs_for_banned_account" ? Q1324_FOLLOW_UP : CREW_COUNTS,
+      );
     }
   });
 

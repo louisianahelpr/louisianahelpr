@@ -18,7 +18,7 @@ import { readdirSync } from "./helpers/trackedFiles";
  * needs `pg_get_functiondef` against prod, which no test does.
  *
  * @mutate supabase/migrations/20260908010034_unban_never_released_the_fingerprint.sql | DELETE FROM public.retained_bans\n       WHERE COALESCE(retained_via, 'ban') <> 'deletion' | PERFORM 1; -- DELETE FROM public.retained_bans WHERE COALESCE(retained_via, 'ban') <> 'deletion'
- * @mutate supabase/migrations/20260908010034_unban_never_released_the_fingerprint.sql | WHERE (v_email_h IS NOT NULL AND email_sha256    = v_email_h) | WHERE (v_email_h IS NOT NULL AND FALSE)
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql | WHERE (v_email_h IS NOT NULL AND email_sha256    = v_email_h) | WHERE (v_email_h IS NOT NULL AND FALSE)
  */
 
 const ROOT = resolve(__dirname, "../..");

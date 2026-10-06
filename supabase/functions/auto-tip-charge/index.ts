@@ -33,6 +33,7 @@ import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
 class AmbiguousCharge extends Error {}
@@ -118,8 +119,30 @@ serve(async (req) => {
     // which is how a watcher gets muted. `defects` counts only the broken ones.
     const defects = defectTracker();
 
+    // Q1324 (money review 2026-10-06): an account under an open ban
+    // settlement review moves no money, as poster or as Helpr, until an admin
+    // confirms or lifts it. Read once per run; a failed read charges nothing
+    // this run (fail closed) and is a defect.
+    // Scoped to this run's parties: an unscoped read past PostgREST's row cap
+    // would be truncated, which reads as "not under review" (fails open).
+    const parties: string[] = [];
+    for (const c of candidates ?? []) {
+      for (const id of [c.customer_id, c.helper_id]) if (typeof id === "string" && !parties.includes(id)) parties.push(id);
+    }
+    const banReview = await loadBanReviewUsers(supabase, parties);
+    if (!banReview.ok) {
+      log("ERROR reading open ban reviews — charging no tips this run", { error: banReview.message });
+      return cronError("auto-tip-charge", `ban review read failed: ${banReview.message}`, corsHeaders);
+    }
+
     for (const c of candidates ?? []) {
       const jobId = c.job_id as string;
+      if (frozenByBanReview(banReview, c as { customer_id?: string | null; helper_id?: string | null })) {
+        // Stays a candidate: charged after a lift, inside the candidate window.
+        log("Ban review open on the poster or Helpr — tip not charged", { jobId });
+        results.held++;
+        continue;
+      }
       const rawTipDollars = Number(c.tip_amount);
       const tipCents = Math.round(rawTipDollars * 100);
       if (!Number.isFinite(tipCents) || tipCents <= 0) continue;

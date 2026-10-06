@@ -478,4 +478,4 @@ describe("fixture-job visibility — one switch, every surface", () => {
 // the 2026-09-02 bug. Its latest definition is 20260904203654; strip the gate
 // there and the flag flips every other surface quiet while the public page
 // keeps advertising fixture jobs.
-// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |
+// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |

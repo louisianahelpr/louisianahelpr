@@ -90,6 +90,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:detect_stuck_payments": { uncovered: CRON("detect-stuck-payments") },
   "sql:end_recurring_series": { uncovered: SERIES },
   "sql:end_series_for_banned_account": { uncovered: BAN_SETTLE },
+  "sql:enforce_retained_payment_ban": {
+    uncovered: "needs a banned account's card or payout bank on a new account; live Stripe on prod cannot mint one (Q1324); asserted in src/test/pglite/banEvasionCardBankName.pglite.mjs",
+  },
   "sql:expire_pending_direct_offers": {
     uncovered: "called only by the auto-expire-jobs edge function (scheduled) once a direct offer's window has passed; the shortest window is 1 hour",
   },
@@ -137,6 +140,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:sweep_expired_auto_bans": { uncovered: CRON("sweep-expired-auto-bans") },
   "sql:sweep_job_start_reminders": { uncovered: CRON("sweep-job-start-reminders") },
   "sql:sweep_no_show_alerts": { uncovered: CRON("sweep-no-show-alerts") },
+  "sql:sweep_open_ban_settlement_reviews": { uncovered: CRON("ban-review-watch") },
   "sql:sweep_release_last_chance": { uncovered: CRON("sweep-release-last-chance") },
   "sql:track_revision_scope_creep": {
     uncovered: "notifies only on a job's THIRD revision request, and files a fraud_flags scope_creep row against the poster (a shared account) when it does",

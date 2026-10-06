@@ -20,12 +20,16 @@ import { join } from "node:path";
  * on prod: both `LANGUAGE sql STABLE`, one SELECT (jobs/applications and
  * login_history), `pg_proc.provolatile = 's'`.
  *
+ * `admin_ban_settlement_reviews` added 2026-10-05 (Q1324): plpgsql STABLE
+ * SECURITY DEFINER, SELECTs only (migration 20261006014801). Not on prod until
+ * that migration lands: re-check provolatile = 's' there after it deploys.
+ *
  * `admin_gift_card_paid_job_ids` added 2026-10-04 (Q454's gift-refund warning).
  * Verified live on prod: `pg_proc.provolatile = 's'`, SECURITY DEFINER, no
  * INSERT/UPDATE/DELETE in its body.
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_last_logins(\?|$)|admin_gift_card_paid_job_ids(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
@@ -44,6 +48,11 @@ export const WRITE_RPC = new Set([
   "admin_set_payout_hold",
   "admin_release_payout_hold",
   "admin_deny_payout_hold",
+  // Q1324 (2026-10-05): settle an automatic ban's jobs / mark a name match
+  // checked. Both write (settlement, ban_evasion_matches) and admin_audit_log
+  // (migration 20261006014801, plpgsql volatile).
+  "admin_confirm_ban_settlement",
+  "admin_resolve_ban_evasion_match",
 ]);
 
 /**

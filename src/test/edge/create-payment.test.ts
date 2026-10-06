@@ -1701,12 +1701,17 @@ describe("create-payment edge function", () => {
           stripe_payment_intent_id: null, stripe_session_id: "cs_live_1", budget: 100, customer_fee_amount: 10,
         }],
       };
+      // Its own stranded claim (Q1323): without this marker the re-entry is
+      // refused before the session read, and this test proved nothing (a
+      // vacuity survivor, 2026-10-06).
+      scenario.reads.job_refund_claims = { rows: [{ claimed_by: "cancel_escrow", claimed_at: new Date().toISOString() }] };
       stripeMock.checkout.sessions.retrieve.mockRejectedValue(new Error("Stripe is down"));
       scenario.writeSelectRows.jobs = [{ id: "job-1" }];
       const fn = await load();
       const res = await fn.fetch(
         fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }),
       );
+      expect(stripeMock.checkout.sessions.retrieve, "the re-entry must reach the session read").toHaveBeenCalled();
       expect(res.status).toBeGreaterThanOrEqual(400);
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");

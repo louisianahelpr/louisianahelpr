@@ -27,10 +27,10 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |                  AND public.job_offer_cutoff(j.date_needed, j.start_time) > now() + interval '15 minutes') |                  )
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |            WHEN j.is_group_job IS NOT TRUE OR j.parent_job_id IS NOT NULL THEN 0 |            WHEN j.is_group_job IS NOT TRUE THEN 0
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |   IF v_status != 'open' AND NOT (v_status = 'accepted' AND COALESCE(public.crew_spots_open(p_job_id), 0) > 0) THEN |   IF v_status != 'open' THEN
-// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
+// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
 // @mutate supabase/migrations/20261006031016_crew_spots_open_not_client_callable.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;
-// @mutate supabase/migrations/20261006031016_crew_spots_open_not_client_callable.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0))
+// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0))
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
@@ -39,6 +39,8 @@ const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "")
 const THIS = "20261006023437_crew_free_spot_relisted.sql";
 /** lh-authz-rls review of c5785c40d: crew_spots_open is not client-callable; the view counts inline. */
 const PRIVATE = "20261006031016_crew_spots_open_not_client_callable.sql";
+/** Q1411 restated the same five on the crew-era bodies, plus its hide clause (banReviewHidesPostsOnCrewSurfaces.test.ts). */
+const RESTATED = "20261006042617_ban_review_hides_posts_on_crew_surfaces.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
 
 /** Every place that decides whether a job takes applicants, and how it must read the rule. */
@@ -63,7 +65,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q1409 definition`).toBe(THIS);
+    expect([THIS, RESTATED], `${fn} is not the Q1409 definition or its Q1411 restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 
@@ -91,8 +93,12 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it("open_jobs_browse lists the re-listed spot, counts it INLINE (the same rule), and stays a definer view", () => {
-    const sql = readFileSync(resolve(MIGRATIONS, PRIVATE), "utf8");
-    const view = blankSqlComments(sql.slice(sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse")));
+    const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
+      .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
+    expect([PRIVATE, RESTATED]).toContain(newestView);
+    const sql = readFileSync(resolve(MIGRATIONS, newestView as string), "utf8");
+    const at = sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse");
+    const view = blankSqlComments(sql.slice(at, sql.indexOf("$v$;", at)));
     expect(view).toMatch(/WITH \(security_invoker = false\)/);
     // The view calls no client-uncallable helper (a definer view checks function EXECUTE as the caller).
     expect(view).not.toMatch(/crew_spots_open\s*\(/);
@@ -105,9 +111,6 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
     expect(fn).toMatch(/j\.is_group_job IS NOT TRUE OR j\.parent_job_id IS NOT NULL THEN 0/);
     expect(fn).toMatch(/interval '15 minutes'/);
     expect(body("job_offer_cutoff")).toMatch(/WHEN p_start_time IS NULL THEN \(\(p_date_needed \+ 1\)::timestamp AT TIME ZONE 'America\/Chicago'\)\s+ELSE \(\(p_date_needed \+ p_start_time\)::timestamp AT TIME ZONE 'America\/Chicago'\)/);
-    const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
-      .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
-    expect(newestView).toBe(PRIVATE);
   });
 
   it("the card says how many spots are open, read from the view after the main list (a missing column never breaks browse)", () => {

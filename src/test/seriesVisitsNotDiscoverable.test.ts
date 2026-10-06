@@ -14,7 +14,7 @@
  * that reads open jobs for a non-party announcement filters
  * `.is("parent_job_id", null)`.
  *
- * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     AND p_job.parent_job_id IS NULL |     AND true
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |     AND p_job.parent_job_id IS NULL |     AND true
  * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     OR NEW.parent_job_id IS NOT NULL |     OR false
  * @mutate supabase/functions/instant-job-match/index.ts |       .is("parent_job_id", null) |       .limit(1000)
  */

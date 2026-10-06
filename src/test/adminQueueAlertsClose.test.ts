@@ -39,12 +39,12 @@
  * src/test/pglite/adminNoticeAlertsClose.pglite.mjs (70 PASS; 47 FAIL with
  * NEW_MIGRATION=skip; 6 planted defects each caught).
  *
- * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql | ('ban review needed', | ('ban review wanted',
- * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   ELSIF p_rule = 'stalled-job' THEN |   ELSIF p_rule = 'stalled-jobs' THEN
- * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |       ('repeat offender: ', | 
- * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   ELSIF p_rule = 'notice' THEN |   ELSIF p_rule = 'notices' THEN
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql | ('ban review needed', | ('ban review wanted',
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |   ELSIF p_rule = 'stalled-job' THEN |   ELSIF p_rule = 'stalled-jobs' THEN
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |       ('repeat offender: ', | 
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |   ELSIF p_rule = 'notice' THEN |   ELSIF p_rule = 'notices' THEN
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
- * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   AFTER INSERT ON public.notifications |   AFTER UPDATE ON public.notifications
  * @mutate supabase/migrations/20260926040011_ops_alert_pending_watchdog.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | title: "Identity verification needs review", | title: "Identity check needs review",
@@ -254,7 +254,8 @@ describe("every admin fan-out title has a close rule (Q355)", () => {
   });
 
   it("found the rule table and its branches", () => {
-    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves/);
+    // Restated by Q1324's follow-up with one more rule (ban-settlement-review).
+    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves|ban_review_freezes_money_hides_posts_neutral_reason/);
     // Floors, 2026-09-26: 19 rule rows, 13 branches, 1 manual row.
     expect(RULES.length).toBeGreaterThanOrEqual(19);
     expect(BRANCHES.size).toBeGreaterThanOrEqual(13);

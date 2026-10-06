@@ -201,6 +201,25 @@ serve(async (req) => {
         update.auto_suspended_until = null
       }
 
+      // Q1324: moving an account OUT of a ban goes through
+      // lift_ban_settlement_review first, attributed to this admin. If the
+      // account has an open (or confirmed) ban settlement review, that one
+      // transaction closes it as lifted, clears its card / bank match, releases
+      // the hold it placed and unbans; with no review it changes nothing. The
+      // database refuses any other unban while a review is open, so this is
+      // the only way an admin unban reaches such an account. Not deployed yet
+      // (PGRST202): carry on as before.
+      if (banStatus === 'active' || banStatus === 'final_warning') {
+        const { error: liftErr } = await admin.rpc('lift_ban_settlement_review', {
+          p_user_id: targetUserId,
+          p_admin_id: userData.user.id,
+          p_ban_status: banStatus,
+        })
+        if (liftErr && liftErr.code !== 'PGRST202') {
+          throw new Error(`lift_ban_settlement_review failed: ${liftErr.message}`)
+        }
+      }
+
       const { data: rows, error: updErr } = await admin.from('profiles')
         .update(update)
         .eq('user_id', targetUserId)

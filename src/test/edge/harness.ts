@@ -535,6 +535,30 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/caughtMessage.ts";`,
   );
 
+  // Ban-evasion payment fingerprints (Q1324): `_shared/paymentFingerprint.ts`
+  // imports only caughtMessage, so the REAL module runs. Which fingerprint is
+  // sent, for which account, and how a failed or missing RPC is read (never as
+  // "not banned") is the behaviour under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/paymentFingerprint\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/paymentFingerprint.ts";`,
+  );
+
+  // Ban settlement review freeze (Q1324): `_shared/banReview.ts` has ZERO
+  // imports, so the REAL lookup and predicate run inside the money crons.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/banReview\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/banReview.ts";`,
+  );
+
+  // Payout-hold Stripe freeze (Q1221): `_shared/payoutFreeze.ts` imports only
+  // caughtMessage, so the REAL state machine runs inside
+  // payout-hold-stripe-sync; only Stripe and the database are doubles.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutFreeze\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutFreeze.ts";`,
+  );
+
   // Poster tier service fee + Stripe floor: `_shared/posterFees.ts` is pure
   // TypeScript too (it only re-exports the helper ladder + the floor helper), so
   // the generated file points at the REAL module — the poster fee the checkout

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -344,7 +345,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
 
       <TwoFactorCard />
 
-      <SignInMethodsCard />
+      {SOCIAL_SIGN_IN_ENABLED && <SignInMethodsCard />}
 
       {/* Active sessions — recent SIGNED_IN events grouped by coarse
           device fingerprint (OS + browser, scoped by IP). Read-only:

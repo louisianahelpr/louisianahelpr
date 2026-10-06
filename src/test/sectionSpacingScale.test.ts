@@ -85,8 +85,8 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
   "src/components/profile/ScheduleTab.tsx": { n: 1, why: "min-[1024px]:gap-6 — the desktop two-column gap between calendar and list, not the phone stack" },
   // AuthShell card forms: one form rhythm shared by every auth card, inside the card.
-  "src/pages/auth/Login.tsx": { n: 8, why: "AuthShell card form rhythm + the lg two-panel split" },
-  "src/pages/auth/signup/SignupStep1.tsx": { n: 7, why: "AuthShell card form rhythm + the lg two-panel split" },
+  "src/pages/auth/Login.tsx": { n: 9, why: "AuthShell card form rhythm + the lg two-panel split (and its one-column form while Apple/Google are off, Q1425)" },
+  "src/pages/auth/signup/SignupStep1.tsx": { n: 8, why: "AuthShell card form rhythm + the lg two-panel split (and its one-column form while Apple/Google are off, Q1425)" },
   "src/pages/auth/signup/SignupStep2.tsx": { n: 1, why: "AuthShell card form rhythm" },
   "src/pages/auth/Signup.tsx": { n: 1, why: "AuthShell card form rhythm" },
   "src/pages/auth/ForgotPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },

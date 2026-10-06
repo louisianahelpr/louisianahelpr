@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
+import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import {
   suggestEmailCorrection,
   passwordStrength,
@@ -150,7 +151,7 @@ export function SignupStep1({
           column. Same class strings as Login on purpose — the two auth screens
           are one set, so a value invented here would drift them apart. Stacks
           below lg exactly as before. */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch">
+      <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full max-w-md mx-auto"}>
       {/* The credentials column keeps this step's own `space-y-5` rather than
           Login's form rhythm: the fields, the three consent rows and Continue
           are spaced as they already were — only the column around them is new. */}
@@ -453,6 +454,7 @@ export function SignupStep1({
           column still handles the stacked layout below lg. Its own grid
           column so it sits between the two methods rather than inside
           either. */}
+      {SOCIAL_SIGN_IN_ENABLED && (
       <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
         <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
@@ -463,6 +465,7 @@ export function SignupStep1({
         </span>
         <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
       </div>
+      )}
 
       {/* Vertically centred against the taller credentials column, so the
           social buttons sit level with the form rather than hugging the top
@@ -471,6 +474,8 @@ export function SignupStep1({
       {/* The OR rule only makes sense when the two methods are stacked. At
           lg+ they sit side by side, so the columns themselves do the
           separating. */}
+      {SOCIAL_SIGN_IN_ENABLED && (
+      <>
       <div className="flex items-center gap-3 lg:hidden">
         <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
@@ -483,6 +488,8 @@ export function SignupStep1({
       </div>
 
       <SocialAuthButtons mode="signup" />
+      </>
+      )}
 
       {/* Signing in is the alternative to BOTH create-account methods, so it
           closes the social column — the mirror of Login's "New to Helpr?".

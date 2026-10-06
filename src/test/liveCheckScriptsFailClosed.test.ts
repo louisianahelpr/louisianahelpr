@@ -299,8 +299,10 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", env: MGMT("fail"), says: /could not check the native sign-in client ids: auth config: Management API 500/ },
     { label: "Management API []", env: MGMT("empty"), says: /auth config: response was not a config object — refusing to report clean/ },
     { label: "config without client-id lists", env: MGMT("nolists"), says: /auth config has no string external_apple_client_id — refusing to report clean/ },
-    // The bug itself: the App ID (bundle) is not an accepted Apple client id.
-    { label: "App ID missing from the Apple list", env: MGMT("nobundle"), says: /FAIL external_apple_client_id includes the App ID \(bundle\) / },
+    // Apple/Google sign-in is OFF for launch (Q1425): a provider still enabled
+    // on prod fails. (The id rules, used when the switch is on, are covered in
+    // src/test/nativeSignInConfig.test.ts.)
+    { label: "a provider still enabled while the switch is off", env: MGMT("nobundle"), says: /FAIL external_apple_enabled is false/ },
   ],
   // BR-024 (functions-deploy.yml): the build-stamp probe of every function.
   // A 500 or a bare 200 carries no x-lh-build header, so every function is a

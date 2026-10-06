@@ -16,6 +16,16 @@ import { Capacitor } from "@capacitor/core";
 // (41 KB raw) in main.tsx's cold-start closure via nativeInit, on the web where
 // it is dead weight. Destructure from the module, never await/return the plugin
 // object itself (thenable assimilation, CLAUDE.md "Platform gotchas").
+/**
+ * Apple + Google sign-in OFF for launch (owner, 2026-10-06, Q1425: "drop apple
+ * and google, we can discuss after launch"). App Store guideline 4.8 requires
+ * Sign in with Apple whenever Google sign-in is offered, and Apple's Hide My
+ * Email forced the link-your-account screen; email sign-in only for launch.
+ * Every entry point (Login, Signup step 1, Profile > Security sign-in methods)
+ * reads this; the code behind it stays, dormant. Guard: socialSignInOff.test.ts.
+ */
+export const SOCIAL_SIGN_IN_ENABLED = false;
+
 const loadSocialLogin = () => import("@capgo/capacitor-social-login");
 type SocialLoginPlugin = typeof import("@capgo/capacitor-social-login").SocialLogin;
 import { supabase } from "@/integrations/supabase/client";

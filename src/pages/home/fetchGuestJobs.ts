@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
 import { GUEST_JOBS_LIMIT, GUEST_JOBS_SELECT, takeGuestJobsPrefetch } from "@/lib/guestJobsQuery";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 /**
@@ -17,19 +18,21 @@ import type { EnrichedJob } from "@/components/dashboard/types";
  */
 export async function fetchGuestJobs(): Promise<EnrichedJob[]> {
   const prefetched = await takeGuestJobsPrefetch();
+  // Q1438: the select names materials_note, which a database behind this
+  // build may not have yet; readJobsAheadOfDb asks again without it.
   const rawJobs = prefetched ?? unwrap(
-    await supabase
+    await readJobsAheadOfDb(GUEST_JOBS_SELECT, (columns) => supabase
       .from("open_jobs_browse")
       // `latitude, longitude` are the view's MASKED coordinates (rounded
       // to 2dp ≈ 1.1km — 20260903031231), and they are what makes the
       // "Nearby" radius chip a real filter on this surface (BD-001).
       // `credential_tier`, `parish` — same column parity fix as the
       // authed feed (useDashboardData.ts), see 20260904031002.
-      .select(GUEST_JOBS_SELECT)
+      .select(columns)
       .neq("payment_status", "abandoned")
       .order("boosted_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
-      .limit(GUEST_JOBS_LIMIT),
+      .limit(GUEST_JOBS_LIMIT)),
   );
 
   const now = new Date();

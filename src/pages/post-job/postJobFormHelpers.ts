@@ -70,20 +70,15 @@ export function parseLocationIntoFields(location: string | null | undefined): Pa
 }
 
 /**
- * When the poster opted into "I'll provide materials", append the note into
- * special_requirements with a tagged prefix so helprs can see it on the job
- * card. Avoids a schema migration for what's effectively a label on a freeform
- * note.
+ * The "Materials I'll provide" note as it is posted (Q1438): the trimmed note
+ * when the poster switched the toggle on and wrote something, else null. It is
+ * stored on its own public column, jobs.materials_note. It used to be glued
+ * into special_requirements ahead of the Access & Parking notes behind a
+ * "Materials I'll provide: " prefix, where no Helpr ever saw either.
  */
-export function composeSpecialRequirements(opts: {
-  includeMaterials: boolean;
-  materialsNote: string;
-  specialRequirements: string;
-}): string {
-  const { includeMaterials, materialsNote, specialRequirements } = opts;
-  if (!includeMaterials || !materialsNote.trim()) return specialRequirements;
-  const prefix = `Materials I'll provide: ${materialsNote.trim()}`;
-  return specialRequirements.trim() ? `${prefix}\n\n${specialRequirements.trim()}` : prefix;
+export function materialsNoteForPost(opts: { includeMaterials: boolean; materialsNote: string }): string | null {
+  const note = opts.materialsNote.trim();
+  return opts.includeMaterials && note ? note : null;
 }
 
 /**

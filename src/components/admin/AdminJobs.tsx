@@ -22,7 +22,7 @@ import { activityLinkFor, notifyJobParty } from "./adminJobs/notifyJobParty";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 import { report } from "@/lib/errorLogger";
-import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
+import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows } from "@/lib/jobColumns";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { userFacingError } from "@/lib/userFacingError";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
@@ -79,12 +79,14 @@ const AdminJobs = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data, error } = await supabase
+      // Q1438: + materials_note for the job dialog, through readJobsAheadOfDb
+      // (a database behind this build answers 42703; it asks again without).
+      const { data, error } = await readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) => supabase
         .from("jobs")
         // Named columns: `*` includes offered_to_helper_id, which is not
         // selectable (20260915045110) and 42501s the whole read.
-        .select(JOB_READABLE_COLUMNS)
-        .order("created_at", { ascending: false });
+        .select(columns)
+        .order("created_at", { ascending: false }));
       if (error) {
         console.error("[AdminJobs] load:", error);
         toast.error("Couldn't load jobs — refresh to retry.");

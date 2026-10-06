@@ -46,7 +46,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted |
+| `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted · job-card-materials |
 | `src/components/job-card/JobCardMetaRow.tsx` | date/calendar×1 |  |  |  |
 
 ## /complete-profile
@@ -122,7 +122,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/jobs/AppliedJobsTab.tsx` | textarea×1 |  |  | Withdraw reason — other |
 | `src/pages/jobs/JobsHeader.tsx` | input×1 | search |  | Search jobs · Close search |
 | `src/pages/posts/CompletionChoiceSheet.tsx` | input×1, textarea×1 | file | 1000 | Back to choices · Describe what needs to be redone · Remove photo |
-| `src/pages/posts/EditJobDialog.tsx` | input×3, textarea×2, select×1, checkbox/switch/radio×2, date/calendar×1 | text, date |  | Job title · Description · Category · category-tax-lock-hint · Location · edit-date-needed · edit-flexible-schedule · Flexible schedule |
+| `src/pages/posts/EditJobDialog.tsx` | input×3, textarea×3, select×1, checkbox/switch/radio×2, date/calendar×1 | text, date | 500 | Job title · Description · Category · category-tax-lock-hint · Location · edit-date-needed · edit-flexible-schedule · Flexible schedule |
 | `src/pages/posts/postedJobs/ApplicantsPanel.tsx` | textarea×1 |  |  | Post reach · Private note |
 | `src/pages/posts/postedJobs/DeclineApplicantSheet.tsx` | textarea×1 |  |  | Decline reason · decline-note |
 | `src/pages/posts/PostsHeader.tsx` | input×1 | search |  | Search jobs · Close search |

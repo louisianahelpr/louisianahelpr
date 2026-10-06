@@ -5,6 +5,8 @@ import { Briefcase } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
+import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { useJobRef } from "@/hooks/useJobRef";
@@ -52,28 +54,29 @@ const JobDetail = () => {
   const { data: job, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<EnrichedJob | null> => {
-      const data = unwrap(
-        await supabase
-          .from("open_jobs_browse")
-          .select(
-            "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode",
-          )
-          .eq("id", id!)
-          .maybeSingle(),
+      // Q1438: `materials_note` (public) is newer than the deploy that may
+      // serve this build; readJobsAheadOfDb asks again without it on 42703.
+      const data = unwrap<unknown>(
+        await readJobsAheadOfDb(
+          "id, title, description, category, budget, date_needed, location, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode",
+          (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id!).maybeSingle(),
+        ),
       );
       if (!data) return null;
+      // A runtime column list types the row as GenericStringError; it is a browse row.
+      const row = data as Database["public"]["Views"]["open_jobs_browse"]["Row"];
       const now = new Date();
       // A job that expired between share and open is no longer browsable.
-      if (data.expires_at && new Date(data.expires_at) <= now) return null;
+      if (row.expires_at && new Date(row.expires_at) <= now) return null;
       return {
-        ...(data as Record<string, unknown>),
+        ...(row as Record<string, unknown>),
         // Guest preview disables poster-profile lookups (JobDetailDialog
         // gates the poster card behind !guest), so neutral poster fields
         // are enough — mirrors Jobs.tsx's toEnrichedJob mapping.
         posterName: "a neighbor",
         posterReviewCount: 0,
         posterAvgRating: 0,
-        isBoosted: !!data.boost_expires_at && new Date(data.boost_expires_at) > now,
+        isBoosted: !!row.boost_expires_at && new Date(row.boost_expires_at) > now,
       } as EnrichedJob;
     },
     enabled: !!id && !authLoading && !user,

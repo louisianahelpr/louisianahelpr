@@ -180,6 +180,7 @@ const catalogCheck = (readFail: RegExp): Case[] => [
 
 const HERMETIC: Record<string, Case[]> = {
   "scripts/check-anon-table-grants.mjs": catalogCheck(/could not read live grant catalog/),
+  "scripts/check-job-access-notes-live.mjs": catalogCheck(/could not read the live catalog/),
   "scripts/check-ban-gate-coverage.mjs": catalogCheck(/could not read the live catalog/),
   "scripts/check-jobs-dynamic-writers.mjs": catalogCheck(/could not read live pg_proc/),
   "scripts/check-edge-rpcs-live.mjs": catalogCheck(/could not read the live function catalog/),

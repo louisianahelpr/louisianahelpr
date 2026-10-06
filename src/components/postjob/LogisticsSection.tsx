@@ -489,8 +489,9 @@ export function LogisticsSection({
           this is a meaningful poster signal (paint, repair, assembly,
           yard, cleaning). When on, a freeform note appears so the
           poster can list paint colors, parts numbers, supplies, etc.
-          The note is appended into special_requirements at submit so
-          helprs see it on the job card. */}
+          Q1438: the note is stored on its own (jobs.materials_note) and
+          shown to everyone viewing the job; the Access & Parking notes
+          above go to job_access_notes, which only the booked Helpr sees. */}
       {materialsToggleRelevant && setIncludeMaterials && (
         <div
           className={`rounded-ds-md border p-4 space-y-3 ${

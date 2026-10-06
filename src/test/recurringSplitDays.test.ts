@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |        AND v_d < v_min_fundable THEN |        AND false THEN
  * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   -- start, for a series visit and a one-time job alike.\n  IF true THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHERE public.is_late_cancellation(\n           true, |   WHERE (true OR public.is_late_cancellation(\n           true,
- * @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | ELSE 0 END) > 0)) AND parent_job_id IS NULL AND customer_id | ELSE 0 END) > 0)) AND customer_id
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | ELSE 0 END) > 0)) AND parent_job_id IS NULL AND customer_id | ELSE 0 END) > 0)) AND customer_id
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)

@@ -9,7 +9,7 @@
 
 /** `latitude, longitude` are the view's MASKED coordinates (20260903031231). */
 export const GUEST_JOBS_SELECT =
-  "id, title, description, category, budget, date_needed, location, latitude, longitude, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, pricing_mode, credential_tier, parish";
+  "id, title, description, category, budget, date_needed, location, latitude, longitude, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, pricing_mode, credential_tier, parish";
 export const GUEST_JOBS_LIMIT = 40;
 
 /** Same string as GUEST_JOBS_PREFETCH_KEY in the boot module (the test pins it). */

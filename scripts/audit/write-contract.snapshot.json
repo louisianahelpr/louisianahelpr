@@ -8705,6 +8705,92 @@
     "before:insert|update|delete"
    ]
   },
+  "job_access_notes": {
+   "checks": [
+    "CHECK (((char_length(notes) <= 500) AND (btrim(notes, ' \t\r\n'::text) <> ''::text)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "notes": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "DELETE",
+     "INSERT",
+     "SELECT",
+     "UPDATE"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "INSERT",
+     "name": "Poster adds access notes",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "SELECT",
+     "name": "Poster and booked Helprs read access notes",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "UPDATE",
+     "name": "Poster edits access notes",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "DELETE",
+     "name": "Poster removes access notes",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:delete",
+    "before:insert",
+    "before:insert|update|delete",
+    "before:update"
+   ]
+  },
   "job_arrival_confirm_nudges": {
    "checks": [],
    "columnGrants": {},
@@ -9550,7 +9636,9 @@
     "CHECK ((COALESCE(is_flexible_schedule, false) OR (start_time IS NOT NULL) OR (is_seed AND (recurrence_days IS NULL))))",
     "CHECK ((char_length(title) <= 32))",
     "CHECK (((urgent_fee IS NULL) OR ((urgent_fee >= (0)::numeric) AND (urgent_fee <= (250)::numeric))))",
-    "CHECK (((is_urgent IS NOT TRUE) OR ((urgent_fee IS NOT NULL) AND (urgent_fee >= (5)::numeric))))"
+    "CHECK (((is_urgent IS NOT TRUE) OR ((urgent_fee IS NOT NULL) AND (urgent_fee >= (5)::numeric))))",
+    "CHECK (((materials_note IS NULL) OR (char_length(materials_note) <= 500)))",
+    "CHECK ((special_requirements IS NULL))"
    ],
    "columnGrants": {
     "authenticated": {
@@ -9617,6 +9705,7 @@
       "latitude",
       "location",
       "longitude",
+      "materials_note",
       "no_show_alert_sent_at",
       "parent_job_id",
       "parish",
@@ -10119,6 +10208,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "numeric"
+    },
+    "materials_note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
     },
     "no_show_alert_sent_at": {
      "enum": null,

@@ -13,6 +13,7 @@ import {
   __resetStaleClientForTests,
   checkForUpdate,
   decidePending,
+  installStaleClientWatch,
   guardAllows,
   onRouteChange,
   parseBuildCommit,
@@ -89,6 +90,24 @@ describe("staleClient — reload behaviour", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(`<meta name="build-commit" content="${commit}">`, { status: 200 })));
   };
 
+  it("the first check after a load asks no database question; a later check does (Q104 budget, 2026-10-06)", async () => {
+    serve(NEW, 1);
+    vi.useFakeTimers();
+    try {
+      installStaleClientWatch();
+      await vi.advanceTimersByTimeAsync(5_000);
+    } finally {
+      vi.useRealTimers();
+    }
+    // The timer did run its check (the deploy was read), with no RPC.
+    expect(fetch).toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+    // ...and a later check does read the floor.
+    __resetStaleClientForTests();
+    await checkForUpdate({ force: true });
+    expect(rpc).toHaveBeenCalledWith("client_compat_floor");
+  });
+
   it("a newer deploy does not reload mid-page; the next navigation does, once", async () => {
     serve(NEW, 1);
     await checkForUpdate({ force: true });
@@ -134,6 +153,8 @@ describe("staleClient — reload behaviour", () => {
 });
 
 // Shown able to fail: drop the mid-submit hold, or the once-per-target loop guard.
+// @mutate src/lib/staleClient.ts | setTimeout(() => void checkForUpdate({ force: true, floor: false }), 5_000); | setTimeout(() => void checkForUpdate({ force: true }), 5_000);
+// @mutate src/lib/staleClient.ts | opts.floor === false ? Promise.resolve(FLOOR_UNKNOWN) : readClientCompatFloor | readClientCompatFloor
 // @mutate src/lib/staleClient.ts |   if (queryClient.isMutating() > 0) return false;\n | 
 // @mutate src/lib/staleClient.ts |   if (!guardAllows(readGuard(), p.target, Date.now())) return false;\n | 
 // @mutate src/lib/staleClient.ts | \|\| input.deployed === running) return null; | ) return null;

@@ -34,7 +34,7 @@
  */
 import { queryClient } from "./queryClient";
 import { isRecoveryReloadInFlight } from "./chunkReload";
-import { CLIENT_COMPAT_EPOCH, isBelowFloor, readClientCompatFloor } from "./clientCompat";
+import { CLIENT_COMPAT_EPOCH, FLOOR_UNKNOWN, isBelowFloor, readClientCompatFloor } from "./clientCompat";
 import { PERMISSION_DENIED_EVENT } from "./permissionDenied";
 
 const CHECK_THROTTLE_MS = 30_000;
@@ -136,8 +136,16 @@ function reloadIfSafe(): boolean {
   return true;
 }
 
-/** Run one check (throttled unless forced). Resolves to what is pending. */
-export function checkForUpdate(opts: { force?: boolean } = {}): Promise<Pending> {
+/**
+ * Run one check (throttled unless forced). Resolves to what is pending.
+ * `floor: false` skips the compat-floor RPC (the first check after a load:
+ * a page that just loaded runs the newest bundle, so only a newer deploy can
+ * be pending, and asking the database on every page view was one extra
+ * request per visit, which put the anon surface over its Q104 budget,
+ * 2026-10-06). Long-lived tabs still read the floor on focus, visibility,
+ * back/forward restore and every refused read.
+ */
+export function checkForUpdate(opts: { force?: boolean; floor?: boolean } = {}): Promise<Pending> {
   const now = Date.now();
   if (checking) return checking;
   if (now - lastCheckAt < (opts.force ? FORCED_CHECK_THROTTLE_MS : CHECK_THROTTLE_MS)) return Promise.resolve(pending);
@@ -147,7 +155,7 @@ export function checkForUpdate(opts: { force?: boolean } = {}): Promise<Pending>
       const [, deployed, floor] = await Promise.all([
         updateServiceWorker(),
         fetchDeployedCommit(),
-        readClientCompatFloor({ force: opts.force }),
+        opts.floor === false ? Promise.resolve(FLOOR_UNKNOWN) : readClientCompatFloor({ force: opts.force }),
       ]);
       pending = decidePending({ floor, epoch: CLIENT_COMPAT_EPOCH, deployed, running: runningCommit() });
       return pending;
@@ -184,7 +192,7 @@ export function installStaleClientWatch(): void {
     void checkForUpdate({ force: true }).then(() => reloadIfSafe());
   });
   // First check after the page has painted and settled.
-  setTimeout(() => void checkForUpdate({ force: true }), 5_000);
+  setTimeout(() => void checkForUpdate({ force: true, floor: false }), 5_000);
 }
 
 export function __resetStaleClientForTests(): void {

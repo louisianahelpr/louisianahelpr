@@ -29,7 +29,7 @@
 // Registered mutations - each turns this guard RED on its own:
 // @mutate scripts/ci/definer-exec-allowlist.json | "is_caller_banned()": "policy" | "is_caller_banned()": "client"
 // @mutate scripts/ci/definer-exec-allowlist.json | "apply_cancellation_violation_consequence(uuid)": "reviewed | "apply_cancellation_violation_consequence(uuid)": "client", "zz": "reviewed
-// @mutate src/lib/crewLifecycle.ts |   const { data, error } = await supabase.rpc("rpc_group_member_confirm", { _job_id: jobId }); |   const { data, error } = await supabase.rpc("rpc_group_member_confirm_v0", { _job_id: jobId });
+// @mutate scripts/ci/definer-exec-allowlist.json | "rpc_group_member_confirm(uuid)": "client" | "rpc_group_member_confirm(uuid)": "reviewed 2026-10-05 (Q14): crew member acts on their own slot (auth.uid()); no client caller yet (group jobs blocked at launch)."
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_job_pets(uuid)": "client" | "get_job_pets(uuid)": "policy"
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_parish_for_zip(text)": "reviewed 2026-10-05 (Q1284): | "get_parish_for_zip(text)": "fine:
 // @mutate scripts/ci/definer-exec-allowlist.json | "authenticated": { | "authenticated": {\n    "resolve_auto_tip(uuid, numeric)": "client",

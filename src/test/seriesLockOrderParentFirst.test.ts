@@ -11,8 +11,8 @@
  * Inventory: the newest body of each function below. The floor keeps a
  * renamed or dropped function from emptying the check.
  *
- * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql | WHERE pj.id = (SELECT c.parent_job_id FROM public.jobs c WHERE c.id = p_job_id)\n   FOR UPDATE; | WHERE pj.id = (SELECT c.parent_job_id FROM public.jobs c WHERE c.id = p_job_id);
- * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |   PERFORM 1 FROM public.jobs pj | SELECT 1 FROM public.jobs pj
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql | WHERE pj.id = (SELECT c.parent_job_id FROM public.jobs c WHERE c.id = p_job_id)\n   FOR UPDATE; | WHERE pj.id = (SELECT c.parent_job_id FROM public.jobs c WHERE c.id = p_job_id);
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   PERFORM 1 FROM public.jobs pj | SELECT 1 FROM public.jobs pj
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |      WHERE c.parent_job_id = v_job.id AND c.date_needed = v_d\n     FOR UPDATE; |      WHERE c.parent_job_id = v_job.id AND c.date_needed = v_d;
  */
 import { describe, expect, it } from "vitest";

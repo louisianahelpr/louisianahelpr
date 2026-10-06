@@ -18,9 +18,9 @@
  * comments blanked.
  *
  * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql | AS $function$ SELECT false $function$; | AS $function$ SELECT true $function$;
- * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |   IF v_job.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'offer_not_accepted' |   IF false THEN\n    RAISE EXCEPTION 'offer_not_accepted'
- * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |     IF v_slot_confirmed_at IS NULL THEN | IF false THEN
- * @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |      IF v_crew.member_confirmed_at IS NOT NULL\n         AND public.is_late_cancellation | IF public.is_late_cancellation
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   IF v_job.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'offer_not_accepted' |   IF false THEN\n    RAISE EXCEPTION 'offer_not_accepted'
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     IF v_slot_confirmed_at IS NULL THEN | IF false THEN
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |      IF v_crew.member_confirmed_at IS NOT NULL\n         AND public.is_late_cancellation | IF public.is_late_cancellation
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

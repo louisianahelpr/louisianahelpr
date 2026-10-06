@@ -36,16 +36,16 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
 // @mutate supabase/migrations/20261005171601_crew_counts_exports_and_ban_alert.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
-// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
-// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
-// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
-// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |       IF v_member_fee > 0 THEN |       IF false THEN
-// @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
-// @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
-// @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |       IF v_member_fee > 0 THEN |       IF false THEN
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
-// @mutate supabase/migrations/20261005184940_offer_deadline_before_start.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
-// @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF v_row.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.'; |   IF false THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.';
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       .not("is_group_job", "is", true)\n      .lte("date_needed", tomorrow) |       .lte("date_needed", tomorrow)
 const root = resolve(__dirname, "../..");
@@ -152,13 +152,13 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
   });
 
   it("Q729/Q1282: a block takes only that member off the crew, and an unanswered spot expires", () => {
-    for (const fn of ["block_user_and_settle", "enforce_group_member_lifecycle_server_owned"]) {
-      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q729 definition`).toBe(CREW_BLOCK);
-    }
-    // 20261005184940 restates these two from the Q729 bodies, adding the offer
-    // cap (answer-by never after the job's start); the crew rules must survive.
-    for (const fn of ["expire_unanswered_offers", "accept_group_application"]) {
-      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the newest crew-aware definition`).toBe("20261005184940_offer_deadline_before_start.sql");
+    expect(EFFECTIVE.get("enforce_group_member_lifecycle_server_owned")?.file).toBe(CREW_BLOCK);
+    // 20261005184940 restated expire_unanswered_offers and accept_group_application
+    // from the Q729 bodies (the offer cap), and 20261006015121 (Q1378, the rest
+    // of a crew carry on) restates both with block_user_and_settle; the crew
+    // rules below must survive every restatement.
+    for (const fn of ["block_user_and_settle", "expire_unanswered_offers", "accept_group_application"]) {
+      expect(EFFECTIVE.get(fn)?.file, `${fn} is not the newest crew-aware definition`).toBe("20261006015121_crew_rest_carry_on.sql");
     }
     const block = body("block_user_and_settle");
     expect(block).toMatch(/WHERE j\.is_group_job IS TRUE[\s\S]*\(j\.customer_id = v_user\s+AND g\.helper_id = p_blocked\)\s+OR \(j\.customer_id = p_blocked AND g\.helper_id = v_user\)/);

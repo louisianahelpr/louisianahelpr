@@ -26,6 +26,27 @@ export const QUEUE_LABEL = "land-queue";
 export const FAILED_LABEL = "land-queue-failed";
 
 /**
+ * Checks that are not branch-protection-required but must never be red on a
+ * landing PR. GitHub auto-merge waits only for REQUIRED checks, so on
+ * 2026-10-06 #2450 merged with "Apply migrations + post-job trigger smoke"
+ * red, and db-deploy then refused the migration (null-uid gate), blocking
+ * every deploy. These run only when migrations change (path filters), which is
+ * why they cannot simply be made required. The queue counts them like required
+ * ones, wakes when they finish, and on a red one turns the PR's auto-merge off.
+ */
+export const GATE_CHECKS = [
+  "Apply migrations + post-job trigger smoke",
+  "Lint new migration SQL",
+  "Check for duplicate migration timestamps",
+];
+
+/** Required checks plus any gate check present on the PR (by name). Pure. */
+export function queuedChecks(required, all) {
+  const names = new Set(required.map((c) => c.name));
+  return [...required, ...all.filter((c) => GATE_CHECKS.includes(c.name) && !names.has(c.name))];
+}
+
+/**
  * Pure decision. `prs` are the queued PRs, oldest first:
  * { number, mergeStateStatus, checks: [{ name, bucket, runId, attempt }] }
  * where checks are the REQUIRED ones only and bucket is gh's
@@ -102,6 +123,15 @@ function readQueue() {
       if (!out.trim()) throw e;
       checks = JSON.parse(out);
     }
+    let all = [];
+    try {
+      all = JSON.parse(gh(["pr", "checks", String(number), "--json", "name,bucket,link"]));
+    } catch (e) {
+      const out = e && typeof e === "object" && "stdout" in e ? String(e.stdout) : "";
+      if (!out.trim()) throw e;
+      all = JSON.parse(out);
+    }
+    checks = queuedChecks(checks, all);
     const withRuns = checks.map((c) => {
       const runId = runIdFrom(c.link);
       let attempt = 1;
@@ -119,8 +149,15 @@ function act(step) {
   const n = String(step.number);
   switch (step.action) {
     case "fail":
+      // Auto-merge waits only for required checks: off, so a red gate check
+      // cannot merge behind the queue's back.
+      try {
+        gh(["pr", "merge", n, "--disable-auto"]);
+      } catch {
+        /* Silent by design: auto-merge was not on; the label below still takes the PR out of the queue. */
+      }
       gh(["pr", "edit", n, "--remove-label", QUEUE_LABEL, "--add-label", FAILED_LABEL]);
-      gh(["pr", "comment", n, "--body", `Left the land queue: required check(s) failed: ${step.checks.join(", ")}. Fix, push, and re-run \`bash scripts/land.sh\` (it re-queues the PR). The next PR in the queue has moved up.`]);
+      gh(["pr", "comment", n, "--body", `Left the land queue: required or migration-gate check(s) failed (auto-merge turned off): ${step.checks.join(", ")}. Fix, push, and re-run \`bash scripts/land.sh\` (it re-queues the PR). The next PR in the queue has moved up.`]);
       return;
     case "rerun":
       for (const id of step.runIds) gh(["run", "rerun", id, "--failed"]);

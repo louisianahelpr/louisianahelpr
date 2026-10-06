@@ -28,7 +28,7 @@ describe("drift checks read main's tip", () => {
 
   it("each checks out ref: main in the job that compares", () => {
     for (const { f, src } of scheduled) {
-      const jobs = src.split(/\n  (?=[a-z][\w-]*:\n)/);
+      const jobs = src.split(/\n {2}(?=[a-z][\w-]*:\n)/);
       const comparing = jobs.filter((j) => COMPARES_PROD.test(j) && /actions\/checkout@/.test(j));
       expect(comparing.length, `${f}: no job both checks out and compares`).toBeGreaterThan(0);
       for (const j of comparing) {

@@ -90,6 +90,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # ALWAYS main's tip, never the run's own commit. A re-run (a cancelled
+          # run re-run once, or by hand) checks out the commit the run STARTED on,
+          # so on 2026-10-06 attempt 2 of a 21:05Z run compared prod with a repo
+          # from before that evening's migrations landed and filed "7 unrecorded"
+          # (#2422, closed: 998 versions, 0 mismatched). Prod is always now, so
+          # the repo side must be too. Guard: src/test/driftCheckReadsMainTip.test.ts.
+          ref: main
 
       # REQUIRED SECRETS ARE A HARD GATE. Changed 2026-08-31.
       #

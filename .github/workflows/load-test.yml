@@ -1,0 +1,130 @@
+name: Load test (Q60, prod, run once on demand)
+
+# Q60 (launch list, owner 2026-10-05: "keep it, run once"): one bounded, ramped
+# load test against PROD Supabase (there is no staging), on a GitHub runner
+# rather than the owner's 8 GB Mac. The harness is scripts/load/load-test.mjs:
+# shared test accounts only (no new auth users), real app query shapes, a few
+# message inserts between the two e2e accounts on their seed job tagged
+# "[q60-loadtest <runId>]", and it aborts on its own when error rate, p95 or
+# 5xx cross its limits. Afterwards this job deletes exactly the rows carrying
+# that tag (the messages and the notifications they raised) and proves the
+# count is zero. Dispatch only: nothing schedules this.
+
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Virtual-user ramp, comma separated"
+        required: false
+        default: "5,25,50,100"
+      rt:
+        description: "Realtime-socket ramp, comma separated"
+        required: false
+        default: "10,50,100,200"
+      step_seconds:
+        description: "Seconds per step"
+        required: false
+        default: "120"
+
+# Its own group per run (a dispatch never joins the shared `prod-load` group:
+# GitHub keeps one PENDING run per group, so a third arrival cancels the one
+# waiting). The prod-load-turn job below waits its turn behind scheduled runs.
+concurrency:
+  group: load-test-${{ github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prod-load-turn:
+    name: Wait for the prod-load queue (first in, first served)
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/ci/wait-prod-load.mjs
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until no older scheduled prod-load run is in flight
+        run: node scripts/ci/wait-prod-load.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  load:
+    needs: prod-load-turn
+    name: Ramp, then clean up the tagged rows
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund --legacy-peer-deps
+      - name: Write .env for the harness and the sign-in helper
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::A required secret is missing; the load test cannot sign in or reach prod."
+            exit 1
+          fi
+          {
+            echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY"
+          } > .env
+      - name: Run the ramp
+        id: ramp
+        env:
+          STEPS: ${{ inputs.steps }}
+          RT: ${{ inputs.rt }}
+          STEP_SECONDS: ${{ inputs.step_seconds }}
+        run: |
+          set -euo pipefail
+          node scripts/load/load-test.mjs --steps "$STEPS" --rt "$RT" --step-seconds "$STEP_SECONDS" --out q60-out 2>&1 | tee q60-out.log
+          RUN_ID=$( (grep -oE 'run [0-9T]+Z? tag' q60-out.log || true) | head -1 | awk '{print $2}')
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+      - name: Keep the measurements
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: q60-load-test
+          path: |
+            q60-out
+            q60-out.log
+          if-no-files-found: warn
+      - name: Install Supabase CLI
+        if: always()
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: latest
+      - name: Delete the tagged rows, then prove none are left
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          RUN_ID: ${{ steps.ramp.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          # Every run's tag starts "[q60-loadtest "; the run id narrows it to
+          # this run when the harness printed one. Only the two shared e2e
+          # accounts ever carry it (the harness sends nothing else).
+          if [[ -n "$RUN_ID" && ! "$RUN_ID" =~ ^[0-9T]+Z?$ ]]; then echo "::error::unexpected run id '$RUN_ID'"; exit 1; fi
+          PATTERN="[q60-loadtest ${RUN_ID}"
+          supabase link --project-ref "$PROJECT_REF"
+          supabase db query --linked "delete from public.notifications where message like '%' || '$PATTERN' || '%'; delete from public.messages where content like '$PATTERN' || '%'"
+          LEFT=$(supabase db query --linked -o json "select (select count(*) from public.messages where content like '[q60-loadtest%') + (select count(*) from public.notifications where message like '%[q60-loadtest%') as n" | jq -r '.rows[0].n // .[0].n')
+          echo "Tagged rows left after cleanup: $LEFT" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$LEFT" != "0" ]; then echo "::error::cleanup left $LEFT tagged row(s)"; exit 1; fi

@@ -62,19 +62,28 @@ function guardsNamed(text: string): string[] {
 
 import { statSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
+// One walk per directory, then lookups: walking the tree again for every bare
+// name in every done item took this test past its 20 s timeout (2026-10-06,
+// 26 s alone on the batch landing's tree). Same answer: the first file with
+// that basename in the same walk order.
+const dirIndex = new Map<string, Map<string, string>>();
 function execFind(dir: string, name: string): string | null {
-  const abs = join(ROOT, dir);
-  const stack = [abs];
-  while (stack.length) {
-    const d = stack.pop()!;
-    for (const e of readdirSync(d)) {
-      if (e === "node_modules") continue;
-      const p = join(d, e);
-      if (statSync(p).isDirectory()) stack.push(p);
-      else if (e === name) return p.slice(ROOT.length + 1);
+  let index = dirIndex.get(dir);
+  if (!index) {
+    index = new Map();
+    const stack = [join(ROOT, dir)];
+    while (stack.length) {
+      const d = stack.pop()!;
+      for (const e of readdirSync(d)) {
+        if (e === "node_modules") continue;
+        const p = join(d, e);
+        if (statSync(p).isDirectory()) stack.push(p);
+        else if (!index.has(e)) index.set(e, p.slice(ROOT.length + 1));
+      }
     }
+    dirIndex.set(dir, index);
   }
-  return null;
+  return index.get(name) ?? null;
 }
 
 describe("every DONE queue item names the guard that stops it recurring", () => {

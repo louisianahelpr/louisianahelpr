@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-06T23:08Z",
+  "measured_at": "2026-10-06T23:24Z",
   "issues": {
     "readable": true,
     "open": [
@@ -48,6 +48,11 @@
         "number": 2462,
         "title": "nightly-red: slow-network",
         "label": "nightly-red"
+      },
+      {
+        "number": 2501,
+        "title": "nightly-red: vacuity",
+        "label": "nightly-red"
       }
     ]
   },
@@ -84,7 +89,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: vacuity",
-        "issue": 2419
+        "issue": null
       },
       {
         "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
@@ -192,6 +197,7 @@
     "issue #2435": "Q1428",
     "issue #2436": "Q1429",
     "issue #2462": "Q1430",
+    "issue #2501": "Q1426",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1437",

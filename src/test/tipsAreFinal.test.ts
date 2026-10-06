@@ -47,7 +47,10 @@ const refunders = walk(FNS).filter((p) => /stripe\.refunds\.create\s*\(/.test(co
 
 describe("tips are final", () => {
   it("finds the refund paths (the inventory is not empty)", () => {
-    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(7);
+    // 8 (2026-10-06): stripe-webhook/handlers/refundDuplicateFunding.ts (Q1419) refunds a
+    // job-funding checkout that landed on an already-funded job; the escrow block that calls
+    // it excludes tip sessions (sessionType "tip"), so it cannot reach a tip.
+    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(8);
   });
 
   it("no refund path reads the tips table", () => {

@@ -6,6 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { refundDuplicateFunding } from "./refundDuplicateFunding.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
@@ -804,6 +805,10 @@ async function settleCheckoutSession(
   // gift card funding via this redeemed credit and pays the helper from the platform
   // balance, not from the difference PI).
   const giftCardId = (session.metadata as any)?.gift_card_id as string | undefined;
+  // Q1419: whether THIS delivery consumed the reserved gift, so the
+  // duplicate-funding branch below can put it back if the job turns out to be
+  // funded already (the gift must not stay spent on a job it did not pay for).
+  let giftConsumedHere = false;
   if (giftCardId) {
     const { data: consumed, error: consumeErr } = await supabase
       .from("gift_cards")
@@ -839,6 +844,7 @@ async function settleCheckoutSession(
     } else if (!consumed) {
       logStep("Reserved gift card already consumed or missing — skipping", { giftCardId });
     } else {
+      giftConsumedHere = true;
       logStep("Reserved gift card consumed on difference payment", { giftCardId, sessionId: session.id });
     }
   }
@@ -975,11 +981,74 @@ async function settleCheckoutSession(
     //
     // create-payment's own escrow write already carries this guard, with a
     // comment saying exactly why. The write that marks the job FUNDED did not.
+    //
+    // Q1419: only an UNFUNDED job is marked funded (or this same payment again:
+    // a redelivery stays idempotent). The escrow checkout captures at once, so
+    // a second completed checkout on a job already funded another way (a gift,
+    // an earlier card checkout) is a real second charge; written by id alone it
+    // silently replaced the job's PaymentIntent. That one is refunded below.
     const { data: jobUpdated, error: jobError } = await supabase
       .from("jobs")
       .update(updateData)
       .eq("id", jobId)
+      // A redelivery of this same payment re-writes only while the job is
+      // still escrow on it: never walks a paid-out or refunded job back.
+      .or(`payment_status.is.null,payment_status.in.(unpaid,failed,abandoned),and(stripe_payment_intent_id.eq.${piId},payment_status.eq.escrow)`)
+      // A closed job is never funded (create-payment's stampSession guard,
+      // mirrored): a late payment on one is refunded below instead of becoming
+      // escrow nothing pays out.
+      .not("status", "in", "(completed,cancelled)")
       .select("id");
+    if (!jobError && (!jobUpdated || jobUpdated.length === 0)) {
+      const { data: funded, error: fundedErr } = await supabase
+        .from("jobs")
+        .select("id, status, payment_status, stripe_payment_intent_id")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (!fundedErr && funded && funded.stripe_payment_intent_id === piId) {
+        // This payment already funded the job, which has moved on since (paid
+        // out, refunded): a late redelivery, not a second charge.
+        logStep("Payment already applied to this job; redelivery ignored", { jobId, pi: piId, jobPaymentStatus: funded.payment_status });
+        return;
+      }
+      if (!fundedErr && funded) {
+        await refundDuplicateFunding(stripe, piId);
+        let giftRestored: boolean | null = null;
+        if (giftCardId && giftConsumedHere) {
+          const { data: restored, error: restoreErr } = await supabase
+            .from("gift_cards")
+            .update({ status: "sent", job_id: null, redeemed_at: null })
+            .eq("id", giftCardId)
+            .eq("status", "redeemed")
+            .eq("job_id", jobId)
+            .select("id");
+          if (restoreErr) {
+            // The refund is keyed, so the retry this throw causes refunds
+            // nothing twice and tries the restore again.
+            throw new Error(`gift ${giftCardId} not restored after a duplicate-funding refund on job ${jobId}: ${restoreErr.message}`);
+          }
+          giftRestored = (restored ?? []).length > 0;
+        }
+        logStep("Job already funded; this checkout's payment refunded in full", {
+          jobId, pi: piId, jobPaymentStatus: funded.payment_status, jobPi: funded.stripe_payment_intent_id,
+        });
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "critical",
+          title: "Escrow funding — a second payment on an already-funded job was refunded",
+          message: "A checkout completed for a job that was already funded another way (a gift, an earlier checkout) or is closed. The job was left as it was and this payment was refunded in full. Find how a second checkout was open (Q1419, Q975 race 15).",
+          fields: {
+            session_id: session.id, job_id: jobId, payment_intent: piId,
+            job_status: String(funded.status), job_payment_status: String(funded.payment_status),
+            job_payment_intent: String(funded.stripe_payment_intent_id ?? "none"),
+            gift_card: giftCardId ?? "none",
+            gift_restored: giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand",
+          },
+        });
+        return;
+      }
+      // Gone (or unreadable): the existing branch below says so and retries.
+    }
     if (jobError || !jobUpdated || jobUpdated.length === 0) {
       logStep("ERROR storing PI on job", {
         error: jobError?.message ?? "matched 0 rows — job deleted mid-checkout",
@@ -1057,3 +1126,4 @@ async function settleCheckoutSession(
     logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });
   }
 }
+

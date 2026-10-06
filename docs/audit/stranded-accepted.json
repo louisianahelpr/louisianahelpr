@@ -136,6 +136,17 @@
       "id": "remote:origin/q975-probe7-red",
       "sha": "58d0378bd3c68baee59d8b53f0d0f285d8b378e3",
       "reason": "RED PROOF, never to land: races 16-17 with the chargeback and transfer guards removed (runs 37514334669 and 37515559411: BAD 5/5 each), the proof that Q975 probe 7 can fail; kept on origin as the record of the run."
+    },
+    {
+      "id": "pr:2385",
+      "sha": "31bf45afaef10ca1362982bef2ec3cc9046cf086",
+      "reason": "Unfinished WIP from session 015e17FVHk7TKjQyH94baGQE ('one bot on main owns generated files; branches refused', its own commit says incomplete): 28 files, not landable as is. Tracked as Q1423 (post-launch); the branch stays on origin as the starting point.",
+      "checked": "2026-10-06 (lead)"
+    },
+    {
+      "id": "remote:origin/chore/generated-files-main-bot",
+      "sha": "31bf45afaef10ca1362982bef2ec3cc9046cf086",
+      "reason": "Same unfinished WIP as pr:2385; tracked as Q1423."
     }
   ]
 }

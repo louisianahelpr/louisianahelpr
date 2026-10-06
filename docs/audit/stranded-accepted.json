@@ -126,6 +126,16 @@
       "id": "remote:origin/q975-races-10-13-red",
       "sha": "14ff0cac91e9c7e8e10435dda872088ee062f44f",
       "reason": "RED PROOF, never to land: races 10-13 with their guards removed (run 37416505050: BAD 5/5 each), the proof that races 10-13 can fail; kept on origin as the record of the run."
+    },
+    {
+      "id": "pr:2449",
+      "sha": "14ff0cac91e9c7e8e10435dda872088ee062f44f",
+      "reason": "RED PROOF, never to land: the auto-land PR branch-prune opened for q975-races-10-13-red (races 10-13 with guards removed, run 37416505050 BAD 5/5). Auto-merge disabled and the PR closed 2026-10-06 (lead); the real races landed with Q975."
+    },
+    {
+      "id": "remote:origin/q975-probe7-red",
+      "sha": "58d0378bd3c68baee59d8b53f0d0f285d8b378e3",
+      "reason": "RED PROOF, never to land: races 16-17 with the chargeback and transfer guards removed (runs 37514334669 and 37515559411: BAD 5/5 each), the proof that Q975 probe 7 can fail; kept on origin as the record of the run."
     }
   ]
 }

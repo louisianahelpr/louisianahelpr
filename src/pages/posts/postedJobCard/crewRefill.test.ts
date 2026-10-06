@@ -6,8 +6,8 @@ import { crewSpotRefillable } from "./crewRefill";
 
 // Q1378: the poster's card offers a refill on a booked crew with a free spot,
 // before the start, and nowhere else.
-const NOW = new Date("2026-10-06T15:00:00Z"); // 10:00 CDT
-const crew = { is_group_job: true, status: "accepted", helpers_needed: 3, date_needed: "2026-10-08", start_time: "09:00:00" };
+const NOW = new Date("2024-10-06T15:00:00Z"); // 10:00 CDT
+const crew = { is_group_job: true, status: "accepted", helpers_needed: 3, date_needed: "2024-10-08", start_time: "09:00:00" };
 const two = [{}, {}];
 
 describe("crewSpotRefillable", () => {
@@ -21,8 +21,8 @@ describe("crewSpotRefillable", () => {
     expect(crewSpotRefillable(crew, [{ helper_id: null }, {}, {}], NOW)).toBe(false);
   });
   it("inside 15 minutes of the start the server refuses a hire, so the card offers none", () => {
-    expect(crewSpotRefillable({ ...crew, date_needed: "2026-10-06", start_time: "10:10:00" }, two, NOW)).toBe(false);
-    expect(crewSpotRefillable({ ...crew, date_needed: "2026-10-06", start_time: "10:20:00" }, two, NOW)).toBe(true);
+    expect(crewSpotRefillable({ ...crew, date_needed: "2024-10-06", start_time: "10:10:00" }, two, NOW)).toBe(false);
+    expect(crewSpotRefillable({ ...crew, date_needed: "2024-10-06", start_time: "10:20:00" }, two, NOW)).toBe(true);
   });
   it("not a booked crew: a single job, a staffing (open) crew, a started crew, an unknown roster", () => {
     expect(crewSpotRefillable({ ...crew, is_group_job: false }, two, NOW)).toBe(false);

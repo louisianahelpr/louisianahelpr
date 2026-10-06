@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";

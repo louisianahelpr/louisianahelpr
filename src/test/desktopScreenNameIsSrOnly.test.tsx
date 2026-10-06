@@ -54,7 +54,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, loading: false }),
 }));
 vi.mock("@/components/job-card/useActivityActions", () => ({
-  useActivityActions: () => ({ expandedJobIds: new Set<string>(), inlineApplicants: {}, applicantErrors: {} }),
+  useActivityActions: () => ({ expandedJobIds: new Set<string>(), inlineApplicants: {}, applicantErrors: {}, tip: { target: null, open: () => {}, close: () => {} } }),
 }));
 vi.mock("@/components/job-card/ActivityDialogs", () => ({ ActivityDialogs: () => null }));
 // The two tab bodies are lazy chunks; their contents are irrelevant here and

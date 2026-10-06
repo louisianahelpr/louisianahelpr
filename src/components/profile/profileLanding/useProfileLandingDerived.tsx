@@ -1,3 +1,4 @@
+import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
 import {
   Shield, ShieldAlert, Bell, PawPrint, ClipboardList,
   CalendarDays, Heart, ShieldCheck, Home, Gift, Coins, UserPlus,
@@ -98,7 +99,10 @@ export function useProfileLandingDerived({
         connectIdentityVerified: profile?.stripe_identity_verified,
         idvStatus: profile?.idv_status,
       }),
-      label: "ID verified by Stripe",
+      // The one form's wording (IdVerifiedPill.tsx, Q987); `id` makes the
+      // header draw it as the gold pill rather than a generic chip.
+      label: ID_VERIFIED_LABEL,
+      id: true,
     },
     { ok: profile?.license_status === "verified", label: "Licensed" },
     { ok: profile?.insurance_status === "verified", label: "Insured" },

@@ -369,10 +369,15 @@ describe("BrowseMap my-location button", () => {
     map.setRegionAnimated.mockClear();
     fireEvent.click(btn);
 
-    await waitFor(() => expect(map.setRegionAnimated).toHaveBeenCalled());
-    const calls = map.setRegionAnimated.mock.calls;
-    const region = calls[calls.length - 1]?.[0];
-    expect(region.span.latitudeDelta).toBeGreaterThan(0.2);
+    // Waits for the LAST framing to be the wide one, not for the first call:
+    // under load an earlier 0.06 framing could be the only call when the
+    // first-call wait resolved (land run 2026-10-06, "expected 0.06 to be
+    // greater than 0.2"; the file passed alone). A device-fix-sized frame
+    // still never passes.
+    await waitFor(() => {
+      const calls = map.setRegionAnimated.mock.calls;
+      expect(calls[calls.length - 1]?.[0]?.span.latitudeDelta).toBeGreaterThan(0.2);
+    });
   });
 
   it("falls back to the Louisiana view and says why when location is refused", async () => {

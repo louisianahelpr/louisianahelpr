@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { TipDialogState, TipTarget } from "./ActivityDialogs";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import type { AcceptMissing, AwardBlockReason } from "@/lib/awardGate";
@@ -70,10 +71,14 @@ export function useActivityActions({
   // Dialog state
   const [editJob, setEditJob] = useState<Job | null>(null);
   const [boostJobId, setBoostJobId] = useState<string | null>(null);
-  const [enhancedTipJobId, setEnhancedTipJobId] = useState<string | null>(null);
-  const [enhancedTipHelperName, setEnhancedTipHelperName] = useState("");
-  // Q709(c): on a crew, the member being tipped (the server needs to be told who).
-  const [enhancedTipHelperId, setEnhancedTipHelperId] = useState<string | undefined>(undefined);
+  // The Tip dialog: which job, and who is tipped. On a crew (Q709(c)) the
+  // member's id too, since the server needs to be told who.
+  const [tipTarget, setTipTarget] = useState<TipTarget | null>(null);
+  const tip: TipDialogState = {
+    target: tipTarget,
+    open: (jobId, helperName, helperId) => setTipTarget({ jobId, helperName, helperId }),
+    close: () => setTipTarget(null),
+  };
   const [noShowJobId, setNoShowJobId] = useState<string | null>(null);
   const [cancelDialogJob, setCancelDialogJob] = useState<Job | null>(null);
   const [deadlineDialogApp, setDeadlineDialogApp] = useState<EnrichedApplication | null>(null);
@@ -191,9 +196,7 @@ export function useActivityActions({
     applicantErrors,
     editJob, setEditJob,
     boostJobId, setBoostJobId,
-    enhancedTipJobId, setEnhancedTipJobId,
-    enhancedTipHelperName, setEnhancedTipHelperName,
-    enhancedTipHelperId, setEnhancedTipHelperId,
+    tip,
     noShowJobId, setNoShowJobId,
     cancelDialogJob, setCancelDialogJob,
     deadlineDialogApp, setDeadlineDialogApp,

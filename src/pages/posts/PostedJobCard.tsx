@@ -22,7 +22,6 @@ import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
 import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
-import { crewSpotRefillable } from "./postedJobCard/crewRefill";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
@@ -722,17 +721,13 @@ function PostedJobCardInner({
                 </div>
               )}
 
-              {/* Applicants button + inline expanded applicant list. Also on a
-                  booked crew a member left (Q1378): the rest carry on and the
-                  poster may refill the spot from their applicants before the
-                  start. */}
-              {(job.status === "open" || crewSpotRefillable(job, initialGroupHelpers)) && (
-                <PostedJobApplicants
-                  job={job}
-                  applicantCounts={applicantCounts}
-                  onLoadApplications={onLoadApplications}
-                />
-              )}
+              {/* Applicants button (it draws itself only when the job takes applicants) */}
+              <PostedJobApplicants
+                job={job}
+                crewRoster={initialGroupHelpers}
+                applicantCounts={applicantCounts}
+                onLoadApplications={onLoadApplications}
+              />
 
               {/* The Activity panel (views / % applied) used to sit here.
                   Owner: "just remove it from there. Show it when applicants is

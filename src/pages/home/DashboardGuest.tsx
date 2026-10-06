@@ -24,11 +24,9 @@ const BrowseMap = lazy(() =>
 // Apply/contact/save/report inside the dialog stay gated to /signup.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { fetchRatingStats } from "@/lib/reviewStats";
 import { report } from "@/lib/errorLogger";
-import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
 import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -42,7 +40,7 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { feedPhase } from "@/lib/feedPhase";
-import { GUEST_JOBS_LIMIT, GUEST_JOBS_SELECT, takeGuestJobsPrefetch } from "@/lib/guestJobsQuery";
+import { fetchGuestJobs } from "./fetchGuestJobs";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 
 /**
@@ -229,36 +227,8 @@ const DashboardGuest = () => {
     refetch,
   } = useQuery({
     queryKey: queryKeys.dashboard.guestJobs(),
-    queryFn: async (): Promise<EnrichedJob[]> => {
-      // Q206: the entry started this exact read beside the app download
-      // (src/boot/guestJobsPrefetch.ts). Taken once; if it failed or is old,
-      // ask Supabase as before.
-      const prefetched = await takeGuestJobsPrefetch();
-      const rawJobs = prefetched ?? unwrap(
-        await supabase
-          .from("open_jobs_browse")
-          // `latitude, longitude` are the view's MASKED coordinates (rounded
-          // to 2dp ≈ 1.1km — 20260903031231), and they are what makes the
-          // "Nearby" radius chip a real filter on this surface (BD-001).
-          // `credential_tier`, `parish` — same column parity fix as the
-          // authed feed (useDashboardData.ts), see 20260904031002.
-          .select(GUEST_JOBS_SELECT)
-          .neq("payment_status", "abandoned")
-          .order("boosted_at", { ascending: false, nullsFirst: false })
-          .order("created_at", { ascending: false })
-          .limit(GUEST_JOBS_LIMIT),
-      );
-
-      const now = new Date();
-      // The prefetch (Q206) hands back the same rows untyped (unknown[]).
-      type GuestJobRow = { expires_at: string | null; boost_expires_at: string | null };
-      return ((rawJobs ?? []) as GuestJobRow[])
-        .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
-        .map((j) => ({
-          ...j,
-          isBoosted: !!j.boost_expires_at && new Date(j.boost_expires_at) > now,
-        })) as EnrichedJob[];
-    },
+    // The read, the prefetch hand-over and each crew's open-spot count (Q1409).
+    queryFn: fetchGuestJobs,
     staleTime: 60 * 1000,
   });
 
@@ -314,24 +284,9 @@ const DashboardGuest = () => {
     },
   });
 
-  // Q1409: how many spots each crew on the feed has open (best effort; a crew
-  // card shows its size until this arrives).
-  const crewIds = useMemo(
-    () => baseJobs.filter((j) => j.is_group_job).map((j) => j.id),
-    [baseJobs],
-  );
-  const { data: crewSpots } = useQuery({
-    queryKey: queryKeys.dashboard.guestCrewSpots(crewIds),
-    enabled: crewIds.length > 0,
-    staleTime: 60 * 1000,
-    queryFn: () => fetchCrewSpotsOpen(crewIds),
-  });
-
   const jobs = useMemo<EnrichedJob[]>(() => {
-    const withSpots = (j: EnrichedJob): EnrichedJob =>
-      crewSpots?.has(j.id) ? { ...j, crew_spots_open: crewSpots.get(j.id) } : j;
-    if (!posterInfo) return baseJobs.map(withSpots);
-    return baseJobs.map(withSpots).map((j) => {
+    if (!posterInfo) return baseJobs;
+    return baseJobs.map((j) => {
       // Ownerless job (see posterIds above): it keeps the existing "a neighbor"
       // fallback and scores with no tier, which is what an unknown poster
       // already got. It must not reach a lookup keyed on a string.
@@ -347,7 +302,7 @@ const DashboardGuest = () => {
         posterSubscriptionTier: (posterId ? posterInfo.tierMap.get(posterId) : null) ?? null,
       };
     });
-  }, [baseJobs, posterInfo, crewSpots]);
+  }, [baseJobs, posterInfo]);
 
   // ONE PAINT, not two (Q169). The split above stops the feed waiting on the
   // enrichment CHAIN, but painting the list the moment it lands meant it

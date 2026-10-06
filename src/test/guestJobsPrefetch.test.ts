@@ -12,7 +12,7 @@
  * jobs request starting at 3796 ms; the after numbers are in docs/OPEN.md Q206.
  */
 // @mutate src/boot/guestJobsPrefetch.ts | u.searchParams.set("order", "boosted_at.desc.nullslast,created_at.desc"); | u.searchParams.set("order", "created_at.desc");
-// @mutate src/pages/home/DashboardGuest.tsx | const prefetched = await takeGuestJobsPrefetch(); | const prefetched = null;
+// @mutate src/pages/home/fetchGuestJobs.ts | const prefetched = await takeGuestJobsPrefetch(); | const prefetched = null;
 // @mutate src/entry.ts | startGuestJobsPrefetch(window.location.pathname); | void 0;
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -52,7 +52,9 @@ describe("guest /browse prefetch (Q206 b)", () => {
   });
 
   it("DashboardGuest's fallback query is the same chain, over the shared select", () => {
-    const src = code("src/pages/home/DashboardGuest.tsx");
+    // The queryFn lives in fetchGuestJobs.ts (moved whole, 2026-10-05) and DashboardGuest calls it.
+    expect(code("src/pages/home/DashboardGuest.tsx")).toMatch(/queryFn: fetchGuestJobs,/);
+    const src = code("src/pages/home/fetchGuestJobs.ts");
     expect(src).toMatch(/const prefetched = await takeGuestJobsPrefetch\(\);/);
     expect(src).toMatch(
       /\.from\("open_jobs_browse"\)\s*\.select\(GUEST_JOBS_SELECT\)\s*\.neq\("payment_status", "abandoned"\)\s*\.order\("boosted_at", \{ ascending: false, nullsFirst: false \}\)\s*\.order\("created_at", \{ ascending: false \}\)\s*\.limit\(GUEST_JOBS_LIMIT\)/,

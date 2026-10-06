@@ -696,6 +696,10 @@ const SURFACES: {
        regression below 120 fails instead of being recorded. */
     retapGuard:
       "owner 2026-10-04 (Q912): the field fills the pill, so the landing slot is gone and the re-press is refused (Legal.tsx RETAP_GUARD_MS)",
+    // At 1440 the tabs stay beside the field, so (a) still has siblings and
+    // runs; this only declares the phone widths' empty row.
+    soloRow:
+      "below 500px the open policy search fills the pill on its own: the Terms/Rules/Privacy tab group steps aside (Legal.tsx `tabBar`) and Q912 (owner 2026-10-04) removed the landing slot beside the field, so at 320 and 375 the row has no neighbour to cover (prod-audit 37270491218: legal@320 and legal@375 measured 0 siblings). (a) is vacuous there BY DESIGN; (b) and (c) still carry the surface.",
   },
 ];
 

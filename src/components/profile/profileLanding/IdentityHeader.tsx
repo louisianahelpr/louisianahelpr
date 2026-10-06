@@ -1,3 +1,4 @@
+import { ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/components/profile/IdVerifiedPill";
 import { useState } from "react";
 import {
   MapPin,
@@ -29,7 +30,7 @@ interface IdentityHeaderProps {
   tier: string;
   hasPhoto: boolean;
   memberSinceLabel: string | null;
-  earnedBadges: { ok: boolean; label: string }[];
+  earnedBadges: { ok: boolean; label: string; id?: boolean }[];
 }
 
 export function IdentityHeader({
@@ -182,29 +183,9 @@ export function IdentityHeader({
                 onPhotoRejected={setPhotoRejection}
               />
             </button>
-            {/* role="img" on the badge below is load-bearing, not decoration:
-                aria-label is PROHIBITED on a bare <div> (an implicit
-                role=generic), so without a role the label is dropped and this
-                badge conveys "ID verified" to sighted users only. axe flags it
-                as aria-prohibited-attr. role="img" makes it a labelled graphic,
-                which is what it actually is — a status glyph whose entire
-                meaning lives in the label. */}
-            {/* Stripe's verdict, not `idv_status` — see
-                useProfileLandingDerived and
-                supabase/functions/_shared/stripeIdentity.ts. */}
-            {showsPhoto && profile?.stripe_identity_verified === true && (
-              <div
-                role="img"
-                aria-label="ID verified by Stripe"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
-                style={{
-                  background: "hsl(var(--bark))",
-                  border: "2px solid hsl(var(--parchment))",
-                }}
-              >
-                <BadgeCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
-              </div>
-            )}
+            {/* No ID shield on the avatar (Q987, owner 2026-09-11 "make it one"):
+                it was the same fact as the gold "ID verified" pill in the badge
+                row below, drawn a second way 40px above it. */}
             {!showsPhoto && (
               <div
                 aria-hidden
@@ -341,15 +322,27 @@ export function IdentityHeader({
                   stats={helperBadgeStats ?? buildHelperBadgeStats(completedCount, null)}
                   size="sm"
                 />
-                {earnedBadges.map((b) => (
-                  <span
-                    key={b.label}
-                    className="inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
-                  >
-                    <BadgeCheck className="w-2.5 h-2.5" />
-                    {b.label}
-                  </span>
-                ))}
+                {earnedBadges.map((b) =>
+                  b.id ? (
+                    // ID verification has ONE form (IdVerifiedPill.tsx, Q987).
+                    <span
+                      key={b.label}
+                      className="inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full"
+                      style={ID_VERIFIED_PILL_STYLE}
+                    >
+                      <IdVerifiedShield className="w-2.5 h-2.5" />
+                      {b.label}
+                    </span>
+                  ) : (
+                    <span
+                      key={b.label}
+                      className="inline-flex items-center gap-1 text-ds-9 font-sans font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary"
+                    >
+                      <BadgeCheck className="w-2.5 h-2.5" />
+                      {b.label}
+                    </span>
+                  ),
+                )}
               </div>
             )}
             {!profile?.full_name?.trim() && (

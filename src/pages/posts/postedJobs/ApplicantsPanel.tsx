@@ -1,9 +1,10 @@
+import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/components/profile/IdVerifiedPill";
 import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, Ban, Eye, Flag, MapPin, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import { ArrowUp, Ban, Eye, Flag, MapPin, Pencil, Plus, ShieldAlert, Sparkles, Star, X } from "lucide-react";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import AppPage from "@/components/AppPage";
@@ -815,12 +816,13 @@ function ApplicantVerificationChip({
 }) {
   if (idVerified) {
     return (
+      // ID verification has ONE form (IdVerifiedPill.tsx, Q987): the gold pill.
       <span
         className="inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-ds-10 font-sans font-semibold"
-        style={{ background: "hsl(var(--sage) / 0.14)", color: "hsl(var(--sage))" }}
+        style={ID_VERIFIED_PILL_STYLE}
       >
-        <ShieldCheck className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
-        ID verified by Stripe
+        <IdVerifiedShield className="w-3 h-3" />
+        {ID_VERIFIED_LABEL}
       </span>
     );
   }

@@ -1,3 +1,5 @@
+> historical, superseded by docs/OPEN.md ([link](../OPEN.md)). Archived 2026-10-06 by Q165: its still-true findings not already queued are Q1424 (Q413 already holds the confirm-window and subscription legs); the §3 direct-offer notification DEFECT is fixed at the source (the newest `expire_pending_direct_offers`, 20261003214350, notifies from its own UPDATE ... RETURNING rows). Findings checked against the source at 432aace17.
+
 # Time inventory: every behaviour that changes because the clock moved
 
 Built 2026-09-12 from source (`src/`, `supabase/functions/`, `supabase/migrations/`) and the live

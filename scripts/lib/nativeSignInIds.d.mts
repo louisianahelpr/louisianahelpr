@@ -15,6 +15,8 @@ export interface SignInIds {
   googleWeb: SourcedId[];
   providers: Record<string, boolean>;
   problems: string[];
+  /** SOCIAL_SIGN_IN_ENABLED read from src/lib/socialAuth.ts (Q1439: false for launch). */
+  socialEnabled: boolean;
 }
 export interface ConfigCheck {
   ok: boolean;

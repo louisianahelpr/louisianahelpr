@@ -177,7 +177,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // SELECT policy dropped (20261004185317).
     // 13 -> 12 (2026-10-04, Q1168): the row-blind realtime-topic copy on
     // public.messages is dropped (20261004192943).
-    // 12 -> 13 (2026-10-06, Q1438): job_access_notes, the poster's Access &
+    // 12 -> 13 (2026-10-06, Q1461): job_access_notes, the poster's Access &
     // Parking notes (exported to the poster in their own section).
     expect(viaJob.size).toBe(13);
     expect(viaJob.has("job_views"), "Q1230: the poster reads view counts through get_job_view_counts, never the rows").toBe(false);
@@ -254,7 +254,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // The readability derivations read policy TEXT; a helper function hides
     // who it admits. Each one a read policy calls is classified here (EXACT).
     // @two-way src/test/dataExportCoversEveryUserTable.test.ts:stale KNOWN entry: no read policy calls it any more
-    // can_read_job_access_notes (Q1438): the poster, the job's helper_id, the
+    // can_read_job_access_notes (Q1461): the poster, the job's helper_id, the
     // series' recurring_helper_id and the crew roster, for job_access_notes;
     // its policy spells the poster out, so the poster derivation still sees it.
     const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "has_role", "is_series_party", "user_may_see_job_address"]);

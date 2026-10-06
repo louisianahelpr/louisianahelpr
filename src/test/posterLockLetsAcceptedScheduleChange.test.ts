@@ -40,7 +40,7 @@ describe("the poster lock lets an accepted schedule change through, and nothing 
     const lock = body("enforce_poster_jobs_money_lock");
     // Restated by 20261004165404 (Q1204: place and details join locked_when_booked; the carve-out is narrowed to the two schedule columns)
     // and by 20261004193548 (Q1245: the booked terms join locked_when_booked),
-    // and by 20261006204113 (Q1438: materials_note joins locked_when_booked).
+    // and by 20261006204113 (Q1461: materials_note joins locked_when_booked).
     expect(DEFS.get("enforce_poster_jobs_money_lock")?.file).toBe("20261006204113_job_materials_and_access_notes.sql");
     const booked = lock.indexOf("IF changed_col = ANY (locked_when_booked) THEN");
     expect(booked).toBeGreaterThan(-1);

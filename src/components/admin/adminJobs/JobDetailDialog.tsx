@@ -10,6 +10,7 @@ import { formatTimestamp, formatCategory, formatPrice } from "@/lib/format";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { openableDocumentUrl } from "@/lib/storagePath";
 import { JobNotes } from "@/components/job-card/JobNotes";
+import { useJobAccessNote } from "@/hooks/useJobAccessNote";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -40,6 +41,9 @@ export const JobDetailDialog = ({
   onOpenOverride,
   onOpenRefund,
 }: JobDetailDialogProps) => {
+  // Owner answer 2 (2026-10-06): admins read the Access & Parking notes
+  // ("Admins read access notes" policy), e.g. for a "couldn't get in" dispute.
+  const accessNote = useJobAccessNote(detailJob?.id, !!detailJob && !deleteOpen);
   return (
     <Dialog open={!!detailJob && !deleteOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -162,10 +166,9 @@ export const JobDetailDialog = ({
               )}
             </div>
 
-            {/* Q1438: the public materials note. The Access & Parking notes
-                are private to the poster and the booked Helpr(s) by RLS
-                (job_access_notes), so this dialog never has them. */}
-            <JobNotes materials={detailJob.materials_note} />
+            {/* Q1461: the public materials note, and the Access & Parking
+                notes, which RLS gives admins (owner answer 2). */}
+            <JobNotes materials={detailJob.materials_note} access={accessNote} />
 
             {detailJob.revision_note && (
               <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">

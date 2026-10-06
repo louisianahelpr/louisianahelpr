@@ -35,7 +35,7 @@ export interface BuildJobInsertPayloadInput {
   estimatedHours: string;
   budget: string;
   /**
-   * Q1438: the poster's "Materials I'll provide" note, already trimmed (null
+   * Q1461: the poster's "Materials I'll provide" note, already trimmed (null
    * when the toggle is off or the note is blank). Public, so it rides on the
    * job row; the Access & Parking notes are NOT on this payload: they are
    * private to the booked Helpr and go to job_access_notes after the insert

@@ -195,7 +195,7 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     for (const derived of ["latitude", "longitude"]) expect(oldCols, derived).not.toContain(derived);
     // "still yours" only while the offer is (should-fix 6)
     expect(clear).toMatch(/CASE WHEN NEW\.direct_offer_expires_at IS NULL OR NEW\.direct_offer_expires_at > now\(\)\s+THEN ' The offer is still yours/);
-    // The trigger's newest CREATE (20261006204113, Q1438, added materials_note to the terms).
+    // The trigger's newest CREATE (20261006204113, Q1461, added materials_note to the terms).
     const fires = /CREATE TRIGGER trg_jobs_clear_accept_pending\s+AFTER UPDATE OF ([^]*?) ON public\.jobs/.exec(readFileSync(join(MIG, "20261006204113_job_materials_and_access_notes.sql"), "utf8"));
     const state = ["helper_id", "helper_confirmed_at", "status", "offered_to_helper_id", "direct_offer_status"];
     expect(fires![1].split(",").map((c) => c.trim()).filter((c) => !state.includes(c)).sort()).toEqual(oldCols);

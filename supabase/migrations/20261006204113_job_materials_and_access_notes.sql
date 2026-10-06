@@ -1,4 +1,4 @@
--- Q1438 (owner-reported 2026-10-06): Helprs never saw the poster's
+-- Q1461 (owner-reported 2026-10-06): Helprs never saw the poster's
 -- "Materials I'll provide" note or the "Access & Parking" notes.
 --
 -- WHAT WAS BROKEN. The post form stored BOTH notes in one column,
@@ -11,18 +11,26 @@
 -- OWNER DECISION (pop-up 2026-10-06):
 --   * materials -> shown to EVERYONE viewing the job (job page, browse card);
 --   * access & parking -> shown ONLY to the booked Helpr(s) and the poster.
+-- OWNER ANSWERS (2026-10-06, after the first review):
+--   (1) a Helpr can NOT read them once the job is completed or cancelled;
+--   (2) admins CAN read them;
+--   (3) the poster CAN edit them after booking (no booked lock on these;
+--       materials_note keeps its lock), and the booked Helpr(s) are told;
+--   (4) a hired-but-unconfirmed Helpr CAN read them, like the address.
 --
 -- WHAT THIS DOES
 --   1. jobs.materials_note (public text, <= 500), synced into the column
 --      SELECT grants (sync_jobs_select_grants) and appended to
 --      open_jobs_browse.
 --   2. public.job_access_notes (job_id PK -> jobs ON DELETE CASCADE, notes
---      <= 500). RLS on, nothing for anon. SELECT: the poster, the job's
---      helper_id, its series' recurring_helper_id, or a crew-roster member
+--      <= 500). RLS on, nothing for anon. SELECT: the poster, an admin, and,
+--      until the job is completed or cancelled, the job's helper_id, its
+--      series' recurring_helper_id, or a crew-roster member
 --      (can_read_job_access_notes, definer, reads auth.uid() itself so it
 --      cannot be used to probe who is booked on someone else's job).
---      INSERT/UPDATE/DELETE: the poster only, and (like special_requirements
---      under Q1204) not once a Helpr is booked.
+--      INSERT/UPDATE/DELETE: the poster only, booked or not; a change on a
+--      live job tells its Helpr(s) ("Access notes updated") and is copied to
+--      the series' live visits (job_access_notes_changed).
 --   3. zzzzz_jobs_route_notes: any write that still sends the combined text in
 --      special_requirements (a native build from before this change, or any
 --      other writer) is split by split_special_requirements(): the materials
@@ -94,7 +102,7 @@ CREATE TABLE IF NOT EXISTS public.job_access_notes (
 );
 
 COMMENT ON TABLE public.job_access_notes IS
-  'Q1438: the poster''s Access & Parking notes (gate codes, parking, which door). '
+  'Q1461: the poster''s Access & Parking notes (gate codes, parking, which door). '
   'Readable only by the poster and the booked Helpr(s); never by browse.';
 
 ALTER TABLE public.job_access_notes ENABLE ROW LEVEL SECURITY;
@@ -102,29 +110,27 @@ REVOKE ALL ON public.job_access_notes FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO authenticated;
 GRANT ALL ON public.job_access_notes TO service_role;
 
--- Who may read a job's access notes: the poster, the job's Helpr, the series'
--- standing Helpr, or a member of its crew roster. Definer so the crew lookup
--- and the series parent are not hidden by their own tables' RLS; it reads
--- auth.uid() itself and takes no user argument, so a caller can only ever ask
--- about themselves.
+-- Who may read a job's access notes: the poster, and, while the job is live
+-- (not completed or cancelled: owner answer 1), the job's Helpr (hired,
+-- confirmed or not: owner answer 4), the series' standing Helpr, or a member
+-- of its crew roster. Definer so the crew lookup and the series parent are
+-- not hidden by their own tables' RLS; it reads auth.uid() itself and takes
+-- no user argument, so a caller can only ever ask about themselves.
 CREATE OR REPLACE FUNCTION public.can_read_job_access_notes(_job_id uuid)
  RETURNS boolean
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $fn$
-  SELECT auth.uid() IS NOT NULL AND (
-    EXISTS (
-      SELECT 1 FROM public.jobs j
-       WHERE j.id = _job_id
-         AND (j.customer_id = auth.uid()
-              OR j.helper_id = auth.uid()
-              OR j.recurring_helper_id = auth.uid())
-    )
-    OR EXISTS (
-      SELECT 1 FROM public.group_job_helpers g
-       WHERE g.job_id = _job_id AND g.helper_id = auth.uid()
-    )
+  SELECT auth.uid() IS NOT NULL AND EXISTS (
+    SELECT 1 FROM public.jobs j
+     WHERE j.id = _job_id
+       AND (j.customer_id = auth.uid()
+            OR (j.status::text NOT IN ('completed', 'cancelled')
+                AND (j.helper_id = auth.uid()
+                     OR j.recurring_helper_id = auth.uid()
+                     OR EXISTS (SELECT 1 FROM public.group_job_helpers g
+                                 WHERE g.job_id = j.id AND g.helper_id = auth.uid()))))
   );
 $fn$;
 
@@ -142,8 +148,15 @@ CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_
                     AND j.customer_id = (SELECT auth.uid()))
          OR public.can_read_job_access_notes(job_id));
 
+-- Owner answer 2: admins read them (dispute handling: "couldn't get in").
+DROP POLICY IF EXISTS "Admins read access notes" ON public.job_access_notes;
+CREATE POLICY "Admins read access notes" ON public.job_access_notes
+  FOR SELECT TO authenticated
+  USING (public.has_role((SELECT auth.uid()), 'admin'::public.app_role));
+
 -- Writes: the poster only (same id match as job_pets' "Poster manages the
--- pets on their job": jobs.customer_id is the auth uid).
+-- pets on their job": jobs.customer_id is the auth uid), booked or not
+-- (owner answer 3).
 DROP POLICY IF EXISTS "Poster adds access notes" ON public.job_access_notes;
 CREATE POLICY "Poster adds access notes" ON public.job_access_notes
   FOR INSERT TO authenticated
@@ -168,7 +181,9 @@ CREATE POLICY "Poster removes access notes" ON public.job_access_notes
                   WHERE j.id = job_access_notes.job_id
                     AND j.customer_id = (SELECT auth.uid())));
 
--- Row stamps, the contact scan, and the booked lock.
+-- Row stamps and the contact scan. NO booked lock (owner answer 3): the
+-- poster may change these after booking; job_access_notes_changed tells the
+-- Helpr(s).
 CREATE OR REPLACE FUNCTION public.enforce_job_access_notes_write()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -176,16 +191,9 @@ CREATE OR REPLACE FUNCTION public.enforce_job_access_notes_write()
  SET search_path TO 'public'
 AS $fn$
 DECLARE
-  v_job      uuid;
   v_reason   text;
-  v_customer uuid;
-  v_helper   uuid;
-  v_status   text;
 BEGIN
-  IF TG_OP = 'DELETE' THEN
-    v_job := OLD.job_id;
-  ELSE
-    v_job := NEW.job_id;
+  IF TG_OP <> 'DELETE' THEN
     IF TG_OP = 'UPDATE' AND NEW.job_id IS DISTINCT FROM OLD.job_id THEN
       RAISE EXCEPTION 'job_access_notes.job_id cannot change' USING ERRCODE = '42501';
     END IF;
@@ -204,30 +212,6 @@ BEGIN
     END IF;
   END IF;
 
-  -- Q1204 parity: special_requirements (where these notes lived) is locked
-  -- against the poster once a Helpr is booked, so these are too. A server
-  -- context, a recurring visit inheriting its series' note, and account
-  -- deletion (purge_user_data), both under app.access_notes_server_write, pass.
-  -- FOR SHARE (race class, 20260913014328): a hire committing between this
-  -- read and the write would otherwise let a booked job's note change.
-  -- Once the job is over (completed / cancelled) the lock lifts: the job keeps
-  -- its helper_id and roster, so without this a poster could never take a
-  -- gate code back after the work (lh-authz-rls review 2026-10-06, #2).
-  SELECT j.customer_id, j.helper_id, j.status::text INTO v_customer, v_helper, v_status
-    FROM public.jobs j WHERE j.id = v_job
-     FOR SHARE;
-  IF NOT public.is_server_context()
-     AND current_setting('app.access_notes_server_write', true) IS DISTINCT FROM '1'
-     AND v_customer = auth.uid()
-     AND v_status NOT IN ('completed', 'cancelled')
-     AND (v_helper IS NOT NULL
-          OR EXISTS (SELECT 1 FROM public.group_job_helpers g
-                      WHERE g.job_id = v_job AND g.helper_id IS NOT NULL)) THEN
-    RAISE EXCEPTION 'Posters may not change the access notes once a Helpr is booked (job_id=%)', v_job
-      USING ERRCODE = '42501',
-            HINT = 'The place and details are locked once a Helpr is booked. Message them, or cancel and post the job again.';
-  END IF;
-
   IF TG_OP = 'DELETE' THEN
     RETURN OLD;
   END IF;
@@ -241,6 +225,101 @@ DROP TRIGGER IF EXISTS trg_job_access_notes_write ON public.job_access_notes;
 CREATE TRIGGER trg_job_access_notes_write
   BEFORE INSERT OR UPDATE OR DELETE ON public.job_access_notes
   FOR EACH ROW EXECUTE FUNCTION public.enforce_job_access_notes_write();
+
+-- Owner answer 3: a change to the notes of a LIVE job (not completed or
+-- cancelled) tells its Helpr(s): the job's helper_id (hired, confirmed or
+-- not), the series' standing Helpr, the crew roster, and the Helpr of each
+-- live visit of a series. A series' live visits get the same notes, so a
+-- booked visit never keeps an old gate code. Writes made under
+-- app.access_notes_server_write (a visit inheriting its series' note, this
+-- function's own copy to the visits, account deletion) tell nobody.
+-- FOR SHARE (race class, 20260913014328): the job's state decides who is told.
+CREATE OR REPLACE FUNCTION public.job_access_notes_changed()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $fn$
+DECLARE
+  v_job      uuid := CASE WHEN TG_OP = 'DELETE' THEN OLD.job_id ELSE NEW.job_id END;
+  v_customer uuid;
+  v_helper   uuid;
+  v_series   uuid;
+  v_status   text;
+  v_title    text;
+  v_visit    record;
+  v_visits   uuid[] := '{}';
+  v_visit_helprs uuid[] := '{}';
+BEGIN
+  IF current_setting('app.access_notes_server_write', true) = '1' THEN
+    RETURN NULL;
+  END IF;
+  IF TG_OP = 'UPDATE' AND NEW.notes IS NOT DISTINCT FROM OLD.notes THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT j.customer_id, j.helper_id, j.recurring_helper_id, j.status::text, j.title
+    INTO v_customer, v_helper, v_series, v_status, v_title
+    FROM public.jobs j WHERE j.id = v_job
+     FOR SHARE;
+  -- A job inserted in this same transaction by the legacy route trigger is
+  -- not visible yet (NOT FOUND): it is new, so nobody is booked on it.
+  IF NOT FOUND OR v_status IN ('completed', 'cancelled') THEN
+    RETURN NULL;
+  END IF;
+
+  -- The series' live visits (locked like the job) carry the same notes.
+  FOR v_visit IN
+    SELECT c.id, c.helper_id FROM public.jobs c
+     WHERE c.parent_job_id = v_job AND c.status::text NOT IN ('completed', 'cancelled')
+       FOR SHARE
+  LOOP
+    v_visits := v_visits || v_visit.id;
+    v_visit_helprs := v_visit_helprs || v_visit.helper_id;
+  END LOOP;
+  PERFORM set_config('app.access_notes_server_write', '1', true);
+  IF TG_OP = 'DELETE' THEN
+    DELETE FROM public.job_access_notes n WHERE n.job_id = ANY (v_visits);
+  ELSE
+    INSERT INTO public.job_access_notes (job_id, notes)
+    SELECT v.id, NEW.notes FROM unnest(v_visits) AS v(id)
+    ON CONFLICT (job_id) DO UPDATE SET notes = EXCLUDED.notes;
+  END IF;
+  PERFORM set_config('app.access_notes_server_write', '', true);
+
+  INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+  SELECT DISTINCT r.uid,
+         'Access notes updated',
+         'The poster updated the access and parking notes for "' || COALESCE(v_title, 'your job')
+           || '". Open the job to see them before you go.',
+         'job_updates',
+         '/jobs?job=' || v_job::text,
+         v_job
+    FROM (
+      SELECT v_helper AS uid
+      UNION ALL SELECT v_series
+      UNION ALL SELECT g.helper_id FROM public.group_job_helpers g WHERE g.job_id = v_job
+      UNION ALL SELECT unnest(v_visit_helprs)
+    ) r
+   WHERE r.uid IS NOT NULL
+     AND r.uid IS DISTINCT FROM v_customer
+     -- One unread notice per Helpr per job per 10 minutes: a poster typing a
+     -- few edits in a row does not flood them (lh-authz-rls re-review, should-fix).
+     AND NOT EXISTS (SELECT 1 FROM public.notifications x
+                      WHERE x.user_id = r.uid AND x.job_id = v_job
+                        AND x.title = 'Access notes updated' AND NOT x.read
+                        AND x.created_at > now() - interval '10 minutes');
+
+  RETURN NULL;
+END;
+$fn$;
+
+REVOKE ALL ON FUNCTION public.job_access_notes_changed() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_job_access_notes_changed ON public.job_access_notes;
+CREATE TRIGGER trg_job_access_notes_changed
+  AFTER INSERT OR UPDATE OR DELETE ON public.job_access_notes
+  FOR EACH ROW EXECUTE FUNCTION public.job_access_notes_changed();
 
 -- The two gates every client-writable job table carries (job_pets is the model).
 DO $gates$
@@ -353,8 +432,8 @@ CREATE TRIGGER zzzzz_jobs_route_notes
   BEFORE INSERT OR UPDATE OF special_requirements, materials_note ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.jobs_route_notes();
 
--- A recurring visit inherits its series' access note. The flag lets the copy
--- past the booked lock: the visit is created already booked.
+-- A recurring visit inherits its series' access note. The flag marks it a
+-- server copy, so job_access_notes_changed tells nobody about it.
 CREATE OR REPLACE FUNCTION public.jobs_visit_inherits_access_notes()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -382,10 +461,18 @@ CREATE TRIGGER trg_jobs_visit_inherits_access_notes
   EXECUTE FUNCTION public.jobs_visit_inherits_access_notes();
 
 -- ── 4. Backfill, through the route trigger ──────────────────────────────────
--- Runs as the migration role (a server context), so the locks pass.
-UPDATE public.jobs
-   SET special_requirements = special_requirements
- WHERE special_requirements IS NOT NULL;
+-- Runs as the migration role (a server context), so the locks pass. Under
+-- app.access_notes_server_write: moving a note is not a change of it, so no
+-- Helpr is told (job_access_notes_changed).
+DO $bf$
+BEGIN
+  PERFORM set_config('app.access_notes_server_write', '1', true);
+  UPDATE public.jobs
+     SET special_requirements = special_requirements
+   WHERE special_requirements IS NOT NULL;
+  PERFORM set_config('app.access_notes_server_write', '', true);
+END
+$bf$;
 
 DO $c$
 BEGIN
@@ -575,7 +662,7 @@ DECLARE
     'recurrence_interval',
     'department',
     'business_id',
-    -- ADDED 20261006204113 (Q1438): what the poster said they will provide
+    -- ADDED 20261006204113 (Q1461): what the poster said they will provide
     -- is part of the details the Helpr agreed to, like special_requirements.
     'materials_note'
   ];
@@ -837,7 +924,7 @@ CREATE TRIGGER trg_reject_contact_leak_in_job
   BEFORE INSERT OR UPDATE OF title, description, special_requirements, materials_note ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.reject_contact_leak_in_job();
 
--- ── 9. Download My Data: the poster's own access notes (Q1438). Body verbatim
+-- ── 9. Download My Data: the poster's own access notes (Q1461). Body verbatim
 --    from 20261005060801 (live md5(pg_get_functiondef) 2026-10-06 =
 --    ed37f6650b8fe4eaa67956b79927b7a8, that file) plus the one section after
 --    job_pets, scoped like it to the caller's own jobs. Grants restated
@@ -1057,7 +1144,7 @@ $function$;
 REVOKE ALL ON FUNCTION public.export_my_data(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role;
 
--- ── 10. Account deletion (Q1438): purge_user_data 4b also nulls
+-- ── 10. Account deletion (Q1461): purge_user_data 4b also nulls
 --     materials_note and deletes the poster's access notes. Body verbatim from
 --     20260924072554, the newest definition (live prosrc compared 2026-10-06:
 --     identical, 35006 chars), plus those two changes. Grants restated as live
@@ -1210,17 +1297,17 @@ BEGIN
            longitude            = NULL,
            description          = 'This job''s details were removed when the poster closed their account.', -- AL-012 user copy
            special_requirements = NULL,
-           materials_note       = NULL -- Q1438
+           materials_note       = NULL -- Q1461
      WHERE customer_id = p_user_id
        AND description IS DISTINCT FROM 'This job''s details were removed when the poster closed their account.'
     RETURNING id
   )
   SELECT count(*) INTO v_jobs_redacted FROM upd;
 
-  -- Q1438: the poster's Access & Parking notes (a gate code) go with the rest
+  -- Q1461: the poster's Access & Parking notes (a gate code) go with the rest
   -- of their free text. The job stays (and its Helpr with it), so the note
   -- would otherwise stay readable with no poster left to remove it. The flag
-  -- lets the delete past the booked lock (enforce_job_access_notes_write).
+  -- marks it a server write, so job_access_notes_changed tells nobody.
   PERFORM set_config('app.access_notes_server_write', '1', true);
   DELETE FROM public.job_access_notes n
    WHERE n.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = p_user_id);

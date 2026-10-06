@@ -1,30 +1,36 @@
 /**
- * Q1438 (owner-reported 2026-10-06): Helprs never saw the poster's
+ * Q1461 (owner-reported 2026-10-06): Helprs never saw the poster's
  * "Materials I'll provide" or "Access & Parking" notes. Only the admin dialog,
  * the edit dialog and the poster's own card printed them (one string,
  * "Special Requirements").
  *
  * OWNER DECISION: materials -> EVERYONE viewing the job (job page and browse
- * card); access & parking -> only the BOOKED Helpr(s) and the poster.
+ * card); access & parking -> only the BOOKED Helpr(s) (until the job ends),
+ * the poster, and admins (owner answers, 2026-10-06).
  *
  * Pinned here:
  *   1. JobNotes, the one shared treatment, labels each note and renders
  *      nothing for none;
  *   2. the browse card shows the materials signal, and only when there is a
  *      note;
- *   3. the SURFACE INVENTORY, two ways: every file that renders <JobNotes> is
- *      listed with what it may pass, every listed file does pass it, the
- *      materials always come from the job row, and `access` only ever comes
- *      from useJobAccessNote (whose rows RLS limits to the poster and the
- *      booked Helprs; src/test/jobAccessNotesNeverBrowse.test.ts and the PGlite
- *      proof cover that half). The guest page asks for no access note.
+ *   3. the SURFACE INVENTORY, two ways. Every client file that shows the
+ *      notes does it through one of the shared pieces in JobNotes.tsx
+ *      (<JobDetailNotes>, useCardNotes, <JobNotes>), and is listed here with
+ *      whether it asks for the access note. The materials always come from the
+ *      job row; `access` only ever comes from useJobAccessNote (whose rows RLS
+ *      limits: src/test/jobAccessNotesNeverBrowse.test.ts and the PGlite proof
+ *      cover that half). A guest view asks for no access note, and an applied
+ *      card asks only once hired and while the job is live.
  *
- * @mutate src/components/dashboard/JobDetailDialog.tsx |         <JobNotes materials={job.materials_note} access={accessNote} /> |         <JobNotes access={accessNote} />
- * @mutate src/pages/jobs/AppliedJobCard.tsx |             {showNotes && <JobNotes materials={job.materials_note} access={accessNote} />} |             {showNotes && <JobNotes materials={job.materials_note} />}
- * @mutate src/pages/posts/PostedJobCard.tsx |                 {hasRequirements && <JobNotes materials={job.materials_note} access={accessNote} />} |                 {hasRequirements && <JobNotes access={accessNote} />}
- * @mutate src/components/dashboard/JobCard.tsx |             {job.materials_note?.trim() && ( |             {false && (
+ * @mutate src/components/job-card/JobNotes.tsx |   return <JobNotes materials={job.materials_note} access={access} />;\n}\n\n/**\n * The browse | return <JobNotes access={access} />;\n}\n\n/**\n * The browse
+ * @mutate src/components/job-card/JobNotes.tsx |   const access = useJobAccessNote(job?.id, open && askAccess); |   const access = useJobAccessNote(job?.id, open);
+ * @mutate src/components/job-card/JobNotes.tsx |     !guest && !!viewerUserId && | !!viewerUserId &&
  * @mutate src/components/job-card/JobNotes.tsx |       {a && <JobNote label={ACCESS_LABEL} | {false && <JobNote label={ACCESS_LABEL}
- * @mutate src/components/dashboard/JobDetailDialog.tsx |     !guest && !!job && !!viewerUserId && (viewerUserId === job.customer_id \|\| viewerUserId === job.helper_id), |     !!viewerUserId \|\| guest,
+ * @mutate src/components/job-card/JobNotes.tsx |   if (!text) return null; |   if (text) return null;
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); | true);
+ * @mutate src/pages/posts/PostedJobCard.tsx |                 {notes}\n |                 {null}\n
+ * @mutate src/components/dashboard/JobDetailDialog.tsx |         <JobDetailNotes job={job} guest={guest} viewerUserId={viewerUserId} />\n |
+ * @mutate src/components/admin/adminJobs/JobDetailDialog.tsx |             <JobNotes materials={detailJob.materials_note} access={accessNote} /> |             <JobNotes materials={detailJob.materials_note} />
  */
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -102,56 +108,57 @@ describe("the browse card says the poster provides materials", () => {
   });
 });
 
-/**
- * Every surface that renders JobNotes, and what it may pass. `access: true`
- * means the surface shows the private note to the viewer the database hands it
- * to; it must then read it with useJobAccessNote and nothing else.
- */
-const SURFACES: Record<string, { access: boolean; why: string }> = {
-  "src/components/dashboard/JobDetailDialog.tsx": { access: true, why: "the job detail sheet (browse, map pin, shared link): materials for all; access for the poster / booked Helpr only" },
-  "src/pages/jobs/AppliedJobCard.tsx": { access: true, why: "the Helpr's own card: materials while applied, access once hired" },
-  "src/pages/posts/PostedJobCard.tsx": { access: true, why: "the poster's own card: both, labelled" },
-  "src/components/admin/adminJobs/JobDetailDialog.tsx": { access: false, why: "admin: materials only; RLS gives admins no access note" },
+/** Every client file that shows the notes, through which shared piece, and whether it asks for the access note. */
+const SURFACES: Record<string, { via: RegExp; renders?: RegExp; access: boolean; why: string }> = {
+  "src/components/dashboard/JobDetailDialog.tsx": { via: /<JobDetailNotes job=\{job\} guest=\{guest\} viewerUserId=\{viewerUserId\} \/>/, access: true, why: "the job detail sheet (browse, map pin, shared link)" },
+  "src/pages/jobs/AppliedJobCard.tsx": { via: /useCardNotes\(job, expandedJobIds\.has\(app\.job_id\), app\.status === "accepted" && job\?\.status !== "cancelled" && job\?\.status !== "completed"\)/, renders: /\{showNotes && notes\}/, access: true, why: "the Helpr's own card: materials while applied, access once hired, until the job ends" },
+  "src/pages/posts/PostedJobCard.tsx": { via: /useCardNotes\(job, isExpanded, true\)/, renders: /\(hasDescription \|\| hasRequirements\) && \([\s\S]*?\{notes\}/, access: true, why: "the poster's own card: both, labelled" },
+  "src/components/admin/adminJobs/JobDetailDialog.tsx": { via: /<JobNotes materials=\{detailJob\.materials_note\} access=\{accessNote\} \/>/, access: true, why: "admin: both; RLS gives admins the access note (owner answer 2)" },
+  "src/components/dashboard/JobCard.tsx": { via: /<MaterialsChip note=\{job\.materials_note\} \/>/, access: false, why: "the browse card: the materials signal only" },
 };
+const SHARED = "src/components/job-card/JobNotes.tsx";
 
 describe("the surface inventory (two-way)", () => {
   const files = walkSource([join(REPO, "src")]).filter((f) => !/\.test\.tsx?$/.test(f) && !f.includes(`${join("src", "test")}/`));
   const code = (f: string) => blankComments(readSource(f) ?? "");
-  const renderers = files.filter((f) => /<JobNotes\b/.test(code(f))).map((f) => relative(REPO, f)).sort();
+  const users = files
+    .map((f) => relative(REPO, f))
+    .filter((f) => f !== SHARED && /<JobNotes\b|<JobDetailNotes\b|<MaterialsChip\b|\buseCardNotes\(/.test(code(join(REPO, f))))
+    .sort();
 
-  it("every file rendering <JobNotes> is listed, and every listed file renders it", () => {
+  it("every file showing the notes is listed, and every listed file shows them", () => {
     expect(files.length).toBeGreaterThan(500);
-    expect(renderers.length).toBeGreaterThanOrEqual(4);
-    expect(renderers).toEqual(Object.keys(SURFACES).sort());
+    expect(users.length).toBeGreaterThanOrEqual(5);
+    expect(users).toEqual(Object.keys(SURFACES).sort());
   });
 
-  it.each(Object.entries(SURFACES))("%s passes the materials from the job row, and access only as listed", (file, { access }) => {
+  it.each(Object.entries(SURFACES))("%s shows them through its shared piece, asking for access only as listed", (file, { via, renders, access }) => {
     const src = code(join(REPO, file));
+    expect(src, `${file}: not through its shared piece`).toMatch(via);
+    // A card hook returns the block; the card must also put it on screen.
+    if (renders) expect(src, `${file}: reads the notes but never renders them`).toMatch(renders);
+    // Outside the shared module only the admin dialog reads the hook directly.
+    if (file === "src/components/admin/adminJobs/JobDetailDialog.tsx") expect(src).toMatch(/const accessNote = useJobAccessNote\(/);
+    else expect(src).not.toMatch(/useJobAccessNote|job_access_notes/);
+    if (!access) expect(src).not.toMatch(/accessNote|useCardNotes|JobDetailNotes/);
+  });
+
+  it("the shared pieces take the materials from the job row and the access note only from useJobAccessNote", () => {
+    const src = code(join(REPO, SHARED));
     const uses = [...src.matchAll(/<JobNotes\b([^>]*)\/>/g)].map((m) => m[1]);
-    expect(uses.length, `${file}: no <JobNotes ... /> found`).toBeGreaterThan(0);
-    for (const props of uses) {
-      expect(props, `${file}: materials must come from the job row`).toMatch(/materials=\{\w+\.materials_note\}/);
-      if (access) expect(props).toMatch(/access=\{accessNote\}/);
-      else expect(props).not.toMatch(/access=/);
-    }
-    if (access) {
-      expect(src, `${file}: accessNote must come from useJobAccessNote`).toMatch(/const accessNote = useJobAccessNote\(/);
-    } else {
-      expect(src).not.toMatch(/useJobAccessNote|job_access_notes/);
-    }
+    expect(uses.length).toBe(2);
+    for (const props of uses) expect(props).toMatch(/materials=\{job\.materials_note\} access=\{access\}/);
+    expect(src.match(/const access = useJobAccessNote\(/g)?.length).toBe(2);
+    // A card asks only when open and when its caller says the viewer could be given it.
+    expect(src).toContain("useJobAccessNote(job?.id, open && askAccess)");
   });
 
-  it("the job detail sheet never asks for the access note on a guest view", () => {
-    const src = code(join(REPO, "src/components/dashboard/JobDetailDialog.tsx"));
-    const call = /const accessNote = useJobAccessNote\(([\s\S]*?)\);/.exec(src)?.[1] ?? "";
-    expect(call).toMatch(/!guest && !!job &&/);
-    expect(call).toMatch(/viewerUserId === job\.customer_id \|\| viewerUserId === job\.helper_id/);
-  });
-
-  it("the browse card carries materials only (no access note on a scan row)", () => {
-    const src = code(join(REPO, "src/components/dashboard/JobCard.tsx"));
-    expect(src).toMatch(/job\.materials_note\?\.trim\(\) &&/);
-    expect(src).not.toMatch(/useJobAccessNote|job_access_notes|accessNote/);
+  it("the job detail sheet never asks for the access note on a guest view, and asks for crew and series jobs", () => {
+    const src = code(join(REPO, SHARED));
+    const ask = /const ask =([\s\S]*?);/.exec(src)?.[1].replace(/\s+/g, " ") ?? "";
+    expect(ask).toMatch(/^ !guest && !!viewerUserId &&/);
+    expect(ask).toMatch(/viewerUserId === job\.customer_id \|\| viewerUserId === job\.helper_id/);
+    expect(ask).toMatch(/viewerUserId === job\.recurring_helper_id \|\| !!job\.is_group_job \|\| !!job\.is_recurring/);
   });
 
   it("the read itself goes through RLS: useJobAccessNote reads job_access_notes by job id, nothing wider", () => {

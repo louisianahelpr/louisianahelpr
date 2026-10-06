@@ -64,7 +64,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [startTime, setStartTime] = useState("");
   const [isFlexible, setIsFlexible] = useState(false);
   const [, setBudget] = useState("");
-  // Q1438: the two notes the post form collects, stored apart. Materials is
+  // Q1461: the two notes the post form collects, stored apart. Materials is
   // on the job row (public); Access & Parking is in job_access_notes (the
   // poster and the booked Helpr only), read here through RLS as the poster.
   const [materialsNote, setMaterialsNote] = useState("");
@@ -143,10 +143,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     const payload: TablesUpdate<"jobs"> = job.helper_id ? { require_photo_proof: requirePhotoProof } : updateData;
     try {
       // The access note FIRST: it is the write most likely to be refused (the
-      // contact scan), and refused first it leaves nothing half-saved. Locked
-      // with the rest of the details once a Helpr is booked
-      // (enforce_job_access_notes_write), so only an open job writes it.
-      if (!job.helper_id && accessNote.trim() !== savedAccess.trim()) {
+      // contact scan), and refused first it leaves nothing half-saved. NOT
+      // locked by a booking (owner answer 3, 2026-10-06): the poster may
+      // change it until the job ends, and the database tells the booked
+      // Helpr(s) (job_access_notes_changed).
+      if (job.status !== "completed" && job.status !== "cancelled" && accessNote.trim() !== savedAccess.trim()) {
         await saveJobAccessNote(job.id, accessNote);
       }
       unwrapMutation(
@@ -201,11 +202,14 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const hasHelper = !!job.helper_id;
   const locked = hasHelper;
+  // Owner answer 3: the access notes stay editable after booking, until the job ends.
+  const jobEnded = job.status === "completed" || job.status === "cancelled";
+  const accessChanged = accessNote.trim() !== savedAccess.trim();
   // The only edit a booked job still takes (Q1204): relaxing photo proof.
   // Turning it ON is refused by the server once booked, so a job that already
   // has it off offers no switch, and Save needs that one change to be made.
   const savedPhotoProof = (job as { require_photo_proof?: boolean | null }).require_photo_proof ?? true;
-  const bookedNothingToSave = hasHelper && requirePhotoProof === savedPhotoProof;
+  const bookedNothingToSave = hasHelper && requirePhotoProof === savedPhotoProof && !accessChanged;
   // ME-010: sales tax was charged at checkout from the category, so a paid job
   // cannot cross between taxed and untaxed categories (the server refuses it:
   // trg_funded_category_tax_class). Same funded test as the money lock.
@@ -231,7 +235,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <div className="space-y-5">
           {locked && (
             <DialogCallout icon={Lock}>
-              The place and details are locked once a Helpr is booked.
+              The place and details are locked once a Helpr is booked. You can still update the access and parking notes; your Helpr is told.
             </DialogCallout>
           )}
 
@@ -314,7 +318,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           {/* ── Anything else — optional extras ───────────────────────── */}
           <section className="space-y-4">
             <SectionHeading>Anything else</SectionHeading>
-            {/* Q1438: the post form's two notes, under the post form's labels.
+            {/* Q1461: the post form's two notes, under the post form's labels.
                 Both lock with the other details once a Helpr is booked. */}
             <div className="space-y-1.5">
               <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Materials I'll provide</Label>
@@ -322,7 +326,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Access &amp; Parking notes</Label>
-              <Textarea aria-label="Access and parking notes" value={accessNote} onChange={(e) => { setAccessTouched(true); setAccessNote(e.target.value); }} rows={2} maxLength={500} disabled={hasHelper} autoCapitalize="sentences" placeholder="Gate codes, where to park, which door… Only your booked Helpr sees these." />
+              <Textarea aria-label="Access and parking notes" value={accessNote} onChange={(e) => { setAccessTouched(true); setAccessNote(e.target.value); }} rows={2} maxLength={500} disabled={jobEnded} autoCapitalize="sentences" placeholder="Gate codes, where to park, which door… Only your booked Helpr sees these." />
             </div>
             {/* PHOTO PROOF — can still be turned OFF once a Helpr is assigned
                 (never back on: the server refuses it, Q1204), which is the

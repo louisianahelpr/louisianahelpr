@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20261006204113_job_materials_and_access_notes
- * (docs/OPEN.md Q1438: materials shown to everyone, access & parking notes
+ * (docs/OPEN.md Q1461: materials shown to everyone, access & parking notes
  * only to the poster and the booked Helpr(s)).
  *
  *   node src/test/pglite/jobAccessNotes.pglite.mjs                    # AFTER: migration applied 3x
@@ -60,6 +60,7 @@ const POSTER = "71c56dfb-b326-4010-b960-b18dd3966e7f";
 const HELPER = "437de07d-1bd7-46c8-a451-6b46aa3bcad5";
 const CREWMATE = "96c9899e-87a2-49e2-bbdd-268717d52aee";
 const STRANGER = "f6cc3ebb-9478-473c-8eb8-62b406f0734f";
+const ADMIN = "68c11a39-0000-4000-8000-000000000001";
 const id = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const OPEN = id(1); // open, funded, legacy materials + access text
 const BOOKED = id(2); // helper_id = HELPER, access text only
@@ -87,8 +88,13 @@ CREATE TABLE public.group_job_helpers (id uuid DEFAULT gen_random_uuid() PRIMARY
 CREATE TABLE public.applications (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, job_id uuid, helper_id uuid, status text);
 CREATE TABLE public.ban_settlement_queue (user_id uuid, review_state text);
 CREATE TABLE public.job_accept_pending (job_id uuid, helper_id uuid);
-CREATE TABLE public.notifications (id uuid DEFAULT gen_random_uuid(), user_id uuid, title text, message text, type text, link text, job_id uuid);
+CREATE TABLE public.notifications (id uuid DEFAULT gen_random_uuid(), user_id uuid, title text, message text, type text, link text, job_id uuid, read boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.profiles (user_id uuid, is_seed boolean DEFAULT false);
+CREATE TYPE public.app_role AS ENUM ('admin', 'user');
+CREATE TABLE public.user_roles (user_id uuid, role public.app_role);
+CREATE FUNCTION public.has_role(_user_id uuid, _role public.app_role) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+  AS $$ SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role) $$;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
 GRANT SELECT ON public.group_job_helpers, public.applications, public.ban_settlement_queue TO anon, authenticated, service_role;
 CREATE FUNCTION public.mask_job_location(text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT 'masked' $$;
 CREATE FUNCTION public.early_access_cutoff() RETURNS timestamptz LANGUAGE sql STABLE AS $$ SELECT now() + interval '1 day' $$;
@@ -146,6 +152,7 @@ ${job(MATONLY, { special_requirements: "Materials I'll provide: supplies" })};
 ${job(OPEN2, { special_requirements: null })};
 ${job(OFFER, { special_requirements: null, offered_to_helper_id: HELPER, direct_offer_status: "pending" })};
 INSERT INTO public.group_job_helpers (job_id, helper_id) VALUES ('${CREW}', '${CREWMATE}');
+INSERT INTO public.user_roles (user_id, role) VALUES ('${ADMIN}', 'admin');
 INSERT INTO public.job_accept_pending (job_id, helper_id) VALUES ('${OFFER}', '${HELPER}');
 `);
 
@@ -193,6 +200,8 @@ const one = async (sql) => {
   }
 };
 const notesOf = async (jid) => (await one(`SELECT notes FROM public.job_access_notes WHERE job_id = '${jid}'`)).notes ?? null;
+/** "Access notes updated" notifications one user has for one job. */
+const notifs = async (uid, jid) => (await one(`SELECT count(*)::int n FROM public.notifications WHERE user_id = '${uid}' AND job_id = '${jid}' AND title = 'Access notes updated'`)).n ?? -1;
 
 // ── 1. Backfill ──────────────────────────────────────────────────────────────
 {
@@ -216,7 +225,9 @@ const notesOf = async (jid) => (await one(`SELECT notes FROM public.job_access_n
   const poster = await as(POSTER, `SELECT job_id FROM public.job_access_notes ORDER BY job_id`);
   check("the poster reads all of theirs", !poster.error && poster.rows.length === 3, poster.error ?? `${poster.rows.length} rows`);
   const helper = await as(HELPER, `SELECT job_id FROM public.job_access_notes`);
-  check("the booked Helpr reads only the booked job's", !helper.error && helper.rows.length === 1 && helper.rows[0].job_id === BOOKED,
+  const unconfirmed = await one(`SELECT helper_confirmed_at FROM public.jobs WHERE id = '${BOOKED}'`);
+  check("the hired Helpr reads only the booked job's, before confirming (owner answer 4)",
+    !helper.error && helper.rows.length === 1 && helper.rows[0].job_id === BOOKED && unconfirmed.helper_confirmed_at === null,
     helper.error ?? JSON.stringify(helper.rows));
   const crew = await as(CREWMATE, `SELECT job_id FROM public.job_access_notes`);
   check("a crew member reads only their crew job's", !crew.error && crew.rows.length === 1 && crew.rows[0].job_id === CREW,
@@ -225,6 +236,20 @@ const notesOf = async (jid) => (await one(`SELECT notes FROM public.job_access_n
   await db.exec(`INSERT INTO public.job_access_notes (job_id, notes) VALUES ('${OFFER}', 'Offer gate 1') ON CONFLICT DO NOTHING`).catch(() => {});
   const offered = await as(HELPER, `SELECT job_id FROM public.job_access_notes WHERE job_id = '${OFFER}'`);
   check("a pending direct offer does not read them", offered.rows.length === 0, offered.error ?? `${offered.rows.length} rows`);
+  const admin = await as(ADMIN, `SELECT job_id FROM public.job_access_notes`);
+  check("an admin reads every access note (owner answer 2)", !admin.error && admin.rows.length >= 4, admin.error ?? `${admin.rows.length} rows`);
+  // Owner answer 1: once the job is completed or cancelled its Helpr(s) no longer read it; the poster still does.
+  for (const [n, status] of [[71, "completed"], [72, "cancelled"]]) {
+    const ended = id(n);
+    // As the migration runner (no uid): a leftover poster uid would let the insert lock re-id and re-open the row.
+    await db.exec(`SELECT set_config('request.uid', '', false); ${job(ended, { helper_id: HELPER, status })}; INSERT INTO public.job_access_notes (job_id, notes) VALUES ('${ended}', 'Old gate ${n}')`).catch((e) => { if (!MODE) console.log(`setup ${status}: ${e.message}`); });
+    const h = await as(HELPER, `SELECT job_id FROM public.job_access_notes WHERE job_id = '${ended}'`);
+    const p = await as(POSTER, `SELECT job_id FROM public.job_access_notes WHERE job_id = '${ended}'`);
+    check(`a ${status} job's Helpr no longer reads it; its poster does`, !h.error && h.rows.length === 0 && p.rows.length === 1, h.error ?? p.error ?? `${h.rows.length}/${p.rows.length}`);
+  }
+  await db.exec(`INSERT INTO public.group_job_helpers (job_id, helper_id) VALUES ('${id(71)}', '${CREWMATE}')`).catch(() => {});
+  const crewEnded = await as(CREWMATE, `SELECT job_id FROM public.job_access_notes WHERE job_id = '${id(71)}'`);
+  check("nor does a crew member of an ended job", !crewEnded.error && crewEnded.rows.length === 0 && !MODE, crewEnded.error ?? `${crewEnded.rows.length}`);
 }
 
 // ── 3. Browse never carries them; materials is public ───────────────────────
@@ -250,19 +275,26 @@ const notesOf = async (jid) => (await one(`SELECT notes FROM public.job_access_n
   check("a stranger cannot add a note to someone's job", stranger !== null, stranger ?? "accepted");
   const helperUpd = await as(HELPER, `UPDATE public.job_access_notes SET notes = 'hijack' WHERE job_id = '${BOOKED}' RETURNING job_id`);
   check("the booked Helpr cannot edit the note", helperUpd.rows.length === 0 && (await notesOf(BOOKED)) === "Side door, code 7731", helperUpd.error ?? "");
-  const locked = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'moved' WHERE job_id = '${BOOKED}'`);
-  check("the poster cannot change it once booked (Q1204 parity)", locked !== null && /once a Helpr is booked/.test(locked), locked ?? "accepted");
-  const lockedDel = await asTx(POSTER, `DELETE FROM public.job_access_notes WHERE job_id = '${BOOKED}'`);
-  check("nor delete it once booked", lockedDel !== null && (await notesOf(BOOKED)) !== null, lockedDel ?? "accepted");
-  const crewLocked = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'moved' WHERE job_id = '${CREW}'`);
-  {
-    // Once the job is over the poster may take the gate code back (review #2).
-    const done = id(70);
-    await db.exec(`${job(done, { helper_id: HELPER, status: "completed" })}; INSERT INTO public.job_access_notes (job_id, notes) VALUES ('${done}', 'Old gate 1111')`).catch(() => { /* RED run: no table */ });
-    const del = await asTx(POSTER, `DELETE FROM public.job_access_notes WHERE job_id = '${done}'`);
-    check("the poster can delete the note once the job is completed", del === null && (await notesOf(done)) === null && !MODE, del ?? "");
-  }
-  check("a crew roster counts as booked", crewLocked !== null, crewLocked ?? "accepted");
+  const adminUpd = await as(ADMIN, `UPDATE public.job_access_notes SET notes = 'admin' WHERE job_id = '${BOOKED}' RETURNING job_id`);
+  check("an admin reads but cannot edit the note", adminUpd.rows.length === 0 && (await notesOf(BOOKED)) === "Side door, code 7731", adminUpd.error ?? "");
+  // Owner answer 3: the poster may change them after booking; the Helpr(s) are told.
+  const edited = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'Side door, code 9900' WHERE job_id = '${BOOKED}'`);
+  check("the poster changes the note on a booked job (owner answer 3)", edited === null && (await notesOf(BOOKED)) === "Side door, code 9900", edited ?? "");
+  check("... and the booked Helpr is told", (await notifs(HELPER, BOOKED)) === 1, String(await notifs(HELPER, BOOKED)));
+  check("... and the poster is not", (await notifs(POSTER, BOOKED)) === 0);
+  const same = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'Side door, code 9900' WHERE job_id = '${BOOKED}'`);
+  check("an UPDATE that changes nothing tells nobody again", same === null && (await notifs(HELPER, BOOKED)) === 1);
+  const again = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'Side door, code 9901' WHERE job_id = '${BOOKED}'`);
+  check("a second edit within 10 minutes, the first notice unread, adds no second notice", again === null && (await notifs(HELPER, BOOKED)) === 1);
+  await db.exec(`UPDATE public.notifications SET read = true WHERE user_id = '${HELPER}' AND job_id = '${BOOKED}'`);
+  const third = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'Side door, code 9900' WHERE job_id = '${BOOKED}'`);
+  check("once the Helpr has read it, the next edit tells them again", third === null && (await notifs(HELPER, BOOKED)) === 2, String(await notifs(HELPER, BOOKED)));
+  const crewEdit = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'Lockbox moved to the shed' WHERE job_id = '${CREW}'`);
+  check("a crew job's note changes and the crew is told", crewEdit === null && (await notifs(CREWMATE, CREW)) === 1, crewEdit ?? String(await notifs(CREWMATE, CREW)));
+  const openNote = await notifs(HELPER, OPEN2) + await notifs(CREWMATE, OPEN2);
+  check("a note on a job nobody is booked on tells nobody", openNote === 0, String(openNote));
+  const endedEdit = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'Gate changed' WHERE job_id = '${id(71)}'`);
+  check("a change on an ended job tells nobody", endedEdit === null && (await notifs(HELPER, id(71))) === 0 && (await notifs(CREWMATE, id(71))) === 0, endedEdit ?? "");
   const leak = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'call me 504-555-1212' WHERE job_id = '${OPEN2}'`);
   check("the access note is contact-scanned", leak !== null && /access and parking notes/.test(leak), leak ?? "accepted");
   const matLeak = await asTx(POSTER, `UPDATE public.jobs SET materials_note = 'email me at a@b.com' WHERE id = '${OPEN2}'`);
@@ -285,7 +317,7 @@ const notesOf = async (jid) => (await one(`SELECT notes FROM public.job_access_n
   check("legacy INSERT: materials routed, column nulled", r?.materials_note === "paint" && r?.special_requirements === null, JSON.stringify(r));
   check("legacy INSERT: access routed to job_access_notes", r ? (await notesOf(r.id)) === "Key under the mat" : false);
   const lockedLegacy = await asTx(POSTER, `UPDATE public.jobs SET special_requirements = 'new gate' WHERE id = '${BOOKED}'`);
-  check("a legacy UPDATE on a booked job is still refused", lockedLegacy !== null && (await notesOf(BOOKED)) === "Side door, code 7731", lockedLegacy ?? "accepted");
+  check("a legacy UPDATE on a booked job is still refused (special_requirements stays locked)", lockedLegacy !== null && (await notesOf(BOOKED)) === "Side door, code 9900", lockedLegacy ?? "accepted");
   const openLegacy = await asTx(POSTER, `UPDATE public.jobs SET special_requirements = 'Gate 99' WHERE id = '${MATONLY}'`);
   check("a legacy UPDATE on an open job routes the access note", openLegacy === null && (await notesOf(MATONLY)) === "Gate 99", openLegacy ?? "");
   const direct = await db.exec(`ALTER TABLE public.jobs DISABLE TRIGGER zzzzz_jobs_route_notes; UPDATE public.jobs SET special_requirements = 'raw' WHERE id = '${OPEN2}'`).then(() => null, (e) => e.message);
@@ -303,6 +335,10 @@ const notesOf = async (jid) => (await one(`SELECT notes FROM public.job_access_n
   check("a recurring visit inherits the access note", (await notesOf(visit)) === "Gate 4521, park on the left");
   const vh = await as(HELPER, `SELECT job_id FROM public.job_access_notes WHERE job_id = '${visit}'`);
   check("the visit's Helpr reads it", vh.rows.length === 1, vh.error ?? "");
+  check("inheriting the series' note tells nobody", (await notifs(HELPER, visit)) === 0);
+  const seriesEdit = await asTx(POSTER, `UPDATE public.job_access_notes SET notes = 'New gate 8080' WHERE job_id = '${OPEN}'`);
+  check("a change on the series reaches its live visit", seriesEdit === null && (await notesOf(visit)) === "New gate 8080", seriesEdit ?? String(await notesOf(visit)));
+  check("... and the visit's Helpr is told once", (await notifs(HELPER, OPEN)) === 1 && (await notifs(HELPER, visit)) === 0, `${await notifs(HELPER, OPEN)}/${await notifs(HELPER, visit)}`);
 
   const before = await one(`SELECT count(*)::int n FROM public.job_accept_pending WHERE job_id = '${OFFER}'`);
   const e2 = await asTx(POSTER, `UPDATE public.jobs SET materials_note = 'Ladder provided' WHERE id = '${OFFER}'`);
@@ -327,7 +363,7 @@ const notesOf = async (jid) => (await one(`SELECT notes FROM public.job_access_n
   if (!MODE) {
     // Discrimination: the purge as it was before this change leaves the gate code behind.
     const eOld = await run4b(section4b(OLD_PURGE));
-    check("the pre-Q1438 purge leaves the access note behind (the defect this closes)", eOld === null && (await notesOf(BOOKED)) !== null, eOld ?? "");
+    check("the pre-Q1461 purge leaves the access note behind (the defect this closes)", eOld === null && (await notesOf(BOOKED)) !== null, eOld ?? "");
     await db.exec(`UPDATE public.jobs SET description = 'desc' WHERE customer_id = '${POSTER}'`);
   }
   const purgeFile = MODE ? OLD_PURGE : "20261006204113_job_materials_and_access_notes.sql";

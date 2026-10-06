@@ -351,7 +351,7 @@ describe("offer privacy (c): JOB_READABLE_COLUMN_LIST is the jobs columns minus 
 
   // The series-state columns are read by fetchJobSeriesState on their own
   // (deploy order: see JOB_SERIES_STATE_COLUMNS), and the ahead-of-db ones by
-  // name through readJobsAheadOfDb (Q1438), so both count as covered.
+  // name through readJobsAheadOfDb (Q1461), so both count as covered.
   const readable = [...JOB_READABLE_COLUMN_LIST, ...JOB_SERIES_STATE_COLUMNS, ...JOB_COLUMNS_AHEAD_OF_DB] as string[];
   const priv = [...JOB_PRIVATE_COLUMNS] as string[];
 

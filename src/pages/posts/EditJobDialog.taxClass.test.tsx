@@ -17,7 +17,7 @@ import type { Job } from "../../components/job-card/activityConstants";
 
 // Radix Select renders its options only when open; a native stand-in exposes
 // each item's disabled state directly.
-// Q1438: the Access & Parking note is a network read once a card opens; none here.
+// Q1461: the Access & Parking note is a network read once a card opens; none here.
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/components/ui/select", () => ({
   Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,

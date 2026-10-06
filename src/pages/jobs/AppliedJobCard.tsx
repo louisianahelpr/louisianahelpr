@@ -3,11 +3,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
-import {
-  CheckCircle2, Star,
-  XCircle,
-  Eye, Pencil, Image,
-} from "lucide-react";
+import { CheckCircle2, Star, XCircle, Eye, Pencil, Image } from "lucide-react";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
@@ -35,8 +31,7 @@ import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
-import { JobNotes, hasJobNotes } from "@/components/job-card/JobNotes";
-import { useJobAccessNote } from "@/hooks/useJobAccessNote";
+import { useCardNotes } from "@/components/job-card/JobNotes";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -112,14 +107,7 @@ function AppliedJobCardInner({
   // read it through this narrow view rather than `as any`.
   const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
-  /* Q1438: the poster's Access & Parking notes. Only a hired Helpr (accepted
-     application: the job's helper or a crew-roster member) is ever given them
-     by the database (job_access_notes RLS); the request waits for the card to
-     open. Before the `if (!job)` early return below (rules of hooks). */
-  const accessNote = useJobAccessNote(
-    job?.id,
-    app.status === "accepted" && job?.status !== "cancelled" && expandedJobIds.has(app.job_id),
-  );
+  const notes = useCardNotes(job, expandedJobIds.has(app.job_id), app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); // Q1461: access only for a hired Helpr until the job ends
   if (!job) {
     // An application can outlive its job row's VISIBILITY: once the job
     // closes to another helper, the jobs SELECT policy hides it from a
@@ -242,10 +230,7 @@ function AppliedJobCardInner({
   // The expanded body also has to render for the poster PersonTile (V6), even
   // on a job with no description of its own to show — but only while the body
   // is the one printing it.
-  /* Q1438: "Materials provided" for everyone who can see the job (pending
-     applicants included), "Access & Parking" only when the database returned
-     it (hired Helpr). Same open-card gate as the description. */
-  const showNotes = !isMinimalCard && isExpanded && hasJobNotes(job.materials_note, accessNote);
+  const showNotes = !isMinimalCard && notes !== null;
   const hasCardBody = showDescription || bodyCarriesTile || showNotes;
 
   /**
@@ -481,7 +466,7 @@ function AppliedJobCardInner({
                 <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
               </section>
             )}
-            {showNotes && <JobNotes materials={job.materials_note} access={accessNote} />}
+            {showNotes && notes}
 
             {/* The poster, as a PersonTile — the same shared tile the poster
                 card uses for the Helpr (eyebrow "Posted by"). An ownerless job

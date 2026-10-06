@@ -54,7 +54,7 @@ const JobDetail = () => {
   const { data: job, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<EnrichedJob | null> => {
-      // Q1438: `materials_note` (public) is newer than the deploy that may
+      // Q1461: `materials_note` (public) is newer than the deploy that may
       // serve this build; readJobsAheadOfDb asks again without it on 42703.
       const data = unwrap<unknown>(
         await readJobsAheadOfDb(

@@ -101,6 +101,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
   "sql:helper_abort_job": { uncovered: STRIKE },
   "sql:helper_cancel_booking": { uncovered: STRIKE },
+  "sql:job_access_notes_changed": {
+    uncovered: "Q1461: fires when the poster changes the access notes of a hired job; no journey edits them on a hired job yet (asserted in src/test/pglite/jobAccessNotes.pglite.mjs) — GAP",
+  },
   "sql:mark_helper_arrival": { uncovered: GAP("the 02-marketplace day-of ladder and settleForward (mark_helper_arrival)") },
   "sql:notify_helper_application_viewed": { uncovered: GAP("02-marketplace J3 (the poster opens the applicant)") },
   "sql:notify_helper_on_direct_offer": { driven: { spec: NOTIF, evidence: "type=eq.new_offers" } },

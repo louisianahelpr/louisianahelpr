@@ -45,7 +45,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const ROOT = resolve(__dirname, "..", "..");
 const SRC = readSignInSources(ROOT);
 // The id rules are what applies when Apple/Google sign-in is ON; the real
-// source has it OFF for launch (Q1425), which the last describe covers.
+// source has it OFF for launch (Q1428), which the last describe covers.
 const IDS = { ...deriveSignInIds(SRC), socialEnabled: true };
 
 /** A web client id that is none of the app's (a fixture, not a copy of a real id). */
@@ -187,7 +187,7 @@ describe("the nightly runs it and fails on its outcome", () => {
   });
 });
 
-describe("Apple + Google sign-in OFF for launch (Q1425)", () => {
+describe("Apple + Google sign-in OFF for launch (Q1428)", () => {
   it("the real source has the switch off, and then only 'both providers disabled' is checked", () => {
     const ids = deriveSignInIds(SRC);
     expect(ids.socialEnabled).toBe(false);

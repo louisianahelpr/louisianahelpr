@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |        AND v_d < v_min_fundable THEN |        AND false THEN
  * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   -- start, for a series visit and a one-time job alike.\n  IF true THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHERE public.is_late_cancellation(\n           true, |   WHERE (true OR public.is_late_cancellation(\n           true,
- * @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql | crew_spots_open(id) > 0)) AND parent_job_id IS NULL AND customer_id | crew_spots_open(id) > 0)) AND customer_id
+ * @mutate supabase/migrations/20261006031016_crew_spots_open_not_client_callable.sql | ELSE 0 END) > 0)) AND parent_job_id IS NULL AND customer_id | ELSE 0 END) > 0)) AND customer_id
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
@@ -175,7 +175,8 @@ describe("recurring split days (Q407 4-6)", () => {
     const newest = views.pop()?.[0] ?? "";
     for (const c of ["recurrence_days", "recurrence_weeks", "series_split_ok"]) expect(newest).toContain(c);
     // Q1409 (20261006023437) widened the status test to a booked crew's re-listed spot; the series rule stands.
-    expect(newest).toMatch(/WHERE \(status = 'open'::job_status OR \(status = 'accepted'::job_status AND is_group_job IS TRUE AND crew_spots_open\(id\) > 0\)\) AND parent_job_id IS NULL/);
+    // (20261006031016 counts the open spots inline instead of calling crew_spots_open.)
+    expect(newest).toMatch(/WHERE \(status = 'open'::job_status OR \(status = 'accepted'::job_status AND is_group_job IS TRUE AND \(CASE [\s\S]*? ELSE 0 END\) > 0\)\) AND parent_job_id IS NULL/);
   });
 
   it("the executable PGlite proof exists and runs this chain", () => {

@@ -1,7 +1,6 @@
 {
   "anon": {
     "choose_new_social_account(uuid)": "client",
-    "crew_spots_open(uuid)": "reviewed 2026-10-05 (Q1409): read inside the open_jobs_browse view (whose callers need EXECUTE) and the browse RPCs; returns only how many spots on one crew a Helpr can apply for now (a count, never who is on the roster), 0 for anything else.",
     "early_access_cutoff()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view, whose callers need EXECUTE; returns a timestamp only.",
     "get_open_jobs_for_map()": "client",
     "get_parish_for_zip(text)": "client",
@@ -38,7 +37,6 @@
     "claim_series_dates(uuid, date[])": "client",
     "clear_available_now()": "client",
     "clear_thread_mute(uuid, uuid)": "client",
-    "crew_spots_open(uuid)": "reviewed 2026-10-05 (Q1409): read inside the open_jobs_browse view (whose callers need EXECUTE) and the browse RPCs; returns only how many spots on one crew a Helpr can apply for now (a count, never who is on the roster), 0 for anything else.",
     "decline_job_offer(uuid)": "client",
     "early_access_cutoff()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view, whose callers need EXECUTE; returns a timestamp only.",
     "end_recurring_series(uuid)": "client",
@@ -135,7 +133,6 @@
     "user_may_see_job_address(uuid, uuid)": "policy"
   },
   "unscoped": {
-    "crew_spots_open(uuid)": "reviewed 2026-10-05 (Q1409): a per-job count of a crew's open spots (helpers_needed minus roster rows, until 15 minutes before the start); it never reads the caller and names no person.",
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",
     "get_category_price_stats(text, text)": "reviewed 2026-10-05 (Q1284): marketplace-wide price statistics per category/parish (aggregates, no person); shown to every poster when pricing a job.",
     "get_fill_rate_stats(integer)": "reviewed 2026-10-05 (Q1284): platform-wide fill-rate aggregates (no person); public by design.",

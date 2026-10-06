@@ -10,6 +10,9 @@
 // @mutate supabase/functions/stripe-webhook-config-check/shape.ts |   const since = until - UNDELIVERED_WINDOW_S; |   const since = 0;
 import { describe, expect, it } from "vitest";
 import {
+  RETURNED_TAX_FIELDS,
+  STRIPE_TAX_REGISTRATIONS_URL,
+  shapeTaxRegistration,
   RETURNED_ENDPOINT_FIELDS,
   RETURNED_EVENT_FIELDS,
   STRIPE_WEBHOOK_ENDPOINTS_URL,
@@ -71,13 +74,43 @@ type Reply = { status: number; body: unknown };
 const list = (data: unknown[], has_more = false): Reply => ({ status: 200, body: { object: "list", data, has_more } });
 
 /** Routes by URL: webhook_endpoints vs events, so each read can fail on its own. */
-function stub(endpoints: Reply, events: Reply = list([]), calls: Call[] = []) {
+const rawLaRegistration = {
+  id: "taxreg_FAKE",
+  object: "tax.registration",
+  country: "US",
+  country_options: { us: { state: "LA", type: "state_sales_tax" } },
+  status: "active",
+  active_from: 1756700000,
+  livemode: true,
+};
+
+function stub(endpoints: Reply, events: Reply = list([]), calls: Call[] = [], tax: Reply = list([rawLaRegistration])) {
   return async (url: string, init?: RequestInit) => {
     calls.push({ url, init: init as FakeInit });
-    const r = url.startsWith("https://api.stripe.com/v1/events?") ? events : endpoints;
+    const r = url.startsWith("https://api.stripe.com/v1/events?")
+      ? events
+      : url === STRIPE_TAX_REGISTRATIONS_URL
+        ? tax
+        : endpoints;
     return new Response(typeof r.body === "string" ? r.body : JSON.stringify(r.body), { status: r.status });
   };
 }
+
+describe("tax registrations (Q441)", () => {
+  it("shapes a registration to exactly country, state and status", () => {
+    const shaped = shapeTaxRegistration(rawLaRegistration);
+    expect(Object.keys(shaped).sort()).toEqual([...RETURNED_TAX_FIELDS].sort());
+    expect(shaped).toEqual({ country: "US", state: "LA", status: "active" });
+    expect(shapeTaxRegistration({ country: "CA", status: "active" })).toEqual({ country: "CA", state: null, status: "active" });
+  });
+
+  it("a failed or partial tax read is a non-200, never an empty list", async () => {
+    const failed = await readWebhookConfig(FAKE_LIVE_KEY, stub(list([rawEndpoint]), list([]), [], { status: 500, body: { error: { message: "boom" } } }), 15000, NOW);
+    expect(failed.ok).toBe(false);
+    const partial = await readWebhookConfig(FAKE_LIVE_KEY, stub(list([rawEndpoint]), list([]), [], list([rawLaRegistration], true)), 15000, NOW);
+    expect(partial.ok).toBe(false);
+  });
+});
 
 describe("shapeEndpoint", () => {
   it("returns exactly the whitelisted fields and drops the signing secret", () => {
@@ -112,7 +145,7 @@ describe("undeliveredEventsUrl", () => {
 });
 
 describe("readWebhookConfig", () => {
-  it("makes two GETs (webhook_endpoints, then undelivered events) and returns no secret, key or payload", async () => {
+  it("makes three GETs (webhook_endpoints, undelivered events, active tax registrations) and returns no secret, key or payload", async () => {
     const calls: Call[] = [];
     const r = await readWebhookConfig(
       FAKE_LIVE_KEY,
@@ -120,14 +153,16 @@ describe("readWebhookConfig", () => {
       15000,
       NOW,
     );
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
+    expect(calls[2].url).toBe(STRIPE_TAX_REGISTRATIONS_URL);
     expect(calls[0].url).toBe(STRIPE_WEBHOOK_ENDPOINTS_URL);
     const until = NOW - UNDELIVERED_GRACE_S;
     expect(calls[1].url).toBe(undeliveredEventsUrl(until - UNDELIVERED_WINDOW_S, until));
     for (const c of calls) expect(c.init?.method).toBe("GET");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(Object.keys(r.body).sort()).toEqual(["endpoints", "keyIsLive", "undelivered"]);
+    expect(Object.keys(r.body).sort()).toEqual(["endpoints", "keyIsLive", "taxRegistrations", "undelivered"]);
+    expect(r.body.taxRegistrations).toEqual([{ country: "US", state: "LA", status: "active" }]);
     expect(r.body.keyIsLive).toBe(true);
     for (const e of r.body.endpoints) {
       expect(Object.keys(e).sort()).toEqual([...RETURNED_ENDPOINT_FIELDS].sort());
@@ -143,7 +178,7 @@ describe("readWebhookConfig", () => {
     expect(json).not.toContain("whsec_");
     expect(json).not.toContain(FAKE_LIVE_KEY);
     expect(json).not.toMatch(/"secret"|"metadata"|"api_version"/);
-    expect(json).not.toMatch(/cs_FAKE|person@example\.com|acct_FAKE|req_FAKE|pending_webhooks/);
+    expect(json).not.toMatch(/cs_FAKE|person@example\.com|acct_FAKE|req_FAKE|pending_webhooks|taxreg_FAKE/);
   });
 
   it("reports zero undelivered only when Stripe returned an empty list", async () => {

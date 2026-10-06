@@ -39,10 +39,42 @@ export function gradeConfigCheckResponse(body, handlers, url) {
   // undelivered event, nor the other way round.
   const config = gradeLiveEndpoints({ data: body.endpoints }, handlers, url);
   const undelivered = gradeUndelivered(body.undelivered);
+  const tax = gradeTaxRegistrations(body.taxRegistrations);
   return {
-    failures: [...config.failures, ...undelivered.failures],
-    notes: [...config.notes, ...undelivered.notes],
+    failures: [...config.failures, ...undelivered.failures, ...tax.failures],
+    notes: [...config.notes, ...undelivered.notes, ...tax.notes],
   };
+}
+
+/**
+ * Q441: Stripe Tax collects Louisiana sales tax on a taxable job only while a
+ * United States / Louisiana registration is ACTIVE on the live account (Stripe
+ * Tax returned $0.00 on a Baton Rouge assembly job in test mode, 2026-09-04).
+ * RED when the block is missing or malformed (never read as "registered"), and
+ * when no active US/LA registration is listed.
+ */
+export function gradeTaxRegistrations(regs) {
+  if (!Array.isArray(regs)) {
+    return {
+      failures: [
+        "stripe-webhook-config-check returned no `taxRegistrations` array, so the Louisiana tax registration was not read. " +
+          "Refusing to call that registered (is the deployed function older than Q441?).",
+      ],
+      notes: [],
+    };
+  }
+  const listed = regs.map((r) => `${r?.country ?? "?"}${r?.state ? `/${r.state}` : ""} ${r?.status ?? "?"}`).join(", ") || "none";
+  const la = regs.some((r) => r?.country === "US" && r?.state === "LA" && r?.status === "active");
+  if (!la) {
+    return {
+      failures: [
+        `No ACTIVE United States / Louisiana Stripe Tax registration on the live account (active registrations: ${listed}). ` +
+          "Taxable jobs would be charged $0 Louisiana sales tax. Add it in Stripe Dashboard > Tax > Registrations.",
+      ],
+      notes: [],
+    };
+  }
+  return { failures: [], notes: [`Stripe Tax: Louisiana registration is active (active registrations: ${listed}).`] };
 }
 
 /**

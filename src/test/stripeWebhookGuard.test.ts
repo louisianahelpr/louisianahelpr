@@ -9,7 +9,9 @@
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!undelivered \|\| typeof undelivered !== "object") { |   if (!undelivered) return { failures, notes }; if (typeof undelivered !== "object") {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Number.isInteger(count) \|\| count < 0 \|\| !Array.isArray(events)) { |   if (!Array.isArray(events)) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (count > 0 \|\| truncated === true) { |   if (count > 1) {
-// @mutate scripts/lib/stripeWebhookGuard.mjs |     failures: [...config.failures, ...undelivered.failures], |     failures: [...config.failures],
+// @mutate scripts/lib/stripeWebhookGuard.mjs |     failures: [...config.failures, ...undelivered.failures, ...tax.failures], |     failures: [...config.failures, ...undelivered.failures],
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   const la = regs.some((r) => r?.country === "US" && r?.state === "LA" && r?.status === "active"); |   const la = regs.length > 0;
+// @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Array.isArray(regs)) { |   if (false) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (!Number.isInteger(since) \|\| !Number.isInteger(until) \|\| since >= until) { |   if (false) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (count !== events.length) { |   if (false) {
 // @mutate scripts/lib/stripeWebhookGuard.mjs |   if (typeof truncated !== "boolean") { |   if (false) {
@@ -20,6 +22,7 @@ import { join } from "node:path";
 import {
   gradeConfigCheckResponse,
   gradeLiveEndpoints,
+  gradeTaxRegistrations,
   gradeUndelivered,
   type WebhookEndpoint,
 } from "../../scripts/lib/stripeWebhookGuard.mjs";
@@ -168,7 +171,22 @@ describe("gradeConfigCheckResponse (the edge function's body)", () => {
     keyIsLive: true,
     endpoints: [ep()],
     undelivered: { since: 1_790_000_000, until: 1_790_093_600, count: 0, truncated: false, events: [] },
+    taxRegistrations: [{ country: "US", state: "LA", status: "active" }],
     ...over,
+  });
+
+  it("Q441: is RED with no active US/LA tax registration, or none read at all", () => {
+    expect(gradeConfigCheckResponse(body(), handlers, WEBHOOK_URL).failures).toEqual([]);
+    const none = gradeConfigCheckResponse(body({ taxRegistrations: [] }), handlers, WEBHOOK_URL).failures;
+    expect(none.join("\n")).toMatch(/No ACTIVE United States \/ Louisiana Stripe Tax registration/);
+    const otherState = gradeTaxRegistrations([{ country: "US", state: "TX", status: "active" }]).failures;
+    expect(otherState[0]).toMatch(/US\/TX active/);
+    expect(gradeTaxRegistrations([{ country: "US", state: "LA", status: "scheduled" }]).failures).toHaveLength(1);
+    expect(gradeTaxRegistrations(undefined).failures[0]).toMatch(/no `taxRegistrations` array/);
+    expect(gradeTaxRegistrations([{ country: "US", state: "LA", status: "active" }])).toEqual({
+      failures: [],
+      notes: ["Stripe Tax: Louisiana registration is active (active registrations: US/LA active)."],
+    });
   });
 
   it("passes a live key with one enabled endpoint on exactly the handled events", () => {
@@ -266,7 +284,7 @@ describe("gradeUndelivered (Q854: GET /v1/events?delivery_success=false)", () =>
   });
 
   it("gradeConfigCheckResponse reports undelivered events alongside a clean config, and a missing block", () => {
-    const body = { keyIsLive: true, endpoints: [ep()] };
+    const body = { keyIsLive: true, endpoints: [ep()], taxRegistrations: [{ country: "US", state: "LA", status: "active" }] };
     const withEvents = gradeConfigCheckResponse({ ...body, undelivered: u({ count: 2, events: evts }) }, handlers, WEBHOOK_URL);
     expect(withEvents.failures).toHaveLength(1);
     expect(withEvents.failures[0]).toMatch(/NOT delivered/);

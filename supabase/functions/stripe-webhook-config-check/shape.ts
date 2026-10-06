@@ -49,10 +49,35 @@ interface UndeliveredEvents {
   events: ShapedEvent[];
 }
 
+/** The ONLY fields that leave this function per tax registration (Q441). */
+export const RETURNED_TAX_FIELDS = ["country", "state", "status"] as const;
+
+export interface ShapedTaxRegistration {
+  country: string | null;
+  /** The US state for a US registration (country_options.us.state), else null. */
+  state: string | null;
+  status: string | null;
+}
+
 interface ConfigCheckBody {
   keyIsLive: boolean;
   endpoints: ShapedEndpoint[];
   undelivered: UndeliveredEvents;
+  /** Active Stripe Tax registrations (Q441): checkout charges Louisiana sales tax only when one is active. */
+  taxRegistrations: ShapedTaxRegistration[];
+}
+
+export const STRIPE_TAX_REGISTRATIONS_URL = "https://api.stripe.com/v1/tax/registrations?status=active&limit=100";
+
+export function shapeTaxRegistration(raw: Record<string, unknown>): ShapedTaxRegistration {
+  const country = typeof raw.country === "string" ? raw.country : null;
+  const options = (raw.country_options ?? {}) as Record<string, unknown>;
+  const local = (country ? options[country.toLowerCase()] : undefined) as Record<string, unknown> | undefined;
+  return {
+    country,
+    state: typeof local?.state === "string" ? local.state : null,
+    status: typeof raw.status === "string" ? raw.status : null,
+  };
 }
 
 export const STRIPE_WEBHOOK_ENDPOINTS_URL = "https://api.stripe.com/v1/webhook_endpoints?limit=100";
@@ -185,12 +210,19 @@ export async function readWebhookConfig(
   if (!events.ok) return events;
   const shaped = events.data.map((e) => shapeEvent((e ?? {}) as Record<string, unknown>));
 
+  const tax = await getStripeList(STRIPE_TAX_REGISTRATIONS_URL, "tax/registrations", key, fetchImpl, timeoutMs);
+  if (!tax.ok) return tax;
+  if (tax.hasMore) {
+    return { ok: false, status: 502, error: "Stripe returned more than 100 active tax registrations; the check reads one page only" };
+  }
+
   return {
     ok: true,
     body: {
       keyIsLive: keyIsLive(key),
       endpoints: endpoints.data.map((e) => shapeEndpoint((e ?? {}) as Record<string, unknown>)),
       undelivered: { since, until, count: shaped.length, truncated: events.hasMore, events: shaped },
+      taxRegistrations: tax.data.map((r) => shapeTaxRegistration((r ?? {}) as Record<string, unknown>)),
     },
   };
 }

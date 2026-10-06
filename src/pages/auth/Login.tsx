@@ -15,6 +15,7 @@ import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
+import { OrRule } from "@/components/auth/OrRule";
 import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
@@ -600,18 +601,7 @@ const Login = () => {
             column still handles the stacked layout below lg. Its own grid
             column so it sits between the two methods rather than inside
             either. */}
-        {SOCIAL_SIGN_IN_ENABLED && (
-        <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
-          <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
-          <span
-            className="text-ds-11 tracking-[0.2em] uppercase font-sans"
-            style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
-          >
-            or
-          </span>
-          <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
-        </div>
-        )}
+        {SOCIAL_SIGN_IN_ENABLED && <OrRule orientation="vertical" />}
 
         {/* Vertically centred against the taller credentials column, so the
             social buttons sit level with the form rather than hugging the top
@@ -620,37 +610,12 @@ const Login = () => {
         {/* The OR rule only makes sense when the two methods are stacked. At
             lg+ they sit side by side, so the columns themselves do the
             separating. */}
-        {/* --accent-ink at 0.9 alpha, not --burnt-sienna and not 0.7.
-            Two separate measurements, a month apart, and the second one is the
-            reason the token changed:
-              - 0.7 alpha composited over --parchment is 3.28:1, and this is
-                11px text, so WCAG AA wants 4.5. 0.9 measures 4.86:1.
-              - That number was LIGHT MODE ONLY. In dark mode --burnt-sienna
-                lifts to 19 65% 52%, which at 0.9 over the dark auth canvas
-                measures 4.27:1 — a fail that no check could see, because the
-                gate read axe's `violations` and axe files every contrast
-                result on this gradient canvas under `incomplete`.
-                --accent-ink is byte-identical in light mode (so 4.86:1 is
-                unchanged) and lifted in dark, where it measures 6.27:1.
-            The desktop twin above carries the same value for consistency —
-            axe skips it because its wrapper is aria-hidden, but aria-hidden
-            does nothing for a sighted user reading low-contrast text, so "not
-            flagged" was never the same as "fine". */}
+        {/* The rule's colour and its two contrast measurements: OrRule.tsx. */}
         {SOCIAL_SIGN_IN_ENABLED && (
-        <>
-        <div className="flex items-center gap-3 lg:hidden">
-          <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
-          <span
-            className="text-ds-11 tracking-[0.2em] uppercase font-sans"
-            style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
-          >
-            or
-          </span>
-          <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
-        </div>
-
-        <SocialAuthButtons mode="signin" initialChoice={accountChoice} />
-        </>
+          <>
+            <OrRule orientation="horizontal" />
+            <SocialAuthButtons mode="signin" initialChoice={accountChoice} />
+          </>
         )}
         {/* Under the providers (owner). It has been outside the card and under
             both columns; back here, closing the social column. */}

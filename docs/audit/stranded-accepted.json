@@ -111,6 +111,21 @@
       "id": "pr:2416",
       "sha": "7c569c79602b5778fe7e6c8110861b8111333368",
       "reason": "Auto-land of lane/q446-one-account: landed in batch 2 (#2406, Q446); main's AccountChoiceDialog/SocialAuthButtons/SignInMethodsCard are newer (the dialog now loads on demand with a retry note, #2421, after an lh-silent-failure review). Residual lines are this copy's pre-refactor shape."
+    },
+    {
+      "id": "pr:2444",
+      "sha": "c897919a372b393edaa03eca04afd4c68b582b88",
+      "reason": "RED PROOF, never to land: q975-red-proof is race-runner.mjs with race 8's predicate weakened, pushed only so CI could show races 7-9 can fail (run 37411002774: BAD 5/5). branch-prune opened this auto-land PR with auto-merge on; auto-merge was turned off and the PR drafted at once (2026-10-06), and prune-stale-branches.mjs now never auto-lands a red proof. The real races landed with Q975."
+    },
+    {
+      "id": "remote:origin/q975-red-proof",
+      "sha": "c897919a372b393edaa03eca04afd4c68b582b88",
+      "reason": "Same red proof as pr:2444; kept on origin as the record of the run."
+    },
+    {
+      "id": "remote:origin/q975-races-10-13-red",
+      "sha": "14ff0cac91e9c7e8e10435dda872088ee062f44f",
+      "reason": "RED PROOF, never to land: races 10-13 with their guards removed (run 37416505050: BAD 5/5 each), the proof that races 10-13 can fail; kept on origin as the record of the run."
     }
   ]
 }

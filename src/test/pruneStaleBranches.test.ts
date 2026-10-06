@@ -1,6 +1,7 @@
 // @mutate scripts/prune-stale-branches.mjs | .filter((c) => !covered.has(c.subject)); | ;
 // @mutate scripts/prune-stale-branches.mjs | if (!(ageHours >= STRANDED_AFTER_HOURS)) return false; | 
 // @mutate scripts/prune-stale-branches.mjs | if (hasOpenPr) return false; | 
+// @mutate scripts/prune-stale-branches.mjs |   if (neverLand(name, uncovered)) return false; |
 // @mutate scripts/prune-stale-branches.mjs | return uncovered.length > 0; | return false;
 // @mutate scripts/prune-stale-branches.mjs | .filter((line) => line.startsWith("+")).length; | .filter((line) => line.startsWith("-")).length;
 // @mutate scripts/prune-stale-branches.mjs | export const PROTECTED_PREFIXES = ["land/"]; | export const PROTECTED_PREFIXES = [];
@@ -108,6 +109,12 @@ describe("prune-stale-branches stranded work", () => {
     expect(isStranded({ name: "agent/medium", hasOpenPr: false, ageHours: 5, uncovered: [] })).toBe(false);
     // An accepted branch (content-checked into docs/audit/stranded-accepted.json) is never re-opened as an auto-land PR (2026-10-04 loop).
     expect(isStranded({ name: "agent/medium", hasOpenPr: false, ageHours: 5, uncovered: [{}], accepted: true })).toBe(false);
+    // A red proof is never auto-landed (2026-10-06: #2444 opened with auto-merge on).
+    expect(isStranded({ name: "q975-red-proof", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(false);
+    expect(isStranded({ name: "q975-races-10-13-red", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(false);
+    expect(isStranded({ name: "agent/fix", hasOpenPr: false, ageHours: 5, uncovered: [{ subject: "RED PROOF ONLY (do not land): races 10-13 with their guards removed" }] })).toBe(false);
+    // ...and nothing else is caught by the marker.
+    expect(isStranded({ name: "fix/redirect-red-banner", hasOpenPr: false, ageHours: 5, uncovered: [{ subject: "fix: the red banner" }] })).toBe(true);
     expect(isStranded({ name: "main", hasOpenPr: false, ageHours: 5, uncovered: [{}] })).toBe(false);
   });
 

@@ -27,7 +27,9 @@ describe("DockPill (Q1172)", () => {
     // A long press (menuOpen) starts the fetch at once.
     renderHook(() => useDockMotionLoader(false, true));
     // The framer pill replaces the plain one once the chunk is in.
-    await waitFor(() => expect(container.firstElementChild).not.toBe(before));
+    // 10 s: framer-motion is a dynamic import, and under a loaded local run it
+    // took over waitFor's 1 s default (land run 2026-10-06; passes alone).
+    await waitFor(() => expect(container.firstElementChild).not.toBe(before), { timeout: 10_000 });
     const after = container.firstElementChild as HTMLElement;
     expect(after.tagName).toBe("SPAN");
     expect(after.className).toBe(props.className);

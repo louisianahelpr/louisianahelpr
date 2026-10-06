@@ -32,7 +32,9 @@ describe("SwipeableJobCard (Q1172)", () => {
 
     // The first touch of a card starts the layer.
     fireEvent.pointerDown(content);
-    await waitFor(() => expect(container.querySelector('[style*="touch-action"]')).not.toBeNull());
+    // 10 s: framer-motion is a dynamic import, and under a loaded local run it
+    // took over waitFor's 1 s default (land run 2026-10-06; passes alone).
+    await waitFor(() => expect(container.querySelector('[style*="touch-action"]')).not.toBeNull(), { timeout: 10_000 });
 
     // Same node, same local state: nothing remounted (no image fade restart, no lost state).
     expect(getByTestId("content")).toBe(content);

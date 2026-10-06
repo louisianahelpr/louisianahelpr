@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-06T06:52:05.038Z",
-  "guards": 1513,
-  "registered": 1513,
+  "generated": "2026-10-06T07:48:47.665Z",
+  "guards": 1522,
+  "registered": 1522,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -47,6 +47,15 @@
     }
   ],
   "classB_mountWiring": [
+    {
+      "module": "src/components/admin/AdminBanEvasionReview.tsx",
+      "tests": [
+        "src/components/admin/AdminBanEvasionReview.test.tsx"
+      ],
+      "parents": [
+        "src/components/admin/AdminFraudDashboard.tsx"
+      ]
+    },
     {
       "module": "src/components/admin/AdminUserDetailDialog.tsx",
       "tests": [

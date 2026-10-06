@@ -18,43 +18,44 @@
 # guess. A step that can only guess sends the next person the wrong way.
 #
 # So: capture the HTTP status and the error body, retry transient failures,
-# and say what actually happened.
+# and say what actually happened. (The helper below carries GoTrue's status
+# and body in its error.)
 set -uo pipefail
 
 # MINT_LABEL names the seat in the diagnostics. The same mint serves the helper
-# seat (POSTER_EMAIL/_PASSWORD set to the helper's) for the sweeper's
-# settle-forward, which needs both parties (prod-lifecycle-sweeper.mjs).
+# seat (POSTER_EMAIL set to the helper's) for the sweeper's settle-forward,
+# which needs both parties (prod-lifecycle-sweeper.mjs).
 LABEL="${MINT_LABEL:-poster}"
 
-URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
-KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+# THE MINT (docs/OPEN.md Q1314). This used to be an anon password grant
+# (POST /auth/v1/token?grant_type=password with POSTER_PASSWORD). Once Supabase
+# Auth CAPTCHA is on, GoTrue refuses those without a Turnstile token, so the
+# token is minted with the service role by the shared helper instead
+# (scripts/lib/adminSession.mjs: admin generate_link + verify, both outside
+# GoTrue's captcha middleware). The key comes from SUPABASE_SERVICE_ROLE_KEY or
+# the checkout's .env, which the workflow provides after its build.
+export SUPABASE_URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
 : "${POSTER_EMAIL:?POSTER_EMAIL is not set — the secret did not reach this step}"
-: "${POSTER_PASSWORD:?POSTER_PASSWORD is not set — the secret did not reach this step}"
-
-PAYLOAD=$(jq -nc --arg e "$POSTER_EMAIL" --arg p "$POSTER_PASSWORD" '{email:$e,password:$p}')
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ERR="$(mktemp)"
+trap 'rm -f "$ERR"' EXIT
 
 for attempt in 1 2 3; do
-  RESP=$(curl -sS --max-time 20 -w $'\n%{http_code}' -X POST \
-    "$URL/auth/v1/token?grant_type=password" \
-    -H "apikey: $KEY" -H "Content-Type: application/json" \
-    -d "$PAYLOAD" 2>/tmp/mint-curl-err) || RESP=$'\n000'
-  CODE="${RESP##*$'\n'}"
-  BODY="${RESP%$'\n'*}"
-  TOKEN=$(printf '%s' "$BODY" | jq -r '.access_token // empty' 2>/dev/null || true)
+  # The helper prints the access token on stdout and nothing else; its own
+  # error (GoTrue's status and body, never a secret) goes to stderr.
+  TOKEN=$(node "$HERE/../lib/adminSession.mjs" "$POSTER_EMAIL" 2>"$ERR") || TOKEN=""
   if [ -n "$TOKEN" ]; then
     [ "$attempt" -gt 1 ] && echo "token minted on attempt $attempt" >&2
     printf '%s' "$TOKEN"
     exit 0
   fi
-  if [ "$CODE" = "000" ]; then
-    DETAIL="no HTTP response — $(head -c 200 /tmp/mint-curl-err 2>/dev/null || echo 'curl failed')"
-  else
-    DETAIL=$(printf '%s' "$BODY" | jq -c '{error, error_code, code, msg, message}' 2>/dev/null \
-      || printf 'non-JSON body, %s bytes' "${#BODY}")
-  fi
-  echo "::warning::$LABEL token mint attempt $attempt/3 — HTTP $CODE — $DETAIL" >&2
-  # 400/401/422 is a credentials problem and will not improve on retry.
-  case "$CODE" in 400|401|403|422) break ;; esac
+  DETAIL=$(head -c 400 "$ERR" 2>/dev/null || echo "no diagnostic")
+  echo "::warning::$LABEL token mint attempt $attempt/3 — $DETAIL" >&2
+  # No key, no account, or a refused key will not improve on retry.
+  case "$DETAIL" in
+    *"no service-role key"*|*"HTTP 401"*|*"HTTP 403"*|*"HTTP 404"*|*"HTTP 422"*) break ;;
+  esac
   sleep $((attempt * 5))
 done
 exit 1

@@ -84,7 +84,7 @@ describe("every CI sweep holds both seats", () => {
     expect(run, "runs the sweeper directly, poster seat only").not.toMatch(/node\s+\S*prod-lifecycle-sweeper\.mjs/);
     expect(run).toMatch(/bash scripts\/e2e\/sweep-both-seats\.sh/);
     expect(step.env?.HELPER_EMAIL).toBe("${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}");
-    expect(step.env?.HELPER_PASSWORD).toBe("${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}");
+    // No HELPER_PASSWORD: the helper seat is minted with the service role since Q1314 (src/test/noAnonPasswordGrants.test.ts requires the key).
     // M1: the phase decides whether a failed helper mint fails the step.
     const teardown = /always\(\)/.test(String(step.if ?? ""));
     expect(step.env?.SWEEP_PHASE, "the `if: always()` unwind is the teardown; anything else is a pre-sweep").toBe(

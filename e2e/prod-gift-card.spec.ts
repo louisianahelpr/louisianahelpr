@@ -17,6 +17,7 @@ import {
   type GiftRow,
 } from "./giftCardLedger";
 import { fitJobTitle, runTag } from "../scripts/lib/jobTextBounds.mjs";
+import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../scripts/lib/adminSession.mjs";
 
 // THE GIFT CARD JOURNEY, against PRODUCTION, on a Stripe TEST key (SC-005).
 //
@@ -67,10 +68,10 @@ const ANON = process.env.PLAYWRIGHT_SUPABASE_ANON_KEY || "sb_publishable_iYs06Xj
 
 // The donor is the helper seat and the recipient the poster seat (see above).
 const DONOR_EMAIL = process.env.PLAYWRIGHT_HELPER_EMAIL;
-const DONOR_PASSWORD = process.env.PLAYWRIGHT_HELPER_PASSWORD;
 const RECIPIENT_EMAIL = process.env.PLAYWRIGHT_POSTER_EMAIL;
-const RECIPIENT_PASSWORD = process.env.PLAYWRIGHT_POSTER_PASSWORD;
-const READY = Boolean(DONOR_EMAIL && DONOR_PASSWORD && RECIPIENT_EMAIL && RECIPIENT_PASSWORD);
+/** Sessions are minted with it (Q1314: never an anon password grant). */
+const SERVICE_KEY = resolveServiceKey();
+const READY = Boolean(DONOR_EMAIL && RECIPIENT_EMAIL && SERVICE_KEY);
 
 /**
  * OPTIONAL, read-only here: lets the spec read the two Checkout Sessions back
@@ -97,13 +98,15 @@ function announceUncovered(title: string, detail: string) {
   }
 }
 
-async function signIn(api: APIRequestContext, email: string, password: string): Promise<Session> {
-  const r = await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-    headers: { apikey: ANON, "Content-Type": "application/json" },
-    data: { email, password },
-  });
-  expect(r.ok(), `sign-in failed for ${email}: ${r.status()} ${await r.text()}`).toBe(true);
-  return (await r.json()) as Session;
+/** A session minted with the service role: never an anon password grant, which GoTrue refuses once CAPTCHA is on (Q1314). */
+async function signIn(api: APIRequestContext, email: string): Promise<Session> {
+  return (await mintAdminSession({
+    email,
+    serviceKey: SERVICE_KEY,
+    supabaseUrl: SUPABASE_URL,
+    anonKey: ANON,
+    transport: playwrightTransport(api),
+  })) as Session;
 }
 
 const rest = (s: Session) => ({ apikey: ANON, Authorization: `Bearer ${s.access_token}`, "Content-Type": "application/json" });
@@ -200,7 +203,7 @@ test.describe.serial("gift card journey against production", () => {
   test.describe.configure({ retries: 0 });
   test.skip(
     !READY,
-    "Set PLAYWRIGHT_POSTER_EMAIL / _PASSWORD and PLAYWRIGHT_HELPER_EMAIL / _PASSWORD. Until then the gift " +
+    "Set PLAYWRIGHT_POSTER_EMAIL and PLAYWRIGHT_HELPER_EMAIL, with SUPABASE_SERVICE_ROLE_KEY to mint their sessions. Until then the gift " +
       "card has NO end-to-end coverage (SC-005) — buy, claim and redeem run nowhere.",
   );
 
@@ -221,8 +224,8 @@ test.describe.serial("gift card journey against production", () => {
     test.setTimeout(6 * 60_000);
     const t0 = Date.now();
     const startedAt = new Date(t0 - 5_000).toISOString();
-    const donor = await signIn(request, DONOR_EMAIL!, DONOR_PASSWORD!);
-    const recipient = await signIn(request, RECIPIENT_EMAIL!, RECIPIENT_PASSWORD!);
+    const donor = await signIn(request, DONOR_EMAIL!);
+    const recipient = await signIn(request, RECIPIENT_EMAIL!);
     expect(donor.user.id, "donor and recipient resolved to the same account").not.toBe(recipient.user.id);
     Object.assign(state, { donor, recipient });
 

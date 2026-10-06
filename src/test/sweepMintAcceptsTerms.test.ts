@@ -7,7 +7,7 @@
  * reading the version from the app's own src/lib/consent.ts.
  *
  * @mutate scripts/audit/pressProdSafety.mjs |   await acceptCurrentTerms(supabaseUrl(), anonKey(), session.access_token, session.user.id); // TERMS-CONSENT at mint |   // removed
- * @mutate scripts/test-signin-link.mjs |     await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, resolvedUserId); |     // removed
+ * @mutate scripts/test-signin-link.mjs |     await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, session.user.id); |     // removed
  * @mutate scripts/lib/acceptCurrentTerms.mjs |   const terms = src.match(/export const LATEST_TERMS_VERSION = "([^"]+)"/)?.[1]; |   const terms = "Jun 2026";
  */
 import { describe, it, expect } from "vitest";
@@ -19,7 +19,7 @@ import { LATEST_TERMS_VERSION, LATEST_PRIVACY_VERSION } from "@/lib/consent";
 
 const MINT_PATHS: [string, RegExp][] = [
   ["scripts/audit/pressProdSafety.mjs", /await acceptCurrentTerms\(supabaseUrl\(\), anonKey\(\), session\.access_token, session\.user\.id\)/],
-  ["scripts/test-signin-link.mjs", /await acceptCurrentTerms\(supabaseUrl, anonKey, session\.access_token, resolvedUserId\)/],
+  ["scripts/test-signin-link.mjs", /await acceptCurrentTerms\(supabaseUrl, anonKey, session\.access_token, session\.user\.id\)/],
 ];
 const read = (p: string) => readFileSync(resolve(__dirname, "../..", p), "utf8");
 

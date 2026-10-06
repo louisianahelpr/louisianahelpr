@@ -181,6 +181,14 @@ jobs:
         with:
           supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
           supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+      - name: Service-role key for the test sessions (Q1314)
+        # Every sign-in below is minted with it (scripts/lib/adminSession.mjs):
+        # an anon password grant is refused once Auth CAPTCHA is on. After the
+        # build, so it can never reach the bundle.
+        uses: ./.github/actions/service-role-key
+        with:
+          access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          project-ref: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
 
       - name: Sweep anything a previous run stranded
         env:

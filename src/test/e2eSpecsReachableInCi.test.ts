@@ -129,7 +129,7 @@ const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
   },
   "journeys/03-account.spec.ts": {
     runner: "e2e-journeys.yml",
-    needs: "PLAYWRIGHT_HELPER_EMAIL + PLAYWRIGHT_HELPER_PASSWORD (the sign-out/sign-in leg; the rest runs on minted sessions)",
+    needs: "PLAYWRIGHT_HELPER_EMAIL + the service-role key (every session, including the sign-out/sign-in leg, is minted with it: Q1314)",
   },
   "auth.spec.ts": {
     runner: "e2e-real-backend.yml",
@@ -154,13 +154,13 @@ const GATED_IN_CI: Record<string, { runner: string; needs: string }> = {
     needs:
       "PLAYWRIGHT_POSTER_EMAIL + PLAYWRIGHT_POSTER_PASSWORD + PLAYWRIGHT_HELPER_EMAIL + " +
       "PLAYWRIGHT_HELPER_PASSWORD (the two dedicated prod accounts; the helper seat donates, the poster seat " +
-      "receives and spends). Buys a gift card on Stripe test mode, so it runs only on schedule/dispatch (SC-005).",
+      "receives and spends; sessions minted with the service-role key, Q1314). Buys a gift card on Stripe test mode, so it runs only on schedule/dispatch (SC-005).",
   },
   "prod-lifecycle.spec.ts": {
     runner: "e2e-real-backend.yml",
     needs:
       "PLAYWRIGHT_POSTER_EMAIL + PLAYWRIGHT_POSTER_PASSWORD + PLAYWRIGHT_HELPER_EMAIL + " +
-      "PLAYWRIGHT_HELPER_PASSWORD (the two dedicated prod accounts). Writes to production " +
+      "PLAYWRIGHT_HELPER_PASSWORD (the two dedicated prod accounts; sessions minted with the service-role key, Q1314). Writes to production " +
       "on a Stripe test key; see the spec header for the blast-radius controls.",
   },
 };

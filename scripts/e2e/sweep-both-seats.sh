@@ -3,7 +3,7 @@
 #
 # The caller mints the poster token itself (its own Q52 error text) and passes
 # POSTER_ACCESS_TOKEN, SUPABASE_URL and SUPABASE_ANON_KEY. This adds the helper
-# seat from HELPER_EMAIL / HELPER_PASSWORD, because a hired+funded leftover can
+# seat from HELPER_EMAIL (minted with the service role, Q1314), because a hired+funded leftover can
 # only be settled FORWARD by both parties (arrival and Done are the Helpr's).
 #
 # WHY (nightly-red #1719, e2e-journeys run 36164148002, 2026-09-25): the
@@ -31,17 +31,17 @@ case "$SWEEP_PHASE" in
 esac
 
 HTOKEN=""
-if [ -n "${HELPER_EMAIL:-}" ] && [ -n "${HELPER_PASSWORD:-}" ]; then
-  if ! HTOKEN=$(POSTER_EMAIL="$HELPER_EMAIL" POSTER_PASSWORD="$HELPER_PASSWORD" MINT_LABEL=helper bash "$HERE/mint-poster-token.sh"); then
+if [ -n "${HELPER_EMAIL:-}" ]; then
+  if ! HTOKEN=$(POSTER_EMAIL="$HELPER_EMAIL" MINT_LABEL=helper bash "$HERE/mint-poster-token.sh"); then
     if [ "$SWEEP_PHASE" = "teardown" ]; then
-      echo "::error title=Teardown sweep could not hold the helper seat::could not mint a helper token although HELPER_EMAIL/_PASSWORD were passed; hired+funded leftovers cannot be settled forward (Q52: an unwind that did not run is not green)"
+      echo "::error title=Teardown sweep could not hold the helper seat::could not mint a helper token although HELPER_EMAIL was passed; hired+funded leftovers cannot be settled forward (Q52: an unwind that did not run is not green)"
       exit 1
     fi
     echo "::warning title=Sweep holds only the poster seat::could not mint a helper token; hired+funded leftovers are deferred, not settled forward (the teardown sweep fails on this)"
     HTOKEN=""
   fi
 else
-  echo "::warning title=Sweep holds only the poster seat::HELPER_EMAIL/_PASSWORD were not passed to this step; hired+funded leftovers are deferred, not settled forward"
+  echo "::warning title=Sweep holds only the poster seat::HELPER_EMAIL was not passed to this step; hired+funded leftovers are deferred, not settled forward"
 fi
 
 HELPER_ACCESS_TOKEN="$HTOKEN" SWEEP_PHASE="$SWEEP_PHASE" exec node "$HERE/prod-lifecycle-sweeper.mjs" "$@"

@@ -273,6 +273,10 @@ describe("backend request budgets (Q104)", () => {
     expect(classify("http://127.0.0.1:4173/assets/app.js")).toBeNull();
     expect(isSignIn("https://abc.supabase.co/auth/v1/token?grant_type=password", "POST")).toBe(true);
     expect(isSignIn("https://abc.supabase.co/auth/v1/token?grant_type=refresh_token", "POST")).toBe(false);
+    // The harness's service-role mint (Q1314) signs in at /verify; generate_link is not the sign-in.
+    expect(isSignIn("https://abc.supabase.co/auth/v1/verify", "POST")).toBe(true);
+    expect(isSignIn("https://abc.supabase.co/auth/v1/admin/generate_link", "POST")).toBe(false);
+    expect(isSignIn("https://abc.supabase.co/auth/v1/verify?token=x&type=recovery", "GET")).toBe(false);
     const m = new RequestMeter("t");
     const seen = new Map<string, number>();
     m.record("https://abc.supabase.co/rest/v1/jobs?a=1", "GET", 1000, seen);

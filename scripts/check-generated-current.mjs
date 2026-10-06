@@ -266,6 +266,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/land-queue.mjs": "the land queue's decision lines to $GITHUB_STEP_SUMMARY in land-queue.yml (a CI job summary, never a repo file)",
   "scripts/prune-stale-branches.mjs": "Q915: UNLANDED-branch table to $GITHUB_STEP_SUMMARY in branch-prune.yml (a CI job summary, never a repo file)",
   "scripts/stranded-work.mjs": "Q1146: --report JSON to ~/.lh-hygiene/stranded.json (outside the repo; written by .claude/hooks/git-hygiene.sh, read by session-start.sh), never a repo file",
   "scripts/lib/openItemMerge.mjs": "land.sh only: resolves a docs/OPEN.md rebase conflict item by item, mid-rebase; the result is the replayed commit's own content, and the refresh that follows regenerates every generated block in it",

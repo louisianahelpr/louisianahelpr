@@ -1,0 +1,56 @@
+name: Land queue
+
+# Our own merge queue (owner, 2026-10-05). GitHub's merge queue needs an
+# organization-owned repository; this one belongs to a personal account. PRs
+# join by the `land-queue` label (scripts/land.sh adds it); only the head of the
+# queue is brought up to date with main, so one merge re-runs one PR's checks,
+# and a head whose required check fails is dropped so the next one moves up.
+# Logic and its reasons: scripts/land-queue.mjs. Guard: src/test/landQueue.test.ts.
+
+on:
+  # Main moved: the head of the queue is now behind.
+  push:
+    branches: [main]
+  # A required check finished on some PR: the four that come from a workflow
+  # in this repo...
+  workflow_run:
+    workflows: ["Vitest", "Test", "E2E happy-path smoke", "Mobile viewport spot-check"]
+    types: [completed]
+  # ...and CodeQL, which is GitHub's default setup (no workflow file here); its
+  # check runs come from the github-advanced-security app (the job filters).
+  check_run:
+    types: [completed]
+  # A PR joined the queue, and every 10 minutes while land.sh waits on one:
+  # land.sh dispatches this (no pull_request trigger, no schedule).
+  workflow_dispatch:
+
+# One queue step at a time; a burst of events collapses into one pending run.
+concurrency:
+  group: land-queue
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: write
+
+jobs:
+  advance:
+    name: Advance the land queue
+    # check_run fires for every check of every app; only CodeQL's matters here.
+    if: github.event_name != 'check_run' || github.event.check_run.app.slug == 'github-advanced-security'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          sparse-checkout: scripts/land-queue.mjs
+          sparse-checkout-cone-mode: false
+      - name: Advance the queue
+        env:
+          # REFRESH_PR_TOKEN: an update pushed with the built-in token starts no
+          # workflows, so the head's checks would never run after its rebase.
+          GH_TOKEN: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node scripts/land-queue.mjs

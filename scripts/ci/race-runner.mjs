@@ -377,7 +377,7 @@ const PAYOUT_LANDS = {
 const CHARGEBACK_BLOCKS = {
   as: "service",
   run: (c, f) =>
-    c.query(`UPDATE public.jobs SET payment_status = 'chargeback' WHERE id = $1 AND payment_status IN ('payout_pending', 'escrow')`, [f.job]),
+    c.query(`UPDATE public.jobs SET payment_status = 'chargeback' WHERE id = $1`, [f.job]),
 };
 /** A second claim that LANDED a row: the double-tap guard failed. */
 const secondLanded = (b) => /committed \(1 row\)/.test(b);

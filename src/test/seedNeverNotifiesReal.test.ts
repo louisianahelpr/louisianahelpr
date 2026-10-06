@@ -240,6 +240,8 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "sql:auto_restrict_repeat_violators#6": "own final warning",
   "sql:apply_message_scan_consequence#1": "own message hidden",
   "sql:admin_reverse_violation#1": "own warning removed",
+  "sql:enforce_retained_payment_ban#1": "operator broadcast to every admin: a ban settlement review opened (Q1324)",
+  "sql:sweep_open_ban_settlement_reviews#1": "operator broadcast to every admin: a ban settlement review still waiting (Q1324)",
 };
 // DIGEST: one row about MANY jobs; the producer must exclude seed jobs for
 // non-seed recipients itself (asserted below).

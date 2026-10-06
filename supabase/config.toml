@@ -56,6 +56,12 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.process-scheduled-payouts]
     verify_jwt = false
+  # Q1221: called by the 10-minute payout-freeze-sync sweep with the vault
+  # service key (sb_secret_*, not a JWT, so the gateway would refuse it) and by
+  # the admin payout queue with an admin JWT. The handler authenticates both
+  # itself: the service key / CRON_SECRET, or a JWT whose user has_role admin.
+  [functions.payout-hold-stripe-sync]
+    verify_jwt = false
   # release-payout was the ONE payout function still behind the JWT gateway,
   # and the consequence was that its documented CRON_SECRET door did not exist.
   # Proven against prod 2026-09-07: a POST with a non-JWT bearer never reaches

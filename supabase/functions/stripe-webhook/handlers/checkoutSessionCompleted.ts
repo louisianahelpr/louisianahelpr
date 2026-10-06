@@ -23,8 +23,19 @@ import {
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
+import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 
 export async function handleCheckoutSessionCompleted(
+  event: Stripe.Event,
+  ctx: WebhookContext,
+): Promise<void> {
+  await settleCheckoutSession(event, ctx);
+  // Q1324: the card that paid is checked against banned people's cards, AFTER
+  // the payment is recorded (it never throws; a check that cannot run pages).
+  await checkCheckoutCardFingerprint(event, ctx);
+}
+
+async function settleCheckoutSession(
   event: Stripe.Event,
   { stripe, supabase, logStep }: WebhookContext,
 ): Promise<void> {

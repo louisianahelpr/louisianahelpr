@@ -57,6 +57,7 @@ export const NOT_MATCHED = {
   "payment_refunds.stripe_payment_intent_id": "the PaymentIntent a refund came from, not a record of that PaymentIntent",
   "payout_transfers.stripe_account_id": "the destination connected account, not a money movement",
   "chargeback_clawbacks.stripe_account_id": "the connected account, not a money movement",
+  "payout_schedule_freezes.stripe_account_id": "the held Helpr's connected account whose payout schedule a hold froze (Q1221), not a money movement",
   "tip_hold_redrives.reversal_id": "a transfer reversal of a held tip (Q1222); NOT listed by the script (reversals live under each transfer), the same manual runbook step as chargeback_clawbacks.stripe_reversal_id",
   "chargeback_clawbacks.stripe_reversal_id": "a transfer reversal; NOT listed by the script (reversals live under each transfer) — runbook §5.1 has it as a manual step with Stripe disputes",
   "instant_payouts.stripe_payout_id": "a payout ON a connected account; listing it needs a Stripe-Account header per helper — manual step in the runbook",

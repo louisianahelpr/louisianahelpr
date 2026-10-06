@@ -34,9 +34,9 @@
  * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
- * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     AND p_job.customer_id IS NOT NULL\n |
- * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |     AND p_job.parent_job_id IS NULL\n |
- * @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier), | OR true),
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |     AND p_job.customer_id IS NOT NULL\n |
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |     AND p_job.parent_job_id IS NULL\n |
+ * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1411 | OR true)\n    -- Q1411
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20260926193006_q392_instant_job_matches_wait_for_early_access.sql |              AND public.early_access_visible_at(q.user_id, j.created_at) > now()); | );
  * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
@@ -101,6 +101,9 @@ const PIECES: Record<string, RegExp> = {
   offer: /offered_to_helper_id IS (?:NOT )?NULL[^;]{0,160}'declined', 'expired'/,
   fixture: /is_seed[^;]{0,60}seed_jobs_hidden_publicly\(\)/,
   credential: /credential_tier[^;]{0,200}get_user_credential_tier\(/,
+  // Q1411 (owner 2026-10-05): not while the poster is under an open ban
+  // settlement review.
+  review: /ban_settlement_queue q WHERE q\.user_id = [a-z_.]*customer_id AND q\.review_state = 'open'/,
 };
 const GATE_CALL = /public\.job_announceable_to\(/;
 /** The clock: early_access_visible_at() compared with now(), either way round. */
@@ -196,7 +199,7 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     expect(all).not.toMatch(/GRANT [^;]*public\.job_announceable_to\b[^;]*\b(?:anon|authenticated)\b/i);
   });
 
-  it("open_jobs_browse's WHERE is exactly the eight conjuncts the gate mirrors", () => {
+  it("open_jobs_browse's WHERE is exactly the nine conjuncts the gate mirrors", () => {
     const view = migrations.filter((m) => /CREATE (?:OR REPLACE )?VIEW public\.open_jobs_browse\b/.test(m.sql)).pop();
     expect(view, "no migration creates open_jobs_browse").toBeTruthy();
     const def = ws(view!.sql.slice(view!.sql.search(/CREATE (?:OR REPLACE )?VIEW public\.open_jobs_browse\b/)));
@@ -227,6 +230,7 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
       ["clock", /created_at <= early_access_cutoff\(\)/],
       ["fixture", /NOT is_seed OR NOT seed_jobs_hidden_publicly\(\)/],
       ["credential", /COALESCE\(credential_tier, 0\) = 0 OR .*my_credential_tier\(\)/],
+      ["review", /^\(NOT \(EXISTS \( SELECT 1 FROM ban_settlement_queue q WHERE q\.user_id = jobs\.customer_id AND q\.review_state = 'open'::text\)\)\)/],
     ];
     const unmatched = parts.filter((p) => !MIRRORED.some(([, re]) => re.test(p)));
     expect(unmatched, "open_jobs_browse gained a gate: add it to job_announceable_to and PIECES").toEqual([]);

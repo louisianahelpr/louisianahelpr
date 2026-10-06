@@ -86,6 +86,7 @@ const EXEMPT: Record<string, string> = {
   "admin-update-email": "admin only: requires the admin role (getClaims)",
   "execute-dispute-split": "admin only: requires the admin role",
   "release-payout": "admin only on the user path: requires the admin role",
+  "payout-hold-stripe-sync": "admin only on the user path: requires the admin role (Q1221)",
   "send-account-status-email": "admin only on the user path: requires the admin role",
   "send-marketing-blast": "admin only: requires the admin role",
   "health-check": "admin only on the user path (getClaims + has_role admin, else 403); read-only probe",

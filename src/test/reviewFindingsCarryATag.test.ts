@@ -34,14 +34,31 @@ const LAST_UNTAGGED = 1373;
 
 const ITEMS = OPEN.filter((l) => /^- \[[ x~]\] \*\*Q\d+/.test(l));
 const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
-function untaggedNew(): string[] {
+/**
+ * Items that say "review" but were NOT filed from a review (an owner decision
+ * about the ban settlement REVIEW feature, say). Exact both ways: an entry
+ * must still be an untagged review-worded item, or it is removed.
+ */
+// @two-way src/test/reviewFindingsCarryATag.test.ts:NOT_FROM_A_REVIEW is exact: every entry is still untagged and review-worded
+const NOT_FROM_A_REVIEW: Record<string, string> = {
+  Q1411: "owner decision 2026-10-05 (pop-up) on the ban settlement review feature: hide posts during review",
+};
+function untaggedNewAll(): string[] {
   return ITEMS.filter((l) => num(l) > LAST_UNTAGGED && REVIEW.test(l) && !TAGGED.test(l)).map((l) => `Q${num(l)}`);
+}
+function untaggedNew(): string[] {
+  return untaggedNewAll().filter((q) => !(q in NOT_FROM_A_REVIEW));
 }
 
 describe("review findings carry one stable tag, so a finding cannot be filed twice", () => {
   it("every review item filed after the rule carries a finding tag", () => {
     expect(ITEMS.length).toBeGreaterThan(200);
     expect(untaggedNew(), "file review findings with `finding: <reviewer>@<sha>#<n>`").toEqual([]);
+  });
+
+  it("NOT_FROM_A_REVIEW is exact: every entry is still untagged and review-worded", () => {
+    const all = untaggedNewAll();
+    expect(Object.keys(NOT_FROM_A_REVIEW).filter((q) => !all.includes(q))).toEqual([]);
   });
   it("two numbers with one finding tag share one origin key", () => {
     const a = "- [ ] **Q1 LOW A thing (x) finding: lh-money-escrow@abc1234#3**";

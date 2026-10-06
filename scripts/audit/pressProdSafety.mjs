@@ -751,6 +751,7 @@ export const STRIPE_WRITE_FUNCTIONS = new Set([
   "instant-payout",
   "pay-onboarding-fee",
   "pro-customer-portal",
+  "payout-hold-stripe-sync", // Q1221: accounts.update payout schedule (manual while held, restored after)
   "process-scheduled-payouts",
   "release-payout",
   "stripe-connect",

@@ -8,6 +8,7 @@ import { stripeIdentityVerified } from "../_shared/stripeIdentity.ts";
 import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { enforceConnectAccountFingerprints } from "../_shared/paymentFingerprint.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
 const STALE_CLEAR_HOURLY_CAP = 5;
@@ -541,6 +542,48 @@ serve(async (req) => {
       const account = await stripe.accounts.retrieve(profile.stripe_account_id);
       const transfersCapability = account.capabilities?.transfers;
 
+      // Q1324: the payout bank accounts (and payout debit cards) on this
+      // Connect account are checked against banned people's (owner rule,
+      // 2026-10-05: a match AUTO-BANS). `status` is the check point because it
+      // is the one writer that sees a Helpr become payable (Q876: prod's
+      // endpoint receives no Connect events). The refusal names nothing: a
+      // helpful message would turn this into a lookup of whose bank is banned.
+      const fpCheck = await enforceConnectAccountFingerprints(stripe, supabaseAdmin, user.id, account);
+      if (fpCheck.kind === "banned") {
+        await postSlackOpsAlert({
+          kind: "fraud_flag",
+          severity: "warning",
+          title: "Ban evasion: a banned person's payout account was attached",
+          message: fpCheck.already_banned
+            ? "The account was already banned; its ban was left as it was. The fraud console has the details."
+            : "The account was banned automatically (owner rule Q1324). The fraud console has the details.",
+          fields: { user_id: user.id, account_id: account.id, matched_on: fpCheck.matched_on },
+        });
+        return new Response(JSON.stringify({ error: "This payout account can't be used. Please contact support." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403,
+        });
+      }
+      if (fpCheck.kind === "not_deployed") {
+        console.warn(`[stripe-connect] Q1324 payout-account check not deployed yet: ${fpCheck.message}`);
+      }
+      // A check that could not run is never read as "clear": it pages, and the
+      // cached payout gate is not moved INTO enabled on this call (below). A
+      // Helpr who is already payable stays payable; nobody new becomes payable
+      // unchecked.
+      const fpCheckFailed = fpCheck.kind === "failed";
+      if (fpCheck.kind === "failed") {
+        console.error(`[stripe-connect] Q1324 payout-account check did not run for ${user.id}: ${fpCheck.message}`);
+        await postSlackOpsAlert({
+          kind: "security",
+          severity: "critical",
+          title: "Ban-evasion payout-account check did not run",
+          message: "A Helpr's payout bank account was NOT checked against banned people's. Their payout gate was not opened on this read.",
+          fields: { user_id: user.id, account_id: account.id, reason: fpCheck.message },
+          oncePerDayKey: "stripe-connect-q1324-check-failed",
+        });
+      }
+
       // Re-sync the cached gate columns from this live read.
       //
       // The acceptance gate (migration 20260827191647) is enforced in Postgres
@@ -581,7 +624,9 @@ serve(async (req) => {
       const nowCharges = account.charges_enabled === true;
       const nowPayouts = account.payouts_enabled === true;
       const wasEnabled = profile.stripe_charges_enabled === true && profile.stripe_payouts_enabled === true;
-      const { data: cacheRows, error: cacheErr } = await supabaseAdmin
+      const { data: cacheRows, error: cacheErr } = fpCheckFailed && !wasEnabled
+        ? { data: [] as Array<{ id: string }>, error: null }
+        : await supabaseAdmin
         .from("profiles")
         .update({
           stripe_charges_enabled: nowCharges,

@@ -87,6 +87,8 @@ export interface StripeMock {
     /** stripe-connect `reset` deletes the old account, then `getOrCreateAccount` creates one (Q861). */
     del: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    /** Q1221: payout-hold-stripe-sync sets / restores settings.payouts.schedule. */
+    update: ReturnType<typeof vi.fn>;
   };
   /** stripe-connect onboarding link after connect / reset (Q861). */
   accountLinks: { create: ReturnType<typeof vi.fn> };
@@ -182,6 +184,7 @@ export const stripeMock: StripeMock = {
     deleteExternalAccount: vi.fn(),
     del: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
   },
   accountLinks: {
     create: vi.fn(),

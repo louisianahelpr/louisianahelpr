@@ -168,6 +168,8 @@ const EXEMPT: Record<string, string> = {
   "instant-payout/index.ts::stripe.accounts.retrieve()": PLATFORM,
   "instant-payout/index.ts::stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })": ACCOUNT,
   "process-scheduled-payouts/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": REREAD,
+  // Q1221: the held Helpr's Connect account, read for its payout schedule.
+  "payout-hold-stripe-sync/index.ts::stripe.accounts.retrieve(accountId)": ACCOUNT,
   "release-payout/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)": ACCOUNT,
   "stripe-connect/index.ts::stripe.accounts.retrieve(accountId)": ACCOUNT,
   "stripe-connect/index.ts::stripe.accounts.retrieve(created.id)": FRESH,
@@ -183,6 +185,9 @@ const EXEMPT: Record<string, string> = {
   // PaymentIntent is the event session's, the transfer that charge's.
   "_shared/heldTipRepay.ts::stripe.paymentIntents.retrieve(args.paymentIntentId)": EVENT,
   "_shared/heldTipRepay.ts::stripe.transfers.retrieve(transferId)": EVENT,
+  // Q1324: the card that paid this event's own session.
+  "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.paymentIntents.retrieve(session.payment_intent)": EVENT,
+  "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.subscriptions.retrieve(session.subscription)": EVENT,
   "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(account.id)": EVENT,
   "stripe-webhook/handlers/accountUpdated.ts::stripe.accounts.retrieve(accountId)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(chargeId)": EVENT,

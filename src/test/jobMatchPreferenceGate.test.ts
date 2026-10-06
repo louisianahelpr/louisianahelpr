@@ -192,4 +192,4 @@ describe("job_match respects the user's Job Matches preference", () => {
 // and deferred, V-008): every saved-search `job_match` row and its push fire
 // again for accounts that turned the category OFF, including alerts that were
 // waiting in saved_search_alert_queue when they turned it off.
-// @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql |      AND COALESCE(np.job_matches, true) IS TRUE; |      AND true;
+// @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |      AND COALESCE(np.job_matches, true) IS TRUE; |      AND true;

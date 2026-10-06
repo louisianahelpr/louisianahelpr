@@ -11,6 +11,7 @@ import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTi
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -340,7 +341,21 @@ serve(async (req) => {
     let released = 0;
     const results: any[] = [];
 
+    // ── Q1324: ban settlement reviews freeze money ─────────────────────────
+    // A job whose poster or Helpr is under an OPEN review is not completed or
+    // paid until an admin confirms or lifts the ban (owner, 2026-10-05). One
+    // read; if it fails, nothing is released this run (fail closed).
+    const banReview = await loadBanReviewUsers(supabaseAdmin);
+    if (!banReview.ok) {
+      console.error("[auto-release-payment] ban review read failed; nothing released this run:", banReview.message);
+      defects.record(`ban review read: ${banReview.message}`);
+    }
+
     for (const job of (jobs || [])) {
+      if (!banReview.ok || frozenByBanReview(banReview, job)) {
+        results.push({ job_id: job.id, status: "ban_review", skipped: true });
+        continue;
+      }
       // ── Step 0: Gift card detection ──
       // A gift-card-funded job has NO Stripe charge — it was funded from the
       // platform's prepaid balance when a redeemed gift_card was applied.
@@ -554,7 +569,7 @@ serve(async (req) => {
       // onboarding".
       let dueQuery2 = supabaseAdmin
         .from("jobs")
-        .select("id, title, helper_id, budget, urgent_fee, is_group_job, helpers_needed, payout_scheduled_at, is_seed")
+        .select("id, title, helper_id, customer_id, budget, urgent_fee, is_group_job, helpers_needed, payout_scheduled_at, is_seed")
         .eq("status", "completed")
         .eq("payment_status", "payout_pending")
         .lte("payout_scheduled_at", new Date().toISOString())
@@ -678,6 +693,11 @@ serve(async (req) => {
       for (const job of holdLookup.ok ? dueJobs ?? [] : []) {
         if (holdLookup.ok && job.helper_id && holdLookup.holds.has(job.helper_id)) {
           payoutResults.push({ job_id: job.id, status: PAYOUT_HELD_CODE, detail: "Helpr is on a payout hold; not attempted" });
+          continue;
+        }
+        // Q1324: the poster (or Helpr) is under an open ban settlement review.
+        if (!banReview.ok || frozenByBanReview(banReview, job)) {
+          payoutResults.push({ job_id: job.id, status: "ban_review", detail: "an account on this job is under a ban settlement review; not attempted" });
           continue;
         }
         // ── Give up rather than page 48 times a day about the same job ──────

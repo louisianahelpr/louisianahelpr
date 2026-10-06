@@ -64,21 +64,48 @@ export function usePayoutHolds(adminId: string | undefined) {
     }
   };
 
+  // ── Q1221: the hold also freezes the Helpr's Stripe AUTOMATIC payouts ──
+  // The hold RPCs queue the change in public.payout_schedule_freezes (a
+  // trigger); payout-hold-stripe-sync tells Stripe. Called here right after
+  // the write so the admin learns at once whether Stripe took it. If this call
+  // never happens or fails, the 10-minute payout-freeze-sync sweep retries and
+  // pages ops; a failure also leaves a note on the Helpr's admin page. So a
+  // failure here is a warning to the admin, never a reason to undo the hold.
+  const syncStripeFreeze = async (helperId: string, releasing: boolean) => {
+    let ok = false;
+    try {
+      const { data, error } = await supabase.functions.invoke("payout-hold-stripe-sync", { body: { helper_id: helperId } });
+      ok = !error && (data as { ok?: unknown } | null)?.ok === true;
+      if (!ok) report(error ?? new Error("payout-hold-stripe-sync did not confirm"), { tags: { source: "AdminPayoutBatches.syncStripeFreeze" } });
+    } catch (err: unknown) {
+      report(err, { tags: { source: "AdminPayoutBatches.syncStripeFreeze" } });
+    }
+    if (!ok) {
+      toast.error(
+        releasing
+          ? "Hold released, but Stripe automatic payouts could not be switched back on yet. It retries every 10 minutes and ops has been alerted."
+          : "Hold saved, but Stripe automatic payouts could not be paused yet. It retries every 10 minutes and ops has been alerted.",
+      );
+    }
+  };
+
   const addHold = async (helperId: string, reason: string) => {
     const ok = await runHoldWrite("addHold", async () => {
       const row = unwrap(await supabase.rpc("admin_set_payout_hold", { p_helper_id: helperId, p_reason: reason }));
       return !!row && row.helper_id === helperId;
     }, (err) => rpcErrorMessage("admin_set_payout_hold", err));
+    if (ok) await syncStripeFreeze(helperId, false);
     return ok;
   };
   const releaseHold = async (helperId: string) => {
     // The RPC answers false when there was no hold to clear (another admin
     // released it first). The end state is the one asked for, so that is not
     // an error; a thrown error is.
-    await runHoldWrite("releaseHold", async () => {
+    const ok = await runHoldWrite("releaseHold", async () => {
       unwrap(await supabase.rpc("admin_release_payout_hold", { p_helper_id: helperId }));
       return true;
     }, (err) => rpcErrorMessage("admin_release_payout_hold", err));
+    if (ok) await syncStripeFreeze(helperId, true);
   };
   const denyHold = async (helperId: string, reason: string) => {
     // A denial is recorded ON the hold and keeps blocking every payout path.

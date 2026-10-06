@@ -174,6 +174,8 @@ rpc_exempt(fn, why) AS (
   ('admin_set_payout_hold', 'admin-only (body checks has_role admin; Q764)'),
   ('admin_release_payout_hold', 'admin-only (body checks has_role admin; Q764)'),
   ('admin_deny_payout_hold', 'admin-only (body checks has_role admin; Q764)'),
+  ('admin_confirm_ban_settlement', 'admin-only (body checks has_role admin; Q1324)'),
+  ('admin_resolve_ban_evasion_match', 'admin-only (body checks has_role admin; Q1324)'),
   ('admin_reverse_violation', 'admin-only (body checks has_role admin)'),
   ('resolve_stalled_job_flag', 'admin-only (body checks has_role admin)'),
   ('review_credential', 'admin-only (body checks has_role admin)'),

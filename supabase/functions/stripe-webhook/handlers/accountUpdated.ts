@@ -3,6 +3,8 @@ import type { WebhookContext } from "../context.ts";
 import { stripeIdentityVerified } from "../../_shared/stripeIdentity.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { isUnusableConnectAccountError } from "../../_shared/stripeAccountUsable.ts";
+import { enforceConnectAccountFingerprints } from "../../_shared/paymentFingerprint.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 const NEEDS_ATTENTION_TITLE = "Payout account needs attention";
 
@@ -86,6 +88,36 @@ export async function handleAccountUpdated(
     throw new Error(`Could not retrieve Connect account ${accountId}: ${reason}`);
   }
   logStep("Connect account updated", { accountId: account.id, chargesEnabled: account.charges_enabled, payoutsEnabled: account.payouts_enabled });
+
+  // Q1324: the payout bank accounts (and payout debit cards) on this account
+  // are checked against banned people's, BEFORE anything below can open the
+  // payout gate. A match bans the account (owner rule, 2026-10-05) and nothing
+  // is cached for it; a check that could not run throws, so the webhook
+  // answers 500 and Stripe redelivers (nothing has been written yet).
+  const fpCheck = await enforceConnectAccountFingerprints(stripe, supabase, helperProfile.user_id, account);
+  if (fpCheck.kind === "failed") {
+    throw new Error(`Q1324 payout-account check did not run for ${helperProfile.user_id}: ${fpCheck.message}`);
+  }
+  if (fpCheck.kind === "not_deployed") {
+    logStep("Q1324 payout-account check not deployed yet", { accountId: account.id, message: fpCheck.message });
+  }
+  if (fpCheck.kind === "banned") {
+    logStep("Q1324 payout account matched a retained ban; nothing cached", {
+      userId: helperProfile.user_id,
+      accountId: account.id,
+      matchedOn: fpCheck.matched_on,
+    });
+    await postSlackOpsAlert({
+      kind: "fraud_flag",
+      severity: "warning",
+      title: "Ban evasion: a banned person's payout account was attached",
+      message: fpCheck.already_banned
+        ? "The account was already banned; its ban was left as it was. The fraud console has the details."
+        : "The account was banned automatically (owner rule Q1324). The fraud console has the details.",
+      fields: { user_id: helperProfile.user_id, account_id: account.id, matched_on: fpCheck.matched_on },
+    });
+    return;
+  }
 
   // Cache Stripe's verdict so the profile badge — and, since the award gate
   // (migration 20260827191647), the ability to be hired at all — can be

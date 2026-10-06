@@ -35,7 +35,7 @@ import { resolve } from "node:path";
  * and `/mask_job_location\s*\(/` matched the dead comment. Every migration is
  * now read comment-BLANKED, and the inventories are floored.
  */
-// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql | j.category::text,\n         public.mask_job_location(j.location) AS location, | j.category::text,\n         j.location AS location, -- public.mask_job_location(j.location)
+// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | j.category::text,\n         public.mask_job_location(j.location) AS location, | j.category::text,\n         j.location AS location, -- public.mask_job_location(j.location)
 
 const migrationsDir = resolve(__dirname, "../../supabase/migrations");
 

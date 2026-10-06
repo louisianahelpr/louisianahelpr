@@ -20,6 +20,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { TestTag } from "@/components/admin/TestTag";
+import { AdminBanEvasionReview } from "@/components/admin/AdminBanEvasionReview";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
 import {
   Dialog,
@@ -75,6 +76,8 @@ const FLAG_TYPES = [
   // that carries the detail: the person is told nothing but "this account
   // can't be created", deliberately, so the refusal is not a lookup oracle.
   { value: "ban_evasion_attempt", label: "Ban Evasion Attempt" },
+  // Q1324 name matches are NOT fraud flags (fraud_flags are exported to the
+  // person): they are listed by AdminBanEvasionReview from ban_evasion_matches.
 ];
 
 const AdminFraudDashboard = () => {
@@ -184,6 +187,9 @@ const AdminFraudDashboard = () => {
 
   return (
     <AdminViewShell>
+      {/* Q1324: the accounts banned on a card / bank match whose jobs wait for
+          a decision, and the name matches to doubt-check. */}
+      <AdminBanEvasionReview />
       {/* One card: the controls that scope the list sit in its header, the
           list is its body. Previously the type Select + Show-Resolved button
           floated right-aligned on a bare row of their own, so on a phone a

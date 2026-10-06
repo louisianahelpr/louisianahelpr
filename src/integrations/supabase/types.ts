@@ -219,6 +219,93 @@ export type Database = {
           },
         ]
       }
+      ban_evasion_matches: {
+        Row: {
+          auto_banned: boolean
+          cleared_at: string | null
+          created_at: string
+          id: string
+          match_sha256: string | null
+          matched_on: string
+          original_ban_status: string | null
+          original_expires_at: string | null
+          original_reason: string | null
+          original_recorded_at: string | null
+          resolved: boolean
+          retained_ban_id: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_banned?: boolean
+          cleared_at?: string | null
+          created_at?: string
+          id?: string
+          match_sha256?: string | null
+          matched_on: string
+          original_ban_status?: string | null
+          original_expires_at?: string | null
+          original_reason?: string | null
+          original_recorded_at?: string | null
+          resolved?: boolean
+          retained_ban_id?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_banned?: boolean
+          cleared_at?: string | null
+          created_at?: string
+          id?: string
+          match_sha256?: string | null
+          matched_on?: string
+          original_ban_status?: string | null
+          original_expires_at?: string | null
+          original_reason?: string | null
+          original_recorded_at?: string | null
+          resolved?: boolean
+          retained_ban_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ban_settlement_queue: {
+        Row: {
+          alerted_at: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          matched_on: string
+          original_ban_status: string | null
+          original_expires_at: string | null
+          review_state: string
+          user_id: string
+        }
+        Insert: {
+          alerted_at?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          matched_on: string
+          original_ban_status?: string | null
+          original_expires_at?: string | null
+          review_state?: string
+          user_id: string
+        }
+        Update: {
+          alerted_at?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          matched_on?: string
+          original_ban_status?: string | null
+          original_expires_at?: string | null
+          review_state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cancellation_fee_transfers: {
         Row: {
           commission_percent: number
@@ -3501,6 +3588,30 @@ export type Database = {
           },
         ]
       }
+      payment_fingerprints: {
+        Row: {
+          fingerprint_kind: string
+          fingerprint_sha256: string
+          first_seen_at: string
+          last_seen_at: string
+          user_id: string
+        }
+        Insert: {
+          fingerprint_kind: string
+          fingerprint_sha256: string
+          first_seen_at?: string
+          last_seen_at?: string
+          user_id: string
+        }
+        Update: {
+          fingerprint_kind?: string
+          fingerprint_sha256?: string
+          first_seen_at?: string
+          last_seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_refunds: {
         Row: {
           amount_cents: number
@@ -3598,6 +3709,48 @@ export type Database = {
           held_by?: string | null
           helper_id?: string
           reason?: string
+        }
+        Relationships: []
+      }
+      payout_schedule_freezes: {
+        Row: {
+          alerted_at: string | null
+          attempts: number
+          freeze_error: string | null
+          freeze_state: string
+          helper_id: string
+          prior_schedule: Json | null
+          requested_at: string
+          requested_by: string | null
+          stripe_account_id: string | null
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          alerted_at?: string | null
+          attempts?: number
+          freeze_error?: string | null
+          freeze_state: string
+          helper_id: string
+          prior_schedule?: Json | null
+          requested_at?: string
+          requested_by?: string | null
+          stripe_account_id?: string | null
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          alerted_at?: string | null
+          attempts?: number
+          freeze_error?: string | null
+          freeze_state?: string
+          helper_id?: string
+          prior_schedule?: Json | null
+          requested_at?: string
+          requested_by?: string | null
+          stripe_account_id?: string | null
+          updated_at?: string
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -4518,10 +4671,13 @@ export type Database = {
         Row: {
           ban_status: string
           ban_type: string | null
+          bank_sha256: string[]
+          card_sha256: string[]
           email_sha256: string
           expires_at: string | null
           id: string
           identity_sha256: string | null
+          name_sha256: string | null
           phone_sha256: string | null
           reapplied_at: string | null
           reason: string
@@ -4531,10 +4687,13 @@ export type Database = {
         Insert: {
           ban_status: string
           ban_type?: string | null
+          bank_sha256?: string[]
+          card_sha256?: string[]
           email_sha256: string
           expires_at?: string | null
           id?: string
           identity_sha256?: string | null
+          name_sha256?: string | null
           phone_sha256?: string | null
           reapplied_at?: string | null
           reason: string
@@ -4544,10 +4703,13 @@ export type Database = {
         Update: {
           ban_status?: string
           ban_type?: string | null
+          bank_sha256?: string[]
+          card_sha256?: string[]
           email_sha256?: string
           expires_at?: string | null
           id?: string
           identity_sha256?: string | null
+          name_sha256?: string | null
           phone_sha256?: string | null
           reapplied_at?: string | null
           reason?: string
@@ -6031,6 +6193,11 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_ban_settlement_reviews: { Args: never; Returns: Json }
+      admin_confirm_ban_settlement: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       admin_delete_review: {
         Args: { _reason: string; _review_id: string }
         Returns: undefined
@@ -6084,6 +6251,10 @@ export type Database = {
       }
       admin_release_payout_hold: {
         Args: { p_helper_id: string }
+        Returns: boolean
+      }
+      admin_resolve_ban_evasion_match: {
+        Args: { p_match_id: string }
         Returns: boolean
       }
       admin_reverse_violation: {
@@ -6428,6 +6599,14 @@ export type Database = {
           p_email?: string
           p_identity_sha256?: string
           p_phone?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      enforce_retained_payment_ban: {
+        Args: {
+          p_kind: string
+          p_stripe_fingerprint: string
           p_user_id: string
         }
         Returns: Json
@@ -7215,6 +7394,14 @@ export type Database = {
         Returns: boolean
       }
       jobs_private_select_columns: { Args: never; Returns: string[] }
+      kick_payout_schedule_sync: {
+        Args: { p_helper_id: string }
+        Returns: boolean
+      }
+      lift_ban_settlement_review: {
+        Args: { p_admin_id: string; p_ban_status?: string; p_user_id: string }
+        Returns: Json
+      }
       log_cron_defect: {
         Args: { p_context?: Json; p_err: string; p_fn: string; p_ref: string }
         Returns: undefined
@@ -7287,6 +7474,7 @@ export type Database = {
         Returns: number
       }
       my_credential_tier: { Args: never; Returns: number }
+      normalize_name_for_ban: { Args: { p_name: string }; Returns: string }
       normalize_phone_for_ban: { Args: { p_phone: string }; Returns: string }
       notification_crosses_seed_boundary: {
         Args: {
@@ -7695,6 +7883,8 @@ export type Database = {
       sweep_old_email_send_log: { Args: never; Returns: number }
       sweep_old_error_logs: { Args: never; Returns: number }
       sweep_old_notifications: { Args: never; Returns: number }
+      sweep_open_ban_settlement_reviews: { Args: never; Returns: Json }
+      sweep_payout_schedule_freezes: { Args: never; Returns: Json }
       sweep_release_last_chance: { Args: never; Returns: Json }
       sweep_saved_search_alert_queue: { Args: never; Returns: number }
       sweep_silent_cron_failures: { Args: never; Returns: Json }

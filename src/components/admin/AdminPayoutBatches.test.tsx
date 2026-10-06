@@ -184,6 +184,67 @@ describe("AdminPayoutBatches — server-side payout holds (Q764)", () => {
     expect(window.localStorage.getItem("helpr.admin_payout_holds.v1")).toBeNull();
   });
 
+  /**
+   * Q1221: the hold also freezes the Helpr's Stripe automatic payouts. The
+   * screen asks payout-hold-stripe-sync right after the hold write and tells
+   * the admin plainly when Stripe did not take it (the sweep retries; ops is
+   * paged).
+   *
+   * @mutate src/components/admin/adminPayoutBatches/usePayoutHolds.ts | if (ok) await syncStripeFreeze(helperId, false); |
+   * @mutate src/components/admin/adminPayoutBatches/usePayoutHolds.ts | if (ok) await syncStripeFreeze(helperId, true); |
+   * @mutate src/components/admin/adminPayoutBatches/usePayoutHolds.ts | ok = !error && (data as { ok?: unknown } \| null)?.ok === true; | ok = !error;
+   */
+  it("placing a hold asks Stripe to pause the Helpr's automatic payouts", async () => {
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_payout_batches"
+        ? { data: [batch], error: null }
+        : fn === "admin_set_payout_hold"
+          ? { data: { helper_id: HELPER_ID, reason: "check the photos" }, error: null }
+          : { data: [{ job_id: JOB_ID }], error: null },
+    );
+    invokeMock.mockResolvedValue({ data: { ok: true, results: [] }, error: null });
+    renderScreen();
+    fireEvent.click(await screen.findByRole("button", { name: /^Hold$/ }));
+    fireEvent.change(await screen.findByLabelText("Hold reason"), { target: { value: "check the photos" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Hold for Review$/ }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("payout-hold-stripe-sync", { body: { helper_id: HELPER_ID } }),
+    );
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("a pause Stripe did not take is told to the admin, and the hold stays", async () => {
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_payout_batches"
+        ? { data: [batch], error: null }
+        : fn === "admin_set_payout_hold"
+          ? { data: { helper_id: HELPER_ID, reason: "check the photos" }, error: null }
+          : { data: [{ job_id: JOB_ID }], error: null },
+    );
+    invokeMock.mockResolvedValue({ data: { ok: false, results: [{ kind: "failed" }] }, error: null });
+    renderScreen();
+    fireEvent.click(await screen.findByRole("button", { name: /^Hold$/ }));
+    fireEvent.change(await screen.findByLabelText("Hold reason"), { target: { value: "check the photos" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Hold for Review$/ }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/could not be paused/)));
+    expect(rpcMock).not.toHaveBeenCalledWith("admin_release_payout_hold", expect.anything());
+  });
+
+  it("releasing a hold asks Stripe to put the automatic payouts back", async () => {
+    holdsResult = {
+      data: [{ helper_id: HELPER_ID, reason: "fraud review", held_at: "2026-10-03T00:00:00Z", held_by: "admin-2", denied_at: null, denied_reason: null }],
+      error: null,
+    };
+    invokeMock.mockResolvedValue({ data: { ok: true, results: [] }, error: null });
+    renderScreen();
+    fireEvent.click(await screen.findByRole("tab", { name: /Hold for Review/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Release/ }));
+    await waitFor(() => expect(rpcMock).toHaveBeenCalledWith("admin_release_payout_hold", { p_helper_id: HELPER_ID }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("payout-hold-stripe-sync", { body: { helper_id: HELPER_ID } }),
+    );
+  });
+
   it("an unreadable hold list offers nothing for payout", async () => {
     holdsResult = { data: null, error: { message: "permission denied", code: "42501" } };
     renderScreen();

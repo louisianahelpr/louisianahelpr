@@ -24,7 +24,7 @@
  * @mutate supabase/functions/_shared/payoutHold.ts |     if (row && ids.includes(row.helper_id)) holds.set(row.helper_id, row); |     if (row) holds.set(ids[0], row);
  * @mutate supabase/functions/_shared/payoutHold.ts |     if (tableMissing(error)) return { ok: true, holds }; |     if (tableMissing(error)) return { ok: false, message: "missing" };
  * @mutate supabase/functions/cash-out-credits/index.ts |     if (hold.kind === "held") { |     if (false) {
- * @mutate supabase/functions/create-payment/index.ts |       if (tipHold.kind === "held") { |       if (false) {
+ * @mutate supabase/functions/create-payment/index.ts |       if (tipHold.kind === "held" \|\| tipReview === "counterparty") { |       if (tipReview === "counterparty") {
  * @mutate supabase/functions/auto-tip-charge/index.ts |       if (tipHold.kind === "held") { |       if (false) {
  * @mutate supabase/functions/instant-payout/index.ts |     if (hold.kind === "held") { |     if (false) {
  * @mutate supabase/functions/release-payout/index.ts |   if (claim.kind === "error" && isPayoutHeldRefusal(claim.message)) { |   if (false) {

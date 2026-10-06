@@ -397,6 +397,17 @@ export const RPC_ERROR_COPY = {
     not_authorized: "You don't have permission to reverse this.",
     violation_not_found: "That strike no longer exists — it may already have been reversed. Refresh the log.",
   },
+  // AdminBanEvasionReview — Q1324 ban settlement reviews and name matches.
+  admin_ban_settlement_reviews: {
+    admin_only: "Only admins can see ban settlement reviews.",
+  },
+  admin_confirm_ban_settlement: {
+    admin_only: "Only admins can confirm a ban.",
+    no_open_review: "This account has no open review any more. Another admin may have decided it. Refresh the list.",
+  },
+  admin_resolve_ban_evasion_match: {
+    admin_only: "Only admins can mark a name match checked.",
+  },
   // AdminPayoutBatches — the server-side payout hold (Q764).
   admin_set_payout_hold: {
     admin_only: "Only admins can hold payouts.",

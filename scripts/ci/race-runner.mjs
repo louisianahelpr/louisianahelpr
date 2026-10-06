@@ -145,6 +145,11 @@ async function fixture(admin, race) {
     );
     return { poster, helper, job: rows[0].id };
   }
+  // Races 7-9 (Q975, money CAS proofs): a finished escrow job (Helpr Done 26h
+  // ago, poster silent), the state auto-release-payment pays from. Races 8-9
+  // then open a REAL poster dispute through open_dispute_as and backdate its
+  // deadline, the state auto-resolve-disputes pays from.
+  if (race >= 7) return escrowDoneFixture(admin, poster, helper, race >= 8);
   // Races 3-5: a job underway whose completion gates (arrival verified, both
   // photos, 30-minute floor) are all satisfied, so the only thing that can
   // refuse the Helpr's Done is the guard under test.
@@ -167,6 +172,35 @@ async function fixture(admin, race) {
     [poster, helper, race === 5],
   );
   return { poster, helper, job: rows[0].id, hc: rows[0].hc };
+}
+
+/** Q975: a finished escrow job; optionally under an expired poster-filed dispute. */
+async function escrowDoneFixture(admin, poster, helper, disputed) {
+  // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
+  const { rows } = await admin.query(
+    `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
+                              customer_id, helper_id, date_needed, start_time, created_at, payment_status,
+                              helper_confirmed_at, poster_confirmed_at, accepted_at,
+                              helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at,
+                              poster_confirmed_arrival_at,
+                              poster_confirmed_working_at, proof_before_urls, proof_after_urls, helper_completed_at)
+     VALUES ('[CI race] money', 'race-runner.mjs fixture (Q975)', 'cleaning', 100, 'Test Address', 'Orleans',
+             'in_progress', $1, $2, CURRENT_DATE - 2, '00:00', now() - interval '30 days', 'escrow',
+             now() - interval '3 days', now() - interval '3 days', now() - interval '3 days',
+             now() - interval '2 days 4 hours', now() - interval '2 days 3 hours', now() - interval '2 days 3 hours',
+             now() - interval '2 days 2 hours',
+             now() - interval '2 days 2 hours', ARRAY['https://example.invalid/b.jpg'], ARRAY['https://example.invalid/a.jpg'],
+             now() - interval '26 hours')
+     RETURNING id`,
+    [poster, helper],
+  );
+  const job = rows[0].id;
+  if (disputed) {
+    await admin.query("SELECT public.open_dispute_as($1, $2, $3, '{}'::text[])", [job, poster, "race-runner Q975: the work was not finished as agreed"]);
+    await admin.query("UPDATE public.jobs SET dispute_deadline = now() - interval '1 hour' WHERE id = $1", [job]);
+  }
+  const { rows: j } = await admin.query("SELECT dispute_status, disputed_by FROM public.jobs WHERE id = $1", [job]);
+  return { poster, helper, job, disputeStatus: j[0].dispute_status, disputedBy: j[0].disputed_by };
 }
 
 // ── the writes ────────────────────────────────────────────────────────────
@@ -199,6 +233,31 @@ const RELEASE = {
       [f.job],
     ),
 };
+
+/** auto-release-payment's claim, exactly as index.ts writes it (status pinned to the status it read: in_progress). */
+const AUTO_RELEASE = {
+  as: "service",
+  run: (c, f) =>
+    c.query(
+      `UPDATE public.jobs SET status = 'completed', payment_status = 'payout_pending', payout_scheduled_at = now() + interval '24 hours'
+        WHERE id = $1 AND status = 'in_progress' AND payment_status = 'escrow'`,
+      [f.job],
+    ),
+};
+/** auto-resolve-disputes' claim, exactly as index.ts writes it, pinned to the dispute state it read. */
+const AUTO_RESOLVE = {
+  as: "service",
+  run: (c, f) =>
+    c.query(
+      `UPDATE public.jobs SET status = 'completed', payment_status = 'payout_pending',
+              payout_scheduled_at = now() + interval '24 hours', dispute_status = 'auto_resolved',
+              dispute_resolved_at = now(), dispute_reason = '[AUTO-RESOLVED] race-runner'
+        WHERE id = $1 AND status = 'disputed' AND payment_status = 'escrow' AND dispute_deadline <= now()
+          AND dispute_status IS NOT DISTINCT FROM $2 AND disputed_by IS NOT DISTINCT FROM $3`,
+      [f.job, f.disputeStatus, f.disputedBy],
+    ),
+};
+const paidOut = (s) => s.payment_status === "payout_pending" || s.status === "completed";
 
 const RACES = {
   1: {
@@ -245,6 +304,27 @@ const RACES = {
     B: { as: "poster", run: (c, f) => c.query("SELECT public.block_user_and_settle($1, 'race-runner')", [f.helper]) },
     refusal: /^$/, // the block itself must land; it just must not settle a done job
     bad: (s) => s.status === "cancelled" && s.done,
+  },
+  7: {
+    name: "Q975 auto-release vs the poster opening a dispute (dispute holds the lock)",
+    A: { as: "service", run: (c, f) => c.query("SELECT public.open_dispute_as($1, $2, $3, '{}'::text[])", [f.job, f.poster, "race-runner Q975: the work was not finished as agreed"]) },
+    B: AUTO_RELEASE,
+    refusal: /^$/, // the claim must simply match zero rows, never error
+    bad: (s) => s.disputes > 0 && paidOut(s),
+  },
+  8: {
+    name: "Q975 auto-resolve vs the poster escalating (escalation holds the lock)",
+    A: { as: "poster", run: (c, f) => c.query("SELECT public.rpc_escalate_dispute($1)", [f.job]) },
+    B: AUTO_RESOLVE,
+    refusal: /^$/,
+    bad: (s) => s.dispute_status === "escalated" && paidOut(s),
+  },
+  9: {
+    name: "Q975 auto-resolve vs the poster withdrawing (withdrawal holds the lock)",
+    A: { as: "poster", run: (c, f) => c.query("SELECT public.rpc_withdraw_dispute($1)", [f.job]) },
+    B: AUTO_RESOLVE,
+    refusal: /^$/,
+    bad: (s) => s.withdrawn > 0 && (paidOut(s) || s.dispute_status === "auto_resolved"),
   },
   5: {
     name: "helper Done again vs release",
@@ -333,7 +413,10 @@ async function round(admin, race) {
               j.helper_completed_at IS NOT NULL AS done, j.helper_completed_at::text AS hc,
               j.completed_at::text AS completed_at,
               (j.completed_at IS NOT NULL AND j.helper_completed_at > j.completed_at) AS done_after_completion,
-              (SELECT count(*)::int FROM public.applications a WHERE a.job_id = j.id) AS apps
+              (SELECT count(*)::int FROM public.applications a WHERE a.job_id = j.id) AS apps,
+              j.payment_status::text AS payment_status, j.dispute_status::text AS dispute_status,
+              (SELECT count(*)::int FROM public.disputes d WHERE d.job_id = j.id) AS disputes,
+              (SELECT count(*)::int FROM public.disputes d WHERE d.job_id = j.id AND d.status = 'withdrawn') AS withdrawn
          FROM public.jobs j WHERE j.id = $1`,
       [f.job],
     );

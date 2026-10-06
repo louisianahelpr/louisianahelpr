@@ -25,6 +25,17 @@ lives there. Progress is generated into the header above.
 - **D. Launch day:** Q552 (hide seed jobs), Q1289 (App Store links), Q1368 (cold-visit empty state), Q152 (the TestFlight build).
 <!-- /launch-list -->
 
+<!-- launch-waits-on -->
+What each OPEN launch item waits on, ONE line per category (scripts/launch-status.mjs prints the table from main; guard src/test/launchWaitsOn.test.ts). Move a Q the moment what it waits on changes.
+- **owner-phone** (a check on the owner's iPhone, TestFlight 7115 or later): Q390 Q1313 Q1323 Q1408
+- **owner-payment** (a real paid job or tip; the owner enters the card): Q933 Q749 Q1116 Q362
+- **owner-crew-payment** (a real funded group job, then the owner-confirmed flip): Q1378 Q780 Q709 Q707 Q1114 Q1079
+- **owner-dashboard** (App Store Connect, Supabase, CPA): Q1045 Q1315 Q441
+- **stripe-test-mode** (an owner-approved test-mode window; prod is live): Q763 Q449 Q805
+- **lead** (Claude can finish it now): Q975 Q1314
+- **launch-day** (done on launch day, in order): Q552 Q1289 Q1368 Q152
+<!-- /launch-waits-on -->
+
 **Freeze until launch (owner, 2026-10-05):** a new finding goes to the end of
 this file as ordinary work and does NOT join the launch list unless it is HIGH
 or breaks money, sign-in or App Store review; audit sweeps are paused, and

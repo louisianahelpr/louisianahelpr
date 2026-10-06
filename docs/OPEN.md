@@ -5,7 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Open: 266** (225 to do, 41 fixed with protection pending; 854 done). Feeds mirrored in: 9 from the alert ledger, 6 from nightly-red issues, 2 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Launch list: 26 left of 31** (17 to do, 9 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
+- **Launch list: 25 left of 31** (16 to do, 9 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 9 red, 14 stale, 1 unknown, 48 green of 72 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-06T02:50Z)_
 - **Remote branches:** 13 carry patches not on main, 0 fully merged, of 13 (Q79). _(2026-10-06T02:50Z)_

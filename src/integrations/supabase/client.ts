@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import type { Database } from './types';
-import { keychainStorageAdapter } from './keychainStorageAdapter';
+import { hydratePromise, keychainStorageAdapter } from './keychainStorageAdapter';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -24,8 +24,11 @@ if (import.meta.env.DEV && SUPABASE_URL?.includes("fncmgoasalhdgfwzhsqa")) {
   );
 }
 
-// No top-level await here (2026-10-06): the Keychain wait lives in
-// keychainStorageAdapter.getItem, which Supabase awaits. See the note there.
+// Hydrate native NSUserDefaults into cache before constructing the
+// supabase client. Top-level await — Vite handles this on iOS WebKit.
+if (Capacitor.isNativePlatform()) {
+  await hydratePromise;
+}
 
 /**
  * A browser with site data blocked (Safari "Block All Cookies", Chrome/Edge

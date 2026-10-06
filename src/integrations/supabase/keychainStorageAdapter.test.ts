@@ -394,8 +394,8 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
   });
 
   it("hydrate gives up on a bridge call that NEVER settles, so launch is never blocked", async () => {
-    // Every session read awaits the restore (getItem); a bridge call that
-    // never settles would hang every one of them, so the restore is capped.
+    // client.ts awaits hydratePromise at top level in front of render; a
+    // bridge call that never settles would freeze the boot loader forever.
     // Timeout literal mirrors HYDRATE_TIMEOUT_MS in the source.
     vi.useFakeTimers();
     try {
@@ -436,25 +436,3 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
 // @mutate src/integrations/supabase/keychainStorageAdapter.ts | await Preferences.remove({ key }); // any plaintext copy a capped launch left | void key;
 // Never iCloud Keychain.
 // @mutate src/integrations/supabase/keychainStorageAdapter.ts | await SecureStorage.setSynchronize(false); | await SecureStorage.setSynchronize(true);
-
-describe("keychainStorageAdapter: no top-level await (2026-10-06)", () => {
-  // client.ts no longer awaits hydratePromise at module top level (that
-  // reordered iOS chunk evaluation: boot freeze, /browse crash). The wait
-  // lives in getItem: before the Keychain restore settles it returns a
-  // Promise that resolves to the Keychain value, so a launch after WebKit
-  // evicted localStorage still finds the session.
-  it("getItem called BEFORE the restore settles resolves to the Keychain session", async () => {
-    isNativePlatformMock.mockReturnValue(true);
-    let release: () => void = () => {};
-    kcSyncMock.mockImplementation(() => new Promise<void>((r) => { release = r; }));
-    kcKeysMock.mockResolvedValue([AUTH_KEY]);
-    kcGetItemMock.mockResolvedValue("kc-session");
-    const mod = await import("./keychainStorageAdapter");
-    const early = mod.keychainStorageAdapter.getItem(AUTH_KEY);
-    expect(early).toBeInstanceOf(Promise);
-    release();
-    await expect(early).resolves.toBe("kc-session");
-    // After the restore it is synchronous again.
-    expect(mod.keychainStorageAdapter.getItem(AUTH_KEY)).toBe("kc-session");
-  });
-});

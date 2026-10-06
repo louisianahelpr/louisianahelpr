@@ -10,7 +10,7 @@
  * scripts/land.sh runs this right after `git rebase origin/main`: for every
  * number used by more than one item (OPEN.md + done archives), the item whose
  * head line is on the base keeps it, and the branch's item is moved to the next
- * number free on BOTH the tree and the base (queue-count nextFreeAcross). Only
+ * number free on BOTH the tree and the base (scripts/lib/queueAllocator.mjs). Only
  * that head line is rewritten; other mentions of the old number are listed so
  * the lane can fix them by hand. When both copies are on the base already
  * (main itself has the duplicate) nothing is moved and it exits 1.
@@ -32,7 +32,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OPEN, archiveFiles, gitRefReader, queueText } from "./lib/openQueue.mjs";
-import { nextFreeAcross } from "./queue-count.mjs";
+import { nextFreeNumber, qCounter } from "./lib/queueAllocator.mjs";
 
 const HEAD = /^- \[[ x~]\] \*\*(Q\d+)\b/;
 
@@ -73,7 +73,7 @@ export function renumberPlan(files, baseText, nextFree) {
   const lines = files.map((f) => f.text.split("\n"));
   const renames = [], drops = [], stuck = [], mentions = [];
   const dropped = files.map(() => new Set());
-  let next = nextFree;
+  const take = qCounter(nextFree);
   for (const [id, list] of [...occ].sort((a, b) => Number(a[0].slice(1)) - Number(b[0].slice(1)))) {
     if (list.length < 2) continue;
     if (list.every((o) => sameItemHead(o.line, list[0].line))) {
@@ -93,7 +93,7 @@ export function renumberPlan(files, baseText, nextFree) {
     const keep = onBase[0] ?? list[0];
     for (const o of list) {
       if (o === keep) continue;
-      const to = `Q${next++}`;
+      const to = take();
       lines[o.fi][o.li] = lines[o.fi][o.li].replace(`**${id}`, `**${to}`);
       renames.push({ from: id, to, path: files[o.fi].path, line: o.li + 1 });
     }
@@ -117,7 +117,7 @@ function main() {
   let baseText = "";
   try { const g = gitRefReader(root, base); baseText = queueText(root, (p) => g.read(p) ?? "", g.list); }
   catch { console.error(`open-renumber: ${base} unreadable; every duplicate keeps its FIRST occurrence`); }
-  const plan = renumberPlan(files, baseText, Number(nextFreeAcross(root, base).slice(1)));
+  const plan = renumberPlan(files, baseText, nextFreeNumber(root, base));
   for (const r of plan.renames) console.log(`renumbered ${r.from} -> ${r.to}  (${r.path}:${r.line}; ${r.from} stays with the item already on ${base})`);
   for (const m of plan.mentions) console.log(`  check by hand: ${m.path}:${m.line} mentions ${m.id}`);
   for (const d of plan.drops) console.log(`dropped a second copy of ${d.id} (${d.path}:${d.line}); the done copy at ${d.kept} stays — move any note it carried there by hand`);

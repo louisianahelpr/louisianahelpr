@@ -18,6 +18,7 @@
  */
 import { CLOSED_STATUSES, foldFindings, parseFindingsLog } from "./auditFindings.mjs";
 import { ALERT_ISSUE_LABELS, ALERT_LABELS } from "./alertIssueLabels.mjs";
+import { qCounter } from "./queueAllocator.mjs";
 
 export const FINDINGS = "docs/audit/launch-2026-09/findings.jsonl";
 export const SNAPSHOT = "docs/audit/open-feeds.json";
@@ -199,7 +200,7 @@ export function applyFeeds(md, groups, { status, nextFree, today }) {
   let lines = md.split("\n");
   const snapshotMd = () => lines.join("\n");
   const newItems = [];
-  let next = nextFree;
+  const take = qCounter(nextFree);
 
   for (const g of groups) {
     const by = mirrored(snapshotMd());
@@ -226,7 +227,7 @@ export function applyFeeds(md, groups, { status, nextFree, today }) {
       attached.push({ id: target.id, keys: add });
       continue;
     }
-    const id = `Q${next++}`;
+    const id = take();
     const tier = g.tier ?? "MEDIUM";
     const title = oneLine(g.title, 170).replace(/\.$/, "");
     newItems.push(`- [ ] **${id} ${title.startsWith(`${tier} `) ? "" : `${tier} `}${title}.** Mirrored ${today} from ${g.origin} by \`scripts/open-sync-trackers.mjs\`: find the root cause, fix it, re-run the source's own detector. ${g.keys.map((k) => `feed: ${k}`).join(" · ")}. ${g.markers.join(", ")}`);

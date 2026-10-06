@@ -38,7 +38,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { nextFreeAcross } from "./queue-count.mjs";
+import { nextFreeNumber } from "./lib/queueAllocator.mjs";
 import { FINDINGS, SNAPSHOT, LEDGER_SQL, applyFeeds, busSources, busStatus, groupSources, mirrored, feedCounts, openAlertIssues } from "./lib/openFeeds.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -83,9 +83,10 @@ function apply(snap, { dryRun }) {
   // A ledger-only group whose issue feed was unreadable may still be joined
   // later; never file it alone while its partner is unknown.
   const usable = snap.issues.readable ? groups : groups.filter((g) => !g.keys.some((k) => k.startsWith("ledger ")) || !ledger.find((r) => g.keys.includes(`ledger ${r.fingerprint.slice(0, 12)}`) && r.source_kind === "nightly_red"));
-  // Next free on this tree AND origin/main: the nightly refresh PR numbered
-  // from its base and collided with lanes that landed meanwhile (Q909/Q914).
-  const res = applyFeeds(md, usable, { status, nextFree: Number(nextFreeAcross(ROOT).slice(1)), today: new Date().toISOString().slice(0, 10) });
+  // Next free from the one allocator (this tree AND origin/main): the nightly
+  // refresh PR numbered from its base and collided with lanes that landed
+  // meanwhile (Q909/Q914; #2372's Q1378-Q1380, 2026-10-05).
+  const res = applyFeeds(md, usable, { status, nextFree: nextFreeNumber(ROOT), today: new Date().toISOString().slice(0, 10) });
   const by = mirrored(res.md);
   const keys = Object.fromEntries([...by].map(([k, ids]) => [k, ids[0]]).sort());
   const out = { ...snap, mirrored: keys };

@@ -14,7 +14,13 @@
  *   node scripts/queue-count.mjs --write  # rewrite it in docs/OPEN.md
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { foreignLines, gitRefReader, queueText } from "./lib/openQueue.mjs";
+import { foreignLines, queueText } from "./lib/openQueue.mjs";
+import { nextFreeAcross, treeCollisions } from "./lib/queueAllocator.mjs";
+import { sameItemHead } from "./open-renumber.mjs";
+
+// The numbering lives in ONE allocator (scripts/lib/queueAllocator.mjs); these
+// names stay importable from here for the tools and tests that already use them.
+export { nextFreeId, nextFreeAcross } from "./lib/queueAllocator.mjs";
 
 export const START = "<!-- generated: queue-count (node scripts/queue-count.mjs --write) -->";
 export const END = "<!-- /generated: queue-count -->";
@@ -46,29 +52,6 @@ export function duplicateIds(md) {
   const seen = new Map();
   for (const m of md.matchAll(/^- \[[ x~]\] \*\*(Q\d+)\b/gm)) seen.set(m[1], (seen.get(m[1]) ?? 0) + 1);
   return [...seen].filter(([, n]) => n > 1).map(([id]) => id).sort();
-}
-
-/** The next unused queue number: take it from here, never from memory. */
-export function nextFreeId(md) {
-  let max = 0;
-  for (const m of md.matchAll(/\*\*Q(\d+)\b/g)) max = Math.max(max, Number(m[1]));
-  return `Q${max + 1}`;
-}
-
-/**
- * The next number free on BOTH this tree and origin/main. A branch that numbers
- * from its own base collides with whatever main filed since (Q904/Q905,
- * Q909-Q914, 2026-09-30..10-01); scripts/open-renumber.mjs repairs any that
- * still slip through, at land time. Falls back to this tree when the ref is
- * unreadable.
- */
-export function nextFreeAcross(root, ref = "origin/main") {
-  let best = Number(nextFreeId(queueText(root)).slice(1));
-  try {
-    const g = gitRefReader(root, ref);
-    best = Math.max(best, Number(nextFreeId(queueText(root, (p) => g.read(p) ?? "", g.list)).slice(1)));
-  } catch { /* no ref: this tree's number */ }
-  return `Q${best}`;
 }
 
 export function countLine(c) {
@@ -104,4 +87,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const dupes = duplicateIds(all);
   if (dupes.length) { console.error(`DUPLICATE queue numbers: ${dupes.join(", ")} — run node scripts/open-renumber.mjs`); process.exitCode = 1; }
   console.log(`next free: ${nextFreeAcross(".")} (the higher of this tree and origin/main; git fetch first)`);
+  // A number this branch added that main also added since, for another item
+  // (bot PR #2372's Q1378-Q1380 vs main's crew Q1378-Q1380, 2026-10-05).
+  const clash = treeCollisions(".", "origin/main", sameItemHead);
+  if (clash?.length) {
+    console.error(`COLLIDES with origin/main: ${clash.map((c) => c.id).join(", ")} — this branch and main each filed a different item under it; run node scripts/open-renumber.mjs --base origin/main`);
+    process.exitCode = 1;
+  }
 }

@@ -39,7 +39,7 @@ export const PAGE_CANONICALS: Record<TabKey, string> = {
 // rather than implying all three changed together — bump only the tab you
 // actually edited.
 export const LAST_UPDATED: Record<TabKey, string> = {
-  terms: "Sep 2026",
+  terms: "Oct 2026",
   community: "Jun 2026",
   privacy: "Jun 2026",
 };

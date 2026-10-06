@@ -32,6 +32,7 @@
  * done afterwards with read-write SQL by the operator and proved by count
  * queries; the write-up is docs/audit/q60-load-test-2026-09-27.md.
  */
+import { loadVerdict } from "./loadVerdict.mjs";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -51,8 +52,10 @@ const RT_STEPS = arg("rt", "10,50,100,200").split(",").map(Number);
 const STEP_MS = Number(arg("step-seconds", "120")) * 1000;
 const SENDS_PER_SENDER = Number(arg("sends-per-sender", "8"));
 const OUT = arg("out", join(homedir(), ".lh-shots/q60"));
-// The seed job both e2e accounts are party to (in_progress, escrow).
-const SEED_JOB = arg("job", "bb2c3732-476a-4f66-aae6-372cbdfcfdf6");
+// The job both e2e accounts are party to, named by --job (the workflow's `job`
+// input). A hard-coded id went stale: bb2c3732 was deleted, every send was
+// refused 403 and the 2026-10-06 run measured no message delivery at all.
+let SEED_JOB = arg("job", "");
 if (STEPS.length !== RT_STEPS.length) throw new Error("--steps and --rt need the same length");
 
 function loadEnv() {
@@ -140,7 +143,7 @@ async function rest(type, user, path, { method = "GET", body, headers = {} } = {
   return { status, data };
 }
 
-let jobIds = [SEED_JOB];
+let jobIds = [];
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -308,6 +311,9 @@ async function main() {
   const users = ["poster-e2e", "helper-e2e", "poster", "helper"].map(mint);
   const [pe, he] = users;
   console.log("sessions:", users.map((u) => `${u.name}=${u.uid}`).join(" "));
+  if (!SEED_JOB) throw new Error("pass --job <id of a job between poster-e2e and helper-e2e>: message writes and realtime delivery need one");
+  jobIds = [SEED_JOB];
+  console.log("message job:", SEED_JOB);
 
   // Sends: stay well under enforce_message_rate (30/h/sender; fraud flag at 29).
   const budget = {};
@@ -383,6 +389,11 @@ async function main() {
   const file = join(OUT, `run-${runId}.json`);
   writeFileSync(file, JSON.stringify(result, null, 2));
   console.log(`wrote ${file}${abortReason ? ` (ABORTED: ${abortReason})` : ""}`);
+  const verdict = loadVerdict(result);
+  if (verdict) {
+    console.error(`FAIL: ${verdict}`);
+    process.exit(1);
+  }
   process.exit(0);
 }
 
@@ -390,3 +401,4 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
+

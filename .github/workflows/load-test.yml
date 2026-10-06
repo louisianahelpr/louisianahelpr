@@ -25,6 +25,9 @@ on:
         description: "Seconds per step"
         required: false
         default: "120"
+      job:
+        description: "Id of a job between poster-e2e and helper-e2e (the message writes go on it)"
+        required: true
 
 # Its own group per run (a dispatch never joins the shared `prod-load` group:
 # GitHub keeps one PENDING run per group, so a third arrival cancels the one
@@ -90,11 +93,17 @@ jobs:
           STEPS: ${{ inputs.steps }}
           RT: ${{ inputs.rt }}
           STEP_SECONDS: ${{ inputs.step_seconds }}
+          JOB: ${{ inputs.job }}
         run: |
           set -euo pipefail
-          node scripts/load/load-test.mjs --steps "$STEPS" --rt "$RT" --step-seconds "$STEP_SECONDS" --out q60-out 2>&1 | tee q60-out.log
+          if [[ ! "$JOB" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then echo "::error::job input is not a job id"; exit 1; fi
+          # The run id is written out BEFORE the verdict decides the exit, so the
+          # cleanup below always knows which tagged rows are this run's.
+          rc=0
+          node scripts/load/load-test.mjs --steps "$STEPS" --rt "$RT" --step-seconds "$STEP_SECONDS" --job "$JOB" --out q60-out 2>&1 | tee q60-out.log || rc=$?
           RUN_ID=$( (grep -oE 'run [0-9T]+Z? tag' q60-out.log || [ $? -eq 1 ]) | head -1 | awk '{print $2}')
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          exit "$rc"
       - name: Keep the measurements
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -125,6 +134,6 @@ jobs:
           PATTERN="[q60-loadtest ${RUN_ID}"
           supabase link --project-ref "$PROJECT_REF"
           supabase db query --linked "delete from public.notifications where message like '%' || '$PATTERN' || '%'; delete from public.messages where content like '$PATTERN' || '%'"
-          LEFT=$(supabase db query --linked -o json "select (select count(*) from public.messages where content like '[q60-loadtest%') + (select count(*) from public.notifications where message like '%[q60-loadtest%') as n" | jq -r '.rows[0].n // .[0].n')
+          LEFT=$(supabase db query --linked -o json "select (select count(*) from public.messages where content like '[q60-loadtest%') + (select count(*) from public.notifications where message like '%[q60-loadtest%') as n" | jq -r 'if type == "array" then .[0].n else .rows[0].n end')
           echo "Tagged rows left after cleanup: $LEFT" | tee -a "$GITHUB_STEP_SUMMARY"
           if [ "$LEFT" != "0" ]; then echo "::error::cleanup left $LEFT tagged row(s)"; exit 1; fi

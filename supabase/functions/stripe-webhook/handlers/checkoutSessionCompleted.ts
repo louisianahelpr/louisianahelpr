@@ -964,11 +964,40 @@ export async function handleCheckoutSessionCompleted(
     //
     // create-payment's own escrow write already carries this guard, with a
     // comment saying exactly why. The write that marks the job FUNDED did not.
+    //
+    // Q1416: only an UNFUNDED job is marked funded (or this same payment again:
+    // a redelivery stays idempotent). The escrow checkout captures at once, so
+    // a second completed checkout on a job already funded another way (a gift,
+    // an earlier card checkout) is a real second charge; written by id alone it
+    // silently replaced the job's PaymentIntent. That one is refunded below.
     const { data: jobUpdated, error: jobError } = await supabase
       .from("jobs")
       .update(updateData)
       .eq("id", jobId)
+      .or(`payment_status.is.null,payment_status.in.(unpaid,failed,abandoned),stripe_payment_intent_id.eq.${piId}`)
       .select("id");
+    if (!jobError && (!jobUpdated || jobUpdated.length === 0)) {
+      const { data: funded, error: fundedErr } = await supabase
+        .from("jobs")
+        .select("id, payment_status, stripe_payment_intent_id")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (!fundedErr && funded) {
+        await refundDuplicateFunding(stripe, piId);
+        logStep("Job already funded; this checkout's payment refunded in full", {
+          jobId, pi: piId, jobPaymentStatus: funded.payment_status, jobPi: funded.stripe_payment_intent_id,
+        });
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "critical",
+          title: "Escrow funding — a second payment on an already-funded job was refunded",
+          message: "A checkout completed for a job that was already funded another way (a gift, or an earlier checkout). The job was left as it was and this payment was refunded in full. Find how a second checkout was open (Q1416, Q975 race 15).",
+          fields: { session_id: session.id, job_id: jobId, payment_intent: piId, job_payment_status: String(funded.payment_status), job_payment_intent: String(funded.stripe_payment_intent_id ?? "none") },
+        });
+        return;
+      }
+      // Gone (or unreadable): the existing branch below says so and retries.
+    }
     if (jobError || !jobUpdated || jobUpdated.length === 0) {
       logStep("ERROR storing PI on job", {
         error: jobError?.message ?? "matched 0 rows — job deleted mid-checkout",
@@ -1044,5 +1073,24 @@ export async function handleCheckoutSessionCompleted(
     }
   } else if (jobId) {
     logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });
+  }
+}
+
+/**
+ * Q1416: a full refund of a payment that would have funded an already-funded
+ * job. Keyed on the PaymentIntent, so a redelivery refunds nothing twice;
+ * "already refunded" (a retry after the key's 24 h) counts as done only when a
+ * live refund really exists.
+ */
+async function refundDuplicateFunding(stripe: WebhookContext["stripe"], pi: string): Promise<void> {
+  try {
+    await stripe.refunds.create({ payment_intent: pi }, { idempotencyKey: `duplicate-funding-refund:${pi}` });
+  } catch (e) {
+    const err = e as { type?: string; code?: string } | null;
+    const maybeDone = err?.code === "charge_already_refunded" ||
+      err?.type === "StripeIdempotencyError" || err?.type === "idempotency_error";
+    if (!maybeDone) throw e;
+    const prior = await stripe.refunds.list({ payment_intent: pi, limit: 100 });
+    if (!prior.data.some((r: Stripe.Refund) => r.status !== "failed" && r.status !== "canceled")) throw e;
   }
 }

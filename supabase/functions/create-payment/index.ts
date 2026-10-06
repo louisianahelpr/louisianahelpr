@@ -470,6 +470,9 @@ serve(async (req) => {
           p_credit_id: giftCardId,
           p_job_id: jobId,
           p_user_id: user.id,
+          // The card checkout this request just closed above, if any: any OTHER
+          // open one (a concurrent card tap) makes the redeem refuse (Q975 race 15).
+          p_retired_session: previousSessionId,
         });
         if (redeemErr) {
           console.error(`[create-payment] redeem_gift_card failed for credit ${giftCardId}, job ${jobId}:`, redeemErr);

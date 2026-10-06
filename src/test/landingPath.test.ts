@@ -1,3 +1,5 @@
+// @mutate scripts/land.sh |   npx vitest run --changed origin/main --passWithNoTests | 
+// @mutate scripts/land.sh |   npm run -s check:counts\n | 
 // @mutate scripts/land.sh |     src/test/deadcodeRatchet.test.ts \ |     \
 // @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   git push --no-verify origin HEAD:main
 // @mutate scripts/land.sh |     if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus 2>/dev/null); then |     if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus); [ "$INFO" ]; then
@@ -225,5 +227,24 @@ describe("landing path (Q44)", () => {
         expect(t).toContain("vacuity runs on every push to main (not required on PRs)");
       },
     );
+  });
+});
+
+describe("land.sh first-try pass (owner, 2026-10-05: make landings pass on the first GitHub round)", () => {
+  const land = readFileSync(join(__dirname, "..", "..", "scripts", "land.sh"), "utf8");
+  const pushAt = land.indexOf('git push --no-verify --force origin "HEAD:refs/heads/$BR"');
+  it("runs ESLint on changed files, check:counts, related and path-naming tests, and the GitHub-only guards before the push", () => {
+    for (const needle of [
+      "npx eslint --quiet $CHANGED_LINT",
+      "npm run -s check:counts",
+      "npx vitest run --changed origin/main --passWithNoTests",
+      'git grep -l -F -- "$b"',
+      "src/test/fixtureSchemaContract.test.ts",
+      "src/test/workflowFalseGreenShapes.test.ts",
+    ]) {
+      const at = land.indexOf(needle);
+      expect(at, needle).toBeGreaterThan(-1);
+      expect(at, `${needle} must run before the push`).toBeLessThan(pushAt);
+    }
   });
 });

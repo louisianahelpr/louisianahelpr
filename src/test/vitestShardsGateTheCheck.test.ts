@@ -1,13 +1,13 @@
 /**
  * The required `Vitest unit tests` check is an aggregate over sharded runs
- * (vitest.yml, 2026-10-04: the suite runs four ways in parallel so a landing
+ * (vitest.yml, 2026-10-04: the suite runs in parallel shards (six since 2026-10-05) so a landing
  * waits ~1/4 as long). The aggregate must FAIL unless every shard passed: a
  * failed, cancelled or skipped shard must never read as green, and the shards
  * must cover the whole suite (1/N..N/N).
  */
 // @mutate .github/workflows/vitest.yml |           test "$SHARDS" = "success" |           true
 // @mutate .github/workflows/vitest.yml |     if: ${{ always() }}\n    runs-on: ubuntu-latest\n    timeout-minutes: 5 |     runs-on: ubuntu-latest\n    timeout-minutes: 5
-// @mutate .github/workflows/vitest.yml |         shard: [1, 2, 3, 4] |         shard: [1, 2, 3]
+// @mutate .github/workflows/vitest.yml |         shard: [1, 2, 3, 4, 5, 6] |         shard: [1, 2, 3, 4, 5]
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

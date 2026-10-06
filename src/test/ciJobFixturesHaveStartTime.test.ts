@@ -1,5 +1,6 @@
 // @mutate scripts/ci/null-arg-validators.sql | customer_id, helper_id, status, payment_status, start_time)\n | customer_id, helper_id, status, payment_status)\n
 // @mutate scripts/ci/race-runner.mjs | customer_id, helper_id, date_needed, start_time, created_at, payment_status, | customer_id, helper_id, date_needed, created_at, payment_status,
+// @mutate scripts/ci/race-runner.mjs | customer_id, helper_id, start_time, date_needed, created_at, payment_status, | customer_id, helper_id, date_needed, created_at, payment_status,
 // @mutate .github/workflows/db-smoke.yml |             customer_id, date_needed, start_time\n |             customer_id, date_needed\n
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

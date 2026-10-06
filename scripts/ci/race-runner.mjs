@@ -179,13 +179,13 @@ async function escrowDoneFixture(admin, poster, helper, disputed) {
   // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
   const { rows } = await admin.query(
     `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
-                              customer_id, helper_id, date_needed, start_time, created_at, payment_status,
+                              customer_id, helper_id, start_time, date_needed, created_at, payment_status,
                               helper_confirmed_at, poster_confirmed_at, accepted_at,
                               helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at,
                               poster_confirmed_arrival_at,
                               poster_confirmed_working_at, proof_before_urls, proof_after_urls, helper_completed_at)
      VALUES ('[CI race] money', 'race-runner.mjs fixture (Q975)', 'cleaning', 100, 'Test Address', 'Orleans',
-             'in_progress', $1, $2, CURRENT_DATE - 2, '00:00', now() - interval '30 days', 'escrow',
+             'in_progress', $1, $2, '00:00', CURRENT_DATE - 2, now() - interval '30 days', 'escrow',
              now() - interval '3 days', now() - interval '3 days', now() - interval '3 days',
              now() - interval '2 days 4 hours', now() - interval '2 days 3 hours', now() - interval '2 days 3 hours',
              now() - interval '2 days 2 hours',

@@ -44,7 +44,8 @@ on:
 
 permissions:
   # write: cancelled-prod-load-runs.mjs --redispatch re-dispatches a lost
-  # scheduled check (#2196). Nothing else here writes to Actions.
+  # scheduled check (#2196). The notify job declares its own (nightly-issue-sync
+  # dispatches nightly-red-rerun.yml for a cancelled-only run).
   actions: write
   contents: read
   issues: write
@@ -373,6 +374,8 @@ jobs:
     permissions:
       contents: read
       issues: write
+      actions: write
+      checks: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/nightly-issue-sync

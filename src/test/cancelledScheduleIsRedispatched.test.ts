@@ -1,5 +1,5 @@
 // @mutate .github/workflows/schedule-heartbeat.yml | node scripts/ci/cancelled-prod-load-runs.mjs --redispatch > /tmp/cancelled.txt | node scripts/ci/cancelled-prod-load-runs.mjs > /tmp/cancelled.txt
-// @mutate .github/workflows/schedule-heartbeat.yml |   actions: write | actions: read
+// @mutate .github/workflows/schedule-heartbeat.yml | nightly-red-rerun.yml for a cancelled-only run).\n  actions: write | nightly-red-rerun.yml for a cancelled-only run).\n  actions: read
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   if (tried) return { act: false, | if (false) return { act: false,
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs |   "vacuity.yml": { full: "true" }, |   "vacuity.yml": {},
 // @mutate scripts/ci/cancelled-prod-load-runs.mjs | getUTCDate() > 7 ? | getUTCDate() > 14 ?

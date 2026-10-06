@@ -1,0 +1,87 @@
+name: Nightly red re-run (cancelled jobs)
+
+# CANCELLED IS NOT RED (owner, 2026-10-05).
+#
+# On 2026-10-05 five of the nine open `nightly-red` issues came from runs whose
+# jobs were CANCELLED, not failed (db-drift-detect run 37373724889: "Wait for the
+# prod-load queue" cancelled with "The job was not acquired by Runner of type
+# hosted even after multiple attempts"). A cancelled job says nothing about the
+# check; the right response is to run it again, not to file a red.
+#
+# .github/actions/nightly-issue-sync asks scripts/ci/run-verdict.mjs before it
+# files. When every non-success job of the run's FIRST attempt was cancelled, it
+# files nothing and dispatches this workflow with the run id. A run cannot be
+# re-run while it is still running (its own reporting job is part of it), so
+# this waits for it to complete, then runs `gh run rerun <id> --failed` ONCE:
+# only while the run is still on attempt 1. The re-run attempt reports through
+# its own sync step: green closes nothing that was not open, red files as
+# before, and a second cancel is filed as a red (one free retry, never a loop).
+#
+# Guard: src/test/nightlyCancelledJobsAreRerunNotFiled.test.ts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Workflow run id whose cancelled jobs are re-run once"
+        required: true
+        type: string
+      workflow_name:
+        description: "The nightly-red slug of that workflow (for the summary)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  actions: write
+  checks: read
+
+concurrency:
+  group: nightly-red-rerun-${{ inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  rerun:
+    name: Re-run cancelled jobs once
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Wait for the run to complete, then re-run its cancelled jobs once
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ inputs.run_id }}
+          WF: ${{ inputs.workflow_name }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::run_id must be a numeric run id, got '${RUN_ID}'"
+            exit 1
+          fi
+          STATUS=""
+          for _ in $(seq 1 80); do
+            STATUS=$(gh api "repos/${REPO}/actions/runs/${RUN_ID}" --jq .status)
+            [ "$STATUS" = "completed" ] && break
+            sleep 30
+          done
+          if [ "$STATUS" != "completed" ]; then
+            echo "::error::run ${RUN_ID} (${WF}) still ${STATUS} after 40 minutes; not re-run"
+            echo "Run ${RUN_ID} (${WF}) did not complete within 40 minutes; nothing re-run." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          ATTEMPT=$(gh api "repos/${REPO}/actions/runs/${RUN_ID}" --jq .run_attempt)
+          VERDICT=$(node scripts/ci/run-verdict.mjs "$RUN_ID" 1 | jq -c '{verdict, cancelled, failed}')
+          if [ "$ATTEMPT" != "1" ]; then
+            echo "Run ${RUN_ID} (${WF}) is already on attempt ${ATTEMPT}; the one re-run has happened, nothing more." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh run rerun "$RUN_ID" --failed --repo "$REPO"
+          {
+            echo "### Re-ran the cancelled jobs of ${WF:-run ${RUN_ID}}"
+            echo "Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID} (attempt 1 -> 2)"
+            echo "Attempt 1 verdict: \`${VERDICT}\`"
+            echo "The run's own reporting step reports attempt 2: green is quiet, red (or a second cancel) files nightly-red."
+          } >> "$GITHUB_STEP_SUMMARY"

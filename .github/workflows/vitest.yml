@@ -21,6 +21,7 @@ name: Vitest
 
 permissions:
   contents: read
+  pull-requests: read
 
 env:
   # JavaScript-based Actions on Node 24 ahead of the platform default.
@@ -78,17 +79,48 @@ jobs:
           node-version: "22"
           cache: "npm"
 
+      # Docs-only fast path (owner, 2026-10-06: "why are the ticks taking so
+      # long"): a PR that changes only docs/ (OPEN.md ticks, generated counts)
+      # runs just the tests that read those files (scripts/ci/docs-only-tests.mjs).
+      # Anything else runs the whole suite. Guard: src/test/docsOnlyFastPath.test.ts.
+      - name: Scope (docs-only PR?)
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "pull_request" ]; then
+            CHANGED_FILES=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files --jq '.files[].path')
+            export CHANGED_FILES
+            node scripts/ci/docs-only-tests.mjs > scope.json
+          else
+            # Only a pull request can take the fast path; a push runs everything.
+            echo '{"docsOnly":false,"files":[]}' > scope.json
+          fi
+          echo "docs_only=$(node -p 'require("./scope.json").docsOnly')" >> "$GITHUB_OUTPUT"
+          node -p 'const j=require("./scope.json"); j.docsOnly ? `docs-only PR: ${j.files.length} test file(s) read the changed docs` : "the whole suite runs"'
+
       - name: Install dependencies
         # Use `npm install` (not `npm ci`) so CI heals a stale lockfile
         # instead of failing the run if package-lock.json drifts — same
         # pattern as test.yml.
+        if: ${{ steps.scope.outputs.docs_only != 'true' || matrix.shard == 1 }}
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Run Vitest
         # `--reporter=default` keeps the GitHub Actions summary readable;
         # `--passWithNoTests` would mask "I deleted every test" bugs, so
         # we deliberately do NOT pass it.
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: npx vitest run --reporter=default --shard=${{ matrix.shard }}/6
+
+      - name: Run the tests that read the changed docs
+        if: ${{ steps.scope.outputs.docs_only == 'true' && matrix.shard == 1 }}
+        run: |
+          set -euo pipefail
+          node -p 'require("./scope.json").files.join("\n")' | xargs npx vitest run --reporter=default
 
   vitest:
     name: Vitest unit tests
@@ -126,15 +158,41 @@ jobs:
           node-version: "22"
           cache: "npm"
 
+      # Docs-only fast path (owner, 2026-10-06: "why are the ticks taking so
+      # long"): a PR that changes only docs/ (OPEN.md ticks, generated counts)
+      # skips the coverage run: a docs change cannot move code coverage.
+      # Anything else runs the whole suite. Guard: src/test/docsOnlyFastPath.test.ts.
+      - name: Scope (docs-only PR?)
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "pull_request" ]; then
+            CHANGED_FILES=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files --jq '.files[].path')
+            export CHANGED_FILES
+            node scripts/ci/docs-only-tests.mjs > scope.json
+          else
+            # Only a pull request can take the fast path; a push runs everything.
+            echo '{"docsOnly":false,"files":[]}' > scope.json
+          fi
+          echo "docs_only=$(node -p 'require("./scope.json").docsOnly')" >> "$GITHUB_OUTPUT"
+          node -p 'const j=require("./scope.json"); j.docsOnly ? `docs-only PR: ${j.files.length} test file(s) read the changed docs` : "the whole suite runs"'
+
       - name: Install dependencies
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Run Vitest with coverage
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         id: vitest_cov
         continue-on-error: true
         run: npx vitest run --reporter=dot --coverage --testTimeout=60000
 
       - name: Coverage floor (Q184)
+        if: ${{ steps.scope.outputs.docs_only != 'true' }}
         env:
           # Read back so a failed test run shows in this job's log; the tests'
           # pass/fail verdict belongs to the Vitest job above.

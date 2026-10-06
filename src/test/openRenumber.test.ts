@@ -8,7 +8,9 @@
  *    rebase, keeps the number on the item main already has and moves the
  *    branch's copy to the next number free on both.
  * 2. open-sync-trackers numbered new feed items from the branch base too; it
- *    now uses nextFreeAcross (this tree AND origin/main).
+ *    now numbers from the ONE allocator, scripts/lib/queueAllocator.mjs (this
+ *    tree AND origin/main; every minter goes through it:
+ *    queueAllocatorIsTheOnlyMinter.test.ts).
  * 3. applyFeeds attached a source to an untagged item only when exactly one
  *    item's first line named it, and otherwise FILED A NEW ONE — one more copy
  *    of a source already named by several items (issue #1719 opened the first
@@ -17,6 +19,10 @@
  *    the branch, still open in OPEN.md on main) was renumbered like two items:
  *    f38b17024 made Q456 -> Q919 ... Q900 -> Q924, so Q456 stayed open while
  *    done as Q919. The done copy now stays and the other is dropped.
+ * 5. (2026-10-05) Bot PR #2372 (its own commit 6cb67c9ea, forked at 5b58de3bb)
+ *    added Q1378-Q1380 for feed items; main meanwhile landed the crew items as
+ *    Q1378-Q1380. branchCollisions names a number the branch ADDED that main
+ *    also added since the fork, for a different item; queue-count exits 1 on it.
  */
 // @mutate scripts/open-renumber.mjs |     if (list.every((o) => sameItemHead(o.line, list[0].line))) { |     if (false) {
 // @mutate scripts/open-renumber.mjs |       if (!done.length) { stuck.push(id); continue; } |       if (!done.length) { continue; }
@@ -25,7 +31,9 @@
 // @mutate scripts/open-renumber.mjs |     const keep = onBase[0] ?? list[0]; |     const keep = list[0];
 // @mutate scripts/open-renumber.mjs |     if (o === keep) continue; |     if (o !== keep) continue;
 // @mutate scripts/lib/openFeeds.mjs |       else if (hits.length > 1) { ambiguous.push | else if (false) { ambiguous.push
-// @mutate scripts/open-sync-trackers.mjs | nextFree: Number(nextFreeAcross(ROOT).slice(1)) | nextFree: 1
+// @mutate scripts/open-sync-trackers.mjs | nextFree: nextFreeNumber(ROOT) | nextFree: 1
+// @mutate scripts/lib/queueAllocator.mjs |     if (fork.has(id)) continue; |     if (fork.has(id) \|\| true) continue;
+// @mutate scripts/lib/queueAllocator.mjs |     const branchOnly = branchLines.filter((b) => !mainLines.some((m) => m === b \|\| sameItem(m, b))); |     const branchOnly = branchLines.filter((b) => !mainLines.some((m) => true));
 // @mutate scripts/land.sh |   node scripts/open-renumber.mjs --base origin/main |   true
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
@@ -37,6 +45,8 @@ import { renumberPlan, sameItemHead } from "../../scripts/open-renumber.mjs";
 // @ts-expect-error — plain .mjs script, no declaration file
 import { nextFreeAcross, duplicateIds } from "../../scripts/queue-count.mjs";
 import { applyFeeds } from "../../scripts/lib/openFeeds.mjs";
+// @ts-expect-error — plain .mjs script, no declaration file
+import { branchCollisions, treeCollisions } from "../../scripts/lib/queueAllocator.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const item = (n: number, t: string, s = " ") => `- [${s}] **Q${n} ${t}.** body`;
@@ -151,9 +161,9 @@ describe("applyFeeds never files a second item for a source several items name",
     expect(res.ambiguous).toEqual([]);
   });
 
-  it("the sync script numbers from nextFreeAcross and exits 1 on ambiguity", () => {
+  it("the sync script numbers from the one allocator and exits 1 on ambiguity", () => {
     const src = readFileSync(join(ROOT, "scripts/open-sync-trackers.mjs"), "utf8");
-    expect(src).toContain("nextFree: Number(nextFreeAcross(ROOT).slice(1))");
+    expect(src).toContain("nextFree: nextFreeNumber(ROOT)");
     expect(src).toContain("!res.ambiguous.length");
   });
 
@@ -163,5 +173,34 @@ describe("applyFeeds never files a second item for a source several items name",
     expect(r).toBeGreaterThan(0);
     expect(n).toBeGreaterThan(r);
     expect(i).toBeGreaterThan(n);
+  });
+});
+
+describe("a number the branch added that main also added since, for a different item, fails (2026-10-05)", () => {
+  // The #2372 shape, measured: fork had up to Q1377; the bot added Q1378 for a
+  // feed item; main added Q1378 for a crew item.
+  const fork = ["# Open", item(1377, "last shared"), ""].join("\n");
+  const bot = ["# Open", item(1377, "last shared"), item(1378, "nightly-red: main: Test is red"), ""].join("\n");
+  const main = ["# Open", item(1377, "last shared"), item(1378, "A crew sent back to open is stranded"), ""].join("\n");
+
+  it("names the collision", () => {
+    const r = branchCollisions({ forkText: fork, mainText: main, treeText: bot }, sameItemHead);
+    expect(r.map((c: { id: string }) => c.id)).toEqual(["Q1378"]);
+    expect(r[0].branch[0]).toContain("Test is red");
+    expect(r[0].main[0]).toContain("crew");
+  });
+
+  it("the same item landed on both sides, an edit of a number already on the fork, or a number main never used is not one", () => {
+    expect(branchCollisions({ forkText: fork, mainText: bot, treeText: bot }, sameItemHead)).toEqual([]);
+    const edited = bot.replace("last shared", "last shared, edited");
+    expect(branchCollisions({ forkText: fork, mainText: main.replace("Q1378", "Q1390"), treeText: edited }, sameItemHead)).toEqual([]);
+    const ticked = bot.replace("- [ ] **Q1378", "- [x] **Q1378");
+    expect(branchCollisions({ forkText: fork, mainText: bot, treeText: ticked }, sameItemHead)).toEqual([]);
+  });
+
+  it("this checkout adds no number main gave to a different item (when origin/main is readable)", () => {
+    const r = treeCollisions(ROOT, "origin/main", sameItemHead);
+    if (r === null) return; // shallow CI checkout with no origin/main: duplicateIds on the merge commit covers it
+    expect(r).toEqual([]);
   });
 });

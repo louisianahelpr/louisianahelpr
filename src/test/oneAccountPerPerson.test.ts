@@ -31,7 +31,7 @@
  * @mutate src/components/auth/SocialAuthButtons.tsx | if (live) failed.current(); | void failed;
  * @mutate src/components/auth/SocialAuthButtons.tsx | markAccountChoiceRetry(); | void 0;
  * @mutate src/pages/auth/Login.tsx | loginNotice({ oauthError, accountChoiceRetry, | loginNotice({ oauthError,
- * @mutate src/components/auth/SocialAuthButtons.tsx | import { useEffect, useState } from "react"; | import { useEffect, useState } from "react";\nimport { AccountChoiceDialog as Eager } from "@/components/auth/AccountChoiceDialog";
+ * @mutate src/components/auth/SocialAuthButtons.tsx | import { useEffect, useRef, useState } from "react"; | import { useEffect, useRef, useState } from "react";\nimport { AccountChoiceDialog as Eager } from "@/components/auth/AccountChoiceDialog";
  * @mutate src/pages/auth/Login.tsx | <SocialAuthButtons mode="signin" initialChoice={accountChoice} /> | <SocialAuthButtons mode="signin" />
  * @mutate supabase/migrations/20261005182630_one_account_per_person.sql | 'message', 'lh_account_choice:' | 'message', 'lh_other:'
  * @mutate supabase/migrations/20261005182630_one_account_per_person.sql | IF v_provider IS NULL OR v_provider NOT IN ('apple', 'google') THEN | IF v_provider IS NULL OR v_provider NOT IN ('apple') THEN

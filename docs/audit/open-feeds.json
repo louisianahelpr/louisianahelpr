@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-06T22:17Z",
+  "measured_at": "2026-10-06T22:24Z",
   "issues": {
     "readable": true,
     "open": [
@@ -27,11 +27,6 @@
       {
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
-        "label": "nightly-red"
-      },
-      {
-        "number": 2419,
-        "title": "nightly-red: vacuity",
         "label": "nightly-red"
       },
       {
@@ -187,9 +182,6 @@
     "bus TC-004": "Q226",
     "issue #1754": "Q785",
     "issue #1794": "Q593",
-    "issue #1909": "Q787",
-    "issue #2121": "Q787",
-    "issue #2198": "Q787",
     "issue #2244": "Q1275",
     "issue #2245": "Q785",
     "issue #2353": "Q1374",
@@ -200,25 +192,20 @@
     "issue #2435": "Q1428",
     "issue #2436": "Q1429",
     "issue #2462": "Q1430",
-    "issue #2478": "Q1431",
-    "issue #2480": "Q1432",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
     "ledger 1ef4b10bb74a": "Q1437",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 43d77e26f272": "Q1429",
-    "ledger 4aa239aefeb6": "Q1433",
     "ledger 6205197429d4": "Q593",
     "ledger 6389f98a9f66": "Q1427",
     "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
     "ledger 88ecf6e765df": "Q1426",
-    "ledger 8a2e802edbe7": "Q1434",
     "ledger a5d62d53b6a4": "Q1435",
     "ledger a8ceee56bbd5": "Q1430",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger acf4ea2ff283": "Q1436",
-    "ledger db0fb15c4ec3": "Q787",
     "ledger fad6897fcfae": "Q1438"
   }
 }

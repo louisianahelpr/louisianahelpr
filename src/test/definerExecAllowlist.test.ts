@@ -28,7 +28,8 @@
  */
 // Registered mutations - each turns this guard RED on its own:
 // @mutate scripts/ci/definer-exec-allowlist.json | "is_caller_banned()": "policy" | "is_caller_banned()": "client"
-// @mutate scripts/ci/definer-exec-allowlist.json | "rpc_group_member_confirm(uuid)": "reviewed | "rpc_group_member_confirm(uuid)": "client", "zz": "reviewed
+// @mutate scripts/ci/definer-exec-allowlist.json | "apply_cancellation_violation_consequence(uuid)": "reviewed | "apply_cancellation_violation_consequence(uuid)": "client", "zz": "reviewed
+// @mutate src/lib/crewLifecycle.ts |   const { data, error } = await supabase.rpc("rpc_group_member_confirm", { _job_id: jobId }); |   const { data, error } = await supabase.rpc("rpc_group_member_confirm_v0", { _job_id: jobId });
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_job_pets(uuid)": "client" | "get_job_pets(uuid)": "policy"
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_parish_for_zip(text)": "reviewed 2026-10-05 (Q1284): | "get_parish_for_zip(text)": "fine:
 // @mutate scripts/ci/definer-exec-allowlist.json | "authenticated": { | "authenticated": {\n    "resolve_auto_tip(uuid, numeric)": "client",
@@ -82,6 +83,14 @@ describe("Q14: every client-executable SECURITY DEFINER function says why", () =
   it('"policy" entries are called inside a CREATE/ALTER POLICY', () => {
     const wrong = entries.filter((e) => e.why === "policy" && !calledByPolicy(nameOf(e.sig)));
     expect(wrong.map((e) => `${e.role} ${e.sig}`)).toEqual([]);
+  });
+
+  // 2026-10-06: five crew functions kept "no client caller yet" after the crew
+  // UI started calling them; a reason that says nobody calls it must stay true,
+  // and one the app does call is a "client" entry.
+  it('a reason saying "no client caller" is true: the app does not call it', () => {
+    const wrong = entries.filter((e) => /no client caller/i.test(e.why) && calledByClient(nameOf(e.sig)));
+    expect(wrong.map((e) => `${e.role} ${e.sig}`), 'the app calls it now: make the entry "client"').toEqual([]);
   });
 
   it("every other entry carries a dated, reviewed reason", () => {

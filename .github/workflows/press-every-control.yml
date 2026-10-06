@@ -219,8 +219,19 @@ jobs:
             echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
             exit 1
@@ -297,8 +308,19 @@ jobs:
             echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
             exit 1
@@ -449,8 +471,19 @@ jobs:
             echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
             exit 1
@@ -550,8 +583,19 @@ jobs:
             echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
             exit 1
@@ -702,8 +746,19 @@ jobs:
             echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
             exit 1
@@ -803,8 +858,19 @@ jobs:
             echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
             exit 1
@@ -955,8 +1021,19 @@ jobs:
             echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
             exit 1
@@ -1056,8 +1133,19 @@ jobs:
             echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
             exit 1
@@ -1208,8 +1296,19 @@ jobs:
             echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
             exit 1
@@ -1309,8 +1408,19 @@ jobs:
             echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
             exit 1
@@ -1461,8 +1571,19 @@ jobs:
             echo "::error title=No SUPABASE_ACCESS_TOKEN::accounts without a PLAYWRIGHT_*_PASSWORD secret cannot be minted and would be UNCOVERED"
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=service_role key not returned::the CLI listed no service_role key; magic-link minting is off, so personas would be UNCOVERED"
             exit 1
@@ -1562,8 +1683,19 @@ jobs:
             echo "::error title=press residue NOT swept::no SUPABASE_ACCESS_TOKEN, so no service-role key; the cancelled fixture jobs stay on prod and the proof-photo check did not run."
             exit 1
           fi
-          KEY=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>/dev/null \
-            | jq -r '.[] | select(.name == "service_role") | .api_key')
+          # Retried and loud: under pipefail a failed CLI call with its stderr
+          # sent to /dev/null ended the step with exit 1 and no message (press
+          # 37403674178, legs 3, 4 and 6; nightly-red #2353).
+          KEY=""
+          for attempt in 1 2 3 4; do
+            if OUT=$(supabase projects api-keys --project-ref "$VITE_SUPABASE_PROJECT_ID" -o json 2>api-keys.err); then
+              KEY=$(printf '%s' "$OUT" | jq -r '.[] | select(.name == "service_role") | .api_key')
+              if [ -n "$KEY" ] && [ "$KEY" != "null" ]; then break; fi
+            fi
+            echo "::warning title=api-keys attempt $attempt::$(head -c 300 api-keys.err 2>/dev/null | tr '\n' ' ')"
+            sleep $((attempt * 15))
+          done
+          rm -f api-keys.err
           if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
             echo "::error title=press residue NOT swept::the CLI listed no service_role key; the proof-photo check did not run."
             exit 1

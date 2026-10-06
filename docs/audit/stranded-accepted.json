@@ -91,6 +91,26 @@
       "id": "pr:2320",
       "sha": "7cffbc9b761ab2dac800fec1ec3e8c77c6cdb408",
       "reason": "Auto-land of lane/code-tooling-1005: the whole lane landed in #2318 together with the cross-branch guard fixes (size extractions, picker registry, boot import); main's versions are newer than this copy."
+    },
+    {
+      "id": "pr:2413",
+      "sha": "afbf33fa4cb488050c7318986b8a19d3d573ee43",
+      "reason": "Auto-land of fix/offer-card-deadline-arrival: the whole lane landed in batch 2 (#2406, 2026-10-06); main's versions are newer (the Helpr's step rail moved into appliedJobCard/OfferStepRail.tsx; the deadline plan lives in ResponseDeadlineDialog/offerDeadline.ts). Residual lines are this copy's pre-refactor shape."
+    },
+    {
+      "id": "pr:2414",
+      "sha": "2280e91b0ec29110a57ba4258a74ae40795a37d2",
+      "reason": "Auto-land of fix/stale-bundle-update: landed in batch 2 (#2406, Q1408); main's clientCompat.ts/staleClient.ts are newer (comment trims, and the first check after a load skips the floor RPC, Q104 budget fix 2026-10-06). Residual lines are this copy's older wording."
+    },
+    {
+      "id": "pr:2415",
+      "sha": "f11f58c87239238af497cc29c1317fe9ea9e7d16",
+      "reason": "Auto-land of land-src/batch2-1005, the batch-2 source itself: landed as #2406 (2026-10-06) after a rebase that took main's generated docs and the review fixes (CodeQL literal, lastAuthMethod); main is newer."
+    },
+    {
+      "id": "pr:2416",
+      "sha": "7c569c79602b5778fe7e6c8110861b8111333368",
+      "reason": "Auto-land of lane/q446-one-account: landed in batch 2 (#2406, Q446); main's AccountChoiceDialog/SocialAuthButtons/SignInMethodsCard are newer (the dialog now loads on demand with a retry note, #2421, after an lh-silent-failure review). Residual lines are this copy's pre-refactor shape."
     }
   ]
 }

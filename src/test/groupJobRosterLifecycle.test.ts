@@ -297,16 +297,16 @@ describe("group jobs — per-member roster lifecycle (breakage (b))", () => {
     expect(sql).toContain("to_regprocedure(f) IS NOT NULL");
   });
 
-  it("does not turn the feature on: the schema is phase 1, the flag is not", () => {
-    // Per-member lifecycle closes breakage (b). (d) — reviews — is untouched,
-    // and the per-member PAYOUT release is a design, not code. The flag stays
-    // off until an owner decision covers both.
-    expect(GROUP_JOBS_ENABLED).toBe(false);
-    const gated = migrationNames().filter((f) => {
-      const body = read(`supabase/migrations/${f}`);
-      return /reject_new_group_jobs/i.test(body) && /create\s+trigger/i.test(body);
-    });
-    expect(gated.length, "the server-side refusal must stay installed").toBeGreaterThan(0);
+  it("the flag and the server-side refusal move together (owner flipped group jobs on, 2026-10-06)", () => {
+    // ON: the newest migration touching trg_reject_new_group_jobs must DROP it,
+    // or every crew post the flag now offers is refused by the server.
+    const touching = migrationNames().filter((f) => /trg_reject_new_group_jobs/i.test(read(`supabase/migrations/${f}`))).sort();
+    const newest = read(`supabase/migrations/${touching[touching.length - 1]}`);
+    if (GROUP_JOBS_ENABLED) {
+      expect(newest, "flag on but the newest migration does not drop the refusal trigger").toMatch(/DROP\s+TRIGGER\s+IF\s+EXISTS\s+trg_reject_new_group_jobs/i);
+    } else {
+      expect(newest, "flag off but the refusal trigger is not installed").toMatch(/CREATE\s+TRIGGER\s+trg_reject_new_group_jobs/i);
+    }
     expect(sql, "this migration must not touch the reviews uniqueness (breakage (d))").not.toMatch(
       /ALTER TABLE (public\.)?reviews/i,
     );

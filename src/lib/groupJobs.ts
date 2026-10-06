@@ -109,4 +109,4 @@
  *   4. `reject_new_group_jobs` must be dropped in the SAME migration that
  *      flips this flag, or bundled builds stay refused by the server.
  */
-export const GROUP_JOBS_ENABLED = false;
+export const GROUP_JOBS_ENABLED = true;

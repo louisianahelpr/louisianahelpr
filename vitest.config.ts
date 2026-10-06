@@ -22,7 +22,13 @@ export default defineConfig({
   // cold lazy route then 504s ("Outdated Optimize Dep") until the server
   // re-optimizes, which users see as app-wide "Update ready" / "Try again"
   // screens. Cost a full overnight audit sweep before it was traced.
-  cacheDir: "node_modules/.vitest",
+  // AND NOT under node_modules at all (2026-10-06): every worktree symlinks
+  // node_modules to the main checkout's, so a cacheDir there is ONE cache for
+  // every worktree, and since Vitest clears it on start, two worktrees running
+  // at once wipe each other's optimized deps mid-run. That was today's random
+  // "React.forwardRef / ReactDOM.createPortal is not a function" failures in
+  // files that pass alone. Per checkout, gitignored.
+  cacheDir: ".vitest-cache",
   test: {
     environment: "jsdom",
     // Cap worker threads at 2 (was half the cores). Each jsdom worker holds a

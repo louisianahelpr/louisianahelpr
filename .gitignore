@@ -162,3 +162,6 @@ request-budget/
 
 # Daily morning audit notes: never read; ignored and deleted by .claude/hooks/git-hygiene.sh (owner, 2026-10-04)
 docs/audit/morning/*.md
+
+# Vitest dep-optimizer cache, per checkout (vitest.config.ts cacheDir)
+/.vitest-cache

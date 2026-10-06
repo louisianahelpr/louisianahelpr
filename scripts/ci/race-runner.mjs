@@ -369,7 +369,7 @@ const PAYOUT_LANDS = {
   run: (c, f) =>
     c.query(
       `UPDATE public.jobs SET payment_status = 'released'
-        WHERE id = $1 AND payment_status IN ('payout_pending', 'escrow', 'released') AND is_group_job IS NOT TRUE`,
+        WHERE id = $1 AND is_group_job IS NOT TRUE`,
       [f.job],
     ),
 };

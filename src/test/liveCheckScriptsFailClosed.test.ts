@@ -422,7 +422,9 @@ beforeAll(async () => {
       if (mode === "nolists") return void res.end(JSON.stringify({ external_google_skip_nonce_check: true }));
       const ids = deriveSignInIds(readSignInSources(ROOT));
       return void res.end(JSON.stringify({
-        external_apple_enabled: true, external_google_enabled: true, external_google_skip_nonce_check: true,
+        // ONE defect: Apple still on while the switch is off (Q1425); Google
+        // already off, so the script's only FAIL line is the injected one.
+        external_apple_enabled: true, external_google_enabled: false, external_google_skip_nonce_check: true,
         external_apple_client_id: ids.appleServiceIds.map((x) => x.id).join(","),
         external_google_client_id: ["111111111111-fixtureweb.apps.googleusercontent.com", ...ids.googleNative.map((x) => x.id)].join(","),
       }));

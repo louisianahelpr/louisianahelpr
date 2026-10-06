@@ -11,7 +11,7 @@
 //   3. src/pages/info/legal/legalSections.ts LAST_UPDATED[key] (rendered date)
 // The parity test at legalVersions.parity.test.ts guards drift.
 
-export const LATEST_TERMS_VERSION = "Sep 2026";
+export const LATEST_TERMS_VERSION = "Oct 2026";
 
 // The Privacy Policy is versioned on its own (Q289): legal_acceptances records
 // both, and a Terms-only bump must not claim a Privacy version that never existed.

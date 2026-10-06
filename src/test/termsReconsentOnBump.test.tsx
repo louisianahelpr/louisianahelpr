@@ -23,8 +23,8 @@
  * Proven red 2026-09-23 on origin/main bf4007bed (all three copies "Jun 2026"):
  * the "past Jun 2026" case and the "Jun 2026 account is prompted" case failed.
  *
- * @mutate src/lib/consent.ts | export const LATEST_TERMS_VERSION = "Sep 2026"; | export const LATEST_TERMS_VERSION = "Jun 2026";
- * @mutate supabase/functions/_shared/legalVersions.ts | export const LEGAL_TERMS_VERSION = "Sep 2026"; | export const LEGAL_TERMS_VERSION = "Jun 2026";
+ * @mutate src/lib/consent.ts | export const LATEST_TERMS_VERSION = "Oct 2026"; | export const LATEST_TERMS_VERSION = "Jun 2026";
+ * @mutate supabase/functions/_shared/legalVersions.ts | export const LEGAL_TERMS_VERSION = "Oct 2026"; | export const LEGAL_TERMS_VERSION = "Jun 2026";
  * @mutate scripts/audit/prod-seed.mjs | terms_version_accepted: latestConsentVersions().terms, | terms_version_accepted: "Jun 2026",
  * @mutate src/components/TermsReconsentDialog.tsx | privacy_version: LATEST_PRIVACY_VERSION, | privacy_version: LATEST_TERMS_VERSION,
  * @mutate src/components/TermsReconsentDialog.tsx | Terms of Service\n            </a>\n            . | Terms of Service\n            </a> and Privacy Policy.

@@ -126,10 +126,10 @@ export const TermsContent = () => {
         body={
           <>
             <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.plus.platformFeePercent}% {TIER_PERKS.plus.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name} (minimum covers card processing on small jobs).</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.plus.platformFeePercent}% {TIER_PERKS.plus.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name}.</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.plus.platformFeePercent}% {TIER_PERKS.plus.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name}. Every payout is rounded down to the whole dollar.</p>
 
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
-            <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus that goes to the Helpr, added by the poster for priority placement.</p>
+            <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. The whole bonus goes to the Helpr (split among the crew on a group job); its card-processing fee is paid by the poster, added on top and shown before they pay, and is never taken from the bonus.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
                 tab's "Platform Fees" row, which was a paraphrase of this section.
                 They were the only two fee statements that lived ONLY there, so

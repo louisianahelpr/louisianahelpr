@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { loginNotice, takeAccountChoiceRetry } from "./loginNotice";
+import { loginNotice } from "./loginNotice";
 import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -175,8 +175,7 @@ const Login = () => {
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
-  const [accountChoiceRetry] = useState(() => takeAccountChoiceRetry());
-  const { accountChoice, notice } = loginNotice({ oauthError, accountChoiceRetry, connect: searchParams.get("connect"), signedOutForInactivity, arrivedFromSignup, bouncedFromGatedRoute });
+  const { accountChoice, notice } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, arrivedFromSignup, bouncedFromGatedRoute });
   const queryClient = useQueryClient();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/login"]);

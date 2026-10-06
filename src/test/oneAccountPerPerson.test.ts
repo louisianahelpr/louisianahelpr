@@ -30,7 +30,7 @@
  * @mutate src/components/auth/SocialAuthButtons.tsx | import("@/components/auth/AccountChoiceDialog") | import("@/components/auth/AccountChoiceDialogX")
  * @mutate src/components/auth/SocialAuthButtons.tsx | if (live) failed.current(); | void failed;
  * @mutate src/components/auth/SocialAuthButtons.tsx | markAccountChoiceRetry(); | void 0;
- * @mutate src/pages/auth/Login.tsx | loginNotice({ oauthError, accountChoiceRetry, | loginNotice({ oauthError,
+ * @mutate src/components/auth/SocialAuthButtons.tsx | {retryNote && ( | {false && (
  * @mutate src/components/auth/SocialAuthButtons.tsx | import { useEffect, useRef, useState } from "react"; | import { useEffect, useRef, useState } from "react";\nimport { AccountChoiceDialog as Eager } from "@/components/auth/AccountChoiceDialog";
  * @mutate src/pages/auth/Login.tsx | <SocialAuthButtons mode="signin" initialChoice={accountChoice} /> | <SocialAuthButtons mode="signin" />
  * @mutate supabase/migrations/20261005182630_one_account_per_person.sql | 'message', 'lh_account_choice:' | 'message', 'lh_other:'
@@ -157,7 +157,9 @@ describe("one account per person: a no-match social sign-in never silently creat
     // note for Log In is written BEFORE the download (seen in a browser,
     // 2026-10-05) and Log In reads it.
     expect(buttons).toMatch(/markAccountChoiceRetry\(\);\s*import\("@\/components\/auth\/AccountChoiceDialog"\)/);
-    expect(code("src/pages/auth/Login.tsx")).toMatch(/loginNotice\(\{ oauthError, accountChoiceRetry,/);
+    // ...and the buttons themselves read it, so Log In and Sign Up both say it.
+    expect(buttons).toMatch(/useState\(\(\) => takeAccountChoiceRetry\(\)\)/);
+    expect(buttons).toMatch(/\{retryNote && \(/);
     expect(buttons).toMatch(/useAccountChoiceDialog\(choice !== null, \(\) => \{[\s\S]{0,200}setChoice\(null\)[\s\S]{0,200}toast\.error\(/);
     expect(code("src/pages/auth/Login.tsx")).toMatch(/<SocialAuthButtons mode="signin" initialChoice=\{accountChoice\} \/>/);
     // Both "I'm new here" and "I already have an account" are offered.

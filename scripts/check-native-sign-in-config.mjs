@@ -79,7 +79,7 @@ if (!("external_google_skip_nonce_check" in config)) {
 const results = checkAuthConfig(config, ids);
 // Floor: the Services ID, the App ID, the web-first rule, the Desktop pin, one
 // native Google id and the nonce flag are six checks at the very least.
-if (results.length < 6) couldNot(`only ${results.length} checks were built from the source — refusing to report clean`);
+if (results.length < (ids.socialEnabled === false ? 2 : 6)) couldNot(`only ${results.length} checks were built from the source — refusing to report clean`);
 
 console.log(
   `derived from source: apple ${[...ids.appleServiceIds, ...ids.bundleIds].map((x) => x.id).join(", ")}; google native ${[...new Set(ids.googleNative.map((x) => x.id))].join(", ")}${ids.googleWeb.length ? `; google web ${ids.googleWeb.map((x) => x.id).join(", ")}` : ""}`,

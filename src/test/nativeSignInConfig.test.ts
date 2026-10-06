@@ -44,7 +44,9 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "..", "..");
 const SRC = readSignInSources(ROOT);
-const IDS = deriveSignInIds(SRC);
+// The id rules are what applies when Apple/Google sign-in is ON; the real
+// source has it OFF for launch (Q1425), which the last describe covers.
+const IDS = { ...deriveSignInIds(SRC), socialEnabled: true };
 
 /** A web client id that is none of the app's (a fixture, not a copy of a real id). */
 const WEB = "111111111111-fixtureweb.apps.googleusercontent.com";
@@ -81,7 +83,7 @@ describe("the ids are derived from the shipped source", () => {
   });
 
   it("the CLI's comment handling derives exactly what blankComments does", () => {
-    expect(deriveSignInIds(SRC, blankComments)).toEqual(IDS);
+    expect({ ...deriveSignInIds(SRC, blankComments), socialEnabled: true }).toEqual(IDS);
   });
 
   it("an id that only appears in a comment is not derived", () => {
@@ -182,5 +184,16 @@ describe("the nightly runs it and fails on its outcome", () => {
   it("and turns the night red when it fails", () => {
     expect(drift).toContain("NATIVE_SIGN_IN: ${{ steps.native_sign_in.outcome }}");
     expect(drift).toMatch(/if \[ "\$\{NATIVE_SIGN_IN:-success\}" = "failure" \]; then[\s\S]*?failed=1/);
+  });
+});
+
+describe("Apple + Google sign-in OFF for launch (Q1425)", () => {
+  it("the real source has the switch off, and then only 'both providers disabled' is checked", () => {
+    const ids = deriveSignInIds(SRC);
+    expect(ids.socialEnabled).toBe(false);
+    const ok = checkAuthConfig({ external_apple_enabled: false, external_google_enabled: false }, ids);
+    expect(ok.map((r) => r.ok)).toEqual([true, true]);
+    const bad = checkAuthConfig({ external_apple_enabled: true, external_google_enabled: false }, ids);
+    expect(bad.filter((r) => !r.ok).map((r) => r.check)).toEqual(["external_apple_enabled is false"]);
   });
 });

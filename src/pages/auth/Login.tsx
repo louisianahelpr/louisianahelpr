@@ -14,6 +14,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
+import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
@@ -454,7 +455,7 @@ const Login = () => {
             what read as wrong. Splitting the two sign-in METHODS uses the width
             for something real instead of inflating one field. Stacks below lg,
             unchanged. */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch">
+        <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full max-w-md mx-auto"}>
         {/* noValidate: `required` stays on both inputs for semantics, but the
             browser's own validation bubble would intercept the submit and
             replace our inline messages with a native tooltip — so the "name
@@ -599,6 +600,7 @@ const Login = () => {
             column still handles the stacked layout below lg. Its own grid
             column so it sits between the two methods rather than inside
             either. */}
+        {SOCIAL_SIGN_IN_ENABLED && (
         <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
           <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
@@ -609,6 +611,7 @@ const Login = () => {
           </span>
           <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         </div>
+        )}
 
         {/* Vertically centred against the taller credentials column, so the
             social buttons sit level with the form rather than hugging the top
@@ -633,6 +636,8 @@ const Login = () => {
             axe skips it because its wrapper is aria-hidden, but aria-hidden
             does nothing for a sighted user reading low-contrast text, so "not
             flagged" was never the same as "fine". */}
+        {SOCIAL_SIGN_IN_ENABLED && (
+        <>
         <div className="flex items-center gap-3 lg:hidden">
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
@@ -645,6 +650,8 @@ const Login = () => {
         </div>
 
         <SocialAuthButtons mode="signin" initialChoice={accountChoice} />
+        </>
+        )}
         {/* Under the providers (owner). It has been outside the card and under
             both columns; back here, closing the social column. */}
         <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

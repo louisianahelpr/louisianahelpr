@@ -101,6 +101,7 @@ function stringProps(body) {
 export function deriveSignInIds(src, blank = stripComments) {
   const problems = [];
   const social = blank(src.socialAuth);
+
   const init = /SocialLogin\.initialize\(\s*\{([\s\S]*?)\}\s*\)\s*;/.exec(social);
   if (!init) throw new Error(`${SIGN_IN_SOURCES.socialAuth}: no SocialLogin.initialize({...}) call found`);
   const appleBody = objectBody(init[1], "apple");
@@ -157,7 +158,12 @@ export function deriveSignInIds(src, blank = stripComments) {
 
   if (!appleServiceIds.length) throw new Error(`${SIGN_IN_SOURCES.socialAuth}: apple: { clientId } not found`);
   if (!googleNative.length) throw new Error(`${SIGN_IN_SOURCES.socialAuth}: no native google client id (iOSClientId) found`);
-  return { appleServiceIds, bundleIds, googleNative, googleWeb, providers, problems };
+  // Q1425 (owner, 2026-10-06): Apple + Google sign-in OFF for launch. The
+  // switch decides what the live config must say (both providers disabled).
+  const sw = /export\s+const\s+SOCIAL_SIGN_IN_ENABLED\s*=\s*(true|false)\s*;/.exec(social);
+  if (!sw) throw new Error(`${SIGN_IN_SOURCES.socialAuth}: no SOCIAL_SIGN_IN_ENABLED switch found`);
+  const socialEnabled = sw[1] === "true";
+  return { appleServiceIds, bundleIds, googleNative, googleWeb, providers, problems, socialEnabled };
 }
 
 /** A comma list from the auth config, trimmed, empties dropped. null when the key is not a string. */
@@ -173,6 +179,14 @@ export function idList(value) {
 export function checkAuthConfig(config, ids) {
   const results = [];
   const add = (ok, check, detail) => results.push({ ok, check, detail });
+  if (ids.socialEnabled === false) {
+    // Off for launch: the providers must be OFF too, or a crafted request
+    // could still sign in through an entry point the app no longer shows.
+    for (const key of ["external_apple_enabled", "external_google_enabled"]) {
+      add(config[key] === false, `${key} is false`, `SOCIAL_SIGN_IN_ENABLED is false (Q1425); got ${JSON.stringify(config[key])}`);
+    }
+    return results;
+  }
   const apple = idList(config.external_apple_client_id) ?? [];
   const google = idList(config.external_google_client_id) ?? [];
   // One check per id; an id two sources carry names both.

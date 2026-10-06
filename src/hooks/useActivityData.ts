@@ -13,7 +13,7 @@ import { checkDrift } from "@/lib/checkDrift";
 import { report } from "@/lib/errorLogger";
 import { crewTipsFor } from "@/lib/crewTips";
 import { unwrap } from "@/lib/supabaseResult";
-import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
+import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows } from "@/lib/jobColumns";
 import { readApplicationRows, readableApplicationRows } from "@/lib/applicationColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
@@ -179,11 +179,14 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     // signed-in client (20260915045110, owner decision 2026-09-14), and `*`
     // would 42501 the whole read. The poster gets their own offerees from
     // get_job_offer_targets below and they are merged back onto the rows.
-    supabase
+    // Q1438: plus the poster's own materials note, which their card shows.
+    // It is newer than the deploy that may serve this build, so it is read
+    // through readJobsAheadOfDb (dropped and asked again on 42703).
+    readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) => supabase
       .from("jobs")
-      .select(JOB_READABLE_COLUMNS)
+      .select(columns)
       .eq("customer_id", userId)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })),
     // `status` rides along so the two counts below can be told apart. Without
     // it every application ever filed counted as an applicant, including the
     // ones already declined.

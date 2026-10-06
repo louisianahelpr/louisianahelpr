@@ -254,7 +254,7 @@ describe("Flexible Schedule is a SUBSTITUTE for a start time, end to end", () =>
       isFlexibleSchedule: true,
       estimatedHours: "2",
       budget: FILLED.budget,
-      specialRequirements: "",
+      materialsNote: null,
       isRecurring: false,
       recurrenceInterval: "",
       recurrenceEndDate: "",

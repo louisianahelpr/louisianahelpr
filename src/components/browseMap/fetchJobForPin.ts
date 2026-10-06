@@ -24,6 +24,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { formatName } from "@/lib/utils";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
 
 /**
  * The same column list `useDashboardData` selects for the feed, minus nothing:
@@ -32,18 +33,19 @@ import { formatName } from "@/lib/utils";
  * get by tapping the very same job in the list.
  */
 const BROWSE_COLUMNS =
-  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish";
+  "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish";
 
 export async function fetchJobForPin(jobId: string): Promise<EnrichedJob | null> {
   if (!jobId) return null;
 
   // `maybeSingle`, not `single`: a job that closed between the map load and the
   // tap is an expected outcome, not an error to report.
-  const { data, error } = await supabase
+  // Q1438: readJobsAheadOfDb, because BROWSE_COLUMNS names materials_note.
+  const { data, error } = await readJobsAheadOfDb(BROWSE_COLUMNS, (columns) => supabase
     .from("open_jobs_browse")
-    .select(BROWSE_COLUMNS)
+    .select(columns)
     .eq("id", jobId)
-    .maybeSingle();
+    .maybeSingle());
 
   // The error is NOT dropped — it is the caller's cue to tell the user the job
   // couldn't be opened instead of leaving the tap dead, which is the defect

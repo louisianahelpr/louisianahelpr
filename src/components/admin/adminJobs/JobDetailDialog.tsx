@@ -9,6 +9,7 @@ import { formatJobDate } from "@/lib/dateUtils";
 import { formatTimestamp, formatCategory, formatPrice } from "@/lib/format";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { openableDocumentUrl } from "@/lib/storagePath";
+import { JobNotes } from "@/components/job-card/JobNotes";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -161,12 +162,10 @@ export const JobDetailDialog = ({
               )}
             </div>
 
-            {detailJob.special_requirements && (
-              <div className="rounded-ds-sm bg-secondary/30 p-3">
-                <p className="text-ds-11 text-muted-foreground mb-1">Special Requirements</p>
-                <p className="text-ds-13 text-foreground">{detailJob.special_requirements}</p>
-              </div>
-            )}
+            {/* Q1438: the public materials note. The Access & Parking notes
+                are private to the poster and the booked Helpr(s) by RLS
+                (job_access_notes), so this dialog never has them. */}
+            <JobNotes materials={detailJob.materials_note} />
 
             {detailJob.revision_note && (
               <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">

@@ -34,7 +34,14 @@ export interface BuildJobInsertPayloadInput {
   isFlexibleSchedule: boolean;
   estimatedHours: string;
   budget: string;
-  specialRequirements: string;
+  /**
+   * Q1438: the poster's "Materials I'll provide" note, already trimmed (null
+   * when the toggle is off or the note is blank). Public, so it rides on the
+   * job row; the Access & Parking notes are NOT on this payload: they are
+   * private to the booked Helpr and go to job_access_notes after the insert
+   * (useJobSubmit). jobs.special_requirements is no longer written at all.
+   */
+  materialsNote?: string | null;
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;
@@ -102,7 +109,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     isFlexibleSchedule,
     estimatedHours,
     budget,
-    specialRequirements,
+    materialsNote,
     isRecurring,
     recurrenceInterval,
     recurrenceEndDate,
@@ -177,7 +184,11 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     is_flexible_schedule: isFlexibleSchedule,
     estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
     budget: parseFloat(budget),
-    special_requirements: specialRequirements.trim() || null,
+    // Sent ONLY when there is a note: a key the database does not have yet
+    // would fail the whole post in the minutes between the web deploy and
+    // db-deploy (the series_split_ok pattern below; the deploy-lag retry in
+    // useJobSubmit also strips it).
+    ...(materialsNote?.trim() ? { materials_note: materialsNote.trim() } : {}),
     is_recurring: isRecurring,
     recurrence_interval: isRecurring ? recurrenceInterval : null,
     // DERIVED from the schedule, not typed. The poster picks weekdays and a

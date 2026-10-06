@@ -28,6 +28,8 @@ import { posterOwesConfirmation } from "./postedJobCard/steps/posterStepContract
    its dots from them. A mock that dropped them made every card throw, which is
    a truthful failure: the card genuinely needs that derivation now. */
 // Q344: the cards read unsettled decided disputes through React Query; none here.
+// Q1438: the Access & Parking note is a network read once a card opens; none here.
+vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 // The card reads the poster's instant-release flag; these tests render without a QueryClient.
 vi.mock("@/hooks/useCurrentUser", async (importOriginal) => ({

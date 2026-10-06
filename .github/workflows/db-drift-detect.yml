@@ -251,6 +251,23 @@ jobs:
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: node scripts/check-identity-linking.mjs
 
+      # Q1323 (1): native iPhone Sign in with Apple / Google. GoTrue refuses an
+      # id token whose `aud` is not in its client-id list, and on 2026-10-05
+      # prod's lists missed the App ID com.Helpr and the iOS Google client (and
+      # the web Google client was a Desktop one). The ids are DERIVED from
+      # src/lib/socialAuth.ts, capacitor.config.ts, the Xcode project and
+      # Info.plist, then compared with the LIVE /config/auth (one read-only
+      # GET; a failed read is exit 2, never green). Same continue-on-error +
+      # fail-at-the-end shape.
+      - name: Native sign-in client ids are accepted by prod auth
+        id: native_sign_in
+        continue-on-error: true
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-native-sign-in-config.mjs
+
       # The TABLE half of the excess-anon-grant class (updatable_views is the
       # view half). anon held UPDATE/INSERT/DELETE on public.jobs (H-004) and
       # SELECT on admin/money/trust tables (AUTHZ-02) — RLS the only gate. Prod's
@@ -561,6 +578,7 @@ jobs:
           JOBS_DYNAMIC_WRITERS: ${{ steps.jobs_dynamic_writers.outcome }}
           LIVE_PRIVILEGES: ${{ steps.live_privileges.outcome }}
           IDENTITY_LINKING: ${{ steps.identity_linking.outcome }}
+          NATIVE_SIGN_IN: ${{ steps.native_sign_in.outcome }}
           ANON_TABLE_GRANTS: ${{ steps.anon_table_grants.outcome }}
           BAN_GATE_COVERAGE: ${{ steps.ban_gate_coverage.outcome }}
           FUNCTION_BODY_DRIFT: ${{ steps.function_body_drift.outcome }}
@@ -589,6 +607,10 @@ jobs:
           fi
           if [ "${IDENTITY_LINKING:-success}" = "failure" ]; then
             echo "::error::Signing an existing email account in with Apple/Google would duplicate the account, lose its data or 500 — or the auth config it rests on drifted, or the live run failed. See 'Identity linking keeps one account and its data' above (OA-018)."
+            failed=1
+          fi
+          if [ "${NATIVE_SIGN_IN:-success}" = "failure" ]; then
+            echo "::error::Prod Supabase Auth would refuse an Apple/Google client id the app passes (the App ID, the Services ID, or a native Google client), the web Google client is not first or is the old Desktop one, skip_nonce_check is off — or the live read failed. See 'Native sign-in client ids are accepted by prod auth' above (docs/OPEN.md Q1323)."
             failed=1
           fi
           if [ "${ANON_TABLE_GRANTS:-success}" = "failure" ]; then

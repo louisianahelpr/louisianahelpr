@@ -53,6 +53,7 @@
 // @mutate scripts/check-stripe-restore-drift.mjs | if (!isStripeList(body)) unmeasured( | if (false) unmeasured(
 // @mutate scripts/check-stripe-restore-drift.mjs | if (Object.values(dbCounts).every((n) => n === 0)) { | if (false) {
 // @mutate scripts/check-edge-build-stamps.mjs | if (result.mismatched.length) {\n  for | if (false) {\n  for
+// @mutate scripts/check-native-sign-in-config.mjs | if (idList(config[key]) === null) couldNot( | if (false) couldNot(
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
@@ -61,6 +62,7 @@ import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
+import { deriveSignInIds, readSignInSources } from "../../scripts/lib/nativeSignInIds.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");
 
@@ -290,6 +292,16 @@ const HERMETIC: Record<string, Case[]> = {
     // sign-in to /home (neither site_url's host nor uri_allow_list covers it).
     { label: "redirect not allow-listed", env: MGMT("noallow"), says: /FAIL config redirect allow-list covers https:\/\/www\.louisianahelpr\.com\/home/ },
   ],
+  // Q1323 (db-drift-detect.yml nightly): GET /config/auth (LH_SUPABASE_API_BASE),
+  // compared with the Apple/Google client ids derived from the source.
+  "scripts/check-native-sign-in-config.mjs": [
+    { label: "no credentials", says: /could not check the native sign-in client ids: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required/ },
+    { label: "Management API 500", env: MGMT("fail"), says: /could not check the native sign-in client ids: auth config: Management API 500/ },
+    { label: "Management API []", env: MGMT("empty"), says: /auth config: response was not a config object — refusing to report clean/ },
+    { label: "config without client-id lists", env: MGMT("nolists"), says: /auth config has no string external_apple_client_id — refusing to report clean/ },
+    // The bug itself: the App ID (bundle) is not an accepted Apple client id.
+    { label: "App ID missing from the Apple list", env: MGMT("nobundle"), says: /FAIL external_apple_client_id includes the App ID \(bundle\) / },
+  ],
   // BR-024 (functions-deploy.yml): the build-stamp probe of every function.
   // A 500 or a bare 200 carries no x-lh-build header, so every function is a
   // mismatch — never "0 of 0 checked, clean".
@@ -397,6 +409,17 @@ beforeAll(async () => {
       const checks = ["A", "A", "A", "A", "B", "B", "B", "B", "C", "C", "C", "D"].map((c, i) => ({ case: c, check: `c${i}`, ok: true, got: 1 }));
       res.statusCode = 400;
       return void res.end(JSON.stringify({ message: `Failed to run sql query: ERROR:  P0001: OA018_RESULT:${JSON.stringify({ identities_table: mode === "noallow", checks })}\nCONTEXT:  PL/pgSQL function inline_code_block line 131 at RAISE` }));
+    }
+    // check-native-sign-in-config: a config that is right except for the one
+    // field each mode removes, built from the ids the source derives.
+    if ((mode === "nobundle" || mode === "nolists") && req.url?.endsWith("/config/auth")) {
+      if (mode === "nolists") return void res.end(JSON.stringify({ external_google_skip_nonce_check: true }));
+      const ids = deriveSignInIds(readSignInSources(ROOT));
+      return void res.end(JSON.stringify({
+        external_apple_enabled: true, external_google_enabled: true, external_google_skip_nonce_check: true,
+        external_apple_client_id: ids.appleServiceIds.map((x) => x.id).join(","),
+        external_google_client_id: ["111111111111-fixtureweb.apps.googleusercontent.com", ...ids.googleNative.map((x) => x.id)].join(","),
+      }));
     }
     if (mode === "one" && req.url?.includes("/rest/v1/profiles")) {
       return void res.end(JSON.stringify([{ user_id: "00000000-0000-0000-0000-000000000001", email: "helpr-e2e-poster-0902@mailinator.com", ban_status: "active" }]));

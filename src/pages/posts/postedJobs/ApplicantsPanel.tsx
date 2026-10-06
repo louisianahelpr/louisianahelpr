@@ -816,13 +816,11 @@ function ApplicantVerificationChip({
 }) {
   if (idVerified) {
     return (
-      // ID verification has ONE form (IdVerifiedPill.tsx, Q987): the gold pill.
       <span
         className="inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-ds-10 font-sans font-semibold"
         style={ID_VERIFIED_PILL_STYLE}
       >
-        <IdVerifiedShield className="w-3 h-3" />
-        {ID_VERIFIED_LABEL}
+        <IdVerifiedShield className="w-3 h-3" />{ID_VERIFIED_LABEL}
       </span>
     );
   }

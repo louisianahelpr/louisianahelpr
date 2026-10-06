@@ -213,7 +213,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   for f in $CHANGED_ALL; do
     b=$(basename "$f")
     case "$b" in *.md|*.json|*.snap) continue ;; esac
-    NAMED_TESTS="$NAMED_TESTS $(git grep -l -F -- "$b" -- 'src/**/*.test.ts' 'src/**/*.test.tsx' 2>/dev/null | tr '\n' ' ')"
+    # git grep exits 1 on no match; under pipefail that ended land.sh silently.
+    NAMED_TESTS="$NAMED_TESTS $( { git grep -l -F -- "$b" -- 'src/**/*.test.ts' 'src/**/*.test.tsx' || [ $? -eq 1 ]; } | tr '\n' ' ')"
   done
   # Two runs: vitest intersects file filters with --changed, so they cannot share one.
   npx vitest run --changed origin/main --passWithNoTests

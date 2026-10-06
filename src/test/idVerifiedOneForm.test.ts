@@ -23,6 +23,7 @@ const ROOT = join(__dirname, "..", "..");
 const WORDING = /["'`>]\s*(?:✓\s*)?(?:ID verified(?: by Stripe)?|ID VERIFIED|Stripe verified|Identity verified)\b/i;
 
 /** Places that state the fact but are not a badge; each says why. */
+// @two-way src/test/idVerifiedOneForm.test.ts:EXEMPT is exact: every entry still matches
 const EXEMPT: Record<string, string> = {
   "src/components/AwardGateDialog.tsx": "a checklist requirement row in the hire gate (met / not met), not a badge",
   "src/components/admin/adminUserHelpers.tsx": "admin-only console status badges, never shown to members",

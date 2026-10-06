@@ -45,5 +45,5 @@ describe("Q1245: a booked job's terms are locked against the poster", () => {
   });
 });
 
-// @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'requires_w9',\n |
-// @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'business_id'\n |     'location_x'\n
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'requires_w9',\n |
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'business_id',\n |     'location_x',\n

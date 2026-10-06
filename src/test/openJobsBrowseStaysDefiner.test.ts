@@ -25,9 +25,9 @@
  * blanked with the shared helper.
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
-// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql |     round(latitude, 2) AS latitude, |     latitude,
-// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql |         END AS crew_spots_open\n   FROM jobs |         END AS crew_spots_open,\n    is_seed\n   FROM jobs
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     round(latitude, 2) AS latitude, |     latitude,
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     materials_note\n   FROM jobs |     materials_note,\n    is_seed\n   FROM jobs
 // @mutate supabase/migrations/20260312230239_44ebecc0-fa86-48da-af48-936d4c12e1a1.sql | USING (\n  auth.uid() = customer_id\n  OR auth.uid() = helper_id\n); | USING (\n  status = 'open'::job_status\n  OR auth.uid() = customer_id\n  OR auth.uid() = helper_id\n);
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -104,6 +104,11 @@ const PINNED_COLUMNS = [
   // Q1409 (20261006023437): how many spots on a crew a Helpr can apply for
   // (public.crew_spots_open, a count; the roster itself stays private).
   "crew_spots_open",
+  // Q1438 (20261006204113): the poster's "Materials I'll provide" note, shown
+  // to everyone viewing the job by owner decision (2026-10-06). The Access &
+  // Parking notes are NOT here: they live in job_access_notes, which no
+  // browse surface reads (src/test/jobAccessNotesNeverBrowse.test.ts).
+  "materials_note",
 ];
 
 /** Live jobs SELECT policies, replayed from the ledger. */

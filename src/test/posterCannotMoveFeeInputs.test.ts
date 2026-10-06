@@ -34,8 +34,8 @@ import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
  * src/test/pglite/posterFeeInputsLocked.pglite.mjs.
  */
 
-// @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'helper_confirmed_at',\n    'helper_dayof_confirmed_at',\n |     'helper_confirmed_at',\n
-// @mutate supabase/migrations/20261004193548_booked_job_terms_locked.sql |     'date_needed',\n    'start_time',\n |     'date_needed',\n
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'helper_confirmed_at',\n    'helper_dayof_confirmed_at',\n |     'helper_confirmed_at',\n
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     'date_needed',\n    'start_time',\n |     'date_needed',\n
 // @mutate supabase/functions/_shared/cancellationFee.ts |   cancelled_at: string \| null;\n  helper_id: string \| null; |   cancelled_at: string \| null;\n  helper_id: string \| null;\n  is_urgent_x: string \| null;
 
 const REPO = resolve(__dirname, "..", "..");

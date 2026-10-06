@@ -36,6 +36,8 @@ pinJobClock();
  */
 
 // Q344: the cards read unsettled decided disputes through React Query; none here.
+// Q1438: the Access & Parking note is a network read once a card opens; none here.
+vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 })); // Q753: these cards now read the viewer's first-payout fee; no QueryClient here
 vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 vi.mock("@/hooks/useCurrentUser", () => ({

@@ -1777,6 +1777,49 @@ export type Database = {
           },
         ]
       }
+      job_access_notes: {
+        Row: {
+          created_at: string
+          job_id: string
+          notes: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          notes: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          notes?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_access_notes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_access_notes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_access_notes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_arrival_confirm_nudges: {
         Row: {
           created_at: string
@@ -2386,6 +2429,7 @@ export type Database = {
           latitude: number | null
           location: string | null
           longitude: number | null
+          materials_note: string | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
           parent_job_id: string | null
@@ -2503,6 +2547,7 @@ export type Database = {
           latitude?: number | null
           location?: string | null
           longitude?: number | null
+          materials_note?: string | null
           no_show_alert_sent_at?: string | null
           offered_to_helper_id?: string | null
           parent_job_id?: string | null
@@ -2620,6 +2665,7 @@ export type Database = {
           latitude?: number | null
           location?: string | null
           longitude?: number | null
+          materials_note?: string | null
           no_show_alert_sent_at?: string | null
           offered_to_helper_id?: string | null
           parent_job_id?: string | null
@@ -6030,6 +6076,7 @@ export type Database = {
           latitude: number | null
           location: string | null
           longitude: number | null
+          materials_note: string | null
           offered_to_helper_id: string | null
           parent_job_id: string | null
           parish: string | null
@@ -6073,6 +6120,7 @@ export type Database = {
           latitude?: never
           location?: never
           longitude?: never
+          materials_note?: string | null
           offered_to_helper_id?: never
           parent_job_id?: string | null
           parish?: string | null
@@ -6116,6 +6164,7 @@ export type Database = {
           latitude?: never
           location?: never
           longitude?: never
+          materials_note?: string | null
           offered_to_helper_id?: never
           parent_job_id?: string | null
           parish?: string | null
@@ -6399,6 +6448,7 @@ export type Database = {
         Args: { _job_id: string; _sender: string }
         Returns: boolean
       }
+      can_read_job_access_notes: { Args: { _job_id: string }; Returns: boolean }
       can_review_job: {
         Args: { _job_id: string; _reviewer_id: string }
         Returns: boolean
@@ -6812,6 +6862,7 @@ export type Database = {
           latitude: number | null
           location: string | null
           longitude: number | null
+          materials_note: string | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
           parent_job_id: string | null
@@ -6954,6 +7005,7 @@ export type Database = {
           latitude: number | null
           location: string | null
           longitude: number | null
+          materials_note: string | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
           parent_job_id: string | null
@@ -7864,6 +7916,10 @@ export type Database = {
       settle_one_off_jobs_for_banned_account: {
         Args: { p_user: string }
         Returns: Json
+      }
+      split_special_requirements: {
+        Args: { p_text: string }
+        Returns: { access: string; materials: string }[]
       }
       stamp_dispute_settlement_claim: {
         Args: { _job_id: string; _token: string }

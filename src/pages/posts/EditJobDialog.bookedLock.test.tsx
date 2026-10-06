@@ -18,6 +18,8 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import type { Job } from "../../components/job-card/activityConstants";
 
 const update = vi.fn();
+// Q1438: the Access & Parking note is a network read once a card opens; none here.
+vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/components/ui/select", () => ({
   Select: ({ children, disabled }: { children: ReactNode; disabled?: boolean }) => <div data-testid="category-select" aria-disabled={disabled ? "true" : "false"}>{children}</div>,
@@ -41,7 +43,7 @@ const { EditJobDialog } = await import("./EditJobDialog");
 
 const job = (over: Partial<Job>) =>
   ({ id: "j1", title: "Shelves", description: "Hang two", category: "cleaning", location: "Baton Rouge  ", date_needed: jobLocalDateISO(7),
-     start_time: "09:00", special_requirements: "Gate code 1234", helper_id: null, payment_status: "unpaid", stripe_session_id: null,
+     start_time: "09:00", materials_note: "Ladder in the garage", helper_id: null, payment_status: "unpaid", stripe_session_id: null,
      is_flexible_schedule: false, require_photo_proof: true, ...over }) as unknown as Job;
 
 const saveAndConfirm = async () => {
@@ -59,7 +61,7 @@ describe("a booked job's place and details are not offered for editing (Q1204)",
   it("booked: every locked input is disabled and the one line says why", () => {
     render(<EditJobDialog job={job({ helper_id: "h1" })} onClose={() => {}} onSaved={() => {}} />);
     expect(screen.getByText(LOCK_LINE)).toBeTruthy();
-    for (const name of ["Job title", "Description", "Location", "Special requirements"]) {
+    for (const name of ["Job title", "Description", "Location", "Materials I'll provide", "Access and parking notes"]) {
       expect((screen.getByLabelText(name) as HTMLInputElement).disabled, name).toBe(true);
     }
     expect(screen.getByTestId("category-select").getAttribute("aria-disabled")).toBe("true");

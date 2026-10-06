@@ -13,7 +13,7 @@ const base: BuildJobInsertPayloadInput = {
   zipCode: "70360", parish: "Terrebonne",
   // 2026-09-07 is a Monday.
   dateNeeded: "2026-09-07", startTime: "09:00", isFlexibleSchedule: false,
-  estimatedHours: "2", budget: "50", specialRequirements: "",
+  estimatedHours: "2", budget: "50", materialsNote: null,
   isRecurring: false, recurrenceInterval: "weekly", recurrenceEndDate: "",
   isGroupJob: false, helpersNeeded: "2", isUrgent: false, urgentFee: "5",
   platformFee: 15, salesTaxRate: 0, offerToHelperId: null,

@@ -30,7 +30,7 @@ const base: BuildJobInsertPayloadInput = {
   category: "pet_care", streetAddress: "1 Main", city: "Houma", addrState: "LA",
   zipCode: "70360", parish: "Terrebonne",
   dateNeeded: "2026-09-07", startTime: "09:00", isFlexibleSchedule: false,
-  estimatedHours: "1", budget: "30", specialRequirements: "",
+  estimatedHours: "1", budget: "30", materialsNote: null,
   isRecurring: true, recurrenceInterval: "weekly", recurrenceEndDate: "",
   recurrenceDays: [1, 3], recurrenceWeeks: 4,
   isGroupJob: false, helpersNeeded: "2", isUrgent: false, urgentFee: "5",

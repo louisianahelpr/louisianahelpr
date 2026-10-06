@@ -30,7 +30,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
 // @mutate supabase/migrations/20261006031016_crew_spots_open_not_client_callable.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;
-// @mutate supabase/migrations/20261006042617_ban_review_hides_posts_on_crew_surfaces.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0))
+// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id)) ELSE 0 END) > 0))
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
@@ -95,7 +95,8 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   it("open_jobs_browse lists the re-listed spot, counts it INLINE (the same rule), and stays a definer view", () => {
     const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
-    expect([PRIVATE, RESTATED]).toContain(newestView);
+    // 20261006204113 (Q1438) restates it verbatim plus materials_note at the end.
+    expect([PRIVATE, RESTATED, "20261006204113_job_materials_and_access_notes.sql"]).toContain(newestView);
     const sql = readFileSync(resolve(MIGRATIONS, newestView as string), "utf8");
     const at = sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse");
     const view = blankSqlComments(sql.slice(at, sql.indexOf("$v$;", at)));

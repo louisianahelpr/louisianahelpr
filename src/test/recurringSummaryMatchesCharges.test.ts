@@ -37,7 +37,7 @@ const base: BuildJobInsertPayloadInput = {
   category: "yard_work", streetAddress: "1 Main", city: "Houma", addrState: "LA",
   zipCode: "70360", parish: "Terrebonne",
   dateNeeded: "2026-10-02", startTime: "09:00", isFlexibleSchedule: false,
-  estimatedHours: "2", budget: "10", specialRequirements: "",
+  estimatedHours: "2", budget: "10", materialsNote: null,
   isRecurring: true, recurrenceInterval: "weekly", recurrenceEndDate: "",
   isGroupJob: false, helpersNeeded: "2", isUrgent: false, urgentFee: "5",
   platformFee: 15, salesTaxRate: 0, offerToHelperId: null,

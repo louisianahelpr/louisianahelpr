@@ -1,6 +1,6 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat, Wrench,
 } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
@@ -734,6 +734,26 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 every card (no decision value) and added a third wrapped line
                 on small phones. Freshness is still signalled by the "New"
                 chip (<30m) at the head of the row. */}
+            {job.materials_note?.trim() && (
+              // Q1438 (owner, 2026-10-06): the poster provides materials,
+              // said on the browse card too. The note itself is read in the
+              // job detail (JobNotes); the card only carries the signal,
+              // because every card stays one height and this row never
+              // wraps (see the note above the row). The wrench is the post
+              // form's own "I'll Provide Materials" glyph. It never shrinks;
+              // its word appears from 430px, and below that the icon carries
+              // the sr-only label (the city keeps the width, as for the
+              // countdown below).
+              <span
+                className="shrink-0 inline-flex items-center gap-1"
+                data-testid="job-card-materials"
+                title={`Materials provided: ${job.materials_note.trim()}`}
+              >
+                <Wrench aria-hidden className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                <span className="font-sans whitespace-nowrap hidden [@media(min-width:430px)]:inline">Materials</span>
+                <span className="sr-only [@media(min-width:430px)]:hidden">Materials provided</span>
+              </span>
+            )}
             {job.is_group_job && (
               // THE SAME CHIP the activity cards render (JobHelprsChip, in
               // JobCardMetaRow) — one component now states "how many Helprs"

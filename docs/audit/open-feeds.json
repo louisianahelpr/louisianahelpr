@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-06T21:53Z",
+  "measured_at": "2026-10-06T22:17Z",
   "issues": {
     "readable": true,
     "open": [
@@ -53,16 +53,6 @@
         "number": 2462,
         "title": "nightly-red: slow-network",
         "label": "nightly-red"
-      },
-      {
-        "number": 2478,
-        "title": "prod-errors: real users are hitting error screens",
-        "label": "prod-errors"
-      },
-      {
-        "number": 2480,
-        "title": "nightly-red: prod-errors",
-        "label": "nightly-red"
       }
     ]
   },
@@ -84,14 +74,6 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
-      },
-      {
-        "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: staleness-watch",
-        "issue": 2198
       },
       {
         "fingerprint": "6389f98a9f666200913c7cf501dc289d",
@@ -142,12 +124,12 @@
         "issue": 2462
       },
       {
-        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
+        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
-        "title": "nightly-red: schedule-heartbeat",
-        "issue": 2465
+        "title": "nightly-red: prod-errors",
+        "issue": 2480
       },
       {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
@@ -174,14 +156,6 @@
         "issue": null
       },
       {
-        "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
-        "source_kind": "nightly_red",
-        "source": "schedule-stalled",
-        "status": "open",
-        "title": "🔴 # scheduled workflow(s) have stopped running",
-        "issue": 2464
-      },
-      {
         "fingerprint": "a5d62d53b6a4bea80076ec889713b41d",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -196,6 +170,14 @@
         "status": "open",
         "title": "stripe-connect cleared unusable payout account <id>",
         "issue": null
+      },
+      {
+        "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
+        "source_kind": "nightly_red",
+        "source": "prod-errors",
+        "status": "open",
+        "title": "prod-errors: real users are hitting error screens",
+        "issue": 2478
       }
     ]
   },
@@ -222,6 +204,7 @@
     "issue #2480": "Q1432",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
+    "ledger 1ef4b10bb74a": "Q1437",
     "ledger 3a3460b71be7": "Q1428",
     "ledger 43d77e26f272": "Q1429",
     "ledger 4aa239aefeb6": "Q1433",
@@ -235,6 +218,7 @@
     "ledger a8ceee56bbd5": "Q1430",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger acf4ea2ff283": "Q1436",
-    "ledger db0fb15c4ec3": "Q787"
+    "ledger db0fb15c4ec3": "Q787",
+    "ledger fad6897fcfae": "Q1438"
   }
 }

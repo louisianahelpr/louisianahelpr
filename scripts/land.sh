@@ -17,12 +17,13 @@
 # The PR path: push the verified HEAD to land/<branch>-<worktree hash> (force:
 # it is this worktree's own branch), open a PR if none is open, turn on
 # auto-merge with REBASE (not squash: a squash rewrites the messages and drops
-# per-commit Sensitive-Review trailers), then wait. Strict is on again, and the
-# script still keeps the branch current: when main moves first (BEHIND, or
-# DIRTY because another landing regenerated the same files) it loops: fetch,
-# rebase, refresh, re-run the guards, force-push. A failed check
-# stops the script red with the check names. The work is landed only when the
-# PR shows MERGED.
+# per-commit Sensitive-Review trailers), label it `land-queue`, then wait.
+# Strict is on again (2026-10-05). A PR left BEHIND by another merge waits for
+# the land queue (scripts/land-queue.mjs, .github/workflows/land-queue.yml),
+# which rebases only the head of the queue; a DIRTY one (another landing
+# regenerated the same files) loops here: fetch, rebase, refresh, re-run the
+# guards, force-push. A failed check stops the script red with the check
+# names. The work is landed only when the PR shows MERGED.
 #
 # Why the refresh (2026-09-27): agents landed with `git push --no-verify origin
 # HEAD:main`, which skips the pre-commit hook that regenerates the inventories.
@@ -259,6 +260,17 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
       --body "$(printf 'Landed by scripts/land.sh (Q44).\n\n%s\n' "$(git log --format='- %h %s' origin/main..HEAD)")"
   fi
   gh pr merge "$BR" --rebase --auto
+  # The land queue (owner, 2026-10-05; scripts/land-queue.mjs): the label puts
+  # this PR in line. Only the head of the queue is rebased onto main and
+  # re-checked, so a merge no longer sends every open PR back for a re-run; a
+  # head whose required check fails leaves the queue and the next moves up.
+  gh pr edit "$BR" --remove-label land-queue-failed --add-label land-queue >/dev/null 2>&1 ||
+    gh pr edit "$BR" --add-label land-queue >/dev/null
+  echo "land: $BR is in the land queue (label land-queue)."
+  # Wake the queue now (it has no pull_request trigger); the wait below nudges
+  # it again every 10 minutes. A failed dispatch only delays: the next merge or
+  # required-check completion wakes it too.
+  gh workflow run land-queue.yml --ref main >/dev/null 2>&1 || echo "land: could not dispatch land-queue.yml; it runs on the next merge or check." >&2
   # Duplicate work (2026-10-02): the same commits re-landed from another
   # worktree opened a second PR (#2063 and #2070) and both ran the full check
   # set. Any other open land/** PR whose head is already inside this HEAD is
@@ -309,16 +321,23 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
       echo "land: fix, commit, and re-run bash scripts/land.sh." >&2
       exit 1
     fi
-    # Strict is on (2026-10-05), so main moving shows as BEHIND, or DIRTY (the
-    # generated files another landing refreshed); both
-    # go back to the rebase instead of waiting out the 90 minutes.
+    # Strict is on (2026-10-05), so main moving shows as BEHIND or DIRTY.
+    # BEHIND is the land queue's job: it rebases the head of the queue when its
+    # turn comes (scripts/land-queue.mjs), so waiting here keeps this PR from
+    # re-running its checks after every other merge. DIRTY (a conflict, usually
+    # generated files another landing refreshed) the queue cannot resolve: it
+    # passes this PR over, and the local rebase below fixes it.
     MSS=$(echo "$INFO" | jq -r .mergeStateStatus)
-    if [ "$MSS" = BEHIND ] || [ "$MSS" = DIRTY ]; then
-      echo "land: main moved ($MSS); rebasing $BR again."
+    if [ "$MSS" = DIRTY ]; then
+      echo "land: $BR conflicts with main; rebasing it here (the queue skips it until then)."
       break
     fi
-    if [ "$waited" -ge 90 ]; then
-      echo "land: $BR not merged after 90 min; re-run bash scripts/land.sh." >&2
+    if [ $((waited % 10)) -eq 0 ]; then
+      gh workflow run land-queue.yml --ref main >/dev/null 2>&1 || true
+    fi
+    # A queue wait is several PRs' worth of checks, not one.
+    if [ "$waited" -ge 180 ]; then
+      echo "land: $BR not merged after 180 min; re-run bash scripts/land.sh." >&2
       exit 1
     fi
   done

@@ -2,7 +2,7 @@
 // @mutate scripts/land.sh |   gh pr merge "$BR" --rebase --auto |   git push --no-verify origin HEAD:main
 // @mutate scripts/land.sh |     if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus 2>/dev/null); then |     if ! INFO=$(gh pr view "$BR" --json state,mergeStateStatus); [ "$INFO" ]; then
 // @mutate scripts/land.sh |     git reset -q --hard "$START_HEAD" |     true
-// @mutate scripts/land.sh |     if [ "$MSS" = BEHIND ] \|\| [ "$MSS" = DIRTY ]; then |     if [ "$MSS" = BEHIND ]; then
+// @mutate scripts/land.sh | if [ "$MSS" = DIRTY ]; then | if [ "$MSS" = DIRTYX ]; then
 // @mutate scripts/land.sh |   if [ "$N_REFRESH" -gt 0 ]; then |   if false; then
 // @mutate scripts/land.sh |   SUBJECTS=$(git log --format=%s origin/main..HEAD) |   SUBJECTS=$(git log --format=%s origin/main..HEAD \| grep -qxF "$REFRESH_SUBJECT")
 // @mutate .github/workflows/vacuity.yml |       - "LICENSE"\n  schedule: |       - "LICENSE"\n  pull_request:\n    branches: [main]\n  schedule:
@@ -83,7 +83,9 @@ describe("landing path (Q44)", () => {
     // regenerate the same docs). With strict off, main moving shows as DIRTY,
     // not BEHIND, so the wait loop sat on them; each needed a hand
     // `git rebase --skip` of its refresh commit and a re-run.
-    expect(code).toMatch(/if \[ "\$MSS" = BEHIND \] \|\| \[ "\$MSS" = DIRTY \]; then/);
+    // Since the land queue (2026-10-05) BEHIND is the queue's (scripts/land-queue.mjs
+    // rebases only the head); DIRTY still loops back to the local rebase.
+    expect(code).toMatch(/if \[ "\$MSS" = DIRTY \]; then/);
     expect(code).toMatch(/SUBJECTS=\$\(git log --format=%s origin\/main\.\.HEAD\)\n\s*N_REFRESH=\$\(grep -cxF "\$REFRESH_SUBJECT" <<<"\$SUBJECTS" \|\| true\)\n\s*N_ALL=\$\(grep -c \. <<<"\$SUBJECTS" \|\| true\)\n\s*if \[ "\$N_REFRESH" -gt 0 \]; then/);
     // never `cmd | grep -q` under pipefail: SIGPIPE makes the test random
     // (it skipped the migration twins, or re-opened an open PR, at random)

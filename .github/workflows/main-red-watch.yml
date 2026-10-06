@@ -41,6 +41,7 @@ on:
       - Supabase Edge Functions Deploy
       - Migration Timestamp Guard
       - Mobile viewport spot-check
+      - Land queue
       - Main batch dispatch
       - Prod deploy
       - Prod freshness

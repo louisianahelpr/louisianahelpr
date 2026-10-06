@@ -158,7 +158,7 @@ export function deriveSignInIds(src, blank = stripComments) {
 
   if (!appleServiceIds.length) throw new Error(`${SIGN_IN_SOURCES.socialAuth}: apple: { clientId } not found`);
   if (!googleNative.length) throw new Error(`${SIGN_IN_SOURCES.socialAuth}: no native google client id (iOSClientId) found`);
-  // Q1439 (owner, 2026-10-06): Apple + Google sign-in OFF for launch. The
+  // Q1462 (owner, 2026-10-06): Apple + Google sign-in OFF for launch. The
   // switch decides what the live config must say (both providers disabled).
   const sw = /export\s+const\s+SOCIAL_SIGN_IN_ENABLED\s*=\s*(true|false)\s*;/.exec(social);
   if (!sw) throw new Error(`${SIGN_IN_SOURCES.socialAuth}: no SOCIAL_SIGN_IN_ENABLED switch found`);
@@ -183,7 +183,7 @@ export function checkAuthConfig(config, ids) {
     // Off for launch: the providers must be OFF too, or a crafted request
     // could still sign in through an entry point the app no longer shows.
     for (const key of ["external_apple_enabled", "external_google_enabled"]) {
-      add(config[key] === false, `${key} is false`, `SOCIAL_SIGN_IN_ENABLED is false (Q1439); got ${JSON.stringify(config[key])}`);
+      add(config[key] === false, `${key} is false`, `SOCIAL_SIGN_IN_ENABLED is false (Q1462); got ${JSON.stringify(config[key])}`);
     }
     return results;
   }

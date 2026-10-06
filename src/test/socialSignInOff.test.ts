@@ -1,5 +1,5 @@
 /**
- * Apple + Google sign-in OFF for launch (owner, 2026-10-06, Q1439). Every
+ * Apple + Google sign-in OFF for launch (owner, 2026-10-06, Q1462). Every
  * entry point reads SOCIAL_SIGN_IN_ENABLED; this checks the switch is off and
  * that each entry point is behind it, so no Apple/Google button can render.
  *
@@ -14,7 +14,7 @@ import { trackedFiles } from "./helpers/trackedFiles";
 
 const ENTRY = /<(SocialAuthButtons|SignInMethodsCard)\b/;
 
-describe("Apple + Google sign-in is off for launch (Q1439)", () => {
+describe("Apple + Google sign-in is off for launch (Q1462)", () => {
   it("the switch is off", () => {
     expect(SOCIAL_SIGN_IN_ENABLED).toBe(false);
   });

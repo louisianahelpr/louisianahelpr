@@ -28,7 +28,8 @@
  */
 // Registered mutations - each turns this guard RED on its own:
 // @mutate scripts/ci/definer-exec-allowlist.json | "is_caller_banned()": "policy" | "is_caller_banned()": "client"
-// @mutate scripts/ci/definer-exec-allowlist.json | "rpc_group_member_confirm(uuid)": "reviewed | "rpc_group_member_confirm(uuid)": "client", "zz": "reviewed
+// (Re-pointed 2026-10-05: rpc_group_member_confirm gained a client caller with Q1382, so calling it "client" became TRUE and this survived.)
+// @mutate scripts/ci/definer-exec-allowlist.json | "rpc_decide_crew_dispute(uuid, text, uuid[])": "reviewed | "rpc_decide_crew_dispute(uuid, text, uuid[])": "client", "zz": "reviewed
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_job_pets(uuid)": "client" | "get_job_pets(uuid)": "policy"
 // @mutate scripts/ci/definer-exec-allowlist.json | "get_parish_for_zip(text)": "reviewed 2026-10-05 (Q1284): | "get_parish_for_zip(text)": "fine:
 // @mutate scripts/ci/definer-exec-allowlist.json | "authenticated": { | "authenticated": {\n    "resolve_auto_tip(uuid, numeric)": "client",

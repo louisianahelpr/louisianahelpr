@@ -23,6 +23,7 @@ import {
 import { isSettleForwardRefusal, settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { isoDayIn } from "../calendarPicker";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
+import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead } from "./postJobForm";
 
@@ -373,15 +374,9 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("helper finds it in Browse", async () => {
       test.skip(!S.funded, "unfunded jobs are not in Browse by design (payment_status gate)");
-      // Harness concession (prod-lifecycle's): age past the 20-min early-access window.
-      // `select=id` is required with return=representation on jobs: bare
-      // representation is RETURNING *, and 20260915045110 took authenticated's
-      // table-level SELECT off jobs, so `*` 42501s the whole write.
-      const aged = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}&select=id`, {
-        headers: rest(S.poster, { Prefer: "return=representation" }),
-        data: { created_at: new Date(Date.now() - 25 * 60_000).toISOString() },
-      });
-      expect(await aged.json(), "ageing the job matched zero rows").toHaveLength(1);
+      // Harness concession (prod-lifecycle's): age past the 20-min early-access
+      // window, as the service role since created_at is server-owned (Q1189, #2436).
+      await ageJobPastEarlyAccess(SUPABASE_URL, S.jobId!, "the marketplace job");
       const hp = S.helperPage;
       await hp.goto("/home");
       // Browse renders its toolbar (search included) with the feed, not over the

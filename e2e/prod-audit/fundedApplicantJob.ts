@@ -30,6 +30,7 @@
 import type { APIRequestContext, Browser } from "@playwright/test";
 import { SUPABASE_URL, type Session } from "../journeys/fixtures";
 import { createFixtureRow, fund, headers, retireFundedJob } from "./fundedOpenJob";
+import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 
 /** Title prefix of the applicant fixture. Not FUNDED_FIXTURE_TITLE, and no sweeper marker. */
 export const APPLICANT_FIXTURE_TITLE = "Prod audit applicant fixture";
@@ -106,14 +107,8 @@ export async function ensureFundedApplicantJob(
   log.push(`created ${row.id}`);
   const funded = await fund(api, browser, poster, row, log);
 
-  const aged = await json<unknown[]>(
-    await api.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${funded.id}&select=id`, {
-      headers: headers(poster, { Prefer: "return=representation" }),
-      data: { created_at: new Date(Date.now() - 25 * 60_000).toISOString() },
-    }),
-    "age the fixture past early access",
-  );
-  if (aged.length !== 1) throw new Error(`applicant fixture: ageing ${funded.id} matched ${aged.length} rows — poster could not set created_at`);
+  // created_at is server-owned (Q1189): the service role ages it (#2436).
+  await ageJobPastEarlyAccess(SUPABASE_URL, funded.id, "the applicant fixture");
 
   await json<unknown>(
     await api.post(`${SUPABASE_URL}/rest/v1/rpc/apply_to_job`, {

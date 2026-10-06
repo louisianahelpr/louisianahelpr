@@ -32,7 +32,7 @@ interface PostedJobActionsProps {
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
   onNoShow: (jobId: string) => void;
-  onTip: (jobId: string, helperName: string) => void;
+  onTip: (jobId: string, helperName: string, helperId?: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
   onReport: (job: Job) => void;

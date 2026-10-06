@@ -11,6 +11,7 @@ import type { TrackingData } from "@/components/JobTracking";
 import { queryKeys } from "@/lib/queryKeys";
 import { checkDrift } from "@/lib/checkDrift";
 import { report } from "@/lib/errorLogger";
+import { crewTipsFor } from "@/lib/crewTips";
 import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { readApplicationRows, readableApplicationRows } from "@/lib/applicationColumns";
@@ -108,6 +109,9 @@ interface CompletedJobMetaEntry {
   tipped: boolean;
   reviewed: boolean;
   crewToReview?: Array<{ id: string; name: string }>;
+  /** Q709(c), owner 2026-10-05: on a crew, every member in hire order and
+   *  whether this poster has tipped THEM (a paid tip naming that member). */
+  crewTips?: Array<{ id: string; name: string; tipped: boolean }>;
 }
 
 /** What My Jobs needs before it can paint a correct card. */
@@ -298,8 +302,8 @@ export async function fetchPostedActivityDetail(
       // user reaches Stripe. So abandoning the checkout permanently locked the
       // Tip button to a disabled "Tipped" state for that job — the poster could
       // never tip, and the helper never got one, with nothing to show why.
-      ? supabase.from("tips").select("job_id").in("job_id", completedIds).eq("tipper_id", userId).eq("payment_status", "paid")
-      : emptyResult<{ job_id: string }>(),
+      ? supabase.from("tips").select("job_id, helper_id").in("job_id", completedIds).eq("tipper_id", userId).eq("payment_status", "paid")
+      : emptyResult<{ job_id: string; helper_id: string }>(),
     completedIds.length
       ? supabase.from("reviews").select("job_id, reviewee_id").in("job_id", completedIds).eq("reviewer_id", userId)
       : emptyResult<{ job_id: string; reviewee_id: string }>(),
@@ -372,6 +376,7 @@ export async function fetchPostedActivityDetail(
         .map((r) => ({ id: r.helper_id as string, name: crewNames.get(r.helper_id as string) || "Helpr" }));
       const members = crewRows.filter((r) => r.job_id === jobId && r.helper_id).length;
       meta.crewToReview = toReview;
+      meta.crewTips = crewTipsFor(jobId, crewRows, crewNames, tipsRes.data ?? []);
       meta.reviewed = members > 0 && toReview.length === 0;
     }
   }

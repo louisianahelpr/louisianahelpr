@@ -52,6 +52,9 @@ interface ActivityDialogsProps {
   enhancedTipHelperName: string;
   setEnhancedTipJobId: (id: string | null) => void;
   setEnhancedTipHelperName: (name: string) => void;
+  /** Q709(c): on a crew, the member being tipped. */
+  enhancedTipHelperId?: string;
+  setEnhancedTipHelperId?: (id: string | undefined) => void;
   // No-show
   noShowJobId: string | null;
   setNoShowJobId: (id: string | null) => void;
@@ -142,7 +145,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       {/* Enhanced Tip Dialog */}
       {props.enhancedTipJobId && (
         <Suspense fallback={null}>
-          <TipDialog jobId={props.enhancedTipJobId} helperName={props.enhancedTipHelperName} open={!!props.enhancedTipJobId} onClose={() => { props.setEnhancedTipJobId(null); props.setEnhancedTipHelperName(""); props.onRefresh(); }} />
+          <TipDialog jobId={props.enhancedTipJobId} helperName={props.enhancedTipHelperName} helperId={props.enhancedTipHelperId} open={!!props.enhancedTipJobId} onClose={() => { props.setEnhancedTipJobId(null); props.setEnhancedTipHelperName(""); props.setEnhancedTipHelperId?.(undefined); props.onRefresh(); }} />
         </Suspense>
       )}
 

@@ -45,6 +45,11 @@ export function CompletedStep({
   const nextCrewMember = crew ? meta?.crewToReview?.[0] : undefined;
   const reviewName = crew ? nextCrewMember?.name ?? "your crew" : helperName;
   const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
+  // Q709(c), owner 2026-10-05: a crew is tipped member by member, ONE Tip per
+  // member row, each showing "Tipped" once that member has been tipped (like
+  // the Review button's per-member state). The server takes the member's id
+  // (create-payment refuses a crew tip without one).
+  const crewTips = crew ? meta?.crewTips ?? [] : [];
 
   // Approving completion leaves the job at 'payout_pending' until the transfer
   // settles, so gating Review on 'released' hid it during exactly the window
@@ -63,6 +68,37 @@ export function CompletedStep({
     <JobStepCard
       side="poster"
       step="completed"
+      ask={crewTips.length > 0 ? (
+        <ul className="space-y-1.5" aria-label="Tip your crew" data-crew-tips>
+          {crewTips.map((m) => (
+            <li key={m.id} className="flex items-center justify-between gap-2">
+              <span className="text-ds-13 text-foreground truncate min-w-0 flex-1">{m.name}</span>
+              {/* The row chip is w-full by design (it shares a row); here it
+                  sits beside a name, so it gets the width of one row slot. */}
+              <div className="w-[5.5rem] shrink-0">
+              {m.tipped ? (
+                <JobActionChip
+                  icon={CheckCircle2}
+                  label="Tipped"
+                  ariaLabel={`Tipped — you already tipped ${m.name}`}
+                  tone="done"
+                  disabled
+                  onClick={() => {}}
+                />
+              ) : (
+                <JobActionChip
+                  icon={DollarSign}
+                  label="Tip"
+                  ariaLabel={`Tip ${m.name}`}
+                  tone="boost"
+                  onClick={() => onTip(job.id, m.name, m.id)}
+                />
+              )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : undefined}
       actions={[
         /* The before & after pictures, first in the row: the quietest control
            here and the only one that isn't a fresh decision — Tip, Review and
@@ -83,9 +119,9 @@ export function CompletedStep({
            helper has no `profiles.stripe_account_id`, and nothing in scope here
            carries that fact. Gating it needs a `helperPayoutReady` map built
            beside `helperNames`. Not guessed at here. */
-        /* A crew (Q407) is tipped member by member, from each member's review
-           (ReviewForm's tip prompt names the member). This chip has no member
-           to name, so it is not drawn on a crew. */
+        /* A crew (Q407) is tipped member by member: one Tip per member row in
+           the `ask` slot above (Q709(c)), so this job-level chip, which has no
+           member to name, is not drawn on a crew. */
         crew ? null : !hasTipped ? (
           <JobActionChip
             key="tip"

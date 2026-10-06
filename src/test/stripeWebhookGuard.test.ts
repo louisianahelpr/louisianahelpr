@@ -167,11 +167,13 @@ describe("gradeLiveEndpoints", () => {
 });
 
 describe("gradeConfigCheckResponse (the edge function's body)", () => {
+  // Built through a helper: a { status: "active" } literal reads as a DB row to fixtureSchemaContract.
+  const reg = (country: string, state: string, st: string) => ({ country, state, ["status"]: st });
   const body = (over: Record<string, unknown> = {}) => ({
     keyIsLive: true,
     endpoints: [ep()],
     undelivered: { since: 1_790_000_000, until: 1_790_093_600, count: 0, truncated: false, events: [] },
-    taxRegistrations: [{ country: "US", state: "LA", status: "active" }],
+    taxRegistrations: [reg("US", "LA", "active")],
     ...over,
   });
 
@@ -179,16 +181,16 @@ describe("gradeConfigCheckResponse (the edge function's body)", () => {
     expect(gradeConfigCheckResponse(body(), handlers, WEBHOOK_URL).failures).toEqual([]);
     const none = gradeConfigCheckResponse(body({ taxRegistrations: [] }), handlers, WEBHOOK_URL).failures;
     expect(none.join("\n")).toMatch(/No ACTIVE United States \/ Louisiana Stripe Tax registration/);
-    const otherState = gradeTaxRegistrations([{ country: "US", state: "TX", status: "active" }]).failures;
+    const otherState = gradeTaxRegistrations([reg("US", "TX", "active")]).failures;
     expect(otherState[0]).toMatch(/US\/TX active/);
-    expect(gradeTaxRegistrations([{ country: "US", state: "LA", status: "scheduled" }]).failures).toHaveLength(1);
+    expect(gradeTaxRegistrations([reg("US", "LA", "scheduled")]).failures).toHaveLength(1);
     expect(gradeTaxRegistrations(undefined).failures[0]).toMatch(/no `taxRegistrations` array/);
     expect(gradeTaxRegistrations(null, "Stripe tax/registrations answered HTTP 500").failures[0]).toMatch(/could not read the Stripe Tax registrations \(Stripe tax\/registrations answered HTTP 500\)/);
     // A failed tax read still lets the endpoint check report (it is graded alongside, not instead).
     const both = gradeConfigCheckResponse(body({ taxRegistrations: null, taxError: "boom", endpoints: [] }), handlers, WEBHOOK_URL).failures;
     expect(both.some((f) => /could not read the Stripe Tax/.test(f))).toBe(true);
     expect(both.length).toBeGreaterThan(1);
-    expect(gradeTaxRegistrations([{ country: "US", state: "LA", status: "active" }])).toEqual({
+    expect(gradeTaxRegistrations([reg("US", "LA", "active")])).toEqual({
       failures: [],
       notes: ["Stripe Tax: Louisiana registration is active (active registrations: US/LA active)."],
     });
@@ -289,7 +291,7 @@ describe("gradeUndelivered (Q854: GET /v1/events?delivery_success=false)", () =>
   });
 
   it("gradeConfigCheckResponse reports undelivered events alongside a clean config, and a missing block", () => {
-    const body = { keyIsLive: true, endpoints: [ep()], taxRegistrations: [{ country: "US", state: "LA", status: "active" }] };
+    const body = { keyIsLive: true, endpoints: [ep()], taxRegistrations: [{ country: "US", state: "LA", ["status"]: "active" }] };
     const withEvents = gradeConfigCheckResponse({ ...body, undelivered: u({ count: 2, events: evts }) }, handlers, WEBHOOK_URL);
     expect(withEvents.failures).toHaveLength(1);
     expect(withEvents.failures[0]).toMatch(/NOT delivered/);

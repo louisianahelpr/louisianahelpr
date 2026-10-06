@@ -22,7 +22,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
-import { ACCOUNT_CHOICE_RETRY_COPY, markAccountChoiceRetry, takeAccountChoiceRetry } from "@/lib/accountChoiceRetry";
+import { ACCOUNT_CHOICE_RETRY_COPY, clearAccountChoiceRetry, markAccountChoiceRetry, peekAccountChoiceRetry } from "@/lib/accountChoiceRetry";
 // Type only: erased from the bundle, so the dialog code still loads on demand.
 import type { AccountChoiceDialog as AccountChoiceDialogComponent } from "@/components/auth/AccountChoiceDialog";
 import {
@@ -53,7 +53,7 @@ function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): Acco
     markAccountChoiceRetry();
     import("@/components/auth/AccountChoiceDialog")
       .then((m) => {
-        takeAccountChoiceRetry();
+        clearAccountChoiceRetry();
         if (live) setDialog(() => m.AccountChoiceDialog);
       })
       .catch((err: unknown) => {
@@ -89,7 +89,12 @@ export function SocialAuthButtons({
   // Q446: the one-account question, from a native refusal or the web redirect.
   const [choice, setChoice] = useState<AccountChoice | null>(initialChoice);
   // Back after a reload that lost the question (see src/lib/accountChoiceRetry.ts).
-  const [retryNote] = useState(() => takeAccountChoiceRetry());
+  // Peek in the initializer, clear after commit: a discarded first render
+  // must not consume the note (it did on /signup, seen in a browser 2026-10-05).
+  const [retryNote] = useState(() => peekAccountChoiceRetry());
+  useEffect(() => {
+    if (retryNote) clearAccountChoiceRetry();
+  }, [retryNote]);
   const AccountChoiceDialog = useAccountChoiceDialog(choice !== null, () => {
     // The note the hook wrote stays: recovery may still reload this page
     // (its later attempts wait 5-40 s), and then it is the only message left.
@@ -130,18 +135,20 @@ export function SocialAuthButtons({
     // Apple renders FIRST (top). Apple's HIG asks that Sign in with Apple be at
     // least as prominent as any other third-party option; identical full-width
     // rows with Apple leading satisfies that.
-    <div className="flex flex-col gap-4">
+    <>
       {retryNote && (
-        <p role="status" className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p role="status" className="mb-4 text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           {ACCOUNT_CHOICE_RETRY_COPY}
         </p>
       )}
-      <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
-      <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
-      {choice && AccountChoiceDialog && (
-        <AccountChoiceDialog choice={choice} onDone={() => setChoice(null)} onChoice={setChoice} redirectTo={redirectTo} />
-      )}
-    </div>
+      <div className="flex flex-col gap-4">
+        <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
+        <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} onChoose={setChoice} />
+        {choice && AccountChoiceDialog && (
+          <AccountChoiceDialog choice={choice} onDone={() => setChoice(null)} onChoice={setChoice} redirectTo={redirectTo} />
+        )}
+      </div>
+    </>
   );
 }
 

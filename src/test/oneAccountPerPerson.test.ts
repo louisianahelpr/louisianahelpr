@@ -158,7 +158,8 @@ describe("one account per person: a no-match social sign-in never silently creat
     // 2026-10-05) and Log In reads it.
     expect(buttons).toMatch(/markAccountChoiceRetry\(\);\s*import\("@\/components\/auth\/AccountChoiceDialog"\)/);
     // ...and the buttons themselves read it, so Log In and Sign Up both say it.
-    expect(buttons).toMatch(/useState\(\(\) => takeAccountChoiceRetry\(\)\)/);
+    expect(buttons).toMatch(/useState\(\(\) => peekAccountChoiceRetry\(\)\)/);
+    expect(buttons).toMatch(/if \(retryNote\) clearAccountChoiceRetry\(\);/);
     expect(buttons).toMatch(/\{retryNote && \(/);
     expect(buttons).toMatch(/useAccountChoiceDialog\(choice !== null, \(\) => \{[\s\S]{0,200}setChoice\(null\)[\s\S]{0,200}toast\.error\(/);
     expect(code("src/pages/auth/Login.tsx")).toMatch(/<SocialAuthButtons mode="signin" initialChoice=\{accountChoice\} \/>/);

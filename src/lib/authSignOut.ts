@@ -4,6 +4,7 @@ import { clearRememberedRoute } from "@/lib/lastRoute";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
 import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
+import { clearNativeSessionMirror } from "@/integrations/supabase/keychainStorageAdapter";
 import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
 import { purgeApiCache } from "@/lib/apiCachePurge";
 
@@ -89,6 +90,25 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
     // Loud, never dropped: this is the branch where the SDK did not do it.
     console.error("[signOut] auth.signOut() failed — clearing the persisted session by hand", result.error);
     clearPersistedAuthToken();
+    // On the app the session is also mirrored in the Keychain and the
+    // adapter's cache; left there, the next launch signs the person back in
+    // (Q390 review S2).
+    // Capped: the cache is cleared synchronously inside, so this process is
+    // signed out at once; only the Keychain delete waits on the bridge, and a
+    // bridge call that never settles must not stop sign-out finishing.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const outcome = await Promise.race([
+      clearNativeSessionMirror().then(() => "done" as const, () => "done" as const),
+      new Promise<"capped">((resolve) => { timer = setTimeout(() => resolve("capped"), 1_500); }),
+    ]);
+    clearTimeout(timer);
+    if (outcome === "capped") {
+      // Signed out in this process; the Keychain copy may outlive it.
+      console.error("[signOut] the Keychain clear did not finish in 1.5s — the next launch may restore the session");
+      void import("@/lib/errorLogger")
+        .then(({ report }) => report(new Error("sign-out Keychain clear exceeded its 1.5s cap"), { severity: "error", tags: { area: "keychain_session" }, context: { step: "sign-out cap" } }))
+        .catch(() => { /* Silent by design: the logger itself failed to load; the console line above still says it. */ });
+    }
   }
 
   // Wipe the in-memory React Query cache and the persisted IndexedDB copy, so

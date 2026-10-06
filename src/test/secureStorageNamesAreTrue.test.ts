@@ -7,7 +7,9 @@
  * unencrypted plist, included in device backups, not passcode-gated. The name
  * asserted a security property the code does not have, which is exactly what
  * stopped anyone noticing (the token was later seen in plaintext in
- * com.Helpr.plist on a simulator). It is now `preferencesStorageAdapter`.
+ * com.Helpr.plist on a simulator). It was renamed `preferencesStorageAdapter`;
+ * since Q390 (2026-10-06) the session mirror really is the Keychain, through
+ * @aparajita/capacitor-secure-storage, and the name `keychainStorageAdapter` is true.
  *
  * THE CLASS, from the source tree: every src/ file (tests excluded) whose
  * path, or whose CODE (comments and strings blanked), names a Keychain /
@@ -15,7 +17,7 @@
  * specifier matching SECURE_MODULE). A comment may still talk about the
  * Keychain; an identifier or file name may not claim it falsely.
  *
- * @mutate src/integrations/supabase/preferencesStorageAdapter.ts | export const preferencesStorageAdapter = { | export const keychainStorageAdapter = {
+ * @mutate src/integrations/supabase/keychainStorageAdapter.ts | import { KeychainAccess, SecureStorage } from '@aparajita/capacitor-secure-storage'; | import { KeychainAccess, SecureStorage } from './notAKeychain';
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -56,7 +58,7 @@ const offenders = files
 describe("names that claim a secure store use one (OA-004)", () => {
   it("scans the source tree (floor)", () => {
     expect(files.length).toBeGreaterThan(500);
-    expect(files.some((f) => f.endsWith("integrations/supabase/preferencesStorageAdapter.ts"))).toBe(true);
+    expect(files.some((f) => f.endsWith("integrations/supabase/keychainStorageAdapter.ts"))).toBe(true);
   });
 
   it("no file or identifier claims Keychain/secure storage without importing it", () => {

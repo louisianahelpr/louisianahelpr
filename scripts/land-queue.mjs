@@ -96,8 +96,8 @@ function readQueue() {
     try {
       checks = JSON.parse(gh(["pr", "checks", String(number), "--required", "--json", "name,bucket,link"]));
     } catch (e) {
-      // gh exits 8 while checks are pending and 1 when one failed, still
-      // printing the JSON; only a missing body is a real read failure.
+      // gh exits non-zero while checks are pending or one has failed, and
+      // still prints the JSON; only a missing body is a real read failure.
       const out = e && typeof e === "object" && "stdout" in e ? String(e.stdout) : "";
       if (!out.trim()) throw e;
       checks = JSON.parse(out);

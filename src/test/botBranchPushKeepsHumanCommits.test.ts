@@ -317,6 +317,60 @@ describe("bot-branch-push.sh against a local remote", () => {
     expect(remoteSha()).toBe(before);
   });
 
+  // 2026-10-05/06: GitHub's "Update branch" merged main into
+  // bot/refresh/open-auto-tick and resolved a conflict in a regenerated file
+  // (OPEN.md/SCOREBOARD.md). That merge is not git's own result, so the bot
+  // refused every run after it and nothing was auto-ticked. Edits that stay
+  // inside the refresh's declared paths are the bot's to rebuild.
+  // @mutate scripts/ci/bot-branch-push.sh |         if [ -n "$auto" ] && git diff --name-only "$auto" "$c^{tree}" \| in_regenerated; then |         if false; then
+  // @mutate scripts/ci/bot-branch-push.sh |     [ "$hit" = 1 ] \|\| return 1 |     :
+  const conflictedMainMerge = (extra?: string) => {
+    startRun();
+    commit("data.json", "2\n", "old refresh", BOT);
+    git(["checkout", "-q", "main"]);
+    commit("data.json", "main\n", "main moved the generated file", HUMAN);
+    git(["push", "-q", remote, "main"]);
+    git(["checkout", "-q", BRANCH]);
+    spawnSync("git", ["merge", "-q", "--no-ff", "--no-edit", "main"], { cwd: work, env: as(HUMAN), encoding: "utf8" });
+    writeFileSync(join(work, "data.json"), "resolved by hand\n");
+    if (extra) writeFileSync(join(work, extra), "slipped in\n");
+    git(["add", "-A"], HUMAN);
+    git(["commit", "-q", "--no-edit"], HUMAN);
+    seedBranch();
+  };
+  const runRegen = (base: string, regenerated: string) =>
+    spawnSync(
+      "bash",
+      [SCRIPT, "push", "--remote", remote, "--branch", BRANCH, "--base", base, "--bot-email", BOT, "--regenerated", regenerated],
+      { cwd: work, env: as(BOT), encoding: "utf8" },
+    );
+
+  it("replaces a conflicted main-merge whose own edits are only in the regenerated files", () => {
+    conflictedMainMerge();
+    const base = startRun();
+    const head = commit("data.json", "3\n", "new refresh", BOT);
+    const r = runRegen(base, "data.json\ndocs/");
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(remoteSha()).toBe(head);
+  });
+
+  it("still refuses that merge when it also edits a file outside the regenerated paths", () => {
+    conflictedMainMerge("fix.txt");
+    const before = remoteSha();
+    const base = startRun();
+    commit("data.json", "3\n", "new refresh", BOT);
+    const r = runRegen(base, "data.json");
+    expect(r.status, r.stdout + r.stderr).toBe(3);
+    expect(remoteSha()).toBe(before);
+  });
+
+  it("refresh-pr hands its declared paths to the pusher", () => {
+    const action = readFileSync(join(ROOT, ".github/actions/refresh-pr/action.yml"), "utf8");
+    const pushes = action.split("\n").filter((l) => l.includes('--bot-email "$BOT_EMAIL" --pr "$PR"'));
+    expect(pushes.length).toBeGreaterThanOrEqual(2);
+    for (const l of pushes) expect(l).toContain('--regenerated "$REFRESH_PATHS"');
+  });
+
   it("only ever pushes bot/* branches", () => {
     const r = spawnSync(
       "bash",

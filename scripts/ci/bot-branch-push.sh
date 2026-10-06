@@ -13,12 +13,17 @@
 #     the branch is replaced, with --force-with-lease=<ref>:<sha it read>.
 #   - Otherwise the non-bot commits are replayed onto BASE, the bot's fresh
 #     commit (HEAD, if any) goes on top of them, and that is pushed with the
-#     same lease. A conflict anywhere, or a merge commit carrying its own edits,
-#     pushes NOTHING: exit 3, ::error:: naming every commit it would have
+#     same lease. A merge commit whose own edits (its tree vs git's merge of
+#     its parents) all fall inside --regenerated (the refresh's declared paths,
+#     which the bot rebuilds every run) is the bot's to replace: GitHub's
+#     "Update branch" resolving a conflict in a generated file left
+#     bot/refresh/open-auto-tick un-pushable for every run of 2026-10-05/06, so
+#     nothing was auto-ticked. A conflict anywhere else, or a merge carrying
+#     edits outside those paths, pushes NOTHING: exit 3, ::error:: naming every commit it would have
 #     dropped, and a PR comment when --pr is given.
 #
 # Usage (run in a checkout whose HEAD is BASE, or BASE plus ONE bot commit):
-#   bot-branch-push.sh push    --remote R --branch B --base REF --bot-email E [--pr N --repo O/R]
+#   bot-branch-push.sh push    --remote R --branch B --base REF --bot-email E [--pr N --repo O/R] [--regenerated "<paths, newline or space separated>"]
 #   bot-branch-push.sh foreign --remote R --branch B --base REF --bot-email E
 #     (prints the non-bot commits on the remote branch, one "sha<TAB>author<TAB>subject" a line)
 # Exit: 0 pushed / nothing to do, 2 usage, 3 refused (nothing pushed).
@@ -34,6 +39,7 @@ while [ $# -gt 0 ]; do
     --bot-email) BOT_EMAIL="$2"; shift 2 ;;
     --pr) PR="$2"; shift 2 ;;
     --repo) REPO="$2"; shift 2 ;;
+    --regenerated) REGENERATED="$2"; shift 2 ;;
     *) echo "bot-branch-push: unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -53,6 +59,21 @@ HEAD_SHA=$(git rev-parse HEAD)
 REMOTE_SHA=$("${GITX[@]}" ls-remote "$REMOTE" "$REF" | cut -f1)
 
 # Classify every commit on the remote branch that BASE does not have.
+# Is every path in the list (stdin) inside the declared regenerated paths?
+in_regenerated() {
+  local f p
+  [ -n "${REGENERATED:-}" ] || return 1
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    local hit=0
+    for p in $REGENERATED; do
+      p="${p%/}"
+      if [ "$f" = "$p" ] || [ "${f#"$p"/}" != "$f" ]; then hit=1; break; fi
+    done
+    [ "$hit" = 1 ] || return 1
+  done
+  return 0
+}
 FOREIGN=()   # non-bot, non-merge: replayed
 EVIL=()      # merge commits whose tree is not git's own merge result: refused
 if [ -n "$REMOTE_SHA" ]; then
@@ -72,6 +93,12 @@ if [ -n "$REMOTE_SHA" ]; then
         if auto=$(git merge-tree --write-tree "$p1" "$p2" 2>/dev/null | head -n1) \
           && [ "$auto" = "$(git rev-parse "$c^{tree}")" ]; then
           continue   # a clean merge of main: rebasing onto BASE replaces it
+        fi
+        # A conflicted merge still writes a tree (markers in the conflicted
+        # files): its own edits are the files that differ from that tree.
+        auto=$(git merge-tree --write-tree "$p1" "$p2" 2>/dev/null | head -n1 || true)
+        if [ -n "$auto" ] && git diff --name-only "$auto" "$c^{tree}" | in_regenerated; then
+          continue   # only regenerated files differ: the bot rebuilds them
         fi
       fi
       EVIL+=("$c")

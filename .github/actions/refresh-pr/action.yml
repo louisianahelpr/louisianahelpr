@@ -165,7 +165,7 @@ runs:
             echo "::notice::$BRANCH carries commits that are not the bot's; rebasing them onto main instead of closing PR #${PR:-none}:"
             printf '%s\n' "$FOREIGN"
             bash "$PUSHER" push \
-              --remote "$REMOTE" --branch "$BRANCH" --base "$BASE" --bot-email "$BOT_EMAIL" --pr "$PR"
+              --remote "$REMOTE" --branch "$BRANCH" --base "$BASE" --bot-email "$BOT_EMAIL" --pr "$PR" --regenerated "$REFRESH_PATHS"
           elif [ -n "$PR" ]; then
             gh pr close "$PR" --repo "$GITHUB_REPOSITORY" --delete-branch \
               --comment "Superseded: main already matches this refresh as of ${BASE:0:9} ($RUN_URL)."
@@ -202,7 +202,7 @@ runs:
           # which commits it would have dropped, and this step fails.
           # Lease-guarded, never a bare --force (90fa25368 was wiped by one).
           bash "$PUSHER" push \
-            --remote "$REMOTE" --branch "$BRANCH" --base "$BASE" --bot-email "$BOT_EMAIL" --pr "$PR"
+            --remote "$REMOTE" --branch "$BRANCH" --base "$BASE" --bot-email "$BOT_EMAIL" --pr "$PR" --regenerated "$REFRESH_PATHS"
           BODY=$(printf '%s\n\n%s\n\nFiles:\n%s\n\nRebuilt from main %s by [%s](%s). The bot branch is rebuilt on every run, so this PR always carries the newest numbers; it merges itself (squash) once the required checks pass. docs/OPEN.md Q57.\n' \
             "$REFRESH_TITLE" "$EXTRA_BODY" "$(printf '%s\n' "$CHANGED" | sed 's/^/- /')" "${BASE:0:9}" "$WORKFLOW" "$RUN_URL")
           if [ -z "$PR" ]; then

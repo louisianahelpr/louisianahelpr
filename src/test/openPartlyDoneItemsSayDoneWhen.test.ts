@@ -2,6 +2,7 @@
 // @mutate scripts/open-done-when.mjs |     .filter((name) => appFns.has(name)); |     .filter((name) => !appFns.has(name));
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }
+// @mutate scripts/lib/openFeeds.mjs | const keepMarkerless = target.state === "~" && | const keepMarkerless = false &&
 /*
  * A `[~]` item that nobody re-checks stays `[~]` forever.
  *
@@ -21,6 +22,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { appFunctionsCalled, partlyDoneItems, rowText } from "../../scripts/open-done-when.mjs";
 import { readdirSync } from "./helpers/trackedFiles";
+import { applyFeeds } from "../../scripts/lib/openFeeds.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
@@ -131,5 +133,40 @@ describe("done-when marker parser", () => {
     expect(rowText([{ n: 0 }])).toBe("0");
     expect(rowText([])).toBe("(no rows)");
     expect(() => rowText([{ a: 1, b: 2 }])).toThrow(/exactly one column/);
+  });
+});
+
+// #2423 (2026-10-06): the scoreboard refresh PR was red on the exact baseline
+// above because open-sync-trackers gave a markerless [~] item (Q593, marker
+// removed by the lead on purpose) a done-when marker when its tagged ledger
+// row moved to a new nightly-red issue. The sync is the only writer of feed
+// markers, and it runs unattended: it must never move this baseline.
+describe("the feed sync never moves the markerless [~] baseline", () => {
+  const md = [
+    "- [~] **Q90 MEDIUM fixtures, marker removed on purpose.** feed: ledger abcdef123456.",
+    "- [~] **Q91 MEDIUM has a marker.** feed: ledger 111111111111. done-when: issue #7 closed",
+    "- [ ] **Q92 MEDIUM open item.** feed: ledger 222222222222.",
+  ].join("\n");
+  const groups = [
+    { keys: ["issue #8001", "ledger abcdef123456"], title: "nightly-red: a is red", origin: "o", markers: ["done-when: issue #8001 closed", "done-when: sql `select 1` => 1"] },
+    { keys: ["issue #8002", "ledger 111111111111"], title: "nightly-red: b is red", origin: "o", markers: ["done-when: issue #8002 closed", "done-when: sql `select 2` => 2"] },
+    { keys: ["issue #8003", "ledger 222222222222"], title: "nightly-red: c is red", origin: "o", markers: ["done-when: issue #8003 closed", "done-when: sql `select 3` => 3"] },
+  ];
+  const out = applyFeeds(md, groups, { status: () => "open", nextFree: 9000, today: "2026-10-06" });
+  const line = (id: string) => out.md.split("\n").find((l) => l.includes(`**${id} `)) ?? "";
+  const markerless = (text: string) => partlyDoneItems(text).filter((i) => i.markers.length === 0).map((i) => i.id);
+
+  it("attaches the new feed tag to every tagged item (nothing is filed twice)", () => {
+    expect(out.attached.map((a: { id: string }) => a.id)).toEqual(["Q90", "Q91", "Q92"]);
+    expect(out.created).toEqual([]);
+    expect(line("Q90")).toContain("feed: issue #8001");
+  });
+
+  it("a markerless [~] item stays markerless; the others get the markers", () => {
+    expect(markerless(out.md)).toEqual(markerless(md));
+    expect(markerless(out.md)).toEqual(["Q90"]);
+    expect(line("Q90")).not.toContain("done-when:");
+    expect(line("Q91")).toContain("done-when: issue #8002 closed");
+    expect(line("Q92")).toContain("done-when: issue #8003 closed");
   });
 });

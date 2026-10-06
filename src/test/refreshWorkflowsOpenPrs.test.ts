@@ -4,6 +4,8 @@
 // @mutate .github/workflows/staleness-watch.yml | (github.event_name != 'push' \|\| needs.generated-current.outputs.drift == 'true') | (github.event_name != 'push' \|\| true)
 // @mutate .github/workflows/staleness-watch.yml | if [ "$rc" -eq 3 ] && [ "$EVENT" = "push" ]; then | if [ "$EVENT" = "push" ]; then
 // @mutate .github/actions/refresh-pr/action.yml | --auto --squash | --squash
+// @mutate .github/actions/refresh-pr/action.yml | --add-label land-queue; then | --add-label refreshed; then
+// @mutate .github/actions/refresh-pr/action.yml |           if [ "$DRAFT" = "true" ]; then |           if false; then
 // @mutate .github/actions/refresh-pr/action.yml | if git diff --cached --quiet; then | if false; then
 /*
  * CLASS GUARD (docs/OPEN.md Q57): a scheduled workflow that PROVES a committed
@@ -222,6 +224,11 @@ describe("scheduled refresh workflows land their files through ONE auto-merging 
     expect(run).toMatch(/if git diff --cached --quiet; then/);
     expect(run).toMatch(/gh pr list [^\n]*--head "\$BRANCH" --state open/);
     expect(run).toMatch(/gh pr merge "\$PR" [^\n]*--auto --squash/);
+    // Strict up-to-date: a bot PR joins the land queue, or it sits BEHIND for
+    // good (#2407/#2423/#2429, 2026-10-06); a draft is reported as paused,
+    // never as a settings fault (#2198).
+    expect(run).toMatch(/gh pr edit "\$PR" [^\n]*--add-label land-queue/);
+    expect(run).toMatch(/if \[ "\$DRAFT" = "true" \]; then\n\s*echo "::notice::/);
     // Every push goes through scripts/ci/bot-branch-push.sh (it keeps non-bot
     // commits; src/test/botBranchPushKeepsHumanCommits.test.ts), always to $BRANCH.
     expect(run, "the step pushes with git directly").not.toMatch(/\bgit\b[^\n;&|]*?\spush\b/);

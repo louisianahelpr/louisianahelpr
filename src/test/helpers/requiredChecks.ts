@@ -8,8 +8,11 @@
  * the list imports it from here; re-measure and update it in the same commit as
  * any branch-protection change:
  *
- *   gh api repos/louisianahelpr/louisianahelpr/branches/main/protection/required_status_checks \
- *     --jq '.checks[] | "\(.context) app=\(.app_id)"'
+ *   gh api repos/louisianahelpr/louisianahelpr/rulesets/24543186 \
+ *     --jq '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[] | "\(.context) app=\(.integration_id)"'
+ *
+ * (Since 2026-10-05 the checks live in the "main" ruleset; the classic
+ * branches/main/protection endpoint answers 404 "Branch not protected".)
  *
  * Measured 2026-10-03 with CodeQL added (owner: "CodeQL REQUIRED on main", Q1151).
  * `workflow` is the file whose job posts the check; null for a check GitHub

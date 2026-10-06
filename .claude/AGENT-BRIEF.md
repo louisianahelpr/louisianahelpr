@@ -84,7 +84,7 @@ says more.
 - What land.sh does, so you can predict it: main requires Vitest, Test and
   both Playwright checks, plus CodeQL (code scanning default setup: a PR that
   adds a code-scanning alert cannot merge), with enforce_admins, so a direct push is refused
-  (strict is off); vacuity runs on every push to main (not required on PRs).
+  (ruleset "main", strict up-to-date ON since 2026-10-05: a PR behind main must be rebased before it merges, which land.sh does); vacuity runs on every push to main (not required on PRs).
   land.sh fetches, rebases onto origin/main, runs `npm run inventories:refresh`,
   commits what that regenerated, proves `check:generated` and the exact-count
   guards green, builds the bundle (`npx vite build`) and runs the critical-path

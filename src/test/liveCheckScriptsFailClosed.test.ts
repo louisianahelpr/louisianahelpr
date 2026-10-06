@@ -299,7 +299,7 @@ const HERMETIC: Record<string, Case[]> = {
     { label: "Management API 500", env: MGMT("fail"), says: /could not check the native sign-in client ids: auth config: Management API 500/ },
     { label: "Management API []", env: MGMT("empty"), says: /auth config: response was not a config object — refusing to report clean/ },
     { label: "config without client-id lists", env: MGMT("nolists"), says: /auth config has no string external_apple_client_id — refusing to report clean/ },
-    // Apple/Google sign-in is OFF for launch (Q1439): a provider still enabled
+    // Apple/Google sign-in is OFF for launch (Q1462): a provider still enabled
     // on prod fails. (The id rules, used when the switch is on, are covered in
     // src/test/nativeSignInConfig.test.ts.)
     { label: "a provider still enabled while the switch is off", env: MGMT("nobundle"), says: /FAIL external_apple_enabled is false/ },
@@ -422,7 +422,7 @@ beforeAll(async () => {
       if (mode === "nolists") return void res.end(JSON.stringify({ external_google_skip_nonce_check: true }));
       const ids = deriveSignInIds(readSignInSources(ROOT));
       return void res.end(JSON.stringify({
-        // ONE defect: Apple still on while the switch is off (Q1439); Google
+        // ONE defect: Apple still on while the switch is off (Q1462); Google
         // already off, so the script's only FAIL line is the injected one.
         external_apple_enabled: true, external_google_enabled: false, external_google_skip_nonce_check: true,
         external_apple_client_id: ids.appleServiceIds.map((x) => x.id).join(","),

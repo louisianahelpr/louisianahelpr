@@ -40,8 +40,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |       IF v_member_fee > 0 THEN |       IF false THEN
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
+// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
+// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
@@ -157,9 +157,12 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     // from the Q729 bodies (the offer cap), and 20261006015121 (Q1378, the rest
     // of a crew carry on) restates both with block_user_and_settle; the crew
     // rules below must survive every restatement.
-    for (const fn of ["block_user_and_settle", "expire_unanswered_offers", "accept_group_application"]) {
+    for (const fn of ["block_user_and_settle", "accept_group_application"]) {
       expect(EFFECTIVE.get(fn)?.file, `${fn} is not the newest crew-aware definition`).toBe("20261006015121_crew_rest_carry_on.sql");
     }
+    // 20261006022526 (the money review of Q1378) restates the sweep once more:
+    // its crew pass also covers a started crew.
+    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql");
     const block = body("block_user_and_settle");
     expect(block).toMatch(/WHERE j\.is_group_job IS TRUE[\s\S]*\(j\.customer_id = v_user\s+AND g\.helper_id = p_blocked\)\s+OR \(j\.customer_id = p_blocked AND g\.helper_id = v_user\)/);
     expect(block).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_crew\.slot_id;/);

@@ -93,7 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/load/load-test.mjs --steps "$STEPS" --rt "$RT" --step-seconds "$STEP_SECONDS" --out q60-out 2>&1 | tee q60-out.log
-          RUN_ID=$( (grep -oE 'run [0-9T]+Z? tag' q60-out.log || true) | head -1 | awk '{print $2}')
+          RUN_ID=$( (grep -oE 'run [0-9T]+Z? tag' q60-out.log || [ $? -eq 1 ]) | head -1 | awk '{print $2}')
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
       - name: Keep the measurements
         if: always()

@@ -40,7 +40,7 @@ function ctx(job: Job, meta: PosterStepCtx["completedJobMeta"], onTip = vi.fn())
 
 const crewJob = {
   id: "job-crew", title: "Move a piano", customer_id: POSTER, helper_id: null, is_group_job: true, helpers_needed: 2,
-  status: "completed", payment_status: "released", proof_before_urls: [], proof_after_urls: [], date_needed: "2026-10-01",
+  status: "completed", payment_status: "released", proof_before_urls: [], proof_after_urls: [], date_needed: "2024-10-01",
 } as unknown as Job;
 
 describe("CompletedStep: one Tip per crew member", () => {

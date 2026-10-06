@@ -203,6 +203,9 @@ export const RPC_ERROR_COPY = {
     not_authenticated: "Sign in again to mark your part done.",
     not_on_this_crew: "You're not on this job's crew any more, so you can't mark a part done.",
     part_not_completable: "Your part couldn't be marked done. Pull to refresh and check where the job stands.",
+    // A crew spot closed while the last Done ran (20261006031350): nothing was
+    // finished, so the member just tries again.
+    crew_changed_under_completion: "The crew changed while you were marking done. Pull to refresh and try again.",
     // The per-member completion gates are raised by the roster TRIGGER
     // (enforce_group_member_completion_gates), which this inventory does not
     // follow; their copy is CREW_DONE_GATE_COPY in src/lib/crewLifecycle.ts.

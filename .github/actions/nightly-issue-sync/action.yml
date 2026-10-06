@@ -6,6 +6,14 @@ description: >
   green run for that same workflow it closes the issue. One issue per
   workflow (not per run) so a red streak doesn't spam the tracker — repeat
   failures just add a comment to the existing open issue.
+  A run whose only non-success jobs were CANCELLED (not failed, not timed out;
+  scripts/ci/run-verdict.mjs) files nothing and adds no "Still red": on its
+  first attempt it asks nightly-red-rerun.yml to re-run the cancelled jobs once.
+
+outputs:
+  verdict:
+    description: "success | failure | cancelled (cancelled = only cancelled jobs; nothing filed)"
+    value: ${{ steps.sync.outputs.verdict }}
 
 inputs:
   workflow-name:
@@ -43,8 +51,10 @@ runs:
   using: "composite"
   steps:
     - name: Sync the issue for this workflow
+      id: sync
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
         GH_TOKEN: ${{ inputs.github-token }}
         WORKFLOW_NAME: ${{ inputs.workflow-name }}
         STATUS: ${{ inputs.status }}
@@ -62,6 +72,48 @@ runs:
         gh label create "$LABEL" --repo "$REPO" --color B60205 \
           --description "$LABEL_DESC" \
           >/dev/null 2>&1 || true
+
+        # CANCELLED IS NOT RED (owner, 2026-10-05). Five of nine open
+        # nightly-red issues that night came from runs whose jobs were
+        # cancelled ("The job was not acquired by Runner ... even after
+        # multiple attempts"), not failed. Before filing a red, ask which it
+        # was. A run whose only non-success jobs were cancelled files nothing,
+        # adds no "Still red", closes nothing, and on its FIRST attempt asks
+        # nightly-red-rerun.yml to re-run the cancelled jobs once, after this
+        # run completes (a run cannot re-run itself while it is still running).
+        # A cancel on a re-run attempt is filed as a red, like a failure: one
+        # free retry, never a silent loop. A job killed by its own
+        # timeout-minutes, or cancelled after a failed step, is a failure
+        # (run-verdict.mjs). Any read error is a failure: fail-closed.
+        VERDICT="$STATUS"
+        if [ "$STATUS" = "failure" ]; then
+          # No verdict (node missing, garbage output) reads as {} = failure.
+          if ! VJSON=$(node "$ACTION_PATH/../../../scripts/ci/run-verdict.mjs" "$RUN_URL" 2>/dev/null); then VJSON='{}'; fi
+          if ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$VJSON"; then VJSON='{}'; fi
+          V=$(jq -r '.verdict // "failure"' <<<"$VJSON")
+          ATTEMPT=$(jq -r '.attempt // 0' <<<"$VJSON")
+          RUN_ID=$(jq -r '.runId // ""' <<<"$VJSON")
+          CANCELLED_JOBS=$(jq -r '(.cancelled // []) | join(", ")' <<<"$VJSON")
+          if [ "$V" = "cancelled" ] && [ "$ATTEMPT" = "1" ] && [ -n "$RUN_ID" ]; then
+            if gh workflow run nightly-red-rerun.yml --repo "$REPO" --ref main -f run_id="$RUN_ID" -f workflow_name="$WORKFLOW_NAME"; then
+              VERDICT=cancelled
+              {
+                echo "### ${WORKFLOW_NAME}: cancelled, not red"
+                echo "Only cancelled jobs (${CANCELLED_JOBS}), none failed or timed out, so no ${LABEL} issue was filed or commented on."
+                echo "Re-run requested once: nightly-red-rerun.yml re-runs the cancelled jobs of run ${RUN_ID} (\`gh run rerun ${RUN_ID} --failed\`) when this attempt completes."
+              } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+              echo "verdict=cancelled" >> "${GITHUB_OUTPUT:-/dev/null}"
+              echo "${WORKFLOW_NAME}: only cancelled jobs (${CANCELLED_JOBS}); nothing filed, re-run requested."
+              exit 0
+            fi
+            BODY_EXTRA="Only cancelled jobs (${CANCELLED_JOBS}), but the one-time re-run could not be requested, so this is filed as a red.
+        ${BODY_EXTRA}"
+          elif [ "$V" = "cancelled" ]; then
+            BODY_EXTRA="Jobs cancelled again on re-run attempt ${ATTEMPT} (${CANCELLED_JOBS}): a repeat cancel is a red.
+        ${BODY_EXTRA}"
+          fi
+        fi
+        echo "verdict=${VERDICT}" >> "${GITHUB_OUTPUT:-/dev/null}"
 
         TITLE="${LABEL}: ${WORKFLOW_NAME}"
         # One open issue per workflow — title is the dedup key, not the run.

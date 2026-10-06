@@ -58,6 +58,8 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: write
+  checks: read
 
 concurrency:
   # NOT prod-load, on purpose — see the header. Exempt by name in

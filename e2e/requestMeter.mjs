@@ -46,9 +46,14 @@ export function classify(url) {
   return "other";
 }
 
-/** A password sign-in: the request a spec should make once per account per run, not per test. */
+/**
+ * A sign-in: the request a spec should make once per account per run, not per
+ * test. The harness's own sign-in is the POST /auth/v1/verify of the service-role
+ * mint (scripts/lib/adminSession.mjs, Q1314: anon password grants are refused
+ * once CAPTCHA is on); the app's login form still sends a password grant.
+ */
 export const isSignIn = (url, method) =>
-  method === "POST" && /\/auth\/v1\/token\?(?:.*&)?grant_type=password\b/.test(url);
+  method === "POST" && (/\/auth\/v1\/token\?(?:.*&)?grant_type=password\b/.test(url) || /\/auth\/v1\/verify(?:\?|$)/.test(url));
 
 /** The key a GET is deduplicated on: the exact path + query, as sent. (The
  *  summary groups these by shape: scripts/e2e/request-budget.mjs shapeKey.) */

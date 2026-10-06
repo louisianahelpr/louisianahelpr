@@ -27,6 +27,7 @@ import { readFileSync, rmSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
 import { resolve } from "node:path";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
+import { mintAdminSession, resolveServiceKey } from "../lib/adminSession.mjs";
 import { removeJobMediaRest, removeMessageAttachmentsRest } from "../lib/jobMediaRest.mjs";
 import { fitJobTitle, runTag } from "../lib/jobTextBounds.mjs";
 import { supabaseBase } from "../lib/apiBase.mjs";
@@ -44,10 +45,12 @@ export const PERSONA_ACCOUNT = {
 // ---------------------------------------------------------------------------
 // Sessions — the same two sources, in the same order, as getSession() in
 // e2e/journeys/fixtures.ts (which cannot be imported here: it is a Playwright
-// fixture and calls test.info()). CI: password grant with the PLAYWRIGHT_*
-// secrets. Local / no secret: scripts/test-signin-link.mjs mints a magic-link
-// session with the service-role key in .env. Cached on disk for 40 minutes so
-// four shards and a re-run do not mint per screen.
+// fixture and calls test.info()). CI: the PLAYWRIGHT_<ROLE>_EMAIL account,
+// minted with the service-role key (scripts/lib/adminSession.mjs; never an anon
+// password grant, which GoTrue refuses once CAPTCHA is on, Q1314). Local / no
+// email: scripts/test-signin-link.mjs mints with the service-role key in .env.
+// Cached on disk for 40 minutes so four shards and a re-run do not mint per
+// screen.
 // ---------------------------------------------------------------------------
 const CACHE_DIR = resolve(process.cwd(), "test-results/.prod-sessions");
 
@@ -62,14 +65,11 @@ export async function prodSession(role) {
   });
   if (disk) return wrapSession(disk);
   const R = role.toUpperCase();
-  const email = process.env[`PLAYWRIGHT_${R}_EMAIL`], password = process.env[`PLAYWRIGHT_${R}_PASSWORD`];
+  const email = process.env[`PLAYWRIGHT_${R}_EMAIL`];
+  const serviceKey = email ? resolveServiceKey() : null;
   let session;
-  if (email && password) {
-    const r = await fetch(`${supabaseUrl()}/auth/v1/token?grant_type=password`, {
-      method: "POST", headers: { apikey: anonKey(), "Content-Type": "application/json" }, body: JSON.stringify({ email, password }),
-    });
-    if (!r.ok) throw new Error(`password sign-in failed for the ${role}: HTTP ${r.status} ${(await r.text()).slice(0, 160)}`);
-    session = await r.json();
+  if (email && serviceKey) {
+    session = await mintAdminSession({ email, serviceKey, supabaseUrl: supabaseUrl(), anonKey: anonKey() });
   } else {
     const out = execFileSync("node", [resolve(process.cwd(), "scripts/test-signin-link.mjs"), `${role}-e2e`, "--session", "--json"], { cwd: process.cwd(), encoding: "utf8", maxBuffer: 1 << 24 });
     session = JSON.parse(out).session;

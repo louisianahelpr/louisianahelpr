@@ -5,6 +5,7 @@ import { openCardFields } from "./stripeCheckoutCard";
 import { skipLivePay } from "./prod-audit/fundedOpenJob";
 import { join } from "node:path";
 import { fitJobTitle } from "../scripts/lib/jobTextBounds.mjs";
+import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../scripts/lib/adminSession.mjs";
 import { pathsByJob, rowStillNames, withoutPaths, type ProofRow } from "./proofPhotoTeardown";
 
 // The full authenticated money loop, against PRODUCTION, on a Stripe TEST key.
@@ -124,11 +125,11 @@ const ANON =
   process.env.PLAYWRIGHT_SUPABASE_ANON_KEY || "sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP";
 
 const POSTER_EMAIL = process.env.PLAYWRIGHT_POSTER_EMAIL;
-const POSTER_PASSWORD = process.env.PLAYWRIGHT_POSTER_PASSWORD;
 const HELPER_EMAIL = process.env.PLAYWRIGHT_HELPER_EMAIL;
-const HELPER_PASSWORD = process.env.PLAYWRIGHT_HELPER_PASSWORD;
+/** Sessions are minted with it (Q1314: never an anon password grant). */
+const SERVICE_KEY = resolveServiceKey();
 
-const READY = Boolean(POSTER_EMAIL && POSTER_PASSWORD && HELPER_EMAIL && HELPER_PASSWORD);
+const READY = Boolean(POSTER_EMAIL && HELPER_EMAIL && SERVICE_KEY);
 
 /**
  * The payout leg's credentials. OPTIONAL — without them the loop runs and says
@@ -139,14 +140,14 @@ const READY = Boolean(POSTER_EMAIL && POSTER_PASSWORD && HELPER_EMAIL && HELPER_
  * the service-role key, and the second door was the obvious one to reach for.
  * It is the wrong one. CRON_SECRET authorises 29 edge functions — every money
  * mutation in the system — so handing it to CI is broader custody than the
- * service-role key this workflow already refuses to hold, and it is
+ * service-role key needs (since Q1314 this workflow holds that key only to
+ * mint the test accounts' sessions), and it is
  * un-attributable besides: release-payout only stamps `initiated_by_user_id`
  * on the admin branch (index.ts:98), so a secret-authenticated payout lands in
  * the ledger as "someone holding the shared secret". An admin account is
  * narrower, revocable on its own, and signs its name in `payout_transfers`.
  */
 const ADMIN_EMAIL = process.env.PLAYWRIGHT_ADMIN_EMAIL;
-const ADMIN_PASSWORD = process.env.PLAYWRIGHT_ADMIN_PASSWORD;
 
 /** Shared with the sweeper. Changing it orphans every row the sweeper knows about. */
 const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT]";
@@ -246,15 +247,15 @@ function announceUncovered(title: string, detail: string) {
 
 type Session = { access_token: string; user: { id: string } };
 
-async function signIn(api: APIRequestContext, email: string, password: string): Promise<Session> {
-  const r = await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-    headers: { apikey: ANON, "Content-Type": "application/json" },
-    data: { email, password },
-  });
-  expect(r.ok(), `sign-in failed for ${email}: ${r.status()} ${await r.text()}`).toBe(true);
-  const body = (await r.json()) as Session;
-  expect(body.access_token, "GoTrue returned no access token").toBeTruthy();
-  return body;
+/** A session minted with the service role: never an anon password grant, which GoTrue refuses once CAPTCHA is on (Q1314). */
+async function signIn(api: APIRequestContext, email: string): Promise<Session> {
+  return (await mintAdminSession({
+    email,
+    serviceKey: SERVICE_KEY,
+    supabaseUrl: SUPABASE_URL,
+    anonKey: ANON,
+    transport: playwrightTransport(api),
+  })) as Session;
 }
 
 function rest(session: Session) {
@@ -472,8 +473,8 @@ async function uploadProofThroughTheApp(
 test.describe("full money loop against production", () => {
   test.skip(
     !READY,
-    "Set PLAYWRIGHT_POSTER_EMAIL / PLAYWRIGHT_POSTER_PASSWORD and PLAYWRIGHT_HELPER_EMAIL / " +
-      "PLAYWRIGHT_HELPER_PASSWORD. Until then the escrow, hire, complete, release and review " +
+    "Set PLAYWRIGHT_POSTER_EMAIL and PLAYWRIGHT_HELPER_EMAIL, with SUPABASE_SERVICE_ROLE_KEY to mint " +
+      "their sessions. Until then the escrow, hire, complete, release and review " +
       "legs have NO unmocked coverage — see e2e-real-backend.yml's boundary report.",
   );
 
@@ -498,7 +499,7 @@ test.describe("full money loop against production", () => {
     if (!READY || uploadedProofPaths.length === 0) return;
     const paths = uploadedProofPaths.splice(0, uploadedProofPaths.length);
     try {
-      const helper = await signIn(request, HELPER_EMAIL!, HELPER_PASSWORD!);
+      const helper = await signIn(request, HELPER_EMAIL!);
       const detached: string[] = [];
       for (const [jobId, jobPaths] of pathsByJob(paths)) {
         const read = await request.get(
@@ -549,8 +550,8 @@ test.describe("full money loop against production", () => {
   test("post, fund, apply, hire, complete, release, review", async ({ page, request }) => {
     test.setTimeout(5 * 60_000);
 
-    const poster = await signIn(request, POSTER_EMAIL!, POSTER_PASSWORD!);
-    const helper = await signIn(request, HELPER_EMAIL!, HELPER_PASSWORD!);
+    const poster = await signIn(request, POSTER_EMAIL!);
+    const helper = await signIn(request, HELPER_EMAIL!);
     expect(poster.user.id, "poster and helper resolved to the same account").not.toBe(helper.user.id);
 
     // --- 1. POST ------------------------------------------------------------
@@ -1248,10 +1249,10 @@ test.describe("full money loop against production", () => {
          admin, so the poster session (which does everything else here) cannot
          see it, and reading it as the helper additionally proves the payee can
          see their own payment. */
-      if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      if (!ADMIN_EMAIL) {
         announceUncovered(
           "Payout leg not covered",
-          "`PLAYWRIGHT_ADMIN_EMAIL` / `PLAYWRIGHT_ADMIN_PASSWORD` are not set, so `release-payout` was " +
+          "`PLAYWRIGHT_ADMIN_EMAIL` is not set, so `release-payout` was " +
             "not driven. Escrow funding, hire, completion and release ARE covered by this run, but " +
             "**nothing proves money reached the helper's Stripe Connect account** — no transfer was " +
             "sent and no `payout_transfers` row was written. Set them to a dedicated account holding " +
@@ -1259,7 +1260,7 @@ test.describe("full money loop against production", () => {
             "the system and records no actor.",
         );
       } else {
-        const admin = await signIn(request, ADMIN_EMAIL, ADMIN_PASSWORD);
+        const admin = await signIn(request, ADMIN_EMAIL);
         const payout = await request.post(`${SUPABASE_URL}/functions/v1/release-payout`, {
           headers: {
             apikey: ANON,

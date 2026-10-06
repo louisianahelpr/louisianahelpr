@@ -23,6 +23,7 @@ import { randomBytes } from "node:crypto";
 import type { APIRequestContext } from "@playwright/test";
 import { ANON, PNG_1PX, SUPABASE_URL, type Session } from "./fixtures";
 import { removeUserStorageRest } from "../../scripts/lib/jobMediaRest.mjs";
+import { mintAdminSession, playwrightTransport } from "../../scripts/lib/adminSession.mjs";
 import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 import { strongTestPassword } from "../../src/test/strongTestPassword";
 
@@ -96,15 +97,15 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
     if (i === 19) throw new Error(`no profile row for ${email} after signup`);
     await new Promise((r) => setTimeout(r, 500));
   }
-  const grant = await ok(
-    await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      headers: { apikey: ANON, "Content-Type": "application/json" },
-      data: { email, password },
-      timeout: 45_000,
-    }),
-    `sign in ${email}`,
-  );
-  const session = grant as Session;
+  // Minted with the service role, never an anon password grant (Q1314: GoTrue
+  // refuses those once CAPTCHA is on).
+  const session = (await mintAdminSession({
+    email,
+    serviceKey: key,
+    supabaseUrl: SUPABASE_URL,
+    anonKey: ANON,
+    transport: playwrightTransport(api),
+  })) as Session;
   // Avatar through the user's own session (the bucket policy is the real one).
   const avatarPath = `${userId}/journey-throwaway.png`;
   await ok(

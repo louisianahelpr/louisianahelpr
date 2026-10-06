@@ -247,7 +247,7 @@ describe("sweep-both-seats.sh: a teardown that cannot hold the helper seat fails
   });
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  const env = { POSTER_ACCESS_TOKEN: "p", HELPER_EMAIL: "h@example.com", HELPER_PASSWORD: "pw" };
+  const env = { POSTER_ACCESS_TOKEN: "p", HELPER_EMAIL: "h@example.com" };
 
   it("teardown: exit 1 and the sweeper never runs", async () => {
     const r = await run("bash", [join(dir, "sweep-both-seats.sh")], { ...env, SWEEP_PHASE: "teardown" });

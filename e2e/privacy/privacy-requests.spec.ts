@@ -28,6 +28,7 @@ import {
   KNOWN_NOT_EXPORTED,
 } from "../../scripts/lib/privacyJourney.mjs";
 import { fitJobTitle, runTag } from "../../scripts/lib/jobTextBounds.mjs";
+import { mintAdminSession, playwrightTransport } from "../../scripts/lib/adminSession.mjs";
 
 /**
  * PRIVACY REQUESTS, END TO END, ON PROD (docs/OPEN.md Q70). Monthly:
@@ -151,6 +152,20 @@ let helperId = "";
 const created = { keptJobId: "", deletedJobId: "", reportId: "", applicationId: "" };
 let deletedViaUi = false;
 
+/**
+ * The disposable account's session, minted with the service role: never an
+ * anon password grant, which GoTrue refuses once CAPTCHA is on (Q1314).
+ */
+async function mintSession(api: APIRequestContext, email: string): Promise<Session> {
+  return (await mintAdminSession({
+    email,
+    serviceKey: svc?.key,
+    supabaseUrl: SUPABASE_URL,
+    anonKey: ANON,
+    transport: playwrightTransport(api),
+  })) as Session;
+}
+
 /** Fresh read of everything assertDisposable needs, then the check itself. */
 async function requireDisposable(api: APIRequestContext, userId: string) {
   const r = await api.get(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: SR });
@@ -208,13 +223,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
       location: "Lafayette, LA",
       email_verified: true,
     });
-    const grant = await request.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      headers: { apikey: ANON, "Content-Type": "application/json" },
-      data: { email: EMAIL, password: PASSWORD },
-      timeout: 45_000,
-    });
-    expect(grant.ok(), `sign in ${EMAIL}: ${grant.status()}`).toBe(true);
-    account = { userId, session: (await grant.json()) as Session };
+    account = { userId, session: await mintSession(request, EMAIL) };
     await requireDisposable(request, userId);
     helperId = (await getSession(request, "helper")).user.id;
   });
@@ -440,13 +449,7 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
         request, `profiles?user_id=eq.${userId}&select=avatar_url,is_legacy_user`);
       expect(row.avatar_url, "the incomplete account must have no avatar").toBeNull();
       expect(row.is_legacy_user, "a legacy account bypasses the gate; this one must not").not.toBe(true);
-      const grant = await request.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-        headers: { apikey: ANON, "Content-Type": "application/json" },
-        data: { email: INCOMPLETE_EMAIL, password: PASSWORD },
-        timeout: 45_000,
-      });
-      expect(grant.ok(), `sign in ${INCOMPLETE_EMAIL}: ${grant.status()}`).toBe(true);
-      const session = (await grant.json()) as Session;
+      const session = await mintSession(request, INCOMPLETE_EMAIL);
       token = session.access_token;
       await disposable();
 

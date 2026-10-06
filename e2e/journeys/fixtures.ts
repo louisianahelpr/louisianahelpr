@@ -16,6 +16,7 @@ import { openCardFields } from "../stripeCheckoutCard";
 import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
 import { payInChromium } from "./stripeInChromium";
+import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../../scripts/lib/adminSession.mjs";
 
 /**
  * Shared plumbing for the USER JOURNEY suite (e2e/journeys/*).
@@ -26,13 +27,14 @@ import { payInChromium } from "./stripeInChromium";
  * two shared E2E accounts: the same pair,
  * title marker, sweeper and Stripe tripwire as e2e/prod-lifecycle.spec.ts.
  *
- * SESSIONS. Two sources, and neither changes a credential:
- *   1. CI: PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD
- *      -> GoTrue password grant (exactly what prod-lifecycle does).
- *   2. Local: no passwords on this machine, so scripts/test-signin-link.mjs
- *      --session --json mints a one-time magic-link session from .env's
- *      service-role key. It is allowlisted to the seeded test accounts and
- *      never touches the password.
+ * SESSIONS. Two sources, both minted with the service role (never an anon
+ * password grant: GoTrue refuses those once CAPTCHA is on, docs/OPEN.md Q1314,
+ * guard src/test/noAnonPasswordGrants.test.ts), and neither changes a credential:
+ *   1. CI: PLAYWRIGHT_<ROLE>_EMAIL + the service-role key (the workflow fetches
+ *      it after its build, into the env or .env) -> scripts/lib/adminSession.mjs.
+ *   2. Local: scripts/test-signin-link.mjs --session --json mints from .env's
+ *      service-role key with the same helper. It is allowlisted to the seeded
+ *      test accounts.
  * If neither is available every journey skips with that reason stated.
  */
 
@@ -66,14 +68,14 @@ export type Session = {
 const REPO_ROOT = process.cwd();
 
 function envCreds(role: Role) {
-  // PLAYWRIGHT_POSTER_EMAIL, PLAYWRIGHT_ADMIN_PASSWORD, … — the CI secrets.
-  const key = role.toUpperCase();
-  const email = process.env[`PLAYWRIGHT_${key}_EMAIL`];
-  const password = process.env[`PLAYWRIGHT_${key}_PASSWORD`];
-  return email && password ? { email, password } : null;
+  // PLAYWRIGHT_POSTER_EMAIL, PLAYWRIGHT_ADMIN_EMAIL, … — the CI secrets — and
+  // the service-role key the session is minted with.
+  const email = process.env[`PLAYWRIGHT_${role.toUpperCase()}_EMAIL`];
+  const serviceKey = email ? resolveServiceKey() : null;
+  return email && serviceKey ? { email, serviceKey } : null;
 }
 
-/** Can getSession(role) succeed here? Password secret in CI, or a local .env to mint from. */
+/** Can getSession(role) succeed here? Account email + service key in CI, or a local .env to mint from. */
 export function sessionAvailable(role: Role): boolean {
   return Boolean(envCreds(role)) || (!process.env.CI && existsSync(join(REPO_ROOT, ".env")));
 }
@@ -84,12 +86,12 @@ export async function optionalSession(api: APIRequestContext, role: Role): Promi
 }
 
 export function sessionsAvailable(): { ok: boolean; why: string } {
-  if (envCreds("poster") && envCreds("helper")) return { ok: true, why: "password grant" };
+  if (envCreds("poster") && envCreds("helper")) return { ok: true, why: "service-role mint" };
   if (!process.env.CI && existsSync(join(REPO_ROOT, ".env"))) return { ok: true, why: "local magic-link mint" };
   return {
     ok: false,
     why:
-      "No session source: set PLAYWRIGHT_POSTER_EMAIL/_PASSWORD + PLAYWRIGHT_HELPER_EMAIL/_PASSWORD, " +
+      "No session source: set PLAYWRIGHT_POSTER_EMAIL + PLAYWRIGHT_HELPER_EMAIL and SUPABASE_SERVICE_ROLE_KEY, " +
       "or run locally with .env (service-role) so scripts/test-signin-link.mjs can mint one.",
   };
 }
@@ -127,15 +129,16 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
      * is what made this look like an outage rather than a tight bound.
      */
     const SIGNIN_TIMEOUT_MS = 45_000;
-    const attempt = async () => {
-      const r = await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-        headers: { apikey: ANON, "Content-Type": "application/json" },
-        data: creds,
-        timeout: SIGNIN_TIMEOUT_MS,
-      });
-      if (!r.ok()) throw new Error(`${r.status()} ${await r.text()}`);
-      return (await r.json()) as Session;
-    };
+    const attempt = async () =>
+      (await mintAdminSession({
+        email: creds.email,
+        serviceKey: creds.serviceKey,
+        supabaseUrl: SUPABASE_URL,
+        anonKey: ANON,
+        transport: playwrightTransport(api),
+        timeoutMs: SIGNIN_TIMEOUT_MS,
+        retries: 0, // the retry is the one below, with its own message
+      })) as Session;
     let first: unknown;
     session = await attempt().catch(async (e: unknown) => {
       first = e;
@@ -605,14 +608,20 @@ async function errorLogReader(api: APIRequestContext): Promise<{ apikey: string;
       return { apikey: key, token: key };
     }
   }
-  const email = process.env.PLAYWRIGHT_ADMIN_EMAIL;
-  const password = process.env.PLAYWRIGHT_ADMIN_PASSWORD;
-  if (email && password) {
-    const r = await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      headers: { apikey: ANON, "Content-Type": "application/json" },
-      data: { email, password },
+  // CI: the admin account's session, minted with the service role (Q1314).
+  const admin = envCreds("admin");
+  if (admin) {
+    const s = await mintAdminSession({
+      email: admin.email,
+      serviceKey: admin.serviceKey,
+      supabaseUrl: SUPABASE_URL,
+      anonKey: ANON,
+      transport: playwrightTransport(api),
+    }).catch((e: unknown) => {
+      console.warn(`[journeys] admin mint for the error_logs read failed: ${e instanceof Error ? e.message : String(e)}`);
+      return null;
     });
-    if (r.ok()) return { apikey: ANON, token: ((await r.json()) as Session).access_token };
+    if (s) return { apikey: ANON, token: s.access_token };
   }
   return null;
 }
@@ -819,7 +828,7 @@ export const test = base.extend<{ journey: Journey }>({
       expect(unexpected, `the app reported errors during the journey:\n${unexpected.join("\n")}`).toEqual([]);
       const reader = await errorLogReader(request);
       if (!reader) {
-        announceUncovered("error_logs not checked", "no service-role .env and no PLAYWRIGHT_ADMIN_EMAIL/_PASSWORD; only client-side report() POSTs were watched.");
+        announceUncovered("error_logs not checked", "no service-role .env and no PLAYWRIGHT_ADMIN_EMAIL + SUPABASE_SERVICE_ROLE_KEY; only client-side report() POSTs were watched.");
       } else if (sessionCache.size) {
         const ids = [...sessionCache.values()].map((s) => s.user.id).join(",");
         const r = await request.get(

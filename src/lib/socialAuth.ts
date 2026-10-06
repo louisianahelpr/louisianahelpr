@@ -17,7 +17,7 @@ import { Capacitor } from "@capacitor/core";
 // it is dead weight. Destructure from the module, never await/return the plugin
 // object itself (thenable assimilation, CLAUDE.md "Platform gotchas").
 /**
- * Apple + Google sign-in OFF for launch (owner, 2026-10-06, Q1428: "drop apple
+ * Apple + Google sign-in OFF for launch (owner, 2026-10-06, Q1439: "drop apple
  * and google, we can discuss after launch"). App Store guideline 4.8 requires
  * Sign in with Apple whenever Google sign-in is offered, and Apple's Hide My
  * Email forced the link-your-account screen; email sign-in only for launch.

@@ -126,6 +126,20 @@ export function uncoveredCommits(cherryVerbose, covered) {
 }
 
 /**
+ * A deliberately broken branch is never auto-landed. A red proof (a guard's
+ * check removed to show the guard can fail) is pushed only so CI can run it;
+ * on 2026-10-06 this script opened auto-land #2444 for q975-red-proof WITH
+ * auto-merge on, and its only change (a weakened CI race runner) would have
+ * passed every required check and merged. Marked by its branch name or by any
+ * unlanded commit subject.
+ */
+export const NEVER_LAND_SUBJECT = /\b(?:RED PROOF|DO NOT LAND)\b/i;
+export const NEVER_LAND_BRANCH = /(?:^|[/-])red-proof(?:$|[/-])|-red$/;
+export function neverLand(name, uncovered = []) {
+  return NEVER_LAND_BRANCH.test(name) || uncovered.some((c) => NEVER_LAND_SUBJECT.test(c?.subject ?? ""));
+}
+
+/**
  * Pure: is this branch stranded work (pushed, unlanded, no PR, not new)?
  * @param {{ name: string, hasOpenPr: boolean, ageHours: number, uncovered: unknown[], accepted?: boolean }} b
  */
@@ -136,6 +150,7 @@ export function isStranded({ name, hasOpenPr, ageHours, uncovered, accepted = fa
   // main another way): never re-open an auto-land PR for it (2026-10-04: the
   // closed cloud PRs came back as #2277-#2280 every run).
   if (accepted) return false;
+  if (neverLand(name, uncovered)) return false;
   if (!(ageHours >= STRANDED_AFTER_HOURS)) return false;
   return uncovered.length > 0;
 }

@@ -27,7 +27,7 @@ describe("launch list progress", () => {
   });
 
   it("the generated header prints that progress", () => {
-    const text = [LAUNCH_LIST_START, "- A: Q1, Q2, Q3", LAUNCH_LIST_END, "- [ ] **Q1 HIGH a**", "- [~] **Q2 HIGH b**"].join("\n");
+    const text = [LAUNCH_LIST_START, "- A: Q1, Q2, Q3, Q4", LAUNCH_LIST_END, "- [ ] **Q1 HIGH a**", "- [~] **Q2 HIGH b**", "- [ ] **Q3 LOW c**"].join("\n");
     const local = [{ signal: "OPEN.md queue", fail: 1, pass: 1, skipped: "1" }];
     expect(renderOpenBlock(local, "- **Workflows on main:** x", text)).toMatch(/^- \*\*Launch list: 2 left of 3\*\* \(1 to do, 1 fixed awaiting proof/m);
     expect(renderOpenBlock(local, "- **Workflows on main:** x", "no markers")).not.toMatch(/Launch list/);

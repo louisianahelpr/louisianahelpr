@@ -41,7 +41,6 @@ const num = (l: string) => Number(/\*\*Q(\d+)/.exec(l)![1]);
  */
 // @two-way src/test/reviewFindingsCarryATag.test.ts:NOT_FROM_A_REVIEW is exact: every entry is still untagged and review-worded
 const NOT_FROM_A_REVIEW: Record<string, string> = {
-  Q1411: "owner decision 2026-10-05 (pop-up) on the ban settlement review feature: hide posts during review",
 };
 function untaggedNewAll(): string[] {
   return ITEMS.filter((l) => num(l) > LAST_UNTAGGED && REVIEW.test(l) && !TAGGED.test(l)).map((l) => `Q${num(l)}`);

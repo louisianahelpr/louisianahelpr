@@ -5,7 +5,7 @@
  *
  * @mutate scripts/scoreboard.mjs | const todo = listed.filter((q) => state.get(q) === " ").length; | const todo = 0;
  * @mutate scripts/scoreboard.mjs | const partly = listed.filter((q) => state.get(q) === "~").length; | const partly = 0;
- * @mutate scripts/scoreboard.mjs | ? `\n- **Launch list: | ? `\n- **Launch: 
+ * @mutate scripts/scoreboard.mjs | (${launch.todo} to do | (${launch.partly} to do
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,6 +38,7 @@ describe("launch list progress", () => {
   it("every listed item exists (open here, or ticked into the archive)", () => {
     const i = OPEN_MD.indexOf(LAUNCH_LIST_START), j = OPEN_MD.indexOf(LAUNCH_LIST_END);
     const listed = [...new Set([...OPEN_MD.slice(i, j).matchAll(/\bQ(\d+)\b/g)].map((m) => `Q${m[1]}`))];
+    expect(listed.length).toBeGreaterThan(20);
     const archive = readFileSync(join(ROOT, "docs/archive/OPEN-done-2026-10.md"), "utf8");
     const missing = listed.filter((q) => !new RegExp(`^- \\[[ ~x.]\\] \\*\\*${q}\\b`, "m").test(OPEN_MD + "\n" + archive));
     expect(missing).toEqual([]);

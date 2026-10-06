@@ -27,7 +27,7 @@
  * @mutate src/lib/oauthRedirectError.ts | if (choice) return hold(loc, hist, query, hash, { provider: pending.provider, | if (false) return hold(loc, hist, query, hash, { provider: pending.provider,
  * @mutate src/components/auth/SocialAuthButtons.tsx | <AccountChoiceDialog choice={choice} | <AccountChoiceDialog choice={null}
  * @mutate src/components/auth/SocialAuthButtons.tsx | onChoose(result.choice); | void result;
- * @mutate src/components/auth/SocialAuthButtons.tsx | import("@/components/auth/AccountChoiceDialog") | import("@/components/auth/AccountChoiceDialogX")
+ * @mutate src/components/auth/SocialAuthButtons.tsx |     import("@/components/auth/AccountChoiceDialog") |     Promise.resolve(null as never as typeof import("@/components/auth/AccountChoiceDialog"))
  * @mutate src/components/auth/SocialAuthButtons.tsx | import { useEffect, useState } from "react"; | import { useEffect, useState } from "react";\nimport { AccountChoiceDialog as Eager } from "@/components/auth/AccountChoiceDialog";
  * @mutate src/pages/auth/Login.tsx | <SocialAuthButtons mode="signin" initialChoice={accountChoice} /> | <SocialAuthButtons mode="signin" />
  * @mutate supabase/migrations/20261005182630_one_account_per_person.sql | 'message', 'lh_account_choice:' | 'message', 'lh_other:'
@@ -146,7 +146,7 @@ describe("one account per person: a no-match social sign-in never silently creat
     // re-render null, so the dialog never opened; seen in a browser 2026-10-05).
     expect(buttons).not.toMatch(/^\s*import\s+[^;]*from\s+"@\/components\/auth\/AccountChoiceDialog"/m);
     expect(buttons).not.toMatch(/\blazy\(/);
-    expect(buttons).toMatch(/import\("@\/components\/auth\/AccountChoiceDialog"\)/);
+    expect(buttons).toMatch(/(?<!typeof )import\("@\/components\/auth\/AccountChoiceDialog"\)/);
     expect(code("src/pages/auth/Login.tsx")).toMatch(/<SocialAuthButtons mode="signin" initialChoice=\{accountChoice\} \/>/);
     // Both "I'm new here" and "I already have an account" are offered.
     const dialog = code("src/components/auth/AccountChoiceDialog.tsx");

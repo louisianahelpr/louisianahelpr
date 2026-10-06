@@ -292,7 +292,7 @@ const REQUEST_REVISION = {
   run: (c, f) =>
     c.query(
       `UPDATE public.jobs SET status = 'revision_requested', revision_note = 'race-runner Q975', revision_requested_at = now()
-        WHERE id = $1 AND status = 'in_progress'`,
+        WHERE id = $1`,
       [f.job],
     ),
 };
@@ -302,7 +302,7 @@ const RESOLVE_REVISION = {
   run: (c, f) =>
     c.query(
       `UPDATE public.jobs SET revision_completed_at = now(), revision_acceptance_deadline = now() + interval '48 hours'
-        WHERE id = $1 AND status = 'revision_requested' AND revision_completed_at IS NULL`,
+        WHERE id = $1`,
       [f.job],
     ),
 };
@@ -312,8 +312,7 @@ const CANCEL_CLAIM = {
   run: (c, f) =>
     c.query(
       `UPDATE public.jobs SET payment_status = 'cancelling'
-        WHERE id = $1 AND status = 'open' AND payment_status IN ('escrow', 'cancelling') AND payment_status = 'escrow'
-          AND helper_id IS NULL`,
+        WHERE id = $1`,
       [f.job],
     ),
 };

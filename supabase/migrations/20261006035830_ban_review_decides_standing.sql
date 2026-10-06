@@ -125,7 +125,11 @@ BEGIN
   IF v_actor IS NOT NULL AND NOT public.has_role(v_actor, 'admin'::public.app_role) THEN
     RETURN NULL;
   END IF;
-  IF v_actor IS NULL AND COALESCE(current_setting('app.ban_expiry_sweep', true), '') <> 'on' THEN
+  -- A NULL uid alone is not the server: an anon request has one too
+  -- (20260915101102). Only a real server context that IS the sweep finishes.
+  IF v_actor IS NULL
+     AND NOT (public.is_server_context()
+              AND COALESCE(current_setting('app.ban_expiry_sweep', true), '') = 'on') THEN
     RETURN NULL;
   END IF;
   SELECT r.id INTO v_review

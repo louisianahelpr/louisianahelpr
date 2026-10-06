@@ -342,6 +342,7 @@ describe("the retained-ban path never softens a ban, and only the sweep finishes
   });
   it("the expiry sweep names itself, and the finish trigger requires that name from a caller-less unban", () => {
     expect(body("sweep_expired_auto_bans")).toMatch(/set_config\('app\.ban_expiry_sweep', 'on', true\);\s+UPDATE public\.profiles/);
-    expect(body("finish_confirmed_ban_review_on_unban")).toMatch(/IF v_actor IS NULL AND COALESCE\(current_setting\('app\.ban_expiry_sweep', true\), ''\) <> 'on' THEN\s+RETURN NULL;/);
+    // A NULL uid alone is not the server (db-smoke's null-uid-trust gate): the sweep's flag counts only in a server context.
+    expect(body("finish_confirmed_ban_review_on_unban")).toMatch(/IF v_actor IS NULL\s+AND NOT \(public\.is_server_context\(\)\s+AND COALESCE\(current_setting\('app\.ban_expiry_sweep', true\), ''\) = 'on'\) THEN\s+RETURN NULL;/);
   });
 });

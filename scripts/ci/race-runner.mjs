@@ -149,6 +149,34 @@ async function fixture(admin, race) {
   // ago, poster silent), the state auto-release-payment pays from. Races 8-9
   // then open a REAL poster dispute through open_dispute_as and backdate its
   // deadline, the state auto-resolve-disputes pays from.
+  // Race 13 (Q975 probe 6): an open funded job nobody was hired for, the only
+  // state cancel_escrow claims.
+  if (race === 13) {
+    // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
+    const { rows } = await admin.query(
+      `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
+                                customer_id, helper_id, date_needed, created_at, payment_status, start_time)
+       VALUES ('[CI race] cancel', 'race-runner.mjs fixture (Q975)', 'cleaning', 100, 'Test Address', 'Orleans',
+               'open', $1, NULL, CURRENT_DATE + 7, now() - interval '30 days', 'escrow', '00:00')
+       RETURNING id`,
+      [poster],
+    );
+    return { poster, helper, job: rows[0].id };
+  }
+  // Races 10-12 (Q975 probes 4-5): the revision loop on a finished escrow job.
+  // 11-12 start with a revision requested and its delivery still owed.
+  if (race >= 10) {
+    const f = await escrowDoneFixture(admin, poster, helper, false);
+    if (race >= 11) {
+      await admin.query(
+        `UPDATE public.jobs SET status = 'revision_requested', revision_note = 'race-runner', revision_requested_at = now() - interval '1 hour',
+                revision_completed_at = NULL, revision_acceptance_deadline = NULL
+          WHERE id = $1`,
+        [f.job],
+      );
+    }
+    return f;
+  }
   if (race >= 7) return escrowDoneFixture(admin, poster, helper, race >= 8);
   // Races 3-5: a job underway whose completion gates (arrival verified, both
   // photos, 30-minute floor) are all satisfied, so the only thing that can
@@ -258,6 +286,39 @@ const AUTO_RESOLVE = {
     ),
 };
 const paidOut = (s) => s.payment_status === "payout_pending" || s.status === "completed";
+/** create-payment request_revision, exactly as index.ts writes it (status pinned to in_progress). */
+const REQUEST_REVISION = {
+  as: "service",
+  run: (c, f) =>
+    c.query(
+      `UPDATE public.jobs SET status = 'revision_requested', revision_note = 'race-runner Q975', revision_requested_at = now()
+        WHERE id = $1 AND status = 'in_progress'`,
+      [f.job],
+    ),
+};
+/** create-payment resolve_revision, exactly as index.ts writes it (the double-tap guard is revision_completed_at IS NULL). */
+const RESOLVE_REVISION = {
+  as: "service",
+  run: (c, f) =>
+    c.query(
+      `UPDATE public.jobs SET revision_completed_at = now(), revision_acceptance_deadline = now() + interval '48 hours'
+        WHERE id = $1 AND status = 'revision_requested' AND revision_completed_at IS NULL`,
+      [f.job],
+    ),
+};
+/** create-payment cancel_escrow's claim, exactly as index.ts writes it, pinned to the state it read (open, escrow). */
+const CANCEL_CLAIM = {
+  as: "service",
+  run: (c, f) =>
+    c.query(
+      `UPDATE public.jobs SET payment_status = 'cancelling'
+        WHERE id = $1 AND status = 'open' AND payment_status IN ('escrow', 'cancelling') AND payment_status = 'escrow'
+          AND helper_id IS NULL`,
+      [f.job],
+    ),
+};
+/** A second claim that LANDED a row: the double-tap guard failed. */
+const secondLanded = (b) => /committed \(1 row\)/.test(b);
 
 const RACES = {
   1: {
@@ -328,6 +389,35 @@ const RACES = {
     B: AUTO_RESOLVE,
     refusal: /^$/,
     bad: (s) => s.withdrawn > 0 && (paidOut(s) || s.dispute_status === "auto_resolved"),
+  },
+  10: {
+    name: "Q975 request_revision double-tap (one request, one notice)",
+    A: REQUEST_REVISION,
+    B: REQUEST_REVISION,
+    refusal: /^$/,
+    bad: (s, f, b) => secondLanded(b),
+  },
+  11: {
+    name: "Q975 resolve_revision double-tap (one delivery)",
+    A: RESOLVE_REVISION,
+    B: RESOLVE_REVISION,
+    refusal: /^$/,
+    bad: (s, f, b) => secondLanded(b),
+  },
+  12: {
+    name: "Q975 resolve_revision vs the poster opening a dispute (dispute holds the lock)",
+    A: { as: "service", run: (c, f) => c.query("SELECT public.open_dispute_as($1, $2, $3, '{}'::text[])", [f.job, f.poster, "race-runner Q975: the revision was not delivered as asked"]) },
+    B: RESOLVE_REVISION,
+    refusal: /^$/,
+    // No acceptance clock may start on a job the poster has just disputed.
+    bad: (s) => s.disputes > 0 && s.acceptance_set,
+  },
+  13: {
+    name: "Q975 cancel_escrow claim double-tap (one claim, one refund)",
+    A: CANCEL_CLAIM,
+    B: CANCEL_CLAIM,
+    refusal: /^$/,
+    bad: (s, f, b) => secondLanded(b),
   },
   5: {
     name: "helper Done again vs release",
@@ -419,12 +509,13 @@ async function round(admin, race) {
               (SELECT count(*)::int FROM public.applications a WHERE a.job_id = j.id) AS apps,
               j.payment_status::text AS payment_status, j.dispute_status::text AS dispute_status,
               (SELECT count(*)::int FROM public.disputes d WHERE d.job_id = j.id) AS disputes,
-              (SELECT count(*)::int FROM public.disputes d WHERE d.job_id = j.id AND d.status = 'withdrawn') AS withdrawn
+              (SELECT count(*)::int FROM public.disputes d WHERE d.job_id = j.id AND d.status = 'withdrawn') AS withdrawn,
+              j.revision_acceptance_deadline IS NOT NULL AS acceptance_set
          FROM public.jobs j WHERE j.id = $1`,
       [f.job],
     );
     const s = rows[0];
-    const bad = R.bad(s, f);
+    const bad = R.bad(s, f, bOutcome);
     const wrongRefusal = bOutcome.startsWith("refused") && !(R.refusal.source !== "^$" && R.refusal.test(bOutcome));
     return { bad, waiting, wrongRefusal, s, b: bOutcome };
   } finally {

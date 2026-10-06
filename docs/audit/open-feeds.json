@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-05T19:02Z",
+  "measured_at": "2026-10-06T19:44Z",
   "issues": {
     "readable": true,
     "open": [
@@ -28,6 +28,46 @@
         "number": 2366,
         "title": "nightly-red: branch-prune",
         "label": "nightly-red"
+      },
+      {
+        "number": 2375,
+        "title": "nightly-red: a11y-webkit-prod",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2419,
+        "title": "nightly-red: vacuity",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2420,
+        "title": "nightly-red: loading-states-refresh",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2435,
+        "title": "nightly-red: e2e-real-backend",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2436,
+        "title": "nightly-red: e2e-journeys",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2462,
+        "title": "nightly-red: slow-network",
+        "label": "nightly-red"
+      },
+      {
+        "number": 2464,
+        "title": "🔴 1 scheduled workflow(s) have stopped running",
+        "label": "schedule-stalled"
+      },
+      {
+        "number": 2465,
+        "title": "nightly-red: schedule-heartbeat",
+        "label": "nightly-red"
       }
     ]
   },
@@ -43,12 +83,36 @@
         "issue": 2245
       },
       {
+        "fingerprint": "7e141f206640992d5c398b4e39d71f94",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: press-every-control",
+        "issue": 2353
+      },
+      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: staleness-watch",
         "issue": 2198
+      },
+      {
+        "fingerprint": "6389f98a9f666200913c7cf501dc289d",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: loading-states-refresh",
+        "issue": 2420
+      },
+      {
+        "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: vacuity",
+        "issue": 2419
       },
       {
         "fingerprint": "ab6fdbe8c882e8ae266ab1285b4c01c6",
@@ -59,12 +123,52 @@
         "issue": 2244
       },
       {
-        "fingerprint": "b75d265e62012a472e62221e79c5ce28",
-        "source_kind": "workflow",
-        "source": "quota-monitor",
+        "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
         "status": "open",
-        "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
-        "issue": null
+        "title": "nightly-red: e2e-real-backend",
+        "issue": 2435
+      },
+      {
+        "fingerprint": "43d77e26f2722c7e54d5d41caa0665e2",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: e2e-journeys",
+        "issue": 2436
+      },
+      {
+        "fingerprint": "a8ceee56bbd5a688ee8eb2f4f8e41e69",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: slow-network",
+        "issue": 2462
+      },
+      {
+        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-errors",
+        "issue": 2463
+      },
+      {
+        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: schedule-heartbeat",
+        "issue": 2465
+      },
+      {
+        "fingerprint": "6205197429d4e577570e7970d3a22f83",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: a11y-webkit-prod",
+        "issue": 2375
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -72,7 +176,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: branch-prune",
-        "issue": null
+        "issue": 2366
       },
       {
         "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
@@ -83,27 +187,26 @@
         "issue": null
       },
       {
-        "fingerprint": "6d6726e9c2f13fda3aaa0398b57c3c76",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/posts · error screen shown: couldn't load applicants",
-        "issue": null
-      },
-      {
         "fingerprint": "5b3c79ac5eb7674118e5fe66b79204e2",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
         "title": "/jobs · error screen shown: we couldn't load this.",
         "issue": null
+      },
+      {
+        "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
+        "source_kind": "nightly_red",
+        "source": "schedule-stalled",
+        "status": "open",
+        "title": "🔴 # scheduled workflow(s) have stopped running",
+        "issue": 2464
       }
     ]
   },
   "mirrored": {
     "bus ME-019": "Q441",
     "bus ME-043": "Q441",
-    "bus OA-018": "Q446",
     "bus TC-004": "Q226",
     "issue #1754": "Q785",
     "issue #1794": "Q593",
@@ -114,12 +217,29 @@
     "issue #2245": "Q785",
     "issue #2353": "Q1374",
     "issue #2366": "Q1376",
+    "issue #2375": "Q593",
+    "issue #2419": "Q1420",
+    "issue #2420": "Q1421",
+    "issue #2435": "Q1422",
+    "issue #2436": "Q1423",
+    "issue #2462": "Q1424",
+    "issue #2464": "Q1425",
+    "issue #2465": "Q1426",
     "ledger 0e88968519a2": "Q1134",
     "ledger 16e6e91f6701": "Q785",
+    "ledger 1ef4b10bb74a": "Q1427",
+    "ledger 3a3460b71be7": "Q1422",
+    "ledger 43d77e26f272": "Q1423",
+    "ledger 4aa239aefeb6": "Q1426",
     "ledger 5b3c79ac5eb7": "Q1377",
     "ledger 6205197429d4": "Q593",
+    "ledger 6389f98a9f66": "Q1421",
     "ledger 6d6726e9c2f1": "Q1375",
+    "ledger 7e141f206640": "Q1374",
     "ledger 7f88b9cc45df": "Q1376",
+    "ledger 88ecf6e765df": "Q1420",
+    "ledger 8a2e802edbe7": "Q1425",
+    "ledger a8ceee56bbd5": "Q1424",
     "ledger ab6fdbe8c882": "Q1275",
     "ledger b75d265e6201": "Q1310",
     "ledger db0fb15c4ec3": "Q787"

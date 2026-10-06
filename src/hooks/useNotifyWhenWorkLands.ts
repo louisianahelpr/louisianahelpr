@@ -44,10 +44,13 @@ export function useNotifyWhenWorkLands(): () => Promise<void> {
       report(e, { tags: { source: "notifyWhenWorkLands.push" } });
       outcome = "refused";
     }
+    // The bare toast(), never toast.success/.message: toastPolicy suppresses
+    // those, and with notifications already allowed iOS shows no prompt, so
+    // the tap looked like it did nothing (owner, on device, 2026-10-06).
     if (outcome === "granted") {
-      toast.success("You're set. We'll ping you when paid work lands.");
+      toast("You're set. We'll ping you when paid work lands.");
     } else {
-      toast.message("Job alerts are on, but this device isn't allowed to notify you. Turn on notifications for Helpr in Settings.");
+      toast.warning("Job alerts are on, but this device isn't allowed to notify you. Turn on notifications for Helpr in Settings.");
     }
   }, [user, navigate, requestPush]);
 }

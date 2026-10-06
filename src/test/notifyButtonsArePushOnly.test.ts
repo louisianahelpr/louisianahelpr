@@ -21,6 +21,8 @@
  * @mutate src/lib/notifyWhenWorkLands.ts | export const NOTIFY_PREF_PATCH = { push_enabled: true, job_matches: true } as const; | export const NOTIFY_PREF_PATCH = { push_enabled: false, job_matches: true } as const;
  * @mutate src/lib/notifyWhenWorkLands.ts | .select("user_id"); | ;
  * @mutate src/pages/auth/Signup.tsx | subtitle: notifySignupSubtitle(searchParams.get("reason")) | subtitle: undefined
+ * @mutate src/hooks/useNotifyWhenWorkLands.ts | toast("You're set. We'll ping you when paid work lands."); | toast.success("You're set. We'll ping you when paid work lands.");
+ * @mutate src/hooks/useNotifyWhenWorkLands.ts | toast.warning("Job alerts are on | toast.message("Job alerts are on
  * @mutate src/lib/jobIntent.ts | return reason === "notify" ? NOTIFY_SIGNUP_SUBTITLE : undefined; | return undefined;
  */
 import { describe, it, expect } from "vitest";
@@ -123,5 +125,15 @@ describe("Notify Me When Work Lands is push only (Q1313)", () => {
     const signup = blankComments(read("src/pages/auth/Signup.tsx"));
     expect(signup).toMatch(/subtitle: notifySignupSubtitle\(searchParams\.get\("reason"\)\)/);
     expect(NOTIFY_SIGNUP_SUBTITLE).toMatch(/notified/i);
+  });
+  it("every outcome of the tap shows a message (no toast channel toastPolicy suppresses)", () => {
+    // Owner, on device 2026-10-06: with notifications already allowed iOS shows
+    // no prompt, and the confirmation went through toast.success, which
+    // src/lib/toastPolicy.ts suppresses, so the tap looked like it did nothing.
+    const src = blankComments(readFileSync(join(ROOT, "src/hooks/useNotifyWhenWorkLands.ts"), "utf8"));
+    expect(src).not.toMatch(/\btoast\.(success|message|info)\(/);
+    expect(src).not.toMatch(/\bsuccessToast\(/);
+    expect(src).toMatch(/\btoast\("You're set/);
+    expect(src).toMatch(/\btoast\.warning\("Job alerts are on/);
   });
 });

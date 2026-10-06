@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "migration:new": "node scripts/new-migration.mjs",
+    "launch-status": "node scripts/launch-status.mjs",
     "predev": "rm -rf node_modules/.vite",
     "dev": "vite",
     "build": "vite build && node scripts/check-csp-inline-scripts.mjs && node scripts/build-og-shell.mjs && node scripts/strip-web-sourcemaps.mjs",

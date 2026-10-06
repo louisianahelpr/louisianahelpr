@@ -1,0 +1,37 @@
+name: "Service-role key for the test sessions"
+description: >
+  Puts the project's service-role key in SUPABASE_SERVICE_ROLE_KEY (masked) for
+  the REST of the job, fetched with the Management API the way e2e-journeys.yml
+  and privacy-journey.yml already do. Every CI sign-in of a shared test account
+  is minted with it (scripts/lib/adminSession.mjs), because an anon password
+  grant is refused once Supabase Auth CAPTCHA is on (docs/OPEN.md Q1314; guard
+  src/test/noAnonPasswordGrants.test.ts, which also requires this step BEFORE
+  any step that signs in). Use it AFTER the job's build step, so the key can
+  never reach a bundle: Vite only inlines VITE_* variables, and this one is not.
+
+inputs:
+  access-token:
+    description: "SUPABASE_ACCESS_TOKEN (secrets.SUPABASE_ACCESS_TOKEN)"
+    required: true
+  project-ref:
+    description: "The Supabase project the suite targets"
+    required: false
+    default: "fncmgoasalhdgfwzhsqa"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Fetch the service-role key (masked) into the job env
+      shell: bash
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ inputs.access-token }}
+        PROJECT_REF: ${{ inputs.project-ref }}
+      run: |
+        set -euo pipefail
+        test -n "$SUPABASE_ACCESS_TOKEN" || { echo "::error::SUPABASE_ACCESS_TOKEN did not reach this step: no service-role key, so no test account can sign in (Q1314)"; exit 1; }
+        KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+          | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+        echo "::add-mask::$KEY"
+        test -n "$KEY"
+        # An env var, as e2e-journeys.yml does, not a .env file in the checkout.
+        echo "SUPABASE_SERVICE_ROLE_KEY=$KEY" >> "$GITHUB_ENV"

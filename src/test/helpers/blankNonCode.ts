@@ -297,3 +297,28 @@ export function blankCssComments(src: string): string {
   }
   return out.join("");
 }
+
+/**
+ * Shell and YAML: `#` comments blanked to the end of their line, never a `#`
+ * inside a `'...'` or `"..."` string or glued to a word (`${#VAR}`, `a#b`).
+ * Same blanking contract as the others: every offset and line number of the
+ * result matches the input. Heredoc bodies are read as code, which is the
+ * safe direction for a scan that looks for something forbidden.
+ */
+export function blankHashComments(src: string): string {
+  return src
+    .split("\n")
+    .map((line) => {
+      let q: string | null = null;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (q) {
+          if (ch === "\\" && q === '"') i++;
+          else if (ch === q) q = null;
+        } else if (ch === "'" || ch === '"') q = ch;
+        else if (ch === "#" && (i === 0 || /\s/.test(line[i - 1]))) return line.slice(0, i) + " ".repeat(line.length - i);
+      }
+      return line;
+    })
+    .join("\n");
+}

@@ -470,56 +470,19 @@ test(j8, async ({ browser, request, journey }) => {
   });
 
   await test.step("sign back in", async () => {
-    const email = process.env.PLAYWRIGHT_HELPER_EMAIL;
-    const password = process.env.PLAYWRIGHT_HELPER_PASSWORD;
-    if (email && password) {
-      /* ONE dropped request used to end the journey here. In run 35691377627
-         the `POST /auth/v1/token?grant_type=password` at 05:44:43 never
-         completed — status -1 in the trace, inside the same window where every
-         other prod call was taking 6-44s — and the app did exactly the right
-         thing: "Connection trouble. Check your signal and try again."
-         (authErrors.ts, the `load failed` / `networkerror` branch; a rate limit
-         would have said "Too many attempts"). The spec then walked on to
-         /profile, was bounced to /login by ProtectedRoute, and reported
-         "not signed back in as the helper" — a transport failure wearing a
-         product defect's clothes.
-
-         A person would press Log In again, so the test does. Bounded at three
-         presses: the password grant is not email-throttled (unlike the magic
-         link below), but this must never become a retry loop that hides a
-         genuinely refused credential — a wrong password answers immediately
-         and this gives up just as fast, because the loop exits the moment the
-         login form stops being on screen. */
-      const submit = page.getByRole("button", { name: /^(Log In|Sign In|Continue)/ }).first();
-      const emailField = page.getByRole("textbox", { name: /email/i }).first();
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        await page.goto("/login");
-        // An attempt that DID take leaves /login redirecting away, so there is
-        // no form to fill — stop rather than throw on a missing field. (The
-        // first pass always finds one: the step above proved we are signed out
-        // by being bounced off /jobs.)
-        if (!(await emailField.waitFor({ state: "visible", timeout: 15_000 }).then(() => true, () => false))) break;
-        await emailField.fill(email);
-        await page.getByLabel(/password/i).first().fill(password);
-        await submit.click();
-        // Signed in = the login form is gone. Anything else (the toast, a
-        // still-present form) is a reason to press it again.
-        if (await submit.waitFor({ state: "detached", timeout: 20_000 }).then(() => true, () => false)) break;
-        const trouble = await page.getByText(/Connection trouble|Too many attempts/i).first().isVisible().catch(() => false);
-        test.info().annotations.push({
-          type: "sign-in-retry",
-          description: `attempt ${attempt} did not take${trouble ? " (the app showed a connection/throttle toast)" : ""}`,
-        });
-        if (attempt < 3) await page.waitForTimeout(3_000);
-      }
-    } else {
-      // No password on this machine: sign in the way the email link does,
-      // through a one-time link opened in this same browser.
-      const { execFileSync } = await import("node:child_process");
-      const out = execFileSync("node", ["scripts/test-signin-link.mjs", "helper-e2e", "--json"], { encoding: "utf8" });
-      const { actionLink } = JSON.parse(out) as { actionLink: string };
-      await page.goto(actionLink);
-    }
+    /* A FRESH SESSION MINTED WITH THE SERVICE ROLE, put where the app keeps
+       its own, then the app is reloaded onto it. This used to type the
+       helper's password into /login (CI) or open a one-time link (local).
+       Once Supabase Auth CAPTCHA is on (docs/OPEN.md Q1314), GoTrue refuses a
+       password grant that carries no Turnstile token, and this build has no
+       widget token to send, so the typed sign-in could only ever be refused.
+       What this step proves is unchanged: after Log Out revoked every helper
+       session, a NEW session lands the helper back on their own profile.
+       Driving the login form itself under CAPTCHA is docs/OPEN.md Q1420. */
+    const fresh = await getSession(request, "helper", true);
+    await page.goto("/login");
+    await page.evaluate(([k, v]) => window.localStorage.setItem(k, v), [AUTH_STORAGE_KEY, JSON.stringify(fresh)] as const);
+    await page.goto("/home");
     await page.waitForTimeout(8_000);
     await journey.milestone(page, "after-sign-in-landing");
     test.info().annotations.push({ type: "sign-in-landing", description: page.url().replace(/#.*/, "#…") });

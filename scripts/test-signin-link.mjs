@@ -27,14 +27,15 @@
  * Default: prints a magic-link URL. Open it in Chrome or the iOS Simulator and
  * the session persists in that browser's storage.
  *
- * `--session`: instead of handing you a link, this script follows the link
- * itself and prints the localStorage key/value pair a harness can inject
+ * `--session`: instead of handing you a link, this script mints a session
+ * itself (scripts/lib/adminSession.mjs, the one captcha-free mint every
+ * harness shares, Q1314) and prints the localStorage key/value pair a harness can inject
  * before first paint (Playwright: `context.addInitScript`). Use this when you
  * are driving a headless browser rather than clicking. `--json` makes that
  * output machine-readable: `{"key":…,"value":…,"session":{…}}`.
  *
- * ⚠️ A magic link is SINGLE USE. `--session` consumes the link it mints, so
- * the two modes each mint their own link — never reuse one across both.
+ * ⚠️ A magic link is SINGLE USE, and minting a session (or another link)
+ * replaces the account's outstanding one, so use a printed link at once.
  *
  * REQUIREMENTS
  * ------------
@@ -54,6 +55,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { supabaseBase } from "./lib/apiBase.mjs";
+import { mintAdminSession, PUBLIC_ANON_KEY } from "./lib/adminSession.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -186,62 +188,6 @@ async function generateLink(supabaseUrl, serviceKey, email) {
   return { actionLink, userId: json.user?.id || json.id || null };
 }
 
-/**
- * Follow the one-time link and pull the tokens out of the Location hash.
- * Supabase redirects to `<site>/#access_token=…&refresh_token=…`; the tokens
- * are in the FRAGMENT, so they never appear in a query string or a server log.
- */
-async function exchangeForSession(actionLink, userId, supabaseUrl, anonKey) {
-  const res = await fetch(actionLink, { redirect: "manual" });
-  const location = res.headers.get("location");
-  if (!location) throw new Error(`no Location header from action_link (status ${res.status})`);
-  const hashIdx = location.indexOf("#");
-  if (hashIdx === -1) throw new Error(`Location had no hash fragment: ${location}`);
-  const hash = new URLSearchParams(location.slice(hashIdx + 1));
-  const access_token = hash.get("access_token");
-  const refresh_token = hash.get("refresh_token");
-  if (!access_token || !refresh_token) {
-    throw new Error(`missing tokens in hash fragment: ${location}`);
-  }
-  // FETCH THE REAL USER OBJECT. This used to be `user: { id: userId }` — a stub
-  // with nothing but an id. Three separate verification harnesses were silently
-  // broken by it on 2026-08-31 and each rediscovered the cause independently:
-  // `ProtectedRoute` reads `email_confirmed_at` off `session.user`, an absent
-  // field is falsy, so EVERY authed route bounced to /account-pending and then
-  // /home. The harness looked signed in, and every deep link it tried
-  // landed somewhere else — which reads as an app bug, not a harness bug.
-  //
-  // `GET /auth/v1/user` with the freshly-minted access token returns exactly
-  // the object supabase-js would have cached, so the blob is now faithful by
-  // construction rather than by us guessing which fields matter next.
-  let user = { id: userId };
-  try {
-    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: anonKey, Authorization: `Bearer ${access_token}` },
-    });
-    if (userRes.ok) {
-      const full = await userRes.json();
-      if (full?.id) user = full;
-      else console.error("[warn] /auth/v1/user returned no id; falling back to the id-only stub");
-    } else {
-      console.error(`[warn] /auth/v1/user returned ${userRes.status}; falling back to the id-only stub`);
-    }
-  } catch (err) {
-    // Never fatal: a usable-but-thin session still beats no session, and the
-    // warning above tells you why a route bounce is the harness, not the app.
-    console.error(`[warn] could not fetch the full user object: ${err?.message ?? err}`);
-  }
-
-  return {
-    access_token,
-    refresh_token,
-    token_type: "bearer",
-    expires_in: 3600,
-    expires_at: Number(hash.get("expires_at")) || Math.floor(Date.now() / 1000) + 3600,
-    user,
-  };
-}
-
 async function main() {
   const args = process.argv.slice(2);
   if (!args.length || args.includes("--help") || args.includes("-h")) usage();
@@ -264,10 +210,9 @@ async function main() {
   const projectRef = supabaseUrl.match(/https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1] ?? "fncmgoasalhdgfwzhsqa";
   const storageKey = `sb-${projectRef}-auth-token`;
 
-  const { actionLink, userId } = await generateLink(supabaseUrl, serviceKey, target.email);
-  const resolvedUserId = userId || target.userId;
-
   if (!wantSession) {
+    const { actionLink, userId } = await generateLink(supabaseUrl, serviceKey, target.email);
+    const resolvedUserId = userId || target.userId;
     if (wantJson) {
       console.log(JSON.stringify({ email: target.email, userId: resolvedUserId, actionLink }, null, 2));
       return;
@@ -288,12 +233,16 @@ async function main() {
     return;
   }
 
-  // anon key preferred for /auth/v1/user — it is the key a real client would
-  // present; the service key works too but would mask an anon-key misconfig.
-  const anonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || serviceKey;
-  const session = await exchangeForSession(actionLink, resolvedUserId, supabaseUrl, anonKey);
+  // The public key, as a real client presents it to /verify and PostgREST.
+  const anonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || PUBLIC_ANON_KEY;
+  // The session comes from the ONE shared mint (scripts/lib/adminSession.mjs:
+  // admin generate_link + POST /verify, outside GoTrue's captcha middleware,
+  // Q1314). Its /verify answer carries the full user object, the same one
+  // GET /auth/v1/user returns: ProtectedRoute reads `email_confirmed_at` off
+  // session.user, and an id-only stub bounced every authed route (2026-08-31).
+  const session = await mintAdminSession({ email: target.email, serviceKey, supabaseUrl, anonKey });
   if (!args.includes("--keep-consent")) {
-    await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, resolvedUserId);
+    await acceptCurrentTerms(supabaseUrl, anonKey, session.access_token, session.user.id);
   }
   const value = JSON.stringify(session);
 

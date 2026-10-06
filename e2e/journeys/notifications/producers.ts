@@ -125,6 +125,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:rpc_group_member_mark_arrival": {
     uncovered: "group jobs are withdrawn (GROUP_JOBS_ENABLED = false in src/lib/groupJobs.ts), so no journey can post one",
   },
+  "sql:rpc_group_member_mark_done": {
+    uncovered: "group jobs are withdrawn (GROUP_JOBS_ENABLED = false in src/lib/groupJobs.ts), so no journey can post one; the 'Your offer closed' notice is asserted in src/test/pglite/crewUnconfirmedSpot.pglite.mjs (U2)",
+  },
   "sql:rpc_supersede_dispute_decision": { uncovered: DISPUTE },
   "sql:series_holds_on_hire": { uncovered: SERIES },
   "sql:series_release_dates": { uncovered: SERIES },

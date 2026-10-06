@@ -160,7 +160,7 @@ rpc_exempt(fn, why) AS (
   ('rpc_helper_mark_done', 'writes jobs UPDATE, ban-gated'),
   ('rpc_group_member_confirm', 'writes group_job_helpers UPDATE, ban-gated'),
   ('rpc_group_member_mark_arrival', 'writes group_job_helpers + jobs, both ban-gated'),
-  ('rpc_group_member_mark_done', 'writes group_job_helpers + jobs, both ban-gated'),
+  ('rpc_group_member_mark_done', 'writes group_job_helpers (UPDATE, and DELETE of unconfirmed spots at completion) + applications + jobs, all ban-gated'),
   ('rpc_group_member_on_the_way', 'writes group_job_helpers + job_tracking + jobs, all ban-gated'),
   ('rpc_group_member_set_proof', 'writes group_job_helpers UPDATE, ban-gated'),
   ('rpc_poster_confirm_member_arrival', 'writes group_job_helpers UPDATE, ban-gated'),

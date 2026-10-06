@@ -17,7 +17,7 @@
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
 // @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
-// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     IF NOT v_no_strike THEN |     IF true THEN
+// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |     IF NOT v_no_strike THEN |     IF true THEN
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'helper_never_accepted' |     RAISE NOTICE 'helper_never_accepted'
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN

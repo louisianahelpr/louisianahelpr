@@ -78,6 +78,12 @@ const Footer = () => {
      module, so warming /legal leaves the other three free. */
   useEffect(() => prefetchRoutesWhenIdle(["/legal", "/help"]), []);
 
+  // NO footer on any signed-in screen (owner, 2026-10-06, a footer under the
+  // signed-in /payment-success page). Decided here, in the one component, so
+  // every shell that mounts it (AuthShell, PublicLayout) follows; the hooks
+  // above still run in the same order on every render.
+  if (user) return null;
+
   return (
   <footer
     className="px-5 sm:px-8 lg:px-12 relative border-t border-[hsl(var(--olivewood))]/15"

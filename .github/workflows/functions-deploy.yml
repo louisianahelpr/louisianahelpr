@@ -511,7 +511,7 @@ jobs:
           # ledger item stays open until this workflow's own re-run is green.
           # Recorded FIRST so a missing webhook cannot skip it; never fails the step.
           node scripts/ops-alert-ledger.mjs record --source-kind workflow --source "functions-deploy" \
-            --title "functions-deploy failed on main" --severity critical --verify-ref "functions-deploy.yml" \
+            --title "functions-deploy failed on main" --severity critical --verify-ref "functions-deploy.yml" --fails-run \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "::warning title=Deploy-failure alert NOT sent::functions-deploy failed, but the GitHub secret SLACK_WEBHOOK_URL is not set, so nobody was notified. Add it under Settings > Secrets and variables > Actions."

@@ -935,15 +935,39 @@ export function renderOpenBlock(local, liveBlock, openText = "") {
   // (265 on 2026-10-02). Ratchet: src/test/openUnnumberedRatchet.test.ts.
   const un = q.unnumbered ?? 0;
   const unText = un ? ` Plus ${un} unnumbered open line${un === 1 ? "" : "s"} not yet given a Q number.` : "";
+  const launch = launchListProgress(openText ?? "");
+  const launchLine = launch
+    ? `\n- **Launch list: ${launch.left} left of ${launch.total}** (${launch.todo} to do, ${launch.partly} fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.`
+    : "";
   return `${EO_START}
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: ${q.fail + partly}** (${q.fail} to do, ${partly} fixed with protection pending; ${q.pass} done).${unText} Feeds mirrored in: ${f.ledger} from the alert ledger, ${f.issue} from nightly-red issues, ${f.bus} from the audit bus (\`node scripts/open-sync-trackers.mjs\`).
+- **Open: ${q.fail + partly}** (${q.fail} to do, ${partly} fixed with protection pending; ${q.pass} done).${unText} Feeds mirrored in: ${f.ledger} from the alert ledger, ${f.issue} from nightly-red issues, ${f.bus} from the audit bus (\`node scripts/open-sync-trackers.mjs\`).${launchLine}
 ${LIVE_START}
 ${(liveBlock ?? "- **Live (workflows, branches): never measured** — run `node scripts/scoreboard.mjs --write`.").split("\n").filter((l) => !/^- \*\*(Ops alert ledger|nightly-red issues):/.test(l)).join("\n")}
 ${LIVE_END}
 ${EO_END}`;
+}
+
+/**
+ * The owner-approved launch list (2026-10-05): the Q numbers between the
+ * LAUNCH_LIST markers in docs/OPEN.md. An item is left while its own line is
+ * still `- [ ]` (to do) or `- [~]` (fixed, awaiting proof); a ticked item is
+ * archived out of OPEN.md, so a listed number with no open line is done.
+ * Null when the section is absent. Guard: src/test/launchListProgress.test.ts.
+ */
+export const LAUNCH_LIST_START = "<!-- launch-list -->";
+export const LAUNCH_LIST_END = "<!-- /launch-list -->";
+export function launchListProgress(openText) {
+  const i = openText.indexOf(LAUNCH_LIST_START), j = openText.indexOf(LAUNCH_LIST_END);
+  if (i < 0 || j < i) return null;
+  const listed = [...new Set([...openText.slice(i, j).matchAll(/\bQ(\d+)\b/g)].map((m) => `Q${m[1]}`))];
+  const state = new Map();
+  for (const m of openText.matchAll(/^- \[([ ~x.])\] \*\*(Q\d+)\b/gm)) if (!state.has(m[2])) state.set(m[2], m[1]);
+  const todo = listed.filter((q) => state.get(q) === " ").length;
+  const partly = listed.filter((q) => state.get(q) === "~").length;
+  return { total: listed.length, todo, partly, left: todo + partly };
 }
 
 export function renderLiveOpen(live) {
@@ -960,6 +984,7 @@ export const OPEN_BLOCK_SHAPES = [
   /^\*\*Open work — start here\*\*/,
   /^Numbers for everything we test: /,
   /^- \*\*Open: \d+\*\* /,
+  /^- \*\*Launch list: \d+ left of \d+\*\* /,
   /^- \*\*(Workflows on main|Remote branches|Live \(workflows, branches\)|Ops alert ledger|nightly-red issues):/,
 ];
 

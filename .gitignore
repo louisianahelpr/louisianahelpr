@@ -36,7 +36,10 @@ Gemfile.lock
 *.tsbuildinfo
 
 # Supabase CLI scratch dir
-supabase/.temp/
+# No trailing slash: a worktree symlink to the main checkout's .temp is a FILE, which
+# "supabase/.temp/" does not match; one was committed on 2026-10-06 (bd4515d6f) and
+# every CI `supabase link` failed with AlreadyExists. Guard: src/test/supabaseTempNeverTracked.test.ts.
+/supabase/.temp
 
 # Vercel CLI metadata (project + token)
 .vercel

@@ -15,13 +15,14 @@
 //
 // Apple HIG requires Apple to appear above (or at least equally prominent
 // to) any other third-party sign-in option, so Apple renders first.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
+import { markAccountChoiceRetry, takeAccountChoiceRetry } from "@/pages/auth/loginNotice";
 // Type only: erased from the bundle, so the dialog code still loads on demand.
 import type { AccountChoiceDialog as AccountChoiceDialogComponent } from "@/components/auth/AccountChoiceDialog";
 import {
@@ -37,14 +38,31 @@ import {
 // React may discard it, and takeOAuthRedirectError() (read once, in Login's
 // state initializer) then hands the re-render null, so the dialog never opened.
 type AccountChoiceDialogType = typeof AccountChoiceDialogComponent;
-function useAccountChoiceDialog(needed: boolean): AccountChoiceDialogType | null {
+function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): AccountChoiceDialogType | null {
   const [Dialog, setDialog] = useState<AccountChoiceDialogType | null>(null);
+  // A ref, so a new callback each render does not re-run the import.
+  const failed = useRef(onLoadFailed);
+  failed.current = onLoadFailed;
   useEffect(() => {
     if (!needed || Dialog) return;
     let live = true;
+    // Written BEFORE the download: a stale-download failure makes the app
+    // reload at once (src/lib/chunkReload.ts, before this catch can run), and
+    // the reload loses the question; Log In then reads this and says why the
+    // person is back. Cleared as soon as the dialog's code arrives.
+    markAccountChoiceRetry();
     import("@/components/auth/AccountChoiceDialog")
-      .then((m) => { if (live) setDialog(() => m.AccountChoiceDialog); })
-      .catch((err: unknown) => report(err, { severity: "error", tags: { area: "auth", op: "loadAccountChoiceDialog" } }));
+      .then((m) => {
+        takeAccountChoiceRetry();
+        if (live) setDialog(() => m.AccountChoiceDialog);
+      })
+      .catch((err: unknown) => {
+        report(err, { severity: "error", tags: { area: "auth", op: "loadAccountChoiceDialog" } });
+        // Never a silent drop (lh-silent-failure review, 2026-10-05): the
+        // person was asked nothing and has no account yet, so say so and
+        // clear the choice; their next tap asks again (and re-imports).
+        if (live) failed.current();
+      });
     return () => { live = false; };
   }, [needed, Dialog]);
   return Dialog;
@@ -70,7 +88,14 @@ export function SocialAuthButtons({
 }: SocialAuthButtonsProps) {
   // Q446: the one-account question, from a native refusal or the web redirect.
   const [choice, setChoice] = useState<AccountChoice | null>(initialChoice);
-  const AccountChoiceDialog = useAccountChoiceDialog(choice !== null);
+  const AccountChoiceDialog = useAccountChoiceDialog(choice !== null, () => {
+    // No reload happened (a failure the app does not recover by reloading):
+    // say it here and drop the note the hook left for after a reload.
+    takeAccountChoiceRetry();
+    setChoice(null);
+    hapticError();
+    toast.error("We couldn't finish that sign-in. Tap Apple or Google again to retry.", { id: "account-choice" });
+  });
   return (
     // Two marks side by side, not two stacked full-width labelled boxes
     // (owner: "I would prefer using the Apple and Google icons instead of the

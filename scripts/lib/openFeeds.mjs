@@ -221,7 +221,16 @@ export function applyFeeds(md, groups, { status, nextFree, today }) {
       const add = missing(target.id);
       if (!add.length) continue;
       const idx = g.keys.map((k, n) => (add.includes(k) ? n : -1)).filter((n) => n >= 0);
-      const suffix = ` ${add.map((k) => `feed: ${k}`).join(" · ")}. ${idx.map((n) => g.markers[n]).filter((m) => !target.text.includes(m)).join(", ")}`.replace(/\.\s*$/, ".");
+      // A partly-done item with NO done-when marker keeps none: giving it one
+      // moves the exact markerless-[~] baseline
+      // (src/test/openPartlyDoneItemsSayDoneWhen.test.ts), so the scoreboard
+      // refresh PR could never go green (#2423, 2026-10-06: Q593, whose marker
+      // the lead removed on purpose, got `done-when: issue #2375 closed` when
+      // its tagged ledger row moved to a new issue). The feed tag still
+      // attaches, so the source stays mirrored on one item.
+      const keepMarkerless = target.state === "~" && !/done-when:/.test(target.text);
+      const markers = keepMarkerless ? [] : idx.map((n) => g.markers[n]).filter((m) => !target.text.includes(m));
+      const suffix = ` ${add.map((k) => `feed: ${k}`).join(" · ")}. ${markers.join(", ")}`.replace(/\.\s*$/, ".");
       const last = target.end - 1 - [...lines.slice(target.start, target.end)].reverse().findIndex((l) => l.trim());
       lines[last] = lines[last].replace(/\s*$/, "") + suffix.replace(/\s+$/, "");
       attached.push({ id: target.id, keys: add });

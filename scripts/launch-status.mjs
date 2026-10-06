@@ -50,7 +50,8 @@ export function itemStates(openText, ids) {
   const out = new Map();
   for (const q of ids) {
     const m = new RegExp(`^- \\[(.)\\] \\*\\*${q}\\b`, "m").exec(openText);
-    out.set(q, m ? m[1] : "done");
+    // A ticked [x] line waits for archive-done to move it; it is done already.
+    out.set(q, !m || m[1] === "x" ? "done" : m[1]);
   }
   return out;
 }

@@ -80,4 +80,4 @@ describe("Q345: block_user_and_settle closes pending applications and offers", (
 // The notification skip removed.
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     IF NEW.closed_reason = 'party_blocked' THEN |     IF false THEN
 // The constraint not widened.
-// @mutate supabase/migrations/20260924023843_block_closes_pending_applications_and_offers.sql |   CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked')); |   CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled'));
+// @mutate supabase/migrations/20261004184021_expired_offer_says_it_expired.sql | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked', 'offer_expired')); | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'offer_expired'));

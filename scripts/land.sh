@@ -6,8 +6,8 @@
 #   bash scripts/land.sh --no-wait  # open/refresh the PR with auto-merge, don't wait
 #   (--pr is accepted and ignored: the PR path is the only path.)
 #
-# Q44 (owner, 2026-09-27; strict turned off by the owner 2026-09-30): main is protected
-# with required checks and enforce_admins (not strict), so a
+# Q44 (owner, 2026-09-27; strict turned off 2026-09-30, back ON in the "main" ruleset 2026-10-05): main is protected
+# with required checks and enforce_admins (strict up-to-date ON again since 2026-10-05), so a
 # direct push to main is refused. Nothing reaches main that has not passed
 # Vitest, Test and the two Playwright checks; vacuity runs on every push to
 # main (not required on PRs), since owner 2026-10-01 (PR #2050's took 112 min).
@@ -17,7 +17,7 @@
 # The PR path: push the verified HEAD to land/<branch>-<worktree hash> (force:
 # it is this worktree's own branch), open a PR if none is open, turn on
 # auto-merge with REBASE (not squash: a squash rewrites the messages and drops
-# per-commit Sensitive-Review trailers), then wait. Strict is off, but the
+# per-commit Sensitive-Review trailers), then wait. Strict is on again, and the
 # script still keeps the branch current: when main moves first (BEHIND, or
 # DIRTY because another landing regenerated the same files) it loops: fetch,
 # rebase, refresh, re-run the guards, force-push. A failed check
@@ -309,8 +309,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
       echo "land: fix, commit, and re-run bash scripts/land.sh." >&2
       exit 1
     fi
-    # Strict is off, so main moving shows as DIRTY (a conflict, usually the
-    # generated files another landing refreshed), almost never BEHIND; both
+    # Strict is on (2026-10-05), so main moving shows as BEHIND, or DIRTY (the
+    # generated files another landing refreshed); both
     # go back to the rebase instead of waiting out the 90 minutes.
     MSS=$(echo "$INFO" | jq -r .mergeStateStatus)
     if [ "$MSS" = BEHIND ] || [ "$MSS" = DIRTY ]; then

@@ -317,7 +317,10 @@ const RACES = {
     A: { as: "poster", run: (c, f) => c.query("SELECT public.rpc_escalate_dispute($1)", [f.job]) },
     B: AUTO_RESOLVE,
     refusal: /^$/,
-    bad: (s) => s.dispute_status === "escalated" && paidOut(s),
+    // The escalation always commits first here, so ANY payout means auto-resolve
+    // overrode it (the payout itself overwrites dispute_status, so do not look
+    // for 'escalated' after the fact: a red proof showed that check never trips).
+    bad: (s) => paidOut(s) || s.dispute_status === "auto_resolved",
   },
   9: {
     name: "Q975 auto-resolve vs the poster withdrawing (withdrawal holds the lock)",

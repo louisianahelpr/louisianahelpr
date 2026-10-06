@@ -149,6 +149,18 @@ async function fixture(admin, race) {
   // ago, poster silent), the state auto-release-payment pays from. Races 8-9
   // then open a REAL poster dispute through open_dispute_as and backdate its
   // deadline, the state auto-resolve-disputes pays from.
+  // Race 16 (Q975 probe 7): a finished job whose payout is scheduled
+  // (payout_pending), the state a transfer.created flips to released while a
+  // charge.dispute.created tries to block the payout.
+  if (race === 16) {
+    const f = await escrowDoneFixture(admin, poster, helper, false);
+    await admin.query(
+      `UPDATE public.jobs SET status = 'completed', payment_status = 'payout_pending', poster_completed_at = now(),
+              payout_scheduled_at = now() - interval '1 minute' WHERE id = $1`,
+      [f.job],
+    );
+    return f;
+  }
   // Races 14-15 (Q975 probe 3): an open UNPAID job and a paid gift that covers
   // it in full, the state where a gift tap and a card tap race.
   if (race === 14 || race === 15) {
@@ -351,6 +363,22 @@ const CARD_TAP = {
       [f.job],
     ),
 };
+/** stripe-webhook transfer.created: the payout landed, exactly as transferCreated.ts writes it. */
+const PAYOUT_LANDS = {
+  as: "service",
+  run: (c, f) =>
+    c.query(
+      `UPDATE public.jobs SET payment_status = 'released'
+        WHERE id = $1 AND payment_status IN ('payout_pending', 'escrow', 'released') AND is_group_job IS NOT TRUE`,
+      [f.job],
+    ),
+};
+/** stripe-webhook charge.dispute.created: block the payout, exactly as chargeDisputeCreated.ts writes it (only a still-payable job). */
+const CHARGEBACK_BLOCKS = {
+  as: "service",
+  run: (c, f) =>
+    c.query(`UPDATE public.jobs SET payment_status = 'chargeback' WHERE id = $1 AND payment_status IN ('payout_pending', 'escrow')`, [f.job]),
+};
 /** A second claim that LANDED a row: the double-tap guard failed. */
 const secondLanded = (b) => /committed \(1 row\)/.test(b);
 
@@ -468,6 +496,16 @@ const RACES = {
     refusal: /card payment for this job is already open/,
     // The gift must not fund a job whose card checkout is already out.
     bad: (s) => s.payment_status === "escrow" && s.has_session,
+  },
+  16: {
+    name: "Q975 a chargeback vs the payout landing (the transfer holds the lock)",
+    A: PAYOUT_LANDS,
+    B: CHARGEBACK_BLOCKS,
+    refusal: /^$/,
+    // The money already left: the job stays released (the webhook's own
+    // released branch then claws back), never relabelled 'chargeback' over a
+    // paid payout (which hid a paid Helpr from ops, chargeDisputeCreated.ts).
+    bad: (s) => s.payment_status === "chargeback",
   },
   5: {
     name: "helper Done again vs release",

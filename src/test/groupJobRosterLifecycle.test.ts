@@ -46,8 +46,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     SET status = 'rejected'\n   WHERE job_id = OLD.job_id |     SET status = 'accepted'\n   WHERE job_id = OLD.job_id
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND status = 'accepted';\n\n  RETURN OLD; |     AND status = 'accepted';\n  UPDATE public.jobs SET helper_id = NULL WHERE id = OLD.job_id;\n\n  RETURN OLD;
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     IF (NEW.slot_no IS DISTINCT FROM OLD.slot_no OR NEW.share_cents IS DISTINCT FROM OLD.share_cents) |     IF (NEW.slot_no IS DISTINCT FROM OLD.slot_no)
-// @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |     DELETE FROM public.group_job_helpers WHERE id = v_slot_id; |     PERFORM v_slot_id;
-// @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |      AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |      THEN
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     DELETE FROM public.group_job_helpers WHERE id = v_slot_id; |     PERFORM v_slot_id;
+// @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |      AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |      THEN
 // @mutate supabase/migrations/20260925140148_group_roster_departure.sql |     AND COALESCE(array_length(v_slot_proof_before, 1), 0) = 0; |     AND COALESCE(array_length(v_slot_proof_before, 1), 0) = 0\n    AND v_needs_before_photo;
 
 const root = resolve(__dirname, "../..");
@@ -395,10 +395,12 @@ describe("group jobs — leaving the crew leaves the job (D1, D2, D3)", () => {
 
     const crew = body.slice(crewAt, singleAuthAt);
     // Membership is the caller's own slot; leaving removes it; a booked crew
-    // below strength reopens.
+    // carries on with the members left and reopens only when nobody is left
+    // (Q1378, owner 2026-10-05; behaviour: crewRestCarryOn.pglite.mjs).
     expect(body).toMatch(/FROM public\.group_job_helpers g\s+WHERE g\.job_id = v_job\.id AND g\.helper_id = auth\.uid\(\)/);
     expect(crew).toContain("DELETE FROM public.group_job_helpers WHERE id = v_slot_id;");
-    expect(crew).toMatch(/v_remaining < COALESCE\(v_job\.helpers_needed, 1\)[\s\S]{0,120}SET status = 'open'/);
+    expect(crew).toMatch(/IF v_job\.status::text = 'accepted' AND v_remaining = 0 THEN\s+UPDATE public\.jobs\s+SET status = 'open'/);
+    expect(crew, "a booked crew below strength is sent back to open again (Q1378)").not.toMatch(/v_remaining < COALESCE\(v_job\.helpers_needed, 1\)/);
     // Same exits the single path has: own part done, start passed, same ladder.
     expect(crew).toContain("v_slot_completed_at IS NOT NULL");
     expect(crew).toContain("job_already_started");

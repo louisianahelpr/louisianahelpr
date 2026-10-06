@@ -22,6 +22,7 @@ import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
 import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
+import { crewSpotRefillable } from "./postedJobCard/crewRefill";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
@@ -721,8 +722,11 @@ function PostedJobCardInner({
                 </div>
               )}
 
-              {/* Applicants button + inline expanded applicant list */}
-              {job.status === "open" && (
+              {/* Applicants button + inline expanded applicant list. Also on a
+                  booked crew a member left (Q1378): the rest carry on and the
+                  poster may refill the spot from their applicants before the
+                  start. */}
+              {(job.status === "open" || crewSpotRefillable(job, initialGroupHelpers)) && (
                 <PostedJobApplicants
                   job={job}
                   applicantCounts={applicantCounts}

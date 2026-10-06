@@ -18,11 +18,11 @@
  * groupCrewNoLead.pglite.mjs --tree (every crew-leave case on the tree's
  * helper_cancel_booking).
  *
- * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |     ELSIF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |     ELSIF true THEN
- * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
- * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |   IF v_job.is_group_job IS TRUE\n     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |   IF false THEN
- * @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql |     v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled', |     v_released := public.series_visit_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
- * @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |          AND public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts - now())) / 3600.0) THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id, |          AND true THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id,
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     ELSIF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |     ELSIF true THEN
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   IF v_job.is_group_job IS TRUE\n     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |     v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled', |     v_released := public.series_visit_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
+ * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |          AND public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts - now())) / 3600.0) THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id, |          AND true THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id,
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

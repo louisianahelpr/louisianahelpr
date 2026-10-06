@@ -39,7 +39,8 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 27 on 2026-10-05 (lead tick 2): Q1336 verified live left the markerless set.
 // 33 on 2026-10-05 (batch 2): Q1313 (Notify Me live push check), Q1398 + Q1399 (offer cards: live hire and phone look), Q1408 (old-build floor: needs a new TestFlight build) all wait on live or device checks no marker kind reads.
 // 31 rebased on main's ticks (27 there + batch 2's 4).
-const MARKERLESS_PARTLY_DONE = 31;
+// 32 on 2026-10-05 (Q1378 lane): Q1378 is built but waits on the money/authz reviews and a prod re-shot after deploy (no marker kind reads either).
+const MARKERLESS_PARTLY_DONE = 32;
 
 describe("[~] items say when they are done", () => {
   const items = partlyDoneItems(OPEN_MD);

@@ -38,11 +38,6 @@
       "was": "row 744px → 902px (+158px)"
     },
     {
-      "key": "customer /profile?tab=saved_helpers #0",
-      "kind": "media",
-      "was": "1 avatar/media bone(s) → 3 real"
-    },
-    {
       "key": "customer /profile?tab=work_record #0",
       "kind": "jump",
       "was": "row 744px → 830px (+86px)"

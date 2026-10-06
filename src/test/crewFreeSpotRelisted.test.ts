@@ -1,0 +1,121 @@
+import { describe, expect, it } from "vitest";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+
+/**
+ * Q1409 (docs/OPEN.md; owner decision 2026-10-05 ~21:45 CT): a booked crew's
+ * free spot is RE-LISTED until its start, so new Helprs can apply.
+ *
+ * THE CLASS: a place that decides "is this job taking applicants" by
+ * `status = 'open'` alone. A booked crew a member left (Q1378) is 'accepted',
+ * so every such place hid its free spot: the four browse surfaces, the apply
+ * RPC and the application-insert gate, and the applicant's own list.
+ *
+ * One rule, public.crew_spots_open(job), and every one of those places reads
+ * it. The inventory is EXACT and two-way, read from the effective definitions:
+ * every function that applies the early-access clock (the discovery surfaces
+ * and the insert gate) plus the apply RPC and the applicant's list.
+ *
+ * Behaviour: src/test/pglite/crewFreeSpotRelisted.pglite.mjs (5 checks RED on
+ * the old surfaces with --before, all green after, migration applied 3x).
+ */
+
+// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |                  AND public.job_offer_cutoff(j.date_needed, j.start_time) > now() + interval '15 minutes') |                  )
+// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |            WHEN j.is_group_job IS NOT TRUE OR j.parent_job_id IS NOT NULL THEN 0 |            WHEN j.is_group_job IS NOT TRUE THEN 0
+// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |   IF v_status != 'open' AND NOT (v_status = 'accepted' AND COALESCE(public.crew_spots_open(p_job_id), 0) > 0) THEN |   IF v_status != 'open' THEN
+// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
+// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
+// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role;
+
+const ROOT = resolve(__dirname, "../..");
+const MIGRATIONS = resolve(ROOT, "supabase/migrations");
+const EFFECTIVE = effectiveDefs(MIGRATIONS);
+const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "");
+const THIS = "20261006023437_crew_free_spot_relisted.sql";
+const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
+
+/** Every place that decides whether a job takes applicants, and how it must read the rule. */
+const TAKES_APPLICANTS: Record<string, string> = {
+  get_ranked_open_jobs: `WHERE ${RELISTED}`,
+  get_open_jobs_for_map: `WHERE ${RELISTED}`,
+  get_public_open_jobs: `WHERE ${RELISTED}`,
+  enforce_application_job_state: "AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN",
+  apply_to_job: "IF v_status != 'open' AND NOT (v_status = 'accepted' AND COALESCE(public.crew_spots_open(p_job_id), 0) > 0) THEN",
+  get_jobs_for_my_applications: "OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)",
+};
+
+describe("Q1409: a booked crew's free spot is re-listed until its start", () => {
+  it("every discovery surface and the insert gate is in the inventory (exact, two-way)", () => {
+    const clock = [...EFFECTIVE.keys()]
+      .filter((n) => n !== "early_access_cutoff" && /\bearly_access_cutoff\s*\(\)/.test(body(n)))
+      .sort();
+    expect(clock.length, "the inventory read nothing: the parser is broken").toBeGreaterThan(3);
+    expect(clock, "a new place applies the browse clock: decide whether it lists a booked crew's free spot").toEqual(
+      Object.keys(TAKES_APPLICANTS).filter((n) => !["apply_to_job", "get_jobs_for_my_applications"].includes(n)).sort(),
+    );
+  });
+
+  it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
+    expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q1409 definition`).toBe(THIS);
+    expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
+  });
+
+  it("crew_spots_open: a staffing crew's empty spots; a booked crew's until 15 minutes before its start; else 0", () => {
+    const fn = body("crew_spots_open");
+    expect(EFFECTIVE.get("crew_spots_open")?.file).toBe(THIS);
+    expect(fn).toMatch(/SECURITY DEFINER\s+SET search_path TO 'public'/);
+    expect(fn).toMatch(/WHEN j\.is_group_job IS NOT TRUE OR j\.parent_job_id IS NOT NULL THEN 0/);
+    expect(fn).toMatch(/j\.status::text = 'accepted'\s+AND public\.job_offer_cutoff\(j\.date_needed, j\.start_time\) > now\(\) \+ interval '15 minutes'/);
+    expect(fn).toMatch(/GREATEST\(0, COALESCE\(j\.helpers_needed, 1\)\s+- \(SELECT count\(\*\)::int FROM public\.group_job_helpers g WHERE g\.job_id = j\.id\)\)/);
+    // A count only: it never returns who is on the roster.
+    expect(fn).not.toMatch(/helper_id/);
+    const sql = blankSqlComments(readFileSync(resolve(MIGRATIONS, THIS), "utf8"));
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.crew_spots_open(uuid) FROM PUBLIC, anon, authenticated;");
+    expect(sql).toContain("GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;");
+    const allow = JSON.parse(readFileSync(resolve(ROOT, "scripts/ci/definer-exec-allowlist.json"), "utf8"));
+    for (const s of ["anon", "authenticated", "unscoped"]) expect(allow[s]["crew_spots_open(uuid)"]).toMatch(/^reviewed 2026-10-05 \(Q1409\)/);
+  });
+
+  it("open_jobs_browse lists the re-listed spot, projects the count, and stays a definer view", () => {
+    const sql = readFileSync(resolve(MIGRATIONS, THIS), "utf8");
+    const view = blankSqlComments(sql.slice(sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse")));
+    expect(view).toMatch(/WITH \(security_invoker = false\)/);
+    expect(view).toMatch(/WHEN is_group_job IS TRUE THEN crew_spots_open\(id\)\s+ELSE NULL::integer\s+END AS crew_spots_open\s+FROM jobs/);
+    expect(view).toMatch(/WHERE \(status = 'open'::job_status OR \(status = 'accepted'::job_status AND is_group_job IS TRUE AND crew_spots_open\(id\) > 0\)\) AND parent_job_id IS NULL/);
+    const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
+      .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
+    expect(newestView).toBe(THIS);
+  });
+
+  it("the card says how many spots are open, read from the view after the main list (a missing column never breaks browse)", () => {
+    const chip = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobCardMetaRow.tsx"), "utf8"));
+    expect(chip).toMatch(/spot\$\{open === 1 \? "" : "s"\} open/);
+    const card = blankComments(readFileSync(resolve(ROOT, "src/components/dashboard/JobCard.tsx"), "utf8"));
+    expect(card).toMatch(/<JobHelprsChip\s+helpersNeeded=\{job\.helpers_needed\}\s+spotsOpen=\{job\.crew_spots_open\}/);
+    const helper = blankComments(readFileSync(resolve(ROOT, "src/lib/crewSpots.ts"), "utf8"));
+    expect(helper).toMatch(/\.from\("open_jobs_browse"\)\s+\.select\("id, crew_spots_open"\)/);
+    for (const f of ["src/hooks/useDashboardData.ts", "src/pages/home/DashboardGuest.tsx"]) {
+      const src = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
+      expect(src, `${f} does not read the open-spot counts`).toMatch(/fetchCrewSpotsOpen\(/);
+    }
+    for (const f of ["src/hooks/useDashboardData.ts", "src/lib/guestJobsQuery.ts", "src/boot/guestJobsPrefetch.ts", "src/components/browseMap/fetchJobForPin.ts"]) {
+      const src = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
+      expect(src, `${f} selects crew_spots_open in a main list (a deploy before db-deploy would fail the whole feed)`).not.toMatch(/"id, title, description[^"\n]*\bcrew_spots_open\b/);
+    }
+  });
+
+  it("has a PGlite proof that is red on the old surfaces", () => {
+    const proof = resolve(ROOT, "src/test/pglite/crewFreeSpotRelisted.pglite.mjs");
+    expect(existsSync(proof)).toBe(true);
+    const src = readFileSync(proof, "utf8");
+    expect(src).toContain(`const THIS = "${THIS}"`);
+    expect(src).toContain("effectiveDefs(DIR, { before: THIS })");
+    for (const c of ["B1 open_jobs_browse lists", "B2 never a full crew", "B3 the ranked, map and public lists", "A1 a new Helpr applies",
+      "A2 a direct application insert", "M1 the applicant still sees", "const expected = 5;"]) {
+      expect(src).toContain(c);
+    }
+  });
+});

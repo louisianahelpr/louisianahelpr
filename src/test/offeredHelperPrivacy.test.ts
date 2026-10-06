@@ -35,7 +35,7 @@
 // statement text. Every group-(b) and group-(d) assertion now reads the
 // comment-BLANKED form (`DbObject.code`, `maskComments(...)`), and the
 // registered mutation below IS the comment shape, so both doors are pinned.
-// @mutate supabase/migrations/20260927012806_recurring_split_days.sql | CASE\n            WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id\n            ELSE NULL::uuid\n        END AS offered_to_helper_id, | offered_to_helper_id, -- CASE WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id ELSE NULL::uuid END AS offered_to_helper_id
+// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql | CASE\n            WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id\n            ELSE NULL::uuid\n        END AS offered_to_helper_id, | offered_to_helper_id, -- CASE WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id ELSE NULL::uuid END AS offered_to_helper_id
 
 import { describe, it, expect } from "vitest";
 import { walkSource, readSource } from "./helpers/walkSource";
@@ -287,7 +287,8 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
   it("get_jobs_for_my_applications nulls the offeree for everyone but the poster and the offeree", () => {
     const def = latestDefinitions().get("function:get_jobs_for_my_applications");
     const text = def!.code.replace(/\s+/g, " ");
-    expect(def!.file, "the latest definition must be the offer-privacy one").toBe(FIX_MIGRATION);
+    // 20261006023437 (Q1409) restates it verbatim but for one more visibility branch (a booked crew's re-listed spot).
+    expect(def!.file, "the latest definition must carry the offer-privacy rule").toBe("20261006023437_crew_free_spot_relisted.sql");
     expect(
       text,
       "the RPC returns SETOF jobs, so it must override the column rather than pass the row through",

@@ -241,6 +241,10 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.complete_direct_offer_accept", "single-job mutation; status is a precondition"],
     ["public.complete_pending_accepts_on_setup", "the profile's own pending accepts; 'open' marks a live direct offer"],
     ["public.expire_unanswered_offers", "sweep over offers, not a browse feed"],
+    // Q1409, 20261006023437: one job's free-spot count; the surfaces that list
+    // jobs with it (open_jobs_browse and the three browse RPCs) are registered
+    // and seed-gated themselves.
+    ["public.crew_spots_open", "a per-job count of a crew's free spots; lists nothing"],
     // Q729/Q1282, 20261005172453: the crew pass settles the crews the caller and
     // the person they block share; 'open' is a crew still filling, not a feed.
     ["public.block_user_and_settle", "the caller's own shared crews; 'open' marks a crew still filling"],
@@ -474,4 +478,4 @@ describe("fixture-job visibility — one switch, every surface", () => {
 // the 2026-09-02 bug. Its latest definition is 20260904203654; strip the gate
 // there and the flag flips every other surface quiet while the public page
 // keeps advertising fixture jobs.
-// @mutate supabase/migrations/20260927015010_recurring_vacated_visit_private.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |
+// @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |

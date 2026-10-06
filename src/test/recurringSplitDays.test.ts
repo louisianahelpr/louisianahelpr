@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |        AND v_d < v_min_fundable THEN |        AND false THEN
  * @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   -- start, for a series visit and a one-time job alike.\n  IF true THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHERE public.is_late_cancellation(\n           true, |   WHERE (true OR public.is_late_cancellation(\n           true,
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHERE status = 'open'::job_status AND parent_job_id IS NULL AND customer_id | WHERE status = 'open'::job_status AND customer_id
+ * @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql | crew_spots_open(id) > 0)) AND parent_job_id IS NULL AND customer_id | crew_spots_open(id) > 0)) AND customer_id
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.series_release_dates(uuid, uuid, date[], text, text, uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF NEW.series_split_ok IS DISTINCT FROM OLD.series_split_ok | IF false
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   WHEN (OLD.recurring_helper_id IS DISTINCT FROM NEW.recurring_helper_id) |   WHEN (false)
@@ -29,7 +29,7 @@
  * @mutate supabase/migrations/20260927012805_hired_job_schedule_lock.sql |                         AND (SELECT auth.uid()) IN (j.customer_id, j.helper_id)) THEN |                         AND true) THEN
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
  * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |         PERFORM set_config('app.series_claim_rpc', '0', true); | NULL;
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C12 | -- C12
+ * @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C12 | -- C12
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                              AND w.status::text = 'completed' |                              
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                            WHERE w.customer_id = v_uid AND w.helper_id = p_helper_id | WHERE w.helper_id = p_helper_id
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                        WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id AND a.status = 'pending') | WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id)
@@ -148,7 +148,8 @@ describe("recurring split days (Q407 4-6)", () => {
       /PERFORM set_config\('app\.series_claim_rpc', '1', true\);\s+INSERT INTO public\.applications \(job_id, helper_id, status, message\)\s+VALUES \(v_child_id, v_uid, 'accepted', NULL\)\s+ON CONFLICT \(job_id, helper_id\) DO UPDATE SET status = 'accepted';\s+PERFORM set_config\('app\.series_claim_rpc', '0', true\);/,
     );
     const gate = newestFunction("enforce_application_job_state");
-    expect(gate.file).toBe("20260927012806_recurring_split_days.sql");
+    // 20261006023437 (Q1409) restates the gate verbatim but for C1 (a booked crew's re-listed spot).
+    expect(gate.file).toBe("20261006023437_crew_free_spot_relisted.sql");
     const flag = gate.body.indexOf("current_setting('app.series_claim_rpc', true) = '1'");
     expect(flag).toBeGreaterThan(-1);
     // Honoured only AFTER the self-application (C3) and block (C10) refusals.
@@ -173,7 +174,8 @@ describe("recurring split days (Q407 4-6)", () => {
     const views = [...allSql.matchAll(/CREATE OR REPLACE VIEW public\.open_jobs_browse[\s\S]*?\$v(?:iew)?\$/g)];
     const newest = views.pop()?.[0] ?? "";
     for (const c of ["recurrence_days", "recurrence_weeks", "series_split_ok"]) expect(newest).toContain(c);
-    expect(newest).toMatch(/WHERE status = 'open'::job_status AND parent_job_id IS NULL/);
+    // Q1409 (20261006023437) widened the status test to a booked crew's re-listed spot; the series rule stands.
+    expect(newest).toMatch(/WHERE \(status = 'open'::job_status OR \(status = 'accepted'::job_status AND is_group_job IS TRUE AND crew_spots_open\(id\) > 0\)\) AND parent_job_id IS NULL/);
   });
 
   it("the executable PGlite proof exists and runs this chain", () => {

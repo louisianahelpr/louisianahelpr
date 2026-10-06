@@ -5851,6 +5851,7 @@ export type Database = {
           category: Database["public"]["Enums"]["job_category"] | null
           created_at: string | null
           credential_tier: number | null
+          crew_spots_open: number | null
           customer_id: string | null
           date_needed: string | null
           description: string | null
@@ -6335,6 +6336,7 @@ export type Database = {
       }
       crew_completes_when_hired_done: { Args: never; Returns: boolean }
       crew_fee_pays_unconfirmed: { Args: never; Returns: boolean }
+      crew_spots_open: { Args: { p_job_id: string }; Returns: number }
       crew_slot_share_cents: {
         Args: { p_needed: number; p_slot: number; p_total_cents: number }
         Returns: number

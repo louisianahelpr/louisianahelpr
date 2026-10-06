@@ -20,7 +20,6 @@
  * @mutate src/lib/socialAuth.ts | const specific = socialAuthErrorCopy(provider, typeof code === "string" ? code : null, raw); | const specific = null;
  * @mutate src/pages/auth/Login.tsx | useState(() => takeOAuthRedirectError()) | useState(() => null)
  * @mutate src/pages/auth/Login.tsx | op: "webSocialRedirect" | op: "webSocialRedirectOff"
- * @mutate src/lib/oauthRedirectError.ts | return code === "access_denied" \|\| code === "provider_email_needs_verification" \|\| code === "user_banned"; | return true;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";

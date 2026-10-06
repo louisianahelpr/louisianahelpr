@@ -1,3 +1,5 @@
+// @mutate src/lib/oauthRedirectError.ts | return code === "access_denied" \|\| code === "provider_email_needs_verification" \|\| code === "user_banned"; | return true;
+// (moved from socialAuthOutcomes.test.ts, which only reads Login's source and stayed green: the behaviour is pinned here, lines "is an expected refusal" / "is reported".)
 /**
  * OA-018: a web Apple/Google sign-in that GoTrue refused comes back as
  * ?error=…&error_code=…#error=… on /home. Nothing read it; Login showed "That

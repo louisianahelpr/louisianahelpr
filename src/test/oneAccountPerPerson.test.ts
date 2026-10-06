@@ -28,6 +28,9 @@
  * @mutate src/components/auth/SocialAuthButtons.tsx | <AccountChoiceDialog choice={choice} | <AccountChoiceDialog choice={null}
  * @mutate src/components/auth/SocialAuthButtons.tsx | onChoose(result.choice); | void result;
  * @mutate src/components/auth/SocialAuthButtons.tsx | import("@/components/auth/AccountChoiceDialog") | import("@/components/auth/AccountChoiceDialogX")
+ * @mutate src/components/auth/SocialAuthButtons.tsx | if (live) failed.current(); | void failed;
+ * @mutate src/components/auth/SocialAuthButtons.tsx | markAccountChoiceRetry(); | void 0;
+ * @mutate src/pages/auth/Login.tsx | loginNotice({ oauthError, accountChoiceRetry, | loginNotice({ oauthError,
  * @mutate src/components/auth/SocialAuthButtons.tsx | import { useEffect, useState } from "react"; | import { useEffect, useState } from "react";\nimport { AccountChoiceDialog as Eager } from "@/components/auth/AccountChoiceDialog";
  * @mutate src/pages/auth/Login.tsx | <SocialAuthButtons mode="signin" initialChoice={accountChoice} /> | <SocialAuthButtons mode="signin" />
  * @mutate supabase/migrations/20261005182630_one_account_per_person.sql | 'message', 'lh_account_choice:' | 'message', 'lh_other:'
@@ -147,6 +150,15 @@ describe("one account per person: a no-match social sign-in never silently creat
     expect(buttons).not.toMatch(/^\s*import\s+(?!type\s)[^;]*from\s+"@\/components\/auth\/AccountChoiceDialog"/m);
     expect(buttons).not.toMatch(/\blazy\(/);
     expect(buttons).toMatch(/import\("@\/components\/auth\/AccountChoiceDialog"\)/);
+    // A failed download is never a silent drop: the catch tells the person and
+    // clears the choice so the next tap asks again.
+    expect(buttons).toMatch(/\.catch\([\s\S]{0,500}failed\.current\(\)/);
+    // A stale-download failure reloads the page before that catch runs, so the
+    // note for Log In is written BEFORE the download (seen in a browser,
+    // 2026-10-05) and Log In reads it.
+    expect(buttons).toMatch(/markAccountChoiceRetry\(\);\s*import\("@\/components\/auth\/AccountChoiceDialog"\)/);
+    expect(code("src/pages/auth/Login.tsx")).toMatch(/loginNotice\(\{ oauthError, accountChoiceRetry,/);
+    expect(buttons).toMatch(/useAccountChoiceDialog\(choice !== null, \(\) => \{[\s\S]{0,200}setChoice\(null\)[\s\S]{0,200}toast\.error\(/);
     expect(code("src/pages/auth/Login.tsx")).toMatch(/<SocialAuthButtons mode="signin" initialChoice=\{accountChoice\} \/>/);
     // Both "I'm new here" and "I already have an account" are offered.
     const dialog = code("src/components/auth/AccountChoiceDialog.tsx");

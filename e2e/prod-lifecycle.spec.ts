@@ -3,6 +3,7 @@ import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { openCardFields } from "./stripeCheckoutCard";
 import { skipLivePay } from "./prod-audit/fundedOpenJob";
+import { ageJobPastEarlyAccess } from "./ageJobPastEarlyAccess";
 import { join } from "node:path";
 import { fitJobTitle } from "../scripts/lib/jobTextBounds.mjs";
 import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../scripts/lib/adminSession.mjs";
@@ -821,18 +822,13 @@ test.describe("full money loop against production", () => {
        on it the first time funding ever succeeded. Waiting 20 minutes per run is
        not an option, so the row is aged instead.
 
-       `created_at` is not in enforce_poster_jobs_money_lock's locked_always, so
-       the poster may set it; the PATCH is asserted rather than assumed, because a
-       silently-refused write here would resurface as a confusing 403 two steps
-       later rather than as a failure here. This is a TEST-HARNESS concession to a
-       real product rule — the embargo itself is deliberate and is not being
-       worked around in the app. */
-    const aged = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
-      headers: { ...rest(poster), Prefer: "return=representation" },
-      data: { created_at: new Date(Date.now() - 25 * 60_000).toISOString() },
-    });
-    expect(aged.ok(), `ageing the job past early access failed: ${aged.status()} ${await aged.text()}`).toBe(true);
-    expect(await aged.json(), "ageing the job matched zero rows — the poster could not set created_at").toHaveLength(1);
+       Since Q1189 `created_at` is server-owned (enforce_poster_jobs_money_lock's
+       locked_always), so the poster's own PATCH is refused with 42501; the
+       service role ages the row instead (e2e/ageJobPastEarlyAccess.ts, which
+       throws unless exactly one is_seed row moved, #2436). This is a
+       TEST-HARNESS concession to a real product rule — the embargo itself is
+       deliberate and is not being worked around in the app. */
+    await ageJobPastEarlyAccess(SUPABASE_URL, job.id, "the lifecycle job");
 
     // --- 3. APPLY -----------------------------------------------------------
     // THROUGH `apply_to_job`, the RPC the product's Apply button calls

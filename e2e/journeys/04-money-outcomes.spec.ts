@@ -37,6 +37,7 @@ import { centralDatePlus, fund, invoke, readRow, retireFundedJob, skipLivePay } 
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { OUTCOME_UNDRIVEN, filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { uncoveredAdminPaths } from "./adminWritePaths";
+import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 
 /**
  * MONEY OUTCOMES the marketplace chain does not reach (Q226, Q230, Q253).
@@ -125,14 +126,8 @@ async function postJob(api: APIRequestContext, poster: Session, label: string, d
   // A parish would fan this job out to every real Helpr in it once funded.
   expect(job.parish, `the ${label} job came back WITH a parish — funding it would notify real Helprs`).toBeNull();
   expect(job.is_seed, `the ${label} job is not is_seed`).toBe(true);
-  const aged = await readJson<unknown[]>(
-    await api.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=id`, {
-      headers: rest(poster, { Prefer: "return=representation" }),
-      data: { created_at: new Date(Date.now() - 25 * 60_000).toISOString() },
-    }),
-    `age the ${label} job past early access`,
-  );
-  expect(aged, `ageing the ${label} job matched zero rows`).toHaveLength(1);
+  // created_at is server-owned (Q1189): the service role ages it (#2436).
+  await ageJobPastEarlyAccess(SUPABASE_URL, job.id, `the ${label} job`);
   return job.id;
 }
 

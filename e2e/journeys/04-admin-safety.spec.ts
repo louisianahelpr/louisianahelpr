@@ -18,6 +18,7 @@ import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { fund, retireFundedJob, type Row } from "../prod-audit/fundedOpenJob";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { slotAhead } from "./postJobForm";
+import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { createThrowaway, deleteThrowaway, serviceKey, sr, type Throwaway } from "./throwaway";
 
@@ -412,12 +413,9 @@ test.describe.serial("admin and safety journeys", () => {
       helpr = await createThrowaway(request, key!, `NoShow ${RUN}`);
       jobId = (await postJob(request, poster, JOB_TITLE, slot)).id;
       await fundJob(request, browser, poster, jobId, log);
-      // Harness concession (02-marketplace's): age past the 20-min early-access window.
-      const aged = await request.patch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${jobId}&select=id`, {
-        headers: rest(poster, { Prefer: "return=representation" }),
-        data: { created_at: new Date(Date.now() - 25 * 60_000).toISOString() },
-      });
-      expect(await aged.json(), "ageing the job matched zero rows").toHaveLength(1);
+      // Harness concession (02-marketplace's): age past the 20-min early-access
+      // window, as the service role since created_at is server-owned (Q1189, #2436).
+      await ageJobPastEarlyAccess(SUPABASE_URL, jobId, "the no-show job");
       const h = helpr.session;
       const applied = await request.post(`${SUPABASE_URL}/rest/v1/rpc/apply_to_job`, {
         headers: rest(h),

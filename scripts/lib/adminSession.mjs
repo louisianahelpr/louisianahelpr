@@ -113,16 +113,21 @@ export async function mintAdminSession({
   const base = supabaseBase(String(supabaseUrl).replace(/\/+$/, ""));
 
   const once = async () => {
-    const send = async (path, headers, body) => {
+    const send = async (path, headers, body, via = transport) => {
       let res;
       try {
-        res = await transport(`${base}${path}`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body, timeoutMs });
+        res = await via(`${base}${path}`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body, timeoutMs });
       } catch (e) {
         res = { status: 0, text: e instanceof Error ? e.message : String(e) };
       }
       return res;
     };
-    const link = await send("/auth/v1/admin/generate_link", { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, { type: "recovery", email });
+    // The service-role call ALWAYS goes through node fetch, never the caller's
+    // transport: a Playwright APIRequestContext is traced, and traces copy
+    // request headers verbatim into trace.zip artifacts that CI uploads on
+    // failure from a PUBLIC repo (lh-authz-rls review 2026-10-06). Only the
+    // anon /verify call below goes through the caller's (metered) transport.
+    const link = await send("/auth/v1/admin/generate_link", { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }, { type: "recovery", email }, fetchTransport);
     if (link.status < 200 || link.status >= 300) return { status: link.status, error: `generate_link for ${email}: HTTP ${link.status} ${link.text.slice(0, 300)}` };
     const linkJson = parse(link.text, "generate_link");
     const tokenHash = linkJson.hashed_token ?? linkJson.properties?.hashed_token;

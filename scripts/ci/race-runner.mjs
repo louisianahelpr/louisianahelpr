@@ -338,7 +338,8 @@ const CANCEL_CLAIM = {
     ),
 };
 /** create-payment's gift path: redeem_gift_card funds the job (escrow) when the gift covers it. */
-const GIFT_TAP = { as: "service", run: (c, f) => c.query("SELECT public.redeem_gift_card($1, $2, $3)", [f.gift, f.job, f.poster]) };
+// It read the job before the concurrent card tap stamped, so it retires nothing (NULL).
+const GIFT_TAP = { as: "service", run: (c, f) => c.query("SELECT public.redeem_gift_card($1, $2, $3, NULL)", [f.gift, f.job, f.poster]) };
 /** create-payment's card path: stampSession's first stamp, exactly as index.ts writes it (no prior session). */
 const CARD_TAP = {
   as: "service",
@@ -464,7 +465,7 @@ const RACES = {
     name: "Q975 card tap vs gift tap (the card stamp holds the lock)",
     A: CARD_TAP,
     B: GIFT_TAP,
-    refusal: /already|session|checkout|card/i,
+    refusal: /card payment for this job is already open/,
     // The gift must not fund a job whose card checkout is already out.
     bad: (s) => s.payment_status === "escrow" && s.has_session,
   },

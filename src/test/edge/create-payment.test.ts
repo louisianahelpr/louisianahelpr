@@ -522,6 +522,29 @@ describe("create-payment edge function", () => {
         stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_diff", url: "https://checkout.stripe.test/cs_diff" });
       };
 
+      // Q975 race 15: the redeem is told which card checkout this request closed,
+      // so a concurrent tap's fresh checkout (any other id) makes it refuse.
+      // @mutate supabase/functions/create-payment/index.ts |           p_retired_session: previousSessionId, |           p_retired_session: null,
+      it("tells redeem_gift_card which earlier card checkout it closed", async () => {
+        seedGiftShortfall();
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, budget: 100, category: "cleaning", title: "Clean my house", payment_status: "unpaid", stripe_session_id: "cs_old" }],
+        };
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_old", status: "expired", payment_status: "unpaid", payment_intent: null });
+        const fn = await load();
+        await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
+        const call = (scenario.rpcCalls ?? []).find((c) => c.name === "redeem_gift_card");
+        expect(call?.args).toMatchObject({ p_credit_id: "gift-1", p_job_id: "job-1", p_retired_session: "cs_old" });
+      });
+
+      it("with no earlier card checkout it retires nothing", async () => {
+        seedGiftShortfall();
+        const fn = await load();
+        await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1" } }));
+        const call = (scenario.rpcCalls ?? []).find((c) => c.name === "redeem_gift_card");
+        expect(call?.args).toMatchObject({ p_retired_session: null });
+      });
+
       // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), |
       it("sets setup_future_usage off_session on the shortfall intent when saveCardForFuture is true", async () => {
         seedGiftShortfall();

@@ -383,7 +383,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     const user = await runPreSubmitChecks();
     if (!user) return;
 
-    // Q1438: the two notes are stored apart. Materials is public and rides on
+    // Q1461: the two notes are stored apart. Materials is public and rides on
     // the job row; Access & Parking (the `specialRequirements` field) is
     // private to the booked Helpr and is written to job_access_notes after
     // the insert, below.
@@ -547,7 +547,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
     attempt.jobId = jobData.id;
 
-    /* ACCESS & PARKING (Q1438) — private to the booked Helpr, so it is not on
+    /* ACCESS & PARKING (Q1461) — private to the booked Helpr, so it is not on
        the job row. Written like the pets below: the job exists and is paid
        for either way, so a failure here never fails the post; it is reported
        and the poster is told where to add it again. */

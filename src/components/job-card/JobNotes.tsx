@@ -1,7 +1,11 @@
+import type { ReactNode } from "react";
 import { KeyRound, Wrench, type LucideIcon } from "lucide-react";
 
+import type { EnrichedJob } from "@/components/dashboard/types";
+import { useJobAccessNote } from "@/hooks/useJobAccessNote";
+
 /**
- * THE POSTER'S TWO NOTES, ONE TREATMENT (Q1438, owner 2026-10-06).
+ * THE POSTER'S TWO NOTES, ONE TREATMENT (Q1461, owner 2026-10-06).
  *
  *   Materials provided — what the poster will have on site. PUBLIC: shown to
  *     everyone who can see the job (jobs.materials_note).
@@ -39,7 +43,7 @@ export function JobNotes({ materials, access, className }: JobNotesProps) {
 }
 
 /** True when JobNotes would render something (for a card deciding whether its body band has content). */
-export function hasJobNotes(materials?: string | null, access?: string | null): boolean {
+function hasJobNotes(materials?: string | null, access?: string | null): boolean {
   return !!materials?.trim() || !!access?.trim();
 }
 
@@ -55,5 +59,59 @@ function JobNote({ label, icon: Icon, text, testId }: { label: string; icon: Luc
           2026-09-07). `whitespace-pre-line` keeps the poster's line breaks. */}
       <p className="text-ds-11 text-foreground break-words whitespace-pre-line">{text}</p>
     </section>
+  );
+}
+
+/**
+ * The notes block for an Activity card (My Jobs, My Posts), or null when there
+ * is nothing to show. The access note is read only once the card is `open` and
+ * only when `askAccess` (the viewer could be given it); the database decides
+ * whether a row comes back (job_access_notes RLS: the poster always, the booked
+ * Helpr(s) until the job ends, admins).
+ */
+export function useCardNotes(
+  job: { id: string; materials_note?: string | null } | null | undefined,
+  open: boolean,
+  askAccess: boolean,
+): ReactNode {
+  const access = useJobAccessNote(job?.id, open && askAccess);
+  if (!job || !open || !hasJobNotes(job.materials_note, access)) return null;
+  return <JobNotes materials={job.materials_note} access={access} />;
+}
+
+/**
+ * The notes on the job detail sheet (browse, map pin, shared link). Materials
+ * for every viewer, guests included. The access note is asked for when the
+ * viewer may be given it: the poster, the job's Helpr, the series' Helpr, or,
+ * on a crew or a series (whose roster this sheet does not carry), any
+ * signed-in viewer, for whom the database answers with no row unless they are
+ * on it.
+ */
+export function JobDetailNotes({ job, guest, viewerUserId }: { job: EnrichedJob; guest: boolean; viewerUserId: string | null | undefined }) {
+  const ask =
+    !guest && !!viewerUserId &&
+    (viewerUserId === job.customer_id || viewerUserId === job.helper_id ||
+      viewerUserId === job.recurring_helper_id || !!job.is_group_job || !!job.is_recurring);
+  const access = useJobAccessNote(job.id, ask);
+  return <JobNotes materials={job.materials_note} access={access} />;
+}
+
+/**
+ * The browse card's materials signal (owner, 2026-10-06: materials are shown on
+ * the browse card too). The note itself is read in the job detail; the card
+ * carries only the signal, because every feed card stays one height and its
+ * meta row never wraps. The wrench is the post form's own "I'll Provide
+ * Materials" glyph. It never shrinks; its word appears from 430px, and below
+ * that the icon carries the sr-only label (the city keeps the width).
+ */
+export function MaterialsChip({ note }: { note: string | null | undefined }) {
+  const text = note?.trim();
+  if (!text) return null;
+  return (
+    <span className="shrink-0 inline-flex items-center gap-1" data-testid="job-card-materials" title={`${MATERIALS_LABEL}: ${text}`}>
+      <Wrench aria-hidden className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+      <span className="font-sans whitespace-nowrap hidden [@media(min-width:430px)]:inline">Materials</span>
+      <span className="sr-only [@media(min-width:430px)]:hidden">{MATERIALS_LABEL}</span>
+    </span>
   );
 }

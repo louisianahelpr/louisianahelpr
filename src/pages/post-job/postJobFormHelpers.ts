@@ -70,7 +70,7 @@ export function parseLocationIntoFields(location: string | null | undefined): Pa
 }
 
 /**
- * The "Materials I'll provide" note as it is posted (Q1438): the trimmed note
+ * The "Materials I'll provide" note as it is posted (Q1461): the trimmed note
  * when the poster switched the toggle on and wrote something, else null. It is
  * stored on its own public column, jobs.materials_note. It used to be glued
  * into special_requirements ahead of the Access & Parking notes behind a

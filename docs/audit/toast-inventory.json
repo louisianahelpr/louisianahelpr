@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 591,
+    "calls": 592,
     "files": 150,
-    "rendering": 566,
+    "rendering": 567,
     "suppressedByPolicy": 25,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 38,
-      "toast.error": 466,
+      "toast.error": 467,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 30,
       "toast.warning": 23
     },
     "copyPiecesByForm": {
-      "literal": 316,
+      "literal": 317,
       "template": 77,
-      "dynamic": 238,
+      "dynamic": 239,
       "jsx": 0
     }
   },
@@ -1922,7 +1922,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 90,
+      "line": 92,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1932,7 +1932,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 247,
+      "line": 249,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1942,7 +1942,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 263,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1952,7 +1952,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 306,
+      "line": 308,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1962,7 +1962,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 399,
+      "line": 401,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4832,7 +4832,7 @@
     },
     {
       "file": "src/pages/home/QuickApplyHandler.tsx",
-      "line": 107,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5584,7 +5584,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 263,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5634,7 +5634,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 215,
+      "line": 216,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5644,7 +5644,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 222,
+      "line": 223,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5654,7 +5654,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 231,
+      "line": 232,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5664,7 +5664,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 233,
+      "line": 234,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5674,7 +5674,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 237,
+      "line": 238,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5684,7 +5684,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 243,
+      "line": 244,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5694,7 +5694,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 245,
+      "line": 246,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5704,7 +5704,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 246,
+      "line": 247,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5714,7 +5714,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 250,
+      "line": 251,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5724,7 +5724,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 251,
+      "line": 252,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5734,7 +5734,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 252,
+      "line": 253,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5744,7 +5744,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 253,
+      "line": 254,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5754,7 +5754,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 254,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5764,7 +5764,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 259,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5774,7 +5774,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 260,
+      "line": 261,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5784,7 +5784,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 269,
+      "line": 270,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5794,7 +5794,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 282,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5804,7 +5804,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 283,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5814,7 +5814,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 284,
+      "line": 285,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5824,7 +5824,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 288,
+      "line": 289,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -5834,7 +5834,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 295,
+      "line": 296,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5844,7 +5844,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 340,
+      "line": 341,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5854,7 +5854,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 349,
+      "line": 350,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5864,7 +5864,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 365,
+      "line": 366,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5874,7 +5874,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 371,
+      "line": 372,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5884,7 +5884,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 527,
+      "line": 529,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5924,7 +5924,21 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 564,
+      "line": 563,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your job posted, but the access and parking notes didn't save"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "leak ?? \"Open the job and add them from Edit so your Helpr can see them.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useJobSubmit.ts",
+      "line": 585,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5938,7 +5952,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 715,
+      "line": 736,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5958,7 +5972,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 776,
+      "line": 797,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6018,7 +6032,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 96,
+      "line": 109,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6028,7 +6042,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 139,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

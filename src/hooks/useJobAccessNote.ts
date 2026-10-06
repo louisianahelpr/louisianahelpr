@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 
 /**
- * The poster's Access & Parking notes for one job (Q1438), or null.
+ * The poster's Access & Parking notes for one job (Q1461), or null.
  *
  * WHO GETS A ROW is decided by the database, not here: job_access_notes'
  * SELECT policy (can_read_job_access_notes, 20261006204113) returns it only to
@@ -16,7 +16,7 @@ import { report } from "@/lib/errorLogger";
  * minutes between the web deploy and db-deploy): that is "no note". Any other
  * error throws.
  */
-export const ACCESS_NOTES_NOT_DEPLOYED = new Set(["42P01", "PGRST205"]);
+const ACCESS_NOTES_NOT_DEPLOYED = new Set(["42P01", "PGRST205"]);
 
 export async function fetchJobAccessNote(jobId: string): Promise<string | null> {
   const { data, error } = await supabase.from("job_access_notes").select("notes").eq("job_id", jobId).maybeSingle();

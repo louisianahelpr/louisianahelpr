@@ -18,7 +18,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
  */
 export async function fetchGuestJobs(): Promise<EnrichedJob[]> {
   const prefetched = await takeGuestJobsPrefetch();
-  // Q1438: the select names materials_note, which a database behind this
+  // Q1461: the select names materials_note, which a database behind this
   // build may not have yet; readJobsAheadOfDb asks again without it.
   const rawJobs = prefetched ?? unwrap(
     await readJobsAheadOfDb(GUEST_JOBS_SELECT, (columns) => supabase

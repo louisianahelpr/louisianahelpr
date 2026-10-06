@@ -40,7 +40,7 @@ export async function fetchJobForPin(jobId: string): Promise<EnrichedJob | null>
 
   // `maybeSingle`, not `single`: a job that closed between the map load and the
   // tap is an expected outcome, not an error to report.
-  // Q1438: readJobsAheadOfDb, because BROWSE_COLUMNS names materials_note.
+  // Q1461: readJobsAheadOfDb, because BROWSE_COLUMNS names materials_note.
   const { data, error } = await readJobsAheadOfDb(BROWSE_COLUMNS, (columns) => supabase
     .from("open_jobs_browse")
     .select(columns)

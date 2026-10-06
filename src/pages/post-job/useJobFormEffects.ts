@@ -66,7 +66,7 @@ export interface UseJobFormEffectsParams {
   setBudget: (v: string) => void;
   setEstimatedHours: (v: string) => void;
   setSpecialRequirements: (v: string) => void;
-  /** Q1438: a rebook carries the old job's materials note (optional: not every caller has the toggle). */
+  /** Q1461: a rebook carries the old job's materials note (optional: not every caller has the toggle). */
   setIncludeMaterials?: (v: boolean) => void;
   setMaterialsNote?: (v: string) => void;
   setIsRecurring: (v: boolean) => void;
@@ -264,7 +264,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     if (rebookId) {
       // Named columns, not `*`: jobs.offered_to_helper_id is not selectable
       // (20260915045110), and a rebook never copies an offer anyway.
-      // Q1438: + the materials note, through readJobsAheadOfDb (42703 on a
+      // Q1461: + the materials note, through readJobsAheadOfDb (42703 on a
       // database behind this build: asked again without it).
       void readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) =>
         supabase.from("jobs").select(columns).eq("id", rebookId).single(),
@@ -300,7 +300,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         }
         setBudget(data.budget.toString());
         setEstimatedHours(data.estimated_hours?.toString() || "");
-        // Q1438: the two notes are stored apart now. Materials is on the row;
+        // Q1461: the two notes are stored apart now. Materials is on the row;
         // the Access & Parking notes are the poster's own job_access_notes row.
         const materials = (data as { materials_note?: string | null }).materials_note?.trim();
         if (materials) {

@@ -104,7 +104,7 @@ const PINNED_COLUMNS = [
   // Q1409 (20261006023437): how many spots on a crew a Helpr can apply for
   // (public.crew_spots_open, a count; the roster itself stays private).
   "crew_spots_open",
-  // Q1438 (20261006204113): the poster's "Materials I'll provide" note, shown
+  // Q1461 (20261006204113): the poster's "Materials I'll provide" note, shown
   // to everyone viewing the job by owner decision (2026-10-06). The Access &
   // Parking notes are NOT here: they live in job_access_notes, which no
   // browse surface reads (src/test/jobAccessNotesNeverBrowse.test.ts).

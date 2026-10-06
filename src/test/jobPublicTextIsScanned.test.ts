@@ -4,7 +4,7 @@
  * was shown on the job but never scanned. Source of truth: the LAST migration
  * that (re)creates the trigger; replay order is filename order.
  *
- * Q1438 (20261006204113): the poster's notes moved out of
+ * Q1461 (20261006204113): the poster's notes moved out of
  * special_requirements. The materials note is public (jobs.materials_note) and
  * is scanned here; the access and parking notes are private
  * (job_access_notes) and are scanned by their own write trigger, as they were
@@ -23,7 +23,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 // Poster-written text shown on the public job page and browse card.
 // (location is hidden until hire and is an address, so it is not scanned.)
 const PUBLIC_JOB_TEXT = ["title", "description", "materials_note"];
-// Scanned too: the retired column a pre-Q1438 client may still write.
+// Scanned too: the retired column a pre-Q1461 client may still write.
 const SCANNED = [...PUBLIC_JOB_TEXT, "special_requirements"];
 
 const dir = "supabase/migrations";
@@ -51,7 +51,7 @@ describe("public job text is contact-scanned (IB-002)", () => {
       readFileSync("src/pages/post-job/useJobSubmit.ts", "utf8") + readFileSync("src/pages/post-job/jobSubmitHelpers.ts", "utf8");
     for (const c of PUBLIC_JOB_TEXT) expect(submit).toMatch(new RegExp(`\\b${c}\\b`));
   });
-  it("the private access and parking notes are scanned by their own write trigger (Q1438)", () => {
+  it("the private access and parking notes are scanned by their own write trigger (Q1461)", () => {
     const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /FUNCTION public\.enforce_job_access_notes_write\(/.test(readFileSync(`${dir}/${f}`, "utf8")));
     expect(files.length).toBeGreaterThan(0);

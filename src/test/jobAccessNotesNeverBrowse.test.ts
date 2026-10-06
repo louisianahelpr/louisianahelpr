@@ -1,5 +1,5 @@
 /**
- * Q1438 (owner, 2026-10-06): the poster's Access & Parking notes (gate codes,
+ * Q1461 (owner, 2026-10-06): the poster's Access & Parking notes (gate codes,
  * which door, where the key is) reach ONLY the poster and the booked
  * Helpr(s). Materials are public.
  *
@@ -31,10 +31,12 @@
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |          OR public.can_read_job_access_notes(job_id)); |          OR true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO authenticated; | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO anon, authenticated;
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | ALTER TABLE public.job_access_notes ENABLE ROW LEVEL SECURITY; | SELECT 1;
- * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |     OR EXISTS (\n      SELECT 1 FROM public.group_job_helpers g |     OR EXISTS (SELECT 1 FROM public.applications a WHERE a.job_id = _job_id AND a.helper_id = auth.uid())\n    OR EXISTS (\n      SELECT 1 FROM public.group_job_helpers g
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |                      OR EXISTS (SELECT 1 FROM public.group_job_helpers g | OR EXISTS (SELECT 1 FROM public.applications a WHERE a.job_id = _job_id AND a.helper_id = auth.uid())\n                     OR EXISTS (SELECT 1 FROM public.group_job_helpers g
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |             OR (j.status::text NOT IN ('completed', 'cancelled')\n                AND (j.helper_id | OR (true\n                AND (j.helper_id
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |   USING (public.has_role((SELECT auth.uid()), 'admin'::public.app_role)); |   USING (true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |       CHECK (special_requirements IS NULL); |       CHECK (true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |   DELETE FROM public.job_access_notes n\n   WHERE n.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = p_user_id); |   PERFORM 1;
- * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |            materials_note       = NULL -- Q1438 |            title = title -- Q1438
+ * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |            materials_note       = NULL -- Q1461 |            title = title -- Q1461
  * @mutate src/pages/post-job/jobSubmitHelpers.ts |     ...(materialsNote?.trim() ? { materials_note: materialsNote.trim() } : {}), |     special_requirements: materialsNote,
  * @mutate src/hooks/useDashboardData.ts |           .from("open_jobs_browse") |           .from("job_access_notes")
  */
@@ -70,7 +72,7 @@ function newestViews(): Map<string, { file: string; body: string }> {
 const NEWEST_TABLE_FILE = FILES.filter((f) => /CREATE TABLE IF NOT EXISTS public\.job_access_notes/.test(sqlOf(f))).pop()!;
 const TABLE_SQL = sqlOf(NEWEST_TABLE_FILE ?? FILES[0]);
 
-describe("Q1438: no browse surface carries the access notes", () => {
+describe("Q1461: no browse surface carries the access notes", () => {
   const views = newestViews();
   const BROWSE_FNS = ["get_ranked_open_jobs", "get_open_jobs_for_map", "get_public_open_jobs"];
 
@@ -99,7 +101,7 @@ describe("Q1438: no browse surface carries the access notes", () => {
   });
 });
 
-describe("Q1438: job_access_notes is the poster's and the booked Helpr's only", () => {
+describe("Q1461: job_access_notes is the poster's and the booked Helpr's only", () => {
   it("the table, RLS on, and nothing for anon", () => {
     expect(NEWEST_TABLE_FILE, "no migration creates public.job_access_notes").toBeTruthy();
     expect(TABLE_SQL).toContain("ALTER TABLE public.job_access_notes ENABLE ROW LEVEL SECURITY;");
@@ -111,20 +113,26 @@ describe("Q1438: job_access_notes is the poster's and the booked Helpr's only", 
 
   it("every policy is TO authenticated, and SELECT goes through can_read_job_access_notes", () => {
     const policies = [...TABLE_SQL.matchAll(/CREATE POLICY "([^"]+)" ON public\.job_access_notes\s+FOR (\w+) TO ([^\n]+)\n([^;]*);/g)];
-    expect(policies.length).toBe(4);
+    expect(policies.length).toBe(5);
     for (const [, name, , to] of policies) expect(to.trim(), name).toBe("authenticated");
     const select = policies.filter(([, , cmd]) => cmd === "SELECT");
-    expect(select.length).toBe(1);
+    expect(select.length).toBe(2);
+    // Owner answer 2: admins read; the second SELECT policy is exactly that.
+    const admin = policies.find(([, name]) => name === "Admins read access notes");
+    expect(admin?.[2]).toBe("SELECT");
+    expect(admin?.[4].replace(/\s+/g, " ").trim()).toBe("USING (public.has_role((SELECT auth.uid()), 'admin'::public.app_role))");
+    select.splice(select.indexOf(admin!), 1);
     // The poster, spelled out (the job_pets id match), or whoever the definer function admits.
     expect(select[0][4].replace(/\s+/g, " ").trim()).toBe(
       "USING (EXISTS (SELECT 1 FROM public.jobs j WHERE j.id = job_access_notes.job_id AND j.customer_id = (SELECT auth.uid())) OR public.can_read_job_access_notes(job_id))",
     );
     for (const [, name, cmd, , body] of policies.filter(([, , c]) => c !== "SELECT")) {
+      // Writes stay the poster's alone (admins read only).
       expect(body, `${name} (${cmd}) is not poster-only`).toMatch(/j\.customer_id = \(SELECT auth\.uid\(\)\)/);
     }
   });
 
-  it("can_read_job_access_notes admits the poster, the job's Helpr, the series' Helpr and the crew, nobody else", () => {
+  it("can_read_job_access_notes admits the poster, and the job's Helpr, the series' Helpr and the crew only while the job is live", () => {
     const fn = blankSqlComments(DEFS.get("can_read_job_access_notes")!.stmt);
     expect(fn).toMatch(/SECURITY DEFINER/);
     // No user argument: it can only answer about the caller.
@@ -132,6 +140,10 @@ describe("Q1438: job_access_notes is the poster's and the booked Helpr's only", 
     for (const who of ["j.customer_id = auth.uid()", "j.helper_id = auth.uid()", "j.recurring_helper_id = auth.uid()", "g.helper_id = auth.uid()"]) {
       expect(fn, who).toContain(who);
     }
+    // Owner answer 1: the Helpr side ends with the job; the poster side does not.
+    const flat = fn.replace(/\s+/g, " ");
+    expect(flat).toMatch(/j\.customer_id = auth\.uid\(\) OR \(j\.status::text NOT IN \('completed', 'cancelled'\) AND \(j\.helper_id = auth\.uid\(\)/);
+    expect(flat.indexOf("g.helper_id = auth.uid()")).toBeGreaterThan(flat.indexOf("NOT IN ('completed', 'cancelled')"));
     // A pending direct offer or a mere application is not a booking.
     expect(fn).not.toMatch(/offered_to_helper_id|public\.applications/);
     expect(TABLE_SQL).toContain("REVOKE ALL ON FUNCTION public.can_read_job_access_notes(uuid) FROM PUBLIC, anon, authenticated;");
@@ -154,7 +166,7 @@ describe("Q1438: job_access_notes is the poster's and the booked Helpr's only", 
   });
 });
 
-describe("Q1438: client code reads job_access_notes only through its two owners", () => {
+describe("Q1461: client code reads job_access_notes only through its two owners", () => {
   const OWNERS = new Set([
     "src/hooks/useJobAccessNote.ts", // the read (RLS decides who gets a row)
     "src/lib/jobAccessNotes.ts", // the poster's write

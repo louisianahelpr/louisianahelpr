@@ -1,11 +1,12 @@
 /**
- * Q1438 (owner-reported 2026-10-06): Helprs never saw the poster's
+ * Q1461 (owner-reported 2026-10-06): Helprs never saw the poster's
  * "Materials I'll provide" or "Access & Parking" notes. Only the admin dialog,
  * the edit dialog and the poster's own card printed them (one string,
  * "Special Requirements").
  *
  * OWNER DECISION: materials -> EVERYONE viewing the job (job page and browse
- * card); access & parking -> only the BOOKED Helpr(s) and the poster.
+ * card); access & parking -> only the BOOKED Helpr(s) (until the job ends),
+ * the poster, and admins (owner answers, 2026-10-06).
  *
  * Pinned here:
  *   1. JobNotes, the one shared treatment, labels each note and renders
@@ -24,7 +25,8 @@
  * @mutate src/pages/posts/PostedJobCard.tsx |                 {hasRequirements && <JobNotes materials={job.materials_note} access={accessNote} />} |                 {hasRequirements && <JobNotes access={accessNote} />}
  * @mutate src/components/dashboard/JobCard.tsx |             {job.materials_note?.trim() && ( |             {false && (
  * @mutate src/components/job-card/JobNotes.tsx |       {a && <JobNote label={ACCESS_LABEL} | {false && <JobNote label={ACCESS_LABEL}
- * @mutate src/components/dashboard/JobDetailDialog.tsx |     !guest && !!job && !!viewerUserId && (viewerUserId === job.customer_id \|\| viewerUserId === job.helper_id), |     !!viewerUserId \|\| guest,
+ * @mutate src/components/dashboard/JobDetailDialog.tsx |     !guest && !!job && !!viewerUserId && | !!job && !!viewerUserId &&
+ * @mutate src/components/admin/adminJobs/JobDetailDialog.tsx |             <JobNotes materials={detailJob.materials_note} access={accessNote} /> |             <JobNotes materials={detailJob.materials_note} />
  */
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -111,7 +113,7 @@ const SURFACES: Record<string, { access: boolean; why: string }> = {
   "src/components/dashboard/JobDetailDialog.tsx": { access: true, why: "the job detail sheet (browse, map pin, shared link): materials for all; access for the poster / booked Helpr only" },
   "src/pages/jobs/AppliedJobCard.tsx": { access: true, why: "the Helpr's own card: materials while applied, access once hired" },
   "src/pages/posts/PostedJobCard.tsx": { access: true, why: "the poster's own card: both, labelled" },
-  "src/components/admin/adminJobs/JobDetailDialog.tsx": { access: false, why: "admin: materials only; RLS gives admins no access note" },
+  "src/components/admin/adminJobs/JobDetailDialog.tsx": { access: true, why: "admin: both; RLS gives admins the access note (owner answer 2)" },
 };
 
 describe("the surface inventory (two-way)", () => {
@@ -146,6 +148,8 @@ describe("the surface inventory (two-way)", () => {
     const call = /const accessNote = useJobAccessNote\(([\s\S]*?)\);/.exec(src)?.[1] ?? "";
     expect(call).toMatch(/!guest && !!job &&/);
     expect(call).toMatch(/viewerUserId === job\.customer_id \|\| viewerUserId === job\.helper_id/);
+    // Crew members and the series' Helpr are asked for too (the database decides).
+    expect(call).toMatch(/viewerUserId === job\.recurring_helper_id \|\| !!job\.is_group_job \|\| !!job\.is_recurring/);
   });
 
   it("the browse card carries materials only (no access note on a scan row)", () => {

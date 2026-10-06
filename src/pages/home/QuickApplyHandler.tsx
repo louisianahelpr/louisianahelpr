@@ -148,7 +148,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHa
     // helper is allowed to see but which merely wasn't on the loaded page (or
     // was filtered out) now resolves.
     (async () => {
-      // Q1438: readJobsAheadOfDb, because SHEET_COLUMNS names materials_note.
+      // Q1461: readJobsAheadOfDb, because SHEET_COLUMNS names materials_note.
       // A runtime column list types the row as GenericStringError; it is a browse row.
       const result = await readJobsAheadOfDb(SHEET_COLUMNS, (columns) => supabase
         .from("open_jobs_browse")

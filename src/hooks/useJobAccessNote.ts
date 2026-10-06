@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 
 /**
- * The poster's Access & Parking notes for one job (Q1438), or null.
+ * The poster's Access & Parking notes for one job (Q1461), or null.
  *
  * WHO GETS A ROW is decided by the database, not here: job_access_notes'
  * SELECT policy (can_read_job_access_notes, 20261006204113) returns it only to

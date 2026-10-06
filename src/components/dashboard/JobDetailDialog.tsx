@@ -125,11 +125,16 @@ const JobDetailDialog = ({
     distMilesForDriving,
     drivingLabel,
   } = useJobDetailData({ job, guest, userLat, userLng });
-  /* Q1438: the Access & Parking notes reach only the poster and the booked
-     Helpr (job_access_notes RLS); asked only when the viewer is one of them. */
+  /* Q1461: the Access & Parking notes reach only the poster and the booked
+     Helpr(s) (job_access_notes RLS). Asked when the viewer may be one of them:
+     the poster, the job's Helpr, the series' Helpr, or (on a crew or a
+     series, whose roster this sheet does not carry) any signed-in viewer,
+     for whom the database answers with no row unless they are on it. */
   const accessNote = useJobAccessNote(
     job?.id,
-    !guest && !!job && !!viewerUserId && (viewerUserId === job.customer_id || viewerUserId === job.helper_id),
+    !guest && !!job && !!viewerUserId &&
+      (viewerUserId === job.customer_id || viewerUserId === job.helper_id ||
+        viewerUserId === job.recurring_helper_id || !!job.is_group_job || !!job.is_recurring),
   );
 
   if (!job) return null;
@@ -907,7 +912,7 @@ const JobDetailDialog = ({
             `drivingLabel` comes from useDrivingTime, which declines to
             estimate a drive nobody drives. So the Where tile reads "~1634 mi"
             with no ETA — true, and not pretending to be a commute. */}
-        {/* Q1438: what the poster will provide (public, every viewer,
+        {/* Q1461: what the poster will provide (public, every viewer,
             guests included) and, for the poster and the booked Helpr only,
             the Access & Parking notes. One shared treatment (JobNotes). */}
         <JobNotes materials={job.materials_note} access={accessNote} />

@@ -151,7 +151,7 @@ export const JOB_READABLE_COLUMN_LIST = [
 export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "series_ban_cancelled_at"] as const;
 
 /**
- * Readable jobs columns a NEWER migration adds (Q1438: the poster's
+ * Readable jobs columns a NEWER migration adds (Q1461: the poster's
  * "Materials I'll provide" note, 20261006204113). Same deploy-order hazard as
  * JOB_SERIES_STATE_COLUMNS: they are NOT in JOB_READABLE_COLUMN_LIST, and a
  * read that wants one names it explicitly and goes through

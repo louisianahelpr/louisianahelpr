@@ -95,7 +95,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   it("open_jobs_browse lists the re-listed spot, counts it INLINE (the same rule), and stays a definer view", () => {
     const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
-    // 20261006204113 (Q1438) restates it verbatim plus materials_note at the end.
+    // 20261006204113 (Q1461) restates it verbatim plus materials_note at the end.
     expect([PRIVATE, RESTATED, "20261006204113_job_materials_and_access_notes.sql"]).toContain(newestView);
     const sql = readFileSync(resolve(MIGRATIONS, newestView as string), "utf8");
     const at = sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse");

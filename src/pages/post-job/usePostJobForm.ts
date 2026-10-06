@@ -227,7 +227,7 @@ export function usePostJobForm() {
   } = useJobMediaUpload();
 
   // Optional "Materials I'll provide" note for material-heavy categories.
-  // Posted as jobs.materials_note (Q1438), shown to everyone viewing the job.
+  // Posted as jobs.materials_note (Q1461), shown to everyone viewing the job.
   const [includeMaterials, setIncludeMaterials] = useState(false);
   const [materialsNote, setMaterialsNote] = useState("");
 

@@ -489,7 +489,7 @@ export function LogisticsSection({
           this is a meaningful poster signal (paint, repair, assembly,
           yard, cleaning). When on, a freeform note appears so the
           poster can list paint colors, parts numbers, supplies, etc.
-          Q1438: the note is stored on its own (jobs.materials_note) and
+          Q1461: the note is stored on its own (jobs.materials_note) and
           shown to everyone viewing the job; the Access & Parking notes
           above go to job_access_notes, which only the booked Helpr sees. */}
       {materialsToggleRelevant && setIncludeMaterials && (

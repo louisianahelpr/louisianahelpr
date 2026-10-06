@@ -57,7 +57,7 @@ describe("guest /browse prefetch (Q206 b)", () => {
     const src = code("src/pages/home/fetchGuestJobs.ts");
     expect(src).toMatch(/const prefetched = await takeGuestJobsPrefetch\(\);/);
     expect(src).toMatch(
-      // Q1438: through readJobsAheadOfDb, which hands the shared select (or it minus a column the database lacks) to `columns`.
+      // Q1461: through readJobsAheadOfDb, which hands the shared select (or it minus a column the database lacks) to `columns`.
       /readJobsAheadOfDb\(GUEST_JOBS_SELECT, \(columns\) => supabase\s*\.from\("open_jobs_browse"\)\s*\.select\(columns\)\s*\.neq\("payment_status", "abandoned"\)\s*\.order\("boosted_at", \{ ascending: false, nullsFirst: false \}\)\s*\.order\("created_at", \{ ascending: false \}\)\s*\.limit\(GUEST_JOBS_LIMIT\)/,
     );
     expect(code("src/entry.ts")).toMatch(/startGuestJobsPrefetch\(window\.location\.pathname\);/);

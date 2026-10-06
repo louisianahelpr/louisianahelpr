@@ -179,7 +179,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     // signed-in client (20260915045110, owner decision 2026-09-14), and `*`
     // would 42501 the whole read. The poster gets their own offerees from
     // get_job_offer_targets below and they are merged back onto the rows.
-    // Q1438: plus the poster's own materials note, which their card shows.
+    // Q1461: plus the poster's own materials note, which their card shows.
     // It is newer than the deploy that may serve this build, so it is read
     // through readJobsAheadOfDb (dropped and asked again on 42703).
     readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) => supabase

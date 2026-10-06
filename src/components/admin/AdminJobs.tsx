@@ -79,7 +79,7 @@ const AdminJobs = () => {
 
   useEffect(() => {
     const load = async () => {
-      // Q1438: + materials_note for the job dialog, through readJobsAheadOfDb
+      // Q1461: + materials_note for the job dialog, through readJobsAheadOfDb
       // (a database behind this build answers 42703; it asks again without).
       const { data, error } = await readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) => supabase
         .from("jobs")

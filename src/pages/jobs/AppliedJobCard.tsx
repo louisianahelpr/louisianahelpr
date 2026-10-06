@@ -112,13 +112,14 @@ function AppliedJobCardInner({
   // read it through this narrow view rather than `as any`.
   const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
-  /* Q1438: the poster's Access & Parking notes. Only a hired Helpr (accepted
+  /* Q1461: the poster's Access & Parking notes. Only a hired Helpr (accepted
      application: the job's helper or a crew-roster member) is ever given them
-     by the database (job_access_notes RLS); the request waits for the card to
-     open. Before the `if (!job)` early return below (rules of hooks). */
+     by the database (job_access_notes RLS), and only until the job is
+     completed or cancelled (owner answer 1); the request waits for the card
+     to open. Before the `if (!job)` early return below (rules of hooks). */
   const accessNote = useJobAccessNote(
     job?.id,
-    app.status === "accepted" && job?.status !== "cancelled" && expandedJobIds.has(app.job_id),
+    app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed" && expandedJobIds.has(app.job_id),
   );
   if (!job) {
     // An application can outlive its job row's VISIBILITY: once the job
@@ -242,7 +243,7 @@ function AppliedJobCardInner({
   // The expanded body also has to render for the poster PersonTile (V6), even
   // on a job with no description of its own to show — but only while the body
   // is the one printing it.
-  /* Q1438: "Materials provided" for everyone who can see the job (pending
+  /* Q1461: "Materials provided" for everyone who can see the job (pending
      applicants included), "Access & Parking" only when the database returned
      it (hired Helpr). Same open-card gate as the description. */
   const showNotes = !isMinimalCard && isExpanded && hasJobNotes(job.materials_note, accessNote);

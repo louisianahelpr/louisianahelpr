@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * LIVE (Q1438): the poster's Access & Parking notes reach nobody but the
+ * LIVE (Q1461): the poster's Access & Parking notes reach nobody but the
  * poster and the booked Helpr(s). Read-only, from the prod catalog.
  *
  * The notes can hold a gate code. Until 20261006204113 they sat in
@@ -108,7 +108,7 @@ if (Number(row.legacy_rows) > 0) leaks.push(`${row.legacy_rows} jobs row(s) stil
 console.log(`Checked public.job_access_notes against ${tablesChecked} public tables, every public view, and ${BROWSE_FNS.length} browse functions.`);
 if (leaks.length) {
   for (const l of leaks) console.error(`::error::${l}`);
-  console.error("The Access & Parking notes are for the poster and the booked Helpr(s) only (owner, 2026-10-06; docs/OPEN.md Q1438).");
+  console.error("The Access & Parking notes are for the poster and the booked Helpr(s) only (owner, 2026-10-06; docs/OPEN.md Q1461).");
   process.exit(1);
 }
 console.log("OK: anon cannot read job_access_notes, and no browse view or RPC reads it.");

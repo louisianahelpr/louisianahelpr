@@ -735,7 +735,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 on small phones. Freshness is still signalled by the "New"
                 chip (<30m) at the head of the row. */}
             {job.materials_note?.trim() && (
-              // Q1438 (owner, 2026-10-06): the poster provides materials,
+              // Q1461 (owner, 2026-10-06): the poster provides materials,
               // said on the browse card too. The note itself is read in the
               // job detail (JobNotes); the card only carries the signal,
               // because every card stays one height and this row never

@@ -101,7 +101,7 @@ function PostedJobCardInner({
 
   // A description that merely restates the title is not a description.
   const hasDescription = job.description.trim().toLowerCase() !== job.title.trim().toLowerCase();
-  // Q1438: the poster's two notes, labelled (they were one "Special
+  // Q1461: the poster's two notes, labelled (they were one "Special
   // Requirements" string). Access & Parking is read from job_access_notes as
   // the poster (RLS), only once the card is open.
   const accessNote = useJobAccessNote(job.id, isExpanded);

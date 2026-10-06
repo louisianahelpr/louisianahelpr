@@ -1,7 +1,7 @@
 import { KeyRound, Wrench, type LucideIcon } from "lucide-react";
 
 /**
- * THE POSTER'S TWO NOTES, ONE TREATMENT (Q1438, owner 2026-10-06).
+ * THE POSTER'S TWO NOTES, ONE TREATMENT (Q1461, owner 2026-10-06).
  *
  *   Materials provided — what the poster will have on site. PUBLIC: shown to
  *     everyone who can see the job (jobs.materials_note).

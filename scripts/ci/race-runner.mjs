@@ -149,6 +149,26 @@ async function fixture(admin, race) {
   // ago, poster silent), the state auto-release-payment pays from. Races 8-9
   // then open a REAL poster dispute through open_dispute_as and backdate its
   // deadline, the state auto-resolve-disputes pays from.
+  // Races 14-15 (Q975 probe 3): an open UNPAID job and a paid gift that covers
+  // it in full, the state where a gift tap and a card tap race.
+  if (race === 14 || race === 15) {
+    // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
+    const { rows } = await admin.query(
+      `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
+                                customer_id, helper_id, date_needed, created_at, payment_status, start_time)
+       VALUES ('[CI race] fund', 'race-runner.mjs fixture (Q975)', 'cleaning', 100, 'Test Address', 'Orleans',
+               'open', $1, NULL, CURRENT_DATE + 7, now() - interval '30 days', 'unpaid', '00:00')
+       RETURNING id`,
+      [poster],
+    );
+    // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
+    const { rows: g } = await admin.query(
+      `INSERT INTO public.gift_cards (amount, recipient_id, status, payment_status, expires_at)
+       VALUES (500, $1, 'available', 'paid', now() + interval '30 days') RETURNING id`,
+      [poster],
+    );
+    return { poster, helper, job: rows[0].id, gift: g[0].id };
+  }
   // Race 13 (Q975 probe 6): an open funded job nobody was hired for, the only
   // state cancel_escrow claims.
   if (race === 13) {
@@ -317,6 +337,19 @@ const CANCEL_CLAIM = {
       [f.job],
     ),
 };
+/** create-payment's gift path: redeem_gift_card funds the job (escrow) when the gift covers it. */
+const GIFT_TAP = { as: "service", run: (c, f) => c.query("SELECT public.redeem_gift_card($1, $2, $3)", [f.gift, f.job, f.poster]) };
+/** create-payment's card path: stampSession's first stamp, exactly as index.ts writes it (no prior session). */
+const CARD_TAP = {
+  as: "service",
+  run: (c, f) =>
+    c.query(
+      `UPDATE public.jobs SET stripe_session_id = 'cs_race_' || $1::text, payment_status = 'unpaid'
+        WHERE id = $1 AND (payment_status IS NULL OR payment_status IN ('unpaid', 'abandoned', 'failed'))
+          AND status NOT IN ('completed', 'cancelled') AND stripe_session_id IS NULL`,
+      [f.job],
+    ),
+};
 /** A second claim that LANDED a row: the double-tap guard failed. */
 const secondLanded = (b) => /committed \(1 row\)/.test(b);
 
@@ -419,6 +452,22 @@ const RACES = {
     refusal: /^$/,
     bad: (s, f, b) => secondLanded(b),
   },
+  14: {
+    name: "Q975 gift tap vs card tap (the gift holds the lock)",
+    A: GIFT_TAP,
+    B: CARD_TAP,
+    refusal: /^$/,
+    // A funded job never gets a card session (its URL would be a second charge).
+    bad: (s) => s.payment_status !== "escrow" || s.has_session,
+  },
+  15: {
+    name: "Q975 card tap vs gift tap (the card stamp holds the lock)",
+    A: CARD_TAP,
+    B: GIFT_TAP,
+    refusal: /already|session|checkout|card/i,
+    // The gift must not fund a job whose card checkout is already out.
+    bad: (s) => s.payment_status === "escrow" && s.has_session,
+  },
   5: {
     name: "helper Done again vs release",
     A: RELEASE,
@@ -510,7 +559,8 @@ async function round(admin, race) {
               j.payment_status::text AS payment_status, j.dispute_status::text AS dispute_status,
               (SELECT count(*)::int FROM public.disputes d WHERE d.job_id = j.id) AS disputes,
               (SELECT count(*)::int FROM public.disputes d WHERE d.job_id = j.id AND d.status = 'withdrawn') AS withdrawn,
-              j.revision_acceptance_deadline IS NOT NULL AS acceptance_set
+              j.revision_acceptance_deadline IS NOT NULL AS acceptance_set,
+              j.stripe_session_id IS NOT NULL AS has_session
          FROM public.jobs j WHERE j.id = $1`,
       [f.job],
     );

@@ -7,7 +7,7 @@
   "capture": "staged-gate",
   "settleMs": 600,
   "chunkDelay": 400,
-  "at": "2026-10-05T12:38:13.296Z",
+  "at": "2026-10-06T06:37:13.388Z",
   "results": [
     {
       "url": "/",
@@ -36,10 +36,23 @@
       "requests": 12
     },
     {
+      "url": "/login",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
       "url": "/",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2248,
+      "capturedAt": 2118,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -107,7 +120,7 @@
         },
         "shifts": [
           {
-            "t": 3126.899999999994,
+            "t": 3056.2999999999884,
             "v": 0.0003903020780250269
           }
         ],
@@ -140,26 +153,13 @@
             "media": 2,
             "controls": 6,
             "placeholders": 0,
-            "text": "12HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
+            "text": "2HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First JobN"
           }
         ]
       },
       "status": "redirected",
       "note": "left the route between frames: / → /home",
       "requests": 40
-    },
-    {
-      "url": "/login",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
     },
     {
       "url": "/signup",
@@ -178,7 +178,7 @@
       "url": "/signup",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 4624,
+      "capturedAt": 4121,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -287,7 +287,7 @@
         },
         "shifts": [
           {
-            "t": 5419.399999999994,
+            "t": 5057.599999999977,
             "v": 0.0003903020780250269
           }
         ],
@@ -320,7 +320,7 @@
             "media": 2,
             "controls": 6,
             "placeholders": 0,
-            "text": "12HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
+            "text": "2HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First JobN"
           },
           {
             "found": true,
@@ -482,7 +482,7 @@
       "url": "/signup-pending",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3377,
+      "capturedAt": 3155,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -591,7 +591,7 @@
         },
         "shifts": [
           {
-            "t": 4193.800000000003,
+            "t": 4151.299999999988,
             "v": 0.0003903020780250269
           }
         ],
@@ -624,7 +624,7 @@
             "media": 2,
             "controls": 6,
             "placeholders": 0,
-            "text": "12HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
+            "text": "2HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First JobN"
           },
           {
             "found": true,
@@ -797,9 +797,313 @@
     },
     {
       "url": "/complete-profile",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 4267,
+      "stage": {
+        "waves": 1,
+        "ended": "captured"
+      },
+      "finalUrl": "/home",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_complete_profile.loading.png",
+      "loading": {
+        "found": 5,
+        "docH": 812,
+        "landmarks": {
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 4,
+            "probe": {
+              "px": 187.5,
+              "py": 32,
+              "containerW": 333
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 12,
+              "w": 335,
+              "h": 800
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 714,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 23,
+            "textLeaves": 1,
+            "media": 1,
+            "controls": 4,
+            "placeholders": 4,
+            "text": "2HomeLoading jobs near you…"
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "2PP"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_complete_profile.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [
+          {
+            "t": 5012.700000000012,
+            "v": 0.0003903020780250269
+          }
+        ],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 12,
+              "w": 335,
+              "h": 800
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 714,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 37,
+            "textLeaves": 3,
+            "media": 2,
+            "controls": 6,
+            "placeholders": 0,
+            "text": "2HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First JobN"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "2PP"
+          }
+        ]
+      },
+      "clsTotal": 0.0004,
+      "clsDuringSwap": 0.0004,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 12,
+            "w": 335,
+            "h": 800
+          },
+          "realBox": {
+            "x": 20,
+            "y": 12,
+            "w": 335,
+            "h": 800
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            714,
+            714
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            2
+          ],
+          "controls": [
+            4,
+            6
+          ],
+          "textLeaves": [
+            1,
+            3
+          ],
+          "placeholderCount": 4,
+          "shapeMatch": true
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            4,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            2,
+            2
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 2,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 41
+    },
+    {
+      "url": "/complete-profile",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 4300,
+      "capturedAt": 4331,
       "stage": {
         "waves": 1,
         "ended": "captured"
@@ -851,7 +1155,7 @@
             "media": 1,
             "controls": 4,
             "placeholders": 4,
-            "text": "6HomeLoading jobs near you…"
+            "text": "1HomeLoading jobs near you…"
           },
           {
             "path": "div#root > nav > div:nth-of-type(2)",
@@ -908,7 +1212,7 @@
         },
         "shifts": [
           {
-            "t": 4951,
+            "t": 5117.900000000023,
             "v": 0.0003512718702225242
           }
         ],
@@ -941,7 +1245,7 @@
             "media": 2,
             "controls": 6,
             "placeholders": 0,
-            "text": "6HomeAll quiet — for nowNothing today, Hallie.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
+            "text": "1HomeAll quiet — for nowNothing today, Hallie.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
           },
           {
             "found": true,
@@ -1101,310 +1405,6 @@
     },
     {
       "url": "/complete-profile",
-      "persona": "customer",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 4817,
-      "stage": {
-        "waves": 1,
-        "ended": "captured"
-      },
-      "finalUrl": "/home",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_complete_profile.loading.png",
-      "loading": {
-        "found": 5,
-        "docH": 812,
-        "landmarks": {
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 4,
-            "probe": {
-              "px": 187.5,
-              "py": 32,
-              "containerW": 333
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 12,
-              "w": 335,
-              "h": 800
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 714,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 23,
-            "textLeaves": 1,
-            "media": 1,
-            "controls": 4,
-            "placeholders": 4,
-            "text": "12HomeLoading jobs near you…"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 38,
-            "textLeaves": 2,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "2PP"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_complete_profile.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [
-          {
-            "t": 5391.5,
-            "v": 0.0003903020780250269
-          }
-        ],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 12,
-              "w": 335,
-              "h": 800
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 714,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 37,
-            "textLeaves": 3,
-            "media": 2,
-            "controls": 6,
-            "placeholders": 0,
-            "text": "12HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 38,
-            "textLeaves": 2,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "2PP"
-          }
-        ]
-      },
-      "clsTotal": 0.0004,
-      "clsDuringSwap": 0.0004,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 12,
-            "w": 335,
-            "h": 800
-          },
-          "realBox": {
-            "x": 20,
-            "y": 12,
-            "w": 335,
-            "h": 800
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            714,
-            714
-          ],
-          "deltaRowH": 0,
-          "media": [
-            1,
-            2
-          ],
-          "controls": [
-            4,
-            6
-          ],
-          "textLeaves": [
-            1,
-            3
-          ],
-          "placeholderCount": 4,
-          "shapeMatch": true
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            4,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            2,
-            2
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": 0,
-      "worstDeltaRowH": null,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
-      "clustersMeasured": 2,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 41
-    },
-    {
-      "url": "/complete-profile",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -1433,7 +1433,7 @@
       "url": "/account-banned",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 26540,
+      "capturedAt": 9195,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -1510,7 +1510,7 @@
         },
         "shifts": [
           {
-            "t": 3447,
+            "t": 3738.1999999999534,
             "v": 0.0003903020780250269
           }
         ],
@@ -1543,7 +1543,7 @@
             "media": 2,
             "controls": 6,
             "placeholders": 0,
-            "text": "12HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
+            "text": "2HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First JobN"
           }
         ]
       },
@@ -1607,7 +1607,7 @@
       "url": "/home",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2455,
+      "capturedAt": 2570,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -1716,7 +1716,7 @@
         },
         "shifts": [
           {
-            "t": 3309.899999999994,
+            "t": 3724.1999999999534,
             "v": 0.0003512718702225242
           }
         ],
@@ -1749,7 +1749,7 @@
             "media": 2,
             "controls": 6,
             "placeholders": 0,
-            "text": "6HomeAll quiet — for nowNothing today, Hallie.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
+            "text": "1HomeAll quiet — for nowNothing today, Hallie.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
           },
           {
             "found": true,
@@ -1911,7 +1911,7 @@
       "url": "/home",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3607,
+      "capturedAt": 3625,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -2020,7 +2020,7 @@
         },
         "shifts": [
           {
-            "t": 4616,
+            "t": 4622,
             "v": 0.0003903020780250269
           }
         ],
@@ -2053,7 +2053,7 @@
             "media": 2,
             "controls": 6,
             "placeholders": 0,
-            "text": "12HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
+            "text": "2HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First JobN"
           },
           {
             "found": true,
@@ -2228,7 +2228,7 @@
       "url": "/profile",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 40270,
+      "capturedAt": 40154,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -2320,7 +2320,7 @@
               "h": 812
             },
             "rows": 4,
-            "rowH": 201,
+            "rowH": 203,
             "rect": {
               "x": 0,
               "y": 0,
@@ -2328,12 +2328,12 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 352,
+            "elements": 351,
             "textLeaves": 54,
             "media": 1,
             "controls": 27,
             "placeholders": 0,
-            "text": "Perry PosterPPBaton Rouge, LA·Since Sep 2026Test account for feature review.ID verified by StripeShareNew0 reviewsEditPreviewFinish setting up — add your payout"
+            "text": "Perry PosterPPBaton Rouge, LA·Since Sep 2026Test account for feature review.ID verifiedShareNew0 reviewsEditPreviewFinish setting up — add your payout account t"
           }
         ]
       },
@@ -2374,9 +2374,9 @@
           ],
           "rowH": [
             200,
-            201
+            203
           ],
-          "deltaRowH": 1,
+          "deltaRowH": 3,
           "media": [
             1,
             1
@@ -2394,7 +2394,7 @@
         }
       ],
       "worstDeltaRowPx": 80.4,
-      "worstDeltaRowH": 1,
+      "worstDeltaRowH": 3,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
       "clustersMeasured": 1,
@@ -2411,22 +2411,9 @@
     },
     {
       "url": "/profile",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
-      "url": "/profile",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2184,
+      "capturedAt": 2199,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -2518,7 +2505,7 @@
               "h": 812
             },
             "rows": 4,
-            "rowH": 201,
+            "rowH": 203,
             "rect": {
               "x": 0,
               "y": 0,
@@ -2526,12 +2513,12 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 352,
+            "elements": 351,
             "textLeaves": 54,
             "media": 1,
             "controls": 27,
             "placeholders": 0,
-            "text": "Hallie HelperHHBaton Rouge, LA·Since Sep 2026Test account for feature review. Journey eq8jng.ID verified by StripeShareNew0 reviewsEditPreviewFinish setting up "
+            "text": "Hallie HelperHHBaton Rouge, LA·Since Sep 2026Test account for feature review. Journey eq8jng.ID verifiedShareNew0 reviewsEditPreviewFinish setting up — add your"
           }
         ]
       },
@@ -2572,9 +2559,9 @@
           ],
           "rowH": [
             200,
-            201
+            203
           ],
-          "deltaRowH": 1,
+          "deltaRowH": 3,
           "media": [
             1,
             1
@@ -2592,7 +2579,7 @@
         }
       ],
       "worstDeltaRowPx": 80.4,
-      "worstDeltaRowH": 1,
+      "worstDeltaRowH": 3,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
       "clustersMeasured": 1,
@@ -2608,10 +2595,23 @@
       "requests": 24
     },
     {
+      "url": "/profile",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
       "url": "/profile?tab=profile",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2085,
+      "capturedAt": 2137,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -2804,7 +2804,7 @@
       "url": "/profile?tab=profile",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2221,
+      "capturedAt": 2144,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -3010,7 +3010,7 @@
       "url": "/profile?tab=earnings",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2125,
+      "capturedAt": 2142,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -3207,7 +3207,7 @@
       "url": "/profile?tab=earnings",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2200,
+      "capturedAt": 2160,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -3415,222 +3415,9 @@
     },
     {
       "url": "/profile?tab=schedule",
-      "persona": "customer",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 2137,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/profile?tab=schedule",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_schedule.loading.png",
-      "loading": {
-        "found": 8,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 8,
-            "probe": {
-              "px": 187.5,
-              "py": 20,
-              "containerW": 335
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 812
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 744,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 828,
-            "elements": 20,
-            "textLeaves": 1,
-            "media": 0,
-            "controls": 1,
-            "placeholders": 7,
-            "text": "Schedule"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_schedule.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "testid:schedule-layout": {
-            "y": 68,
-            "h": 1699.4
-          },
-          "testid:schedule-calendar": {
-            "y": 68,
-            "h": 403.4
-          },
-          "div[data-testid=\"schedule-calendar\"] > div > div:nth-of-type(1) > div > h2": {
-            "y": 95.5,
-            "h": 19
-          },
-          "testid:schedule-list": {
-            "y": 483.4,
-            "h": 1284
-          },
-          "testid:schedule-card-body": {
-            "y": 540.4,
-            "h": 110
-          },
-          "testid:schedule-card-meta-row": {
-            "y": 597.4,
-            "h": 16
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 1767.4
-            },
-            "containerRect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 1699,
-            "rect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "scrollH": 1879,
-            "elements": 426,
-            "textLeaves": 84,
-            "media": 0,
-            "controls": 55,
-            "placeholders": 0,
-            "text": "ScheduleOctober 2026SuMoTuWeThFrSa12345678910111213141516171819202122232425262728293031TodayJob (dot color = job type)BlockedUpcoming jobsAllCleaning[E2E DO NOT"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 812
-          },
-          "realBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 1767.4
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 8,
-            "y": 0,
-            "w": 359,
-            "h": 812
-          },
-          "deltaRowPx": 955.4,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            744,
-            1699
-          ],
-          "deltaRowH": 955,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            1,
-            55
-          ],
-          "textLeaves": [
-            1,
-            84
-          ],
-          "placeholderCount": 8,
-          "shapeMatch": false
-        }
-      ],
-      "worstDeltaRowPx": 955.4,
-      "worstDeltaRowH": 955,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 1,
-      "clustersMeasured": 1,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 23
-    },
-    {
-      "url": "/profile?tab=schedule",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2263,
+      "capturedAt": 2142,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -3841,6 +3628,219 @@
     },
     {
       "url": "/profile?tab=schedule",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2140,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=schedule",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_schedule.loading.png",
+      "loading": {
+        "found": 8,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 8,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 812
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 744,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 828,
+            "elements": 20,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 7,
+            "text": "Schedule"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_schedule.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "testid:schedule-layout": {
+            "y": 68,
+            "h": 1699.4
+          },
+          "testid:schedule-calendar": {
+            "y": 68,
+            "h": 403.4
+          },
+          "div[data-testid=\"schedule-calendar\"] > div > div:nth-of-type(1) > div > h2": {
+            "y": 95.5,
+            "h": 19
+          },
+          "testid:schedule-list": {
+            "y": 483.4,
+            "h": 1284
+          },
+          "testid:schedule-card-body": {
+            "y": 540.4,
+            "h": 110
+          },
+          "testid:schedule-card-meta-row": {
+            "y": 597.4,
+            "h": 16
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1767.4
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 1699,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1879,
+            "elements": 418,
+            "textLeaves": 85,
+            "media": 0,
+            "controls": 55,
+            "placeholders": 0,
+            "text": "ScheduleOctober 2026SuMoTuWeThFrSa12345678910111213141516171819202122232425262728293031TodayJob (dot color = job type)BlockedUpcoming jobsAllCleaning[E2E DO NOT"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 812
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1767.4
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 955.4,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            744,
+            1699
+          ],
+          "deltaRowH": 955,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            55
+          ],
+          "textLeaves": [
+            1,
+            85
+          ],
+          "placeholderCount": 8,
+          "shapeMatch": false
+        }
+      ],
+      "worstDeltaRowPx": 955.4,
+      "worstDeltaRowH": 955,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 1,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 23
+    },
+    {
+      "url": "/profile?tab=schedule",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -3856,7 +3856,7 @@
       "url": "/profile?tab=availability",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 27962,
+      "capturedAt": 27859,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -3973,7 +3973,7 @@
         },
         "shifts": [
           {
-            "t": 3286.4000000000233,
+            "t": 3524.4000000000233,
             "v": 0.00010045363270159432
           }
         ],
@@ -4168,7 +4168,7 @@
       "url": "/profile?tab=availability",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2127,
+      "capturedAt": 2203,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -4285,7 +4285,7 @@
         },
         "shifts": [
           {
-            "t": 3210,
+            "t": 3232.3000000000466,
             "v": 0.00010045363270159432
           }
         ],
@@ -4491,206 +4491,9 @@
     },
     {
       "url": "/profile?tab=payment",
-      "persona": "helper",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 2161,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/profile?tab=payment",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_profile_tab_payment.loading.png",
-      "loading": {
-        "found": 28,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 28,
-            "probe": {
-              "px": 187.5,
-              "py": 20,
-              "containerW": 335
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 888.5
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 4,
-            "rowH": 187,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 905,
-            "elements": 61,
-            "textLeaves": 3,
-            "media": 1,
-            "controls": 1,
-            "placeholders": 27,
-            "text": "MoneyConnect to start earningSet up your payout account through Stripe so completed jobs pay out straight to your bank."
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_profile_tab_payment.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "main#main-content > div > div > div > div > div > div > div > section > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 364.9,
-            "h": 21.3
-          },
-          "main#main-content > div > div > div > div > div > div > div > section > div:nth-of-type(4) > h2": {
-            "y": 586.9,
-            "h": 23
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 1200
-            },
-            "containerRect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "rows": 4,
-            "rowH": 187,
-            "rect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "scrollH": 1312,
-            "elements": 94,
-            "textLeaves": 23,
-            "media": 2,
-            "controls": 12,
-            "placeholders": 0,
-            "text": "MoneyConnect to start earningSet up your payout account through Stripe so completed jobs pay out straight to your bank. Set Up Payouts with StripeEarnedSpentEar"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 888.5
-          },
-          "realBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 1200
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 8,
-            "y": 0,
-            "w": 359,
-            "h": 812
-          },
-          "deltaRowPx": 311.5,
-          "deltaContainerPx": 0,
-          "rows": [
-            4,
-            4
-          ],
-          "rowH": [
-            187,
-            187
-          ],
-          "deltaRowH": 0,
-          "media": [
-            1,
-            2
-          ],
-          "controls": [
-            1,
-            12
-          ],
-          "textLeaves": [
-            3,
-            23
-          ],
-          "placeholderCount": 28,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": 311.5,
-      "worstDeltaRowH": null,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
-      "clustersMeasured": 1,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 29
-    },
-    {
-      "url": "/profile?tab=payment",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2138,
+      "capturedAt": 2148,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -4885,6 +4688,203 @@
     },
     {
       "url": "/profile?tab=payment",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2335,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=payment",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_profile_tab_payment.loading.png",
+      "loading": {
+        "found": 28,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 28,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 888.5
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 187,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 905,
+            "elements": 61,
+            "textLeaves": 3,
+            "media": 1,
+            "controls": 1,
+            "placeholders": 27,
+            "text": "MoneyConnect to start earningSet up your payout account through Stripe so completed jobs pay out straight to your bank."
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_profile_tab_payment.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "main#main-content > div > div > div > div > div > div > div > section > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 364.9,
+            "h": 21.3
+          },
+          "main#main-content > div > div > div > div > div > div > div > section > div:nth-of-type(4) > h2": {
+            "y": 586.9,
+            "h": 23
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1200
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 187,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1312,
+            "elements": 94,
+            "textLeaves": 23,
+            "media": 2,
+            "controls": 12,
+            "placeholders": 0,
+            "text": "MoneyConnect to start earningSet up your payout account through Stripe so completed jobs pay out straight to your bank. Set Up Payouts with StripeEarnedSpentEar"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 888.5
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1200
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 311.5,
+          "deltaContainerPx": 0,
+          "rows": [
+            4,
+            4
+          ],
+          "rowH": [
+            187,
+            187
+          ],
+          "deltaRowH": 0,
+          "media": [
+            1,
+            2
+          ],
+          "controls": [
+            1,
+            12
+          ],
+          "textLeaves": [
+            3,
+            23
+          ],
+          "placeholderCount": 28,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 311.5,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 29
+    },
+    {
+      "url": "/profile?tab=payment",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -4900,7 +4900,7 @@
       "url": "/profile?tab=security",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2196,
+      "capturedAt": 2126,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -5022,8 +5022,12 @@
             "y": 258.5,
             "h": 19
           },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(2) > h2": {
-            "y": 343,
+          "div#sign-in-methods > div > div:nth-of-type(2) > h2": {
+            "y": 341,
+            "h": 19
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(6) > div:nth-of-type(1) > div:nth-of-type(2) > h2": {
+            "y": 581.9,
             "h": 19
           },
           "div#root > nav": {
@@ -5039,7 +5043,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 655.4
+              "h": 827.9
             },
             "containerRect": {
               "x": 8,
@@ -5047,7 +5051,7 @@
               "w": 359,
               "h": 812
             },
-            "rows": 5,
+            "rows": 6,
             "rowH": 74,
             "rect": {
               "x": 8,
@@ -5055,11 +5059,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 812,
-            "elements": 82,
-            "textLeaves": 19,
+            "scrollH": 940,
+            "elements": 95,
+            "textLeaves": 26,
             "media": 7,
-            "controls": 5,
+            "controls": 7,
             "placeholders": 0,
             "text": "Account SecurityEmail addresshelpr-e2e-poster-0902@mailinator.comChangePasswordReset via secure email link.ResetTwo-step verificationAuthenticator code at sign-"
           },
@@ -5110,7 +5114,7 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 655.4
+            "h": 827.9
           },
           "skeletonContainer": {
             "x": 0,
@@ -5124,11 +5128,11 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -30.6,
+          "deltaRowPx": 141.9,
           "deltaContainerPx": 0,
           "rows": [
             5,
-            5
+            6
           ],
           "rowH": [
             74,
@@ -5141,14 +5145,14 @@
           ],
           "controls": [
             1,
-            5
+            7
           ],
           "textLeaves": [
             1,
-            19
+            26
           ],
           "placeholderCount": 16,
-          "shapeMatch": true
+          "shapeMatch": false
         },
         {
           "path": "div#root > nav > div:nth-of-type(2)",
@@ -5203,10 +5207,10 @@
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": -30.6,
+      "worstDeltaRowPx": 141.9,
       "worstDeltaRowH": null,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
+      "worstDeltaRows": 1,
+      "shapeMismatches": 1,
       "clustersMeasured": 2,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
@@ -5217,13 +5221,13 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 22
+      "requests": 23
     },
     {
       "url": "/profile?tab=security",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2145,
+      "capturedAt": 2222,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -5345,8 +5349,12 @@
             "y": 258.5,
             "h": 19
           },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(2) > h2": {
-            "y": 343,
+          "div#sign-in-methods > div > div:nth-of-type(2) > h2": {
+            "y": 341,
+            "h": 19
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(6) > div:nth-of-type(1) > div:nth-of-type(2) > h2": {
+            "y": 581.9,
             "h": 19
           },
           "div#root > nav": {
@@ -5362,7 +5370,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 721.4
+              "h": 960.3
             },
             "containerRect": {
               "x": 8,
@@ -5370,7 +5378,7 @@
               "w": 359,
               "h": 812
             },
-            "rows": 5,
+            "rows": 6,
             "rowH": 74,
             "rect": {
               "x": 8,
@@ -5378,11 +5386,11 @@
               "w": 359,
               "h": 812
             },
-            "scrollH": 833,
-            "elements": 90,
-            "textLeaves": 21,
-            "media": 8,
-            "controls": 5,
+            "scrollH": 1072,
+            "elements": 113,
+            "textLeaves": 31,
+            "media": 9,
+            "controls": 7,
             "placeholders": 0,
             "text": "Account SecurityEmail addresshelpr-e2e-helper-0902@mailinator.comChangePasswordReset via secure email link.ResetTwo-step verificationAuthenticator code at sign-"
           },
@@ -5433,7 +5441,7 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 721.4
+            "h": 960.3
           },
           "skeletonContainer": {
             "x": 0,
@@ -5447,11 +5455,11 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": 35.4,
+          "deltaRowPx": 274.3,
           "deltaContainerPx": 0,
           "rows": [
             5,
-            5
+            6
           ],
           "rowH": [
             74,
@@ -5460,18 +5468,18 @@
           "deltaRowH": 0,
           "media": [
             7,
-            8
+            9
           ],
           "controls": [
             1,
-            5
+            7
           ],
           "textLeaves": [
             1,
-            21
+            31
           ],
           "placeholderCount": 16,
-          "shapeMatch": true
+          "shapeMatch": false
         },
         {
           "path": "div#root > nav > div:nth-of-type(2)",
@@ -5526,10 +5534,10 @@
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": 35.4,
+      "worstDeltaRowPx": 274.3,
       "worstDeltaRowH": null,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
+      "worstDeltaRows": 1,
+      "shapeMismatches": 1,
       "clustersMeasured": 2,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
@@ -5540,7 +5548,7 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 22
+      "requests": 23
     },
     {
       "url": "/profile?tab=security",
@@ -5559,7 +5567,7 @@
       "url": "/profile?tab=legal",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 35105,
+      "capturedAt": 34958,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -5766,9 +5774,22 @@
     },
     {
       "url": "/profile?tab=legal",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dlegal",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/profile?tab=legal",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2127,
+      "capturedAt": 2209,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -5974,23 +5995,10 @@
       "requests": 20
     },
     {
-      "url": "/profile?tab=legal",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dlegal",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
       "url": "/profile?tab=reviews",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2150,
+      "capturedAt": 2226,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -6297,7 +6305,7 @@
       "url": "/profile?tab=reviews",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2237,
+      "capturedAt": 2201,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -6617,7 +6625,7 @@
       "url": "/profile?tab=referral",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2066,
+      "capturedAt": 2251,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -6810,7 +6818,7 @@
       "url": "/profile?tab=referral",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2230,
+      "capturedAt": 2173,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -7014,454 +7022,9 @@
     },
     {
       "url": "/profile?tab=subscription",
-      "persona": "customer",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 2158,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/profile?tab=subscription",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_subscription.loading.png",
-      "loading": {
-        "found": 8,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 6,
-            "probe": {
-              "px": 187.5,
-              "py": 20,
-              "containerW": 335
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 1332
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 5,
-            "rowH": 66,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 1348,
-            "elements": 19,
-            "textLeaves": 1,
-            "media": 0,
-            "controls": 1,
-            "placeholders": 7,
-            "text": "Membership"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
-          },
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 187.5,
-              "py": 20,
-              "containerW": 335
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 1332
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 5,
-            "rowH": 66,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 1348,
-            "elements": 19,
-            "textLeaves": 1,
-            "media": 0,
-            "controls": 1,
-            "placeholders": 7,
-            "text": "Membership"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_subscription.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(1) > div > div:nth-of-type(1) > div > h2": {
-            "y": 224,
-            "h": 16
-          },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(2) > div > div:nth-of-type(1) > div > h2": {
-            "y": 409.8,
-            "h": 16
-          },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(3) > div > div:nth-of-type(1) > div > h2": {
-            "y": 631.5,
-            "h": 16
-          },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(4) > div > div:nth-of-type(1) > div > h2": {
-            "y": 872.1,
-            "h": 16
-          },
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(5) > div > div:nth-of-type(1) > div > h2": {
-            "y": 1094.7,
-            "h": 16
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 1332.6
-            },
-            "containerRect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "rows": 5,
-            "rowH": 66,
-            "rect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "scrollH": 1445,
-            "elements": 231,
-            "textLeaves": 53,
-            "media": 0,
-            "controls": 10,
-            "placeholders": 0,
-            "text": "MembershipOnceMonthlyAnnualBilled monthly. Cancel or change your tier anytime — no long-term commitment.FreeNo commitment12% fee, posting or helpingAll open job"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 38,
-            "textLeaves": 2,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "2PP"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 1332.6
-            },
-            "containerRect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "rows": 5,
-            "rowH": 66,
-            "rect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "scrollH": 1445,
-            "elements": 231,
-            "textLeaves": 53,
-            "media": 0,
-            "controls": 10,
-            "placeholders": 0,
-            "text": "MembershipOnceMonthlyAnnualBilled monthly. Cancel or change your tier anytime — no long-term commitment.FreeNo commitment12% fee, posting or helpingAll open job"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 1332
-          },
-          "realBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 1332.6
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 8,
-            "y": 0,
-            "w": 359,
-            "h": 812
-          },
-          "deltaRowPx": 0.6,
-          "deltaContainerPx": 0,
-          "rows": [
-            5,
-            5
-          ],
-          "rowH": [
-            66,
-            66
-          ],
-          "deltaRowH": 0,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            1,
-            10
-          ],
-          "textLeaves": [
-            1,
-            53
-          ],
-          "placeholderCount": 6,
-          "shapeMatch": true
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            3,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            2
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        },
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 1332
-          },
-          "realBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 1332.6
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 8,
-            "y": 0,
-            "w": 359,
-            "h": 812
-          },
-          "deltaRowPx": 0.6,
-          "deltaContainerPx": 0,
-          "rows": [
-            5,
-            5
-          ],
-          "rowH": [
-            66,
-            66
-          ],
-          "deltaRowH": 0,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            1,
-            10
-          ],
-          "textLeaves": [
-            1,
-            53
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": 0.6,
-      "worstDeltaRowH": null,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
-      "clustersMeasured": 3,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 20
-    },
-    {
-      "url": "/profile?tab=subscription",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2251,
+      "capturedAt": 2175,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -7904,6 +7467,451 @@
     },
     {
       "url": "/profile?tab=subscription",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2155,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=subscription",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_subscription.loading.png",
+      "loading": {
+        "found": 8,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 6,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1332
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 5,
+            "rowH": 66,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1348,
+            "elements": 19,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 7,
+            "text": "Membership"
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1332
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 5,
+            "rowH": 66,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 1348,
+            "elements": 19,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 7,
+            "text": "Membership"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_subscription.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(1) > div > div:nth-of-type(1) > div > h2": {
+            "y": 224,
+            "h": 16
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(2) > div > div:nth-of-type(1) > div > h2": {
+            "y": 409.8,
+            "h": 16
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(3) > div > div:nth-of-type(1) > div > h2": {
+            "y": 631.5,
+            "h": 16
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(4) > div > div:nth-of-type(1) > div > h2": {
+            "y": 872.1,
+            "h": 16
+          },
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(4) > div:nth-of-type(5) > div > div:nth-of-type(1) > div > h2": {
+            "y": 1094.7,
+            "h": 16
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1332.6
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 5,
+            "rowH": 66,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1445,
+            "elements": 231,
+            "textLeaves": 53,
+            "media": 0,
+            "controls": 10,
+            "placeholders": 0,
+            "text": "MembershipOnceMonthlyAnnualBilled monthly. Cancel or change your tier anytime — no long-term commitment.FreeNo commitment12% fee, posting or helpingAll open job"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "2PP"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 1332.6
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 5,
+            "rowH": 66,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 1445,
+            "elements": 231,
+            "textLeaves": 53,
+            "media": 0,
+            "controls": 10,
+            "placeholders": 0,
+            "text": "MembershipOnceMonthlyAnnualBilled monthly. Cancel or change your tier anytime — no long-term commitment.FreeNo commitment12% fee, posting or helpingAll open job"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1332
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1332.6
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 0.6,
+          "deltaContainerPx": 0,
+          "rows": [
+            5,
+            5
+          ],
+          "rowH": [
+            66,
+            66
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            10
+          ],
+          "textLeaves": [
+            1,
+            53
+          ],
+          "placeholderCount": 6,
+          "shapeMatch": true
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            3,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            2
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1332
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 1332.6
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 0.6,
+          "deltaContainerPx": 0,
+          "rows": [
+            5,
+            5
+          ],
+          "rowH": [
+            66,
+            66
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            10
+          ],
+          "textLeaves": [
+            1,
+            53
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0.6,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 3,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 20
+    },
+    {
+      "url": "/profile?tab=subscription",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -7919,7 +7927,7 @@
       "url": "/profile?tab=support",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 30860,
+      "capturedAt": 29951,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -8224,9 +8232,22 @@
     },
     {
       "url": "/profile?tab=support",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dsupport",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/profile?tab=support",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2141,
+      "capturedAt": 2189,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -8530,23 +8551,10 @@
       "requests": 20
     },
     {
-      "url": "/profile?tab=support",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dsupport",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
       "url": "/profile?tab=notifications",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2132,
+      "capturedAt": 2229,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -8735,7 +8743,7 @@
       "url": "/profile?tab=notifications",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2135,
+      "capturedAt": 2227,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -8937,7 +8945,7 @@
       "url": "/profile?tab=warnings",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2126,
+      "capturedAt": 2118,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -9248,7 +9256,7 @@
       "url": "/profile?tab=warnings",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2244,
+      "capturedAt": 2210,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -9572,7 +9580,7 @@
       "url": "/profile?tab=credentials",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2130,
+      "capturedAt": 2132,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -10119,7 +10127,7 @@
       "url": "/profile?tab=credentials",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2135,
+      "capturedAt": 2143,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -10679,7 +10687,7 @@
       "url": "/profile?tab=saved_helpers",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 30640,
+      "capturedAt": 29996,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -10802,7 +10810,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 416
+              "h": 268
             },
             "containerRect": {
               "x": 8,
@@ -10811,7 +10819,7 @@
               "h": 812
             },
             "rows": 2,
-            "rowH": 348,
+            "rowH": 200,
             "rect": {
               "x": 8,
               "y": 0,
@@ -10819,12 +10827,12 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 68,
-            "textLeaves": 8,
-            "media": 3,
-            "controls": 12,
+            "elements": 48,
+            "textLeaves": 6,
+            "media": 2,
+            "controls": 8,
             "placeholders": 0,
-            "text": "Saved HelprsFilterRecent activity2 savedHHHallie H.Offer a JobJ0Jean-Baptiste 0.Offer a Job"
+            "text": "Saved HelprsFilterRecent activity1 savedJ0Jean-Baptiste 0.Offer a Job"
           },
           {
             "found": true,
@@ -10873,7 +10881,7 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 416
+            "h": 268
           },
           "skeletonContainer": {
             "x": 0,
@@ -10887,7 +10895,7 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": 4,
+          "deltaRowPx": -144,
           "deltaContainerPx": 0,
           "rows": [
             2,
@@ -10895,20 +10903,20 @@
           ],
           "rowH": [
             344,
-            348
+            200
           ],
-          "deltaRowH": 4,
+          "deltaRowH": -144,
           "media": [
             1,
-            3
+            2
           ],
           "controls": [
             1,
-            12
+            8
           ],
           "textLeaves": [
             1,
-            8
+            6
           ],
           "placeholderCount": 4,
           "shapeMatch": false
@@ -10966,8 +10974,8 @@
           "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": 4,
-      "worstDeltaRowH": 4,
+      "worstDeltaRowPx": -144,
+      "worstDeltaRowH": -144,
       "worstDeltaRows": 0,
       "shapeMismatches": 1,
       "clustersMeasured": 2,
@@ -10980,7 +10988,7 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 22
+      "requests": 21
     },
     {
       "url": "/profile?tab=saved_helpers",
@@ -10999,7 +11007,7 @@
       "url": "/profile?tab=saved_helpers",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2286,
+      "capturedAt": 2160,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -11304,316 +11312,9 @@
     },
     {
       "url": "/profile?tab=accessibility",
-      "persona": "customer",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 2126,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/profile?tab=accessibility",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_accessibility.loading.png",
-      "loading": {
-        "found": 6,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 5,
-            "probe": {
-              "px": 187.5,
-              "py": 20,
-              "containerW": 335
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 255
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 3,
-            "rowH": 76,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 17,
-            "textLeaves": 1,
-            "media": 0,
-            "controls": 1,
-            "placeholders": 5,
-            "text": "Accessibility"
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_accessibility.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 245
-            },
-            "containerRect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "rows": 3,
-            "rowH": 68,
-            "rect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "scrollH": 812,
-            "elements": 38,
-            "textLeaves": 7,
-            "media": 0,
-            "controls": 5,
-            "placeholders": 0,
-            "text": "AccessibilityColor modeLightAutoDarkSenior ModeLarger Text and Bigger Tap Targets"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 38,
-            "textLeaves": 2,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "2PP"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 255
-          },
-          "realBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 245
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 8,
-            "y": 0,
-            "w": 359,
-            "h": 812
-          },
-          "deltaRowPx": -10,
-          "deltaContainerPx": 0,
-          "rows": [
-            3,
-            3
-          ],
-          "rowH": [
-            76,
-            68
-          ],
-          "deltaRowH": -8,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            1,
-            5
-          ],
-          "textLeaves": [
-            1,
-            7
-          ],
-          "placeholderCount": 5,
-          "shapeMatch": false
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            3,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            2
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": -10,
-      "worstDeltaRowH": -8,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 1,
-      "clustersMeasured": 2,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 20
-    },
-    {
-      "url": "/profile?tab=accessibility",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2164,
+      "capturedAt": 2185,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -11918,6 +11619,313 @@
     },
     {
       "url": "/profile?tab=accessibility",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2216,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=accessibility",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_accessibility.loading.png",
+      "loading": {
+        "found": 6,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 5,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 255
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 3,
+            "rowH": 76,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 17,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 5,
+            "text": "Accessibility"
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_accessibility.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 245
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 3,
+            "rowH": 68,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 38,
+            "textLeaves": 7,
+            "media": 0,
+            "controls": 5,
+            "placeholders": 0,
+            "text": "AccessibilityColor modeLightAutoDarkSenior ModeLarger Text and Bigger Tap Targets"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "2PP"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 255
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 245
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -10,
+          "deltaContainerPx": 0,
+          "rows": [
+            3,
+            3
+          ],
+          "rowH": [
+            76,
+            68
+          ],
+          "deltaRowH": -8,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            5
+          ],
+          "textLeaves": [
+            1,
+            7
+          ],
+          "placeholderCount": 5,
+          "shapeMatch": false
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            3,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            2
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": -10,
+      "worstDeltaRowH": -8,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 1,
+      "clustersMeasured": 2,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 20
+    },
+    {
+      "url": "/profile?tab=accessibility",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -11933,7 +11941,7 @@
       "url": "/profile?tab=pets",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2049,
+      "capturedAt": 2122,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -12240,7 +12248,7 @@
       "url": "/profile?tab=pets",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2222,
+      "capturedAt": 2225,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -12560,7 +12568,7 @@
       "url": "/profile?tab=work_record",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2145,
+      "capturedAt": 2134,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -12673,7 +12681,7 @@
             "media": 1,
             "controls": 4,
             "placeholders": 0,
-            "text": "Work RecordHelpr· LAEmployment & Earnings RecordGenerated October 5, 2026Issued toPerry PosterID verified by StripeVerifiedMember sinceSeptember 2026Work Summar"
+            "text": "Work RecordHelpr· LAEmployment & Earnings RecordGenerated October 6, 2026Issued toPerry PosterID verified by StripeVerifiedMember sinceSeptember 2026Work Summar"
           }
         ]
       },
@@ -12753,7 +12761,7 @@
       "url": "/profile?tab=work_record",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2185,
+      "capturedAt": 2131,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -12866,7 +12874,7 @@
             "media": 1,
             "controls": 4,
             "placeholders": 0,
-            "text": "Work RecordHelpr· LAEmployment & Earnings RecordGenerated October 5, 2026Issued toHallie HelperID verified by StripeVerifiedMember sinceSeptember 2026Work Summa"
+            "text": "Work RecordHelpr· LAEmployment & Earnings RecordGenerated October 6, 2026Issued toHallie HelperID verified by StripeVerifiedMember sinceSeptember 2026Work Summa"
           }
         ]
       },
@@ -12959,7 +12967,7 @@
       "url": "/profile?tab=home_history",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 30331,
+      "capturedAt": 29815,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -13264,9 +13272,22 @@
     },
     {
       "url": "/profile?tab=home_history",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dhome_history",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/profile?tab=home_history",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2184,
+      "capturedAt": 2161,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -13570,23 +13591,10 @@
       "requests": 21
     },
     {
-      "url": "/profile?tab=home_history",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dhome_history",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
       "url": "/profile?tab=str_settings",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2135,
+      "capturedAt": 2140,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -13893,7 +13901,7 @@
       "url": "/profile?tab=str_settings",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2144,
+      "capturedAt": 2220,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -14213,7 +14221,7 @@
       "url": "/profile?tab=auto_tip",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2165,
+      "capturedAt": 2187,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -14528,7 +14536,7 @@
       "url": "/profile?tab=auto_tip",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2142,
+      "capturedAt": 2176,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -14856,7 +14864,7 @@
       "url": "/profile?tab=wrapped",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2158,
+      "capturedAt": 2190,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -15005,7 +15013,7 @@
             "media": 0,
             "controls": 2,
             "placeholders": 0,
-            "text": "Your 2026 so farHere's how it added up.Louisiana Helpr Community192jobs posted1person worked withCleaningtop categoryShare Your YearShare it with the community"
+            "text": "Your 2026 so farHere's how it added up.Louisiana Helpr Community190jobs posted1person worked withCleaningtop categoryShare Your YearShare it with the community"
           },
           {
             "found": true,
@@ -15167,7 +15175,7 @@
       "url": "/profile?tab=wrapped",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2157,
+      "capturedAt": 2205,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -15491,7 +15499,7 @@
       "url": "/profile?tab=analytics",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 30326,
+      "capturedAt": 30058,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -15800,22 +15808,9 @@
     },
     {
       "url": "/profile?tab=analytics",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Danalytics",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
-      "url": "/profile?tab=analytics",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2205,
+      "capturedAt": 2183,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -16123,207 +16118,23 @@
       "requests": 21
     },
     {
-      "url": "/profile?tab=gift_card",
-      "persona": "customer",
+      "url": "/profile?tab=analytics",
+      "persona": "anon",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2284,
       "stage": {
         "waves": 0,
-        "ended": "captured"
+        "ended": "empty"
       },
-      "finalUrl": "/profile?tab=gift_card",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_gift_card.loading.png",
-      "loading": {
-        "found": 8,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div",
-            "placeholderCount": 8,
-            "probe": {
-              "px": 187.5,
-              "py": 20,
-              "containerW": 335
-            },
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 812
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 744,
-            "rect": {
-              "x": 0,
-              "y": 0,
-              "w": 375,
-              "h": 812
-            },
-            "scrollH": 828,
-            "elements": 20,
-            "textLeaves": 1,
-            "media": 0,
-            "controls": 1,
-            "placeholders": 7,
-            "text": "Gift Card"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_gift_card.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "testid:gift-form": {
-            "y": 255.9,
-            "h": 914.3
-          },
-          "testid:gift-card-preview": {
-            "y": 551.7,
-            "h": 185.5
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 20,
-              "y": 0,
-              "w": 335,
-              "h": 2265.6
-            },
-            "containerRect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "rows": 2,
-            "rowH": 2198,
-            "rect": {
-              "x": 8,
-              "y": 0,
-              "w": 359,
-              "h": 812
-            },
-            "scrollH": 2378,
-            "elements": 127,
-            "textLeaves": 59,
-            "media": 0,
-            "controls": 11,
-            "placeholders": 0,
-            "text": "Gift CardWhat is this?Send a Helpr gift card to someone you know. Find them by name or type their email, choose an amount, and we'll send them a link to claim i"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div",
-          "skeletonBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 812
-          },
-          "realBox": {
-            "x": 20,
-            "y": 0,
-            "w": 335,
-            "h": 2265.6
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 0,
-            "w": 375,
-            "h": 812
-          },
-          "realContainer": {
-            "x": 8,
-            "y": 0,
-            "w": 359,
-            "h": 812
-          },
-          "deltaRowPx": 1453.6,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            744,
-            2198
-          ],
-          "deltaRowH": 1454,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            1,
-            11
-          ],
-          "textLeaves": [
-            1,
-            59
-          ],
-          "placeholderCount": 8,
-          "shapeMatch": false
-        }
-      ],
-      "worstDeltaRowPx": 1453.6,
-      "worstDeltaRowH": 1454,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 1,
-      "clustersMeasured": 1,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 23
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Danalytics",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     },
     {
       "url": "/profile?tab=gift_card",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2211,
+      "capturedAt": 2139,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -16518,6 +16329,203 @@
     },
     {
       "url": "/profile?tab=gift_card",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2138,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=gift_card",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_gift_card.loading.png",
+      "loading": {
+        "found": 8,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 8,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 812
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 744,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 828,
+            "elements": 20,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 7,
+            "text": "Gift Card"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_profile_tab_gift_card.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "testid:gift-form": {
+            "y": 255.9,
+            "h": 914.3
+          },
+          "testid:gift-card-preview": {
+            "y": 551.7,
+            "h": 185.5
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 2265.6
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 2198,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 2378,
+            "elements": 127,
+            "textLeaves": 59,
+            "media": 0,
+            "controls": 11,
+            "placeholders": 0,
+            "text": "Gift CardWhat is this?Send a Helpr gift card to someone you know. Find them by name or type their email, choose an amount, and we'll send them a link to claim i"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 812
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 2265.6
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 1453.6,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            744,
+            2198
+          ],
+          "deltaRowH": 1454,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            11
+          ],
+          "textLeaves": [
+            1,
+            59
+          ],
+          "placeholderCount": 8,
+          "shapeMatch": false
+        }
+      ],
+      "worstDeltaRowPx": 1453.6,
+      "worstDeltaRowH": 1454,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 1,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 23
+    },
+    {
+      "url": "/profile?tab=gift_card",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -16533,7 +16541,7 @@
       "url": "/post-job",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2218,
+      "capturedAt": 2233,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -16853,7 +16861,7 @@
       "url": "/post-job",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2148,
+      "capturedAt": 2179,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -17158,430 +17166,9 @@
     },
     {
       "url": "/jobs",
-      "persona": "customer",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 36713,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/jobs",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_jobs.loading.png",
-      "loading": {
-        "found": 39,
-        "docH": 812,
-        "landmarks": {
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(2)",
-            "placeholderCount": 2,
-            "probe": {
-              "px": 264,
-              "py": 39,
-              "containerW": 44
-            },
-            "rowRect": {
-              "x": 242,
-              "y": 19,
-              "w": 44,
-              "h": 44
-            },
-            "containerRect": {
-              "x": 242,
-              "y": 19,
-              "w": 92,
-              "h": 44
-            },
-            "rows": 2,
-            "rowH": 44,
-            "rect": {
-              "x": 242,
-              "y": 19,
-              "w": 92,
-              "h": 44
-            },
-            "scrollH": 44,
-            "elements": 4,
-            "textLeaves": 0,
-            "media": 0,
-            "controls": 0,
-            "placeholders": 2,
-            "text": ""
-          },
-          {
-            "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
-            "placeholderCount": 36,
-            "probe": {
-              "px": 187.5,
-              "py": 133,
-              "containerW": 267
-            },
-            "rowRect": {
-              "x": 54,
-              "y": 120,
-              "w": 267,
-              "h": 26
-            },
-            "containerRect": {
-              "x": 38,
-              "y": 96,
-              "w": 299,
-              "h": 99
-            },
-            "rows": 2,
-            "rowH": 32,
-            "rect": {
-              "x": 38,
-              "y": 96,
-              "w": 299,
-              "h": 99
-            },
-            "scrollH": 98,
-            "elements": 8,
-            "textLeaves": 0,
-            "media": 0,
-            "controls": 0,
-            "placeholders": 5,
-            "text": ""
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_jobs.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > h1": {
-            "y": 29.8,
-            "h": 22.4
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 242,
-              "y": 19,
-              "w": 44,
-              "h": 44
-            },
-            "containerRect": {
-              "x": 242,
-              "y": 19,
-              "w": 92,
-              "h": 44
-            },
-            "rows": 2,
-            "rowH": 44,
-            "rect": {
-              "x": 242,
-              "y": 19,
-              "w": 92,
-              "h": 44
-            },
-            "scrollH": 44,
-            "elements": 7,
-            "textLeaves": 0,
-            "media": 0,
-            "controls": 2,
-            "placeholders": 0,
-            "text": ""
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 21,
-              "y": 83,
-              "w": 333,
-              "h": 729
-            },
-            "containerRect": {
-              "x": 21,
-              "y": 83,
-              "w": 333,
-              "h": 729
-            },
-            "rows": 2,
-            "rowH": 154,
-            "rect": {
-              "x": 21,
-              "y": 83,
-              "w": 333,
-              "h": 729
-            },
-            "scrollH": 729,
-            "elements": 9,
-            "textLeaves": 3,
-            "media": 1,
-            "controls": 1,
-            "placeholders": 0,
-            "text": "No applications yetWhile you scout for the right job, post one of your own — your neighbors might be the perfect match.Post a Job"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 38,
-            "textLeaves": 2,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "2PP"
-          }
-        ]
-      },
-      "clsTotal": 0,
-      "clsDuringSwap": 0,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 242,
-            "y": 19,
-            "w": 44,
-            "h": 44
-          },
-          "realBox": {
-            "x": 242,
-            "y": 19,
-            "w": 44,
-            "h": 44
-          },
-          "skeletonContainer": {
-            "x": 242,
-            "y": 19,
-            "w": 92,
-            "h": 44
-          },
-          "realContainer": {
-            "x": 242,
-            "y": 19,
-            "w": 92,
-            "h": 44
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            44,
-            44
-          ],
-          "deltaRowH": 0,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            0,
-            2
-          ],
-          "textLeaves": [
-            0,
-            0
-          ],
-          "placeholderCount": 2,
-          "shapeMatch": true
-        },
-        {
-          "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 54,
-            "y": 120,
-            "w": 267,
-            "h": 26
-          },
-          "realBox": {
-            "x": 21,
-            "y": 83,
-            "w": 333,
-            "h": 729
-          },
-          "skeletonContainer": {
-            "x": 38,
-            "y": 96,
-            "w": 299,
-            "h": 99
-          },
-          "realContainer": {
-            "x": 21,
-            "y": 83,
-            "w": 333,
-            "h": 729
-          },
-          "deltaRowPx": 703,
-          "deltaContainerPx": 630,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            32,
-            154
-          ],
-          "deltaRowH": 122,
-          "media": [
-            0,
-            1
-          ],
-          "controls": [
-            0,
-            1
-          ],
-          "textLeaves": [
-            0,
-            3
-          ],
-          "placeholderCount": 36,
-          "shapeMatch": false
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            3,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            2
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": 703,
-      "worstDeltaRowH": 122,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 1,
-      "clustersMeasured": 3,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 1,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 22
-    },
-    {
-      "url": "/jobs",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 36461,
+      "capturedAt": 36146,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -18000,6 +17587,427 @@
     },
     {
       "url": "/jobs",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 36203,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/jobs",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_jobs.loading.png",
+      "loading": {
+        "found": 39,
+        "docH": 812,
+        "landmarks": {
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(2)",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 264,
+              "py": 39,
+              "containerW": 44
+            },
+            "rowRect": {
+              "x": 242,
+              "y": 19,
+              "w": 44,
+              "h": 44
+            },
+            "containerRect": {
+              "x": 242,
+              "y": 19,
+              "w": 92,
+              "h": 44
+            },
+            "rows": 2,
+            "rowH": 44,
+            "rect": {
+              "x": 242,
+              "y": 19,
+              "w": 92,
+              "h": 44
+            },
+            "scrollH": 44,
+            "elements": 4,
+            "textLeaves": 0,
+            "media": 0,
+            "controls": 0,
+            "placeholders": 2,
+            "text": ""
+          },
+          {
+            "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
+            "placeholderCount": 36,
+            "probe": {
+              "px": 187.5,
+              "py": 133,
+              "containerW": 267
+            },
+            "rowRect": {
+              "x": 54,
+              "y": 120,
+              "w": 267,
+              "h": 26
+            },
+            "containerRect": {
+              "x": 38,
+              "y": 96,
+              "w": 299,
+              "h": 99
+            },
+            "rows": 2,
+            "rowH": 32,
+            "rect": {
+              "x": 38,
+              "y": 96,
+              "w": 299,
+              "h": 99
+            },
+            "scrollH": 98,
+            "elements": 8,
+            "textLeaves": 0,
+            "media": 0,
+            "controls": 0,
+            "placeholders": 5,
+            "text": ""
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_jobs.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > h1": {
+            "y": 29.8,
+            "h": 22.4
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 242,
+              "y": 19,
+              "w": 44,
+              "h": 44
+            },
+            "containerRect": {
+              "x": 242,
+              "y": 19,
+              "w": 92,
+              "h": 44
+            },
+            "rows": 2,
+            "rowH": 44,
+            "rect": {
+              "x": 242,
+              "y": 19,
+              "w": 92,
+              "h": 44
+            },
+            "scrollH": 44,
+            "elements": 7,
+            "textLeaves": 0,
+            "media": 0,
+            "controls": 2,
+            "placeholders": 0,
+            "text": ""
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 21,
+              "y": 83,
+              "w": 333,
+              "h": 729
+            },
+            "containerRect": {
+              "x": 21,
+              "y": 83,
+              "w": 333,
+              "h": 729
+            },
+            "rows": 2,
+            "rowH": 154,
+            "rect": {
+              "x": 21,
+              "y": 83,
+              "w": 333,
+              "h": 729
+            },
+            "scrollH": 729,
+            "elements": 9,
+            "textLeaves": 3,
+            "media": 1,
+            "controls": 1,
+            "placeholders": 0,
+            "text": "No applications yetWhile you scout for the right job, post one of your own — your neighbors might be the perfect match.Post a Job"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "2PP"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div > div > div > div > div > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 242,
+            "y": 19,
+            "w": 44,
+            "h": 44
+          },
+          "realBox": {
+            "x": 242,
+            "y": 19,
+            "w": 44,
+            "h": 44
+          },
+          "skeletonContainer": {
+            "x": 242,
+            "y": 19,
+            "w": 92,
+            "h": 44
+          },
+          "realContainer": {
+            "x": 242,
+            "y": 19,
+            "w": 92,
+            "h": 44
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            44,
+            44
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            0,
+            2
+          ],
+          "textLeaves": [
+            0,
+            0
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div > div > section > div > div:nth-of-type(1) > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 54,
+            "y": 120,
+            "w": 267,
+            "h": 26
+          },
+          "realBox": {
+            "x": 21,
+            "y": 83,
+            "w": 333,
+            "h": 729
+          },
+          "skeletonContainer": {
+            "x": 38,
+            "y": 96,
+            "w": 299,
+            "h": 99
+          },
+          "realContainer": {
+            "x": 21,
+            "y": 83,
+            "w": 333,
+            "h": 729
+          },
+          "deltaRowPx": 703,
+          "deltaContainerPx": 630,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            32,
+            154
+          ],
+          "deltaRowH": 122,
+          "media": [
+            0,
+            1
+          ],
+          "controls": [
+            0,
+            1
+          ],
+          "textLeaves": [
+            0,
+            3
+          ],
+          "placeholderCount": 36,
+          "shapeMatch": false
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            3,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            2
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 703,
+      "worstDeltaRowH": 122,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 1,
+      "clustersMeasured": 3,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 1,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 22
+    },
+    {
+      "url": "/jobs",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -18015,7 +18023,7 @@
       "url": "/posts",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2142,
+      "capturedAt": 2114,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -18194,13 +18202,13 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)",
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
-      "requests": 24
+      "requests": 26
     },
     {
       "url": "/posts",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2151,
+      "capturedAt": 2155,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -18435,9 +18443,451 @@
     },
     {
       "url": "/user/437de07d-1bd7-46c8-a451-6b46aa3bcad5",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 41566,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/user/437de07d-1bd7-46c8-a451-6b46aa3bcad5",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_user_437de07d_1bd7_46c8_a451_6b46aa3bcad5.loading.png",
+      "loading": {
+        "found": 22,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content": {
+            "y": 0,
+            "h": 812
+          },
+          "main#main-content > div > div:nth-of-type(1) > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(1) > div:nth-of-type(1)",
+            "placeholderCount": 13,
+            "probe": {
+              "px": 235.5,
+              "py": 109,
+              "containerW": 197
+            },
+            "rowRect": {
+              "x": 137,
+              "y": 89,
+              "w": 197,
+              "h": 143.5
+            },
+            "containerRect": {
+              "x": 41,
+              "y": 89,
+              "w": 293,
+              "h": 143.5
+            },
+            "rows": 2,
+            "rowH": 144,
+            "rect": {
+              "x": 41,
+              "y": 89,
+              "w": 293,
+              "h": 143.5
+            },
+            "scrollH": 144,
+            "elements": 16,
+            "textLeaves": 0,
+            "media": 1,
+            "controls": 0,
+            "placeholders": 7,
+            "text": ""
+          },
+          {
+            "path": "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(1)",
+            "placeholderCount": 8,
+            "probe": {
+              "px": 112.3,
+              "py": 367,
+              "containerW": 118.5
+            },
+            "rowRect": {
+              "x": 53,
+              "y": 359.5,
+              "w": 118.5,
+              "h": 15
+            },
+            "containerRect": {
+              "x": 41,
+              "y": 328,
+              "w": 142.5,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 18,
+            "rect": {
+              "x": 41,
+              "y": 328,
+              "w": 142.5,
+              "h": 58
+            },
+            "scrollH": 58,
+            "elements": 3,
+            "textLeaves": 0,
+            "media": 0,
+            "controls": 0,
+            "placeholders": 2,
+            "text": ""
+          },
+          {
+            "path": "div#root > nav > div:nth-of-type(2)",
+            "placeholderCount": 1,
+            "probe": {
+              "px": 335,
+              "py": 770,
+              "containerW": 56
+            },
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 36,
+            "textLeaves": 1,
+            "media": 3,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "?"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [
+        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
+      ],
+      "placeholdersLeftCount": 1,
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_user_437de07d_1bd7_46c8_a451_6b46aa3bcad5.loaded.png",
+      "loaded": {
+        "found": 1,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content": {
+            "y": 0,
+            "h": 812
+          },
+          "main#main-content > div > div:nth-of-type(1) > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "main#main-content > div > div:nth-of-type(2) > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
+            "y": 89,
+            "h": 27.5
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          }
+        },
+        "shifts": [
+          {
+            "t": 3725.1999999999534,
+            "v": 0.0001309746252841208
+          }
+        ],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 137,
+              "y": 89,
+              "w": 197,
+              "h": 146.8
+            },
+            "containerRect": {
+              "x": 41,
+              "y": 89,
+              "w": 293,
+              "h": 146.8
+            },
+            "rows": 2,
+            "rowH": 147,
+            "rect": {
+              "x": 41,
+              "y": 89,
+              "w": 293,
+              "h": 146.8
+            },
+            "scrollH": 147,
+            "elements": 18,
+            "textLeaves": 6,
+            "media": 1,
+            "controls": 0,
+            "placeholders": 0,
+            "text": "HHHallie H.Baton Rouge, LA·Since Sep 2026·Active this weekTest account for feature review. Journey eq8jng."
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 53,
+              "y": 364.2,
+              "w": 118.5,
+              "h": 15.1
+            },
+            "containerRect": {
+              "x": 41,
+              "y": 332.8,
+              "w": 142.5,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 18,
+            "rect": {
+              "x": 41,
+              "y": 332.8,
+              "w": 142.5,
+              "h": 58
+            },
+            "scrollH": 58,
+            "elements": 5,
+            "textLeaves": 2,
+            "media": 0,
+            "controls": 0,
+            "placeholders": 0,
+            "text": "NewNo reviews yet"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 307,
+              "y": 750,
+              "w": 56,
+              "h": 56
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "rows": 2,
+            "rowH": 58,
+            "rect": {
+              "x": 0,
+              "y": 748,
+              "w": 375,
+              "h": 58
+            },
+            "scrollH": 66,
+            "elements": 38,
+            "textLeaves": 2,
+            "media": 4,
+            "controls": 6,
+            "placeholders": 1,
+            "text": "2PP"
+          }
+        ]
+      },
+      "clsTotal": 0.0001,
+      "clsDuringSwap": 0.0001,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(1) > div:nth-of-type(1)",
+          "skeletonBox": {
+            "x": 137,
+            "y": 89,
+            "w": 197,
+            "h": 143.5
+          },
+          "realBox": {
+            "x": 137,
+            "y": 89,
+            "w": 197,
+            "h": 146.8
+          },
+          "skeletonContainer": {
+            "x": 41,
+            "y": 89,
+            "w": 293,
+            "h": 143.5
+          },
+          "realContainer": {
+            "x": 41,
+            "y": 89,
+            "w": 293,
+            "h": 146.8
+          },
+          "deltaRowPx": 3.3,
+          "deltaContainerPx": 3.3,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            144,
+            147
+          ],
+          "deltaRowH": 3,
+          "media": [
+            1,
+            1
+          ],
+          "controls": [
+            0,
+            0
+          ],
+          "textLeaves": [
+            0,
+            6
+          ],
+          "placeholderCount": 13,
+          "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(1)",
+          "skeletonBox": {
+            "x": 53,
+            "y": 359.5,
+            "w": 118.5,
+            "h": 15
+          },
+          "realBox": {
+            "x": 53,
+            "y": 364.2,
+            "w": 118.5,
+            "h": 15.1
+          },
+          "skeletonContainer": {
+            "x": 41,
+            "y": 328,
+            "w": 142.5,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 41,
+            "y": 332.8,
+            "w": 142.5,
+            "h": 58
+          },
+          "deltaRowPx": 0.1,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            18,
+            18
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            0,
+            0
+          ],
+          "textLeaves": [
+            0,
+            2
+          ],
+          "placeholderCount": 8,
+          "shapeMatch": true
+        },
+        {
+          "path": "div#root > nav > div:nth-of-type(2)",
+          "skeletonBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "realBox": {
+            "x": 307,
+            "y": 750,
+            "w": 56,
+            "h": 56
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "realContainer": {
+            "x": 0,
+            "y": 748,
+            "w": 375,
+            "h": 58
+          },
+          "deltaRowPx": 0,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            58,
+            58
+          ],
+          "deltaRowH": 0,
+          "media": [
+            3,
+            4
+          ],
+          "controls": [
+            6,
+            6
+          ],
+          "textLeaves": [
+            1,
+            2
+          ],
+          "placeholderCount": 1,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 3.3,
+      "worstDeltaRowH": 3,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 3,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 3,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 37
+    },
+    {
+      "url": "/user/437de07d-1bd7-46c8-a451-6b46aa3bcad5",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 39733,
+      "capturedAt": 40763,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -18872,448 +19322,6 @@
     },
     {
       "url": "/user/437de07d-1bd7-46c8-a451-6b46aa3bcad5",
-      "persona": "customer",
-      "base": "http://127.0.0.1:4173",
-      "capturedAt": 43173,
-      "stage": {
-        "waves": 0,
-        "ended": "captured"
-      },
-      "finalUrl": "/user/437de07d-1bd7-46c8-a451-6b46aa3bcad5",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_user_437de07d_1bd7_46c8_a451_6b46aa3bcad5.loading.png",
-      "loading": {
-        "found": 22,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content": {
-            "y": 0,
-            "h": 812
-          },
-          "main#main-content > div > div:nth-of-type(1) > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [],
-        "clusters": [
-          {
-            "path": "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(1) > div:nth-of-type(1)",
-            "placeholderCount": 13,
-            "probe": {
-              "px": 235.5,
-              "py": 109,
-              "containerW": 197
-            },
-            "rowRect": {
-              "x": 137,
-              "y": 89,
-              "w": 197,
-              "h": 143.5
-            },
-            "containerRect": {
-              "x": 41,
-              "y": 89,
-              "w": 293,
-              "h": 143.5
-            },
-            "rows": 2,
-            "rowH": 144,
-            "rect": {
-              "x": 41,
-              "y": 89,
-              "w": 293,
-              "h": 143.5
-            },
-            "scrollH": 144,
-            "elements": 16,
-            "textLeaves": 0,
-            "media": 1,
-            "controls": 0,
-            "placeholders": 7,
-            "text": ""
-          },
-          {
-            "path": "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(1)",
-            "placeholderCount": 8,
-            "probe": {
-              "px": 112.3,
-              "py": 367,
-              "containerW": 118.5
-            },
-            "rowRect": {
-              "x": 53,
-              "y": 359.5,
-              "w": 118.5,
-              "h": 15
-            },
-            "containerRect": {
-              "x": 41,
-              "y": 328,
-              "w": 142.5,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 18,
-            "rect": {
-              "x": 41,
-              "y": 328,
-              "w": 142.5,
-              "h": 58
-            },
-            "scrollH": 58,
-            "elements": 3,
-            "textLeaves": 0,
-            "media": 0,
-            "controls": 0,
-            "placeholders": 2,
-            "text": ""
-          },
-          {
-            "path": "div#root > nav > div:nth-of-type(2)",
-            "placeholderCount": 1,
-            "probe": {
-              "px": 335,
-              "py": 770,
-              "containerW": 56
-            },
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 36,
-            "textLeaves": 1,
-            "media": 3,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "?"
-          }
-        ]
-      },
-      "shiftsAtLoading": 0,
-      "placeholdersLeft": [
-        "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
-      ],
-      "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_user_437de07d_1bd7_46c8_a451_6b46aa3bcad5.loaded.png",
-      "loaded": {
-        "found": 1,
-        "docH": 812,
-        "landmarks": {
-          "main#main-content": {
-            "y": 0,
-            "h": 812
-          },
-          "main#main-content > div > div:nth-of-type(1) > div > div:nth-of-type(2) > h1": {
-            "y": 21.7,
-            "h": 24.6
-          },
-          "main#main-content > div > div:nth-of-type(2) > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > h2": {
-            "y": 89,
-            "h": 27.5
-          },
-          "div#root > nav": {
-            "y": 748,
-            "h": 64
-          }
-        },
-        "shifts": [
-          {
-            "t": 4830.099999999977,
-            "v": 0.0001309746252841208
-          }
-        ],
-        "clusters": [
-          {
-            "found": true,
-            "rowRect": {
-              "x": 137,
-              "y": 89,
-              "w": 197,
-              "h": 146.8
-            },
-            "containerRect": {
-              "x": 41,
-              "y": 89,
-              "w": 293,
-              "h": 146.8
-            },
-            "rows": 2,
-            "rowH": 147,
-            "rect": {
-              "x": 41,
-              "y": 89,
-              "w": 293,
-              "h": 146.8
-            },
-            "scrollH": 147,
-            "elements": 18,
-            "textLeaves": 6,
-            "media": 1,
-            "controls": 0,
-            "placeholders": 0,
-            "text": "HHHallie H.Baton Rouge, LA·Since Sep 2026·Active this weekTest account for feature review. Journey eq8jng."
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 53,
-              "y": 364.2,
-              "w": 118.5,
-              "h": 15.1
-            },
-            "containerRect": {
-              "x": 41,
-              "y": 332.8,
-              "w": 142.5,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 18,
-            "rect": {
-              "x": 41,
-              "y": 332.8,
-              "w": 142.5,
-              "h": 58
-            },
-            "scrollH": 58,
-            "elements": 5,
-            "textLeaves": 2,
-            "media": 0,
-            "controls": 0,
-            "placeholders": 0,
-            "text": "NewNo reviews yet"
-          },
-          {
-            "found": true,
-            "rowRect": {
-              "x": 307,
-              "y": 750,
-              "w": 56,
-              "h": 56
-            },
-            "containerRect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "rows": 2,
-            "rowH": 58,
-            "rect": {
-              "x": 0,
-              "y": 748,
-              "w": 375,
-              "h": 58
-            },
-            "scrollH": 66,
-            "elements": 38,
-            "textLeaves": 2,
-            "media": 4,
-            "controls": 6,
-            "placeholders": 1,
-            "text": "2PP"
-          }
-        ]
-      },
-      "clsTotal": 0.0001,
-      "clsDuringSwap": 0.0001,
-      "clusters": [
-        {
-          "path": "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(1) > div:nth-of-type(1)",
-          "skeletonBox": {
-            "x": 137,
-            "y": 89,
-            "w": 197,
-            "h": 143.5
-          },
-          "realBox": {
-            "x": 137,
-            "y": 89,
-            "w": 197,
-            "h": 146.8
-          },
-          "skeletonContainer": {
-            "x": 41,
-            "y": 89,
-            "w": 293,
-            "h": 143.5
-          },
-          "realContainer": {
-            "x": 41,
-            "y": 89,
-            "w": 293,
-            "h": 146.8
-          },
-          "deltaRowPx": 3.3,
-          "deltaContainerPx": 3.3,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            144,
-            147
-          ],
-          "deltaRowH": 3,
-          "media": [
-            1,
-            1
-          ],
-          "controls": [
-            0,
-            0
-          ],
-          "textLeaves": [
-            0,
-            6
-          ],
-          "placeholderCount": 13,
-          "shapeMatch": true
-        },
-        {
-          "path": "main#main-content > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(1)",
-          "skeletonBox": {
-            "x": 53,
-            "y": 359.5,
-            "w": 118.5,
-            "h": 15
-          },
-          "realBox": {
-            "x": 53,
-            "y": 364.2,
-            "w": 118.5,
-            "h": 15.1
-          },
-          "skeletonContainer": {
-            "x": 41,
-            "y": 328,
-            "w": 142.5,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 41,
-            "y": 332.8,
-            "w": 142.5,
-            "h": 58
-          },
-          "deltaRowPx": 0.1,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            18,
-            18
-          ],
-          "deltaRowH": 0,
-          "media": [
-            0,
-            0
-          ],
-          "controls": [
-            0,
-            0
-          ],
-          "textLeaves": [
-            0,
-            2
-          ],
-          "placeholderCount": 8,
-          "shapeMatch": true
-        },
-        {
-          "path": "div#root > nav > div:nth-of-type(2)",
-          "skeletonBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "realBox": {
-            "x": 307,
-            "y": 750,
-            "w": 56,
-            "h": 56
-          },
-          "skeletonContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "realContainer": {
-            "x": 0,
-            "y": 748,
-            "w": 375,
-            "h": 58
-          },
-          "deltaRowPx": 0,
-          "deltaContainerPx": 0,
-          "rows": [
-            2,
-            2
-          ],
-          "rowH": [
-            58,
-            58
-          ],
-          "deltaRowH": 0,
-          "media": [
-            3,
-            4
-          ],
-          "controls": [
-            6,
-            6
-          ],
-          "textLeaves": [
-            1,
-            2
-          ],
-          "placeholderCount": 1,
-          "shapeMatch": true
-        }
-      ],
-      "worstDeltaRowPx": 3.3,
-      "worstDeltaRowH": 3,
-      "worstDeltaRows": 0,
-      "shapeMismatches": 0,
-      "clustersMeasured": 3,
-      "maxLandmarkShiftPx": 0,
-      "landmarkMoves": [],
-      "landmarksCompared": 3,
-      "docHDelta": 0,
-      "status": "measured",
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "Failed to load resource: the server responded with a status of 404 (Not Found)"
-      ],
-      "requests": 37
-    },
-    {
-      "url": "/user/437de07d-1bd7-46c8-a451-6b46aa3bcad5",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
@@ -19329,7 +19337,7 @@
       "url": "/user/71c56dfb-b326-4010-b960-b18dd3966e7f",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 3997,
+      "capturedAt": 4066,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -19522,7 +19530,7 @@
             "media": 1,
             "controls": 0,
             "placeholders": 0,
-            "text": "PPPerry P.Baton Rouge, LA·Since Sep 2026·Active this weekTest account for feature review."
+            "text": "PPPerry P.Baton Rouge, LA·Since Sep 2026·Active todayTest account for feature review."
           },
           {
             "found": true,
@@ -19766,7 +19774,7 @@
       "url": "/user/71c56dfb-b326-4010-b960-b18dd3966e7f",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 4137,
+      "capturedAt": 4185,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -19931,7 +19939,7 @@
         },
         "shifts": [
           {
-            "t": 4867.5,
+            "t": 4833.600000000093,
             "v": 0.0001309746252841208
           }
         ],
@@ -19964,7 +19972,7 @@
             "media": 1,
             "controls": 0,
             "placeholders": 0,
-            "text": "PPPerry P.Baton Rouge, LA·Since Sep 2026·Active this weekTest account for feature review."
+            "text": "PPPerry P.Baton Rouge, LA·Since Sep 2026·Active todayTest account for feature review."
           },
           {
             "found": true,
@@ -20221,7 +20229,7 @@
       "url": "/messages",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 43878,
+      "capturedAt": 43559,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -20378,7 +20386,7 @@
             "media": 1,
             "controls": 1,
             "placeholders": 0,
-            "text": "HHHallie H.Accepted7hSEED pair job for prod-auditYou:‼️ that looks brand new"
+            "text": "HHHallie H.Accepted1dSEED pair job for prod-auditYou:‼️ that looks brand new"
           },
           {
             "found": true,
@@ -20538,9 +20546,22 @@
     },
     {
       "url": "/messages",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fmessages",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/messages",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2182,
+      "capturedAt": 2293,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -20697,7 +20718,7 @@
             "media": 1,
             "controls": 1,
             "placeholders": 0,
-            "text": "PPPerry P.Accepted7hSEED pair job for prod-audit‼️ that looks brand new"
+            "text": "PPPerry P.Accepted1dSEED pair job for prod-audit‼️ that looks brand new"
           },
           {
             "found": true,
@@ -20856,19 +20877,6 @@
       "requests": 24
     },
     {
-      "url": "/messages",
-      "persona": "anon",
-      "base": "http://127.0.0.1:4173",
-      "stage": {
-        "waves": 0,
-        "ended": "empty"
-      },
-      "finalUrl": "/login?redirect=%2Fmessages",
-      "status": "no-placeholder",
-      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
-      "requests": 0
-    },
-    {
       "url": "/support",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
@@ -20885,7 +20893,7 @@
       "url": "/support",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2231,
+      "capturedAt": 2144,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -20966,7 +20974,7 @@
         },
         "shifts": [
           {
-            "t": 2676.29999999993,
+            "t": 2528.399999999907,
             "v": 0.04265838368641154
           }
         ],
@@ -21079,7 +21087,7 @@
       "url": "/legal?tab=terms",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2213,
+      "capturedAt": 2217,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -21334,7 +21342,7 @@
       "url": "/legal?tab=privacy",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2202,
+      "capturedAt": 2106,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -21592,7 +21600,7 @@
       "url": "/legal?tab=community",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2201,
+      "capturedAt": 2199,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -21850,7 +21858,7 @@
       "url": "/terms",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2371,
+      "capturedAt": 2314,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -22092,7 +22100,7 @@
       "url": "/privacy",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 31998,
+      "capturedAt": 32410,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -22334,16 +22342,16 @@
       "requests": 14
     },
     {
-      "url": "/jobs/ed2076c1-1773-498f-b169-6f21efea2431",
+      "url": "/jobs/a89d611e-d6ef-4df1-8a6b-f86b4e1127eb",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 4120,
+      "capturedAt": 3985,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/posts?filter=waiting",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_jobs_ed2076c1_1773_498f_b169_6f21efea2431.loading.png",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_jobs_a89d611e_d6ef_4df1_8a6b_f86b4e1127eb.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -22434,7 +22442,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_jobs_ed2076c1_1773_498f_b169_6f21efea2431.loaded.png",
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/customer_jobs_a89d611e_d6ef_4df1_8a6b_f86b4e1127eb.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -22450,7 +22458,7 @@
         },
         "shifts": [
           {
-            "t": 4818.79999999993,
+            "t": 4786.699999999953,
             "v": 0.0003903020780250269
           }
         ],
@@ -22518,33 +22526,33 @@
         ]
       },
       "status": "redirected",
-      "note": "left the route between frames: /jobs/ed2076c1-1773-498f-b169-6f21efea2431 → /posts?filter=waiting",
-      "requests": 37
+      "note": "left the route between frames: /jobs/a89d611e-d6ef-4df1-8a6b-f86b4e1127eb → /posts?filter=waiting",
+      "requests": 39
     },
     {
-      "url": "/jobs/ed2076c1-1773-498f-b169-6f21efea2431",
+      "url": "/jobs/a89d611e-d6ef-4df1-8a6b-f86b4e1127eb",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
       "stage": {
         "waves": 0,
         "ended": "empty"
       },
-      "finalUrl": "/login?redirect=%2Fjobs%2Fed2076c1-1773-498f-b169-6f21efea2431",
+      "finalUrl": "/login?redirect=%2Fjobs%2Fa89d611e-d6ef-4df1-8a6b-f86b4e1127eb",
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
     },
     {
-      "url": "/jobs/ed2076c1-1773-498f-b169-6f21efea2431",
+      "url": "/jobs/a89d611e-d6ef-4df1-8a6b-f86b4e1127eb",
       "persona": "helper",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 4092,
+      "capturedAt": 4105,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/home",
-      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_jobs_ed2076c1_1773_498f_b169_6f21efea2431.loading.png",
+      "loadingPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_jobs_a89d611e_d6ef_4df1_8a6b_f86b4e1127eb.loading.png",
       "loading": {
         "found": 5,
         "docH": 812,
@@ -22635,7 +22643,7 @@
         "span.absolute inset-0 rounded-full motion-safe:animate-pulse poin"
       ],
       "placeholdersLeftCount": 1,
-      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_jobs_ed2076c1_1773_498f_b169_6f21efea2431.loaded.png",
+      "loadedPng": "/home/runner/work/louisianahelpr/louisianahelpr/docs/audit/loading-states/helper_jobs_a89d611e_d6ef_4df1_8a6b_f86b4e1127eb.loaded.png",
       "loaded": {
         "found": 1,
         "docH": 812,
@@ -22647,7 +22655,7 @@
         },
         "shifts": [
           {
-            "t": 4770.900000000023,
+            "t": 4812.300000000047,
             "v": 0.0003512718702225242
           }
         ],
@@ -22715,14 +22723,14 @@
         ]
       },
       "status": "redirected",
-      "note": "left the route between frames: /jobs/ed2076c1-1773-498f-b169-6f21efea2431 → /home",
+      "note": "left the route between frames: /jobs/a89d611e-d6ef-4df1-8a6b-f86b4e1127eb → /home",
       "requests": 43
     },
     {
       "url": "/browse",
       "persona": "anon",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2115,
+      "capturedAt": 2161,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -22933,7 +22941,7 @@
       "url": "/browse",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2158,
+      "capturedAt": 2176,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -23042,7 +23050,7 @@
         },
         "shifts": [
           {
-            "t": 3074.4000000000233,
+            "t": 3032.100000000093,
             "v": 0.0003903020780250269
           }
         ],
@@ -23075,7 +23083,7 @@
             "media": 2,
             "controls": 6,
             "placeholders": 0,
-            "text": "12HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First Job"
+            "text": "2HomeAll quiet — for nowNothing today, Perry.New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.Post Your First JobN"
           },
           {
             "found": true,
@@ -23130,7 +23138,7 @@
       "url": "/rules",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 40531,
+      "capturedAt": 39618,
       "stage": {
         "waves": 0,
         "ended": "captured"
@@ -23375,7 +23383,7 @@
       "url": "/help",
       "persona": "customer",
       "base": "http://127.0.0.1:4173",
-      "capturedAt": 2095,
+      "capturedAt": 2115,
       "stage": {
         "waves": 0,
         "ended": "captured"

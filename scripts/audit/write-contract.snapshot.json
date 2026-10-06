@@ -2301,6 +2301,17 @@
     "nargs": 3
    }
   ],
+  "hook_one_account_per_person": [
+   {
+    "anon": false,
+    "args": [
+     "event"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "identity_fingerprint": [
    {
     "anon": false,
@@ -2606,6 +2617,18 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "job_offer_cutoff": [
+   {
+    "anon": false,
+    "args": [
+     "p_date_needed",
+     "p_start_time"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "job_payment_is_funded": [
@@ -3054,6 +3077,15 @@
    }
   ],
   "notify_user_on_review": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "offer_deadline_follows_start": [
    {
     "anon": false,
     "args": [],
@@ -3902,6 +3934,19 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "rpc_clear_test_mode_dispute_stamp": [
+   {
+    "anon": false,
+    "args": [
+     "_dispute_id",
+     "_transfer_id",
+     "_reason"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
    }
   ],
   "rpc_decide_crew_dispute": [
@@ -7832,6 +7877,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text[]"
+    },
+    "response_deadline": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "share_cents": {
      "enum": null,
@@ -16759,6 +16811,63 @@
      ]
     }
    ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "social_signup_choices": {
+   "checks": [
+    "CHECK ((social_provider = ANY (ARRAY['apple'::text, 'google'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "chose_new_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "provider_sub": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "relay": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "social_provider": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"

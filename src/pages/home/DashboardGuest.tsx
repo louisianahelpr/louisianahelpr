@@ -28,6 +28,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { fetchRatingStats } from "@/lib/reviewStats";
 import { report } from "@/lib/errorLogger";
+import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
 import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -313,9 +314,24 @@ const DashboardGuest = () => {
     },
   });
 
+  // Q1409: how many spots each crew on the feed has open (best effort; a crew
+  // card shows its size until this arrives).
+  const crewIds = useMemo(
+    () => baseJobs.filter((j) => j.is_group_job).map((j) => j.id),
+    [baseJobs],
+  );
+  const { data: crewSpots } = useQuery({
+    queryKey: queryKeys.dashboard.guestCrewSpots(crewIds),
+    enabled: crewIds.length > 0,
+    staleTime: 60 * 1000,
+    queryFn: () => fetchCrewSpotsOpen(crewIds),
+  });
+
   const jobs = useMemo<EnrichedJob[]>(() => {
-    if (!posterInfo) return baseJobs;
-    return baseJobs.map((j) => {
+    const withSpots = (j: EnrichedJob): EnrichedJob =>
+      crewSpots?.has(j.id) ? { ...j, crew_spots_open: crewSpots.get(j.id) } : j;
+    if (!posterInfo) return baseJobs.map(withSpots);
+    return baseJobs.map(withSpots).map((j) => {
       // Ownerless job (see posterIds above): it keeps the existing "a neighbor"
       // fallback and scores with no tier, which is what an unknown poster
       // already got. It must not reach a lookup keyed on a string.
@@ -331,7 +347,7 @@ const DashboardGuest = () => {
         posterSubscriptionTier: (posterId ? posterInfo.tierMap.get(posterId) : null) ?? null,
       };
     });
-  }, [baseJobs, posterInfo]);
+  }, [baseJobs, posterInfo, crewSpots]);
 
   // ONE PAINT, not two (Q169). The split above stops the feed waiting on the
   // enrichment CHAIN, but painting the list the moment it lands meant it

@@ -20,4 +20,10 @@ export type EnrichedJob = Partial<Job> & Pick<Job, "id" | "title" | "description
    */
   applicant_count?: number;
   posterIdVerified?: boolean;
+  /**
+   * Q1409: on a crew, how many spots a Helpr can apply for right now
+   * (public.crew_spots_open via open_jobs_browse; read by fetchCrewSpotsOpen
+   * after the main list). Unset until it is read, and on single jobs.
+   */
+  crew_spots_open?: number | null;
 };

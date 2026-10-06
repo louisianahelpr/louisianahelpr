@@ -8,6 +8,7 @@ import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@t
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
 import { getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
@@ -380,9 +381,13 @@ export function useDashboardData() {
 
       // Phase 2: enrich page with poster names + review stats + subscription tier (for Search Priority).
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
-      const [profilesRes, reviewStatsMap] = await withTimeout(Promise.all([
+      // Q1409: a crew's open-spot count rides its own read (fetchCrewSpotsOpen
+      // says why it is never in the select above); it never fails the page.
+      const crewIds = rawJobs.filter((j) => j.is_group_job).map((j) => j.id as string);
+      const [profilesRes, reviewStatsMap, crewSpots] = await withTimeout(Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         fetchRatingStats(posterIds),
+        fetchCrewSpotsOpen(crewIds),
       ]), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out");
 
       const nameMap = new Map(
@@ -468,6 +473,7 @@ export function useDashboardData() {
             isBoosted,
             applicant_count: applicantCountMap.get(j.id) ?? 0,
             posterIdVerified: verifiedMap.get(j.customer_id) ?? false,
+            crew_spots_open: crewSpots.get(j.id) ?? null,
           };
         });
 

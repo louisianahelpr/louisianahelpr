@@ -57,10 +57,18 @@ const LOCATION_MAP_MOVE_TOLERANCE = 8;
  */
 export function JobHelprsChip({
   helpersNeeded,
+  spotsOpen,
   className = "gap-1.5",
   iconClassName = "w-3 h-3",
 }: {
   helpersNeeded?: number | null;
+  /**
+   * Q1409: on a browse card, how many spots on the crew are open now
+   * (public.crew_spots_open). When fewer than the crew's size, the chip says
+   * "1 spot open" instead of the size: a booked crew a member left is
+   * re-listed for that spot only. Omitted (or equal to the size): the size.
+   */
+  spotsOpen?: number | null;
   /** Gap + any outer margin. Supplied by the row so it matches its siblings. */
   className?: string;
   iconClassName?: string;
@@ -68,14 +76,24 @@ export function JobHelprsChip({
   /* 2 is the floor a group job can have — `is_group_job` with a null
      `helpers_needed` is an older row, and "1 Helpr" is not a group. */
   const count = helpersNeeded && helpersNeeded > 0 ? helpersNeeded : 2;
+  const open = spotsOpen != null && spotsOpen > 0 && spotsOpen < count ? spotsOpen : null;
   return (
     <span
       className={`inline-flex items-center shrink-0 whitespace-nowrap ${className}`}
       style={{ color: "hsl(var(--primary))" }}
     >
       <Users className={`${iconClassName} shrink-0`} strokeWidth={2.25} aria-hidden="true" />
-      <span className="font-sans font-medium">{count}</span>
-      <span className="sr-only"> Helprs needed</span>
+      {open != null ? (
+        <>
+          <span className="font-sans font-medium">{`${open} spot${open === 1 ? "" : "s"} open`}</span>
+          <span className="sr-only">{` on a crew of ${count}`}</span>
+        </>
+      ) : (
+        <>
+          <span className="font-sans font-medium">{count}</span>
+          <span className="sr-only"> Helprs needed</span>
+        </>
+      )}
     </span>
   );
 }

@@ -214,7 +214,11 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
     const where = stmt.slice(at + 7);
     const parts = conjuncts(where);
     const MIRRORED: Array<[string, RegExp]> = [
-      ["open", /^status = 'open'::job_status$/],
+      // Q1409 (20261006023437): the feed also lists a booked crew's re-listed
+      // spot. job_announceable_to keeps 'open' only, on purpose: re-listing is
+      // never announced, and a queued match for a crew that has since booked
+      // is dropped (an announcement may be stricter than the feed, never looser).
+      ["open", /^\(status = 'open'::job_status OR \(status = 'accepted'::job_status AND is_group_job IS TRUE AND crew_spots_open\(id\) > 0\)\)$/],
       ["series", /^parent_job_id IS NULL$/],
       ["ownerless", /^customer_id IS NOT NULL$/],
       ["funded", /payment_status = ANY \(ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text\]\)/],

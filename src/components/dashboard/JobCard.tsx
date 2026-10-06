@@ -750,6 +750,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               // this from the time beside it.
               <JobHelprsChip
                 helpersNeeded={job.helpers_needed}
+                spotsOpen={job.crew_spots_open}
                 className="gap-0.5 ml-0.5"
                 iconClassName="w-2.5 h-2.5"
               />

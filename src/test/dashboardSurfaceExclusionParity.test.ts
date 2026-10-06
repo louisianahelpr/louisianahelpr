@@ -208,6 +208,8 @@ const SURFACE_CHAINS: Record<string, string[]> = {
     "src/hooks/useDashboardData.ts",
     "src/hooks/useDashboardFilters.ts",
     "src/components/dashboard/BrowseTasksFeed.tsx",
+    // Q1409: the open-spot count for the crews already on the page (by id).
+    "src/lib/crewSpots.ts",
   ],
   count: ["src/hooks/useDashboardJobsCount.ts"],
   map: ["src/components/BrowseMap.tsx", "src/components/browseMap/useMapJobs.ts", "src/components/browseMap/mapFilter.ts"],

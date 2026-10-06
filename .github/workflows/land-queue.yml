@@ -14,7 +14,7 @@ on:
   # A required check finished on some PR: the four that come from a workflow
   # in this repo...
   workflow_run:
-    workflows: ["Vitest", "Test", "E2E happy-path smoke", "Mobile viewport spot-check"]
+    workflows: ["Vitest", "Test", "E2E happy-path smoke", "Mobile viewport spot-check", "DB Smoke", "Supabase Migration Lint", "Migration Timestamp Guard"]
     types: [completed]
   # ...and CodeQL, which is GitHub's default setup (no workflow file here); its
   # check runs come from the github-advanced-security app (the job filters).

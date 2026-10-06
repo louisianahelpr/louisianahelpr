@@ -14,8 +14,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { planQueue, QUEUE_LABEL } from "../../scripts/land-queue.mjs";
+import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS } from "../../scripts/land-queue.mjs";
 import { REQUIRED_CHECKS } from "./helpers/requiredChecks";
 
 const ROOT = join(__dirname, "..", "..");
@@ -93,5 +94,39 @@ describe("the queue is wired", () => {
     }
     expect(wf).toMatch(/node scripts\/land-queue\.mjs/);
     expect(wf).toMatch(/GH_TOKEN: \$\{\{ secrets\.REFRESH_PR_TOKEN \|\| github\.token \}\}/);
+  });
+});
+
+// 2026-10-06: #2450 merged with its migration-replay gate red (auto-merge waits
+// only for required checks) and db-deploy then refused the migration.
+// @mutate scripts/land-queue.mjs |   return [...required, ...all.filter((c) => GATE_CHECKS.includes(c.name) && !names.has(c.name))]; |   return [...required];
+// @mutate scripts/land-queue.mjs |         gh(["pr", "merge", n, "--disable-auto"]); |         void n;
+describe("migration gate checks count in the queue", () => {
+  it("a gate check on the PR joins the required ones, once", () => {
+    const required = [{ name: "Vitest unit tests", bucket: "pass" }];
+    const all = [...required, { name: GATE_CHECKS[0], bucket: "fail" }, { name: "Some report", bucket: "fail" }];
+    expect(queuedChecks(required, all).map((c: { name: string }) => c.name)).toEqual(["Vitest unit tests", GATE_CHECKS[0]]);
+  });
+
+  it("a red gate check drops the PR from the queue like a red required check", () => {
+    const checks = queuedChecks([{ name: "Vitest unit tests", bucket: "pass" }], [{ name: GATE_CHECKS[0], bucket: "fail" }]);
+    expect(planQueue([{ number: 1, mergeStateStatus: "CLEAN", checks }])[0]).toMatchObject({ action: "fail", number: 1 });
+  });
+
+  it("the fail step turns the PR's auto-merge off", () => {
+    const src = readFileSync(join(process.cwd(), "scripts/land-queue.mjs"), "utf8");
+    const fail = src.slice(src.indexOf('case "fail":'), src.indexOf('case "rerun":'));
+    expect(fail).toMatch(/gh\(\["pr", "merge", n, "--disable-auto"\]\)/);
+  });
+
+  it("every gate check is a real job name, in a workflow the queue wakes on", () => {
+    const dir = join(process.cwd(), ".github/workflows");
+    const queueYml = readFileSync(join(dir, "land-queue.yml"), "utf8");
+    for (const gate of GATE_CHECKS as string[]) {
+      const file = readdirSync(dir).find((f) => new RegExp(`^\\s+name: ${gate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "m").test(readFileSync(join(dir, f), "utf8")));
+      expect(file, `no workflow job is named "${gate}"`).toBeTruthy();
+      const wfName = /^name:\s*(.+)$/m.exec(readFileSync(join(dir, file as string), "utf8"))![1].trim();
+      expect(queueYml, `land-queue.yml must wake on "${wfName}"`).toContain(`"${wfName}"`);
+    }
   });
 });

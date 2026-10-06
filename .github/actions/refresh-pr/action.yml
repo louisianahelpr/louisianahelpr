@@ -213,7 +213,21 @@ runs:
             gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --title "$REFRESH_TITLE" --body "$BODY"
             echo "Updated refresh PR #$PR"
           fi
-          if ! gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --auto --squash; then
+          # Strict up-to-date is on for main: a PR that falls BEHIND merges
+          # only when someone updates it, and the land queue (land-queue.yml)
+          # does that for every PR carrying its label. Without the label the
+          # bot PRs sat BEHIND for good (#2407, #2423, #2429 on 2026-10-06).
+          if ! gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --add-label land-queue; then
+            echo "::error::refresh-pr: could not label #$PR land-queue, so nothing will bring it up to date with main once it falls behind."
+            exit 1
+          fi
+          # A draft is a pause someone chose (the owner drafted every bot PR on
+          # 2026-10-05); GitHub refuses auto-merge on one, and that refusal used
+          # to be reported as a repository-settings fault (#2198).
+          DRAFT=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)
+          if [ "$DRAFT" = "true" ]; then
+            echo "::notice::refresh-pr: #$PR is a draft (paused by hand); it carries the fresh numbers and merges once someone marks it ready."
+          elif ! gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --auto --squash; then
             echo "::error::refresh-pr: could not enable auto-merge on #$PR. Needs Settings -> General -> 'Allow auto-merge' and the Actions setting 'Allow GitHub Actions to create and approve pull requests' (Q57). The PR is open; merge it by hand meanwhile."
             exit 1
           fi

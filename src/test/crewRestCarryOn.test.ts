@@ -31,8 +31,10 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006015121_crew_rest_carry_on.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |                WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |                WHEN false
 // @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |        AND j.status IN ('open', 'accepted', 'in_progress')\n       AND g.helper_id IS NOT NULL |        AND j.status IN ('open', 'accepted')\n       AND g.helper_id IS NOT NULL
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL AND g.helper_confirmed_at IS NOT NULL), |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL),
-// @mutate supabase/migrations/20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql |     DELETE FROM public.group_job_helpers\n     WHERE job_id = _job_id\n       AND helper_confirmed_at IS NULL |     PERFORM 1 FROM public.group_job_helpers\n     WHERE job_id = _job_id\n       AND helper_confirmed_at IS NULL
+// @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL AND g.helper_confirmed_at IS NOT NULL), |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL),
+// @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |         DELETE FROM public.group_job_helpers\n         WHERE job_id = _job_id\n           AND helper_confirmed_at IS NULL |         DELETE FROM public.group_job_helpers\n         WHERE false\n           AND helper_confirmed_at IS NULL
+// @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |       IF v_left > 0 THEN | IF false THEN
+// @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |          AND a.helper_id = ANY (COALESCE(v_gone, '{}'::uuid[])) |          AND a.helper_id IS NOT NULL
 // @mutate src/pages/posts/PostedJobCard.tsx | (job.status === "open" \|\| crewSpotRefillable(job, initialGroupHelpers)) && ( | job.status === "open" && (
 
 const ROOT = resolve(__dirname, "../..");
@@ -41,6 +43,8 @@ const EFFECTIVE = effectiveDefs(MIGRATIONS);
 const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "");
 const THIS = "20261006015121_crew_rest_carry_on.sql";
 const UNCONFIRMED = "20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql";
+/** lh-money-escrow review of bc9ea3a47: the roll-up closes only what its DELETE removed, then re-counts. */
+const RACE = "20261006031350_crew_completion_rechecks_after_closing_spots.sql";
 /** The migration each roster deleter is expected at (the newest that restates it). */
 const NEWEST: Record<string, string> = {
   helper_cancel_booking: THIS,
@@ -95,13 +99,24 @@ describe("Q1378: a booked crew a member leaves stays booked for the rest", () =>
     expect(crewPass).not.toMatch(/j\.status IN \('open', 'accepted'\)\s/);
     // The roll-up counts confirmed members only, and closes what is left unconfirmed when it completes.
     const done = body("rpc_group_member_mark_done");
-    expect(EFFECTIVE.get("rpc_group_member_mark_done")?.file).toBe(UNCONFIRMED);
+    expect(EFFECTIVE.get("rpc_group_member_mark_done")?.file).toBe(RACE);
     expect(done).toMatch(/count\(\*\) FILTER \(WHERE g\.helper_completed_at IS NULL AND g\.helper_confirmed_at IS NOT NULL\),\s+count\(\*\) FILTER \(WHERE g\.helper_confirmed_at IS NOT NULL OR g\.helper_completed_at IS NOT NULL\)\s+INTO v_remaining, v_filled/);
     const start = done.indexOf("IF v_remaining = 0");
     const complete = done.slice(start, done.indexOf("v_job_complete := true;"));
     expect(start, "the completion branch moved").toBeGreaterThan(-1);
-    expect(complete).toMatch(/SET status = 'rejected', closed_reason = 'offer_expired'/);
-    expect(complete).toMatch(/DELETE FROM public\.group_job_helpers\s+WHERE job_id = _job_id\s+AND helper_confirmed_at IS NULL\s+AND helper_completed_at IS NULL;/);
+    // The race (money review of bc9ea3a47): DELETE first with RETURNING; close
+    // and tell ONLY the removed members; re-count; roll the closing back if
+    // anyone (a member who confirmed meanwhile) is still not done.
+    const del = complete.search(/WITH gone AS \(\s+DELETE FROM public\.group_job_helpers\s+WHERE job_id = _job_id\s+AND helper_confirmed_at IS NULL\s+AND helper_completed_at IS NULL\s+RETURNING helper_id\s+\)/);
+    const close = complete.search(/SET status = 'rejected', closed_reason = 'offer_expired'\s+WHERE a\.job_id = _job_id\s+AND a\.helper_id = ANY \(COALESCE\(v_gone, '\{\}'::uuid\[\]\)\)/);
+    const tell = complete.search(/FROM unnest\(COALESCE\(v_gone, '\{\}'::uuid\[\]\)\) AS m/);
+    const recount = complete.search(/SELECT count\(\*\) INTO v_left\s+FROM public\.group_job_helpers g\s+WHERE g\.job_id = _job_id\s+AND g\.helper_completed_at IS NULL;\s+IF v_left > 0 THEN\s+RAISE EXCEPTION 'crew_changed_under_completion' USING ERRCODE = 'LHC01';/);
+    const rollup = complete.indexOf("SET helper_completed_at = v_now");
+    expect([del, close, tell, recount].every((x) => x > -1), `delete=${del} close=${close} tell=${tell} recount=${recount}`).toBe(true);
+    expect(del < close && close < tell && tell < recount && recount < rollup, "the order is delete, close, tell, re-count, complete").toBe(true);
+    expect(done).toMatch(/EXCEPTION WHEN SQLSTATE 'LHC01' THEN[\s\S]{0,300}v_job_complete := false;/);
+    // Nothing reads the roster to close or tell before the DELETE decides who left.
+    expect(complete.slice(0, del)).not.toMatch(/closed_reason = 'offer_expired'|'Your offer closed'/);
     // Only there: a member is never taken off a crew that has not completed.
     expect(done.indexOf("DELETE FROM public.group_job_helpers")).toBeGreaterThan(start);
     expect(done, "no strike for a spot whose answer-by had not run out").not.toMatch(/apply_job_denial_consequence/);
@@ -111,6 +126,12 @@ describe("Q1378: a booked crew a member leaves stays booked for the rest", () =>
     for (const c of ["zzb_group_member_completion_gates", "trg_helper_completion_gates", "U1 an unconfirmed spot on a STARTED crew",
       "U2 the members who worked finish", "U3 the payout's roster", "const expected = 4;"]) {
       expect(proof).toContain(c);
+    }
+    const race = readFileSync(resolve(ROOT, "src/test/pglite/crewCompletionRace.pglite.mjs"), "utf8");
+    expect(race).toContain(`const THIS = "${RACE}"`);
+    for (const c of ["test_confirm_lands_mid_delete", "X1 a member who confirms during the last Done's roll-up counts",
+      "X2 that member is not told", "X4 control", "X5 the member who confirmed then works", "const expected = 2;"]) {
+      expect(race).toContain(c);
     }
   });
 

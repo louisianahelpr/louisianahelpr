@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 585,
+    "calls": 586,
     "files": 149,
-    "rendering": 560,
+    "rendering": 561,
     "suppressedByPolicy": 25,
     "byKind": {
       "confirmConsequential": 25,
       "errorToast": 6,
       "successToast": 1,
       "toast": 37,
-      "toast.error": 462,
+      "toast.error": 463,
       "toast.loading": 1,
       "toast.message": 2,
       "toast.success": 29,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 314,
       "template": 77,
-      "dynamic": 234,
+      "dynamic": 235,
       "jsx": 0
     }
   },
@@ -2848,7 +2848,17 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 139,
+      "line": 103,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "ACCOUNT_CHOICE_RETRY_COPY"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/auth/SocialAuthButtons.tsx",
+      "line": 201,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -2858,7 +2868,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 144,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

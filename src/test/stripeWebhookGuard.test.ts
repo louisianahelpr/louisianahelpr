@@ -183,6 +183,11 @@ describe("gradeConfigCheckResponse (the edge function's body)", () => {
     expect(otherState[0]).toMatch(/US\/TX active/);
     expect(gradeTaxRegistrations([{ country: "US", state: "LA", status: "scheduled" }]).failures).toHaveLength(1);
     expect(gradeTaxRegistrations(undefined).failures[0]).toMatch(/no `taxRegistrations` array/);
+    expect(gradeTaxRegistrations(null, "Stripe tax/registrations answered HTTP 500").failures[0]).toMatch(/could not read the Stripe Tax registrations \(Stripe tax\/registrations answered HTTP 500\)/);
+    // A failed tax read still lets the endpoint check report (it is graded alongside, not instead).
+    const both = gradeConfigCheckResponse(body({ taxRegistrations: null, taxError: "boom", endpoints: [] }), handlers, WEBHOOK_URL).failures;
+    expect(both.some((f) => /could not read the Stripe Tax/.test(f))).toBe(true);
+    expect(both.length).toBeGreaterThan(1);
     expect(gradeTaxRegistrations([{ country: "US", state: "LA", status: "active" }])).toEqual({
       failures: [],
       notes: ["Stripe Tax: Louisiana registration is active (active registrations: US/LA active)."],

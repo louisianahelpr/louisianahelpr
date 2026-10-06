@@ -104,11 +104,15 @@ describe("tax registrations (Q441)", () => {
     expect(shapeTaxRegistration({ country: "CA", status: "active" })).toEqual({ country: "CA", state: null, status: "active" });
   });
 
-  it("a failed or partial tax read is a non-200, never an empty list", async () => {
+  it("a failed or partial tax read is null + taxError (never an empty list) and still returns the endpoint check", async () => {
     const failed = await readWebhookConfig(FAKE_LIVE_KEY, stub(list([rawEndpoint]), list([]), [], { status: 500, body: { error: { message: "boom" } } }), 15000, NOW);
-    expect(failed.ok).toBe(false);
+    expect(failed.ok).toBe(true);
+    if (!failed.ok) return;
+    expect(failed.body.taxRegistrations).toBeNull();
+    expect(failed.body.taxError).toMatch(/tax\/registrations/);
+    expect(failed.body.endpoints).toHaveLength(1);
     const partial = await readWebhookConfig(FAKE_LIVE_KEY, stub(list([rawEndpoint]), list([]), [], list([rawLaRegistration], true)), 15000, NOW);
-    expect(partial.ok).toBe(false);
+    expect(partial.ok && partial.body.taxRegistrations).toBeNull();
   });
 });
 

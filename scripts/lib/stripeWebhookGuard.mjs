@@ -39,7 +39,7 @@ export function gradeConfigCheckResponse(body, handlers, url) {
   // undelivered event, nor the other way round.
   const config = gradeLiveEndpoints({ data: body.endpoints }, handlers, url);
   const undelivered = gradeUndelivered(body.undelivered);
-  const tax = gradeTaxRegistrations(body.taxRegistrations);
+  const tax = gradeTaxRegistrations(body.taxRegistrations, body.taxError);
   return {
     failures: [...config.failures, ...undelivered.failures, ...tax.failures],
     notes: [...config.notes, ...undelivered.notes, ...tax.notes],
@@ -53,11 +53,13 @@ export function gradeConfigCheckResponse(body, handlers, url) {
  * RED when the block is missing or malformed (never read as "registered"), and
  * when no active US/LA registration is listed.
  */
-export function gradeTaxRegistrations(regs) {
+export function gradeTaxRegistrations(regs, taxError) {
   if (!Array.isArray(regs)) {
     return {
       failures: [
-        "stripe-webhook-config-check returned no `taxRegistrations` array, so the Louisiana tax registration was not read. " +
+        (typeof taxError === "string" && taxError
+          ? `stripe-webhook-config-check could not read the Stripe Tax registrations (${taxError}). `
+          : "stripe-webhook-config-check returned no `taxRegistrations` array, so the Louisiana tax registration was not read. ") +
           "Refusing to call that registered (is the deployed function older than Q441?).",
       ],
       notes: [],

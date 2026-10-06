@@ -39,6 +39,19 @@ const EditJobDialog = lazy(() => import("../../pages/posts/EditJobDialog").then(
     narrower parallel type. */
 type DeadlineDialogApp = EnrichedApplication;
 
+
+/** The Tip dialog's target: the job, and on a crew (Q709(c)) the member tipped. */
+export interface TipTarget {
+  jobId: string;
+  helperName: string;
+  helperId?: string;
+}
+/** The Tip dialog's state, owned by useActivityActions: one object, not six props. */
+export interface TipDialogState {
+  target: TipTarget | null;
+  open: (jobId: string, helperName: string, helperId?: string) => void;
+  close: () => void;
+}
 interface ActivityDialogsProps {
   user: { id: string } | null;
   // Edit
@@ -48,13 +61,7 @@ interface ActivityDialogsProps {
   boostJobId: string | null;
   setBoostJobId: (id: string | null) => void;
   // Tip
-  enhancedTipJobId: string | null;
-  enhancedTipHelperName: string;
-  setEnhancedTipJobId: (id: string | null) => void;
-  setEnhancedTipHelperName: (name: string) => void;
-  /** Q709(c): on a crew, the member being tipped. */
-  enhancedTipHelperId?: string;
-  setEnhancedTipHelperId?: (id: string | undefined) => void;
+  tip: TipDialogState;
   // No-show
   noShowJobId: string | null;
   setNoShowJobId: (id: string | null) => void;
@@ -143,9 +150,9 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       )}
 
       {/* Enhanced Tip Dialog */}
-      {props.enhancedTipJobId && (
+      {props.tip.target && (
         <Suspense fallback={null}>
-          <TipDialog jobId={props.enhancedTipJobId} helperName={props.enhancedTipHelperName} helperId={props.enhancedTipHelperId} open={!!props.enhancedTipJobId} onClose={() => { props.setEnhancedTipJobId(null); props.setEnhancedTipHelperName(""); props.setEnhancedTipHelperId?.(undefined); props.onRefresh(); }} />
+          <TipDialog jobId={props.tip.target.jobId} helperName={props.tip.target.helperName} helperId={props.tip.target.helperId} open onClose={() => { props.tip.close(); props.onRefresh(); }} />
         </Suspense>
       )}
 

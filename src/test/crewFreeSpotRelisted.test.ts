@@ -116,11 +116,11 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
     expect(card).toMatch(/<JobHelprsChip\s+helpersNeeded=\{job\.helpers_needed\}\s+spotsOpen=\{job\.crew_spots_open\}/);
     const helper = blankComments(readFileSync(resolve(ROOT, "src/lib/crewSpots.ts"), "utf8"));
     expect(helper).toMatch(/\.from\("open_jobs_browse"\)\s+\.select\("id, crew_spots_open"\)/);
-    for (const f of ["src/hooks/useDashboardData.ts", "src/pages/home/DashboardGuest.tsx"]) {
+    for (const f of ["src/hooks/useDashboardData.ts", "src/pages/home/fetchGuestJobs.ts"]) {
       const src = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
       expect(src, `${f} does not read the open-spot counts`).toMatch(/fetchCrewSpotsOpen\(/);
     }
-    for (const f of ["src/hooks/useDashboardData.ts", "src/lib/guestJobsQuery.ts", "src/boot/guestJobsPrefetch.ts", "src/components/browseMap/fetchJobForPin.ts"]) {
+    for (const f of ["src/hooks/useDashboardData.ts", "src/lib/guestJobsQuery.ts", "src/boot/guestJobsPrefetch.ts", "src/components/browseMap/fetchJobForPin.ts", "src/pages/home/fetchGuestJobs.ts"]) {
       const src = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
       expect(src, `${f} selects crew_spots_open in a main list (a deploy before db-deploy would fail the whole feed)`).not.toMatch(/"id, title, description[^"\n]*\bcrew_spots_open\b/);
     }

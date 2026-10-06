@@ -32,3 +32,16 @@ export function crewSpotRefillable(
   const filled = roster.length;
   return filled < needed;
 }
+
+/**
+ * Whether the poster's card shows the Applicants button: an open job, or a
+ * booked crew a member left (Q1378: the rest carry on and the poster may refill
+ * the spot from their applicants before the start).
+ */
+export function takesApplicants(
+  job: Parameters<typeof crewSpotRefillable>[0],
+  roster: readonly unknown[] | undefined,
+  now: Date = new Date(),
+): boolean {
+  return job.status === "open" || crewSpotRefillable(job, roster, now);
+}

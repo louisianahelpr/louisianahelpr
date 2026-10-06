@@ -207,9 +207,6 @@ export const queryKeys = {
      *  the cards can render on the job list alone and let this fill in. */
     guestJobPosters: (posterIds: string[]) =>
       ["guestDashboardJobPosters", [...posterIds].sort().join(",")] as const,
-    /** Q1409: open-spot counts for the crews on the guest feed (fetchCrewSpotsOpen). */
-    guestCrewSpots: (jobIds: string[]) =>
-      ["guestDashboardCrewSpots", [...jobIds].sort().join(",")] as const,
   },
   /**
    * Admin-only queries — keyed by the *admin's* user.id so two admins

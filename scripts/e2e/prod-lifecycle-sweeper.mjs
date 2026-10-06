@@ -52,6 +52,7 @@ import {
   classifyCancelEscrow,
   cancelEscrowAnswerFromColumns,
   createPaymentWindowWaitMs,
+  wasFunded,
 } from "./sweepSummary.mjs";
 import { settleJobForward, heldReason } from "./settleForward.mjs";
 
@@ -294,8 +295,10 @@ for (const job of jobs) {
      UnfundedJobNotice (removed 2026-09-27) used, read the opposite way round: session + unpaid means
      abandoned, which is the one thing it is NOT.
 
-     `payment_status` alone is the funded test. */
-  const funded = job.payment_status !== "unpaid";
+     `payment_status` alone is the funded test, and 'abandoned' (a Checkout
+     nobody paid, set by void-cancelled-payments) is as unfunded as 'unpaid':
+     see wasFunded in sweepSummary.mjs. */
+  const funded = wasFunded(job.payment_status);
   /* An unpaid job that DID reach checkout is the awkward case, and it needs a
      third route rather than either of the two above. `cancel_escrow` refuses it
      because nothing was ever held, and the poster's DELETE policy refuses it

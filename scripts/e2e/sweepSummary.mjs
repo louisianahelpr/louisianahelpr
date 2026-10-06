@@ -153,3 +153,24 @@ export function createPaymentWindowWaitMs(lastCallAt, now = Date.now()) {
   if (lastCallAt === null) return 0;
   return Math.max(0, lastCallAt + CREATE_PAYMENT_WINDOW_MS + 1_000 - now);
 }
+
+/**
+ * Was money ever held on this job? Only a held payment can be unwound by
+ * create-payment's cancel_escrow; anything else is unwound by the poster's own
+ * DELETE (policy: open AND (unpaid with no Checkout Session, OR abandoned)).
+ *
+ * 'abandoned' is set by void-cancelled-payments on a Checkout nobody paid. Until
+ * 2026-10-06 the sweeper read every status but 'unpaid' as funded, sent ten
+ * abandoned e2e jobs to cancel_escrow, got 409 "never held in escrow" on each,
+ * and failed the pre-sweep of the money loop, the gift-card journey and both
+ * journeys legs every night (runs 37401225883, 37401228416).
+ *
+ * The statuses are jobs_payment_status_check, read live 2026-10-06: unpaid,
+ * escrow, payout_pending, released, refunded, cancelled, abandoned, failed,
+ * chargeback, cancelling.
+ */
+export const NEVER_HELD_PAYMENT_STATUSES = ["unpaid", "abandoned"];
+
+export function wasFunded(paymentStatus) {
+  return !NEVER_HELD_PAYMENT_STATUSES.includes(paymentStatus);
+}

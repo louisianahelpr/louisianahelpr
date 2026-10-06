@@ -404,6 +404,10 @@ beforeAll(async () => {
           // noallow (Q445a): /home is on neither site_url's host nor the allow-list.
           site_url: mode === "noallow" ? "https://helpr.example.com" : "https://www.louisianahelpr.com",
           uri_allow_list: "https://louisianahelpr-*-louisianahelprs-projects.vercel.app/**",
+          // Q446 one-account-per-person settings, all as prod has them.
+          hook_before_user_created_enabled: true,
+          hook_before_user_created_uri: "pg-functions://postgres/public/hook_one_account_per_person",
+          security_manual_linking_enabled: true,
         }));
       }
       const checks = ["A", "A", "A", "A", "B", "B", "B", "B", "C", "C", "C", "D"].map((c, i) => ({ case: c, check: `c${i}`, ok: true, got: 1 }));
@@ -488,6 +492,15 @@ describe("live check scripts fail closed", () => {
         const { code: exit, out } = await run(script, c);
         expect(exit, `${script} exited 0 on "${c.label}" — a green that checked nothing.\n${out.slice(-1500)}`).not.toBe(0);
         expect(out, `${script} failed on "${c.label}", but not for the injected reason (a crash is not fail-closed).\n${out.slice(-1500)}`).toMatch(c.says);
+        // A case that names one FAIL line must fail on THAT line alone. When a
+        // later check added its own config keys to the script but not to this
+        // stub, the stub's config failed them too, so the script exited 1 with
+        // its redirect check disabled and the case stayed green (vacuity run
+        // 37519910942: `if (!cover) failed = true;` -> `if (false)` SURVIVED).
+        if (c.says.source.startsWith("FAIL")) {
+          const fails = out.split("\n").filter((l) => /^FAIL /.test(l));
+          expect(fails, `${script} on "${c.label}" printed other FAIL lines besides the injected one, so its exit proves nothing about that check:\n  ${fails.join("\n  ")}`).toHaveLength(1);
+        }
       }, 90_000);
     }
   }

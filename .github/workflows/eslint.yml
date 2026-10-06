@@ -13,9 +13,10 @@ name: ESLint
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+  # No pull_request (owner, 2026-10-05: fewer check rows per PR): the REQUIRED
+  # "Lint, type-check, build, test" job already runs the same `eslint .` with the
+  # same config on every PR. This SARIF upload feeds code scanning, which is
+  # read on main only (scripts/code-scanning-check.mjs reads refs/heads/main).
   schedule:
     - cron: '30 7 * * 2'
   workflow_dispatch:

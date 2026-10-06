@@ -16,8 +16,8 @@
  * Usage:
  *   node scripts/check-native-sign-in-config.mjs
  *       env SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF (LH_SUPABASE_API_BASE for tests)
- * Exit status: 0 when every check passes, 1 when a check failed, 2 when it
- * could not run (no credentials, the config could not be read, or the source
+ * Exit status: zero when every check passes, one when a check failed, two
+ * when it could not run (no credentials, the config could not be read, or the source
  * no longer derives any id). Never reported clean on a failed read.
  *
  * Nightly: .github/workflows/db-drift-detect.yml ("Native sign-in client ids

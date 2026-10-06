@@ -30,9 +30,12 @@
  *  - MID-RUN (a manual cancel): notify jobs are on `!cancelled()` since Q821
  *    (nightlyReportersSkipCancelledRuns.test.ts) so a cancelled run never
  *    files a red it did not test; the heartbeat is what reports it instead.
- * A job's own timeout does not cancel the run, so notify still runs then, and
- * its status must compare every need with `== 'success'` (a `!= 'failure'`
- * test would read a skipped or cancelled need as green).
+ * A job's own timeout DOES give the run conclusion `cancelled` (a11y-webkit-prod
+ * 37355527038, 2026-10-05), but notify still runs then (only a job was
+ * cancelled), and its status must compare every need with `== 'success'` (a
+ * `!= 'failure'` test would read a skipped or cancelled need as green). Such a
+ * run reported itself and is not counted as lost:
+ * heartbeatTimedOutRunReportedItself.test.ts.
  *
  * The workflow set is derived from the files (workflow-level group that can
  * be 'prod-load' + a schedule), never a hand list.

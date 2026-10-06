@@ -59,6 +59,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { classifyJobs } from "./run-verdict.mjs";
 
 /** Eight days: a weekly cadence plus one, so every cancelled run is reported by at least one daily heartbeat and stays red for a week. */
 export const WINDOW_DAYS = 8;
@@ -226,6 +227,50 @@ export function cancelCause(jobs, annotations = [], { prodLoad = true } = {}) {
   return `cancelled with ${jobs.length} job(s) created`;
 }
 
+/**
+ * The display names of a workflow's REPORTING jobs: the jobs whose steps use
+ * ./.github/actions/nightly-issue-sync (a job's `name:`, else its key).
+ */
+export function reporterJobNames(src) {
+  const text = String(src);
+  const jobsAt = /^jobs:\s*$/m.exec(text);
+  if (!jobsAt) return new Set();
+  const body = text.slice(jobsAt.index + jobsAt[0].length);
+  const out = new Set();
+  const heads = [...body.matchAll(/^ {2}([A-Za-z0-9_-]+):\s*$/gm)];
+  heads.forEach((h, i) => {
+    const block = body.slice(h.index, i + 1 < heads.length ? heads[i + 1].index : body.length);
+    const code = block.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    if (!/uses:\s*["']?\.\/\.github\/actions\/nightly-issue-sync["']?\s*$/m.test(code)) return;
+    const name = /^ {4}name:\s*(.+?)\s*$/m.exec(code)?.[1]?.replace(/^["']|["']$/g, "");
+    out.add(name ?? h[1]);
+  });
+  return out;
+}
+
+/**
+ * Did a cancelled scheduled run REPORT ITSELF? A job killed by its own
+ * timeout-minutes gives the RUN conclusion `cancelled` (a11y-webkit-prod run
+ * 37355527038, 2026-10-05: "The job has exceeded the maximum execution time
+ * of 1h0m0s"), yet its notify job still ran and filed the red on the
+ * workflow's own nightly-red issue (#2375). That run was not lost; calling it
+ * "cancelled, nothing reported" opened a second alert for one red
+ * (schedule-stalled #2464 + nightly-red: schedule-heartbeat #2465).
+ * True only when run-verdict's classifyJobs calls the jobs a FAILURE (a
+ * timeout or a failed step, never a bare cancel) AND a reporting job of the
+ * workflow (reporterJobNames) concluded success. A run cancelled by hand or
+ * by its group (notify skipped on `!cancelled()`) stays a loss.
+ */
+export function reportedItsOwnRed(jobs, annotations, reporters) {
+  if (!jobs?.length || !reporters?.size) return false;
+  if (!jobs.some((j) => reporters.has(j.name) && j.conclusion === "success")) return false;
+  const checks = jobs.filter((j) => !reporters.has(j.name));
+  // Fail-closed the heartbeat's way: classifyJobs reads an unread annotation as
+  // a failure (right for filing a red), which here would excuse the run.
+  if (checks.some((j) => j.conclusion === "cancelled" && !Array.isArray(annotations?.[j.id]))) return false;
+  return classifyJobs(checks, annotations).failed.length > 0;
+}
+
 const ghJson = (args) => JSON.parse(execFileSync("gh", args, { encoding: "utf8", maxBuffer: 1 << 26 }) || "null");
 
 /** gh api over every page of a runs listing, as one array. */
@@ -249,15 +294,25 @@ export function workflowRuns(repo, file, { now = Date.now(), windowDays = WINDOW
   return [...sched, ...runs(`repos/${repo}/actions/workflows/${file}/runs?branch=main&event=workflow_dispatch&per_page=100&created=${encodeURIComponent(`>=${since}`)}`)];
 }
 
-function causeOf(repo, r, prodLoad) {
+/** The run's jobs and every cancelled job's annotations (an unread one is left out). Never throws. */
+function runFacts(repo, r) {
   try {
     const jobs = ghJson(["api", `repos/${repo}/actions/runs/${r.id}/jobs?per_page=50`, "--jq", ".jobs"]) ?? [];
-    const first = jobs.find((j) => j.conclusion === "cancelled");
-    const ann = first ? ghJson(["api", `repos/${repo}/check-runs/${first.id}/annotations`]) ?? [] : [];
-    return cancelCause(jobs, ann, { prodLoad });
+    const annotations = {};
+    for (const j of jobs.filter((x) => x.conclusion === "cancelled")) {
+      try { annotations[j.id] = ghJson(["api", `repos/${repo}/check-runs/${j.id}/annotations`]) ?? []; }
+      catch { /* left unread: reportedItsOwnRed then refuses to excuse the run */ }
+    }
+    return { jobs, annotations, error: null };
   } catch (e) {
-    return `cause unread (${String(e.message).split("\n")[0]})`;
+    return { jobs: null, annotations: {}, error: String(e.message).split("\n")[0] };
   }
+}
+
+function causeOf(facts, prodLoad) {
+  if (facts.error) return `cause unread (${facts.error})`;
+  const first = facts.jobs.find((j) => j.conclusion === "cancelled");
+  return cancelCause(facts.jobs, (first && facts.annotations[first.id]) || [], { prodLoad });
 }
 
 function main() {
@@ -283,7 +338,22 @@ function main() {
       const next = runs.filter((o) => rerunsTheSchedule(o) && Date.parse(o.created_at) > Date.parse(r.created_at) && IN_FLIGHT.has(o.status))[0];
       console.log(`| \`${f}\` | cancelled, re-run in flight | ${r.created_at} | ⏳ ${r.html_url} is being re-tested by ${next?.html_url ?? "a later run"} |`);
     }
-    const stalled = cancelledScheduledRuns(runs, { file: f, graceMs });
+    const cancelledRuns = cancelledScheduledRuns(runs, { file: f, graceMs });
+    if (!cancelledRuns.length) continue;
+    // A run whose own job timed out or failed, and whose notify job filed that
+    // red, reported itself (reportedItsOwnRed): its red lives on the
+    // workflow's nightly-red issue, not here.
+    const reporters = reporterJobNames(readFileSync(resolve(process.cwd(), ".github/workflows", f), "utf8"));
+    const facts = new Map(cancelledRuns.map((r) => [r.id, runFacts(repo, r)]));
+    const stalled = [];
+    for (const r of cancelledRuns) {
+      const fx = facts.get(r.id);
+      if (!fx.error && reportedItsOwnRed(fx.jobs, fx.annotations, reporters)) {
+        console.log(`| \`${f}\` | timed out or failed, reported | ${r.created_at} | ✅ a job timed out or failed (run conclusion \`cancelled\`), and its notify job filed the red on the workflow's own nightly-red issue: ${r.html_url} |`);
+        continue;
+      }
+      stalled.push(r);
+    }
     if (!stalled.length) continue;
     const plan = redispatch ? redispatchPlan(f, stalled, runs, { prodLoad: prodLoad.has(f) }) : { act: false, why: "re-dispatch not asked for", inputs: {} };
     let sent = null;
@@ -297,7 +367,7 @@ function main() {
       }
     }
     for (const r of stalled) {
-      const cause = causeOf(repo, r, prodLoad.has(f));
+      const cause = causeOf(facts.get(r.id), prodLoad.has(f));
       if (sent) {
         console.log(`| \`${f}\` | cancelled, re-dispatched | ${r.created_at} | ⏳ ${cause}; ${sent}: ${r.html_url} |`);
         console.error(`::warning::${f}: scheduled run ${r.id} (${r.created_at}) was cancelled (${cause}); ${sent}.`);

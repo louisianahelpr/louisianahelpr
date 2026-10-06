@@ -670,7 +670,9 @@ describe("prod-hitting workflow schedules", () => {
     // 2026-09-27: open-done-when.yml took both (Sun + Thu 05:17).
     // 2026-10-01: the timeout cuts that put every shared-account lock holder
     // under 60 minutes (sharedAccountLockJobsAreShort) freed these two.
-    expect(free).toEqual(["Tue 03:17", "Fri 03:17"]);
+    // 2026-10-06: e2e-real-backend took both (nightly-red #2375): a11y-webkit-
+    // prod's two locked engine legs hold the group past its old 11:17 Mon/Wed/Fri.
+    expect(free).toEqual([]);
   });
 
   it("rule 5 can fail: the Q318 shape (press 03:17 with two waves, drift 05:17, backup 07:17) is red", () => {

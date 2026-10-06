@@ -75,9 +75,14 @@ on:
   # with `batch: true` on push and every 20 min, the prod-deploy.yml pattern
   # (scripts/ci/main-batch.mjs). Guarded by src/test/prRunBudget.test.ts.
   schedule:
-    # Mon, Wed, Fri, Sat 11:17 UTC. Sunday moved to Saturday: Sunday's morning is
+    # Was Mon, Wed, Fri, Sat 11:17 UTC. Sunday moved to Saturday: Sunday's morning is
     # prod-audit (01:17) then vacuity (07:17, worst case to 12:22). Q318 (2026-09-23): moved so no prod-load run is due while another's worst case (timeout x waves) still holds the group; src/test/prodWorkflowSpacing.test.ts rule 5.
-    - cron: "17 11 * * 1,3,5,6"
+    # 2026-10-06 (nightly-red #2375, lead-approved option A): Mon/Wed/Fri 11:17
+    # moved to Tue/Fri 03:17, the week's two free prod-load slots. a11y-webkit-
+    # prod (09:17 Mon/Wed/Fri) now runs one locked leg per engine, and its
+    # worst case (167 min) holds the group past 11:17. Sat 11:17 stays.
+    - cron: "17 3 * * 2,5"
+    - cron: "17 11 * * 6"
   workflow_dispatch:
     inputs:
       batch:

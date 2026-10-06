@@ -22,6 +22,8 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
+// Type only: erased from the bundle, so the dialog code still loads on demand.
+import type { AccountChoiceDialog as AccountChoiceDialogComponent } from "@/components/auth/AccountChoiceDialog";
 import {
   signInWithProvider,
   type AccountChoice,
@@ -34,7 +36,7 @@ import {
 // An effect, not React.lazy: a lazy component suspends Login's first render,
 // React may discard it, and takeOAuthRedirectError() (read once, in Login's
 // state initializer) then hands the re-render null, so the dialog never opened.
-type AccountChoiceDialogType = typeof import("@/components/auth/AccountChoiceDialog").AccountChoiceDialog;
+type AccountChoiceDialogType = typeof AccountChoiceDialogComponent;
 function useAccountChoiceDialog(needed: boolean): AccountChoiceDialogType | null {
   const [Dialog, setDialog] = useState<AccountChoiceDialogType | null>(null);
   useEffect(() => {

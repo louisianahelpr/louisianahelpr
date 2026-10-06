@@ -10,7 +10,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { LAUNCH_LIST_END, LAUNCH_LIST_START, launchListProgress } from "../../scripts/scoreboard.mjs";
+import { LAUNCH_LIST_END, LAUNCH_LIST_START, launchListProgress, renderOpenBlock } from "../../scripts/scoreboard.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const OPEN_MD = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
@@ -24,6 +24,13 @@ describe("launch list progress", () => {
     // Q3 has no open line: ticked and archived, so done.
     expect(launchListProgress(text)).toEqual({ total: 3, todo: 1, partly: 1, left: 2 });
     expect(launchListProgress("no markers")).toBeNull();
+  });
+
+  it("the generated header prints that progress", () => {
+    const text = [LAUNCH_LIST_START, "- A: Q1, Q2, Q3", LAUNCH_LIST_END, "- [ ] **Q1 HIGH a**", "- [~] **Q2 HIGH b**"].join("\n");
+    const local = [{ signal: "OPEN.md queue", fail: 1, pass: 1, skipped: "1" }];
+    expect(renderOpenBlock(local, "- **Workflows on main:** x", text)).toMatch(/^- \*\*Launch list: 2 left of 3\*\* \(1 to do, 1 fixed awaiting proof/m);
+    expect(renderOpenBlock(local, "- **Workflows on main:** x", "no markers")).not.toMatch(/Launch list/);
   });
 
   it("OPEN.md's header line matches its own LAUNCH LIST section", () => {

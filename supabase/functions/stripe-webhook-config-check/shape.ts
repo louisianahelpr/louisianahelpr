@@ -63,8 +63,11 @@ interface ConfigCheckBody {
   keyIsLive: boolean;
   endpoints: ShapedEndpoint[];
   undelivered: UndeliveredEvents;
-  /** Active Stripe Tax registrations (Q441): checkout charges Louisiana sales tax only when one is active. */
-  taxRegistrations: ShapedTaxRegistration[];
+  /** Active Stripe Tax registrations (Q441): checkout charges Louisiana sales tax only when one is active.
+   *  null when the read failed (then `taxError` says why); the guard grades null as red, but the
+   *  endpoint and undelivered checks are still returned and graded the same night. */
+  taxRegistrations: ShapedTaxRegistration[] | null;
+  taxError?: string;
 }
 
 export const STRIPE_TAX_REGISTRATIONS_URL = "https://api.stripe.com/v1/tax/registrations?status=active&limit=100";
@@ -210,11 +213,14 @@ export async function readWebhookConfig(
   if (!events.ok) return events;
   const shaped = events.data.map((e) => shapeEvent((e ?? {}) as Record<string, unknown>));
 
+  // A failed tax read must not hide the endpoint/undelivered result (lh-money-escrow, 2026-10-06):
+  // it comes back as taxRegistrations: null + taxError, which the guard grades red.
   const tax = await getStripeList(STRIPE_TAX_REGISTRATIONS_URL, "tax/registrations", key, fetchImpl, timeoutMs);
-  if (!tax.ok) return tax;
-  if (tax.hasMore) {
-    return { ok: false, status: 502, error: "Stripe returned more than 100 active tax registrations; the check reads one page only" };
-  }
+  const taxError = !tax.ok
+    ? tax.error
+    : tax.hasMore
+      ? "Stripe returned more than 100 active tax registrations; the check reads one page only"
+      : undefined;
 
   return {
     ok: true,
@@ -222,7 +228,8 @@ export async function readWebhookConfig(
       keyIsLive: keyIsLive(key),
       endpoints: endpoints.data.map((e) => shapeEndpoint((e ?? {}) as Record<string, unknown>)),
       undelivered: { since, until, count: shaped.length, truncated: events.hasMore, events: shaped },
-      taxRegistrations: tax.data.map((r) => shapeTaxRegistration((r ?? {}) as Record<string, unknown>)),
+      taxRegistrations: taxError || !tax.ok ? null : tax.data.map((r) => shapeTaxRegistration((r ?? {}) as Record<string, unknown>)),
+      ...(taxError ? { taxError } : {}),
     },
   };
 }

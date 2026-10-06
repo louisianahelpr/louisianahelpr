@@ -7,7 +7,7 @@ export interface WebhookEndpoint {
   enabled_events?: string[];
 }
 export function gradeConfigCheckResponse(
-  body: { keyIsLive?: unknown; endpoints?: WebhookEndpoint[]; undelivered?: unknown; taxRegistrations?: unknown } | null | undefined,
+  body: { keyIsLive?: unknown; endpoints?: WebhookEndpoint[]; undelivered?: unknown; taxRegistrations?: unknown; taxError?: unknown } | null | undefined,
   handlers: string[],
   url: string,
 ): { failures: string[]; notes: string[] };
@@ -27,7 +27,7 @@ export function gradeUndelivered(undelivered: unknown): {
 };
 
 /** Grades the edge function's `taxRegistrations` (Q441): red unless an active US/LA registration is listed. */
-export function gradeTaxRegistrations(regs: unknown): {
+export function gradeTaxRegistrations(regs: unknown, taxError?: unknown): {
   failures: string[];
   notes: string[];
 };

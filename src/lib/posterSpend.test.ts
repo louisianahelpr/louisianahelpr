@@ -65,9 +65,13 @@ describe("posterSpentCents — what the poster's card really paid for one job", 
     expect(posterSpentCents(job({ payment_status: "cancelled" }), 0, 0)).toBe(0);
   });
 
-  it("cancel_escrow's shape: payment_status 'cancelled' + a refund row = the withheld service fee counts", () => {
+  it("cancel_escrow's OLD shape (before Q86): payment_status 'cancelled' + a refund row = the withheld service fee counts", () => {
     // $100 + $12 service fee captured; cancel_escrow refunded $100 (withheld the $12 fee).
     expect(posterSpentCents(job({ payment_status: "cancelled" }), 10000, 0)).toBe(1200);
+  });
+
+  it("cancel_escrow's shape since Q86: payment_status 'refunded' + a refund row = the withheld service fee counts", () => {
+    expect(posterSpentCents(job({ payment_status: "refunded" }), 10000, 0)).toBe(1200);
   });
 
   it("no PaymentIntent means no card charge, whatever the status says", () => {

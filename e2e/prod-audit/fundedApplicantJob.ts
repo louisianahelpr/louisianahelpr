@@ -19,7 +19,7 @@
  *      the poster, exactly as prod-lifecycle.spec.ts does (a harness concession
  *      to a real product rule, asserted rather than assumed).
  *   3. helper-e2e applies through `apply_to_job`, the RPC the Apply button calls.
- *   4. Teardown: create-payment cancel_escrow (refund + cancelled/cancelled),
+ *   4. Teardown: create-payment cancel_escrow (refund + cancelled/refunded, Q86),
  *      proven by reading the row back (`retireFundedJob`).
  *
  * LIFETIME: one run. `ensureFundedApplicantJob` first retires any leftover

@@ -42,7 +42,9 @@ const LEDGER_HELPER = "supabase/functions/_shared/opsAlertLedger.ts";
 const WORKFLOW_EXEMPT: Record<string, string> = {
   "slack-test.yml": "manual delivery test of the webhook; posts no alert",
 };
-const WORKFLOW_MARKER = /ops-alert-ledger\.mjs record/;
+// `sync` counts too (Q1058): it records each new nightly-red issue in the ledger
+// (recordOpsAlert) BEFORE it posts that issue to Slack, in the same run.
+const WORKFLOW_MARKER = /ops-alert-ledger\.mjs (?:record|sync)\b/;
 
 function walk(dir: string, keep: (f: string) => boolean): string[] {
   const out: string[] = [];

@@ -376,6 +376,16 @@ const StalledJobRow = ({
         >
           Open the job <ExternalLink className="w-3 h-3" aria-hidden="true" />
         </Link>
+        {/* Q1070: the next step after a review. This screen moves no money;
+            the refund and status-override dialogs live on the job's admin
+            detail, which `?view=jobs&job=` opens directly (AdminJobs reads
+            `job`). */}
+        <Link
+          to={`/admin?view=jobs&job=${row.job_id}`}
+          className="inline-flex items-center gap-1 font-semibold text-foreground underline underline-offset-2"
+        >
+          Refund or change status in Jobs
+        </Link>
       </div>
 
       {/* The ladder. "Reminded twice and still nothing" is the difference

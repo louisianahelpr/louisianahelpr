@@ -158,10 +158,11 @@ export async function retireFundedJob(api: APIRequestContext, poster: Session, j
   }
   // A 200 is a claim; the row is the fact (CLAUDE.md "A null error is not a write").
   const after = await readRow(api, poster, jobId);
-  if (after.status !== "cancelled" || after.payment_status !== "cancelled") {
+  // Q86 (a): a refunded capture ends 'refunded' (before 2026-10-07 cancel_escrow wrote 'cancelled').
+  if (after.status !== "cancelled" || !["refunded", "cancelled"].includes(after.payment_status ?? "")) {
     throw new Error(`funded fixture: cancel_escrow on ${jobId} answered success but the job is ${after.status}/${after.payment_status}`);
   }
-  return `retired ${jobId} (cancel_escrow → refunded, cancelled/cancelled)`;
+  return `retired ${jobId} (cancel_escrow → refunded, ${after.status}/${after.payment_status})`;
 }
 
 /** `title` defaults to the un-applied fixture; the applicant fixture (fundedApplicantJob.ts) passes its own prefix. */

@@ -6,9 +6,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { stripeIdentityVerified } from "../_shared/stripeIdentity.ts";
 import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
-import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { enforceConnectAccountFingerprints } from "../_shared/paymentFingerprint.ts";
+import { syncConnectGate } from "../_shared/connectGateSync.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
 const STALE_CLEAR_HOURLY_CAP = 5;
@@ -167,7 +166,7 @@ serve(async (req) => {
       })
       .eq("user_id", userId)
       .eq("stripe_account_id", accountId)
-      .select("id");
+      .select("id, is_seed");
     if (clearErr || (clearedRows?.length ?? 0) === 0) {
       console.error(
         `[stripe-connect] stale-account clear did NOT happen for ${userId} (${accountId}):`,
@@ -181,11 +180,18 @@ serve(async (req) => {
     // the record (the error_logs Slack and ledger triggers see it at info
     // cadence). A failed insert is logged, not thrown: the clear already
     // happened and is correct for this account.
+    // Q1436: a seed (test) account's clear is tagged seed, so it goes to the
+    // daily digest and never opens an ops-ledger item
+    // (public.error_log_is_seed). Measured 2026-10-07: all 4 clears on prod
+    // were helper-e2e's TEST-mode account read under the live key, re-linked
+    // by test-mode lanes. Source and kind are unchanged, so the breaker
+    // above still counts it.
+    const isSeed = (clearedRows?.[0] as { is_seed?: boolean } | undefined)?.is_seed === true;
     const { error: logErr } = await supabaseAdmin.from("error_logs").insert({
       user_id: userId,
       severity: "info",
       message: `stripe-connect cleared unusable payout account ${accountId}`,
-      tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND },
+      tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND, ...(isSeed ? { seed: true } : {}) },
       context: { account_id: accountId },
     });
     if (logErr) {
@@ -542,117 +548,14 @@ serve(async (req) => {
       const account = await stripe.accounts.retrieve(profile.stripe_account_id);
       const transfersCapability = account.capabilities?.transfers;
 
-      // Q1324: the payout bank accounts (and payout debit cards) on this
-      // Connect account are checked against banned people's (owner rule,
-      // 2026-10-05: a match AUTO-BANS). `status` is the check point because it
-      // is the one writer that sees a Helpr become payable (Q876: prod's
-      // endpoint receives no Connect events). The refusal names nothing: a
-      // helpful message would turn this into a lookup of whose bank is banned.
-      const fpCheck = await enforceConnectAccountFingerprints(stripe, supabaseAdmin, user.id, account);
-      if (fpCheck.kind === "banned") {
-        await postSlackOpsAlert({
-          kind: "fraud_flag",
-          severity: "warning",
-          title: "Ban evasion: a banned person's payout account was attached",
-          message: fpCheck.already_banned
-            ? "The account was already banned; its ban was left as it was. The fraud console has the details."
-            : "The account was banned automatically (owner rule Q1324). The fraud console has the details.",
-          fields: { user_id: user.id, account_id: account.id, matched_on: fpCheck.matched_on },
-        });
+      // Q1324 ban-evasion check, then the cached gate re-synced from this
+      // read (Q862/Q873). Shared with the Q1186 schedule, which runs it for
+      // every Helpr whose accept waits on setup: _shared/connectGateSync.ts.
+      const gate = await syncConnectGate(stripe, supabaseAdmin, user.id, profile, account);
+      if (gate.kind === "banned") {
         return new Response(JSON.stringify({ error: "This payout account can't be used. Please contact support." }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 403,
-        });
-      }
-      if (fpCheck.kind === "not_deployed") {
-        console.warn(`[stripe-connect] Q1324 payout-account check not deployed yet: ${fpCheck.message}`);
-      }
-      // A check that could not run is never read as "clear": it pages, and the
-      // cached payout gate is not moved INTO enabled on this call (below). A
-      // Helpr who is already payable stays payable; nobody new becomes payable
-      // unchecked.
-      const fpCheckFailed = fpCheck.kind === "failed";
-      if (fpCheck.kind === "failed") {
-        console.error(`[stripe-connect] Q1324 payout-account check did not run for ${user.id}: ${fpCheck.message}`);
-        await postSlackOpsAlert({
-          kind: "security",
-          severity: "critical",
-          title: "Ban-evasion payout-account check did not run",
-          message: "A Helpr's payout bank account was NOT checked against banned people's. Their payout gate was not opened on this read.",
-          fields: { user_id: user.id, account_id: account.id, reason: fpCheck.message },
-          oncePerDayKey: "stripe-connect-q1324-check-failed",
-        });
-      }
-
-      // Re-sync the cached gate columns from this live read.
-      //
-      // The acceptance gate (migration 20260827191647) is enforced in Postgres
-      // against `profiles.stripe_payouts_enabled` / `stripe_identity_verified`,
-      // which are normally written by the `account.updated` webhook. Those
-      // columns default FALSE with no backfill, so a helper who onboarded
-      // BEFORE they existed — and has had no Connect event since — would be
-      // blocked by a cache that is merely empty rather than by anything Stripe
-      // actually says.
-      //
-      // This write-back makes that self-healing instead of requiring a bulk job
-      // against live Stripe: the client re-runs `status` on the very attempt
-      // that is about to be blocked, so a stale cache corrects itself on the
-      // first try. It costs no extra Stripe call — the account is already
-      // retrieved above — and it can only ever move the columns towards what
-      // Stripe currently reports.
-      //
-      // Failure is logged, not thrown: the caller asked for a status, and the
-      // stale value it replaces is the conservative one (gate stays closed).
-      //
-      // Q862 — scoped to the id this call RETRIEVED, not just the user. A
-      // status call that read the old account before a concurrent clear
-      // (Q859 stale-account clear, or `reset`) would otherwise write
-      // payouts_enabled=true back onto a profile that no longer has any
-      // account. With the id in the WHERE clause that write matches zero rows,
-      // which is the correct outcome, so zero rows is legitimate here and not
-      // treated as a failure.
-      //
-      // Q873 — this is a compare-and-set on the flags just read, the same
-      // transition CAS the account.updated webhook runs (Q870). Prod's live
-      // webhook endpoint receives no Connect events (Q876, measured
-      // 2026-10-02), so `status` is usually the ONLY writer that sees a helper
-      // become payable; before this it moved the cache silently and the
-      // helper never got the "Payout account verified" notice. Now the one
-      // write that moves the cache INTO enabled sends it. Zero rows is still
-      // legitimate (a concurrent writer — the webhook or a second `status` —
-      // got there first and owns the notice, or the account was replaced).
-      const nowCharges = account.charges_enabled === true;
-      const nowPayouts = account.payouts_enabled === true;
-      const wasEnabled = profile.stripe_charges_enabled === true && profile.stripe_payouts_enabled === true;
-      const { data: cacheRows, error: cacheErr } = fpCheckFailed && !wasEnabled
-        ? { data: [] as Array<{ id: string }>, error: null }
-        : await supabaseAdmin
-        .from("profiles")
-        .update({
-          stripe_charges_enabled: nowCharges,
-          stripe_payouts_enabled: nowPayouts,
-          stripe_identity_verified: stripeIdentityVerified(account),
-          ...(stripeIdentityVerified(account)
-            ? { stripe_identity_verified_at: new Date().toISOString() }
-            : {}),
-        })
-        .eq("user_id", user.id)
-        .eq("stripe_account_id", profile.stripe_account_id)
-        .eq("stripe_identity_verified", profile.stripe_identity_verified === true)
-        .eq("stripe_charges_enabled", profile.stripe_charges_enabled === true)
-        .eq("stripe_payouts_enabled", profile.stripe_payouts_enabled === true)
-        .select("id");
-      if (cacheErr) {
-        console.error(`[stripe-connect] status cache write-back failed for ${user.id}:`, cacheErr);
-      } else if ((cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled) {
-        // insertNotifications logs its own failure and returns false; the
-        // status answer does not depend on the notice.
-        await insertNotifications(supabaseAdmin, {
-          user_id: user.id,
-          title: "Payout account verified",
-          message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
-          type: "success",
-          link: "/profile?tab=payment",
         });
       }
 

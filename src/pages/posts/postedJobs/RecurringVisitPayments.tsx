@@ -9,6 +9,8 @@ import { report } from "@/lib/errorLogger";
 import { hapticError } from "@/lib/haptics";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { todayYmd } from "@/lib/jobDate";
+import { formatJobDate } from "@/lib/dateUtils";
 
 /**
  * Q210(b): recurring visits of $300 or more are never charged off-session
@@ -35,15 +37,23 @@ export function RecurringVisitPayments({ userId }: { userId: string }) {
     enabled: !!userId,
     staleTime: 30_000,
     queryFn: async () => {
-      // The server refuses a visit whose date has arrived (UTC), so match it.
-      const todayUtc = new Date().toISOString().slice(0, 10);
+      // The server refuses a visit whose Louisiana date has arrived (create-payment
+      // louisianaToday, Q1203), so match it: from 19:00 CDT the UTC date is already
+      // tomorrow, which hid a payable visit (lh-money-escrow review of Q1247).
+      const today = todayYmd();
+      // Q1247 (b): create-payment also refuses a visit of a series that is
+      // over ("This series has ended": series_ended_on set, or the parent
+      // cancelled). Its row stays pending until the daily sweep expires it, so
+      // the card leaves it out instead of offering a Pay button that fails.
       return unwrap(
         await supabase
           .from("recurring_visit_payments")
-          .select("id, visit_date, amount_cents, parent_job_id, jobs!recurring_visit_payments_parent_job_id_fkey(title)")
+          .select("id, visit_date, amount_cents, parent_job_id, jobs!recurring_visit_payments_parent_job_id_fkey!inner(title, series_ended_on, status)")
           .eq("payer_id", userId)
           .eq("status", "pending")
-          .gt("visit_date", todayUtc)
+          .gt("visit_date", today)
+          .is("jobs.series_ended_on", null)
+          .neq("jobs.status", "cancelled")
           .order("visit_date", { ascending: true }),
       ) as unknown as PendingVisitPayment[];
     },
@@ -107,7 +117,7 @@ export function RecurringVisitPayments({ userId }: { userId: string }) {
             <div className="text-sm">
               <p className="font-semibold">Confirm your next visit</p>
               <p className="text-muted-foreground">
-                {row.jobs?.title ? `"${row.jobs.title}"` : "Your repeating job"} on {row.visit_date} is ${dollars}.
+                {row.jobs?.title ? `"${row.jobs.title}"` : "Your repeating job"} on {formatJobDate(row.visit_date)} is ${dollars}.
                 Payments this size need you to confirm them, so the visit is booked once you pay.
               </p>
             </div>

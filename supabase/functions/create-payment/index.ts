@@ -1956,6 +1956,12 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
       };
 
+      // Q86 (a): ONE meaning per payment_status. A captured charge that this
+      // cancel refunds (less the non-refundable fee) ends 'refunded', the
+      // same label void-cancelled-payments writes for the same outcome;
+      // 'cancelled' stays "nothing was charged" (no PaymentIntent: a job the
+      // gift card covered in full, or no payment found).
+      let captureRefunded = false;
       let cancelPaymentIntentId = job.stripe_payment_intent_id;
       if (!cancelPaymentIntentId && job.stripe_session_id) {
         try {
@@ -2012,6 +2018,7 @@ serve(async (req) => {
           return await refuseTestModeCancel(cancelPaymentIntentId);
         }
         if (pi.status === "succeeded") {
+          captureRefunded = true;
           // Service fee is non-refundable: Stripe already took its cut on the
           // full capture and does NOT return it on a refund, so a full refund
           // leaves the platform out-of-pocket by that processing cost on every
@@ -2150,7 +2157,7 @@ serve(async (req) => {
       // disputed → cancelled, leaving an open dispute on a cancelled, refunded
       // job) or a chargeback's payment_status — with cancelled/cancelled.
       let { data: cancelUpdated, error: cancelUpdateErr } = await supabaseAdmin.from("jobs").update({
-        payment_status: "cancelled",
+        payment_status: captureRefunded ? "refunded" : "cancelled",
         status: "cancelled",
         cancelled_at: new Date().toISOString(),
         cancelled_by: user.id,
@@ -2161,7 +2168,7 @@ serve(async (req) => {
         // That is this request's outcome too, not a divergence.
         const { data: nowJob } = await supabaseAdmin
           .from("jobs").select("id, status, payment_status").eq("id", jobId).maybeSingle();
-        if (nowJob?.status === "cancelled" && nowJob?.payment_status === "cancelled") {
+        if (nowJob?.status === "cancelled" && nowJob?.payment_status === (captureRefunded ? "refunded" : "cancelled")) {
           cancelUpdated = [{ id: nowJob.id }];
         } else if (nowJob?.payment_status === "cancelling") {
           // Our claim still holds but the STATUS moved during the refund — in
@@ -2173,7 +2180,7 @@ serve(async (req) => {
           // anything else that moved payment_status — and paged, because the
           // dispute record it overrode needs a human to close it.
           const { data: forced, error: forceErr } = await supabaseAdmin.from("jobs").update({
-            payment_status: "cancelled",
+            payment_status: captureRefunded ? "refunded" : "cancelled",
             status: "cancelled",
             cancelled_at: new Date().toISOString(),
             cancelled_by: user.id,

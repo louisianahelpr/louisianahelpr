@@ -44,7 +44,9 @@ import { blankComments } from "./helpers/blankNonCode";
 const ROOT = resolve(__dirname, "../..");
 const FUNCTIONS = resolve(ROOT, "supabase/functions");
 
-const TERMINAL_WRITE = /payment_status:\s*"(cancelled|refunded)"/;
+// A literal, or a two-way choice of them (cancel_escrow since Q86:
+// `payment_status: captureRefunded ? "refunded" : "cancelled"`).
+const TERMINAL_WRITE = /payment_status:\s*(?:[\w$]+\s*\?\s*)?"(cancelled|refunded)"/;
 /**
  * CALLING the RPC, or one of the local wrappers that do and handle its
  * outcomes (create-payment's restoreGiftForCancelledJob and its

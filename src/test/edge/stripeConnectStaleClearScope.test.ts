@@ -22,7 +22,7 @@
  * @mutate supabase/functions/stripe-connect/index.ts | null,\n        stripe_payouts_enabled: false,\n | null,\n
  * @mutate supabase/functions/stripe-connect/index.ts | stripe_charges_enabled: false,\n        stripe_identity_verified: false,\n      }) | stripe_charges_enabled: false,\n      })
  * @mutate supabase/functions/stripe-connect/index.ts |     if (clearErr \|\| (clearedRows?.length ?? 0) === 0) { |     if (false) {
- * @mutate supabase/functions/stripe-connect/index.ts |       .eq("stripe_account_id", accountId)\n      .select("id"); |       .eq("stripe_account_id", accountId);
+ * @mutate supabase/functions/stripe-connect/index.ts |       .eq("stripe_account_id", accountId)\n      .select("id, is_seed"); |       .eq("stripe_account_id", accountId);
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -126,7 +126,7 @@ describe("Q859 — stripe-connect clears a payout account only when the ACCOUNT 
       stripe_charges_enabled: false,
       stripe_identity_verified: false,
     });
-    expect(clears[0].selectCols, "the clear must read back its rows").toBe("id");
+    expect(clears[0].selectCols, "the clear must read back its rows").toBe("id, is_seed"); // is_seed: Q1436 routes a seed account's record to the digest
     expect(clears[0].filters).toEqual(
       expect.arrayContaining([
         { op: "eq", column: "user_id", value: USER.id },

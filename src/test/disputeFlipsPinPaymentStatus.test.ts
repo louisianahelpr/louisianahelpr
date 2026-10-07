@@ -13,7 +13,8 @@ const FILE = "supabase/functions/create-payment/index.ts";
 const src = blankComments(readFileSync(resolve(__dirname, "../..", FILE), "utf8"));
 
 /** Every terminal payment_status write (released, refunded, cancelled) in a jobs update payload. */
-const TERMINAL_WRITE = new RegExp(`payment_status:\\s*"(${["released", "refunded", "cancelled"].join("|")})"`, "g");
+// A literal, or a two-way choice of them (cancel_escrow since Q86).
+const TERMINAL_WRITE = new RegExp(`payment_status:\\s*(?:[\\w$]+\\s*\\?\\s*)?"(${["released", "refunded", "cancelled"].join("|")})"`, "g");
 // The pin must sit in the same chain: before the next job write begins.
 const PIN = /\.(?:eq|in|is)\(\s*"payment_status"/;
 

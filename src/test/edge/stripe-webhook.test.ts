@@ -2371,6 +2371,81 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     expect(stripeMock.refunds.list).not.toHaveBeenCalled();
     expect(refundFailedPages()).toHaveLength(1);
   });
+
+  // ── Q1247 (a): the payer hears about a refund from us ─────────────────────
+  // On main every refund branch refunded and paged ops but wrote the payer
+  // nothing: the money came back with no word. Each branch is driven here.
+  // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     const told = alreadyRefunded ? true : await tellPayerRefunded(supabase, { |     const told = alreadyRefunded ? true : false && await tellPayerRefunded(supabase, {
+  // @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   if (!error && data && data.length > 0) return true; |   if (!error && data) return true;
+  const payerNotices = () =>
+    scenario.writes.filter((w) => w.table === "notifications" && w.op === "insert")
+      .map((w) => w.payload as Record<string, unknown>);
+  const refundBranches: Array<[string, () => void, Record<string, string>, Record<string, unknown>]> = [
+    ["no row id", () => {}, { payer_id: "poster-1" }, {}],
+    ["row not found", () => { scenario.reads.recurring_visit_payments = { rows: [] }; }, { recurring_visit_payment_id: "rvp-x", payer_id: "poster-1" }, {}],
+    ["row already expired", () => { scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] }; }, { recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" }, {}],
+    ["series ended", () => {
+      scenario.reads.recurring_visit_payments = { rows: [ROW] };
+      scenario.reads.jobs = { rows: [{ id: "parent-1", series_ended_on: "2026-09-30", status: "in_progress" }] };
+    }, { recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" }, {}],
+    ["amount mismatch", () => { scenario.reads.recurring_visit_payments = { rows: [ROW] }; }, { recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" }, { amount_total: 100 }],
+    ["non-usd", () => { scenario.reads.recurring_visit_payments = { rows: [ROW] }; }, { recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" }, { currency: "eur" }],
+    ["payer mismatch", () => { scenario.reads.recurring_visit_payments = { rows: [ROW] }; }, { recurring_visit_payment_id: "rvp-1", payer_id: "someone-else" }, {}],
+    ["lost the race with the sweep", () => {
+      scenario.reads.recurring_visit_payments = { rows: [ROW] };
+      scenario.writeSelectRows.recurring_visit_payments = [];
+    }, { recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" }, {}],
+  ];
+  for (const [label, arrange, meta, over] of refundBranches) {
+    it(`Q1247 (a): a refund because of "${label}" tells the payer it was refunded`, async () => {
+      arrange();
+      scenario.writeSelectRows.notifications = [{ id: "n1" }];
+      const res = await deliver(meta, over);
+      expect(res.status).toBe(200);
+      expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      const notices = payerNotices();
+      expect(notices).toHaveLength(1);
+      expect(notices[0]).toMatchObject({ user_id: meta.payer_id, title: "Your visit payment was refunded" });
+      // Only the row's own payer sees the row's series and date.
+      if (label === "payer mismatch") expect(notices[0].job_id).toBeNull();
+      expect(JSON.stringify(slackAlerts)).toContain("refunded in full");
+      expect(JSON.stringify(slackAlerts)).not.toContain("could NOT be told");
+    });
+  }
+
+  it("Q1247 (a): a retried delivery (refund already done) does not tell the payer twice", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    stripeMock.refunds.create.mockRejectedValue(alreadyRefunded());
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_1", status: "succeeded", amount: 31500 }] });
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(payerNotices()).toHaveLength(0);
+  });
+
+  it("Q1247 (a) review: the payer is told even when the row write after the refund fails (Stripe retries it)", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.reads.jobs = { rows: [{ id: "parent-1", series_ended_on: "2026-09-30", status: "in_progress" }] };
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    scenario.writeErrors.recurring_visit_payments = { message: "boom", code: "XX000" };
+    const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(res.status).toBe(500);
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(payerNotices()).toHaveLength(1);
+  });
+
+  it("Q1247 (a) review: a second payment for a visit already paid says so, not 'couldn't be booked'", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "paid", stripe_payment_intent_id: "pi_first" }] };
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(String(payerNotices()[0]?.message)).toContain("was already paid, so we refunded the second payment");
+  });
+
+  it("Q1247 (a): a notice that could not be written is named in the ops alert", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [{ ...ROW, status: "expired" }] };
+    scenario.writeSelectRows.notifications = [];
+    scenario.rpc.notification_crosses_seed_boundary = false;
+    await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(JSON.stringify(slackAlerts)).toContain("could NOT be told");
+  });
 });
 
 /*

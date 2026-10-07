@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
+import { PaymentHeldDialog } from "@/components/job-card/PaymentHeldDialog";
 import { type Tab } from "@/components/job-card/activityConstants";
 
 // Tab content is lazy-split so the initial Activity chunk only contains the
@@ -769,6 +770,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           />
         </Suspense>
       )}
+      {/* Q997: "the payment is held" after an offer is sent or an accept completes. */}
+      <PaymentHeldDialog side={actions.paymentHeldSide} onClose={() => actions.setPaymentHeldSide(null)} />
       {reportJobId && (
         <Suspense fallback={null}>
           <ReportDialog

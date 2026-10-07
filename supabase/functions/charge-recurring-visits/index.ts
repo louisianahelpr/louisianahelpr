@@ -1,7 +1,12 @@
 // seed-policy: pages for seed/E2E jobs too, on purpose. Every alert here is money
 // that moved (or failed to move) in Stripe while the DB says otherwise: a platform
 // failure whoever owns the job. Seed-only noise is routed in the detectors, not
-// here (docs/OPEN.md Q2).
+// here (docs/OPEN.md Q2). Q1250 (decided 2026-10-07): both visit-payment
+// sweeps settle a seed series' rows like a real one's (a pending row must not
+// offer "Pay" forever; a paid row is real money under the live key), its payer
+// is told through the Q137 seed boundary, and its money alerts page untagged.
+// A test-mode intent under the live key is classified and skipped (Q891).
+// Pinned by src/test/edge/charge-recurring-visits.test.ts "Q1250".
 // Daily cron: fund the next recurring visits by charging the poster's saved card.
 //
 // THIS IS THE HALF RECURRING NEVER HAD. The old `spawn-recurring-jobs` copied a
@@ -665,6 +670,51 @@ serve(async (req) => {
     const overIds = new Set(seriesOverRows.map((r) => String(r.id)));
     for (const row of [...(stale ?? []), ...seriesOverRows]) {
       if (row.status === "pending") {
+        // Q1247 (c): close its Checkout BEFORE the row is expired, so the
+        // payer is never told "you weren't charged" about a Checkout that was
+        // completed in between (the webhook refunds a payment on a row that is
+        // no longer pending, so the notice below would be false). A session
+        // Stripe will not expire is read back: complete means the money came
+        // in, so the row is left for the webhook (it marks it paid, and a
+        // later sweep settles it as a paid row); still open, or unreadable,
+        // means the Checkout could still take money, so nothing is expired
+        // this run. Expired already (or a test-mode session under the live
+        // key, which cannot take live money) is closed: expire the row.
+        if (row.stripe_session_id) {
+          const sessionId = String(row.stripe_session_id);
+          try {
+            await stripe.checkout.sessions.expire(sessionId);
+          } catch (e) {
+            let closed = false;
+            try {
+              const s = await stripe.checkout.sessions.retrieve(sessionId);
+              if (s?.status === "complete") {
+                // A future visit's Checkout completed moments ago: the webhook
+                // settles it. One whose visit date has come should have been
+                // settled long before (Checkout closes at the visit's start),
+                // so its payment never reached the webhook: page, or the money
+                // sits captured with nothing booking or refunding it
+                // (lh-money-escrow review of Q1247).
+                if (!overIds.has(String(row.id))) {
+                  fail(`visit payment ${row.id}: Checkout ${sessionId} was paid but the row is still pending on its visit date; the webhook never settled it (refund or book by hand)`);
+                } else {
+                  console.warn(`[charge-recurring-visits] visit payment ${row.id}: Checkout ${sessionId} was completed; the webhook settles it`);
+                }
+                continue;
+              }
+              closed = s?.status === "expired";
+            } catch (readErr) {
+              closed = isTestObjectUnderLiveKey(readErr);
+              if (closed) {
+                logTestObjectUnderLiveKey("charge-recurring-visits", { visit_payment_id: row.id, object: "checkout_session", id: sessionId });
+              }
+            }
+            if (!closed) {
+              fail(`visit payment ${row.id}: Checkout ${sessionId} could not be closed (${caughtMessage(e)}); not expired this run`);
+              continue;
+            }
+          }
+        }
         const { data: exp, error: expErr } = await supabase
           .from("recurring_visit_payments")
           .update({ status: "expired", updated_at: new Date().toISOString() })
@@ -678,16 +728,6 @@ serve(async (req) => {
         // Zero rows: the webhook marked it paid a moment ago. Tomorrow's sweep
         // settles it as a paid row.
         if (!exp || exp.length === 0) continue;
-        // Close its Checkout so it can no longer be paid. Best effort: an
-        // already expired/complete session refuses, and a payment that still
-        // lands is refunded by the webhook (the row is no longer pending).
-        if (row.stripe_session_id) {
-          try {
-            await stripe.checkout.sessions.expire(String(row.stripe_session_id));
-          } catch (e) {
-            console.warn(`[charge-recurring-visits] visit payment ${row.id}: Checkout not expired (${(e as Error).message})`);
-          }
-        }
         if (row.payer_id) {
           const link = "/posts";
           const { data: n, error: nErr } = await supabase.from("notifications").insert({

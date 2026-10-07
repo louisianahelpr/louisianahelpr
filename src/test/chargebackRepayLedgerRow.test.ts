@@ -4,6 +4,8 @@
  * REPAY_SOURCE out, so the tag in the index and the tag the writer stamps must
  * be the same string. Behaviour (red before, 3x replay):
  * src/test/pglite/chargebackRepayLedgerRow.pglite.mjs.
+ *
+ * @mutate supabase/migrations/20261007012447_chargeback_repay_row_beside_reversed.sql | WHERE status IN ('pending', 'paid', 'reversed') | WHERE status IN ('pending', 'paid')
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

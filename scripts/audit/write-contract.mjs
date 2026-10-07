@@ -342,14 +342,62 @@ function policyAllows(table, cmd, role) {
   return table.policies.some((p) => p.permissive === "PERMISSIVE" && (p.cmd === cmd || p.cmd === "ALL") && (p.roles.includes(role) || p.roles.includes("public")));
 }
 
-export function checkWrite(w, snapshot) {
+// ---------------------------------------------------------------------------
+// Pending vs missing (Q1072)
+// ---------------------------------------------------------------------------
+// The snapshot is a frozen copy of prod. An RPC or table that a migration in
+// this tree creates, but that the snapshot lacks, is one of two things: the
+// migration had not been applied (deploy lag between merge and db-deploy, or a
+// snapshot read before it ran), or the object really does not exist. The
+// snapshot records `appliedMigrations: {latest, count}` from
+// supabase_migrations.schema_migrations at refresh time, so the two are told
+// apart EXACTLY: a migration file whose version is above `latest` had not run.
+// It is exact only when every file at or below `latest` is accounted for
+// (`count` equals the number of such files). Otherwise, and whenever the
+// metadata is absent, nothing is classified as pending and a missing object
+// stays a reject (fail closed).
+
+export const MIGRATIONS_DIR = path.join(ROOT, "supabase/migrations");
+
+function stripSqlComments(sql) {
+  return sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
+}
+
+/** Objects created by migrations the snapshot's prod had not applied yet. */
+export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
+  const meta = snapshot.appliedMigrations;
+  const none = { exact: false, latest: meta?.latest ?? null, functions: new Map(), tables: new Map() };
+  if (!meta || typeof meta.latest !== "string" || typeof meta.count !== "number") return none;
+  if (!fs.existsSync(migrationsDir)) return none;
+  const files = fs.readdirSync(migrationsDir).filter((f) => /^\d{14}_.*\.sql$/.test(f)).sort();
+  if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none;
+  const functions = new Map();
+  const tables = new Map();
+  for (const f of files.filter((x) => x.slice(0, 14) > meta.latest)) {
+    const sql = stripSqlComments(fs.readFileSync(path.join(migrationsDir, f), "utf8"));
+    for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s*\(/gi)) {
+      functions.set(m[1].toLowerCase(), f);
+    }
+    for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?(?:unlogged\s+)?(?:table|view|materialized\s+view)\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?/gi)) {
+      tables.set(m[1].toLowerCase(), f);
+    }
+  }
+  return { exact: true, latest: meta.latest, functions, tables };
+}
+
+export function checkWrite(w, snapshot, pending = pendingDefinitions(snapshot)) {
   const problems = [];
   const reject = (code, message) => problems.push({ level: "reject", code, message });
   const warn = (code, message) => problems.push({ level: "warn", code, message });
 
   if (w.kind === "rpc") {
     const overloads = snapshot.functions[w.target];
-    if (!overloads) { reject("rpc_missing", `function public.${w.target} does not exist`); return problems; }
+    if (!overloads) {
+      const by = pending.functions.get(w.target);
+      if (by) warn("rpc_pending", `function public.${w.target} is created by ${by}, which prod had not applied when the snapshot was read (latest applied ${pending.latest})`);
+      else reject("rpc_missing", `function public.${w.target} does not exist`);
+      return problems;
+    }
     for (const role of w.roles) {
       if (!overloads.some((o) => o[role])) reject("rpc_no_execute", `${role} has no EXECUTE on public.${w.target}`);
     }
@@ -369,7 +417,12 @@ export function checkWrite(w, snapshot) {
   }
 
   const table = snapshot.tables[w.target];
-  if (!table) { reject("table_missing", `public.${w.target} does not exist`); return problems; }
+  if (!table) {
+    const by = pending.tables.get(w.target);
+    if (by) warn("table_pending", `public.${w.target} is created by ${by}, which prod had not applied when the snapshot was read (latest applied ${pending.latest})`);
+    else reject("table_missing", `public.${w.target} does not exist`);
+    return problems;
+  }
   if (table.kind === "view") warn("view_write", `public.${w.target} is a view; writability depends on its definition`);
 
   // Privileges + RLS
@@ -463,7 +516,8 @@ export function rejectionKey(w, problem) {
 
 export function runContract({ root = ROOT, snapshot = loadSnapshot() } = {}) {
   const { writes, unresolved } = extractWrites(root);
-  const results = writes.map((w) => ({ ...w, problems: checkWrite(w, snapshot) }));
+  const pending = pendingDefinitions(snapshot, path.join(root, "supabase/migrations"));
+  const results = writes.map((w) => ({ ...w, problems: checkWrite(w, snapshot, pending) }));
   const rejects = [];
   const warnings = [];
   for (const r of results) for (const pr of r.problems) {
@@ -506,6 +560,10 @@ export function fetchSnapshot() {
   const nFunctions = Object.keys(snap.functions).length;
   if (nTables < 20 || nFunctions < 50) {
     throw new Error(`snapshot query returned only ${nTables} tables / ${nFunctions} functions — refusing to write a near-empty snapshot`);
+  }
+  // Q1072: without this the checker cannot tell deploy lag from a missing RPC.
+  if (typeof snap.appliedMigrations?.latest !== "string" || !(snap.appliedMigrations?.count > 0)) {
+    throw new Error(`snapshot query returned no appliedMigrations {latest, count} (got ${JSON.stringify(snap.appliedMigrations)})`);
   }
   return sortDeep(snap);
 }

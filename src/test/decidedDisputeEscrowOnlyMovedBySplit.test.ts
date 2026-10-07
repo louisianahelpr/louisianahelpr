@@ -38,10 +38,18 @@
  *                    `if (action === "x")` block that moves money (directly or
  *                    via a helper) is named with its own gate, checked the same
  *                    way before that block's first money call.
+ *   shared-guarded   a _shared module (no entry point) that moves money only
+ *                    inside its exported functions. PROVEN, not reasoned: every
+ *                    file that imports it is itself an unsettled-check path,
+ *                    imports it by name (no namespace, default, dynamic or
+ *                    re-export), and EVERY call of an imported money function
+ *                    sits after an acted-on checkUnsettledDispute in that
+ *                    guard's own region (Q1390's crewBlockFees.ts).
  */
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { posix } from "node:path";
 import { blankComments, blankNonCode } from "./helpers/blankNonCode";
 
 // Shown able to fail — each line alone reds this test:
@@ -56,6 +64,10 @@ import { blankComments, blankNonCode } from "./helpers/blankNonCode";
 // @mutate supabase/functions/execute-dispute-split/index.ts | "claim_dispute_settlement", | "claim_dispute_settlement_x",
 // Transitive (Q728): a money helper reached through another helper, called once outside the guarded loop.
 // @mutate supabase/functions/process-scheduled-payouts/index.ts |     const crewSettled = new Set<string>(); |     const crewSettled = new Set<string>();\n    const early = () => crewReadyToRelease(null as never);
+// Shared module (Q1390): an importer's call outside its guard, or an importer that is not a guarded path.
+// @mutate supabase/functions/void-cancelled-payments/index.ts | if (feeSettlement.blocked) { | if (feeSettlement.readError) {
+// @mutate supabase/functions/money-reconciliation/index.ts | import { boundedFetch } from "../_shared/boundedFetch.ts"; | import { boundedFetch } from "../_shared/boundedFetch.ts";\nimport { payCrewBlockFees } from "../_shared/crewBlockFees.ts";\nvoid payCrewBlockFees;
+// @mutate supabase/functions/void-cancelled-payments/index.ts | import { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFees.ts"; | import * as cbf from "../_shared/crewBlockFees.ts";\nconst { readCrewBlockFees, payCrewBlockFees, crewBlockFeeCents } = cbf;\ntype CrewBlockFeeRow = cbf.CrewBlockFeeRow;
 
 const MONEY_SRC =
   String.raw`\.\s*(?:transfers\s*\.\s*(?:create|createReversal)|refunds\s*\.\s*create|paymentIntents\s*\.\s*(?:cancel|capture)|payouts\s*\.\s*create|disputes\s*\.\s*close)\s*\(` +
@@ -67,7 +79,8 @@ type Protection =
   | { kind: "unsettled-check" }
   | { kind: "split-owner" }
   | { kind: "not-job-escrow"; why: string }
-  | { kind: "per-action" };
+  | { kind: "per-action" }
+  | { kind: "shared-guarded" };
 
 const PATHS: Record<string, Protection> = {
   "supabase/functions/release-payout/index.ts": { kind: "unsettled-check" },
@@ -103,6 +116,7 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "reverses/repays only transfers found in Stripe's job_<id> transfer group, i.e. money that already left escrow; an unexecuted split has none",
   },
+  "supabase/functions/_shared/crewBlockFees.ts": { kind: "shared-guarded" },
   "supabase/functions/_shared/heldTipRepay.ts": {
     kind: "not-job-escrow",
     why: "reverses and re-pays only a TIP (its own destination charge, Q1222), never a job's escrow",
@@ -150,9 +164,48 @@ function functions(code: string, bare: string): Fn[] {
   const re = /(?:const (\w+) = async\s*\(|(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\()/g;
   return [...bare.matchAll(re)].map((m) => {
     const at = m.index ?? 0;
-    const bodyFrom = m[1] ? bare.indexOf("=>", at) : bare.indexOf(")", at);
-    return { name: code.slice(at, at + m[0].length).match(/(\w+)\s*(?:=|\()/)![1], at, end: blockEnd(bare, bodyFrom) };
+    const params = at + m[0].length - 1;
+    const close = matchingParen(bare, params);
+    const end = m[1] ? blockEnd(bare, bare.indexOf("=>", close)) : bodyEnd(bare, close);
+    return { name: code.slice(at, at + m[0].length).match(/(\w+)\s*(?:=|\()/)![1], at, end };
   });
+}
+
+/** The `)` that closes the `(` at `open` (on blanked code). */
+function matchingParen(bare: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < bare.length; i++) {
+    if (bare[i] === "(") depth++;
+    else if (bare[i] === ")" && --depth === 0) return i;
+  }
+  return bare.length;
+}
+
+/**
+ * End of a function declaration's body, skipping a return-type annotation
+ * that holds braces of its own (`): Promise<{ ok: boolean }> {`): the body is
+ * the first `{` outside every `<>`/`()`/`[]` that does not open a type literal.
+ */
+function bodyEnd(bare: string, close: number): number {
+  let angle = 0;
+  let depth = 0;
+  for (let i = close + 1; i < bare.length; i++) {
+    const c = bare[i];
+    if (c === "<") angle++;
+    else if (c === ">" && bare[i - 1] !== "=") angle--;
+    else if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth--;
+    else if (c === "{") {
+      if (angle > 0 || depth > 0) continue;
+      const prev = bare.slice(close + 1, i).trimEnd().slice(-1);
+      if (prev === ":" || prev === "|" || prev === "&") {
+        i = blockEnd(bare, i);
+        continue;
+      }
+      return blockEnd(bare, i);
+    }
+  }
+  return bare.length;
 }
 
 /** Names of functions that move money, directly or through another such function (fixpoint). */
@@ -312,20 +365,94 @@ export function actionBlocks(code: string): { preambleEnd: number; blocks: Recor
   return { preambleEnd: marks[0]?.at ?? code.length, blocks };
 }
 
-function moneyFiles(): Record<string, string> {
+function functionFiles(): Record<string, string> {
   const files = execFileSync("git", ["ls-files", "supabase/functions"], { encoding: "utf8" })
     .split("\n")
     .filter((f) => /\.ts$/.test(f) && !/\.test\.ts$|\/tests?\/|__tests__/.test(f));
   const out: Record<string, string> = {};
-  for (const f of files) {
-    const code = blankComments(readFileSync(f, "utf8"));
-    if (MONEY.test(code)) out[f] = code;
+  for (const f of files) out[f] = blankComments(readFileSync(f, "utf8"));
+  return out;
+}
+
+function moneyFiles(all: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(all).filter(([, code]) => MONEY.test(code)));
+}
+
+/** Every acted-on `checkUnsettledDispute` gate in a file: where money may start, and the guard's region. */
+function allUnsettledGates(code: string, bare: string): Array<{ allow: number; reg: [number, number] }> {
+  const out: Array<{ allow: number; reg: [number, number] }> = [];
+  for (const m of code.matchAll(/const \w+ = await checkUnsettledDispute\s*\(/g)) {
+    const g = gateEnd(code, bare, m.index ?? 0, "unsettled-check");
+    if (typeof g === "number") out.push({ allow: g, reg: region(bare, g) });
   }
   return out;
 }
 
+/**
+ * shared-guarded: what is wrong with `mod`'s callers (empty = proven), plus how
+ * many call sites were checked. Every importer must be an unsettled-check path
+ * importing the money exports by name, and every call of one must be covered by
+ * one of that importer's own acted-on gates.
+ */
+export function sharedGuardedProblems(
+  mod: string,
+  all: Record<string, string>,
+  paths: Record<string, { kind: string }>,
+): { bad: string[]; calls: number; importers: string[] } {
+  const bad: string[] = [];
+  const modCode = all[mod] ?? "";
+  const modBare = blankNonCode(modCode);
+  if (/\bDeno\.serve\s*\(|\bserve\s*\(/.test(modBare)) bad.push(`${mod}: is an entry point, not a shared module`);
+  const modFns = functions(modCode, modBare);
+  const modMoney = moneyFunctions(modCode, modFns);
+  for (const m of modCode.matchAll(MONEY_G)) {
+    if (!modFns.some((f) => f.at < (m.index ?? 0) && (m.index ?? 0) < f.end)) bad.push(`${mod}: money at module top level`);
+  }
+  const exported = [...modMoney].filter((n) => new RegExp(String.raw`export\s+(?:async\s+)?function\s+${n}\b|export\s+const\s+${n}\b`).test(modBare));
+  if (exported.length === 0) bad.push(`${mod}: exports no money function`);
+
+  const importers: string[] = [];
+  let calls = 0;
+  for (const [f, code] of Object.entries(all)) {
+    if (f === mod) continue;
+    const refs = [...code.matchAll(/(?:\bimport\b|\bexport\b)([^;'"`]*?)\bfrom\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']/g)].filter(
+      (m) => posix.normalize(posix.join(posix.dirname(f), m[2] ?? m[3])) === mod,
+    );
+    if (refs.length === 0) continue;
+    importers.push(f);
+    if (paths[f]?.kind !== "unsettled-check") bad.push(`${f}: imports ${mod} but is not an unsettled-check path`);
+    const locals: string[] = [];
+    for (const r of refs) {
+      const clause = (r[1] ?? "").trim();
+      const named = /^(?:type\s+)?\{([^}]*)\}$/.exec(clause);
+      if (r[3] !== undefined || r[0].startsWith("export") || !named) {
+        bad.push(`${f}: imports ${mod} in a shape this check cannot follow (${r[0].slice(0, 60)})`);
+        continue;
+      }
+      for (const spec of named[1].split(",").map((x) => x.trim()).filter(Boolean)) {
+        const sm = /^(?:type\s+)?(\w+)(?:\s+as\s+(\w+))?$/.exec(spec);
+        if (sm && exported.includes(sm[1])) locals.push(sm[2] ?? sm[1]);
+      }
+    }
+    const bare = blankNonCode(code);
+    const fns = functions(code, bare);
+    const gates = allUnsettledGates(code, bare);
+    for (const n of locals) {
+      for (const c of code.matchAll(new RegExp(String.raw`\b${n}\s*\(`, "g"))) {
+        calls++;
+        const site = [{ at: c.index ?? 0, via: n }];
+        const ok = gates.some((g) => unguardedSites(code, bare, site, fns, g.allow, g.reg).length === 0);
+        if (!ok) bad.push(`${f}: ${n}@${code.slice(0, c.index ?? 0).split("\n").length} is not after an acted-on unsettled check in its region`);
+      }
+    }
+  }
+  if (importers.length === 0) bad.push(`${mod}: nothing imports it`);
+  return { bad, calls, importers: importers.sort() };
+}
+
 describe("Q231: only execute-dispute-split moves a decided dispute's escrow", () => {
-  const files = moneyFiles();
+  const all = functionFiles();
+  const files = moneyFiles(all);
 
   it("the money-path inventory is exactly the classified set", () => {
     const found = Object.keys(files).sort();
@@ -353,6 +480,20 @@ describe("Q231: only execute-dispute-split moves a decided dispute's escrow", ()
     }
     expect(checked).toBeGreaterThan(3);
     expect(bad).toEqual([]);
+  });
+
+  it("every shared-guarded module is called only by unsettled-check paths, each call after its own gate", () => {
+    const mods = Object.entries(PATHS).filter(([, p]) => p.kind === "shared-guarded").map(([k]) => k);
+    expect(mods.length).toBeGreaterThan(0);
+    const bad: string[] = [];
+    let calls = 0;
+    for (const m of mods) {
+      const r = sharedGuardedProblems(m, all, PATHS);
+      bad.push(...r.bad);
+      calls += r.calls;
+    }
+    expect(bad).toEqual([]);
+    expect(calls).toBeGreaterThan(2);
   });
 
   it("execute-dispute-split takes claim_dispute_settlement('split') before its first money call", () => {

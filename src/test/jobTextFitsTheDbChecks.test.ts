@@ -165,7 +165,8 @@ const NOT_A_JOB_TITLE = new Set<string>([
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit funding had failures"',
   'supabase/functions/charge-recurring-visits/index.ts|"Paid recurring visit was never booked and is only partly refunded"',
   // (the poster's "We couldn't charge for your next visit" is now a ternary,
-  // 2026-10-05, so it is no longer a literal hit)
+  // 2026-10-05, and so is "Your visit charge was refunded, less the card fee",
+  // 2026-10-07, so neither is a literal hit any more)
   // Q1337 / Q750 (2026-10-05): admin ops alerts on an adopted or refunded visit charge.
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit: earlier charge does not match this visit"',
   'supabase/functions/charge-recurring-visits/index.ts|"Recurring visit charge came back as an already-refunded intent"',

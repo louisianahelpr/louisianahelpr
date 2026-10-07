@@ -47,6 +47,23 @@ export async function settleOnboardingFee(
       logStep("ERROR atomic flip onboarding fee", { error: feeErr.message });
     } else if (flipped && flipped.length > 0) {
       logStep("Onboarding fee marked paid for poster", { posterId });
+      // Q1346: on the first-job-post path the fee rode this job's checkout,
+      // so stamp it on the job (Spent counts what left the card). Only the
+      // winning delivery stamps; a duplicate is refunded below and never
+      // stamped. Best-effort: the fee is collected either way, and a missed
+      // stamp only under-counts Spent by the fee, as before this column.
+      const feeJobId = (session.metadata as { job_id?: string } | null)?.job_id;
+      if (feeJobId) {
+        const feeCents = parseInt((session.metadata as { onboarding_fee_cents?: string } | null)?.onboarding_fee_cents || "200", 10);
+        const { data: stamped, error: stampErr } = await supabase
+          .from("jobs")
+          .update({ onboarding_fee_amount: feeCents / 100 })
+          .eq("id", feeJobId)
+          .eq("customer_id", posterId)
+          .select("id");
+        if (stampErr) logStep("ERROR stamping the setup fee on the job", { jobId: feeJobId, error: stampErr.message });
+        else if (!stamped || stamped.length === 0) logStep("WARNING: setup fee stamp matched no job", { jobId: feeJobId });
+      }
     } else {
       // Flag was already true — duplicate fee charged. Auto-refund $2.
       // Stripe idempotency key keyed on session.id so webhook

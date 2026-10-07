@@ -22,6 +22,7 @@ import { formatExactDollars, formatPayoutDollars, roundPayoutDownCents } from ".
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
+import { REVIEW_HOLD_MESSAGE } from "../_shared/reviewHoldCopy.ts";
 import { jobBudgetOutOfRange, urgentFeeOverCap, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../_shared/jobBudgetLimits.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
@@ -1131,6 +1132,14 @@ serve(async (req) => {
         const { data, error: updateError } = await conditional.select("id");
         if (updateError) {
           console.error("Failed to update job:", updateError);
+          // Q1415(b): trg_refuse_payout_pending_during_ban_review refuses the
+          // payout while an account on this job is under a ban-settlement
+          // review. Retrying cannot help until an admin confirms or lifts it,
+          // so say that, neutrally (owner 10-05: never name the other account
+          // or its reason), instead of "please try again" forever.
+          if (/\bban_review_open\b/.test(updateError.message ?? "")) {
+            throw new PublicError(REVIEW_HOLD_MESSAGE);
+          }
           throw new PublicError("Failed to update the job status — please try again");
         }
         if (data && data.length > 0) {

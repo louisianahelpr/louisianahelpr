@@ -1182,6 +1182,28 @@ describe("create-payment edge function", () => {
       },
     );
 
+    // Q1415(b): the ban-review trigger refuses escrow -> payout_pending. The
+    // caller hears a final, neutral answer, not "please try again" forever.
+    // @mutate supabase/functions/create-payment/index.ts |           if (/\bban_review_open\b/.test(updateError.message ?? "")) { |           if (false) {
+    it("Q1415(b): release refused by an open ban review answers on hold, not try again", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "in_progress", budget: 100,
+          helper_confirmed_at: longAgo, poster_completed_at: null, helper_completed_at: longAgo,
+          stripe_payment_intent_id: "pi_123", payment_status: "escrow",
+        }],
+      };
+      scenario.writeErrors.jobs = { message: "ban_review_open", code: "23514" };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_123", status: "succeeded" });
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "release", jobId: "job-1" } }));
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      const err = String((await json(res)).error);
+      expect(err).toMatch(/on hold while we review it/);
+      expect(err).not.toMatch(/try again|ban/i);
+    });
+
     it("refuses to schedule payout when the payment intent has not succeeded", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {

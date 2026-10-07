@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Timer } from "lucide-react";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { jobDayEndMs } from "@/lib/jobDate";
 
 /**
  * JobCountdown — a live "job starts in" pill that ticks every minute.
@@ -26,12 +27,13 @@ export const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: str
 
   // A job with no start_time counts down to the END of its day, not the start:
   // "flexible, sometime today" has not run out until the day has. That is one
-  // second before the NEXT day's midnight in the job's zone.
+  // second before the NEXT day's midnight in the job's zone (jobDayEndMs, not
+  // midnight + 24h: a DST Sunday is 23 or 25 hours long, Q1424).
   const jobDate = startTime
     ? jobStartDateTime(dateNeeded, startTime)
     : (() => {
-        const midnight = jobStartDateTime(dateNeeded, null);
-        return midnight ? new Date(midnight.getTime() + 86_400_000 - 1_000) : null;
+        const end = jobDayEndMs(dateNeeded);
+        return end === null ? null : new Date(end - 1_000);
       })();
   if (!jobDate) return null;
 

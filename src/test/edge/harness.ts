@@ -143,6 +143,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/publicError.ts";`,
   );
 
+  // Review-hold copy (Q1415(b)): `_shared/reviewHoldCopy.ts` has ZERO
+  // imports; the real sentence, so the client's matcher and the server agree.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/reviewHoldCopy\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/reviewHoldCopy.ts";`,
+  );
+
   // Confirmed-email gate (Q837): `_shared/requireConfirmedEmail.ts` has ZERO
   // imports. Point at the real module so every gated function's tests run the
   // real refusal rule against the mock's user.

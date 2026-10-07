@@ -18,6 +18,8 @@ import { InProgressStep } from "./steps/InProgressStep";
 import { CompletedStep } from "./steps/CompletedStep";
 import { DisputedStep } from "./steps/DisputedStep";
 import { crewIsBooked } from "./crewBooked";
+import { functionInvokeError } from "@/lib/supabaseResult";
+import { REVIEW_HOLD_MESSAGE, isReviewHold } from "../../../../supabase/functions/_shared/reviewHoldCopy";
 
 interface PostedJobActionsProps {
   job: Job;
@@ -257,7 +259,14 @@ export function PostedJobActions({
       }
       const { data: releaseData, error: releaseError } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId: job.id } });
       if (releaseError || releaseData?.error) {
-        report(releaseError ?? new Error(String(releaseData?.error)), { tags: { source: "PostedJobCard.resolveDisputeRelease" }, context: { job_id: job.id } });
+        const releaseFailure = releaseError ? await functionInvokeError(releaseError) : new Error(String(releaseData?.error));
+        if (isReviewHold(releaseFailure)) {
+          // Q1415(b): held by a review, a final answer, not a failure.
+          toast(`Dispute closed. ${REVIEW_HOLD_MESSAGE}`, { duration: 8000 });
+          onActionComplete();
+          return;
+        }
+        report(releaseFailure, { tags: { source: "PostedJobCard.resolveDisputeRelease" }, context: { job_id: job.id } });
         hapticError();
         toast.error("Dispute closed, but the payment didn't release. Contact support so we can finish it.");
         onActionComplete();

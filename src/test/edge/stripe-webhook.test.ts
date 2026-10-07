@@ -754,6 +754,41 @@ describe("stripe-webhook edge function", () => {
       await fn.fetch(webhookRequest(fn, "{}"));
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     });
+
+    // Q1346: the winning delivery stamps the fee on the job its checkout paid
+    // for, so Spent counts what left the card; a duplicate (refunded) never does.
+    // @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |       if (feeJobId) { |       if (false) {
+    it("Q1346: the first-fee delivery stamps onboarding_fee_amount on the job, pinned to the poster", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_firstfee_stamp",
+        type: "checkout.session.completed",
+        data: { object: { id: "cs_first2", mode: "payment", customer_email: "poster@test.com", payment_intent: "pi_first2",
+          metadata: { job_id: "job-1", onboarding_fee_charged: "true", onboarding_fee_cents: "300", customer_id: "poster-1" } } },
+      });
+      scenario.writeSelectRows.profiles = [{ user_id: "poster-1" }];
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const stamp = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && "onboarding_fee_amount" in (w.payload as Record<string, unknown>));
+      expect(stamp?.payload).toEqual({ onboarding_fee_amount: 3 }); // the amount the session billed, not a constant
+      expect(stamp?.filters).toEqual(expect.arrayContaining([
+        expect.objectContaining({ column: "id", value: "job-1" }),
+        expect.objectContaining({ column: "customer_id", value: "poster-1" }),
+      ]));
+    });
+
+    it("Q1346: a duplicate fee (refunded) is never stamped on the job", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_dupfee_stamp",
+        type: "checkout.session.completed",
+        data: { object: { id: "cs_dup2", mode: "payment", customer_email: "poster@test.com", payment_intent: "pi_dup2",
+          metadata: { job_id: "job-1", onboarding_fee_charged: "true", customer_id: "poster-1" } } },
+      });
+      scenario.writeSelectRows.profiles = [];
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_dup2" });
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(scenario.writes.some((w) => w.table === "jobs" && "onboarding_fee_amount" in ((w.payload ?? {}) as Record<string, unknown>))).toBe(false);
+    });
   });
 
   describe("payment_intent.payment_failed", () => {

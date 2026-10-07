@@ -525,7 +525,7 @@ describe("tips honour the payout hold", () => {
       return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
     }
 
-    // @mutate supabase/functions/auto-tip-charge/index.ts | if (!Number.isFinite(completedMs) \|\| Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) continue; | continue;
+    // @mutate supabase/functions/auto-tip-charge/index.ts | if (!Number.isFinite(completedMs) \|\| Date.now() - completedMs < AUTO_TIP_HELD_RECORD_AFTER_MS) return; | return;
     it("on the last day: records a 'failed' auto tip and tells the poster, charging nothing", async () => {
       const res = await runHeldTip(13.5);
       expect(res.status).toBe(200);
@@ -538,7 +538,7 @@ describe("tips honour the payout hold", () => {
 
     // Review of Q1224 (should-fix): a crew job has one candidate per member;
     // the poster gets ONE notice for the job, and it names the job.
-    // @mutate supabase/functions/auto-tip-charge/index.ts |         if (agedOutNotified.has(jobId)) continue; |
+    // @mutate supabase/functions/auto-tip-charge/index.ts |       if (agedOutNotified.has(jobId)) return; |
     it("a crew job with two held members: two recorded tips, ONE notice carrying job_id", async () => {
       setEnv({
         SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key",
@@ -557,6 +557,46 @@ describe("tips honour the payout hold", () => {
       const notes = scenario.writes.filter((w) => w.table === "notifications").map((w) => w.payload as Record<string, unknown>);
       expect(notes).toHaveLength(1);
       expect(notes[0]).toMatchObject({ user_id: "poster-1", job_id: "job-1" });
+    });
+
+    // Q1415(a): an open ban-settlement review holds the tip too (Q1324); one
+    // that outlasts the window ages it out the same way, in neutral words.
+    // @mutate supabase/functions/auto-tip-charge/index.ts |         if (Number.isFinite(tipCents) && tipCents > 0) { |         if (false) {
+    it("Q1415(a) a tip held by an open ban review is recorded on the last day, the poster told neutrally", async () => {
+      setEnv({
+        SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key",
+        STRIPE_SECRET_KEY: "sk_test_abc", CRON_SECRET,
+      });
+      const fn = await loadEdgeFunction("auto-tip-charge");
+      scenario.rpc.auto_tip_candidates = [
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+      ];
+      scenario.reads.jobs = { rows: [{ id: "job-1", completed_at: new Date(Date.now() - 13.5 * 86_400_000).toISOString() }] };
+      scenario.reads.ban_settlement_queue = { rows: [{ user_id: "helper-1" }] };
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
+      expect(res.status).toBe(200);
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      const tip = scenario.writes.find((w) => w.table === "tips" && w.op === "insert");
+      expect(tip?.payload).toMatchObject({ job_id: "job-1", source: "auto", payment_status: "failed", amount: 10 });
+      expect(String((tip?.payload as Record<string, unknown>).failure_reason)).toMatch(/^on_hold:/);
+      const note = scenario.writes.find((w) => w.table === "notifications")?.payload as Record<string, unknown> | undefined;
+      expect(note).toMatchObject({ user_id: "poster-1", job_id: "job-1", title: "Your automatic tip wasn't sent" });
+      expect(String(note?.message)).not.toMatch(/ban|review|Helpr can't/i);
+    });
+
+    it("Q1415(a) earlier in the window, an open review still just waits", async () => {
+      setEnv({
+        SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key",
+        STRIPE_SECRET_KEY: "sk_test_abc", CRON_SECRET,
+      });
+      const fn = await loadEdgeFunction("auto-tip-charge");
+      scenario.rpc.auto_tip_candidates = [
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10 },
+      ];
+      scenario.reads.jobs = { rows: [{ id: "job-1", completed_at: new Date(Date.now() - 2 * 86_400_000).toISOString() }] };
+      scenario.reads.ban_settlement_queue = { rows: [{ user_id: "poster-1" }] };
+      await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` } }));
+      expect(scenario.writes.some((w) => w.table === "tips" || w.table === "notifications")).toBe(false);
     });
 
     // @mutate supabase/functions/auto-tip-charge/index.ts | const AUTO_TIP_HELD_RECORD_AFTER_MS = 13 * 24 * 60 * 60 * 1000; | const AUTO_TIP_HELD_RECORD_AFTER_MS = 0;

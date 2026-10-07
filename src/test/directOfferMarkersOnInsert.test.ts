@@ -16,10 +16,10 @@
  * the live body, ALL PASS applied 3x).
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql |     NEW.direct_offer_status     := 'pending'; |     NULL;
-// @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql |       now() + interval '48 hours'); |       now() + interval '400 days');
+// @mutate supabase/migrations/20261007140847_job_setup_fee_stamp.sql |     NEW.direct_offer_status     := 'pending'; |     NULL;
+// @mutate supabase/migrations/20261007140847_job_setup_fee_stamp.sql |       now() + interval '48 hours'); |       now() + interval '400 days');
 // @mutate src/lib/offerResponseWindow.ts |   { value: "48", label: "48 hours" }, |   { value: "48", label: "48 hours" },\n  { value: "72", label: "72 hours" },
-// @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql |     NEW.direct_offer_expires_at := NULL;\n  ELSE |     NULL;\n  ELSE
+// @mutate supabase/migrations/20261007140847_job_setup_fee_stamp.sql |     NEW.direct_offer_expires_at := NULL;\n  ELSE |     NULL;\n  ELSE
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

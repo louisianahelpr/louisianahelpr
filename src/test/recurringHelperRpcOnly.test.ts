@@ -85,5 +85,5 @@ describe("Q356: every jobs *helper_id column is locked against client writes", (
 
 // @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF NEW.recurring_helper_id IS NOT NULL | IF false AND NEW.recurring_helper_id IS NOT NULL
 // @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | AND NEW.recurring_helper_id IS DISTINCT FROM NEW.helper_id THEN | THEN
-// @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql | NEW.recurring_helper_id      := NULL; | NULL;
+// @mutate supabase/migrations/20261007140847_job_setup_fee_stamp.sql | NEW.recurring_helper_id      := NULL; | NULL;
 // @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF NEW.offered_to_helper_id IS DISTINCT FROM OLD.offered_to_helper_id THEN | IF false AND NEW.offered_to_helper_id IS DISTINCT FROM OLD.offered_to_helper_id THEN

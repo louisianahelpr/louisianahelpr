@@ -68,6 +68,9 @@ vi.mock("./useApplicantsState", () => ({
 }));
 
 import { useActivityActions } from "../useActivityActions";
+import { toast } from "sonner";
+import { report } from "@/lib/errorLogger";
+import { REVIEW_HOLD_MESSAGE } from "../../../../supabase/functions/_shared/reviewHoldCopy";
 import type { Job } from "@/components/job-card/activityConstants";
 
 const USER = { id: "poster-1" } as unknown as Parameters<typeof useActivityActions>[0]["user"];
@@ -170,6 +173,41 @@ describe("completeJob — duplicate release response", () => {
       revieweeId: "helper-1",
       revieweeName: "Hallie H.",
     });
+  });
+});
+
+// Q1415(b): a release refused because an account on the job is under a ban
+// review is a FINAL answer. The caller shows the server's neutral sentence,
+// never "please try again", and does not report it as an error.
+// @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |       if (isReviewHold(err)) { |       if (false) {
+describe("completeJob — a release held by a review", () => {
+  beforeEach(() => {
+    invokeMock.mockReset();
+    pending.length = 0;
+    vi.mocked(toast).mockClear();
+    vi.mocked(toast.error).mockClear();
+    vi.mocked(report).mockClear();
+  });
+
+  it("says the hold sentence, not 'please try again', and reports nothing", async () => {
+    invokeMock.mockResolvedValue({ data: { error: REVIEW_HOLD_MESSAGE }, error: null });
+    const { result } = setup();
+    act(() => { void result.current.completeJob("job-1"); });
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1));
+    await releaseAll();
+    expect(vi.mocked(toast)).toHaveBeenCalledWith(REVIEW_HOLD_MESSAGE, expect.anything());
+    expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
+    expect(vi.mocked(report)).not.toHaveBeenCalled();
+  });
+
+  it("control: any other server error still says try again and is reported", async () => {
+    invokeMock.mockResolvedValue({ data: { error: "Failed to update the job status — please try again" }, error: null });
+    const { result } = setup();
+    act(() => { void result.current.completeJob("job-1"); });
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1));
+    await releaseAll();
+    expect(vi.mocked(toast.error)).toHaveBeenCalledWith("We couldn't mark this job complete — please try again.");
+    expect(vi.mocked(report)).toHaveBeenCalled();
   });
 });
 

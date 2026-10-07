@@ -224,12 +224,22 @@ export function jobStartTimeLabel(
  * date has no opinion: false (keep showing it), matching jobDateMs's contract.
  */
 export function jobDayHasEnded(dateNeeded: string | null | undefined, nowMs: number): boolean {
+  const end = jobDayEndMs(dateNeeded);
+  return end !== null && nowMs >= end;
+}
+
+/**
+ * The instant the job's day ends: the NEXT Central midnight, as epoch ms; null
+ * for an unreadable date. Not midnight + 24h: the two DST Sundays are 23 and
+ * 25 hours long (Q1424: JobCountdown's flexible-time countdown ran an hour
+ * late on 2026-03-08 and an hour early on 2026-11-01 that way).
+ */
+export function jobDayEndMs(dateNeeded: string | null | undefined): number | null {
   const start = jobDateMs(dateNeeded);
-  if (start === null || !dateNeeded) return false;
+  if (start === null || !dateNeeded) return null;
   const [y, m, d] = dateNeeded.split("-").map(Number);
   const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
-  const end = jobDateMs(next);
-  return end !== null && nowMs >= end;
+  return jobDateMs(next);
 }
 
 /**

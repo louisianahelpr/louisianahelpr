@@ -17,6 +17,8 @@ import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { arrivalEstablished, arrivalEvidenceState, arrivalGateMessage, arrivalMapLabel, arrivalRefusalFromError, arrivalRefusalMessage, arrivalState, arrivalStateLabel, arrivalVerdictFromRpc, arrivalVerdictMessage, type ArrivalRefusal, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { trackingProofCaption } from "./trackingProofCaption";
 import { report } from "@/lib/errorLogger";
+import { functionInvokeError } from "@/lib/supabaseResult";
+import { REVIEW_HOLD_MESSAGE, isReviewHold } from "../../supabase/functions/_shared/reviewHoldCopy";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
@@ -1219,8 +1221,16 @@ export function JobTracking({
         const { data: rel, error: relErr } = await supabase.functions.invoke("create-payment", {
           body: { action: "release", jobId },
         });
-        if (relErr || (rel as { error?: string } | null)?.error) {
-          report(relErr ?? new Error(String((rel as { error?: string }).error)), {
+        const relFailure = relErr
+          ? await functionInvokeError(relErr)
+          : (rel as { error?: string } | null)?.error
+            ? new Error(String((rel as { error?: string }).error))
+            : null;
+        if (relFailure && isReviewHold(relFailure)) {
+          // Q1415(b): held by a review, a final answer, not a failure.
+          toast(`Marked done. ${REVIEW_HOLD_MESSAGE}`, { duration: 8000 });
+        } else if (relFailure) {
+          report(relFailure, {
             tags: { source: "JobTracking.finishRelease" },
             context: { jobId },
           });

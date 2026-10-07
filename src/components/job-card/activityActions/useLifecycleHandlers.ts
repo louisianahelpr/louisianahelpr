@@ -17,6 +17,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import type { OptimisticJobCache } from "./types";
+import { REVIEW_HOLD_MESSAGE, isReviewHold } from "../../../../supabase/functions/_shared/reviewHoldCopy";
 
 /**
  * Dependencies for the in-progress → completion → review lifecycle handlers,
@@ -255,6 +256,13 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         }
       }
     } catch (err) {
+      // Q1415(b): a payout held by a review is a final answer, not a failure:
+      // say the server's words, and do not page on it.
+      if (isReviewHold(err)) {
+        toast(REVIEW_HOLD_MESSAGE, { duration: 8000 });
+        await refresh();
+        return;
+      }
       report(err, { tags: { area: "activity", op: "completeJob" }, context: { jobId } });
       hapticError();
       toast.error("We couldn't mark this job complete — please try again.");

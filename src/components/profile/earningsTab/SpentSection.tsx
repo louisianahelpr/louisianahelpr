@@ -72,7 +72,7 @@ export function SpentSection() {
       const [jobs, refunds, gifts, tips] = await Promise.all([
         supabase
           .from("jobs")
-          .select("id, title, status, budget, customer_fee_amount, urgent_fee, sales_tax_amount, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at")
+          .select("id, title, status, budget, customer_fee_amount, urgent_fee, sales_tax_amount, onboarding_fee_amount, payment_status, stripe_payment_intent_id, cancellation_fee, cancellation_fee_status, poster_completed_at, helper_completed_at, cancelled_at, created_at")
           // EVERY job this person posted, whatever its status: money held in
           // escrow on an open or in-progress job has left the card too, and a
           // cancellation can keep a fee (owner, 2026-10-05: "everything that

@@ -59,9 +59,12 @@ import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
  *    a refund or chargeback of a manual tip cannot be matched yet (Q1328).
  *
  * Recurring visits are job rows of their own, so they count like any job.
- * STILL OUT (not job spend, owner not asked): the one-time account setup fee
- * (charged once per account, never stamped on a job), boosts, subscriptions
- * and gift-card purchases.
+ *  - The one-time account setup fee, when it rode the job's own checkout
+ *    (the first job post): jobs.onboarding_fee_amount, stamped by the payment
+ *    webhook on the delivery that collected it (Q1346).
+ * STILL OUT (not job spend, owner not asked): a setup fee paid on its own
+ * checkout (pay-onboarding-fee, no job), boosts, subscriptions and gift-card
+ * purchases.
  */
 
 /** payment_status values under which the job's charge was collected. */
@@ -75,6 +78,8 @@ export interface PosterSpendJob extends PosterChargedJob {
   cancellation_fee?: number | null;
   /** 'charged' once void-cancelled-payments kept a cancellation fee. */
   cancellation_fee_status?: string | null;
+  /** Q1346: the one-time setup fee this job's checkout collected (stamped by the payment webhook). */
+  onboarding_fee_amount?: number | null;
 }
 
 export interface PosterRefundRow {
@@ -110,7 +115,11 @@ export function posterSpentCents(job: PosterSpendJob, refundedCents: number, gif
   if (!cancelledAfterCapture && !(CHARGED_PAYMENT_STATUSES as readonly string[]).includes(job.payment_status ?? "")) return 0;
   const workCents = cents((job.budget ?? 0) + (job.urgent_fee ?? 0));
   const giftCents = Math.min(workCents, Math.max(0, cents(giftDollars)));
-  const chargedCents = Math.max(0, cents(posterPaidDollars(job)) - giftCents);
+  // Q1346: the first job's checkout also carried the one-time setup fee; it
+  // left the card with this charge, so it counts here (a cancel refund of the
+  // capture returns it too, and that refund row subtracts it below).
+  const setupFeeCents = Math.max(0, cents(job.onboarding_fee_amount ?? 0));
+  const chargedCents = Math.max(0, cents(posterPaidDollars(job)) + setupFeeCents - giftCents);
   if (job.payment_status === "refunded" && refundedCents <= 0) {
     // Uncaptured-hold cancellation: only the fee was captured, nothing refunded.
     if (job.cancellation_fee_status === "charged") {

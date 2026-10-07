@@ -24,7 +24,8 @@
 // @mutate src/lib/posterSpend.ts | if (!cancelledAfterCapture && !(CHARGED_PAYMENT_STATUSES as readonly string[]).includes(job.payment_status ?? "")) return 0; | if (!cancelledAfterCapture && job.payment_status === "__never__") return 0;
 // @mutate src/lib/posterSpend.ts | if (job.payment_status === "refunded" && refundedCents <= 0) { | if (job.payment_status === "__never__" && refundedCents <= 0) {
 // @mutate src/lib/posterSpend.ts | return Math.max(0, chargedCents - Math.max(0, refundedCents)); | return Math.max(0, chargedCents);
-// @mutate src/lib/posterSpend.ts | const chargedCents = Math.max(0, cents(posterPaidDollars(job)) - giftCents); | const chargedCents = Math.max(0, cents(posterPaidDollars(job)));
+// @mutate src/lib/posterSpend.ts | const chargedCents = Math.max(0, cents(posterPaidDollars(job)) + setupFeeCents - giftCents); | const chargedCents = Math.max(0, cents(posterPaidDollars(job)) + setupFeeCents);
+// @mutate src/lib/posterSpend.ts | const chargedCents = Math.max(0, cents(posterPaidDollars(job)) + setupFeeCents - giftCents); | const chargedCents = Math.max(0, cents(posterPaidDollars(job)) - giftCents);
 // @mutate src/lib/posterSpend.ts | const giftCents = Math.min(workCents, Math.max(0, cents(giftDollars))); | const giftCents = Math.max(0, cents(giftDollars));
 // @mutate src/lib/posterSpend.ts | if (c > 0) rows.push({ job, tip: null, cents: c, tipCents }); | rows.push({ job, tip: null, cents: c, tipCents });
 // @mutate src/lib/posterSpend.ts | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling"] as const; | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling", "chargeback", "cancelled"] as const;
@@ -101,6 +102,16 @@ describe("posterSpentCents — what the poster's card really paid for one job", 
     expect(posterSpentCents(job({ customer_fee_amount: null }), 0, 60)).toBe(4000);
     // A gift larger than the work never eats the fee or tax lines.
     expect(posterSpentCents(job({ sales_tax_amount: 2 }), 0, 500)).toBe(1400);
+  });
+
+  // Q1346: the first job's checkout also billed the one-time setup fee.
+  it("a first job counts the setup fee its checkout collected (jobs.onboarding_fee_amount)", () => {
+    expect(posterSpentCents(job({ onboarding_fee_amount: 2 }), 0, 0)).toBe(11200 + 200);
+  });
+
+  it("a cancelled first job: the cancel refund returned the capture less the service fee, so only the service fee was kept", () => {
+    // Captured 100 + 12 + 2 = 11400; cancel_escrow refunds 11400 - 1200.
+    expect(posterSpentCents(job({ onboarding_fee_amount: 2, payment_status: "refunded" }), 10200, 0)).toBe(1200);
   });
 
   it("never goes below $0 (refund ledger larger than the charge)", () => {

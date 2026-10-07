@@ -32,11 +32,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/code-scanning-check.mjs
 
+  # Q1354: every pinned Action SHA is the commit its `# vX.Y.Z` comment names
+  # (a wrong or orphaned SHA passes the pin guard, actionsPinnedToSha.test.ts).
+  # Script: scripts/check-action-pins.mjs. Guard: src/test/checkActionPins.test.ts.
+  action-pins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Every pinned Action SHA is its tag's commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-action-pins.mjs
+
   # A red scheduled run files/updates one nightly-red issue (closed on the next
   # green run of this workflow, never by hand).
   notify:
     name: Report nightly result
-    needs: [check]
+    needs: [check, action-pins]
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -50,6 +63,6 @@ jobs:
       - uses: ./.github/actions/nightly-issue-sync
         with:
           workflow-name: code-scanning-alerts
-          status: ${{ needs.check.result == 'success' && 'success' || 'failure' }}
+          status: ${{ (needs.check.result == 'success' && needs['action-pins'].result == 'success') && 'success' || 'failure' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

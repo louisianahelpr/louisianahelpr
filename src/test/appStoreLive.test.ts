@@ -1,6 +1,6 @@
 // @mutate scripts/lib/appStoreLive.mjs |   const appleLive = pageOk && lookupOk; |   const appleLive = pageOk \|\| lookupOk;
 // @mutate scripts/lib/appStoreLive.mjs |   if (appleId && repo.urlId && repo.urlId !== appleId) { |   if (false) {
-// @mutate scripts/lib/appStoreLive.mjs |   const noComments = indexHtml.replace(/<!--[\s\S]*?-->/g, ""); |   const noComments = indexHtml;
+// @mutate scripts/lib/appStoreLive.mjs |     noComments = noComments.replace(/<!--[\s\S]*?-->/g, ""); |     noComments = noComments.replace(/(?!)/g, "");
 //
 // `npm run launch:appstore` (Q1289) is the launch-day step that says when the
 // App Store links come back. It must say "not live" until Apple answers BOTH

@@ -27,7 +27,7 @@ lives there. Progress is generated into the header above.
 
 <!-- launch-waits-on -->
 What each OPEN launch item waits on, ONE line per category (scripts/launch-status.mjs prints the table from main; guard src/test/launchWaitsOn.test.ts). Move a Q the moment what it waits on changes.
-- **owner-phone** (a check on the owner's iPhone, TestFlight 7115 or later): Q1313 Q1408
+- **owner-phone** (a check on the owner's iPhone, TestFlight 7115 or later): Q1313
 - **owner-payment** (a real paid job or tip; the owner enters the card): Q933 Q749 Q1116 Q362
 - **owner-crew-payment** (a real funded group job, then the owner-confirmed flip): Q1378 Q780 Q709 Q707 Q1114 Q1079
 - **owner-dashboard** (App Store Connect, Supabase, CPA): Q1045

@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect } from "react";
+import { removeLandingPrerender } from "@/lib/landingPrerender";
 import { useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -82,6 +83,12 @@ const faqSchema = {
 const Index = () => {
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const location = useLocation();
+
+  // Q652: React's landing is in the DOM now; drop the build-time static copy
+  // before this frame paints (same components, so the swap is invisible).
+  useLayoutEffect(() => {
+    removeLandingPrerender();
+  }, []);
 
   // Stagger fade-up on every `.observe-fade-up` element as it scrolls into
   // view. Honors prefers-reduced-motion. Picks up newly-mounted lazy

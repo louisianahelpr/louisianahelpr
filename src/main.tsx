@@ -1,5 +1,6 @@
 // FIRST import, on purpose: arms the splash safety net before any module with a
 // top-level await evaluates (NB-009).
+import { removeLandingPrerender } from "@/lib/landingPrerender";
 import "./lib/splashSafetyNet";
 // SECOND, on purpose (OA-018): reads a failed web Apple/Google sign-in's
 // error off the URL before the Supabase client or the router can see or drop
@@ -211,6 +212,10 @@ applyPrePaintShellClasses();
 // sheet, hand control back to the app instead of rendering a web page the user
 // has to dismiss by hand. Runs BEFORE render so there's no flash of the site.
 // No-ops for ordinary web visits and inside the native app itself.
+// Q652: a visitor the pre-paint script marked (signed in, or not on "/")
+// never sees the landing's static first paint (CSS hides it); drop it before
+// React runs so its ids never shadow the app's (src/lib/landingPrerender.ts).
+if (document.documentElement.hasAttribute("data-skip-landing")) removeLandingPrerender();
 if (bounceToNativeAppIfReturning()) {
   // A scheme navigation is in flight; rendering now would only paint a screen
   // that is about to be replaced. If the scheme doesn't resolve the browser

@@ -503,13 +503,17 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
    */
   const H = 3_600_000;
   async function sr<T>(key: string, path: string, init: { method: string; body?: unknown; prefer?: string }): Promise<T> {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    const prefer = init.prefer ?? "return=representation";
+    // Never RETURNING * (src/test/restRepresentationNeedsSelect.test.ts): a
+    // representation names its columns, so a path without them asks for id.
+    const named = prefer !== "return=representation" || /[?&]select=/.test(path) ? path : `${path}${path.includes("?") ? "&" : "?"}select=id`;
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${named}`, {
       method: init.method,
       headers: {
         apikey: key,
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
-        Prefer: init.prefer ?? "return=representation",
+        Prefer: prefer,
       },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });

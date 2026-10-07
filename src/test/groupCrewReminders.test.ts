@@ -99,7 +99,10 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       // settle_one_off_jobs_for_banned_account is restated by Q1324's follow-up
       // (the confirm's as-of price), body otherwise the Q731 one.
       expect(EFFECTIVE.get(fn)?.file, `${fn} is not the Q731/Q729 definition`).toBe(
-        fn === "settle_one_off_jobs_for_banned_account" ? Q1324_FOLLOW_UP : CREW_COUNTS,
+        fn === "settle_one_off_jobs_for_banned_account" ? Q1324_FOLLOW_UP
+          // Q1379 restates the export (one definition of net); it still reads the roster.
+          : fn === "get_helper_earnings_export" ? "20261007145338_earnings_export_one_net.sql"
+          : CREW_COUNTS,
       );
     }
   });

@@ -1,6 +1,7 @@
 import { memo, useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { BellOff, Check, Pin } from "lucide-react";
+import { BellOff, Check } from "lucide-react";
+import { PinnedChip } from "./PinnedChip";
 import {
   getMessageAttachmentSignedUrl,
   isImageMime,
@@ -31,12 +32,7 @@ interface ConversationRowProps {
   selected?: boolean;
   /** Toggle this row's selection (select mode only). */
   onToggleSelect?: () => void;
-  /** The viewer pinned this thread: a small Pinned chip beside the timestamp.
-   *  It used to overlay the avatar's top-left corner from the list, the same
-   *  corner the unread mark took when it moved to the avatar, and covered it
-   *  on a pinned + unread thread (Q1090, owner 2026-10-07: the unread mark
-   *  keeps its spot, the Pinned chip moves beside the timestamp). Hidden in
-   *  select mode, as before. Defaults to false. */
+  /** Pinned chip beside the timestamp (Q1090; see PinnedChip). */
   pinned?: boolean;
 }
 
@@ -479,33 +475,13 @@ const ConversationRowBase = ({
                   {statusChip.label}
                 </span>
               )}
-              {/* Right cluster — the relative timestamp, in the row's
-                  TOP-RIGHT corner. It used to be centred against the full
-                  three-line row; on the name line it aligns with the thing it
-                  timestamps (the conversation) and matches the iOS Messages
-                  inbox. Still INSIDE the open-thread button, so the corner
-                  opens the conversation rather than being a dead gutter.
-
-                  The unread dot USED to live here, immediately right of the
-                  status chip and in the same ink — see UNREAD_MARK for what
-                  that cost. It is on the avatar now; nothing replaced it here,
-                  deliberately, because two marks for one state is how the
-                  trailing one got read as punctuation in the first place. */}
+              {/* Right cluster: the relative timestamp in the row's TOP-RIGHT
+                  corner, on the name line (as iOS Messages), still inside the
+                  open-thread button. The unread dot used to sit here and was
+                  read as punctuation (UNREAD_MARK); it lives on the avatar now,
+                  and only the Pinned chip (Q1090) shares this corner. */}
               <span className="ml-auto shrink-0 flex items-center gap-1.5">
-                {pinned && !selectMode && (
-                  <span
-                    role="img"
-                    aria-label="Pinned"
-                    data-testid="pinned-chip"
-                    className="inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0"
-                    style={{
-                      background: "hsl(var(--burnt-sienna) / 0.9)",
-                      boxShadow: "0 1px 3px hsl(var(--burnt-sienna) / 0.45)",
-                    }}
-                  >
-                    <Pin className="w-2.5 h-2.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.4} aria-hidden />
-                  </span>
-                )}
+                {pinned && !selectMode && <PinnedChip />}
                 <span
                   className="text-ds-11 whitespace-nowrap"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}

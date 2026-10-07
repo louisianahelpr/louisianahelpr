@@ -17,7 +17,7 @@
     "src/components/JobTracking.tsx": 2673,
     "src/components/messages/ChatView.tsx": 610,
     "src/components/messages/ConversationList.tsx": 1829,
-    "src/components/messages/ConversationRow.tsx": 615,
+    "src/components/messages/ConversationRow.tsx": 613,
     "src/components/MobileNav.tsx": 801,
     "src/components/NotificationPanel.tsx": 971,
     "src/components/NotificationPreferences.tsx": 1025,

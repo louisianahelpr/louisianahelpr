@@ -542,12 +542,8 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                     Raw sienna clears AA on dark at no alpha below 1.0;
                     `--accent-ink` is the same colour in light mode
                     (19 75% 35%) and the legible lift in dark (19 70% 66%), so
-                    this is a dark-mode-only pixel change. FULL strength since
-                    Q949 (2026-10-07): photographed in its own state (a forced
-                    partial failure on prod, 375), the card under it renders
-                    rgb(234,230,230) in light, not the surface the token maths
-                    assumed, and 0.9 measured 4.46:1 there; 1.0 is 5.33:1 light
-                    and 6.41:1 dark on the rendered card. */}
+                    this is a dark-mode-only pixel change. Full strength since
+                    Q949: 0.9 measured 4.46:1 on the rendered card. */}
                 {stats?.incomplete && (
                   <p
                     className="text-center text-ds-11 font-sans"

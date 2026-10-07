@@ -104,16 +104,19 @@ describe("the consequential call sites still use it", () => {
     // One sanctioned bypass. A second hand-rolled one would be an unreviewed
     // hole in the policy.
     const offenders: string[] = [];
+    const scanned: string[] = [];
     const walk = (dir: string) => {
       for (const dirent of readdirSync(dir, { withFileTypes: true })) {
         const name = dirent.name;
         const full = join(dir, name);
         if (dirent.isDirectory()) { walk(full); continue; }
         if (!/\.(ts|tsx)$/.test(name) || /\.test\./.test(name) || full.endsWith("toastPolicy.ts")) continue;
+        scanned.push(full);
         if (/realSuccess|=\s*toast\.success\s*;/.test(readFileSync(full, "utf8"))) offenders.push(full);
       }
     };
     walk(join(process.cwd(), "src"));
+    expect(scanned.length, "floor (Q1073, 2026-10-07)").toBeGreaterThan(500);
     expect(offenders).toEqual([]);
   });
 });

@@ -119,6 +119,7 @@ describe("ChatComposer read-only notice", () => {
 describe("lockout gate, client RPC and constant share one clock", () => {
   const dir = path.resolve(__dirname, "../../supabase/migrations");
   const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  it("reads the migrations (floor, Q1073, 2026-10-07: 1010 measured)", () => expect(files.length).toBeGreaterThan(900));
   const latestBody = (fn: string) => {
     const re = new RegExp(`CREATE (?:OR REPLACE )?FUNCTION public\\.${fn}\\([\\s\\S]*?\\$function\\$([\\s\\S]*?)\\$function\\$`, "i");
     for (const f of [...files].reverse()) {

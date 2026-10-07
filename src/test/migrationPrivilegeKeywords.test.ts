@@ -41,6 +41,7 @@ function grantRevokeStatements(sql: string): string[] {
 
 describe("migration GRANT/REVOKE avoids privileges the replay-smoke Postgres cannot parse", () => {
   const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql"));
+  it("reads the migrations (floor, Q1073, 2026-10-07: 1010 measured)", () => expect(files.length).toBeGreaterThan(900));
 
   it("names no privilege newer than the db-deploy replay image", () => {
     const offenders: string[] = [];

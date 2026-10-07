@@ -105,6 +105,7 @@ export function mocksSupabaseOrigin(src: string): boolean {
 
 const files = allFiles();
 const offenders = files.filter((f) => mocksSupabaseOrigin(readFileSync(join(E2E, f), "utf8")));
+it("reads the real e2e tree (floor, Q1073, 2026-10-07: 138 .ts measured)", () => expect(files.length).toBeGreaterThan(100));
 
 describe("no e2e file mocks Supabase (ratchet)", () => {
   it("the classifier can see a mock and can see a pass-through", () => {

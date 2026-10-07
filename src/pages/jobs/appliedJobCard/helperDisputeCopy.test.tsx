@@ -48,6 +48,7 @@ describe("helper dispute panel — copy is aimed at whoever filed", () => {
   const states = DISPUTE_STATUSES.flatMap((dispute_status) =>
     [ME, POSTER].map((disputed_by) => ({ dispute_status, disputed_by })),
   );
+  it("covers every status for both filers (floor, Q1073, 2026-10-07)", () => expect(states.length).toBeGreaterThan(6));
 
   it("distinguishes the two sides at all", () => {
     // Guards the guard. Before the fix this file's subject returned identical

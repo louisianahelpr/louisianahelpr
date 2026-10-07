@@ -150,6 +150,30 @@ describe("AdminBanEvasionReview (Q1324)", () => {
     expect([...kinds].sort()).toEqual(["identity_near", "name", "phone_near"]);
   });
 
+  // Q1413: strikes earned during an open review are kept; the admin deciding
+  // sees them and what the lift will apply.
+  // @mutate src/components/admin/AdminBanEvasionReview.tsx |                 {(r.strikes_during_review?.length ?? 0) > 0 && ( |                 {false && (
+  // @mutate src/components/admin/AdminBanEvasionReview.tsx |                 {deferredLabel(r) && ( |                 {false && (
+  it("shows the strikes recorded during the review and what a lift applies (Q1413)", async () => {
+    rpcMock.mockImplementation(async (name: string) =>
+      name === "admin_ban_settlement_reviews"
+        ? {
+            data: [{
+              ...REVIEW,
+              deferred_ban_status: "temp_banned",
+              deferred_suspended_until: "2026-10-14T00:00:00Z",
+              strikes_during_review: [{ id: "v1", violation_type: "no_show", description: "Reported no-show", job_id: "job-9", created_at: "2026-10-07T00:00:00Z" }],
+            }],
+            error: null,
+          }
+        : { data: null, error: null },
+    );
+    renderIt();
+    expect(await screen.findByText(/Strikes recorded during this review \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/no show: Reported no-show \(job job-9\)/)).toBeInTheDocument();
+    expect(screen.getByTestId("ban-review-deferred").textContent).toMatch(/a suspension until/);
+  });
+
   it("an unreadable review queue never reads as all-clear", async () => {
     rpcMock.mockImplementation(async () => ({ data: null, error: { message: "permission denied", code: "42501" } }));
     renderIt();

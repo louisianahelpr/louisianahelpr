@@ -5,6 +5,7 @@
  *   node src/test/pglite/banEvasionCardBankName.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/banEvasionCardBankName.pglite.mjs   # RED: the live state
  *   NEW_MIGRATION=skip-near node src/test/pglite/banEvasionCardBankName.pglite.mjs   # RED for Q1416 only
+ *   NEW_MIGRATION=skip-strikes node src/test/pglite/banEvasionCardBankName.pglite.mjs   # RED for Q1413 only
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR).
@@ -81,6 +82,9 @@ const STANDING = mig("20261006035830_ban_review_decides_standing");
 // date of birth, any document) NEAR-matches only flag for an admin.
 // NEW_MIGRATION=skip-near runs everything but this one (its red proof).
 const NEAR = mig("20261007043626_ban_evasion_phone_and_identity_near_match");
+// Q1413: a strike earned during an open review is kept and applied when it ends.
+// NEW_MIGRATION=skip-strikes runs everything but this one (its red proof).
+const STRIKES = mig("20261007044339_ban_review_keeps_strikes");
 // open_jobs_browse as its newest definition creates it (the DO / EXECUTE block).
 const VIEW_SRC = (() => {
   const src = mig("20260927012806_recurring_split_days");
@@ -148,6 +152,11 @@ CREATE TABLE public.error_logs (
   message text NOT NULL, stack text, url text, user_agent text,
   tags jsonb NOT NULL DEFAULT '{}'::jsonb, context jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
+);
+-- user_violations: live columns (information_schema 2026-10-07); Q1413's review list reads it.
+CREATE TABLE public.user_violations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, violation_type text NOT NULL,
+  description text, job_id uuid, reported_by uuid, action_taken text, created_at timestamptz NOT NULL DEFAULT now()
 );
 GRANT SELECT ON public.profiles TO anon, authenticated;
 
@@ -277,6 +286,12 @@ if (MODE !== "skip") {
     for (let i = 0; i < 3; i++) {
       try { await db.exec(NEAR); }
       catch (e) { check(`near-match migration applies (run ${i + 1})`, false, e.message); }
+    }
+  }
+  if (MODE !== "skip-strikes" && MODE !== "skip-standing") {
+    for (let i = 0; i < 3; i++) {
+      try { await db.exec(STRIKES); }
+      catch (e) { check(`keeps-strikes migration applies (run ${i + 1})`, false, e.message); }
     }
   }
 }
@@ -936,6 +951,46 @@ const surfaces = async () => {
   await db.query(`DELETE FROM public.payout_holds WHERE helper_id = $1`, [LADR]);
   const cc = await tryQ(`INSERT INTO public.payout_transfers (job_id, helper_id, status) VALUES ($1, $2, 'pending')`, [CREWJ, LADR]);
   check("a crew member under an open review cannot claim a transfer, even with no hold row", /payout_held/.test(cc.error ?? ""), cc.error ?? "claimed");
+}
+
+// ── Q1413: a strike earned during an open review is kept, not dropped ──────
+{
+  const tryExec = async (sql) => { try { await db.exec(sql); return { error: null }; } catch (e) { await db.exec("ROLLBACK").catch(() => {}); return { error: e.message }; } };
+  const ladder = (id, set) => tryExec(`BEGIN; SELECT set_config('app.trusted_ladder_write', 'on', true);
+    UPDATE public.profiles SET ${set} WHERE user_id = '${id}'; COMMIT;`);
+  const STK = "71717171-0000-4000-8000-000000000071";
+  await newAccount(STK, "strike@s.test", "Stella Strike");
+  await enforce(STK, "card", CARD_A);
+  const fw = await ladder(STK, `ban_status = 'final_warning'`);
+  const sus = await ladder(STK, `ban_status = 'temp_banned', auto_suspended_until = now() + interval '7 days'`);
+  await db.query(`INSERT INTO public.user_violations (user_id, violation_type, description, action_taken) VALUES ($1, 'no_show', 'No-show on a job that started while banned', 'temp_ban')`, [STK]).catch(() => {});
+  check("Q1413 ladder writes during the review still raise nothing and keep 'banned'", fw.error === null && sus.error === null && (await status(STK)) === "banned", fw.error ?? sus.error ?? "");
+  const rv = await tryQ(`SELECT deferred_ban_status, deferred_suspended_until > now() + interval '6 days' AS later FROM public.ban_settlement_queue WHERE user_id = $1 AND review_state = 'open'`, [STK]);
+  check("Q1413 the open review keeps the harshest deferred standing (the 7-day suspension)", rv.rows?.[0]?.deferred_ban_status === "temp_banned" && rv.rows?.[0]?.later === true, rv.error ?? JSON.stringify(rv.rows));
+  const list = await asAdmin(`SELECT public.admin_ban_settlement_reviews() AS r`);
+  const entry = (list.rows?.[0]?.r ?? []).find((x) => x.user_id === STK);
+  check("Q1413 the admin review list shows the deferred standing and the strikes recorded during the review",
+    entry?.deferred_ban_status === "temp_banned" && Array.isArray(entry?.strikes_during_review) && entry.strikes_during_review.length >= 1,
+    list.error ?? JSON.stringify(entry ? { d: entry.deferred_ban_status, s: entry.strikes_during_review } : null));
+  const lift = await tryQ(`SELECT public.lift_ban_settlement_review($1, $2, 'active') AS r`, [STK, ADMIN]);
+  const after = (await q(`SELECT ban_status, auto_suspended_until > now() + interval '6 days' AS later FROM public.profiles WHERE user_id = $1`, [STK]))[0];
+  check("Q1413 lifting the review applies the suspension earned during it (harsher than 'active')",
+    !lift.error && after?.ban_status === "temp_banned" && after?.later === true, lift.error ?? JSON.stringify(after));
+
+  const SPENT2 = "72727272-0000-4000-8000-000000000072";
+  await newAccount(SPENT2, "spent2@s.test", "Sid Spent");
+  await enforce(SPENT2, "card", CARD_A);
+  await ladder(SPENT2, `ban_status = 'temp_banned', auto_suspended_until = now() + interval '1 day'`);
+  await db.query(`UPDATE public.ban_settlement_queue SET deferred_suspended_until = now() - interval '1 hour' WHERE user_id = $1 AND review_state = 'open'`, [SPENT2]).catch(() => {});
+  const lift2 = await tryQ(`SELECT public.lift_ban_settlement_review($1, $2, 'active') AS r`, [SPENT2, ADMIN]);
+  check("Q1413 a deferred suspension already over is spent: the lift leaves the account active", !lift2.error && (await status(SPENT2)) === "active", lift2.error ?? (await status(SPENT2)));
+
+  const WARN = "73737373-0000-4000-8000-000000000073";
+  await newAccount(WARN, "warn@s.test", "Wes Warn");
+  await enforce(WARN, "card", CARD_A);
+  await ladder(WARN, `ban_status = 'final_warning'`);
+  const lift3 = await tryQ(`SELECT public.lift_ban_settlement_review($1, $2, 'active') AS r`, [WARN, ADMIN]);
+  check("Q1413 a final warning earned during the review stands after the lift", !lift3.error && (await status(WARN)) === "final_warning", lift3.error ?? (await status(WARN)));
 }
 
 // ── Q1416: near-matches only flag (owner 2026-10-05 / 2026-10-07) ─────────

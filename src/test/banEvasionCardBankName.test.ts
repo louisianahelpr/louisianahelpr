@@ -167,6 +167,25 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
     expect(trg?.events.toLowerCase()).toMatch(/update/);
   });
 
+  // Q1413 (lh-money-escrow review of fbdfa47c7 #1): a strike the ladder earns
+  // while a review is open is kept on the review row and applied by the lift /
+  // confirm, never dropped. Behaviour: banEvasionCardBankName.pglite.mjs
+  // (NEW_MIGRATION=skip-strikes: 4 FAIL).
+  // @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |     v_status := v_review.deferred_ban_status;\n | NULL;\n
+  // @mutate supabase/migrations/20261007044339_ban_review_keeps_strikes.sql |     UPDATE public.ban_settlement_queue r\n       SET deferred_ban_status = NEW.ban_status, |     UPDATE public.ban_settlement_queue r\n       SET deferred_at = now(),
+  it("a strike earned during an open review is kept and applied when the review ends (Q1413)", () => {
+    const refuse = body("refuse_unban_during_ban_review");
+    const record = refuse.search(/update\s+public\.ban_settlement_queue\s+r\s+set\s+deferred_ban_status\s*=\s*new\.ban_status/i);
+    const keep = refuse.search(/-- 1\.|new\.ban_status\s*:=\s*old\.ban_status/i);
+    expect(record, "the ladder's deferred standing is recorded on the open review").toBeGreaterThan(-1);
+    expect(record, "recorded before any branch keeps the old standing").toBeLessThan(keep);
+    expect(refuse).toMatch(/app\.trusted_ladder_write[\s\S]{0,300}update\s+public\.ban_settlement_queue/i);
+    expect(body("lift_ban_settlement_review")).toMatch(/ban_standing_rank\(v_review\.deferred_ban_status\)\s*>\s*public\.ban_standing_rank\(p_ban_status\)/i);
+    expect(body("lift_ban_settlement_review")).toMatch(/set\s+ban_status\s*=\s*v_status/i);
+    expect(body("admin_confirm_ban_settlement")).toMatch(/deferred_ban_status/i);
+    expect(body("admin_ban_settlement_reviews")).toMatch(/'strikes_during_review'/);
+  });
+
   // Q1416 (owner 2026-10-05 / 2026-10-07): the phone (same last 7 digits)
   // and ID (same name + date of birth, any document) NEAR-matches only record
   // an admin doubt-check, like the name. Behaviour:

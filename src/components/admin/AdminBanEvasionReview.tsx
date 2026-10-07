@@ -65,7 +65,29 @@ interface Review {
   created_at: string;
   matches: MatchRow[];
   jobs: ReviewJob[];
+  /** Q1413: the harshest standing a strike earned DURING the review would have set. */
+  deferred_ban_status?: string | null;
+  deferred_suspended_until?: string | null;
+  /** Q1413: every strike recorded since the review opened. */
+  strikes_during_review?: Array<{ id: string; violation_type: string; description: string | null; job_id: string | null; created_at: string }>;
 }
+
+/** Q1413: how a deferred standing reads to the admin deciding. */
+const deferredLabel = (r: Review): string | null => {
+  switch (r.deferred_ban_status) {
+    case "final_warning":
+      return "a final warning";
+    case "temp_banned":
+      return r.deferred_suspended_until
+        ? `a suspension until ${new Date(r.deferred_suspended_until).toLocaleString()}`
+        : "a suspension";
+    case "banned":
+    case "permanently_banned":
+      return "a ban";
+    default:
+      return null;
+  }
+};
 interface NameMatch extends MatchRow {
   user_id: string;
   created_at: string;
@@ -191,6 +213,25 @@ export function AdminBanEvasionReview() {
                     Banned account it matched — {originalBan(m)}
                   </p>
                 ))}
+                {(r.strikes_during_review?.length ?? 0) > 0 && (
+                  <div className="space-y-1" data-testid="ban-review-strikes">
+                    <p className="text-ds-11 font-medium">Strikes recorded during this review ({r.strikes_during_review!.length})</p>
+                    <ul className="text-ds-11 text-muted-foreground list-disc pl-4">
+                      {r.strikes_during_review!.map((v) => (
+                        <li key={v.id}>
+                          {v.violation_type.replace(/_/g, " ")}
+                          {v.description ? `: ${v.description}` : ""}
+                          {v.job_id ? ` (job ${v.job_id})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {deferredLabel(r) && (
+                  <p className="text-ds-11 text-muted-foreground" data-testid="ban-review-deferred">
+                    Those strikes earned {deferredLabel(r)}. Lifting the ban applies it (the stricter of it and an unban); reverse a strike first if it was unfair, such as a no-show on a job that started while this account was banned.
+                  </p>
+                )}
                 <p className="text-ds-11 font-medium">Jobs waiting ({r.jobs.length})</p>
                 {r.jobs.length > 0 && (
                   <ul className="text-ds-11 text-muted-foreground list-disc pl-4">

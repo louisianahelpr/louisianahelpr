@@ -273,6 +273,9 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decided_by: string | null
+          deferred_at: string | null
+          deferred_ban_status: string | null
+          deferred_suspended_until: string | null
           id: string
           matched_on: string
           original_ban_status: string | null
@@ -285,6 +288,9 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          deferred_at?: string | null
+          deferred_ban_status?: string | null
+          deferred_suspended_until?: string | null
           id?: string
           matched_on: string
           original_ban_status?: string | null
@@ -297,6 +303,9 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          deferred_at?: string | null
+          deferred_ban_status?: string | null
+          deferred_suspended_until?: string | null
           id?: string
           matched_on?: string
           original_ban_status?: string | null

@@ -108,29 +108,34 @@ function runIdFrom(link) {
   return m ? m[1] : null;
 }
 
+/**
+ * Read one `gh pr checks --json` answer. gh exits non-zero while checks are
+ * pending or one has failed and still prints the JSON. A PR pushed a moment
+ * ago has no checks registered yet: gh prints nothing on stdout and
+ * "no required checks reported on the '<branch>' branch" (or "no checks
+ * reported ...") on stderr. That is PENDING, not a broken read: an empty list
+ * makes planQueue wait on it (Land queue run 37569414168, 2026-10-07, crashed
+ * the advancer on exactly that). Anything else with no body is a real failure.
+ */
+export function checksFromGh(run) {
+  try {
+    return JSON.parse(run());
+  } catch (e) {
+    const out = e && typeof e === "object" && "stdout" in e ? String(e.stdout ?? "") : "";
+    if (out.trim()) return JSON.parse(out);
+    const err = e && typeof e === "object" && "stderr" in e ? String(e.stderr ?? "") : "";
+    if (/no (?:required )?checks reported on the '[^']*' branch/.test(err)) return [];
+    throw e;
+  }
+}
+
 function readQueue() {
   const list = JSON.parse(gh(["pr", "list", "--state", "open", "--label", QUEUE_LABEL, "--json", "number,isDraft", "--limit", "50"]));
   const prs = [];
   for (const { number } of list.filter((p) => !p.isDraft).sort((a, b) => a.number - b.number)) {
     const view = JSON.parse(gh(["pr", "view", String(number), "--json", "mergeStateStatus"]));
-    let checks = [];
-    try {
-      checks = JSON.parse(gh(["pr", "checks", String(number), "--required", "--json", "name,bucket,link"]));
-    } catch (e) {
-      // gh exits non-zero while checks are pending or one has failed, and
-      // still prints the JSON; only a missing body is a real read failure.
-      const out = e && typeof e === "object" && "stdout" in e ? String(e.stdout) : "";
-      if (!out.trim()) throw e;
-      checks = JSON.parse(out);
-    }
-    let all = [];
-    try {
-      all = JSON.parse(gh(["pr", "checks", String(number), "--json", "name,bucket,link"]));
-    } catch (e) {
-      const out = e && typeof e === "object" && "stdout" in e ? String(e.stdout) : "";
-      if (!out.trim()) throw e;
-      all = JSON.parse(out);
-    }
+    let checks = checksFromGh(() => gh(["pr", "checks", String(number), "--required", "--json", "name,bucket,link"]));
+    const all = checksFromGh(() => gh(["pr", "checks", String(number), "--json", "name,bucket,link"]));
     checks = queuedChecks(checks, all);
     const withRuns = checks.map((c) => {
       const runId = runIdFrom(c.link);

@@ -87,6 +87,18 @@ CREATE TABLE IF NOT EXISTS public.job_detail_change_answers (
 CREATE INDEX IF NOT EXISTS idx_job_detail_change_answers_helper
   ON public.job_detail_change_answers (helper_id) WHERE answer = 'pending';
 
+-- Q807: the unconfirmed-email gate goes on every public table through its own
+-- attacher (idempotent; it skips tables that already carry it). Both tables
+-- are written only by the two definer RPCs below, which refuse a banned
+-- caller themselves (is_caller_banned), so no ban-gate trigger is added.
+DO $gates$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gates$;
+
 -- Who may read a request and its answers: the poster who asked, and every
 -- Helpr asked (a crew member sees who else still has to answer). Definer so
 -- the two policies below do not read each other's table through RLS (that

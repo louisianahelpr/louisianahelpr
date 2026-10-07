@@ -10,7 +10,7 @@
 // @mutate scripts/ci/null-arg-validators.sql | \nROLLBACK;\n | \nCOMMIT;\n
 // @mutate .github/workflows/db-smoke.yml | -At -f scripts/ci/null-arg-validators.sql) | -At -f scripts/ci/null-uid-trust.sql)
 // @mutate .github/workflows/db-deploy.yml |       - "scripts/ci/null-arg-validators.sql"\n |
-// @mutate src/test/pglite/nullArgNeverAllows.pglite.mjs |   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes"]; |   "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes"];
+// @mutate src/test/pglite/nullArgNeverAllows.pglite.mjs |   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes", |   "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

@@ -20,7 +20,7 @@
  * newest definition and each shown red there, and consequenceCopyParity was
  * moved off its superseded pin so its re-pointed line goes red too.
  *
- * @mutate src/test/bannedBlockerKeepsBlock.test.ts | supabase/migrations/20261006015121_crew_rest_carry_on.sql | supabase/migrations/20260924220318_rename_tab_addresses.sql
+ * @mutate src/test/bannedBlockerKeepsBlock.test.ts | supabase/migrations/20261007073145_crew_block_fee_ledger.sql | supabase/migrations/20260924220318_rename_tab_addresses.sql
  * @mutate src/test/helpers/supersededMutateTargets.ts | if (eff.file !== file \|\| eff.index !== inside.start) { | if (eff.file !== file) {
  */
 import { describe, it, expect } from "vitest";

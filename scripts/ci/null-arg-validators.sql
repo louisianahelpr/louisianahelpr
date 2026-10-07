@@ -40,6 +40,7 @@ CREATE TEMP TABLE q140_class (fn text PRIMARY KEY, kind text NOT NULL, why text 
 INSERT INTO q140_class (fn, kind, why) VALUES
   ('can_message_in_job',            'allow',    'may this sender post in this job'),
   ('can_read_job_access_notes',     'allow',    'may the caller read this job''s access and parking notes (Q1461)'),
+  ('can_read_job_detail_change',    'allow',    'may the caller read this detail-change request and its answers (Q1254)'),
   ('can_review_job',                'allow',    'may this party review this job'),
   ('can_send_message_in_job',       'allow',    'may the caller post in this job'),
   ('can_send_message_to_in_job',    'allow',    'may the caller message this receiver'),
@@ -125,6 +126,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('can_message_in_job',            NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   -- A posts J, so the non-NULL call is TRUE for A.
   ('can_read_job_access_notes',     '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
+  -- A asked request Q (on J), so the non-NULL call is TRUE for A.
+  ('can_read_job_detail_change',    '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000201''::uuid'], ARRAY[1]),
   ('can_review_job',                NULL, ARRAY['''00000000-0000-4000-8140-000000000102''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   ('can_send_message_in_job',       '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('can_send_message_to_in_job',    '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
@@ -178,7 +181,7 @@ BEGIN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'bucket', 'objects']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'bucket', 'objects']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -203,6 +206,13 @@ BEGIN
         INSERT INTO public.applications (job_id, helper_id) VALUES (J, B);
       WHEN 'roster' THEN
         INSERT INTO public.group_job_helpers (job_id, helper_id) VALUES (J, B);
+      WHEN 'detail_change' THEN
+        -- Q1254: request Q, asked by A on J (to_regclass: before 20261007113957 there is no table).
+        IF to_regclass('public.job_detail_change_requests') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.job_detail_change_requests (id, job_id, requested_by, changed_fields, expires_at)
+                   VALUES ('00000000-0000-4000-8140-000000000201', '00000000-0000-4000-8140-000000000101',
+                           '00000000-0000-4000-8140-00000000000a', '{title}', now() + interval '1 day')$q$;
+        END IF;
       WHEN 'bucket' THEN
         INSERT INTO storage.buckets (id, name) VALUES ('user-documents', 'user-documents') ON CONFLICT (id) DO NOTHING;
       WHEN 'objects' THEN

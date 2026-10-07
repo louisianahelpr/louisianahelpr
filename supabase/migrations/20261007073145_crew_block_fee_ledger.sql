@@ -60,6 +60,16 @@ ALTER TABLE public.crew_block_fees ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.crew_block_fees FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.crew_block_fees TO service_role;
 
+-- Q807: the unconfirmed-email gate goes on every public table through its own
+-- attacher (idempotent; it skips tables that already carry it).
+DO $gates$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gates$;
+
 -- crew_spots_open: a closed spot is taken.
 CREATE OR REPLACE FUNCTION public.crew_spots_open(p_job_id uuid)
 RETURNS integer

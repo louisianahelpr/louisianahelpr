@@ -3,7 +3,7 @@ import {
   Shield, ShieldAlert, Bell, PawPrint, ClipboardList,
   CalendarDays, Heart, ShieldCheck, Home, Gift, Coins, UserPlus,
   TrendingUp, Crown, FileText, Gavel, HelpCircle,
-  AlertTriangle, Type, Clock,
+  AlertTriangle, Type, Clock, Bug,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { MenuItem, Profile } from "./types";
@@ -320,6 +320,9 @@ export function useProfileLandingDerived({
         { key: "legal", label: "Legal", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy, guidelines & data export", tint: SECTION_TINT.legal },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
+        // Owner, 2026-10-07 (Q1028): opens the support form on "Something's not
+        // working", which attaches the screen, route, device, build and recent errors.
+        { key: "report_bug", label: "Report a bug", icon: <Bug className="w-5 h-5" />, desc: "Something not working? We attach the details", tint: SECTION_TINT.legal, href: "/profile?tab=support&topic=report" },
         ...(isAdmin
           ? [
               {

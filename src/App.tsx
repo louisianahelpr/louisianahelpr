@@ -1,9 +1,10 @@
 import { lazy, Suspense, forwardRef, useEffect, useState, type ComponentType, type ReactElement, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { useBugReportScreen } from "@/hooks/useBugReportScreen";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 import { whenPageSettled } from "@/lib/routePrefetch";
-import { SpeedInsights } from "@vercel/speed-insights/react";
+import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
 import { Analytics } from "@vercel/analytics/react";
 
 import { persistOptions } from "@/lib/queryPersister";
@@ -443,6 +444,8 @@ AnimatedRoutes.displayName = "AnimatedRoutes";
 // persistent shell never flashes blank between pages.
 const RoutedBoundary = () => {
   const location = useLocation();
+  // "Report a bug" names the screen the person came from (Q1028).
+  useBugReportScreen(location);
   return (
     <ErrorBoundary resetKey={location.pathname}>
       <AnimatedRoutes />
@@ -450,22 +453,6 @@ const RoutedBoundary = () => {
   );
 };
 
-// Vercel Speed Insights mounted INSIDE BrowserRouter so it can read the
-// current location. Without this, the package can't see React Router's
-// state and buckets every visit under "Unknown" in the dashboard, which
-// makes per-route slicing of LCP/INP/CLS impossible.
-//
-// We pass `route` as the route *pattern* (e.g. `/user/:userId`) rather
-// than the literal pathname so visits to `/user/abc` and `/user/xyz`
-// aggregate into one row instead of one-per-userId. Only one dynamic
-// segment exists in the route table today — keep this normalizer in sync
-// if more are added (see AnimatedRoutes above).
-const SpeedInsightsRouted = () => {
-  const location = useLocation();
-  let route = location.pathname;
-  if (route.startsWith("/user/")) route = "/user/:userId";
-  return <SpeedInsights route={route} />;
-};
 
 const SessionManager = () => {
   // Idle sign-out is DISABLED (pre-launch testing — it was logging testers

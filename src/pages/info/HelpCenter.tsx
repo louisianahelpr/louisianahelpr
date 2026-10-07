@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import FaqRow from "@/components/marketing/FaqRow";
 // The card that closes every legal policy tab. Shared, not copied, so the
@@ -275,6 +276,16 @@ const HelpCenter = () => {
               tabs use it for their revision date, and the Help Center has no
               equivalent fact to put there. */}
           <PolicyFooter cta />
+          {/* Owner, 2026-10-07 (Q1028): "Report a bug" opens the support form on
+              "Something's not working", which attaches the screen, route,
+              device, build and recent errors. /support, not the Profile tab:
+              this page is public, and /support serves guests and members. */}
+          <p className="text-center text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+            Something not working?{" "}
+            <Link to="/support?topic=report" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+              Report a bug
+            </Link>
+          </p>
         </div>
       </section>
     </PublicHeaderPage>

@@ -93,6 +93,13 @@ CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid, reason text, 
 CREATE TABLE public.user_violations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, violation_type text, job_id uuid, description text);
 CREATE TABLE public.job_accept_pending (job_id uuid, helper_id uuid);
 CREATE TABLE public.error_logs (severity text, message text, tags jsonb, context jsonb);
+-- Q1390 ledger (20261007073145), as live: block_user_and_settle writes a slotted
+-- member's fee here; a slotless member's fee stays owed by hand.
+CREATE TABLE public.crew_block_fees (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid,
+  slot_no integer NOT NULL CHECK (slot_no >= 0), share_basis_cents integer NOT NULL, fee_percent integer NOT NULL,
+  fee_cents integer NOT NULL CHECK (fee_cents > 0), status text NOT NULL DEFAULT 'owed', stripe_transfer_id text,
+  failure_reason text, created_at timestamptz NOT NULL DEFAULT now(), paid_at timestamptz,
+  CONSTRAINT crew_block_fees_one_per_slot UNIQUE (job_id, slot_no));
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON public.group_job_helpers TO authenticated;
 
@@ -195,9 +202,26 @@ check("the first-hired slotless member's fee is slot 0's share's fee",
   owed1 === expected1 && owed1 !== expected,
   `owed=${owed1} expected=${expected1} result=${JSON.stringify(r1?.r)} alert=${alert1?.message}`);
 
+// Q1390 survives this restatement (lead, 2026-10-07): the lane's first version
+// restated an older body and dropped the crew_block_fees ledger. A SLOTTED
+// member blocked 10 hours out still gets exactly one ledger row on their slot,
+// and the result reports the fee as block_fee (not owed by hand). Passes on
+// live (--before) too; it fails only on a restatement that loses Q1390.
+await seed("10 hours");
+await db.exec("RESET ROLE; DELETE FROM public.crew_block_fees;");
+await as(POSTER);
+const r2 = await one(`SELECT public.block_user_and_settle('${M2}', NULL) AS r`).catch((e) => ({ r: { error: e.message } }));
+await db.exec("RESET ROLE");
+const ledger = (await db.query(`SELECT helper_id, slot_no, fee_cents FROM public.crew_block_fees WHERE job_id = '${CREW}'`)).rows;
+const settled2 = (r2?.r?.settled ?? [])[0] ?? {};
+check("a slotted member's block still writes one crew_block_fees row on their slot and reports block_fee (Q1390 kept)",
+  ledger.length === 1 && ledger[0].helper_id === M2 && Number(ledger[0].slot_no) === 1 && Number(ledger[0].fee_cents) > 0
+    && Number(settled2.block_fee) > 0 && Number(settled2.fee_owed_by_hand ?? 0) === 0,
+  `ledger=${JSON.stringify(ledger)} result=${JSON.stringify(r2?.r)}`);
+
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 if (BEFORE) {
-  console.log(failures === 2 ? "RED as expected (2/3: both fee checks)" : `NOT RED: ${failures}/3 failed`);
+  console.log(failures === 2 ? "RED as expected (2/4: both slotless fee checks; the Q1390 check passes on live)" : `NOT RED: ${failures}/4 failed`);
   process.exit(failures === 2 ? 0 : 1);
 }
 process.exit(failures ? 1 : 0);

@@ -3,9 +3,16 @@
 -- at $0 (crew_slot_share_cents(..., slot_no NULL) = 0), where poster_cancel_job
 -- falls back to the share by hire order. Only legacy rows have no slot (on prod
 -- the seed crew def709bf's 2 rows). The crew loop now reads the hire-order slot
--- for such a row. Restated from the LIVE definition (pg_get_functiondef
--- 2026-10-07; body equal to the newest, 20261006015121) with only a fee_slot_no column added
--- for the fee (slot_no itself stays raw); grants as live (authenticated + service_role).
+-- for such a row as fee_slot_no and prices the fee from it.
+--
+-- Restated (2026-10-07, lead) from the NEWEST definition, 20261007073145
+-- (Q1390 crew_block_fees ledger), equal to live pg_get_functiondef on
+-- 2026-10-07, with only those two edits. The lane's first version restated the
+-- older 20261006015121 body and would have dropped Q1390's ledger insert, the
+-- "no spots left" admin alert and the block_fee result field. slot_no stays raw:
+-- a slotless row's fee is still owed by hand (fee_owed_by_hand), never written
+-- to the ledger under a hire-order number another member may hold.
+-- Grants as live: authenticated + service_role.
 
 CREATE OR REPLACE FUNCTION public.block_user_and_settle(p_blocked uuid, p_reason text DEFAULT NULL::text)
  RETURNS jsonb
@@ -164,13 +171,9 @@ BEGIN
            j.status::text AS status, j.helpers_needed,
            g.id AS slot_id, g.helper_id AS member, g.helper_confirmed_at AS member_confirmed_at,
            g.share_cents, g.slot_no,
-           -- Q1380: a roster row from before slots existed has no slot_no; it
-           -- is priced on its would-be slot in hire order, as poster_cancel_job
-           -- prices it (row_number over joined_at, id), not on slot NULL ($0).
-           -- A SEPARATE column: slot_no stays the raw value, so code that asks
-           -- "is this a legacy slotless row?" (slot_no IS NULL) keeps its answer
-           -- (lh-money-escrow review of Q1380, finding 1: Q1390's crew fee
-           -- ledger keys on it).
+           -- Q1380: a legacy SLOTLESS roster row is priced at its hire-order
+           -- slot (as poster_cancel_job does); slot_no itself stays raw, so a
+           -- slotless row still gets no crew_block_fees ledger row below.
            COALESCE(g.slot_no, (
              SELECT (r.rn - 1)::integer FROM (
                SELECT g2.id, row_number() OVER (ORDER BY g2.joined_at NULLS LAST, g2.id) AS rn
@@ -263,9 +266,25 @@ BEGIN
         );
       END IF;
 
-      IF v_member_fee > 0 THEN
-        -- Owner 2026-10-05: settled by hand for now (no path pays one member's
-        -- fee while the crew carries on).
+      IF v_member_fee > 0 AND v_crew.slot_no IS NOT NULL THEN
+        -- Q1390 (owner 2026-10-07, (a)): the fee is paid from THIS job's
+        -- escrow when it settles, out of this spot's share, and the spot stays
+        -- closed (crew_spots_open, open_jobs_browse and accept_group_application
+        -- count it as taken). _shared/crewBlockFees.ts pays the row;
+        -- money-reconciliation reads it. A repeat block cannot price it twice.
+        INSERT INTO public.crew_block_fees (job_id, helper_id, slot_no, share_basis_cents, fee_percent, fee_cents)
+        VALUES (v_crew.id, v_crew.member, v_crew.slot_no, COALESCE(v_basis, 0)::int, v_percent,
+                round(COALESCE(v_basis, 0) * v_percent / 100.0)::int)
+        ON CONFLICT (job_id, slot_no) DO NOTHING;
+        INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+        VALUES (v_user, 'Crew spot closed',
+                format('You blocked a crew member close to the start of "%s". Their $%s cancellation fee comes out of that spot''s $%s share, and the spot stays closed. The rest of that share comes back to you when the job is done.',
+                       COALESCE(v_crew.title, 'your job'), to_char(v_member_fee, 'FM999999990.00'),
+                       to_char(COALESCE(v_basis, 0) / 100.0, 'FM999999990.00')),
+                'payment', '/posts?job=' || v_crew.id::text, v_crew.id);
+      ELSIF v_member_fee > 0 THEN
+        -- A roster row from before the slots existed (Q1380) has no slot to
+        -- close and no frozen share: still settled by hand.
         INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
         SELECT r.user_id,
                'Crew block: fee owed by hand',
@@ -298,7 +317,23 @@ BEGIN
     SELECT count(*) INTO v_remaining FROM public.group_job_helpers g WHERE g.job_id = v_crew.id;
     -- Q1378 (owner 2026-10-05): the rest of the crew carries on; only a
     -- crew with nobody left reopens (see helper_cancel_booking).
-    IF v_crew.status = 'accepted' AND v_remaining = 0 THEN
+    IF v_remaining = 0
+       AND COALESCE(v_crew.helpers_needed, 1)
+           <= (SELECT count(*) FROM public.crew_block_fees b WHERE b.job_id = v_crew.id) THEN
+      -- Q1390: every spot is closed by a block, so nobody can ever do the
+      -- job and nothing reopens it. A person cancels it (the poster is then
+      -- refunded less the block fees, which void-cancelled-payments pays).
+      INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+      SELECT r.user_id,
+             'Crew job has no spots left',
+             format('"%s": every spot on this crew was closed by a block with a fee, so nobody is left to do it. Cancel the job: whoever posted it is refunded less the block fees, which are paid to the members they blocked.',
+                    COALESCE(v_crew.title, 'A job')),
+             'admin_alert',
+             '/admin?view=jobs&job=' || v_crew.id::text,
+             v_crew.id
+        FROM public.user_roles r
+       WHERE r.role = 'admin';
+    ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN
       UPDATE public.jobs SET status = 'open' WHERE id = v_crew.id;
     END IF;
     PERFORM set_config('app.trusted_ladder_write', 'off', true);
@@ -308,7 +343,10 @@ BEGIN
       INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
       -- lh-money-escrow review #2: a member owed a late fee is told so.
       VALUES (v_crew.member, 'You''re off this crew',
-              CASE WHEN v_member_fee > 0 THEN
+              CASE WHEN v_member_fee > 0 AND v_crew.slot_no IS NOT NULL THEN
+                format('You''re no longer on the crew for "%s". Because this was close to the start, you''re owed a $%s cancellation fee, paid to you from the job''s payment when the job settles.',
+                       COALESCE(v_crew.title, 'a job'), to_char(v_member_fee, 'FM999999990.00'))
+              WHEN v_member_fee > 0 THEN
                 format('You''re no longer on the crew for "%s". Because this was close to the start, you''re owed a $%s cancellation fee; our team will send it to you.',
                        COALESCE(v_crew.title, 'a job'), to_char(v_member_fee, 'FM999999990.00'))
               ELSE format('You''re no longer on the crew for "%s".', COALESCE(v_crew.title, 'a job')) END,
@@ -327,7 +365,9 @@ BEGIN
 
     v_settled := v_settled || jsonb_build_object(
       'job_id', v_crew.id, 'title', v_crew.title, 'crew', true, 'action', 'member_left',
-      'fee_owed_by_hand', v_member_fee, 'fee_percent', v_percent);
+      'block_fee', CASE WHEN v_crew.slot_no IS NOT NULL THEN v_member_fee ELSE 0 END,
+      'fee_owed_by_hand', CASE WHEN v_crew.slot_no IS NULL THEN v_member_fee ELSE 0 END,
+      'fee_percent', v_percent);
   END LOOP;
 
   -- ADDED 2026-09-24 (Q345): what is still PENDING between the two closes too.
@@ -372,7 +412,6 @@ BEGIN
   );
 END;
 $function$;
-
 
 REVOKE ALL ON FUNCTION public.block_user_and_settle(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.block_user_and_settle(uuid, text) TO authenticated, service_role;
